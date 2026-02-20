@@ -1,0 +1,145 @@
+<view class="page">
+  <view class="hero-card card">
+    <view class="hero-row">
+      <view class="hero-left">
+        <view class="h-title">羽毛球轮转赛</view>
+        <view class="h-sub">群聊分享直达赛事；观赛可见实时排名，加入后可录入成绩</view>
+        <view class="h-badges">
+          <text class="h-badge">分享进群</text>
+          <text class="h-badge">观赛实时排名</text>
+          <text class="h-badge">可选加入参赛</text>
+        </view>
+      </view>
+      <button class="btn btn-primary btn-create" bindtap="goCreate">创建赛事</button>
+    </view>
+  </view>
+
+  <!-- 进行中 -->
+  <view class="section">
+    <view class="section-hd">
+      <view class="section-title">进行中</view>
+      <text class="count">{{ongoing.length}} 个</text>
+    </view>
+    <block wx:if="{{ongoing.length}}">
+      <block wx:for="{{ongoing}}" wx:key="_id">
+        <view class="swipe-row card" data-list="ongoing" data-idx="{{index}}" data-id="{{item._id}}"
+          bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd">
+          <view class="swipe-actions">
+            <view class="del-btn" catchtap="onDeleteTap" data-id="{{item._id}}">删除</view>
+          </view>
+          <view class="swipe-content" style="transform: translateX({{item._offset}}rpx);" catchtap="onCardTap" data-id="{{item._id}}">
+            <view class="t-card">
+              <view class="row">
+                <view class="flex-1 minw0">
+                  <view class="t-title ellipsis">{{item.name || '未命名赛事'}}</view>
+                </view>
+                <view class="badge {{item.statusClass}}">{{item.statusLabel}}</view>
+              </view>
+              <view class="t-stats">
+                <text class="pill">{{item.playersCount}}人</text>
+                <text class="pill">{{item.matchProgressText}}</text>
+              </view>
+              <view class="t-time muted small">更新 {{item.updatedAtText}}</view>
+            </view>
+          </view>
+        </view>
+      </block>
+    </block>
+    <view wx:else class="empty">暂无进行中的赛事</view>
+  </view>
+
+  <!-- 草稿 -->
+  <view class="section">
+    <view class="section-hd">
+      <view class="section-title">草稿</view>
+      <text class="count">{{drafts.length}} 个</text>
+    </view>
+    <block wx:if="{{drafts.length}}">
+      <block wx:for="{{drafts}}" wx:key="_id">
+        <view class="swipe-row card" data-list="drafts" data-idx="{{index}}" data-id="{{item._id}}"
+          bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd">
+          <view class="swipe-actions">
+            <view class="del-btn" catchtap="onDeleteTap" data-id="{{item._id}}">删除</view>
+          </view>
+          <view class="swipe-content" style="transform: translateX({{item._offset}}rpx);" catchtap="onCardTap" data-id="{{item._id}}">
+            <view class="t-card">
+              <view class="row">
+                <view class="flex-1 minw0">
+                  <view class="t-title ellipsis">{{item.name || '未命名赛事'}}</view>
+                </view>
+                <view class="badge {{item.statusClass}}">{{item.statusLabel}}</view>
+              </view>
+              <view class="t-stats">
+                <text class="pill">{{item.playersCount}}人</text>
+                <text class="pill">{{item.matchProgressText}}</text>
+              </view>
+              <view class="t-time muted small">更新 {{item.updatedAtText}}</view>
+            </view>
+          </view>
+        </view>
+      </block>
+    </block>
+    <view wx:else class="empty">暂无草稿</view>
+  </view>
+
+  <!-- 已结束 -->
+  <view class="section">
+    <view class="section-hd">
+      <view class="section-title">已结束</view>
+      <text class="count">{{finished.length}} 个</text>
+    </view>
+    <block wx:if="{{finished.length}}">
+      <block wx:for="{{finished}}" wx:key="_id">
+        <view class="swipe-row card" data-list="finished" data-idx="{{index}}" data-id="{{item._id}}"
+          bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd">
+          <view class="swipe-actions">
+            <view class="del-btn" catchtap="onDeleteTap" data-id="{{item._id}}">删除</view>
+          </view>
+          <view class="swipe-content" style="transform: translateX({{item._offset}}rpx);" catchtap="onCardTap" data-id="{{item._id}}">
+            <view class="t-card">
+              <view class="row">
+                <view class="flex-1 minw0">
+                  <view class="t-title ellipsis">{{item.name || '未命名赛事'}}</view>
+                </view>
+                <view class="badge {{item.statusClass}}">{{item.statusLabel}}</view>
+              </view>
+              <view class="t-stats">
+                <text class="pill">{{item.playersCount}}人</text>
+                <text class="pill">{{item.matchProgressText}}</text>
+              </view>
+              <view class="t-time muted small">更新 {{item.updatedAtText}}</view>
+            </view>
+          </view>
+        </view>
+      </block>
+    </block>
+    <view wx:else class="empty">暂无历史赛事</view>
+  </view>
+
+  <!-- 已移除/其他（本机有记录，但云端找不到） -->
+  <view class="section" wx:if="{{unknown.length}}">
+    <view class="section-hd">
+      <view class="section-title">已移除</view>
+      <text class="count">{{unknown.length}} 个</text>
+    </view>
+    <block wx:for="{{unknown}}" wx:key="_id">
+      <view class="swipe-row card" data-list="unknown" data-idx="{{index}}" data-id="{{item._id}}"
+        bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd">
+        <view class="swipe-actions">
+          <view class="del-btn" catchtap="onDeleteTap" data-id="{{item._id}}">删除</view>
+        </view>
+        <view class="swipe-content" style="transform: translateX({{item._offset}}rpx);" catchtap="onCardTap" data-id="{{item._id}}">
+          <view class="t-card">
+            <view class="row">
+              <view class="flex-1 minw0">
+                <view class="t-title ellipsis">{{item.name || '赛事已移除'}}</view>
+              </view>
+              <view class="badge {{item.statusClass}}">{{item.statusLabel}}</view>
+            </view>
+            <view class="t-time muted small">可左滑删除本机记录</view>
+          </view>
+        </view>
+      </view>
+    </block>
+  </view>
+</view>

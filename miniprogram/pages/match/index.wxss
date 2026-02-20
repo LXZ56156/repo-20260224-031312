@@ -1,0 +1,29 @@
+.match-vs {
+  font-size: 32rpx;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #111827;
+}
+
+.vs {
+  margin: 0 10rpx;
+  color: #6B7280;
+  font-weight: 700;
+}
+
+.tiny {
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: #6B7280;
+}
+
+.score-box {
+  margin-top: 10rpx;
+  padding: 20rpx 24rpx;
+  border-radius: 18rpx;
+  background: #F9FAFB;
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #111827;
+  text-align: center;
+}

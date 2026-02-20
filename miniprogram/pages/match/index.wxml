@@ -1,0 +1,70 @@
+<view class="container safe-bottom" wx:if="{{match}}">
+  <view class="hero">
+    <view class="row">
+      <view>
+        <view class="hero-title">第{{roundIndex + 1}}轮 · 第{{matchIndex + 1}}场</view>
+        <view class="hero-sub">{{tournamentName}}</view>
+      </view>
+      <view class="tag" wx:if="{{match.status==='finished'}}">已完赛</view>
+      <view class="tag" wx:else>待录分</view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view style="font-weight:700">本场对阵</view>
+    <view style="height:12rpx"></view>
+    <view class="match-vs">{{pair1Text}} <text class="vs">vs</text> {{pair2Text}}</view>
+    <view class="muted small" wx:if="{{!pair1Text || !pair2Text}}">提示：若为空，请返回大厅重新开赛生成赛程，或检查参赛者昵称。</view>
+  </view>
+
+  <view class="card">
+    <view class="row">
+      <view style="font-weight:700">比分</view>
+      <text class="muted">默认 21 分制</text>
+    </view>
+    <view style="height:16rpx"></view>
+    <!-- 观众只展示分数，不渲染 input，避免开发者工具/模拟器出现 disabled input 不刷新或显示空值的情况 -->
+    <view wx:if="{{!canEdit}}">
+      <view class="row">
+        <view style="width:48%">
+          <view class="muted small">左侧得分</view>
+          <view class="tiny" wx:if="{{pair1Text}}">{{pair1Text}}</view>
+          <view class="score-box">{{scoreA || '-'}}</view>
+        </view>
+        <view style="width:48%">
+          <view class="muted small">右侧得分</view>
+          <view class="tiny" wx:if="{{pair2Text}}">{{pair2Text}}</view>
+          <view class="score-box">{{scoreB || '-'}}</view>
+        </view>
+      </view>
+      <view style="height:16rpx"></view>
+      <view class="muted">仅管理员/裁判可录入比分。</view>
+    </view>
+
+    <view wx:else>
+      <view class="row">
+        <view style="width:48%">
+          <view class="muted small">左侧得分</view>
+          <view class="tiny" wx:if="{{pair1Text}}">{{pair1Text}}</view>
+          <input class="input" type="number" value="{{scoreA}}" bindinput="onScoreA" />
+        </view>
+        <view style="width:48%">
+          <view class="muted small">右侧得分</view>
+          <view class="tiny" wx:if="{{pair2Text}}">{{pair2Text}}</view>
+          <input class="input" type="number" value="{{scoreB}}" bindinput="onScoreB" />
+        </view>
+      </view>
+      <view style="height:16rpx"></view>
+      <button class="btn btn-primary" bindtap="submit">提交比分</button>
+    </view>
+    <view style="height:16rpx"></view>
+  </view>
+
+  <button class="btn btn-ghost" bindtap="goBack">返回</button>
+</view>
+
+<view class="container safe-bottom" wx:else>
+  <view class="card">
+    <view style="font-weight:700">加载中...</view>
+  </view>
+</view>

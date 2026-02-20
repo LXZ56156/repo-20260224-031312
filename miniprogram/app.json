@@ -1,0 +1,21 @@
+{
+  "pages": [
+    "pages/home/index",
+    "pages/create/index",
+    "pages/lobby/index",
+    "pages/schedule/index",
+    "pages/match/index",
+    "pages/ranking/index",
+    "pages/settings/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "羽毛球轮转赛",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F6F7FB",
+    "backgroundTextStyle": "light",
+    "enablePullDownRefresh": false
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

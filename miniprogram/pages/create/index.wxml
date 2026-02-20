@@ -1,0 +1,32 @@
+<view class="container safe-bottom">
+  <view class="hero">
+    <view class="hero-title">创建赛事</view>
+    <view class="hero-sub">开赛后赛程锁定；赛程一次性生成完整对阵表</view>
+  </view>
+
+  <view class="card">
+    <view style="font-weight:700">基本信息</view>
+    <view style="height:16rpx"></view>
+    <input class="input" placeholder="赛事名称（例如：轮转赛）" bindinput="onName" value="{{name}}" />
+    <view style="height:16rpx"></view>
+    <!-- 昵称填写能力：type="nickname" 聚焦时键盘上方提供“一键填入微信昵称” -->
+    <input class="input" type="nickname" placeholder="你的昵称（可选）" bindinput="onNick" value="{{nickname}}" focus="{{focusNick}}" />
+
+    <view style="height:16rpx"></view>
+    <view class="profile-row">
+      <image class="avatar-img" src="{{avatarDisplay}}" mode="aspectFill"></image>
+      <view class="flex-1 minw0" style="margin-left:16rpx;">
+        <view class="profile-actions">
+          <button class="btn-mini" bindtap="focusNickInput">填入微信昵称</button>
+          <button class="btn-mini" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">选择头像</button>
+        </view>
+        <view class="muted small" style="margin-top:8rpx;">昵称：点输入框可一键填入微信昵称；头像：点“选择头像”可用微信头像或自选图片。</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 比赛参数已移至“赛事设置”中填写 -->
+
+  <button class="btn btn-primary" bindtap="handleCreate">创建并进入</button>
+  <button class="btn btn-ghost" bindtap="goBack">返回</button>
+</view>

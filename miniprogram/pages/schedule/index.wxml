@@ -1,0 +1,38 @@
+<view class="container safe-bottom" wx:if="{{tournament}}">
+  <view class="hero">
+    <view class="row">
+      <view>
+        <view class="hero-title">赛程</view>
+        <view class="hero-sub">{{tournament.name}}</view>
+      </view>
+      <view class="tag {{statusClass}}">{{statusText}}</view>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{!roundsUi.length}}">
+    <view style="font-weight:700">暂无赛程</view>
+    <view class="muted small">请在赛事大厅由管理员“开赛并锁定赛程”后生成。</view>
+  </view>
+
+  <view class="round-card" wx:for="{{roundsUi}}" wx:key="roundIndex">
+    <view class="round-header">
+      <view class="round-title">第{{item.roundIndex + 1}}轮</view>
+      <text class="muted small">{{item.matchesUi.length}} 场</text>
+    </view>
+
+    <view class="match-card" wx:for="{{item.matchesUi}}" wx:for-item="m" wx:key="key" data-round="{{m.roundIndex}}" data-match="{{m.matchIndex}}" bindtap="openMatch">
+      <view class="match-left">
+        <view class="match-title">{{m.title}}</view>
+        <view class="match-sub">{{m.left}} <text class="vs">vs</text> {{m.right}}</view>
+        <view class="score" wx:if="{{m.scoreText}}">比分：{{m.scoreText}}</view>
+      </view>
+      <view class="match-right">
+        <view class="pill {{m.statusClass}}">{{m.statusText}}</view>
+      </view>
+    </view>
+
+    <view class="rest" wx:if="{{item.restText}}">
+      <text class="muted small">{{item.restText}}</text>
+    </view>
+  </view>
+</view>

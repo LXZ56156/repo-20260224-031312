@@ -1,0 +1,31 @@
+<view class="container safe-bottom" wx:if="{{tournament}}">
+  <view class="hero">
+    <view class="hero-title">实时排名</view>
+    <view class="hero-sub">{{tournament.name}}</view>
+  </view>
+
+  <view class="card" wx:if="{{rankings.length===0}}">
+    <view style="font-weight:700">暂无数据</view>
+    <view class="muted">开赛并录入比分后会自动计算胜场与净胜分。</view>
+  </view>
+
+  <view class="card" wx:for="{{rankings}}" wx:for-item="r" wx:for-index="idx" wx:key="rankKey">
+    <view class="row">
+      <view style="display:flex;align-items:center">
+        <view class="rank-badge">{{idx + 1}}</view>
+        <view>
+          <view style="font-weight:700">{{r.name}}</view>
+          <view class="muted small">胜{{r.wins}} 负{{r.losses}} · 出场{{r.played}}</view>
+        </view>
+      </view>
+      <view style="text-align:right">
+        <view style="font-weight:700">净胜 {{r.pointDiff}}</view>
+        <view class="muted small">得{{r.pointsFor}} 失{{r.pointsAgainst}}</view>
+      </view>
+    </view>
+  </view>
+</view>
+
+<view class="container safe-bottom" wx:else>
+  <view class="card"><view style="font-weight:700">加载中...</view></view>
+</view>

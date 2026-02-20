@@ -1,0 +1,148 @@
+<view class="container safe-bottom" wx:if="{{tournament}}">
+  <view class="hero">
+    <view class="row">
+      <view class="flex-1">
+        <view class="hero-title ellipsis">{{tournament.name}}</view>
+        <view class="hero-sub">双打轮转 · 默认21分制 · 排名：胜场+净胜分</view>
+      </view>
+      <view class="tag {{statusClass}}">{{statusText}}</view>
+    </view>
+
+    <view class="hero-meta">
+      <view class="meta-pill meta-referee {{refereeId ? 'on' : 'off'}}">
+        <text class="meta-label">裁判</text>
+        <text class="meta-value">{{refereeName}}</text>
+        <text class="meta-badge" wx:if="{{isReferee}}">你是裁判</text>
+        <text class="meta-badge" wx:elif="{{!refereeId}}">待设置</text>
+      </view>
+      <view class="meta-pill meta-admin" wx:if="{{isAdmin}}">管理员</view>
+      <view class="meta-pill meta-player" wx:if="{{myJoined}}">已参赛</view>
+    </view>
+
+    <view class="kpi">
+      <view class="kpi-item">
+        <view class="kpi-label">人数</view>
+        <view class="kpi-value">{{kpiPlayers}}</view>
+      </view>
+      <view class="kpi-item">
+        <view class="kpi-label">总场次</view>
+        <view class="kpi-value">{{kpiMatches}}</view>
+      </view>
+      <view class="kpi-item">
+        <view class="kpi-label">每轮最多</view>
+        <view class="kpi-value">{{kpiCourts}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="section-title">比赛信息</view>
+    <view class="info-row">
+      <text class="info-label">赛制</text>
+      <text class="info-value">双打轮转</text>
+    </view>
+    <view class="info-row">
+      <text class="info-label">计分</text>
+      <text class="info-value">默认21分制 · 一局定胜负</text>
+    </view>
+    <view class="info-row">
+      <text class="info-label">场次</text>
+      <text class="info-value">{{matchInfoText}}</text>
+    </view>
+    <view class="info-row">
+      <text class="info-label">排名</text>
+      <text class="info-value">胜场优先，净胜分次之</text>
+    </view>
+    <view class="info-row" wx:if="{{tournament.createdAt}}">
+      <text class="info-label">创建</text>
+      <text class="info-value ellipsis">{{createdAtText}}</text>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="row">
+      <view class="section-title">参赛名单</view>
+      <view class="row-right">
+        <text class="muted">{{tournament.players.length}} 人</text>
+        <button class="link-btn" wx:if="{{tournament.players.length>12}}" bindtap="togglePlayers">{{showAllPlayers?'收起':'展开'}}</button>
+      </view>
+    </view>
+    <view class="player-grid" wx:if="{{displayPlayers.length}}">
+      <view class="player-cell" wx:for="{{displayPlayers}}" wx:key="id" data-name="{{item.name}}" bindtap="onTapPlayerName">
+        <view class="player-avatar {{item.colorClass}}">
+          <image class="player-avatar-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill"></image>
+          <text class="player-initial" wx:else>{{item.initial}}</text>
+        </view>
+        <view class="player-name ellipsis">{{item.name}}</view>
+      </view>
+    </view>
+
+    <view class="muted small" style="margin-top:12rpx;">分享进入默认观赛；仅草稿阶段可加入参赛。</view>
+  </view>
+
+  <!-- 未参赛：加入入口（草稿阶段） -->
+  <view class="card" wx:if="{{showJoin}}">
+    <view class="section-title">加入比赛（可选）</view>
+    <view class="profile-col">
+      <image class="avatar-img profile-avatar" src="{{joinAvatarDisplay}}" mode="aspectFill"></image>
+      <input class="input profile-input" type="nickname" placeholder="昵称（可选）" value="{{nickname}}" bindinput="onNick" focus="{{focusJoinNick}}" />
+      <view class="profile-actions profile-actions-center">
+        <button class="btn-mini" bindtap="focusJoinNickInput">填入微信昵称</button>
+        <button class="btn-mini" open-type="chooseAvatar" bindchooseavatar="onChooseAvatarForJoin">选择头像</button>
+      </view>
+    </view>
+    <button class="btn btn-primary" bindtap="handleJoin">加入参赛</button>
+  </view>
+
+  <!-- 已参赛：我的信息（草稿阶段可改） -->
+  <view class="card" wx:if="{{showMyProfile}}">
+    <view class="section-title">我的信息（可选）</view>
+    <view class="muted small" style="margin-bottom:12rpx;">用于在参赛名单中展示；可随时修改。</view>
+    <view class="profile-col">
+      <image class="avatar-img profile-avatar" src="{{myAvatarDisplay}}" mode="aspectFill"></image>
+      <input class="input profile-input" type="nickname" placeholder="我的昵称" value="{{myNickname}}" bindinput="onMyNick" focus="{{focusMyNick}}" />
+      <view class="profile-actions profile-actions-center">
+        <button class="btn-mini" bindtap="focusMyNickInput">填入微信昵称</button>
+        <button class="btn-mini" open-type="chooseAvatar" bindchooseavatar="onChooseAvatarForMe">选择头像</button>
+      </view>
+    </view>
+    <button class="btn btn-primary" bindtap="saveMyProfile">保存我的信息</button>
+  </view>
+
+  <view class="card">
+    <view class="section-title">观赛入口</view>
+    <view class="btn-row">
+      <button class="btn btn-ghost" bindtap="goSchedule">查看赛程</button>
+      <button class="btn btn-ghost" bindtap="goRanking">查看排名</button>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{isAdmin}}">
+    <view class="section-title">管理员操作</view>
+
+    <view class="checklist" wx:if="{{tournament.status==='draft'}}">
+      <view class="check-row">
+        <text class="check-dot {{checkPlayersOk?'ok':''}}"></text>
+        <text class="check-text">参赛者≥4</text>
+      </view>
+      <view class="check-row">
+        <text class="check-dot {{checkSettingsOk?'ok':''}}"></text>
+        <text class="check-text">已保存比赛参数</text>
+      </view>
+      <view class="muted small" style="margin-top:8rpx;">满足以上条件才能开赛。</view>
+    </view>
+
+    <view style="height:12rpx;"></view>
+    <button class="btn btn-ghost" open-type="share">分享到群</button>
+    <button class="btn btn-ghost" bindtap="goSettings">赛事设置</button>
+    <button class="btn btn-primary" bindtap="handleStart" wx:if="{{tournament.status==='draft'}}" disabled="{{startDisabled}}">开赛并锁定赛程</button>
+    <button class="btn btn-danger" bindtap="handleReset">重置回草稿</button>
+  </view>
+</view>
+
+<view class="container" wx:else>
+  <view class="card">
+    <view style="font-weight:700">加载中...</view>
+    <view class="muted">若一直加载，请确认分享链接有效且数据库允许读取。</view>
+  </view>
+</view>
