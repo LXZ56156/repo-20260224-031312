@@ -50,6 +50,11 @@ function statusClass(s) {
 Page({
   data: {
     loading: false,
+    loadError: false,
+    showOnboarding: false,
+    networkOffline: false,
+    canRetryAction: false,
+    lastFailedActionText: '',
     ongoing: [],
     drafts: [],
     finished: [],
@@ -61,6 +66,22 @@ Page({
     const sys = wx.getSystemInfoSync();
     this._winWidth = sys.windowWidth || 375;
     this._delWidthRpx = 160; // 与 wxss 中一致
+
+    const app = getApp();
+    this.setData({
+      networkOffline: !!(app && app.globalData && app.globalData.networkOffline),
+      showOnboarding: !storage.isOnboardingDone()
+    });
+    if (app && typeof app.subscribeNetworkChange === 'function') {
+      this._offNetwork = app.subscribeNetworkChange((offline) => {
+        this.setData({ networkOffline: !!offline });
+      });
+    }
+  },
+
+  onUnload() {
+    if (typeof this._offNetwork === 'function') this._offNetwork();
+    this._offNetwork = null;
   },
 
   onShow() {
@@ -71,11 +92,38 @@ Page({
     this.loadRecents().finally(() => wx.stopPullDownRefresh());
   },
 
+  onRetry() {
+    this.loadRecents();
+  },
+
+  dismissOnboarding() {
+    storage.setOnboardingDone(true);
+    this.setData({ showOnboarding: false });
+  },
+
+  setLastFailedAction(text, fn) {
+    this._lastFailedAction = typeof fn === 'function' ? fn : null;
+    this.setData({
+      canRetryAction: !!this._lastFailedAction,
+      lastFailedActionText: String(text || '').trim() || '上次操作失败，可重试'
+    });
+  },
+
+  clearLastFailedAction() {
+    this._lastFailedAction = null;
+    this.setData({ canRetryAction: false, lastFailedActionText: '' });
+  },
+
+  retryLastAction() {
+    if (typeof this._lastFailedAction === 'function') this._lastFailedAction();
+  },
+
   async loadRecents() {
-    this.setData({ loading: true });
+    this.setData({ loading: true, loadError: false });
     const ids = storage.getRecentTournamentIds();
     if (!ids.length) {
-      this.setData({ loading: false, ongoing: [], drafts: [], finished: [], unknown: [] });
+      this.setData({ loading: false, loadError: false, ongoing: [], drafts: [], finished: [], unknown: [] });
+      this.clearLastFailedAction();
       return;
     }
 
@@ -89,7 +137,7 @@ Page({
     } catch (e) {
       // 数据库未初始化 / 权限问题
       wx.showToast({ title: '读取赛事记录失败', icon: 'none' });
-      this.setData({ loading: false });
+      this.setData({ loading: false, loadError: true });
       return;
     }
 
@@ -157,10 +205,12 @@ Page({
     }
 
     this._closeAllSwipe();
-    this.setData({ loading: false, ongoing, drafts, finished, unknown });
+    this.setData({ loading: false, loadError: false, ongoing, drafts, finished, unknown });
+    this.clearLastFailedAction();
   },
 
   goCreate() {
+    if (this.data.showOnboarding) this.dismissOnboarding();
     wx.navigateTo({ url: '/pages/create/index' });
   },
 
@@ -168,6 +218,43 @@ Page({
     const id = e.currentTarget.dataset.id;
     if (!id) return;
     wx.navigateTo({ url: `/pages/lobby/index?tournamentId=${id}` });
+  },
+
+  async onCloneTap(e) {
+    const sourceTournamentId = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.id) || '').trim();
+    if (!sourceTournamentId) return;
+
+    wx.showLoading({ title: '复制中...' });
+    try {
+      const res = await cloud.call('cloneTournament', { sourceTournamentId });
+      const nextId = String((res && res.tournamentId) || '').trim();
+      if (!nextId) throw new Error('复制失败');
+      wx.hideLoading();
+      this.clearLastFailedAction();
+      storage.addRecentTournamentId(nextId);
+      wx.showToast({ title: '已复制', icon: 'success' });
+      wx.navigateTo({ url: `/pages/lobby/index?tournamentId=${nextId}` });
+    } catch (err) {
+      wx.hideLoading();
+      this.setLastFailedAction('复制草稿', () => this.onCloneTap({ currentTarget: { dataset: { id: sourceTournamentId } } }));
+      this.handleWriteError(err, '复制失败', () => this.loadRecents());
+    }
+  },
+
+  handleWriteError(err, fallbackMessage, onRefresh) {
+    const parsed = cloud.parseCloudError(err, fallbackMessage);
+    if (parsed.isConflict) {
+      wx.showModal({
+        title: '写入冲突',
+        content: '数据已被其他人更新，是否立即刷新列表后重试？',
+        confirmText: '刷新',
+        success: (res) => {
+          if (res.confirm && typeof onRefresh === 'function') onRefresh();
+        }
+      });
+      return;
+    }
+    wx.showToast({ title: parsed.userMessage || fallbackMessage, icon: 'none' });
   },
 
   // ===== Swipe delete =====
@@ -312,6 +399,7 @@ Page({
         const tapIndex = res.tapIndex;
         if (tapIndex === 0) {
           storage.removeRecentTournamentId(id);
+          this.clearLastFailedAction();
           this.loadRecents();
           return;
         }
@@ -327,12 +415,14 @@ Page({
               try {
                 await cloud.call('deleteTournament', { tournamentId: id });
                 wx.hideLoading();
+                this.clearLastFailedAction();
                 storage.removeRecentTournamentId(id);
                 await this.loadRecents();
                 wx.showToast({ title: '已删除', icon: 'success' });
               } catch (err) {
                 wx.hideLoading();
-                wx.showToast({ title: '删除失败', icon: 'none' });
+                this.setLastFailedAction('删除云端赛事', () => this.onDeleteTap({ currentTarget: { dataset: { id } } }));
+                this.handleWriteError(err, '删除失败', () => this.loadRecents());
               }
             }
           });

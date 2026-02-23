@@ -75,6 +75,10 @@ const removeRecentTournamentId = (id) => {
   set(RECENT_TOURNAMENTS_KEY, ids);
 };
 
+const ONBOARDING_V1_KEY = 'onboarding.v1.done';
+const isOnboardingDone = () => get(ONBOARDING_V1_KEY, false) === true;
+const setOnboardingDone = (done = true) => set(ONBOARDING_V1_KEY, !!done);
+
 module.exports = {
   get,
   set,
@@ -86,4 +90,6 @@ module.exports = {
   getRecentTournamentIds,
   addRecentTournamentId,
   removeRecentTournamentId,
+  isOnboardingDone,
+  setOnboardingDone,
 };

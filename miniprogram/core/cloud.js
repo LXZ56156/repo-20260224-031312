@@ -3,6 +3,34 @@ function normalizeErrMsg(err) {
   return (err.errMsg || err.message || String(err));
 }
 
+function stripCloudPrefix(msg) {
+  return String(msg || '').replace(/^cloud\.call:fail\s*/i, '').trim();
+}
+
+function parseCloudError(err, fallbackMessage = '操作失败') {
+  const rawMessage = normalizeErrMsg(err);
+  const cleaned = stripCloudPrefix(rawMessage);
+  const low = cleaned.toLowerCase();
+  const isConflict = (
+    cleaned.includes('写入冲突') ||
+    low.includes('version') ||
+    low.includes('conflict')
+  );
+  const isNetwork = (
+    low.includes('network') ||
+    low.includes('timeout') ||
+    low.includes('fail to connect') ||
+    cleaned.includes('网络')
+  );
+
+  return {
+    isConflict,
+    isNetwork,
+    rawMessage,
+    userMessage: cleaned || fallbackMessage
+  };
+}
+
 function showDevHint(title, content) {
   // 仅在开发阶段提示更友好；线上同样不影响功能。
   try {
@@ -34,13 +62,10 @@ function call(name, data = {}) {
           '数据库集合不存在',
           '缺少 tournaments 集合。解决：云开发控制台 → 数据库 → 创建集合 tournaments（读权限允许，写入走云函数）。'
         );
-      } else if (msg.includes('写入冲突') || msg.includes('version')) {
-        // 乐观锁冲突
-        showDevHint('写入冲突', '多人同时操作导致版本冲突，请返回大厅下拉刷新后重试。');
       }
 
       throw err;
     });
 }
 
-module.exports = { call };
+module.exports = { call, parseCloudError };

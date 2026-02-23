@@ -1,70 +1,82 @@
-<view class="container safe-bottom" wx:if="{{match}}">
+<view class="container safe-bottom match-page" wx:if="{{match}}">
+  <view class="offline-banner" wx:if="{{networkOffline}}">当前网络不可用，提交可能失败</view>
+
   <view class="hero">
-    <view class="row">
+    <view class="row hero-head">
       <view>
         <view class="hero-title">第{{roundIndex + 1}}轮 · 第{{matchIndex + 1}}场</view>
         <view class="hero-sub">{{tournamentName}}</view>
       </view>
-      <view class="tag" wx:if="{{match.status==='finished'}}">已完赛</view>
-      <view class="tag" wx:else>待录分</view>
+      <view class="tag">{{match.status==='finished' ? '已完赛' : '待录分'}}</view>
+    </view>
+    <view class="batch-badge" wx:if="{{batchMode}}">批量录分模式</view>
+    <view class="batch-switch" wx:if="{{batchMode}}">
+      <text class="muted small">自动跳到下一场</text>
+      <switch color="#1ea65e" checked="{{autoNext}}" bindchange="onToggleAutoNext" />
     </view>
   </view>
 
-  <view class="card">
-    <view style="font-weight:700">本场对阵</view>
-    <view style="height:12rpx"></view>
+  <view class="card panel">
+    <view class="section-title">本场对阵</view>
     <view class="match-vs">{{pair1Text}} <text class="vs">vs</text> {{pair2Text}}</view>
     <view class="muted small" wx:if="{{!pair1Text || !pair2Text}}">提示：若为空，请返回大厅重新开赛生成赛程，或检查参赛者昵称。</view>
   </view>
 
-  <view class="card">
-    <view class="row">
-      <view style="font-weight:700">比分</view>
-      <text class="muted">默认 21 分制</text>
-    </view>
-    <view style="height:16rpx"></view>
-    <!-- 观众只展示分数，不渲染 input，避免开发者工具/模拟器出现 disabled input 不刷新或显示空值的情况 -->
-    <view wx:if="{{!canEdit}}">
-      <view class="row">
-        <view style="width:48%">
-          <view class="muted small">左侧得分</view>
-          <view class="tiny" wx:if="{{pair1Text}}">{{pair1Text}}</view>
-          <view class="score-box">{{scoreA || '-'}}</view>
-        </view>
-        <view style="width:48%">
-          <view class="muted small">右侧得分</view>
-          <view class="tiny" wx:if="{{pair2Text}}">{{pair2Text}}</view>
-          <view class="score-box">{{scoreB || '-'}}</view>
-        </view>
-      </view>
-      <view style="height:16rpx"></view>
-      <view class="muted">仅管理员/裁判可录入比分。</view>
+  <view class="card panel">
+    <view class="row row-top">
+      <view class="section-title">比分录入</view>
+      <text class="muted small">默认 21 分制</text>
     </view>
 
-    <view wx:else>
-      <view class="row">
-        <view style="width:48%">
-          <view class="muted small">左侧得分</view>
-          <view class="tiny" wx:if="{{pair1Text}}">{{pair1Text}}</view>
-          <input class="input" type="number" value="{{scoreA}}" bindinput="onScoreA" />
-        </view>
-        <view style="width:48%">
-          <view class="muted small">右侧得分</view>
-          <view class="tiny" wx:if="{{pair2Text}}">{{pair2Text}}</view>
-          <input class="input" type="number" value="{{scoreB}}" bindinput="onScoreB" />
-        </view>
+    <view class="score-row" wx:if="{{!canEdit}}">
+      <view class="score-col">
+        <view class="muted small">左侧得分</view>
+        <view class="tiny" wx:if="{{pair1Text}}">{{pair1Text}}</view>
+        <view class="score-box">{{scoreA || '-'}}</view>
       </view>
-      <view style="height:16rpx"></view>
-      <button class="btn btn-primary" bindtap="submit">提交比分</button>
+      <view class="score-col">
+        <view class="muted small">右侧得分</view>
+        <view class="tiny" wx:if="{{pair2Text}}">{{pair2Text}}</view>
+        <view class="score-box">{{scoreB || '-'}}</view>
+      </view>
     </view>
-    <view style="height:16rpx"></view>
+    <view class="muted score-tip" wx:if="{{!canEdit}}">仅管理员/裁判可录入比分。</view>
+
+    <view class="score-row" wx:else>
+      <view class="score-col">
+        <view class="muted small">左侧得分</view>
+        <view class="tiny" wx:if="{{pair1Text}}">{{pair1Text}}</view>
+        <input class="input" type="number" value="{{scoreA}}" bindinput="onScoreA" />
+      </view>
+      <view class="score-col">
+        <view class="muted small">右侧得分</view>
+        <view class="tiny" wx:if="{{pair2Text}}">{{pair2Text}}</view>
+        <input class="input" type="number" value="{{scoreB}}" bindinput="onScoreB" />
+      </view>
+    </view>
+    <button class="btn btn-primary" wx:if="{{canEdit}}" bindtap="submit">{{batchMode && autoNext ? '提交并录下一场' : '提交比分'}}</button>
+  </view>
+
+  <view class="retry-box panel-soft" wx:if="{{canRetryAction}}">
+    <view class="muted small">{{lastFailedActionText}}</view>
+    <button class="btn btn-subtle btn-sm" bindtap="retryLastAction">重试提交</button>
   </view>
 
   <button class="btn btn-ghost" bindtap="goBack">返回</button>
 </view>
 
-<view class="container safe-bottom" wx:else>
-  <view class="card">
-    <view style="font-weight:700">加载中...</view>
+<view class="container safe-bottom match-page" wx:elif="{{loadError}}">
+  <view class="card panel">
+    <view class="state-title">加载失败</view>
+    <view class="muted">请检查网络后重试。</view>
+    <button class="btn btn-subtle" bindtap="onRetry">重新加载</button>
+    <button class="btn btn-ghost" bindtap="goBack">返回上一页</button>
+  </view>
+</view>
+
+<view class="container safe-bottom match-page" wx:else>
+  <view class="card panel">
+    <view class="state-title">加载中...</view>
+    <view class="muted">正在同步比赛数据。</view>
   </view>
 </view>

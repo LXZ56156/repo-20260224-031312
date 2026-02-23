@@ -2,6 +2,7 @@ const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
+const common = require('./lib/common');
 
 function uniqNames(names) {
   const seen = new Set();
@@ -28,37 +29,38 @@ exports.main = async (event) => {
   if (!tournamentId) throw new Error('缺少 tournamentId');
   if (!Array.isArray(names) || names.length === 0) throw new Error('缺少 names');
 
-  return await db.runTransaction(async (transaction) => {
-    const docRes = await transaction.collection('tournaments').doc(tournamentId).get();
-    const t = docRes.data;
-    if (!t) throw new Error('赛事不存在');
-    if (t.creatorId !== OPENID) throw new Error('无权限');
-    if (t.status !== 'draft') throw new Error('非草稿阶段不可导入');
-    const oldVersion = Number(t.version) || 1;
+  try {
+    return await db.runTransaction(async (transaction) => {
+      const docRes = await transaction.collection('tournaments').doc(tournamentId).get();
+      const t = common.assertTournamentExists(docRes.data);
+      common.assertCreator(t, OPENID);
+      common.assertDraft(t, '非草稿阶段不可导入');
+      const oldVersion = Number(t.version) || 1;
 
-    const players = Array.isArray(t.players) ? t.players.slice() : [];
-    const existingNames = new Set(players.map(p => String(p.name || '').trim().toLowerCase()));
+      const players = Array.isArray(t.players) ? t.players.slice() : [];
+      const existingNames = new Set(players.map(p => String(p.name || '').trim().toLowerCase()));
 
-    const toAdd = [];
-    for (let i = 0; i < names.length; i++) {
-      const n = names[i];
-      const key = n.toLowerCase();
-      if (existingNames.has(key)) continue;
-      existingNames.add(key);
-      toAdd.push({ id: makeId(i), name: n, type: 'guest' });
-    }
-    if (toAdd.length === 0) return { ok: true, added: 0 };
-
-    const updRes = await transaction.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({
-      data: {
-        players: players.concat(toAdd),
-        updatedAt: db.serverDate(),
-        version: _.inc(1)
+      const toAdd = [];
+      for (let i = 0; i < names.length; i++) {
+        const n = names[i];
+        const key = n.toLowerCase();
+        if (existingNames.has(key)) continue;
+        existingNames.add(key);
+        toAdd.push({ id: makeId(i), name: n, type: 'guest' });
       }
+      if (toAdd.length === 0) return { ok: true, added: 0 };
+
+      const updRes = await transaction.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({
+        data: {
+          players: players.concat(toAdd),
+          updatedAt: db.serverDate(),
+          version: _.inc(1)
+        }
+      });
+      common.assertOptimisticUpdate(updRes, '写入冲突，请重试');
+      return { ok: true, added: toAdd.length };
     });
-    if (!updRes || !updRes.stats || updRes.stats.updated === 0) {
-      throw new Error('写入冲突，请重试');
-    }
-    return { ok: true, added: toAdd.length };
-  });
+  } catch (err) {
+    throw common.normalizeConflictError(err, '添加失败');
+  }
 };

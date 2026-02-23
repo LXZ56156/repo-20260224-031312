@@ -1,4 +1,4 @@
-<view class="container safe-bottom" wx:if="{{tournament}}">
+<view class="container safe-bottom schedule-page" wx:if="{{tournament}}">
   <view class="hero">
     <view class="row">
       <view>
@@ -7,14 +7,19 @@
       </view>
       <view class="tag {{statusClass}}">{{statusText}}</view>
     </view>
+    <view class="hero-actions" wx:if="{{statusText==='进行中' || statusText==='已结束'}}">
+      <button class="btn btn-subtle btn-sm hero-btn" wx:if="{{statusText==='进行中' && canEditScore && hasPending}}" bindtap="goBatchScoring">批量录分</button>
+      <button class="btn btn-subtle btn-sm hero-btn" wx:if="{{statusText==='已结束'}}" bindtap="goAnalytics">赛事复盘</button>
+    </view>
   </view>
 
-  <view class="card" wx:if="{{!roundsUi.length}}">
-    <view style="font-weight:700">暂无赛程</view>
+  <view class="card panel panel-soft state-card" wx:if="{{!roundsUi.length}}">
+    <view class="state-title">暂无赛程</view>
     <view class="muted small">请在赛事大厅由管理员“开赛并锁定赛程”后生成。</view>
+    <button class="btn btn-subtle btn-sm state-btn" bindtap="goLobby">返回大厅</button>
   </view>
 
-  <view class="round-card" wx:for="{{roundsUi}}" wx:key="roundIndex">
+  <view class="round-card panel" wx:for="{{roundsUi}}" wx:key="roundIndex">
     <view class="round-header">
       <view class="round-title">第{{item.roundIndex + 1}}轮</view>
       <text class="muted small">{{item.matchesUi.length}} 场</text>
@@ -34,5 +39,20 @@
     <view class="rest" wx:if="{{item.restText}}">
       <text class="muted small">{{item.restText}}</text>
     </view>
+  </view>
+</view>
+
+<view class="container safe-bottom schedule-page" wx:elif="{{loadError}}">
+  <view class="card panel state-card">
+    <view class="state-title">加载失败</view>
+    <view class="muted">请检查网络后重试。</view>
+    <button class="btn btn-subtle" bindtap="onRetry">重新加载</button>
+  </view>
+</view>
+
+<view class="container safe-bottom schedule-page" wx:else>
+  <view class="card panel state-card">
+    <view class="state-title">加载中...</view>
+    <view class="muted">正在同步最新赛程。</view>
   </view>
 </view>

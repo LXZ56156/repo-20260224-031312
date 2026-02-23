@@ -3,7 +3,8 @@ const auth = require('./core/auth');
 App({
   globalData: {
     openid: '',
-    currentTournamentId: ''
+    currentTournamentId: '',
+    networkOffline: false
   },
 
   async onLaunch() {
@@ -23,5 +24,33 @@ App({
     } catch (e) {
       console.error('登录失败', e);
     }
+
+    this._networkListeners = [];
+    wx.getNetworkType({
+      success: (res) => {
+        this.globalData.networkOffline = res.networkType === 'none';
+      }
+    });
+    wx.onNetworkStatusChange((res) => {
+      this.globalData.networkOffline = !res.isConnected;
+      const listeners = Array.isArray(this._networkListeners) ? this._networkListeners.slice() : [];
+      for (const fn of listeners) {
+        if (typeof fn !== 'function') continue;
+        try {
+          fn(this.globalData.networkOffline);
+        } catch (err) {
+          console.error('network listener failed', err);
+        }
+      }
+    });
+  },
+
+  subscribeNetworkChange(fn) {
+    if (typeof fn !== 'function') return () => {};
+    this._networkListeners = Array.isArray(this._networkListeners) ? this._networkListeners : [];
+    this._networkListeners.push(fn);
+    return () => {
+      this._networkListeners = (this._networkListeners || []).filter((x) => x !== fn);
+    };
   }
 });

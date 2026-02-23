@@ -1,24 +1,45 @@
-<view class="page">
-  <view class="hero-card card">
-    <view class="hero-row">
-      <view class="hero-left">
+<view class="page home-page" wx:if="{{!loadError}}">
+  <view class="offline-banner" wx:if="{{networkOffline}}">当前网络不可用，写入操作可能失败</view>
+
+  <view class="onboarding card panel reveal reveal-1" wx:if="{{showOnboarding}}">
+    <view class="section-head">
+      <view class="section-title">3 步完成首场赛事</view>
+      <text class="count-pill">新手引导</text>
+    </view>
+    <view class="guide-step"><text class="guide-index">1</text><text class="guide-text">创建赛事并预设参数</text></view>
+    <view class="guide-step"><text class="guide-index">2</text><text class="guide-text">导入参赛者并完成开赛检查</text></view>
+    <view class="guide-step"><text class="guide-index">3</text><text class="guide-text">开赛后直接批量录分，自动更新排名</text></view>
+    <view class="btn-row onboarding-actions">
+      <button class="btn btn-primary" bindtap="goCreate">开始创建</button>
+      <button class="btn btn-subtle" bindtap="dismissOnboarding">稍后再看</button>
+    </view>
+  </view>
+
+  <view class="hero-card card panel-strong reveal reveal-2">
+    <view class="hero-grid">
+      <view class="hero-main">
+        <view class="h-kicker">赛事中枢</view>
         <view class="h-title">羽毛球轮转赛</view>
-        <view class="h-sub">群聊分享直达赛事；观赛可见实时排名，加入后可录入成绩</view>
+        <view class="h-sub">群聊分享直达赛事；观赛可见实时排名，加入后可录入成绩。</view>
         <view class="h-badges">
           <text class="h-badge">分享进群</text>
           <text class="h-badge">观赛实时排名</text>
           <text class="h-badge">可选加入参赛</text>
         </view>
       </view>
-      <button class="btn btn-primary btn-create" bindtap="goCreate">创建赛事</button>
+      <view class="hero-cta">
+        <button class="btn btn-primary btn-create" bindtap="goCreate">创建赛事</button>
+        <view class="hero-tip">新建后可直接分享到群</view>
+      </view>
     </view>
   </view>
 
-  <!-- 进行中 -->
-  <view class="section">
-    <view class="section-hd">
+  <view class="empty panel-soft" wx:if="{{loading && !ongoing.length && !drafts.length && !finished.length && !unknown.length}}">加载中...</view>
+
+  <view class="section reveal reveal-3">
+    <view class="section-head">
       <view class="section-title">进行中</view>
-      <text class="count">{{ongoing.length}} 个</text>
+      <text class="count-pill">{{ongoing.length}} 个</text>
     </view>
     <block wx:if="{{ongoing.length}}">
       <block wx:for="{{ongoing}}" wx:key="_id">
@@ -27,9 +48,9 @@
           <view class="swipe-actions">
             <view class="del-btn" catchtap="onDeleteTap" data-id="{{item._id}}">删除</view>
           </view>
-          <view class="swipe-content" style="transform: translateX({{item._offset}}rpx);" catchtap="onCardTap" data-id="{{item._id}}">
+          <view class="swipe-content tone-{{item.status}}" style="transform: translateX({{item._offset}}rpx);" catchtap="onCardTap" data-id="{{item._id}}">
             <view class="t-card">
-              <view class="row">
+              <view class="row t-top">
                 <view class="flex-1 minw0">
                   <view class="t-title ellipsis">{{item.name || '未命名赛事'}}</view>
                 </view>
@@ -45,14 +66,16 @@
         </view>
       </block>
     </block>
-    <view wx:else class="empty">暂无进行中的赛事</view>
+    <view wx:else class="empty panel-soft section-empty">
+      <view class="empty-text">暂无进行中的赛事</view>
+      <button class="btn btn-subtle btn-sm" bindtap="goCreate">创建并开赛</button>
+    </view>
   </view>
 
-  <!-- 草稿 -->
-  <view class="section">
-    <view class="section-hd">
+  <view class="section reveal reveal-4">
+    <view class="section-head">
       <view class="section-title">草稿</view>
-      <text class="count">{{drafts.length}} 个</text>
+      <text class="count-pill">{{drafts.length}} 个</text>
     </view>
     <block wx:if="{{drafts.length}}">
       <block wx:for="{{drafts}}" wx:key="_id">
@@ -61,9 +84,9 @@
           <view class="swipe-actions">
             <view class="del-btn" catchtap="onDeleteTap" data-id="{{item._id}}">删除</view>
           </view>
-          <view class="swipe-content" style="transform: translateX({{item._offset}}rpx);" catchtap="onCardTap" data-id="{{item._id}}">
+          <view class="swipe-content tone-{{item.status}}" style="transform: translateX({{item._offset}}rpx);" catchtap="onCardTap" data-id="{{item._id}}">
             <view class="t-card">
-              <view class="row">
+              <view class="row t-top">
                 <view class="flex-1 minw0">
                   <view class="t-title ellipsis">{{item.name || '未命名赛事'}}</view>
                 </view>
@@ -74,19 +97,24 @@
                 <text class="pill">{{item.matchProgressText}}</text>
               </view>
               <view class="t-time muted small">更新 {{item.updatedAtText}}</view>
+              <view class="t-actions">
+                <button class="t-copy-btn" catchtap="onCloneTap" data-id="{{item._id}}">复制草稿</button>
+              </view>
             </view>
           </view>
         </view>
       </block>
     </block>
-    <view wx:else class="empty">暂无草稿</view>
+    <view wx:else class="empty panel-soft section-empty">
+      <view class="empty-text">暂无草稿</view>
+      <button class="btn btn-subtle btn-sm" bindtap="goCreate">创建草稿</button>
+    </view>
   </view>
 
-  <!-- 已结束 -->
-  <view class="section">
-    <view class="section-hd">
+  <view class="section reveal reveal-5">
+    <view class="section-head">
       <view class="section-title">已结束</view>
-      <text class="count">{{finished.length}} 个</text>
+      <text class="count-pill">{{finished.length}} 个</text>
     </view>
     <block wx:if="{{finished.length}}">
       <block wx:for="{{finished}}" wx:key="_id">
@@ -95,9 +123,9 @@
           <view class="swipe-actions">
             <view class="del-btn" catchtap="onDeleteTap" data-id="{{item._id}}">删除</view>
           </view>
-          <view class="swipe-content" style="transform: translateX({{item._offset}}rpx);" catchtap="onCardTap" data-id="{{item._id}}">
+          <view class="swipe-content tone-{{item.status}}" style="transform: translateX({{item._offset}}rpx);" catchtap="onCardTap" data-id="{{item._id}}">
             <view class="t-card">
-              <view class="row">
+              <view class="row t-top">
                 <view class="flex-1 minw0">
                   <view class="t-title ellipsis">{{item.name || '未命名赛事'}}</view>
                 </view>
@@ -113,14 +141,16 @@
         </view>
       </block>
     </block>
-    <view wx:else class="empty">暂无历史赛事</view>
+    <view wx:else class="empty panel-soft section-empty">
+      <view class="empty-text">暂无历史赛事</view>
+      <button class="btn btn-subtle btn-sm" bindtap="goCreate">创建新赛事</button>
+    </view>
   </view>
 
-  <!-- 已移除/其他（本机有记录，但云端找不到） -->
-  <view class="section" wx:if="{{unknown.length}}">
-    <view class="section-hd">
+  <view class="section reveal reveal-6" wx:if="{{unknown.length}}">
+    <view class="section-head">
       <view class="section-title">已移除</view>
-      <text class="count">{{unknown.length}} 个</text>
+      <text class="count-pill">{{unknown.length}} 个</text>
     </view>
     <block wx:for="{{unknown}}" wx:key="_id">
       <view class="swipe-row card" data-list="unknown" data-idx="{{index}}" data-id="{{item._id}}"
@@ -128,9 +158,9 @@
         <view class="swipe-actions">
           <view class="del-btn" catchtap="onDeleteTap" data-id="{{item._id}}">删除</view>
         </view>
-        <view class="swipe-content" style="transform: translateX({{item._offset}}rpx);" catchtap="onCardTap" data-id="{{item._id}}">
+        <view class="swipe-content tone-{{item.status}}" style="transform: translateX({{item._offset}}rpx);" catchtap="onCardTap" data-id="{{item._id}}">
           <view class="t-card">
-            <view class="row">
+            <view class="row t-top">
               <view class="flex-1 minw0">
                 <view class="t-title ellipsis">{{item.name || '赛事已移除'}}</view>
               </view>
@@ -141,5 +171,19 @@
         </view>
       </view>
     </block>
+  </view>
+
+  <view class="retry-box panel-soft" wx:if="{{canRetryAction}}">
+    <view class="muted small">{{lastFailedActionText}}</view>
+    <button class="btn btn-subtle btn-sm" bindtap="retryLastAction">重试上次操作</button>
+  </view>
+</view>
+
+<view class="container safe-bottom" wx:else>
+  <view class="card panel">
+    <view class="section-title">加载失败</view>
+    <view class="muted">请检查网络后重试。</view>
+    <button class="btn btn-subtle" bindtap="onRetry">重新加载</button>
+    <button class="btn btn-ghost" bindtap="goCreate">创建赛事</button>
   </view>
 </view>

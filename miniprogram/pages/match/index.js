@@ -1,8 +1,9 @@
-﻿const cloud = require('../../core/cloud');
-const watchUtil = require('../../sync/watch');
+const cloud = require('../../core/cloud');
 const storage = require('../../core/storage');
 const perm = require('../../permission/permission');
 const { normalizeTournament, safePlayerName } = require('../../core/normalize');
+const tournamentSync = require('../../core/tournamentSync');
+const matchFlow = require('../../core/matchFlow');
 
 Page({
   data: {
@@ -17,22 +18,37 @@ Page({
     displayScoreB: '-',
     canEdit: false,
     pair1Text: '',
-    pair2Text: ''
+    pair2Text: '',
+    batchMode: false,
+    autoNext: false,
+    networkOffline: false,
+    canRetryAction: false,
+    lastFailedActionText: '',
+    loadError: false
   },
 
   onLoad(options) {
     const tid = options.tournamentId;
     const roundIndex = Number(options.roundIndex) || 0;
     const matchIndex = Number(options.matchIndex) || 0;
+    const batchMode = Number(options.batch) === 1;
     this.openid = (getApp().globalData.openid || storage.get('openid', ''));
-    this.setData({ tournamentId: tid, roundIndex, matchIndex });
+    this.setData({ tournamentId: tid, roundIndex, matchIndex, batchMode, autoNext: batchMode });
+
+    const app = getApp();
+    this.setData({ networkOffline: !!(app && app.globalData && app.globalData.networkOffline) });
+    if (app && typeof app.subscribeNetworkChange === 'function') {
+      this._offNetwork = app.subscribeNetworkChange((offline) => {
+        this.setData({ networkOffline: !!offline });
+      });
+    }
+
     this.fetchTournament(tid);
     this.startWatch(tid);
   },
 
   onHide() {
-    if (this.watcher && this.watcher.close) this.watcher.close();
-    this.watcher = null;
+    tournamentSync.closeWatcher(this);
   },
 
   onShow() {
@@ -41,34 +57,34 @@ Page({
   },
 
   onUnload() {
-    if (this.watcher && this.watcher.close) this.watcher.close();
-    this.watcher = null;
+    tournamentSync.closeWatcher(this);
+    if (typeof this._offNetwork === 'function') this._offNetwork();
+    this._offNetwork = null;
+  },
+
+  onRetry() {
+    if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
   },
 
   startWatch(tid) {
-    if (!tid) return;
-    if (this.watcher && this.watcher.close) this.watcher.close();
-    this.watcher = watchUtil.watchTournament(tid, (doc) => {
+    tournamentSync.startWatch(this, tid, (doc) => {
       this.applyTournament(doc);
     });
   },
+
   async fetchTournament(tid) {
-    try {
-      const db = wx.cloud.database();
-      const res = await db.collection('tournaments').doc(tid).get();
-      this.applyTournament(res.data);
-    } catch (e) {
-      console.error('fetchTournament failed', e);
-    }
+    const doc = await tournamentSync.fetchTournament(tid, (doc) => {
+      this.applyTournament(doc);
+    });
+    if (!doc) this.setData({ loadError: true });
   },
 
   applyTournament(t) {
     if (!t) return;
 
-    // Normalize to support legacy stored rounds (team arrays may be ids/strings) and ensure names exist.
     const nt = normalizeTournament(t);
     const r = (nt.rounds || [])[this.data.roundIndex];
-    const m0 = r && (r.matches || []).find(x => Number(x.matchIndex) === Number(this.data.matchIndex));
+    const m0 = r && (r.matches || []).find((x) => Number(x.matchIndex) === Number(this.data.matchIndex));
     const canEdit = perm.canEditScore(nt, this.openid);
 
     const extractScorePair = (obj) => {
@@ -76,12 +92,10 @@ Page({
       const pick = (v) => {
         if (v === 0) return '0';
         if (v === null || v === undefined || v === '') return '';
-        // 閬垮厤鎶?teamA/teamB 鏁扮粍 stringify 鎴?"[object Object]" 涔嬬被
         if (Array.isArray(v)) return '';
         const n = Number(v);
         return Number.isFinite(n) ? String(n) : '';
       };
-      // 浼樺厛 legacy 椤跺眰瀛楁锛屽叾娆℃爣鍑?score 瀵硅薄瀛楁
       const aVal = (obj.teamAScore ?? obj.scoreA ?? obj.a ?? obj.left ?? obj.teamA);
       const bVal = (obj.teamBScore ?? obj.scoreB ?? obj.b ?? obj.right ?? obj.teamB);
       return { a: pick(aVal), b: pick(bVal) };
@@ -92,22 +106,20 @@ Page({
     let pair2Text = '';
 
     if (match) {
-      const teamA = (match.teamA || []).map(p => ({ ...p, name: safePlayerName(p) }));
-      const teamB = (match.teamB || []).map(p => ({ ...p, name: safePlayerName(p) }));
+      const teamA = (match.teamA || []).map((p) => ({ ...p, name: safePlayerName(p) }));
+      const teamB = (match.teamB || []).map((p) => ({ ...p, name: safePlayerName(p) }));
       match = { ...match, teamA, teamB };
-      const aNames = teamA.map(p => p.name).filter(Boolean);
-      const bNames = teamB.map(p => p.name).filter(Boolean);
-      pair1Text = aNames.length ? aNames.join(' / ') : '寰呭畾';
-      pair2Text = bNames.length ? bNames.join(' / ') : '寰呭畾';
+      const aNames = teamA.map((p) => p.name).filter(Boolean);
+      const bNames = teamB.map((p) => p.name).filter(Boolean);
+      pair1Text = aNames.length ? aNames.join(' / ') : '待定';
+      pair2Text = bNames.length ? bNames.join(' / ') : '待定';
     }
 
     let scoreA = this.data.scoreA;
     let scoreB = this.data.scoreB;
     if (match) {
-      // Backward鍏煎锛氬巻鍙叉暟鎹彲鑳芥妸姣斿垎鍐欏湪 match 椤跺眰瀛楁锛岃€屼笉鏄?match.score
       const sp = extractScorePair(match.score || match);
       const hasAnyScore = (sp.a !== '' || sp.b !== '');
-      // Avoid showing literal 'undefined' and keep scores synced for viewers.
       const shouldSync = hasAnyScore && ((!canEdit) || (match.status === 'finished') || (scoreA === '' && scoreB === ''));
       if (shouldSync) {
         scoreA = sp.a;
@@ -115,10 +127,11 @@ Page({
       }
     }
 
-    const displayScoreA = (scoreA === "" ? "-" : String(scoreA));
-    const displayScoreB = (scoreB === "" ? "-" : String(scoreB));
+    const displayScoreA = (scoreA === '' ? '-' : String(scoreA));
+    const displayScoreB = (scoreB === '' ? '-' : String(scoreB));
 
     this.setData({
+      loadError: false,
       tournamentName: nt.name,
       match,
       canEdit,
@@ -133,16 +146,88 @@ Page({
 
   onScoreA(e) { this.setData({ scoreA: e.detail.value }); },
   onScoreB(e) { this.setData({ scoreB: e.detail.value }); },
+  onToggleAutoNext(e) {
+    this.setData({ autoNext: !!(e && e.detail && e.detail.value) });
+  },
+
+  setLastFailedAction(text, fn) {
+    this._lastFailedAction = typeof fn === 'function' ? fn : null;
+    this.setData({
+      canRetryAction: !!this._lastFailedAction,
+      lastFailedActionText: String(text || '').trim() || '上次操作失败，可重试'
+    });
+  },
+
+  clearLastFailedAction() {
+    this._lastFailedAction = null;
+    this.setData({ canRetryAction: false, lastFailedActionText: '' });
+  },
+
+  retryLastAction() {
+    if (typeof this._lastFailedAction === 'function') this._lastFailedAction();
+  },
+
+  handleWriteError(err, fallbackMessage, onRefresh) {
+    const parsed = cloud.parseCloudError(err, fallbackMessage);
+    if (parsed.isConflict) {
+      wx.showModal({
+        title: '写入冲突',
+        content: '数据已被其他人更新，是否立即刷新当前比赛？',
+        confirmText: '刷新',
+        success: (res) => {
+          if (res.confirm && typeof onRefresh === 'function') onRefresh();
+        }
+      });
+      return;
+    }
+    wx.showToast({ title: parsed.userMessage || fallbackMessage, icon: 'none' });
+  },
+
+  async jumpToNextPending(tournamentDoc, noPendingMessage) {
+    const nt = normalizeTournament(tournamentDoc || {});
+    const next = matchFlow.findNextPending(nt.rounds, Number(this.data.roundIndex), Number(this.data.matchIndex));
+    if (!next) {
+      wx.showToast({ title: noPendingMessage || '已全部录完', icon: 'none' });
+      setTimeout(() => wx.navigateBack({ delta: 1 }), 500);
+      return;
+    }
+
+    wx.redirectTo({
+      url: `/pages/match/index?tournamentId=${this.data.tournamentId}&roundIndex=${next.roundIndex}&matchIndex=${next.matchIndex}&batch=1`
+    });
+  },
+
+  async refreshTournamentDoc() {
+    const latest = await tournamentSync.fetchTournament(this.data.tournamentId);
+    if (latest) this.applyTournament(latest);
+    return latest;
+  },
+
+  async jumpAfterBatch(noPendingMessage) {
+    const latest = await this.refreshTournamentDoc();
+    if (latest) {
+      await this.jumpToNextPending(latest, noPendingMessage);
+      return true;
+    }
+    wx.showToast({ title: '同步失败，请稍后重试', icon: 'none' });
+    return false;
+  },
 
   async submit() {
     const a = Number(this.data.scoreA);
     const b = Number(this.data.scoreB);
     if (!Number.isFinite(a) || !Number.isFinite(b) || a < 0 || b < 0) {
-      wx.showToast({ title: '璇疯緭鍏ュ悎娉曟瘮鍒?', icon: 'none' });
+      wx.showToast({ title: '请输入合法比分', icon: 'none' });
       return;
     }
 
-    wx.showLoading({ title: '鎻愪氦涓?..' });
+    // 批量录分模式：如果当前场次已被他人录入，直接跳到下一场待录分。
+    if (this.data.batchMode && this.data.match && this.data.match.status === 'finished') {
+      await this.jumpAfterBatch('该场已录入，已跳到下一场');
+      return;
+    }
+
+    wx.showLoading({ title: '提交中...' });
     try {
       await cloud.call('submitScore', {
         tournamentId: this.data.tournamentId,
@@ -151,17 +236,38 @@ Page({
         scoreA: a,
         scoreB: b
       });
-      // 涓€浜涘紑鍙戣€呭伐鍏?妯℃嫙鍣ㄤ笉鏀寔瀹炴椂 watch锛堟垨缃戠粶鎶栧姩锛夛紝鎻愪氦鎴愬姛鍚庡己鍒舵媺鍙栦竴娆★紝纭繚姣斿垎涓庣姸鎬佺珛鍗冲睍绀恒€?      await this.fetchTournament(this.data.tournamentId);
+
+      const latest = await tournamentSync.fetchTournament(this.data.tournamentId);
+      if (latest) this.applyTournament(latest);
+
       wx.hideLoading();
-      wx.showToast({ title: '宸叉彁浜?', icon: 'success' });
+      this.clearLastFailedAction();
+      wx.showToast({ title: '已提交', icon: 'success' });
       getApp().globalData.needRefreshTournament = this.data.tournamentId;
+
+      if (matchFlow.shouldAutoJump(this.data.batchMode, this.data.autoNext)) {
+        setTimeout(() => {
+          this.jumpAfterBatch('已全部录完');
+        }, 300);
+        return;
+      }
+
+      if (this.data.batchMode && !this.data.autoNext) {
+        return;
+      }
+
       setTimeout(() => {
         wx.navigateBack({ delta: 1 });
       }, 600);
-
     } catch (e) {
       wx.hideLoading();
-      wx.showToast({ title: '鎻愪氦澶辫触', icon: 'none' });
+      const parsed = cloud.parseCloudError(e, '提交失败');
+      if (this.data.batchMode && parsed.isConflict) {
+        await this.jumpAfterBatch('该场已录入，已跳到下一场');
+        return;
+      }
+      this.setLastFailedAction('提交比分', () => this.submit());
+      this.handleWriteError(e, '提交失败', () => this.fetchTournament(this.data.tournamentId));
     }
   },
 
@@ -169,5 +275,3 @@ Page({
     wx.navigateBack();
   }
 });
-
-

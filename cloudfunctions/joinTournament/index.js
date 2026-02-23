@@ -3,6 +3,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 
 const db = cloud.database();
 const _ = db.command;
+const common = require('./lib/common');
 
 function normalizeName(name) {
   let s = String(name || '').replace(/[\r\n\t]+/g, ' ').trim();
@@ -36,9 +37,13 @@ exports.main = async (event, context) => {
   if (!tournamentId) return { ok: false, message: '缺少赛事ID' };
 
   const docRes = await db.collection('tournaments').doc(tournamentId).get();
-  const t = docRes.data;
-  if (!t) return { ok: false, message: '赛事不存在' };
-  if (t.status !== 'draft') return { ok: false, message: '非草稿阶段不可加入/修改' };
+  let t;
+  try {
+    t = common.assertTournamentExists(docRes.data);
+    common.assertDraft(t, '非草稿阶段不可加入/修改');
+  } catch (err) {
+    return { ok: false, message: err.message || '加入失败' };
+  }
 
   const players = Array.isArray(t.players) ? t.players : [];
   const idx = players.findIndex(p => p && p.id === openid);
@@ -70,7 +75,9 @@ exports.main = async (event, context) => {
         }
       });
 
-    if (!up.stats || up.stats.updated === 0) {
+    try {
+      common.assertOptimisticUpdate(up, '并发冲突，请重试');
+    } catch (_) {
       return { ok: false, message: '并发冲突，请重试' };
     }
     return { ok: true, updated: true, player: cur };
@@ -88,7 +95,9 @@ exports.main = async (event, context) => {
       }
     });
 
-  if (!res.stats || res.stats.updated === 0) {
+  try {
+    common.assertOptimisticUpdate(res, '并发冲突，请重试');
+  } catch (_) {
     return { ok: false, message: '并发冲突，请重试' };
   }
 

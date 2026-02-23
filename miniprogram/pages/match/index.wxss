@@ -1,29 +1,118 @@
+.match-page {
+  padding-top: 24rpx;
+}
+
+.offline-banner {
+  margin-bottom: 12rpx;
+  padding: 10rpx 14rpx;
+  border-radius: 14rpx;
+  background: #fef3c7;
+  border: 1rpx solid #fcd34d;
+  color: #92400e;
+  font-size: 23rpx;
+}
+
+.hero-head {
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12rpx;
+}
+
+.batch-badge {
+  margin-top: 12rpx;
+  display: inline-flex;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1rpx solid rgba(255, 255, 255, 0.28);
+  font-size: 22rpx;
+}
+
+.batch-switch {
+  margin-top: 12rpx;
+  padding-top: 10rpx;
+  border-top: 1rpx solid rgba(255, 255, 255, 0.28);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 760;
+}
+
 .match-vs {
+  margin-top: 12rpx;
   font-size: 32rpx;
   font-weight: 700;
   line-height: 1.4;
-  color: #111827;
+  color: var(--text-1, #0f172a);
 }
 
 .vs {
   margin: 0 10rpx;
-  color: #6B7280;
+  color: #6b7280;
   font-weight: 700;
+}
+
+.score-row {
+  margin-top: 14rpx;
+  display: flex;
+  gap: 16rpx;
+}
+
+.score-col {
+  width: calc((100% - 16rpx) / 2);
 }
 
 .tiny {
   margin-top: 6rpx;
   font-size: 22rpx;
-  color: #6B7280;
+  color: #6b7280;
+  word-break: break-word;
 }
 
 .score-box {
   margin-top: 10rpx;
   padding: 20rpx 24rpx;
   border-radius: 18rpx;
-  background: #F9FAFB;
+  background: #f9fafb;
+  border: 1rpx solid var(--line-soft, #dbe5ef);
   font-size: 40rpx;
   font-weight: 700;
-  color: #111827;
+  color: var(--text-1, #0f172a);
   text-align: center;
+}
+
+.score-tip {
+  margin-top: 14rpx;
+}
+
+.retry-box {
+  margin-top: 16rpx;
+  padding: 14rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid var(--line-soft, #dbe5ef);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.state-title {
+  font-size: 32rpx;
+  font-weight: 760;
+  margin-bottom: 8rpx;
+}
+
+@media (max-width: 360px) {
+  .score-row {
+    flex-direction: column;
+    gap: 12rpx;
+  }
+
+  .score-col {
+    width: 100%;
+  }
 }

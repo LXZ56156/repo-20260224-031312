@@ -1,5 +1,8 @@
 const channels = {};
 
+const POLL_BASE_MS = 1500;
+const POLL_MAX_MS = 8000;
+
 function msgOf(err) {
   return String((err && (err.message || err.errMsg)) || err || '');
 }
@@ -7,6 +10,20 @@ function msgOf(err) {
 function isRealtimeNotSupported(err) {
   const m = msgOf(err).toLowerCase();
   return m.includes('not support') || m.includes('realtime') || m.includes('reportrealtimeaction');
+}
+
+function classifyWatchError(err) {
+  if (isRealtimeNotSupported(err)) return 'realtime_not_supported';
+  const m = msgOf(err).toLowerCase();
+  if (m.includes('timeout') || m.includes('network') || m.includes('connect')) return 'network';
+  return 'unknown';
+}
+
+function withJitter(ms) {
+  const n = Number(ms) || 0;
+  const span = Math.max(80, Math.floor(n * 0.15));
+  const delta = Math.floor((Math.random() * (span * 2 + 1)) - span);
+  return Math.max(280, n + delta);
 }
 
 function safeCall(fn, arg) {
@@ -28,32 +45,66 @@ function emitError(channel, err) {
   for (const it of listeners) safeCall(it.onError, err);
 }
 
+async function fetchOnce(tournamentId, onData, onError) {
+  try {
+    const db = wx.cloud.database();
+    const res = await db.collection('tournaments').doc(tournamentId).get();
+    const doc = res && res.data;
+    if (doc) onData(doc);
+  } catch (err) {
+    if (onError) onError(err);
+  }
+}
+
 function startPolling(tournamentId, onData, onError) {
   const db = wx.cloud.database();
   let closed = false;
+  let inflight = false;
+  let timer = null;
   let lastVersion = null;
+  let delayMs = POLL_BASE_MS;
 
-  const timer = setInterval(async () => {
+  const scheduleNext = (immediate = false) => {
     if (closed) return;
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+    const wait = immediate ? 0 : withJitter(delayMs);
+    timer = setTimeout(runOnce, wait);
+  };
+
+  const runOnce = async () => {
+    if (closed || inflight) return;
+    inflight = true;
     try {
       const res = await db.collection('tournaments').doc(tournamentId).get();
       const doc = res && res.data;
-      if (!doc) return;
-      // Reduce unnecessary setData: only notify when version changes.
-      const v = doc.version;
-      if (lastVersion === null || v !== lastVersion) {
-        lastVersion = v;
-        onData(doc);
+      if (doc) {
+        const version = doc.version;
+        if (lastVersion === null || version !== lastVersion) {
+          lastVersion = version;
+          onData(doc);
+        }
       }
-    } catch (e) {
-      if (onError) onError(e);
+      delayMs = POLL_BASE_MS;
+    } catch (err) {
+      delayMs = Math.min(POLL_MAX_MS, Math.floor(delayMs * 1.8));
+      if (onError) onError(err);
+    } finally {
+      inflight = false;
+      scheduleNext(false);
     }
-  }, 1500);
+  };
+
+  // 首次订阅立即主动拉取一次，降低首屏等待。
+  scheduleNext(true);
 
   return {
     close() {
       closed = true;
-      clearInterval(timer);
+      if (timer) clearTimeout(timer);
+      timer = null;
     }
   };
 }
@@ -90,8 +141,18 @@ function attachSource(channel, tournamentId) {
   if (!channel || channel.disposed) return;
   const db = wx.cloud.database();
 
-  // Prefer realtime watch; if the runtime does not support it (common in some devtools),
-  // fall back to short polling.
+  fetchOnce(
+    tournamentId,
+    (doc) => { if (!channel.disposed) emitData(channel, doc); },
+    (err) => {
+      if (channel.disposed) return;
+      const type = classifyWatchError(err);
+      console.warn(`[watch:init:${type}]`, err);
+      emitError(channel, err);
+    }
+  );
+
+  // Prefer realtime watch; if runtime does not support it, fallback to polling.
   try {
     let fallback = false;
     const w = db.collection('tournaments').doc(tournamentId).watch({
@@ -102,7 +163,8 @@ function attachSource(channel, tournamentId) {
       },
       onError: (err) => {
         if (channel.disposed) return;
-        console.warn('watch error', err);
+        const type = classifyWatchError(err);
+        console.warn(`[watch:realtime:${type}]`, err);
         if (isRealtimeNotSupported(err)) {
           if (!fallback) {
             fallback = true;
@@ -110,7 +172,12 @@ function attachSource(channel, tournamentId) {
             channel.source = startPolling(
               tournamentId,
               (doc) => { if (!channel.disposed) emitData(channel, doc); },
-              (e) => { if (!channel.disposed) emitError(channel, e); }
+              (e) => {
+                if (channel.disposed) return;
+                const pType = classifyWatchError(e);
+                console.warn(`[watch:poll:${pType}]`, e);
+                emitError(channel, e);
+              }
             );
           }
           return;
@@ -120,11 +187,18 @@ function attachSource(channel, tournamentId) {
     });
 
     channel.source = w;
-  } catch (e) {
+  } catch (err) {
+    const type = classifyWatchError(err);
+    console.warn(`[watch:attach:${type}]`, err);
     channel.source = startPolling(
       tournamentId,
       (doc) => { if (!channel.disposed) emitData(channel, doc); },
-      (err) => { if (!channel.disposed) emitError(channel, err); }
+      (e) => {
+        if (channel.disposed) return;
+        const pType = classifyWatchError(e);
+        console.warn(`[watch:poll:${pType}]`, e);
+        emitError(channel, e);
+      }
     );
   }
 }

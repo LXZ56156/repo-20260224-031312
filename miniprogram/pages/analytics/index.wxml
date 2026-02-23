@@ -1,0 +1,126 @@
+<view class="container safe-bottom analytics-page" wx:if="{{tournament}}">
+  <view class="offline-banner" wx:if="{{networkOffline}}">当前网络不可用，写入操作可能失败</view>
+
+  <view class="hero reveal reveal-1">
+    <view class="hero-title">赛事复盘</view>
+    <view class="hero-sub">{{tournament.name}}</view>
+    <view class="hero-actions">
+      <button class="btn btn-subtle btn-sm" bindtap="goBack">返回</button>
+      <button class="btn btn-secondary btn-sm" bindtap="cloneCurrentTournament">再办一场</button>
+    </view>
+  </view>
+
+  <view class="card panel reveal reveal-2" wx:if="{{summary}}">
+    <view class="section-head">
+      <view class="section-title">总览</view>
+      <text class="count-pill">已完赛 {{summary.finishedMatches}} / {{summary.totalMatches}}</text>
+    </view>
+    <view class="summary-grid">
+      <view class="summary-item">
+        <text class="summary-label">完赛率</text>
+        <text class="summary-value">{{summary.completionRate}}</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-label">总得分</text>
+        <text class="summary-value">{{summary.totalPoints}}</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-label">平均分差</text>
+        <text class="summary-value">{{summary.avgDiff}}</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-label">总场次</text>
+        <text class="summary-value">{{summary.totalMatches}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card panel reveal reveal-3" wx:if="{{top3.length}}">
+    <view class="section-head">
+      <view class="section-title">TOP 3</view>
+      <text class="count-pill">排名摘要</text>
+    </view>
+    <view class="top-list">
+      <view class="top-item" wx:for="{{top3}}" wx:key="playerId">
+        <view class="top-left">
+          <text class="top-rank">{{item.rankLabel}}</text>
+          <text class="top-name">{{item.name}}</text>
+        </view>
+        <view class="top-right">
+          <text class="top-metric">胜{{item.wins}} 负{{item.losses}}</text>
+          <text class="muted small">净胜 {{item.pointDiff}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="card panel reveal reveal-4" wx:if="{{playerStats.length}}">
+    <view class="section-head">
+      <view class="section-title">球员数据</view>
+      <text class="count-pill">{{playerStats.length}} 人</text>
+    </view>
+
+    <view class="stats-head stats-row">
+      <text class="col-name">球员</text>
+      <text class="col-num">胜负</text>
+      <text class="col-num">胜率</text>
+      <text class="col-num">净胜</text>
+    </view>
+    <view class="stats-row" wx:for="{{playerStats}}" wx:key="playerId">
+      <text class="col-name ellipsis">{{item.name}}</text>
+      <text class="col-num">{{item.wins}}/{{item.losses}}</text>
+      <text class="col-num">{{item.winRate}}</text>
+      <text class="col-num">{{item.pointDiff}}</text>
+    </view>
+  </view>
+
+  <view class="card panel reveal reveal-5" wx:if="{{summary && summary.finishedMatches>0}}">
+    <view class="section-head">
+      <view class="section-title">对阵活跃度</view>
+      <text class="count-pill">仅统计完赛场次</text>
+    </view>
+
+    <view class="activity-block" wx:if="{{pairHot.length}}">
+      <view class="activity-title">高频搭档</view>
+      <view class="activity-item" wx:for="{{pairHot}}" wx:key="key">
+        <text class="ellipsis">{{item.label}}</text>
+        <text class="activity-count">{{item.count}} 次</text>
+      </view>
+    </view>
+
+    <view class="activity-block" wx:if="{{duelHot.length}}">
+      <view class="activity-title">高频对阵</view>
+      <view class="activity-item" wx:for="{{duelHot}}" wx:key="key">
+        <text class="ellipsis">{{item.label}}</text>
+        <text class="activity-count">{{item.count}} 次</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card panel panel-soft reveal reveal-5" wx:if="{{summary && summary.finishedMatches===0}}">
+    <view class="empty-title">暂无可复盘数据</view>
+    <view class="muted">完成至少一场比赛后，将显示球员与对阵统计。</view>
+    <button class="btn btn-subtle btn-sm" bindtap="goBack">返回赛程</button>
+  </view>
+
+  <view class="retry-box panel-soft" wx:if="{{canRetryAction}}">
+    <view class="muted small">{{lastFailedActionText}}</view>
+    <button class="btn btn-subtle btn-sm" bindtap="retryLastAction">重试上次操作</button>
+  </view>
+</view>
+
+<view class="container safe-bottom" wx:elif="{{loadError}}">
+  <view class="card panel reveal reveal-1">
+    <view class="empty-title">加载失败</view>
+    <view class="muted">请检查网络后重试。</view>
+    <button class="btn btn-subtle" bindtap="onRetry">重新加载</button>
+    <button class="btn btn-ghost" bindtap="goBack">返回</button>
+  </view>
+</view>
+
+<view class="container safe-bottom" wx:else>
+  <view class="card panel reveal reveal-1">
+    <view class="empty-title">加载中...</view>
+    <view class="muted">正在同步最新赛事数据。</view>
+  </view>
+</view>

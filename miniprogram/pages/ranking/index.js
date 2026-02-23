@@ -1,5 +1,5 @@
-﻿const watchUtil = require('../../sync/watch');
 const normalize = require('../../core/normalize');
+const tournamentSync = require('../../core/tournamentSync');
 
 function normalizeRankings(t) {
   const players = (t.players || []).reduce((m, p) => {
@@ -36,7 +36,8 @@ Page({
   data: {
     tournamentId: '',
     tournament: null,
-    rankings: []
+    rankings: [],
+    loadError: false
   },
 
   onLoad(options) {
@@ -47,8 +48,7 @@ Page({
   },
 
   onHide() {
-    if (this.watcher && this.watcher.close) this.watcher.close();
-    this.watcher = null;
+    tournamentSync.closeWatcher(this);
   },
 
   onShow() {
@@ -58,31 +58,33 @@ Page({
   },
 
   onUnload() {
-    if (this.watcher && this.watcher.close) this.watcher.close();
-    this.watcher = null;
+    tournamentSync.closeWatcher(this);
+  },
+
+  onRetry() {
+    if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
   },
 
   startWatch(tid) {
-    if (!tid) return;
-    if (this.watcher && this.watcher.close) this.watcher.close();
-    this.watcher = watchUtil.watchTournament(tid, (doc) => {
+    tournamentSync.startWatch(this, tid, (doc) => {
       this.applyTournament(doc);
     });
   },
 
   async fetchTournament(tid) {
-    try {
-      const db = wx.cloud.database();
-      const res = await db.collection('tournaments').doc(tid).get();
-      this.applyTournament(res.data);
-    } catch (e) {
-      console.error('fetchTournament failed', e);
-    }
+    const doc = await tournamentSync.fetchTournament(tid, (doc) => {
+      this.applyTournament(doc);
+    });
+    if (!doc) this.setData({ loadError: true });
   },
 
   applyTournament(t) {
     if (!t) return;
     t = normalize.normalizeTournament(t);
-    this.setData({ tournament: t, rankings: normalizeRankings(t) });
+    this.setData({ loadError: false, tournament: t, rankings: normalizeRankings(t) });
+  },
+
+  goSchedule() {
+    wx.navigateTo({ url: `/pages/schedule/index?tournamentId=${this.data.tournamentId}` });
   }
 });

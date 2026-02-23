@@ -6,6 +6,7 @@
     "pages/schedule/index",
     "pages/match/index",
     "pages/ranking/index",
+    "pages/analytics/index",
     "pages/settings/index"
   ],
   "window": {

@@ -1,6 +1,7 @@
 const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
+const common = require('./lib/common');
 
 async function ensureTournamentsCollection() {
   try {
@@ -13,13 +14,9 @@ async function ensureTournamentsCollection() {
 function intOr(v, d, maxV) {
   const n = Number(v);
   if (!Number.isFinite(n)) return d;
-  const nn = Math.max(1, Math.floor(n));
+  const nn = Math.floor(n);
+  if (nn < 1) return d;
   return Number.isFinite(maxV) ? Math.min(nn, maxV) : nn;
-}
-
-function isCollectionNotExists(err) {
-  const msg = String(err && (err.message || err.errMsg || err));
-  return msg.includes('DATABASE_COLLECTION_NOT_EXIST') || msg.includes('collection not exists') || msg.includes('ResourceNotFound') || msg.includes('-502005');
 }
 
 exports.main = async (event) => {
@@ -27,8 +24,11 @@ exports.main = async (event) => {
   const name = String((event && event.name) || '').trim();
   const nickname = String((event && event.nickname) || '').trim();
   const avatar = String((event && (event.avatar || event.avatarUrl)) || '').trim();
+  const presetKey = String((event && event.presetKey) || 'standard').trim().toLowerCase();
+  const totalMatches = intOr(event && event.totalMatches, 0);
+  const courts = intOr(event && event.courts, 0, 10);
+  const settingsConfigured = totalMatches >= 1 && courts >= 1;
   if (!name) throw new Error('赛事名称不能为空');
-  // 创建阶段不设置比赛参数（由“赛事设置”页统一配置）
 
   await ensureTournamentsCollection();
 
@@ -49,10 +49,11 @@ exports.main = async (event) => {
         status: 'draft',
         creatorId: OPENID,
         refereeId: '',
-        // 参数由赛事设置页配置；未配置前不展示默认数字
-        settingsConfigured: false,
-        totalMatches: 0,
-        courts: 0,
+        // 创建页可直接预配置参数；未配置时仍保持草稿态并可后续设置
+        presetKey: ['relax', 'standard', 'intense', 'custom'].includes(presetKey) ? presetKey : 'standard',
+        settingsConfigured,
+        totalMatches: settingsConfigured ? totalMatches : 0,
+        courts: settingsConfigured ? courts : 0,
         rules,
         players: [creatorPlayer],
         rounds: [],
@@ -69,7 +70,7 @@ exports.main = async (event) => {
     });
     return { tournamentId: res._id };
   } catch (err) {
-    if (isCollectionNotExists(err)) {
+    if (common.isCollectionNotExists(err)) {
       throw new Error('数据库集合 tournaments 不存在：请在云开发控制台（数据库 -> 创建集合）创建 tournaments 后再试。');
     }
     throw err;

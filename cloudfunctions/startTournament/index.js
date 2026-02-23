@@ -2,13 +2,10 @@ const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
+const common = require('./lib/common');
 
 const { generateSchedule } = require('./rotation');
-
-function isCollectionNotExists(err) {
-  const msg = String(err && (err.message || err.errMsg || err));
-  return msg.includes('DATABASE_COLLECTION_NOT_EXIST') || msg.includes('collection not exists') || msg.includes('ResourceNotFound') || msg.includes('-502005');
-}
+const { validateBeforeGenerate } = require('./logic');
 
 function safePlayerName(p) {
   const raw = p && (p.name || p.nickname || p.nickName || p.displayName);
@@ -45,13 +42,6 @@ function buildInitialRankings(players) {
   }));
 }
 
-function calcMaxMatches(n) {
-  const nn = Number(n) || 0;
-  if (nn < 4) return 0;
-  const comb4 = (nn * (nn - 1) * (nn - 2) * (nn - 3)) / 24;
-  return Math.floor(comb4 * 3);
-}
-
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
   const tournamentId = String((event && event.tournamentId) || '').trim();
@@ -59,21 +49,15 @@ exports.main = async (event) => {
 
   try {
     const docRes = await db.collection('tournaments').doc(tournamentId).get();
-    const t = docRes.data;
-    if (!t) throw new Error('赛事不存在');
-    if (t.creatorId !== OPENID) throw new Error('无权限');
-    if (t.status !== 'draft') throw new Error('赛事已开赛/已结束');
+    const t = common.assertTournamentExists(docRes.data);
+    common.assertCreator(t, OPENID);
+    common.assertDraft(t, '赛事已开赛/已结束');
     if (t.settingsConfigured === false) throw new Error('请先在“赛事设置”中保存比赛参数');
 
-    const players = Array.isArray(t.players) ? t.players : [];
-    if (players.length < 4) throw new Error('参赛人数不足 4 人');
-    const M = Number(t.totalMatches) || 1;
-    const C = Math.max(1, Math.min(10, Number(t.courts) || 1));
-    if (M < 1) throw new Error('M 必须 >= 1');
-    if (C < 1) throw new Error('C 必须 >= 1');
-
-    const maxMatches = calcMaxMatches(players.length);
-    if (maxMatches > 0 && M > maxMatches) throw new Error(`总场次不能超过最大可选 ${maxMatches} 场`);
+    const checked = validateBeforeGenerate(t);
+    const players = checked.players;
+    const M = checked.totalMatches;
+    const C = checked.courts;
 
     const oldVersion = Number(t.version) || 1;
     const schedule = generateSchedule(players, M, C);
@@ -115,14 +99,12 @@ exports.main = async (event) => {
       }
     });
 
-    if (!updRes || !updRes.stats || updRes.stats.updated === 0) {
-      throw new Error('写入冲突，请刷新赛事后重试');
-    }
+    common.assertOptimisticUpdate(updRes, '写入冲突，请刷新赛事后重试');
     return { ok: true };
   } catch (err) {
-    if (isCollectionNotExists(err)) {
+    if (common.isCollectionNotExists(err)) {
       throw new Error('数据库集合 tournaments 不存在：请在云开发控制台（数据库 -> 创建集合）创建 tournaments 后再试。');
     }
-    throw err;
+    throw common.normalizeConflictError(err, '开赛失败');
   }
 };

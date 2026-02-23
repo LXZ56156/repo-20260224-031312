@@ -1,11 +1,8 @@
-﻿const cloud = require('wx-server-sdk');
+const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
-
-function isCreator(t, openid) {
-  return Boolean(openid) && t && t.creatorId === openid;
-}
+const common = require('./lib/common');
 
 function extractScorePairAny(obj) {
   if (!obj) return { a: NaN, b: NaN };
@@ -103,24 +100,26 @@ exports.main = async (event) => {
   const { tournamentId } = event || {};
   if (!tournamentId) throw new Error('missing tournamentId');
 
-  const docRes = await db.collection('tournaments').doc(tournamentId).get();
-  const t = docRes.data;
-  if (!isCreator(t, OPENID)) throw new Error('no permission');
+  try {
+    const docRes = await db.collection('tournaments').doc(tournamentId).get();
+    const t = common.assertTournamentExists(docRes.data);
+    common.assertCreator(t, OPENID, 'no permission');
 
-  const oldVersion = Number(t.version) || 1;
-  const rankings = computeRankings(t);
-  const updRes = await db.collection('tournaments')
-    .where({ _id: tournamentId, version: oldVersion })
-    .update({
-      data: {
-        rankings,
-        updatedAt: db.serverDate(),
-        version: _.inc(1)
-      }
-    });
+    const oldVersion = Number(t.version) || 1;
+    const rankings = computeRankings(t);
+    const updRes = await db.collection('tournaments')
+      .where({ _id: tournamentId, version: oldVersion })
+      .update({
+        data: {
+          rankings,
+          updatedAt: db.serverDate(),
+          version: _.inc(1)
+        }
+      });
 
-  if (!updRes.stats || updRes.stats.updated === 0) {
-    throw new Error('写入冲突：请刷新后重试');
+    common.assertOptimisticUpdate(updRes, '写入冲突：请刷新后重试');
+    return { ok: true, rankingsCount: rankings.length };
+  } catch (err) {
+    throw common.normalizeConflictError(err, '重算排名失败');
   }
-  return { ok: true, rankingsCount: rankings.length };
 };

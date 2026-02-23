@@ -1,31 +1,43 @@
-<view class="container safe-bottom" wx:if="{{tournament}}">
+<view class="container safe-bottom ranking-page" wx:if="{{tournament}}">
   <view class="hero">
     <view class="hero-title">实时排名</view>
     <view class="hero-sub">{{tournament.name}}</view>
   </view>
 
-  <view class="card" wx:if="{{rankings.length===0}}">
-    <view style="font-weight:700">暂无数据</view>
+  <view class="card panel panel-soft ranking-empty" wx:if="{{rankings.length===0}}">
+    <view class="empty-title">暂无数据</view>
     <view class="muted">开赛并录入比分后会自动计算胜场与净胜分。</view>
+    <button class="btn btn-subtle btn-sm ranking-empty-btn" bindtap="goSchedule">查看赛程</button>
   </view>
 
-  <view class="card" wx:for="{{rankings}}" wx:for-item="r" wx:for-index="idx" wx:key="rankKey">
-    <view class="row">
-      <view style="display:flex;align-items:center">
+  <view class="card panel ranking-card" wx:for="{{rankings}}" wx:for-item="r" wx:for-index="idx" wx:key="rankKey">
+    <view class="ranking-row">
+      <view class="ranking-left">
         <view class="rank-badge">{{idx + 1}}</view>
-        <view>
-          <view style="font-weight:700">{{r.name}}</view>
+        <view class="minw0">
+          <view class="player-title ellipsis">{{r.name}}</view>
           <view class="muted small">胜{{r.wins}} 负{{r.losses}} · 出场{{r.played}}</view>
         </view>
       </view>
-      <view style="text-align:right">
-        <view style="font-weight:700">净胜 {{r.pointDiff}}</view>
+      <view class="ranking-right">
+        <view class="metric-title">净胜 {{r.pointDiff}}</view>
         <view class="muted small">得{{r.pointsFor}} 失{{r.pointsAgainst}}</view>
       </view>
     </view>
   </view>
 </view>
 
-<view class="container safe-bottom" wx:else>
-  <view class="card"><view style="font-weight:700">加载中...</view></view>
+<view class="container safe-bottom ranking-page" wx:elif="{{loadError}}">
+  <view class="card panel">
+    <view class="empty-title">加载失败</view>
+    <view class="muted">请检查网络后重试。</view>
+    <button class="btn btn-subtle" bindtap="onRetry">重新加载</button>
+  </view>
+</view>
+
+<view class="container safe-bottom ranking-page" wx:else>
+  <view class="card panel">
+    <view class="empty-title">加载中...</view>
+    <view class="muted">正在同步实时排名。</view>
+  </view>
 </view>

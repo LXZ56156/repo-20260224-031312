@@ -1,7 +1,9 @@
-<view class="container safe-bottom" wx:if="{{tournament}}">
-  <view class="hero">
-    <view class="row">
-      <view class="flex-1">
+<view class="container safe-bottom lobby-page {{nextActionText ? 'has-next-action' : ''}}" wx:if="{{tournament}}">
+  <view class="offline-banner" wx:if="{{networkOffline}}">当前网络不可用，写入操作可能失败</view>
+
+  <view class="hero reveal reveal-1">
+    <view class="row hero-top">
+      <view class="flex-1 minw0">
         <view class="hero-title ellipsis">{{tournament.name}}</view>
         <view class="hero-sub">双打轮转 · 默认21分制 · 排名：胜场+净胜分</view>
       </view>
@@ -35,8 +37,11 @@
     </view>
   </view>
 
-  <view class="card">
-    <view class="section-title">比赛信息</view>
+  <view class="card panel reveal reveal-2">
+    <view class="section-head">
+      <view class="section-title">比赛信息</view>
+      <text class="count-pill">规则</text>
+    </view>
     <view class="info-row">
       <text class="info-label">赛制</text>
       <text class="info-value">双打轮转</text>
@@ -59,11 +64,11 @@
     </view>
   </view>
 
-  <view class="card">
-    <view class="row">
+  <view class="card panel reveal reveal-3">
+    <view class="section-head">
       <view class="section-title">参赛名单</view>
       <view class="row-right">
-        <text class="muted">{{tournament.players.length}} 人</text>
+        <text class="count-pill">{{tournament.players.length}} 人</text>
         <button class="link-btn" wx:if="{{tournament.players.length>12}}" bindtap="togglePlayers">{{showAllPlayers?'收起':'展开'}}</button>
       </view>
     </view>
@@ -77,12 +82,15 @@
       </view>
     </view>
 
-    <view class="muted small" style="margin-top:12rpx;">分享进入默认观赛；仅草稿阶段可加入参赛。</view>
+    <view class="muted small player-hint">分享进入默认观赛；仅草稿阶段可加入参赛。</view>
   </view>
 
-  <!-- 未参赛：加入入口（草稿阶段） -->
-  <view class="card" wx:if="{{showJoin}}">
-    <view class="section-title">加入比赛（可选）</view>
+  <view class="card panel panel-soft profile-panel reveal reveal-4" wx:if="{{showJoin}}">
+    <view class="section-head">
+      <view class="section-title">加入比赛（可选）</view>
+      <text class="count-pill">草稿可加入</text>
+    </view>
+    <view class="muted small profile-hint">填写昵称和头像后，会展示在参赛名单中。</view>
     <view class="profile-col">
       <image class="avatar-img profile-avatar" src="{{joinAvatarDisplay}}" mode="aspectFill"></image>
       <input class="input profile-input" type="nickname" placeholder="昵称（可选）" value="{{nickname}}" bindinput="onNick" focus="{{focusJoinNick}}" />
@@ -94,10 +102,12 @@
     <button class="btn btn-primary" bindtap="handleJoin">加入参赛</button>
   </view>
 
-  <!-- 已参赛：我的信息（草稿阶段可改） -->
-  <view class="card" wx:if="{{showMyProfile}}">
-    <view class="section-title">我的信息（可选）</view>
-    <view class="muted small" style="margin-bottom:12rpx;">用于在参赛名单中展示；可随时修改。</view>
+  <view class="card panel panel-soft profile-panel reveal reveal-4" wx:if="{{showMyProfile}}">
+    <view class="section-head">
+      <view class="section-title">我的信息（可选）</view>
+      <text class="count-pill">草稿可修改</text>
+    </view>
+    <view class="muted small profile-hint">用于在参赛名单中展示；可随时修改。</view>
     <view class="profile-col">
       <image class="avatar-img profile-avatar" src="{{myAvatarDisplay}}" mode="aspectFill"></image>
       <input class="input profile-input" type="nickname" placeholder="我的昵称" value="{{myNickname}}" bindinput="onMyNick" focus="{{focusMyNick}}" />
@@ -109,40 +119,87 @@
     <button class="btn btn-primary" bindtap="saveMyProfile">保存我的信息</button>
   </view>
 
-  <view class="card">
-    <view class="section-title">观赛入口</view>
-    <view class="btn-row">
-      <button class="btn btn-ghost" bindtap="goSchedule">查看赛程</button>
-      <button class="btn btn-ghost" bindtap="goRanking">查看排名</button>
+  <view class="card panel action-panel reveal reveal-5">
+    <view class="section-head">
+      <view class="section-title">观赛入口</view>
+      <text class="count-pill">即时查看</text>
+    </view>
+    <view class="btn-row action-row">
+      <button class="btn btn-subtle" bindtap="goSchedule">查看赛程</button>
+      <button class="btn btn-subtle" bindtap="goRanking">查看排名</button>
+    </view>
+    <view class="action-row" wx:if="{{tournament.status==='finished'}}">
+      <button class="btn btn-secondary" bindtap="goAnalytics">赛事复盘</button>
     </view>
   </view>
 
-  <view class="card" wx:if="{{isAdmin}}">
-    <view class="section-title">管理员操作</view>
-
-    <view class="checklist" wx:if="{{tournament.status==='draft'}}">
-      <view class="check-row">
-        <text class="check-dot {{checkPlayersOk?'ok':''}}"></text>
-        <text class="check-text">参赛者≥4</text>
-      </view>
-      <view class="check-row">
-        <text class="check-dot {{checkSettingsOk?'ok':''}}"></text>
-        <text class="check-text">已保存比赛参数</text>
-      </view>
-      <view class="muted small" style="margin-top:8rpx;">满足以上条件才能开赛。</view>
+  <view class="card panel admin-panel reveal reveal-6" wx:if="{{isAdmin}}">
+    <view class="section-head">
+      <view class="section-title">管理员操作</view>
+      <text class="count-pill" wx:if="{{tournament.status==='draft'}}">草稿阶段</text>
+      <text class="count-pill" wx:else>进行中</text>
     </view>
 
-    <view style="height:12rpx;"></view>
-    <button class="btn btn-ghost" open-type="share">分享到群</button>
-    <button class="btn btn-ghost" bindtap="goSettings">赛事设置</button>
-    <button class="btn btn-primary" bindtap="handleStart" wx:if="{{tournament.status==='draft'}}" disabled="{{startDisabled}}">开赛并锁定赛程</button>
-    <button class="btn btn-danger" bindtap="handleReset">重置回草稿</button>
+    <view class="checklist panel-soft" wx:if="{{tournament.status==='draft'}}">
+      <view class="check-row check-tappable" data-key="players" bindtap="onChecklistTap">
+        <text class="check-icon {{checkPlayersOk?'ok':''}}">{{checkPlayersOk ? '✓' : '○'}}</text>
+        <text class="check-text">参赛者≥4</text>
+      </view>
+      <view class="check-row check-tappable" data-key="settings" bindtap="onChecklistTap">
+        <text class="check-icon {{checkSettingsOk?'ok':''}}">{{checkSettingsOk ? '✓' : '○'}}</text>
+        <text class="check-text">已保存比赛参数</text>
+      </view>
+      <view class="muted small checklist-hint">点击检查项可快速修复。</view>
+    </view>
+
+    <view class="quick-import panel-soft" wx:if="{{tournament.status==='draft'}}">
+      <view class="quick-import-head">快速导入名单</view>
+      <view class="muted small">支持空格 / 逗号 / 换行分隔；单次最多 60 人。</view>
+      <textarea
+        class="textarea quick-import-input"
+        placeholder="示例：张三 李四,王五\n赵六"
+        value="{{quickImportText}}"
+        focus="{{focusQuickImport}}"
+        bindinput="onQuickImportInput"
+      ></textarea>
+      <view class="btn-row quick-import-actions">
+        <button class="btn btn-primary" bindtap="quickImportPlayers">一键导入</button>
+        <button class="btn btn-ghost" bindtap="onQuickImportClear">清空</button>
+      </view>
+    </view>
+
+    <view class="admin-actions">
+      <view class="btn-row">
+        <button class="btn btn-subtle {{sharePulse ? 'share-pulse' : ''}}" open-type="share">分享到群</button>
+        <button class="btn btn-subtle" bindtap="goSettings">赛事设置</button>
+      </view>
+      <button class="btn btn-primary" bindtap="handleStart" wx:if="{{tournament.status==='draft'}}" disabled="{{startDisabled}}">开赛并锁定赛程</button>
+      <button class="btn btn-danger" bindtap="handleReset">重置回草稿</button>
+    </view>
+  </view>
+
+  <view class="retry-box panel-soft" wx:if="{{canRetryAction}}">
+    <view class="muted small">{{lastFailedActionText}}</view>
+    <button class="btn btn-subtle btn-sm" bindtap="retryLastAction">重试上次操作</button>
+  </view>
+</view>
+
+<view class="container safe-bottom" wx:elif="{{loadError}}">
+  <view class="card panel reveal reveal-1">
+    <view class="loading-title">加载失败</view>
+    <view class="muted">请检查网络或分享链接是否有效。</view>
+    <button class="btn btn-subtle" bindtap="onRetry">重新加载</button>
   </view>
 </view>
 
 <view class="container" wx:else>
-  <view class="card">
-    <view style="font-weight:700">加载中...</view>
+  <view class="card panel reveal reveal-1">
+    <view class="loading-title">加载中...</view>
     <view class="muted">若一直加载，请确认分享链接有效且数据库允许读取。</view>
   </view>
+</view>
+
+<view class="next-action-bar" wx:if="{{tournament && nextActionText}}">
+  <button class="btn btn-primary next-primary" bindtap="onNextActionTap">{{nextActionText}}</button>
+  <button class="btn btn-subtle next-secondary" wx:if="{{nextSecondaryText}}" bindtap="onNextSecondaryTap">{{nextSecondaryText}}</button>
 </view>

@@ -1,32 +1,86 @@
-<view class="container safe-bottom">
-  <view class="hero">
+<view class="container safe-bottom create-page">
+  <view class="offline-banner" wx:if="{{networkOffline}}">当前网络不可用，写入操作可能失败</view>
+
+  <view class="hero create-hero reveal reveal-1">
     <view class="hero-title">创建赛事</view>
-    <view class="hero-sub">开赛后赛程锁定；赛程一次性生成完整对阵表</view>
+    <view class="hero-sub">创建后可直接导入名单并开赛，参数可随时调整</view>
   </view>
 
-  <view class="card">
-    <view style="font-weight:700">基本信息</view>
-    <view style="height:16rpx"></view>
-    <input class="input" placeholder="赛事名称（例如：轮转赛）" bindinput="onName" value="{{name}}" />
-    <view style="height:16rpx"></view>
-    <!-- 昵称填写能力：type="nickname" 聚焦时键盘上方提供“一键填入微信昵称” -->
-    <input class="input" type="nickname" placeholder="你的昵称（可选）" bindinput="onNick" value="{{nickname}}" focus="{{focusNick}}" />
+  <view class="card panel create-panel reveal reveal-2">
+    <view class="section-head">
+      <view class="section-title">基本信息</view>
+      <text class="count-pill">一步创建</text>
+    </view>
 
-    <view style="height:16rpx"></view>
-    <view class="profile-row">
+    <view class="form-block">
+      <view class="field-label">赛事名称</view>
+      <input class="input" placeholder="赛事名称（例如：周末轮转赛）" bindinput="onName" value="{{name}}" />
+    </view>
+
+    <view class="form-block">
+      <view class="field-label">你的昵称（可选）</view>
+      <input class="input" type="nickname" placeholder="你的昵称（可选）" bindinput="onNick" value="{{nickname}}" focus="{{focusNick}}" />
+    </view>
+
+    <view class="profile-row profile-editor">
       <image class="avatar-img" src="{{avatarDisplay}}" mode="aspectFill"></image>
-      <view class="flex-1 minw0" style="margin-left:16rpx;">
+      <view class="flex-1 minw0 profile-main">
         <view class="profile-actions">
           <button class="btn-mini" bindtap="focusNickInput">填入微信昵称</button>
           <button class="btn-mini" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">选择头像</button>
         </view>
-        <view class="muted small" style="margin-top:8rpx;">昵称：点输入框可一键填入微信昵称；头像：点“选择头像”可用微信头像或自选图片。</view>
+        <view class="muted small profile-tip">昵称可一键填入；头像可使用微信头像或本地图片。</view>
       </view>
     </view>
   </view>
 
-  <!-- 比赛参数已移至“赛事设置”中填写 -->
+  <view class="card panel create-panel reveal reveal-3">
+    <view class="section-head">
+      <view class="section-title">快速参数</view>
+      <text class="count-pill">创建时可预设</text>
+    </view>
 
-  <button class="btn btn-primary" bindtap="handleCreate">创建并进入</button>
-  <button class="btn btn-ghost" bindtap="goBack">返回</button>
+    <view class="preset-row">
+      <view
+        class="preset-chip {{quickPresetKey===item.key ? 'active' : ''}}"
+        wx:for="{{presetOptions}}"
+        wx:key="key"
+        data-key="{{item.key}}"
+        bindtap="applyPreset"
+      >
+        {{item.label}}
+      </view>
+    </view>
+
+    <view class="param-row">
+      <view class="param-col">
+        <view class="field-label">总场次</view>
+        <input class="input" type="number" value="{{totalMatches}}" bindinput="onTotalMatchesInput" />
+      </view>
+      <view class="param-col">
+        <view class="field-label">每轮最多场数</view>
+        <input class="input" type="number" value="{{courts}}" bindinput="onCourtsInput" />
+      </view>
+    </view>
+
+    <view class="muted small create-tip">默认标准：8 场 / 2 片场地。人数不足 4 也可先预配置，开赛时再校验。</view>
+
+    <view class="advanced-toggle" bindtap="toggleAdvanced">
+      <text>{{advancedOpen ? '收起高级设置' : '展开高级设置'}}</text>
+    </view>
+
+    <view class="advanced-panel panel-soft" wx:if="{{advancedOpen}}">
+      <view class="muted small">高级设置暂保留最小化：如需更细粒度调整，可进入“赛事设置”页继续修改。</view>
+    </view>
+  </view>
+
+  <view class="retry-box panel-soft" wx:if="{{canRetryAction}}">
+    <view class="muted small">{{lastFailedActionText}}</view>
+    <button class="btn btn-subtle btn-sm" bindtap="retryLastAction">重试上次操作</button>
+  </view>
+
+  <view class="create-actions reveal reveal-4">
+    <button class="btn btn-primary" bindtap="handleCreate">创建并进入</button>
+    <button class="btn btn-ghost" bindtap="goBack">返回</button>
+  </view>
 </view>

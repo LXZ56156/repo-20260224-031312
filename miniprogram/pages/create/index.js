@@ -1,5 +1,6 @@
 const cloud = require('../../core/cloud');
 const storage = require('../../core/storage');
+const flow = require('../../core/uxFlow');
 
 Page({
   data: {
@@ -7,10 +8,29 @@ Page({
     nickname: '',
     avatar: '',
     avatarDisplay: '/assets/avatar-default.png',
-    focusNick: false
+    focusNick: false,
+
+    quickPresetKey: 'standard',
+    presetOptions: flow.getPresetOptions(),
+    totalMatches: 8,
+    courts: 2,
+    advancedOpen: false,
+    shareHintAfterCreate: true,
+
+    networkOffline: false,
+    canRetryAction: false,
+    lastFailedActionText: ''
   },
 
   onLoad() {
+    const app = getApp();
+    this.setData({ networkOffline: !!(app && app.globalData && app.globalData.networkOffline) });
+    if (app && typeof app.subscribeNetworkChange === 'function') {
+      this._offNetwork = app.subscribeNetworkChange((offline) => {
+        this.setData({ networkOffline: !!offline });
+      });
+    }
+
     // 优先使用本机已缓存的昵称/头像（不强制弹窗授权）
     const p = storage.getUserProfile();
     if (p && typeof p === 'object') {
@@ -25,8 +45,54 @@ Page({
     }
   },
 
+  onUnload() {
+    if (typeof this._offNetwork === 'function') this._offNetwork();
+    this._offNetwork = null;
+  },
+
   onName(e) { this.setData({ name: e.detail.value }); },
   onNick(e) { this.setData({ nickname: e.detail.value }); },
+
+  onTotalMatchesInput(e) {
+    const m = flow.parsePositiveInt(e.detail.value, 1);
+    this.setData({ totalMatches: m || 1, quickPresetKey: 'custom' });
+  },
+
+  onCourtsInput(e) {
+    const c = flow.parsePositiveInt(e.detail.value, 1, 10);
+    this.setData({ courts: c || 1, quickPresetKey: 'custom' });
+  },
+
+  toggleAdvanced() {
+    this.setData({ advancedOpen: !this.data.advancedOpen });
+  },
+
+  applyPreset(e) {
+    const key = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.key) || '').trim();
+    const preset = flow.getPresetOption(key);
+    this.setData({
+      quickPresetKey: preset.key,
+      totalMatches: preset.totalMatches,
+      courts: preset.courts
+    });
+  },
+
+  setLastFailedAction(text, fn) {
+    this._lastFailedAction = typeof fn === 'function' ? fn : null;
+    this.setData({
+      canRetryAction: !!this._lastFailedAction,
+      lastFailedActionText: String(text || '').trim() || '上次操作失败，可重试'
+    });
+  },
+
+  clearLastFailedAction() {
+    this._lastFailedAction = null;
+    this.setData({ canRetryAction: false, lastFailedActionText: '' });
+  },
+
+  retryLastAction() {
+    if (typeof this._lastFailedAction === 'function') this._lastFailedAction();
+  },
 
   // 微信已逐步回收通过接口直接获取真实昵称/头像的能力；
   // 这里使用“昵称填写能力”(input type="nickname") + chooseAvatar 让用户主动选择。
@@ -101,17 +167,30 @@ Page({
         }
       }
 
+      const settings = flow.resolveCreateSettings({
+        presetKey: this.data.quickPresetKey,
+        totalMatches: this.data.totalMatches,
+        courts: this.data.courts
+      });
+
       const res = await cloud.call('createTournament', {
         name,
         nickname: nick,
-        avatar
+        avatar,
+        totalMatches: settings.totalMatches,
+        courts: settings.courts,
+        presetKey: settings.presetKey
       });
       wx.hideLoading();
-      // 用 redirectTo 避免“返回”回到创建页（用户感知为又回到创建界面）
-      wx.redirectTo({ url: `/pages/lobby/index?tournamentId=${res.tournamentId}` });
+      this.clearLastFailedAction();
+      const tip = this.data.shareHintAfterCreate ? 1 : 0;
+      // 用 redirectTo 避免“返回”回到创建页
+      wx.redirectTo({ url: `/pages/lobby/index?tournamentId=${res.tournamentId}&fromCreate=1&presetApplied=1&shareTip=${tip}` });
     } catch (e) {
       wx.hideLoading();
-      wx.showToast({ title: '创建失败，请看控制台', icon: 'none' });
+      const parsed = cloud.parseCloudError(e, '创建失败');
+      this.setLastFailedAction('创建赛事', () => this.handleCreate());
+      wx.showToast({ title: parsed.userMessage || '创建失败，请稍后重试', icon: 'none' });
     }
   },
 
