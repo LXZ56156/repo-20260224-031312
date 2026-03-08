@@ -75,7 +75,7 @@
   </view>
 
   <view class="submit-bar" wx:if="{{canEdit}}">
-    <button class="btn btn-primary submit-btn" bindtap="submit">{{batchMode ? '提交并录下一场' : '提交比分'}}</button>
+    <button class="btn btn-primary submit-btn" bindtap="submit" loading="{{submitBusy}}" disabled="{{submitBusy}}">{{batchMode ? '提交并录下一场' : '提交比分'}}</button>
   </view>
 
   <view class="retry-box panel-soft" wx:if="{{canRetryAction}}">

@@ -1,3 +1,5 @@
+const modeHelper = require('./lib/mode');
+
 function extractId(p) {
   if (!p) return '';
   if (typeof p === 'string') return p;
@@ -17,16 +19,8 @@ function safePlayerName(p) {
   return suffix || '匿名';
 }
 
-function normalizeMode(mode) {
-  const v = String(mode || '').trim().toLowerCase();
-  if (v === 'multi_rotate' || v === 'squad_doubles' || v === 'fixed_pair_rr') return v;
-  if (v === 'mixed_fallback' || v === 'doubles') return 'multi_rotate';
-  return 'multi_rotate';
-}
-
 function isTeamMode(mode) {
-  const m = normalizeMode(mode);
-  return m === 'squad_doubles' || m === 'fixed_pair_rr';
+  return modeHelper.isTeamMode(mode);
 }
 
 function extractScorePairAny(obj) {
@@ -70,7 +64,7 @@ function buildPlayerRankingTemplate(players) {
 }
 
 function buildTeamRankingTemplate(tournament) {
-  const mode = normalizeMode(tournament && tournament.mode);
+  const mode = modeHelper.normalizeMode(tournament && tournament.mode);
   if (mode === 'squad_doubles') {
     return [
       {
@@ -239,7 +233,7 @@ function computeTeamRankings(t) {
 }
 
 function computeRankings(t) {
-  const mode = normalizeMode(t && t.mode);
+  const mode = modeHelper.normalizeMode(t && t.mode);
   return isTeamMode(mode) ? computeTeamRankings(t) : computePlayerRankings(t);
 }
 
@@ -281,7 +275,7 @@ function applyScoreToRounds(rounds, roundIndex, matchIndex, scoreA, scoreB, scor
 }
 
 function applySquadTargetWinEndCondition(tournament, rounds, rankings) {
-  const mode = normalizeMode(tournament && tournament.mode);
+  const mode = modeHelper.normalizeMode(tournament && tournament.mode);
   if (mode !== 'squad_doubles') return { rounds, finishedByRule: false };
   const rules = tournament && tournament.rules && typeof tournament.rules === 'object' ? tournament.rules : {};
   const endCondition = rules && typeof rules.endCondition === 'object' ? rules.endCondition : {};
@@ -302,6 +296,26 @@ function applySquadTargetWinEndCondition(tournament, rounds, rankings) {
     }
   }
   return { rounds: nextRounds, finishedByRule: true };
+}
+
+function buildIdempotentRetryResult(match, scoreA, scoreB, requesterId, fallbackScorerName = '球友') {
+  const status = String(match && match.status || '').trim();
+  if (status !== 'finished') return null;
+
+  const current = extractScorePairAny(match && (match.score || match));
+  if (!Number.isFinite(current.a) || !Number.isFinite(current.b)) return null;
+  if (Number(current.a) !== Number(scoreA) || Number(current.b) !== Number(scoreB)) return null;
+
+  const scorerId = String(match && match.scorerId || '').trim();
+  const requester = String(requesterId || '').trim();
+  if (scorerId && scorerId !== requester) return null;
+
+  return {
+    ok: true,
+    deduped: true,
+    finished: true,
+    scorerName: String(match && match.scorerName || '').trim() || String(fallbackScorerName || '').trim() || '球友'
+  };
 }
 
 function buildSubmitResult(tournament, roundIndex, matchIndex, scoreA, scoreB, scorer = null) {
@@ -327,6 +341,6 @@ module.exports = {
   computeRankings,
   allMatchesFinished,
   applyScoreToRounds,
+  buildIdempotentRetryResult,
   buildSubmitResult
 };
-

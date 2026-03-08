@@ -3,21 +3,8 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 const common = require('./lib/common');
-const { buildSubmitResult } = require('./logic');
-
-function isAdmin(t, openid) {
-  return t && openid && t.creatorId === openid;
-}
-
-function isParticipant(t, openid) {
-  if (!t || !openid) return false;
-  const players = Array.isArray(t.players) ? t.players : [];
-  return players.some((player) => String((player && player.id) || '') === String(openid || ''));
-}
-
-function canEditScore(t, openid) {
-  return isAdmin(t, openid) || isParticipant(t, openid);
-}
+const permission = require('./lib/permission');
+const { buildSubmitResult, buildIdempotentRetryResult } = require('./logic');
 
 function safePlayerName(player) {
   const raw = player && (player.name || player.nickname || player.nickName || player.displayName);
@@ -73,6 +60,7 @@ exports.main = async (event) => {
   const tournamentId = String((event && event.tournamentId) || '').trim();
   const roundIndex = Number(event && event.roundIndex);
   const matchIndex = Number(event && event.matchIndex);
+  const clientRequestId = String((event && event.clientRequestId) || '').trim();
 
   const scoreA = (event && (event.scoreA ?? event.teamAScore ?? event.teamA ?? event.a));
   const scoreB = (event && (event.scoreB ?? event.teamBScore ?? event.teamB ?? event.b));
@@ -90,11 +78,17 @@ exports.main = async (event) => {
   try {
     const docRes = await db.collection('tournaments').doc(tournamentId).get();
     const t = common.assertTournamentExists(docRes.data);
-    if (!canEditScore(t, OPENID)) return createCodeResult('PERMISSION_DENIED', '无权限录分');
+    if (!permission.canEditScore(t, OPENID)) return createCodeResult('PERMISSION_DENIED', '无权限录分');
     if (t.status !== 'running' && t.status !== 'finished') return createCodeResult('PERMISSION_DENIED', '赛事未开赛');
 
     const match = findMatch(t, roundIndex, matchIndex);
     if (!match) return createCodeResult('PERMISSION_DENIED', '比赛不存在');
+    const fallbackScorerName = resolvePlayerName(t, OPENID);
+    const retryResult = buildIdempotentRetryResult(match, a, b, OPENID, fallbackScorerName);
+    if (retryResult) {
+      if (clientRequestId) retryResult.clientRequestId = clientRequestId;
+      return retryResult;
+    }
     if (String(match.status || '') === 'finished' || String(match.status || '') === 'canceled') {
       return createCodeResult('MATCH_FINISHED', '该场已结束');
     }
@@ -121,7 +115,7 @@ exports.main = async (event) => {
     }
 
     const oldVersion = Number(t.version) || 1;
-    const scorerName = ownerName || resolvePlayerName(t, OPENID);
+    const scorerName = ownerName || fallbackScorerName;
     const computed = buildSubmitResult(t, roundIndex, matchIndex, a, b, {
       id: OPENID,
       name: scorerName,
@@ -143,7 +137,7 @@ exports.main = async (event) => {
     }
 
     db.collection('score_locks').doc(lockId).remove().catch(() => {});
-    return { ok: true, finished: computed.finished, scorerName };
+    return { ok: true, finished: computed.finished, scorerName, ...(clientRequestId ? { clientRequestId } : {}) };
   } catch (err) {
     if (common.isCollectionNotExists(err)) {
       throw new Error('数据库集合 tournaments 不存在：请在云开发控制台（数据库 -> 创建集合）创建 tournaments 后再试。');

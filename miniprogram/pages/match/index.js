@@ -96,6 +96,7 @@ Page({
     lockRemainingMs: 0,
     lockHintText: buildLockHint('idle', '', 0),
     lockBusy: false,
+    submitBusy: false,
     matchStatusText: '待录分',
     pointsPerGame: 21
   },
@@ -647,6 +648,8 @@ Page({
   },
 
   async submit() {
+    if (this.data.submitBusy) return;
+
     const a = clampScore(this.data.scoreA);
     const b = clampScore(this.data.scoreB);
     if (!Number.isFinite(a) || !Number.isFinite(b) || a < 0 || b < 0) {
@@ -678,7 +681,9 @@ Page({
       ownerName: this.data.lockOwnerName,
       expireAt: this.data.lockExpireAt
     };
+    const clientRequestId = `submit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
+    this.setData({ submitBusy: true });
     this.setLockState('submitting', lockSnapshot, { skipApply: true });
     wx.showLoading({ title: '提交中...' });
     try {
@@ -687,10 +692,10 @@ Page({
         roundIndex: this.data.roundIndex,
         matchIndex: this.data.matchIndex,
         scoreA: a,
-        scoreB: b
+        scoreB: b,
+        clientRequestId
       });
       if (res && res.ok === false) {
-        wx.hideLoading();
         if (this.handleSubmitResultCode(res, lockSnapshot)) return;
         this.restoreLockAfterSubmitFail(lockSnapshot);
         wx.showToast({ title: String(res.message || '提交失败'), icon: 'none' });
@@ -700,7 +705,6 @@ Page({
       const latest = await tournamentSync.fetchTournament(this.data.tournamentId);
       if (latest) this.applyTournament(latest);
 
-      wx.hideLoading();
       this.clearLastFailedAction();
       this.clearScoreDraft();
       this._undoStack = [];
@@ -735,10 +739,12 @@ Page({
         this.returnToSchedule(420);
       }
     } catch (err) {
-      wx.hideLoading();
       this.restoreLockAfterSubmitFail(lockSnapshot);
       this.setLastFailedAction('提交比分', () => this.submit());
       this.handleWriteError(err, '提交失败', () => this.fetchTournament(this.data.tournamentId));
+    } finally {
+      wx.hideLoading();
+      this.setData({ submitBusy: false });
     }
   }
 });
