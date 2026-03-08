@@ -1,5 +1,6 @@
 <view class="container safe-bottom lobby-page {{nextActionText ? 'has-next-action' : ''}}" wx:if="{{tournament}}">
   <view class="offline-banner" wx:if="{{networkOffline}}">当前网络不可用，写入操作可能失败</view>
+  <view class="stale-banner" wx:if="{{showStaleSyncHint}}">当前为最近一次同步数据</view>
 
   <view class="hero reveal reveal-1">
     <view class="row hero-top">

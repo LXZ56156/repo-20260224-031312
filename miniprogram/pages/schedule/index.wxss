@@ -2,6 +2,16 @@
   padding-top: 24rpx;
 }
 
+.stale-banner {
+  margin-bottom: 12rpx;
+  padding: 10rpx 14rpx;
+  border-radius: 14rpx;
+  background: #eff6ff;
+  border: 1rpx solid #bfdbfe;
+  color: #1d4ed8;
+  font-size: 23rpx;
+}
+
 .state-card {
   margin-top: 18rpx;
 }

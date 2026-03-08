@@ -1,212 +1,9 @@
 const cloud = require('../../core/cloud');
 const storage = require('../../core/storage');
-const normalize = require('../../core/normalize');
 const tournamentSync = require('../../core/tournamentSync');
 const nav = require('../../core/nav');
 const adGuard = require('../../core/adGuard');
-
-function pickScoreVal(v) {
-  if (v === 0 || v === '0') return 0;
-  if (v === null || v === undefined || v === '') return null;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
-}
-
-function extractScore(match) {
-  const m = match || {};
-  return {
-    a: pickScoreVal(m.scoreA ?? m.teamAScore ?? (m.score && m.score.teamA) ?? m.a ?? m.left),
-    b: pickScoreVal(m.scoreB ?? m.teamBScore ?? (m.score && m.score.teamB) ?? m.b ?? m.right)
-  };
-}
-
-function extractId(player) {
-  if (!player) return '';
-  if (typeof player === 'string') return player;
-  return String(player.id || player.playerId || player._id || '');
-}
-
-function asName(player, map) {
-  const id = extractId(player);
-  const name = String(player && (player.name || player.nickname || player.nickName) || '').trim();
-  if (name) return name;
-  if (id && map[id]) return map[id];
-  return '未知';
-}
-
-function formatRate(num, den) {
-  if (!den) return '0%';
-  const n = Math.round((num * 1000) / den) / 10;
-  return `${n}%`;
-}
-
-function sortRanking(a, b) {
-  if (b.wins !== a.wins) return b.wins - a.wins;
-  if (b.pointDiff !== a.pointDiff) return b.pointDiff - a.pointDiff;
-  if (b.pointsFor !== a.pointsFor) return b.pointsFor - a.pointsFor;
-  return String(a.name || '').localeCompare(String(b.name || ''));
-}
-
-function computeAnalytics(tournament) {
-  const t = normalize.normalizeTournament(tournament || {});
-  const players = Array.isArray(t.players) ? t.players : [];
-  const rounds = Array.isArray(t.rounds) ? t.rounds : [];
-
-  const nameMap = {};
-  for (const p of players) {
-    const id = extractId(p);
-    if (!id) continue;
-    nameMap[id] = String(p.name || '').trim() || nameMap[id] || '未知';
-  }
-
-  let totalMatches = 0;
-  let finishedMatches = 0;
-  let totalPoints = 0;
-  let diffSum = 0;
-
-  const pairCounter = {};
-  const duelCounter = {};
-
-  const incCounter = (counter, key, label) => {
-    if (!key) return;
-    if (!counter[key]) counter[key] = { key, label, count: 0 };
-    counter[key].count += 1;
-  };
-
-  for (const round of rounds) {
-    const matches = Array.isArray(round.matches) ? round.matches : [];
-    for (const match of matches) {
-      totalMatches += 1;
-      if (!match || match.status !== 'finished') continue;
-
-      const score = extractScore(match);
-      if (score.a === null || score.b === null) continue;
-      finishedMatches += 1;
-      totalPoints += score.a + score.b;
-      diffSum += Math.abs(score.a - score.b);
-
-      const teamA = (Array.isArray(match.teamA) ? match.teamA : [])
-        .map((p) => ({ id: extractId(p), name: asName(p, nameMap) }))
-        .filter((p) => p.id || p.name);
-      const teamB = (Array.isArray(match.teamB) ? match.teamB : [])
-        .map((p) => ({ id: extractId(p), name: asName(p, nameMap) }))
-        .filter((p) => p.id || p.name);
-
-      if (teamA.length >= 2) {
-        const sorted = teamA.slice(0, 2).sort((x, y) => String(x.id || x.name).localeCompare(String(y.id || y.name)));
-        const pairKey = sorted.map((p) => p.id || p.name).join('|');
-        const pairLabel = sorted.map((p) => p.name).join(' / ');
-        incCounter(pairCounter, pairKey, pairLabel);
-      }
-
-      if (teamB.length >= 2) {
-        const sorted = teamB.slice(0, 2).sort((x, y) => String(x.id || x.name).localeCompare(String(y.id || y.name)));
-        const pairKey = sorted.map((p) => p.id || p.name).join('|');
-        const pairLabel = sorted.map((p) => p.name).join(' / ');
-        incCounter(pairCounter, pairKey, pairLabel);
-      }
-
-      if (teamA.length >= 2 && teamB.length >= 2) {
-        const left = teamA.slice(0, 2).map((p) => p.name).join(' / ');
-        const right = teamB.slice(0, 2).map((p) => p.name).join(' / ');
-        const duel = [left, right].sort((a, b) => a.localeCompare(b));
-        const duelKey = duel.join(' || ');
-        const duelLabel = `${duel[0]} vs ${duel[1]}`;
-        incCounter(duelCounter, duelKey, duelLabel);
-      }
-    }
-  }
-
-  const rawRankings = Array.isArray(t.rankings) ? t.rankings : [];
-  const rankingMap = {};
-  for (const r of rawRankings) {
-    const id = String(r.playerId || r.id || '').trim();
-    if (!id) continue;
-    rankingMap[id] = {
-      playerId: id,
-      name: nameMap[id] || String(r.name || '').trim() || '未知',
-      wins: Number(r.wins) || 0,
-      losses: Number(r.losses) || 0,
-      played: Number(r.played) || 0,
-      pointsFor: Number(r.pointsFor) || 0,
-      pointsAgainst: Number(r.pointsAgainst) || 0,
-      pointDiff: Number(r.pointDiff) || 0
-    };
-  }
-
-  for (const p of players) {
-    const id = extractId(p);
-    if (!id || rankingMap[id]) continue;
-    rankingMap[id] = {
-      playerId: id,
-      name: nameMap[id] || '未知',
-      wins: 0,
-      losses: 0,
-      played: 0,
-      pointsFor: 0,
-      pointsAgainst: 0,
-      pointDiff: 0
-    };
-  }
-
-  const playerStats = Object.values(rankingMap)
-    .map((r) => ({
-      ...r,
-      winRate: formatRate(r.wins, r.played)
-    }))
-    .sort(sortRanking);
-
-  const top3 = playerStats.slice(0, 3).map((r, idx) => ({
-    ...r,
-    rankLabel: `TOP ${idx + 1}`
-  }));
-
-  const pairHot = Object.values(pairCounter)
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5);
-
-  const duelHot = Object.values(duelCounter)
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5);
-
-  return {
-    tournament: t,
-    summary: {
-      totalMatches,
-      finishedMatches,
-      completionRate: totalMatches > 0 ? `${Math.round((finishedMatches * 100) / totalMatches)}%` : '0%',
-      totalPoints,
-      avgDiff: finishedMatches > 0 ? (Math.round((diffSum * 10) / finishedMatches) / 10).toFixed(1) : '0.0'
-    },
-    top3,
-    playerStats,
-    pairHot,
-    duelHot
-  };
-}
-
-function buildBattleReport(analytics) {
-  const a = analytics || {};
-  const t = a.tournament || {};
-  const s = a.summary || {};
-  const top = Array.isArray(a.top3) ? a.top3 : [];
-  const pairHot = Array.isArray(a.pairHot) ? a.pairHot : [];
-  const duelHot = Array.isArray(a.duelHot) ? a.duelHot : [];
-
-  const lines = [];
-  lines.push(`已完赛 ${s.finishedMatches || 0}/${s.totalMatches || 0}（完赛率 ${s.completionRate || '0%'}）`);
-  lines.push(`总得分 ${s.totalPoints || 0}，平均分差 ${s.avgDiff || '0.0'}`);
-  if (top[0]) lines.push(`当前榜首：${top[0].name}（胜${top[0].wins} 负${top[0].losses}）`);
-  if (pairHot[0]) lines.push(`高频搭档：${pairHot[0].label}（${pairHot[0].count}次）`);
-  if (duelHot[0]) lines.push(`高频对阵：${duelHot[0].label}（${duelHot[0].count}次）`);
-
-  const headline = top[0]
-    ? `榜首 ${top[0].name}，当前完赛率 ${s.completionRate || '0%'}`
-    : `当前完赛率 ${s.completionRate || '0%'}，已完赛 ${s.finishedMatches || 0} 场`;
-  const briefText = [lines[0], lines[1], lines[2]].filter(Boolean).join('\n');
-  const shareText = `${t.name || '羽毛球比赛'}战报\n${lines.join('\n')}`;
-  return { lines, shareText, headline, briefText };
-}
+const analyticsLogic = require('./logic');
 
 Page({
   data: {
@@ -217,12 +14,15 @@ Page({
     playerStats: [],
     pairHot: [],
     duelHot: [],
+    rankingTitle: '球员数据',
+    rankingUnit: '人',
     reportLines: [],
     reportShareText: '',
     reportHeadline: '',
     reportBriefText: '',
     showAnalyticsAdSlot: false,
     networkOffline: false,
+    showStaleSyncHint: false,
     canRetryAction: false,
     lastFailedActionText: '',
     loadError: false
@@ -275,21 +75,31 @@ Page({
 
   startWatch(tid) {
     tournamentSync.startWatch(this, tid, (doc) => {
+      this.setData({ showStaleSyncHint: false });
       this.applyTournament(doc);
     });
   },
 
   async fetchTournament(tid) {
-    const doc = await tournamentSync.fetchTournament(tid, (next) => {
-      this.applyTournament(next);
-    });
-    if (!doc) this.setData({ loadError: true });
+    const result = await tournamentSync.fetchTournament(tid);
+    if (result && result.ok && result.doc) {
+      this.setData({ showStaleSyncHint: false });
+      this.applyTournament(result.doc);
+      return result.doc;
+    }
+    if (result && result.cachedDoc) {
+      this.setData({ showStaleSyncHint: true, loadError: false });
+      this.applyTournament(result.cachedDoc);
+      return result.cachedDoc;
+    }
+    this.setData({ loadError: true, showStaleSyncHint: false });
+    return null;
   },
 
   applyTournament(tournament) {
     if (!tournament) return;
-    const analytics = computeAnalytics(tournament);
-    const report = buildBattleReport(analytics);
+    const analytics = analyticsLogic.computeAnalytics(tournament);
+    const report = analyticsLogic.buildBattleReport(analytics);
     this.setData({
       loadError: false,
       tournament: analytics.tournament,
@@ -298,6 +108,8 @@ Page({
       playerStats: analytics.playerStats,
       pairHot: analytics.pairHot,
       duelHot: analytics.duelHot,
+      rankingTitle: analytics.rankingTitle,
+      rankingUnit: analytics.rankingUnit,
       reportLines: report.lines,
       reportShareText: report.shareText,
       reportHeadline: report.headline,

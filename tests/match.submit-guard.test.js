@@ -106,7 +106,7 @@ test('match submitBusy prevents repeated submit requests and sends clientRequest
       });
       return { ok: true, scorerName: '裁判A' };
     };
-    tournamentSync.fetchTournament = async () => ({ _id: 't_1', rounds: [] });
+    tournamentSync.fetchTournament = async () => ({ ok: true, doc: { _id: 't_1', rounds: [] }, source: 'remote' });
     storage.get = () => false;
     nav.markRefreshFlag = () => {};
 

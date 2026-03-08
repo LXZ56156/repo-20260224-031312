@@ -1,4 +1,5 @@
 <view class="container safe-bottom schedule-page" wx:if="{{tournament}}">
+  <view class="stale-banner" wx:if="{{showStaleSyncHint}}">当前为最近一次同步数据</view>
   <view class="hero">
     <view class="row">
       <view>

@@ -90,6 +90,7 @@ Page({
     ensureControllers(this);
     tournamentSync.startWatch(this, tournamentId, (doc) => {
       const requestSeq = this.nextRequestSeq();
+      this.setData({ showStaleSyncHint: false });
       this.applyTournament(doc, { requestSeq });
     });
   },
@@ -98,14 +99,20 @@ Page({
     if (!tournamentId) return null;
     ensureControllers(this);
     const requestSeq = this.nextRequestSeq();
-    const doc = await tournamentSync.fetchTournament(tournamentId);
+    const result = await tournamentSync.fetchTournament(tournamentId);
     if (!this.isLatestRequestSeq(requestSeq)) return null;
-    if (!doc) {
-      this.setData({ loadError: true });
-      return null;
+    if (result && result.ok && result.doc) {
+      this.setData({ showStaleSyncHint: false });
+      this.applyTournament(result.doc, { requestSeq });
+      return result.doc;
     }
-    this.applyTournament(doc, { requestSeq });
-    return doc;
+    if (result && result.cachedDoc) {
+      this.setData({ showStaleSyncHint: true, loadError: false });
+      this.applyTournament(result.cachedDoc, { requestSeq });
+      return result.cachedDoc;
+    }
+    this.setData({ loadError: true, showStaleSyncHint: false });
+    return null;
   },
 
   applyTournament(tournament, options = {}) {

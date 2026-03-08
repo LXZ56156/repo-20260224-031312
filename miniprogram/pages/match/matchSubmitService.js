@@ -41,12 +41,21 @@ function createMatchSubmitService(ctx, deps = {}) {
     const tournamentId = String(ctx.data.tournamentId || '').trim();
     if (!tournamentId) return null;
     const requestSeq = typeof ctx.nextRequestSeq === 'function' ? ctx.nextRequestSeq() : 0;
-    const latest = await tournamentSyncApi.fetchTournament(tournamentId);
+    const result = await tournamentSyncApi.fetchTournament(tournamentId);
     if (requestSeq && typeof ctx.isLatestRequestSeq === 'function' && !ctx.isLatestRequestSeq(requestSeq)) {
       return null;
     }
-    if (latest) ctx.applyTournament(latest, { requestSeq });
-    return latest;
+    if (result && result.ok && result.doc) {
+      ctx.setData({ showStaleSyncHint: false });
+      ctx.applyTournament(result.doc, { requestSeq });
+      return result.doc;
+    }
+    if (result && result.cachedDoc) {
+      ctx.setData({ showStaleSyncHint: true, loadError: false });
+      ctx.applyTournament(result.cachedDoc, { requestSeq });
+      return result.cachedDoc;
+    }
+    return null;
   }
 
   async function jumpAfterBatch(noPendingMessage) {

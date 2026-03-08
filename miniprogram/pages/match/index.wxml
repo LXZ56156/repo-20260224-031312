@@ -1,5 +1,6 @@
 <view class="container safe-bottom match-page" wx:if="{{match}}">
   <view class="offline-banner" wx:if="{{networkOffline}}">当前网络不可用，提交可能失败</view>
+  <view class="stale-banner" wx:if="{{showStaleSyncHint}}">当前为最近一次同步数据</view>
 
   <view class="hero">
     <view class="row hero-head">

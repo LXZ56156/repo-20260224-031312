@@ -56,40 +56,47 @@ async function fetchOnce(tournamentId, onData, onError) {
   }
 }
 
-function startPolling(tournamentId, onData, onError) {
-  const db = wx.cloud.database();
+function createPollingController(options = {}) {
+  const fetchDoc = typeof options.fetchDoc === 'function' ? options.fetchDoc : null;
+  const onData = typeof options.onData === 'function' ? options.onData : null;
+  const onError = typeof options.onError === 'function' ? options.onError : null;
+  const baseMs = Math.max(1, Number(options.baseMs) || POLL_BASE_MS);
+  const maxMs = Math.max(baseMs, Number(options.maxMs) || POLL_MAX_MS);
+  const setTimeoutFn = options.setTimeoutFn || setTimeout;
+  const clearTimeoutFn = options.clearTimeoutFn || clearTimeout;
+  const jitterFn = options.jitterFn || withJitter;
+  const autoStart = options.autoStart !== false;
   let closed = false;
   let inflight = false;
   let timer = null;
   let lastVersion = null;
-  let delayMs = POLL_BASE_MS;
+  let delayMs = baseMs;
 
   const scheduleNext = (immediate = false) => {
     if (closed) return;
     if (timer) {
-      clearTimeout(timer);
+      clearTimeoutFn(timer);
       timer = null;
     }
-    const wait = immediate ? 0 : withJitter(delayMs);
-    timer = setTimeout(runOnce, wait);
+    const wait = immediate ? 0 : jitterFn(delayMs);
+    timer = setTimeoutFn(runOnce, wait);
   };
 
   const runOnce = async () => {
-    if (closed || inflight) return;
+    if (closed || inflight || !fetchDoc) return;
     inflight = true;
     try {
-      const res = await db.collection('tournaments').doc(tournamentId).get();
-      const doc = res && res.data;
+      const doc = await fetchDoc();
       if (doc) {
         const version = doc.version;
         if (lastVersion === null || version !== lastVersion) {
           lastVersion = version;
-          onData(doc);
+          if (onData) onData(doc);
         }
       }
-      delayMs = POLL_BASE_MS;
+      delayMs = baseMs;
     } catch (err) {
-      delayMs = Math.min(POLL_MAX_MS, Math.floor(delayMs * 1.8));
+      delayMs = Math.min(maxMs, Math.floor(delayMs * 1.8));
       if (onError) onError(err);
     } finally {
       inflight = false;
@@ -97,16 +104,37 @@ function startPolling(tournamentId, onData, onError) {
     }
   };
 
-  // 首次订阅立即主动拉取一次，降低首屏等待。
-  scheduleNext(true);
+  if (autoStart) {
+    // 首次订阅立即主动拉取一次，降低首屏等待。
+    scheduleNext(true);
+  }
 
   return {
+    runOnce,
+    getDelayMs() {
+      return delayMs;
+    },
+    isInflight() {
+      return inflight;
+    },
     close() {
       closed = true;
-      if (timer) clearTimeout(timer);
+      if (timer) clearTimeoutFn(timer);
       timer = null;
     }
   };
+}
+
+function startPolling(tournamentId, onData, onError) {
+  const db = wx.cloud.database();
+  return createPollingController({
+    fetchDoc: async () => {
+      const res = await db.collection('tournaments').doc(tournamentId).get();
+      return res && res.data;
+    },
+    onData,
+    onError
+  });
 }
 
 function closeSource(channel) {
@@ -240,4 +268,8 @@ function closeWatch(tournamentId) {
   disposeChannel(c);
 }
 
-module.exports = { watchTournament, closeWatch };
+module.exports = {
+  watchTournament,
+  closeWatch,
+  createPollingController
+};

@@ -77,20 +77,28 @@ test('match page ignores stale fetchTournament responses', async () => {
     const second = ctx.fetchTournament('t_1');
 
     resolvers[1]({
-      _id: 't_1',
-      name: 'Fresh Tournament',
-      status: 'running',
-      players: [],
-      rounds: []
+      ok: true,
+      source: 'remote',
+      doc: {
+        _id: 't_1',
+        name: 'Fresh Tournament',
+        status: 'running',
+        players: [],
+        rounds: []
+      }
     });
     await second;
 
     resolvers[0]({
-      _id: 't_1',
-      name: 'Stale Tournament',
-      status: 'running',
-      players: [],
-      rounds: []
+      ok: true,
+      source: 'remote',
+      doc: {
+        _id: 't_1',
+        name: 'Stale Tournament',
+        status: 'running',
+        players: [],
+        rounds: []
+      }
     });
     const firstResult = await first;
 

@@ -93,6 +93,7 @@ Page({
 
     sharePulse: false,
     networkOffline: false,
+    showStaleSyncHint: false,
     canRetryAction: false,
     lastFailedActionText: '',
     profileQuickFillLoading: false,
@@ -185,15 +186,25 @@ Page({
 
   startWatch(tid) {
     tournamentSync.startWatch(this, tid, (doc) => {
+      this.setData({ showStaleSyncHint: false });
       this.setTournament(doc);
     });
   },
 
   async fetchTournament(tid) {
-    const doc = await tournamentSync.fetchTournament(tid, (next) => {
-      this.setTournament(next);
-    });
-    if (!doc) this.setData({ loadError: true });
+    const result = await tournamentSync.fetchTournament(tid);
+    if (result && result.ok && result.doc) {
+      this.setData({ showStaleSyncHint: false });
+      this.setTournament(result.doc);
+      return result.doc;
+    }
+    if (result && result.cachedDoc) {
+      this.setData({ showStaleSyncHint: true, loadError: false });
+      this.setTournament(result.cachedDoc);
+      return result.cachedDoc;
+    }
+    this.setData({ loadError: true, showStaleSyncHint: false });
+    return null;
   },
 
   setLastFailedAction(text, fn) {

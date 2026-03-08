@@ -1,3 +1,5 @@
+const modeHelper = require('./mode');
+
 const get = (key, fallback = null) => {
   try {
     const v = wx.getStorageSync(key);
@@ -107,6 +109,7 @@ const removeRecentTournamentId = (id) => {
 // ===== 本地已完成战绩账本 =====
 const LOCAL_COMPLETED_TOURNAMENT_IDS_KEY = 'local_completed_tournament_ids_v1';
 const LOCAL_TOURNAMENT_SNAPSHOT_PREFIX = 'local_tournament_snapshot_';
+const LOCAL_TOURNAMENT_CACHE_PREFIX = 'local_tournament_cache_';
 const LOCAL_COMPLETED_MAX = 500;
 
 function extractEntityId(raw) {
@@ -150,6 +153,10 @@ function getLocalTournamentSnapshotKey(tournamentId) {
   return `${LOCAL_TOURNAMENT_SNAPSHOT_PREFIX}${String(tournamentId || '').trim()}`;
 }
 
+function getLocalTournamentCacheKey(tournamentId) {
+  return `${LOCAL_TOURNAMENT_CACHE_PREFIX}${String(tournamentId || '').trim()}`;
+}
+
 function getLocalCompletedTournamentIds() {
   const ids = get(LOCAL_COMPLETED_TOURNAMENT_IDS_KEY, []);
   if (!Array.isArray(ids)) return [];
@@ -172,6 +179,25 @@ function setLocalTournamentSnapshot(tournamentId, snapshot) {
   const tid = String(tournamentId || '').trim();
   if (!tid || !snapshot || typeof snapshot !== 'object') return;
   set(getLocalTournamentSnapshotKey(tid), snapshot);
+}
+
+function getLocalTournamentCache(tournamentId) {
+  const tid = String(tournamentId || '').trim();
+  if (!tid) return null;
+  const doc = get(getLocalTournamentCacheKey(tid), null);
+  return (doc && typeof doc === 'object') ? doc : null;
+}
+
+function setLocalTournamentCache(tournamentId, tournamentDoc) {
+  const tid = String(tournamentId || '').trim();
+  if (!tid || !tournamentDoc || typeof tournamentDoc !== 'object') return;
+  set(getLocalTournamentCacheKey(tid), tournamentDoc);
+}
+
+function removeLocalTournamentCache(tournamentId) {
+  const tid = String(tournamentId || '').trim();
+  if (!tid) return;
+  del(getLocalTournamentCacheKey(tid));
 }
 
 function removeLocalCompletedTournamentSnapshot(tournamentId) {
@@ -346,10 +372,7 @@ function setSlotMinutesPref(minutes) {
 }
 
 function normalizeMode(mode) {
-  const v = String(mode || '').trim().toLowerCase();
-  if (v === 'multi_rotate' || v === 'squad_doubles' || v === 'fixed_pair_rr') return v;
-  if (v === 'mixed_fallback' || v === 'doubles') return 'multi_rotate';
-  return 'multi_rotate';
+  return modeHelper.normalizeMode(mode);
 }
 
 function getDefaultMode() {
@@ -444,6 +467,9 @@ module.exports = {
   getLocalTournamentSnapshot,
   setLocalTournamentSnapshot,
   removeLocalCompletedTournamentSnapshot,
+  getLocalTournamentCache,
+  setLocalTournamentCache,
+  removeLocalTournamentCache,
   upsertLocalCompletedTournamentSnapshot,
   isOnboardingDone,
   setOnboardingDone,

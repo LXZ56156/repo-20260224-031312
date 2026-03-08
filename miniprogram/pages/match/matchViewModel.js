@@ -90,6 +90,7 @@ function buildInitialData() {
     pair2Text: '',
     batchMode: false,
     networkOffline: false,
+    showStaleSyncHint: false,
     canRetryAction: false,
     lastFailedActionText: '',
     loadError: false,
