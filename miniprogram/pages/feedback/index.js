@@ -1,4 +1,5 @@
 const cloud = require('../../core/cloud');
+const actionGuard = require('../../core/actionGuard');
 const profileCore = require('../../core/profile');
 const { resolveFeedbackGate } = require('./gate');
 
@@ -57,39 +58,40 @@ Page({
   },
 
   async onSubmit() {
-    if (this.data.submitting) return;
     if (this.data.blocked) return;
     const content = String(this.data.content || '').trim();
     if (content.length < 10) {
       wx.showToast({ title: '反馈内容至少10字', icon: 'none' });
       return;
     }
-    this.setData({ submitting: true });
-    wx.showLoading({ title: '提交中...' });
-    try {
-      const res = await cloud.call('feedbackSubmit', {
-        category: this.data.categoryOptions[this.data.categoryIndex] || '其他',
-        content,
-        contact: String(this.data.contact || '').trim()
-      });
-      wx.hideLoading();
-      wx.showModal({
-        title: '提交成功',
-        content: `反馈编号：${res && res.feedbackId ? res.feedbackId : '已记录'}`,
-        showCancel: false,
-        success: () => {
-          this.setData({
-            content: '',
-            contentLength: 0,
-            contact: ''
-          });
-        }
-      });
-    } catch (e) {
-      wx.hideLoading();
-      wx.showToast({ title: cloud.getUnifiedErrorMessage(e, '提交失败'), icon: 'none' });
-    } finally {
-      this.setData({ submitting: false });
-    }
+    const actionKey = 'feedback:submit';
+    if (actionGuard.isBusy(actionKey)) return;
+
+    return actionGuard.runWithPageBusy(this, 'submitting', actionKey, async () => {
+      wx.showLoading({ title: '提交中...' });
+      try {
+        const res = await cloud.call('feedbackSubmit', {
+          category: this.data.categoryOptions[this.data.categoryIndex] || '其他',
+          content,
+          contact: String(this.data.contact || '').trim()
+        });
+        wx.hideLoading();
+        wx.showModal({
+          title: '提交成功',
+          content: `反馈编号：${res && res.feedbackId ? res.feedbackId : '已记录'}`,
+          showCancel: false,
+          success: () => {
+            this.setData({
+              content: '',
+              contentLength: 0,
+              contact: ''
+            });
+          }
+        });
+      } catch (e) {
+        wx.hideLoading();
+        wx.showToast({ title: cloud.getUnifiedErrorMessage(e, '提交失败'), icon: 'none' });
+      }
+    });
   }
 });

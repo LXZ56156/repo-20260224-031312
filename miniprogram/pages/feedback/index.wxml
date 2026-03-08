@@ -34,7 +34,7 @@
   </view>
 
   <view class="feedback-actions">
-    <button class="btn btn-primary" bindtap="onSubmit" loading="{{submitting}}">提交反馈</button>
+    <button class="btn btn-primary" bindtap="onSubmit" loading="{{submitting}}" disabled="{{submitting}}">提交反馈</button>
   </view>
   </block>
 </view>

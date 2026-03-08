@@ -1,4 +1,5 @@
 const cloud = require('../../core/cloud');
+const actionGuard = require('../../core/actionGuard');
 const storage = require('../../core/storage');
 const flow = require('../../core/uxFlow');
 const profileCore = require('../../core/profile');
@@ -104,6 +105,7 @@ Page({
     showSquadEndCondition: false,
 
     networkOffline: false,
+    createBusy: false,
     canRetryAction: false,
     lastFailedActionText: ''
   },
@@ -324,48 +326,52 @@ Page({
       wx.showToast({ title: '请输入赛事名称', icon: 'none' });
       return;
     }
+    const actionKey = 'create:createTournament';
+    if (actionGuard.isBusy(actionKey)) return;
 
-    const gate = await profileCore.ensureProfileForAction('create', '/pages/create/index');
-    if (!gate.ok) {
-      if (gate.reason === 'login_failed') {
-        wx.showToast({ title: '登录失败，请重试', icon: 'none' });
+    return actionGuard.runWithPageBusy(this, 'createBusy', actionKey, async () => {
+      const gate = await profileCore.ensureProfileForAction('create', '/pages/create/index');
+      if (!gate.ok) {
+        if (gate.reason === 'login_failed') {
+          wx.showToast({ title: '登录失败，请重试', icon: 'none' });
+        }
+        return;
       }
-      return;
-    }
-    const profile = gate.profile || {};
+      const profile = gate.profile || {};
 
-    wx.showLoading({ title: '创建中...' });
-    try {
-      const settings = flow.resolveCreateSettings({
-        mode: this.data.mode,
-        presetKey: this.data.quickPresetKey,
-        totalMatches: this.data.totalMatches,
-        courts: this.data.courts
-      });
-      const endConditionType = normalizeEndConditionType(this.data.endConditionType);
-      const endConditionTarget = Math.max(1, Number(this.data.endConditionTarget) || 1);
+      wx.showLoading({ title: '创建中...' });
+      try {
+        const settings = flow.resolveCreateSettings({
+          mode: this.data.mode,
+          presetKey: this.data.quickPresetKey,
+          totalMatches: this.data.totalMatches,
+          courts: this.data.courts
+        });
+        const endConditionType = normalizeEndConditionType(this.data.endConditionType);
+        const endConditionTarget = Math.max(1, Number(this.data.endConditionTarget) || 1);
 
-      const res = await cloud.call('createTournament', {
-        name,
-        nickname: String(profile.nickName || profile.nickname || '').trim(),
-        avatar: String(profile.avatar || profile.avatarUrl || '').trim(),
-        mode: settings.mode,
-        creatorGender: storage.normalizeGender(profile.gender),
-        allowOpenTeam: false,
-        totalMatches: settings.totalMatches,
-        courts: settings.courts,
-        presetKey: settings.presetKey,
-        pointsPerGame: Number(this.data.pointsPerGame) || 21,
-        endConditionType: settings.mode === flow.MODE_SQUAD_DOUBLES ? endConditionType : 'total_matches',
-        endConditionTarget: settings.mode === flow.MODE_SQUAD_DOUBLES ? endConditionTarget : settings.totalMatches
-      });
-      wx.hideLoading();
-      this.clearLastFailedAction();
-      wx.redirectTo({ url: `/pages/lobby/index?tournamentId=${res.tournamentId}&fromCreate=1&presetApplied=1&shareTip=1` });
-    } catch (e) {
-      wx.hideLoading();
-      this.setLastFailedAction('创建比赛', () => this.handleCreate());
-      wx.showToast({ title: cloud.getUnifiedErrorMessage(e, '创建失败'), icon: 'none' });
-    }
+        const res = await cloud.call('createTournament', {
+          name,
+          nickname: String(profile.nickName || profile.nickname || '').trim(),
+          avatar: String(profile.avatar || profile.avatarUrl || '').trim(),
+          mode: settings.mode,
+          creatorGender: storage.normalizeGender(profile.gender),
+          allowOpenTeam: false,
+          totalMatches: settings.totalMatches,
+          courts: settings.courts,
+          presetKey: settings.presetKey,
+          pointsPerGame: Number(this.data.pointsPerGame) || 21,
+          endConditionType: settings.mode === flow.MODE_SQUAD_DOUBLES ? endConditionType : 'total_matches',
+          endConditionTarget: settings.mode === flow.MODE_SQUAD_DOUBLES ? endConditionTarget : settings.totalMatches
+        });
+        wx.hideLoading();
+        this.clearLastFailedAction();
+        wx.redirectTo({ url: `/pages/lobby/index?tournamentId=${res.tournamentId}&fromCreate=1&presetApplied=1&shareTip=1` });
+      } catch (e) {
+        wx.hideLoading();
+        this.setLastFailedAction('创建比赛', () => this.handleCreate());
+        wx.showToast({ title: cloud.getUnifiedErrorMessage(e, '创建失败'), icon: 'none' });
+      }
+    });
   }
 });

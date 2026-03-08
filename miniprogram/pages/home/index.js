@@ -1,8 +1,10 @@
 const storage = require('../../core/storage');
 const cloud = require('../../core/cloud');
+const actionGuard = require('../../core/actionGuard');
 const { normalizeTournament } = require('../../core/normalize');
 const adGuard = require('../../core/adGuard');
 const flow = require('../../core/uxFlow');
+const envConfig = require('../../config/env');
 
 function pad2(n) {
   return n < 10 ? `0${n}` : String(n);
@@ -66,6 +68,8 @@ Page({
     filterStatus: 'all',
     showHomeAdSlot: false,
     networkOffline: false,
+    showEnvBadge: false,
+    envBadgeLabel: '',
     canRetryAction: false,
     lastFailedActionText: '',
     continueItem: null,
@@ -89,6 +93,11 @@ Page({
       showProfileNudge: this.shouldShowProfileNudge(),
       sortMode: storage.getHomeSortMode(),
       filterStatus: storage.getHomeFilterStatus()
+    });
+    const runtimeEnv = (app && app.globalData && app.globalData.runtimeEnv) || envConfig.resolveRuntimeEnv();
+    this.setData({
+      showEnvBadge: !!runtimeEnv.showBadge,
+      envBadgeLabel: String(runtimeEnv.shortLabel || runtimeEnv.label || '').trim()
     });
     if (storage.getEntryPruneVersion() < 1) storage.setEntryPruneVersion(1);
 
@@ -359,22 +368,25 @@ Page({
   async onCloneTap(e) {
     const sourceTournamentId = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.id) || '').trim();
     if (!sourceTournamentId) return;
-
-    wx.showLoading({ title: '复制中...' });
-    try {
-      const res = await cloud.call('cloneTournament', { sourceTournamentId });
-      const nextId = String((res && res.tournamentId) || '').trim();
-      if (!nextId) throw new Error('复制失败');
-      wx.hideLoading();
-      this.clearLastFailedAction();
-      storage.addRecentTournamentId(nextId);
-      wx.showToast({ title: '已复制', icon: 'success' });
-      wx.navigateTo({ url: `/pages/lobby/index?tournamentId=${nextId}` });
-    } catch (err) {
-      wx.hideLoading();
-      this.setLastFailedAction('再办一场', () => this.onCloneTap({ currentTarget: { dataset: { id: sourceTournamentId } } }));
-      this.handleWriteError(err, '复制失败', () => this.loadRecents());
-    }
+    const actionKey = `home:cloneTournament:${sourceTournamentId}`;
+    if (actionGuard.isBusy(actionKey)) return;
+    return actionGuard.run(actionKey, async () => {
+      wx.showLoading({ title: '复制中...' });
+      try {
+        const res = await cloud.call('cloneTournament', { sourceTournamentId });
+        const nextId = String((res && res.tournamentId) || '').trim();
+        if (!nextId) throw new Error('复制失败');
+        wx.hideLoading();
+        this.clearLastFailedAction();
+        storage.addRecentTournamentId(nextId);
+        wx.showToast({ title: '已复制', icon: 'success' });
+        wx.navigateTo({ url: `/pages/lobby/index?tournamentId=${nextId}` });
+      } catch (err) {
+        wx.hideLoading();
+        this.setLastFailedAction('再办一场', () => this.onCloneTap({ currentTarget: { dataset: { id: sourceTournamentId } } }));
+        this.handleWriteError(err, '复制失败', () => this.loadRecents());
+      }
+    });
   },
 
   handleWriteError(err, fallbackMessage, onRefresh) {
@@ -513,20 +525,24 @@ Page({
             confirmColor: '#ef4444',
             success: async (r) => {
               if (!r.confirm) return;
-              wx.showLoading({ title: '删除中...' });
-              try {
-                await cloud.call('deleteTournament', { tournamentId: id });
-                wx.hideLoading();
-                this.clearLastFailedAction();
-                storage.removeRecentTournamentId(id);
-                storage.removeLocalCompletedTournamentSnapshot(id);
-                await this.loadRecents();
-                wx.showToast({ title: '已删除', icon: 'success' });
-              } catch (err) {
-                wx.hideLoading();
-                this.setLastFailedAction('删除云端赛事', () => this.onDeleteTap({ currentTarget: { dataset: { id } } }));
-                this.handleWriteError(err, '删除失败', () => this.loadRecents());
-              }
+              const actionKey = `home:deleteTournament:${id}`;
+              if (actionGuard.isBusy(actionKey)) return;
+              await actionGuard.run(actionKey, async () => {
+                wx.showLoading({ title: '删除中...' });
+                try {
+                  await cloud.call('deleteTournament', { tournamentId: id });
+                  wx.hideLoading();
+                  this.clearLastFailedAction();
+                  storage.removeRecentTournamentId(id);
+                  storage.removeLocalCompletedTournamentSnapshot(id);
+                  await this.loadRecents();
+                  wx.showToast({ title: '已删除', icon: 'success' });
+                } catch (err) {
+                  wx.hideLoading();
+                  this.setLastFailedAction('删除云端赛事', () => this.onDeleteTap({ currentTarget: { dataset: { id } } }));
+                  this.handleWriteError(err, '删除失败', () => this.loadRecents());
+                }
+              });
             }
           });
         }

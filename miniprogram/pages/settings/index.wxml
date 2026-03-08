@@ -107,7 +107,7 @@
     <view class="muted small section-tip">{{capacityHintShort}}</view>
     <view class="muted small section-tip" wx:if="{{rosterHint}}">{{rosterHint}}</view>
 
-    <button class="btn btn-primary settings-save" bindtap="saveSettings" wx:if="{{isAdmin && tournament.status==='draft'}}">保存参数</button>
+    <button class="btn btn-primary settings-save" bindtap="saveSettings" loading="{{settingsBusy}}" disabled="{{settingsBusy}}" wx:if="{{isAdmin && tournament.status==='draft'}}">保存参数</button>
     <view class="muted small section-tip" wx:else>仅管理员可在草稿阶段修改并保存参数。</view>
   </view>
 

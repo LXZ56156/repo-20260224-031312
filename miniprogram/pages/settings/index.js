@@ -1,4 +1,5 @@
 const cloud = require('../../core/cloud');
+const actionGuard = require('../../core/actionGuard');
 const storage = require('../../core/storage');
 const perm = require('../../permission/permission');
 const tournamentSync = require('../../core/tournamentSync');
@@ -53,6 +54,7 @@ Page({
     mandatoryDone: 0,
     mandatoryTotal: 2,
     networkOffline: false,
+    settingsBusy: false,
     canRetryAction: false,
     lastFailedActionText: '',
     loadError: false
@@ -390,29 +392,33 @@ Page({
       return;
     }
 
-    wx.showLoading({ title: '保存中...' });
-    try {
-      await cloud.call('updateSettings', {
-        tournamentId: this.data.tournamentId,
-        totalMatches: M,
-        courts: C,
-        allowOpenTeam: this.data.allowOpenTeam
-      });
-      wx.hideLoading();
-      this.clearLastFailedAction();
-      wx.showToast({ title: maxMatches > 0 ? '已保存' : '已预配置', icon: 'success' });
-      // 主动刷新（真机监听不稳定时也能立即更新 UI）
-      await this.fetchTournament(this.data.tournamentId);
-      nav.markRefreshFlag(this.data.tournamentId);
-      if (this._autoBackTimer) clearTimeout(this._autoBackTimer);
-      this._autoBackTimer = setTimeout(() => {
-        nav.navigateBackOrRedirect(`/pages/lobby/index?tournamentId=${this.data.tournamentId}`);
-      }, 420);
-    } catch (e) {
-      wx.hideLoading();
-      this.setLastFailedAction('保存参数', () => this.saveSettings());
-      this.handleWriteError(e, '保存失败', () => this.fetchTournament(this.data.tournamentId));
-    }
+    const actionKey = `settings:updateSettings:${this.data.tournamentId}`;
+    if (actionGuard.isBusy(actionKey)) return;
+    return actionGuard.runWithPageBusy(this, 'settingsBusy', actionKey, async () => {
+      wx.showLoading({ title: '保存中...' });
+      try {
+        await cloud.call('updateSettings', {
+          tournamentId: this.data.tournamentId,
+          totalMatches: M,
+          courts: C,
+          allowOpenTeam: this.data.allowOpenTeam
+        });
+        wx.hideLoading();
+        this.clearLastFailedAction();
+        wx.showToast({ title: maxMatches > 0 ? '已保存' : '已预配置', icon: 'success' });
+        // 主动刷新（真机监听不稳定时也能立即更新 UI）
+        await this.fetchTournament(this.data.tournamentId);
+        nav.markRefreshFlag(this.data.tournamentId);
+        if (this._autoBackTimer) clearTimeout(this._autoBackTimer);
+        this._autoBackTimer = setTimeout(() => {
+          nav.navigateBackOrRedirect(`/pages/lobby/index?tournamentId=${this.data.tournamentId}`);
+        }, 420);
+      } catch (e) {
+        wx.hideLoading();
+        this.setLastFailedAction('保存参数', () => this.saveSettings());
+        this.handleWriteError(e, '保存失败', () => this.fetchTournament(this.data.tournamentId));
+      }
+    });
   },
 
   onAllowOpenChange(e) {
@@ -433,21 +439,25 @@ Page({
   async updatePlayerGender(playerId, gender) {
     const id = String(playerId || '').trim();
     if (!id) return;
-    wx.showLoading({ title: '保存中...' });
-    try {
-      await cloud.call('updateSettings', {
-        tournamentId: this.data.tournamentId,
-        playerGenderPatch: { [id]: gender }
-      });
-      wx.hideLoading();
-      this.clearLastFailedAction();
-      await this.fetchTournament(this.data.tournamentId);
-      nav.markRefreshFlag(this.data.tournamentId);
-    } catch (err) {
-      wx.hideLoading();
-      this.setLastFailedAction('更新球员性别', () => this.updatePlayerGender(id, gender));
-      this.handleWriteError(err, '保存失败', () => this.fetchTournament(this.data.tournamentId));
-    }
+    const actionKey = `settings:updatePlayerGender:${this.data.tournamentId}:${id}`;
+    if (actionGuard.isBusy(actionKey)) return;
+    return actionGuard.run(actionKey, async () => {
+      wx.showLoading({ title: '保存中...' });
+      try {
+        await cloud.call('updateSettings', {
+          tournamentId: this.data.tournamentId,
+          playerGenderPatch: { [id]: gender }
+        });
+        wx.hideLoading();
+        this.clearLastFailedAction();
+        await this.fetchTournament(this.data.tournamentId);
+        nav.markRefreshFlag(this.data.tournamentId);
+      } catch (err) {
+        wx.hideLoading();
+        this.setLastFailedAction('更新球员性别', () => this.updatePlayerGender(id, gender));
+        this.handleWriteError(err, '保存失败', () => this.fetchTournament(this.data.tournamentId));
+      }
+    });
   },
 
   async removePlayer(e) {
@@ -457,21 +467,25 @@ Page({
       content: '仅草稿阶段可移除，创建者不可移除。',
       success: async (res) => {
         if (!res.confirm) return;
-        wx.showLoading({ title: '移除中...' });
-        try {
-          await cloud.call('removePlayer', {
-            tournamentId: this.data.tournamentId,
-            playerId
-          });
-          wx.hideLoading();
-          this.clearLastFailedAction();
-          wx.showToast({ title: '已移除', icon: 'success' });
-          this.fetchTournament(this.data.tournamentId);
-        } catch (err) {
-          wx.hideLoading();
-          this.setLastFailedAction('移除参赛者', () => this.removePlayer({ currentTarget: { dataset: { player: playerId } } }));
-          this.handleWriteError(err, '移除失败', () => this.fetchTournament(this.data.tournamentId));
-        }
+        const actionKey = `settings:removePlayer:${this.data.tournamentId}:${playerId}`;
+        if (actionGuard.isBusy(actionKey)) return;
+        await actionGuard.run(actionKey, async () => {
+          wx.showLoading({ title: '移除中...' });
+          try {
+            await cloud.call('removePlayer', {
+              tournamentId: this.data.tournamentId,
+              playerId
+            });
+            wx.hideLoading();
+            this.clearLastFailedAction();
+            wx.showToast({ title: '已移除', icon: 'success' });
+            this.fetchTournament(this.data.tournamentId);
+          } catch (err) {
+            wx.hideLoading();
+            this.setLastFailedAction('移除参赛者', () => this.removePlayer({ currentTarget: { dataset: { player: playerId } } }));
+            this.handleWriteError(err, '移除失败', () => this.fetchTournament(this.data.tournamentId));
+          }
+        });
       }
     });
   }

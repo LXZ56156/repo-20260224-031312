@@ -1,4 +1,5 @@
 const cloud = require('../../core/cloud');
+const actionGuard = require('../../core/actionGuard');
 const storage = require('../../core/storage');
 const tournamentSync = require('../../core/tournamentSync');
 const matchFlow = require('../../core/matchFlow');
@@ -102,8 +103,6 @@ function createMatchSubmitService(ctx, deps = {}) {
   }
 
   async function submit() {
-    if (ctx.data.submitBusy) return;
-
     const scoreA = clampScore(ctx.data.scoreA);
     const scoreB = clampScore(ctx.data.scoreB);
     if (!Number.isFinite(scoreA) || !Number.isFinite(scoreB) || scoreA < 0 || scoreB < 0) {
@@ -136,68 +135,70 @@ function createMatchSubmitService(ctx, deps = {}) {
       expireAt: ctx.data.lockExpireAt
     };
     const clientRequestId = buildClientRequestId();
+    const actionKey = `match:submitScore:${ctx.data.tournamentId}:${ctx.data.roundIndex}:${ctx.data.matchIndex}`;
+    if (actionGuard.isBusy(actionKey)) return;
 
-    ctx.setData({ submitBusy: true });
-    ctx.lockController.setLockState('submitting', lockSnapshot, { skipApply: true });
-    wx.showLoading({ title: '提交中...' });
-    try {
-      const res = await cloudApi.call('submitScore', {
-        tournamentId: ctx.data.tournamentId,
-        roundIndex: ctx.data.roundIndex,
-        matchIndex: ctx.data.matchIndex,
-        scoreA,
-        scoreB,
-        clientRequestId
-      });
+    return actionGuard.runWithPageBusy(ctx, 'submitBusy', actionKey, async () => {
+      ctx.lockController.setLockState('submitting', lockSnapshot, { skipApply: true });
+      wx.showLoading({ title: '提交中...' });
+      try {
+        const res = await cloudApi.call('submitScore', {
+          tournamentId: ctx.data.tournamentId,
+          roundIndex: ctx.data.roundIndex,
+          matchIndex: ctx.data.matchIndex,
+          scoreA,
+          scoreB,
+          clientRequestId
+        });
 
-      if (res && res.ok === false) {
-        if (handleSubmitResultCode(res, lockSnapshot)) return;
+        if (res && res.ok === false) {
+          if (handleSubmitResultCode(res, lockSnapshot)) return;
+          restoreLockAfterSubmitFail(lockSnapshot);
+          wx.showToast({ title: String(res.message || '提交失败'), icon: 'none' });
+          return;
+        }
+
+        await refreshTournamentDoc();
+
+        ctx.clearLastFailedAction();
+        ctx.matchDraft.clearScoreDraft();
+        ctx.matchDraft.clearUndo();
+        ctx.lockController.setLockState('finished', {
+          ownerId: lockSnapshot.ownerId,
+          ownerName: String((res && res.scorerName) || lockSnapshot.ownerName || '')
+        });
+        wx.showToast({ title: '已提交', icon: 'success' });
+        navApi.markRefreshFlag(ctx.data.tournamentId);
+
+        if (ctx.data.batchMode) {
+          setTimeout(() => {
+            jumpAfterBatch('已全部录完');
+          }, 260);
+          return;
+        }
+
+        const autoNext = storageApi.get(SCORE_AUTO_NEXT_KEY, true) !== false;
+        const autoReturn = storageApi.get(SCORE_AUTO_RETURN_KEY, true) !== false;
+        if (autoNext) {
+          setTimeout(async () => {
+            const latestDoc = await refreshTournamentDoc();
+            if (latestDoc) {
+              await jumpToNextPending(latestDoc, '已全部录完', false);
+              return;
+            }
+            if (autoReturn) returnToSchedule(420);
+          }, 260);
+          return;
+        }
+        if (autoReturn) returnToSchedule(420);
+      } catch (err) {
         restoreLockAfterSubmitFail(lockSnapshot);
-        wx.showToast({ title: String(res.message || '提交失败'), icon: 'none' });
-        return;
+        ctx.setLastFailedAction('提交比分', () => submit());
+        ctx.handleWriteError(err, '提交失败', () => ctx.fetchTournament(ctx.data.tournamentId));
+      } finally {
+        wx.hideLoading();
       }
-
-      await refreshTournamentDoc();
-
-      ctx.clearLastFailedAction();
-      ctx.matchDraft.clearScoreDraft();
-      ctx.matchDraft.clearUndo();
-      ctx.lockController.setLockState('finished', {
-        ownerId: lockSnapshot.ownerId,
-        ownerName: String((res && res.scorerName) || lockSnapshot.ownerName || '')
-      });
-      wx.showToast({ title: '已提交', icon: 'success' });
-      navApi.markRefreshFlag(ctx.data.tournamentId);
-
-      if (ctx.data.batchMode) {
-        setTimeout(() => {
-          jumpAfterBatch('已全部录完');
-        }, 260);
-        return;
-      }
-
-      const autoNext = storageApi.get(SCORE_AUTO_NEXT_KEY, true) !== false;
-      const autoReturn = storageApi.get(SCORE_AUTO_RETURN_KEY, true) !== false;
-      if (autoNext) {
-        setTimeout(async () => {
-          const latestDoc = await refreshTournamentDoc();
-          if (latestDoc) {
-            await jumpToNextPending(latestDoc, '已全部录完', false);
-            return;
-          }
-          if (autoReturn) returnToSchedule(420);
-        }, 260);
-        return;
-      }
-      if (autoReturn) returnToSchedule(420);
-    } catch (err) {
-      restoreLockAfterSubmitFail(lockSnapshot);
-      ctx.setLastFailedAction('提交比分', () => submit());
-      ctx.handleWriteError(err, '提交失败', () => ctx.fetchTournament(ctx.data.tournamentId));
-    } finally {
-      wx.hideLoading();
-      ctx.setData({ submitBusy: false });
-    }
+    });
   }
 
   return {

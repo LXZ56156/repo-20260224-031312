@@ -105,6 +105,6 @@
   </view>
 
   <view class="create-actions reveal reveal-4">
-    <button class="btn btn-primary" bindtap="handleCreate">创建并进入</button>
+    <button class="btn btn-primary" bindtap="handleCreate" loading="{{createBusy}}" disabled="{{createBusy}}">创建并进入</button>
   </view>
 </view>
