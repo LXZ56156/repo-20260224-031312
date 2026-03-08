@@ -57,10 +57,12 @@ async function readScoreLock(lockId) {
 
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
+  const traceId = String((event && event.__traceId) || '').trim();
   const tournamentId = String((event && event.tournamentId) || '').trim();
   const roundIndex = Number(event && event.roundIndex);
   const matchIndex = Number(event && event.matchIndex);
   const clientRequestId = String((event && event.clientRequestId) || '').trim();
+  console.info('[submitScore]', traceId || '-', tournamentId || '-', roundIndex, matchIndex, OPENID || '-');
 
   const scoreA = (event && (event.scoreA ?? event.teamAScore ?? event.teamA ?? event.a));
   const scoreB = (event && (event.scoreB ?? event.teamBScore ?? event.teamB ?? event.b));

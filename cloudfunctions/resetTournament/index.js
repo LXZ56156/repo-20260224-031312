@@ -7,7 +7,9 @@ const logic = require('./logic');
 
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
+  const traceId = String((event && event.__traceId) || '').trim();
   const tournamentId = String((event && event.tournamentId) || '').trim();
+  console.info('[resetTournament]', traceId || '-', tournamentId || '-', OPENID || '-');
   if (!tournamentId) throw new Error('缺少 tournamentId');
 
   try {

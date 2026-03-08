@@ -3,6 +3,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 const common = require('./lib/common');
+const modeHelper = require('./lib/mode');
 
 const { generateSchedule, selectSchedulerPolicy } = require('./rotation');
 const { validateBeforeGenerate } = require('./logic');
@@ -36,58 +37,11 @@ function idToPlayerMap(players) {
   return m;
 }
 
-function buildInitialRankings(mode, players, pairTeams = []) {
-  const m = String(mode || '').trim().toLowerCase();
-  if (m === 'squad_doubles') {
-    const teams = [
-      { id: 'A', name: 'A队' },
-      { id: 'B', name: 'B队' }
-    ];
-    return teams.map((team) => ({
-      entityType: 'team',
-      entityId: team.id,
-      playerId: team.id,
-      name: team.name,
-      wins: 0,
-      losses: 0,
-      played: 0,
-      pointsFor: 0,
-      pointsAgainst: 0,
-      pointDiff: 0
-    }));
-  }
-  if (m === 'fixed_pair_rr') {
-    const list = Array.isArray(pairTeams) ? pairTeams : [];
-    return list.map((team, idx) => ({
-      entityType: 'team',
-      entityId: String(team && team.id || `pair_${idx}`),
-      playerId: String(team && team.id || `pair_${idx}`),
-      name: String(team && team.name || `第${idx + 1}队`),
-      wins: 0,
-      losses: 0,
-      played: 0,
-      pointsFor: 0,
-      pointsAgainst: 0,
-      pointDiff: 0
-    }));
-  }
-  return (players || []).map(p => ({
-    entityType: 'player',
-    entityId: p.id,
-    playerId: p.id,
-    name: safePlayerName(p),
-    wins: 0,
-    losses: 0,
-    played: 0,
-    pointsFor: 0,
-    pointsAgainst: 0,
-    pointDiff: 0
-  }));
-}
-
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
+  const traceId = String((event && event.__traceId) || '').trim();
   const tournamentId = String((event && event.tournamentId) || '').trim();
+  console.info('[startTournament]', traceId || '-', tournamentId || '-', OPENID || '-');
   if (!tournamentId) throw new Error('缺少 tournamentId');
 
   try {
@@ -168,7 +122,7 @@ exports.main = async (event) => {
       restPlayers: (r.restPlayers || []).map(id => map[id]).filter(Boolean)
     }));
 
-    const rankings = buildInitialRankings(mode, players, pairTeams);
+    const rankings = modeHelper.buildInitialRankings(mode, players, pairTeams);
 
     const updRes = await db.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({
       data: {

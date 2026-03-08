@@ -1,3 +1,5 @@
+const trace = require('./trace');
+
 function normalizeErrMsg(err) {
   if (!err) return '';
   return (err.errMsg || err.message || String(err));
@@ -103,7 +105,11 @@ function showDevHint(title, content) {
 }
 
 function call(name, data = {}) {
-  return wx.cloud.callFunction({ name, data })
+  const payload = (data && typeof data === 'object') ? { ...data } : {};
+  if (!String(payload.__traceId || '').trim()) {
+    payload.__traceId = trace.createTraceId(String(name || 'op').trim() || 'op');
+  }
+  return wx.cloud.callFunction({ name, data: payload })
     .then(res => res.result)
     .catch(err => {
       const msg = normalizeErrMsg(err);

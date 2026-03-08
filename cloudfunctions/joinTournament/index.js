@@ -4,6 +4,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 const common = require('./lib/common');
+const modeHelper = require('./lib/mode');
 
 function normalizeName(name) {
   let s = String(name || '').replace(/[\r\n\t]+/g, ' ').trim();
@@ -33,13 +34,6 @@ function normalizeGender(gender) {
   return 'unknown';
 }
 
-function normalizeMode(mode) {
-  const v = String(mode || '').trim().toLowerCase();
-  if (v === 'multi_rotate' || v === 'squad_doubles' || v === 'fixed_pair_rr') return v;
-  if (v === 'mixed_fallback' || v === 'doubles') return 'multi_rotate';
-  return 'multi_rotate';
-}
-
 function normalizeSquadChoice(choice) {
   const v = String(choice || '').trim().toUpperCase();
   if (v === 'A' || v === 'B') return v;
@@ -49,7 +43,9 @@ function normalizeSquadChoice(choice) {
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
   const openid = wxContext.OPENID;
+  const traceId = String((event && event.__traceId) || '').trim();
   const tournamentId = event.tournamentId;
+  console.info('[joinTournament]', traceId || '-', String(tournamentId || '').trim() || '-', openid || '-');
   const rawNickname = event.nickname;
   const avatar = String(event.avatar || '').trim();
   let gender = normalizeGender(event.gender);
@@ -67,7 +63,7 @@ exports.main = async (event, context) => {
   }
 
   const players = Array.isArray(t.players) ? t.players : [];
-  const mode = normalizeMode(t.mode);
+  const mode = modeHelper.normalizeMode(t.mode);
   const idx = players.findIndex(p => p && p.id === openid);
 
   if (gender === 'unknown') {
