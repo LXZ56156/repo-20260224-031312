@@ -5,20 +5,18 @@
     <view class="row hero-top">
       <view class="flex-1 minw0">
         <view class="hero-title ellipsis">{{tournament.name}}</view>
-        <view class="hero-sub">双打轮转 · 默认21分制 · 排名：胜场+净胜分</view>
+        <view class="hero-sub">{{modeLabel}} · 21分制</view>
       </view>
       <view class="tag {{statusClass}}">{{statusText}}</view>
     </view>
 
     <view class="hero-meta">
-      <view class="meta-pill meta-referee {{refereeId ? 'on' : 'off'}}">
-        <text class="meta-label">裁判</text>
-        <text class="meta-value">{{refereeName}}</text>
-        <text class="meta-badge" wx:if="{{isReferee}}">你是裁判</text>
-        <text class="meta-badge" wx:elif="{{!refereeId}}">待设置</text>
-      </view>
       <view class="meta-pill meta-admin" wx:if="{{isAdmin}}">管理员</view>
       <view class="meta-pill meta-player" wx:if="{{myJoined}}">已参赛</view>
+    </view>
+
+    <view class="hero-shortcuts" wx:if="{{showScheduleShortcut}}">
+      <button class="btn-mini hero-shortcut-btn" bindtap="goSchedule">查看赛程</button>
     </view>
 
     <view class="kpi">
@@ -40,28 +38,24 @@
   <view class="card panel reveal reveal-2">
     <view class="section-head">
       <view class="section-title">比赛信息</view>
-      <text class="count-pill">规则</text>
+      <text class="count-pill">{{statusText}}</text>
     </view>
-    <view class="info-row">
-      <text class="info-label">赛制</text>
-      <text class="info-value">双打轮转</text>
+    <view class="rule-chips">
+      <text class="rule-chip">{{modeLabel}}</text>
+      <text class="rule-chip">{{pointsPerGame}} 分制</text>
+      <text class="rule-chip">胜场优先</text>
     </view>
-    <view class="info-row">
-      <text class="info-label">计分</text>
-      <text class="info-value">默认21分制 · 一局定胜负</text>
+    <view class="info-highlight">{{matchInfoText}}</view>
+    <view class="muted small">{{genderSummaryText}}</view>
+    <view class="muted small" wx:if="{{tournament.createdAt}}">创建 {{createdAtText}}</view>
+  </view>
+
+  <view class="card panel panel-soft reveal reveal-3" wx:if="{{modeRules.length}}">
+    <view class="section-head">
+      <view class="section-title">玩法规则</view>
+      <text class="count-pill">{{modeLabel}}</text>
     </view>
-    <view class="info-row">
-      <text class="info-label">场次</text>
-      <text class="info-value">{{matchInfoText}}</text>
-    </view>
-    <view class="info-row">
-      <text class="info-label">排名</text>
-      <text class="info-value">胜场优先，净胜分次之</text>
-    </view>
-    <view class="info-row" wx:if="{{tournament.createdAt}}">
-      <text class="info-label">创建</text>
-      <text class="info-value ellipsis">{{createdAtText}}</text>
-    </view>
+    <view class="muted small" wx:for="{{modeRules}}" wx:key="*this">{{item}}</view>
   </view>
 
   <view class="card panel reveal reveal-3">
@@ -69,112 +63,204 @@
       <view class="section-title">参赛名单</view>
       <view class="row-right">
         <text class="count-pill">{{tournament.players.length}} 人</text>
-        <button class="link-btn" wx:if="{{tournament.players.length>12}}" bindtap="togglePlayers">{{showAllPlayers?'收起':'展开'}}</button>
+        <text class="link-btn" wx:if="{{tournament.players.length>12}}" bindtap="togglePlayers">{{showAllPlayers?'收起':'展开'}}</text>
       </view>
     </view>
     <view class="player-grid" wx:if="{{displayPlayers.length}}">
-      <view class="player-cell" wx:for="{{displayPlayers}}" wx:key="id" data-name="{{item.name}}" bindtap="onTapPlayerName">
+      <view class="player-cell" wx:for="{{displayPlayers}}" wx:key="id" data-player="{{item.id}}" bindtap="onTogglePlayerSquad">
         <view class="player-avatar {{item.colorClass}}">
           <image class="player-avatar-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill"></image>
           <text class="player-initial" wx:else>{{item.initial}}</text>
         </view>
         <view class="player-name ellipsis">{{item.name}}</view>
+        <view class="player-gender">{{item.genderLabel}}</view>
+        <view class="player-gender" wx:if="{{mode==='squad_doubles'}}">{{item.squad ? item.squad + '队' : '未分队'}}</view>
       </view>
     </view>
-
-    <view class="muted small player-hint">分享进入默认观赛；仅草稿阶段可加入参赛。</view>
   </view>
 
-  <view class="card panel panel-soft profile-panel reveal reveal-4" wx:if="{{showJoin}}">
+  <view class="card panel panel-soft profile-panel reveal reveal-4" wx:if="{{showJoin || showMyProfile}}">
     <view class="section-head">
-      <view class="section-title">加入比赛（可选）</view>
-      <text class="count-pill">草稿可加入</text>
+      <view class="section-title">{{showJoin ? '参赛信息' : '我的信息'}}</view>
+      <text class="count-pill">{{showJoin ? '草稿可加入' : '草稿可修改'}}</text>
     </view>
-    <view class="muted small profile-hint">填写昵称和头像后，会展示在参赛名单中。</view>
+    <view class="muted small profile-hint">{{showJoin ? '资料会自动带入并可随时更新' : '修改后会立即同步名单展示'}}</view>
     <view class="profile-col">
-      <image class="avatar-img profile-avatar" src="{{joinAvatarDisplay}}" mode="aspectFill"></image>
-      <input class="input profile-input" type="nickname" placeholder="昵称（可选）" value="{{nickname}}" bindinput="onNick" focus="{{focusJoinNick}}" />
+      <image class="avatar-img profile-avatar" src="{{showJoin ? joinAvatarDisplay : myAvatarDisplay}}" mode="aspectFill"></image>
+      <input
+        class="input profile-input {{profileFieldError ? 'input-error' : ''}}"
+        type="nickname"
+        focus="{{profileNicknameFocus}}"
+        placeholder="{{showJoin ? '昵称（可选）' : '我的昵称'}}"
+        value="{{showJoin ? nickname : myNickname}}"
+        bindfocus="onProfileNickFocus"
+        bindblur="onProfileNickBlur"
+        bindinput="onProfileNickInput"
+      />
+      <view class="muted small profile-inline-tip">可点击输入框使用微信昵称。</view>
       <view class="profile-actions profile-actions-center">
-        <button class="btn-mini" bindtap="focusJoinNickInput">填入微信昵称</button>
-        <button class="btn-mini" open-type="chooseAvatar" bindchooseavatar="onChooseAvatarForJoin">选择头像</button>
+        <button
+          class="btn-mini primary profile-quick-btn"
+          open-type="chooseAvatar"
+          bindchooseavatar="onQuickFillProfile"
+          loading="{{profileQuickFillLoading}}"
+          disabled="{{profileQuickFillLoading || profileSaving || profileAvatarUploading}}"
+        >
+          一键填写微信资料
+        </button>
+        <button class="btn-mini" open-type="chooseAvatar" bindchooseavatar="onChooseAvatarForProfile" disabled="{{profileSaving || profileAvatarUploading}}">仅选头像</button>
+      </view>
+      <view class="muted small profile-inline-tip" wx:if="{{profileAvatarUploading}}">头像上传中，请稍候…</view>
+      <view class="field-error" wx:if="{{profileFieldError}}">{{profileFieldError}}</view>
+    </view>
+    <view class="squad-chooser" wx:if="{{showJoin && mode==='squad_doubles'}}">
+      <view class="field-label">参赛队伍（必选）</view>
+      <view class="chips">
+        <view class="chip {{joinSquadChoice==='A' ? 'active' : ''}}" data-squad="A" bindtap="onPickJoinSquad">A队</view>
+        <view class="chip {{joinSquadChoice==='B' ? 'active' : ''}}" data-squad="B" bindtap="onPickJoinSquad">B队</view>
       </view>
     </view>
-    <button class="btn btn-primary" bindtap="handleJoin">加入参赛</button>
-  </view>
-
-  <view class="card panel panel-soft profile-panel reveal reveal-4" wx:if="{{showMyProfile}}">
-    <view class="section-head">
-      <view class="section-title">我的信息（可选）</view>
-      <text class="count-pill">草稿可修改</text>
-    </view>
-    <view class="muted small profile-hint">用于在参赛名单中展示；可随时修改。</view>
-    <view class="profile-col">
-      <image class="avatar-img profile-avatar" src="{{myAvatarDisplay}}" mode="aspectFill"></image>
-      <input class="input profile-input" type="nickname" placeholder="我的昵称" value="{{myNickname}}" bindinput="onMyNick" focus="{{focusMyNick}}" />
-      <view class="profile-actions profile-actions-center">
-        <button class="btn-mini" bindtap="focusMyNickInput">填入微信昵称</button>
-        <button class="btn-mini" open-type="chooseAvatar" bindchooseavatar="onChooseAvatarForMe">选择头像</button>
-      </view>
-    </view>
-    <button class="btn btn-primary" bindtap="saveMyProfile">保存我的信息</button>
-  </view>
-
-  <view class="card panel action-panel reveal reveal-5">
-    <view class="section-head">
-      <view class="section-title">观赛入口</view>
-      <text class="count-pill">即时查看</text>
-    </view>
-    <view class="btn-row action-row">
-      <button class="btn btn-subtle" bindtap="goSchedule">查看赛程</button>
-      <button class="btn btn-subtle" bindtap="goRanking">查看排名</button>
-    </view>
-    <view class="action-row" wx:if="{{tournament.status==='finished'}}">
-      <button class="btn btn-secondary" bindtap="goAnalytics">赛事复盘</button>
-    </view>
+    <button class="btn btn-primary" bindtap="submitProfile" loading="{{profileSaving}}" disabled="{{profileSaving || profileQuickFillLoading || profileAvatarUploading}}">{{showJoin ? '立即参赛' : '保存我的信息'}}</button>
   </view>
 
   <view class="card panel admin-panel reveal reveal-6" wx:if="{{isAdmin}}">
     <view class="section-head">
       <view class="section-title">管理员操作</view>
-      <text class="count-pill" wx:if="{{tournament.status==='draft'}}">草稿阶段</text>
-      <text class="count-pill" wx:else>进行中</text>
+      <view class="row-right">
+        <text class="count-pill" wx:if="{{tournament.status==='draft'}}">待完成 {{quickChecklistPending}} 项</text>
+        <text class="count-pill" wx:else>进行中</text>
+        <text class="link-btn" bindtap="goSettings">比赛参数</text>
+      </view>
     </view>
 
-    <view class="checklist panel-soft" wx:if="{{tournament.status==='draft'}}">
-      <view class="check-row check-tappable" data-key="players" bindtap="onChecklistTap">
-        <text class="check-icon {{checkPlayersOk?'ok':''}}">{{checkPlayersOk ? '✓' : '○'}}</text>
-        <text class="check-text">参赛者≥4</text>
+    <view class="draft-prep panel-soft" wx:if="{{tournament.status==='draft'}}">
+      <view class="prep-tile" data-key="settings" bindtap="onChecklistTap">
+        <text class="prep-indicator {{checkSettingsOk ? 'ok' : ''}}"></text>
+        <view class="prep-main">
+          <view class="prep-title">1. 参数</view>
+          <view class="prep-sub">{{checkSettingsOk ? '已保存' : '待保存'}}</view>
+        </view>
+        <text class="prep-jump">{{checkSettingsOk ? '查看' : '去填写'}}</text>
       </view>
-      <view class="check-row check-tappable" data-key="settings" bindtap="onChecklistTap">
-        <text class="check-icon {{checkSettingsOk?'ok':''}}">{{checkSettingsOk ? '✓' : '○'}}</text>
-        <text class="check-text">已保存比赛参数</text>
+      <view class="prep-tile" data-key="players" bindtap="onChecklistTap">
+        <text class="prep-indicator {{checkPlayersOk ? 'ok' : ''}}"></text>
+        <view class="prep-main">
+          <view class="prep-title">2. 名单</view>
+          <view class="prep-sub">{{playersChecklistHint}}</view>
+        </view>
+        <text class="prep-jump">{{checkPlayersOk ? '查看' : '去导入'}}</text>
       </view>
-      <view class="muted small checklist-hint">点击检查项可快速修复。</view>
+      <view class="prep-tile" data-key="start" bindtap="onChecklistTap">
+        <text class="prep-indicator {{checkStartReady ? 'ok' : ''}}"></text>
+        <view class="prep-main">
+          <view class="prep-title">3. 开赛</view>
+          <view class="prep-sub">{{checkStartReady ? '可立即开赛' : '完成前两项后可开赛'}}</view>
+        </view>
+        <text class="prep-jump">{{checkStartReady ? '开赛' : '去完成'}}</text>
+      </view>
+    </view>
+
+    <view class="quick-config panel-soft" id="quick-config" wx:if="{{tournament.status==='draft'}}">
+      <view class="quick-config-head">比赛参数</view>
+      <view class="muted small">按活动时长快速估算总场次</view>
+      <view class="quick-config-row">
+        <view class="quick-config-col">
+          <view class="quick-config-label">总场次</view>
+          <picker wx:if="{{useSimpleQuickMPicker}}" mode="selector" range="{{quickConfigMOptions}}" value="{{quickConfigMIndex}}" bindchange="onPickQuickConfigMSimple">
+            <view class="picker quick-config-picker">{{quickConfigM}}</view>
+          </picker>
+          <picker wx:else mode="multiSelector" range="{{quickConfigMDigitRange}}" value="{{quickConfigMDigitValue}}" bindchange="onPickQuickConfigMDigit">
+            <view class="picker quick-config-picker">{{quickConfigM}}</view>
+          </picker>
+        </view>
+        <view class="quick-config-col">
+          <view class="quick-config-label">每轮最多场数</view>
+          <picker mode="selector" range="{{quickConfigCOptions}}" value="{{quickConfigCIndex}}" bindchange="onPickQuickConfigC">
+            <view class="picker quick-config-picker">{{quickConfigC}}</view>
+          </picker>
+        </view>
+      </view>
+      <view class="quick-config-row">
+        <view class="quick-config-col">
+          <view class="quick-config-label">活动时长</view>
+          <picker mode="selector" range="{{sessionMinuteOptions}}" value="{{sessionMinuteIndex}}" bindchange="onPickSessionMinutes">
+            <view class="picker quick-config-picker">{{sessionMinutes}} 分钟</view>
+          </picker>
+        </view>
+        <view class="quick-config-col">
+          <view class="quick-config-label">单场占用时间</view>
+          <picker mode="selector" range="{{slotMinuteOptions}}" value="{{slotMinuteIndex}}" bindchange="onPickSlotMinutes">
+            <view class="picker quick-config-picker">{{slotMinutes}} 分钟</view>
+          </picker>
+        </view>
+      </view>
+      <view class="muted small quick-config-tip">{{quickCapacityHintShort}}</view>
+      <view class="muted small quick-config-tip" wx:if="{{quickRosterHint}}">{{quickRosterHint}}</view>
+      <view class="muted small quick-config-tip" wx:if="{{mode==='fixed_pair_rr' && !pairTeamsUi.length}}">请先在下方完成组队后再开赛</view>
+      <button class="btn btn-primary quick-config-save" bindtap="saveQuickSettings">保存参数</button>
     </view>
 
     <view class="quick-import panel-soft" wx:if="{{tournament.status==='draft'}}">
       <view class="quick-import-head">快速导入名单</view>
-      <view class="muted small">支持空格 / 逗号 / 换行分隔；单次最多 60 人。</view>
       <textarea
+        id="quick-import"
         class="textarea quick-import-input"
-        placeholder="示例：张三 李四,王五\n赵六"
+        placeholder="张三/男 李四/女,王五"
         value="{{quickImportText}}"
         focus="{{focusQuickImport}}"
         bindinput="onQuickImportInput"
       ></textarea>
       <view class="btn-row quick-import-actions">
         <button class="btn btn-primary" bindtap="quickImportPlayers">一键导入</button>
-        <button class="btn btn-ghost" bindtap="onQuickImportClear">清空</button>
+      </view>
+      <view class="quick-import-result" wx:if="{{importResultText}}">
+        <view class="quick-import-result-title">{{importResultText}}</view>
+        <view class="muted small" wx:if="{{importResultDetail}}">{{importResultDetail}}</view>
       </view>
     </view>
 
-    <view class="admin-actions">
-      <view class="btn-row">
-        <button class="btn btn-subtle {{sharePulse ? 'share-pulse' : ''}}" open-type="share">分享到群</button>
-        <button class="btn btn-subtle" bindtap="goSettings">赛事设置</button>
+    <view class="fixed-team panel-soft" wx:if="{{tournament.status==='draft' && mode==='fixed_pair_rr'}}">
+      <view class="fixed-team-head row row-top">
+        <view class="quick-import-head">固搭队伍</view>
+        <button class="btn-mini" bindtap="autoGeneratePairTeams" loading="{{pairTeamBusy}}" disabled="{{pairTeamBusy}}">自动组队</button>
       </view>
-      <button class="btn btn-primary" bindtap="handleStart" wx:if="{{tournament.status==='draft'}}" disabled="{{startDisabled}}">开赛并锁定赛程</button>
-      <button class="btn btn-danger" bindtap="handleReset">重置回草稿</button>
+      <view class="muted small">管理员统一组队后即可开赛。</view>
+
+      <view class="fixed-team-list" wx:if="{{pairTeamsUi.length}}">
+        <view class="fixed-team-item" wx:for="{{pairTeamsUi}}" wx:key="id">
+          <view class="fixed-team-main">
+            <view class="fixed-team-name">{{item.name}}</view>
+            <view class="muted small">{{item.memberText}}</view>
+          </view>
+          <button class="btn-mini danger" data-team="{{item.id}}" bindtap="deletePairTeam" disabled="{{pairTeamBusy}}">删除</button>
+        </view>
+      </view>
+      <view class="muted small" wx:else>当前未创建队伍，可先自动组队或手动添加。</view>
+
+      <view class="fixed-team-create" wx:if="{{pairTeamCandidates.length >= 2}}">
+        <input class="input fixed-team-name-input" placeholder="队伍名称（可选）" value="{{pairTeamName}}" bindinput="onPairTeamNameInput" />
+        <view class="quick-config-row">
+          <view class="quick-config-col">
+            <view class="quick-config-label">队员1</view>
+            <picker mode="selector" range="{{pairTeamCandidates}}" range-key="name" value="{{pairTeamFirstIndex}}" bindchange="onPickPairFirst">
+              <view class="picker quick-config-picker">{{pairTeamCandidates[pairTeamFirstIndex].name}}</view>
+            </picker>
+          </view>
+          <view class="quick-config-col">
+            <view class="quick-config-label">队员2</view>
+            <picker mode="selector" range="{{pairTeamCandidates}}" range-key="name" value="{{pairTeamSecondIndex}}" bindchange="onPickPairSecond">
+              <view class="picker quick-config-picker">{{pairTeamCandidates[pairTeamSecondIndex].name}}</view>
+            </picker>
+          </view>
+        </view>
+        <button class="btn btn-primary fixed-team-create-btn" bindtap="createPairTeam" loading="{{pairTeamBusy}}" disabled="{{pairTeamBusy}}">添加队伍</button>
+      </view>
+      <view class="muted small" wx:else>暂无可组队成员（每名成员仅可属于一支队伍）。</view>
+    </view>
+
+    <view class="admin-actions">
+      <button class="btn btn-subtle {{sharePulse ? 'share-pulse' : ''}}" open-type="share">分享到群</button>
+      <button class="btn btn-danger" bindtap="handleReset" wx:if="{{tournament.status!=='draft'}}">重置回草稿</button>
     </view>
   </view>
 
@@ -201,5 +287,4 @@
 
 <view class="next-action-bar" wx:if="{{tournament && nextActionText}}">
   <button class="btn btn-primary next-primary" bindtap="onNextActionTap">{{nextActionText}}</button>
-  <button class="btn btn-subtle next-secondary" wx:if="{{nextSecondaryText}}" bindtap="onNextSecondaryTap">{{nextSecondaryText}}</button>
 </view>

@@ -44,4 +44,14 @@ test('generateSchedule creates valid deterministic schedule', () => {
 
   assert.equal(typeof a.fairnessScore, 'number');
   assert.equal(a.fairnessScore > 0, true);
+  assert.equal(a.seed, b.seed);
+  assert.equal(typeof a.schedulerMeta, 'object');
+  assert.equal(a.schedulerMeta.engineVersion, 'rotation-v2');
+  assert.equal(a.schedulerMeta.selectedSeed, a.seed);
+  assert.equal(Array.isArray(a.schedulerMeta.triedSeeds), true);
+  assert.equal(a.schedulerMeta.triedSeeds.length, 16);
+  assert.equal(typeof a.schedulerMeta.policy, 'object');
+  assert.equal(a.schedulerMeta.policy.policyVersion, 'v3');
+  assert.equal(a.schedulerMeta.selectedSearchSeeds, 16);
+  assert.equal(a.schedulerMeta.selectedEpsilon, 1.6);
 });

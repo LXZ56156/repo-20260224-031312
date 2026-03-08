@@ -1,0 +1,20 @@
+<view class="container safe-bottom launch-page">
+  <view class="hero">
+    <view class="hero-title">发起比赛</view>
+    <view class="hero-sub">选择玩法后填写赛事名称和参数即可开始</view>
+  </view>
+
+  <view class="card panel launch-card" wx:for="{{modeCards}}" wx:key="key">
+    <view class="row launch-row">
+      <view class="flex-1 minw0">
+        <view class="launch-title">{{item.name}}</view>
+        <view class="muted launch-sub">{{item.summary}}</view>
+      </view>
+      <text class="count-pill" wx:if="{{item.badge}}">{{item.badge}}</text>
+    </view>
+    <view class="launch-actions">
+      <text class="launch-rule-link" data-mode="{{item.mode}}" bindtap="onShowRules">规则说明</text>
+      <button class="btn btn-primary launch-btn" data-mode="{{item.mode}}" bindtap="onStart">发起</button>
+    </view>
+  </view>
+</view>

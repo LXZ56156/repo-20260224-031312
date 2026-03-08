@@ -3,15 +3,47 @@
 
   <view class="hero">
     <view class="hero-title">赛事设置</view>
-    <view class="hero-sub">仅管理员可修改；开赛后赛程锁定</view>
+    <view class="hero-sub">{{modeLabel}} · 仅管理员可修改；开赛后赛程锁定</view>
   </view>
 
-  <view class="card panel settings-panel">
-    <view class="section-title">比赛参数</view>
-    <view class="muted small section-tip" wx:if="{{tournament.status!=='draft'}}">赛事已开赛，参数已锁定</view>
+  <view class="card panel prep-panel" wx:if="{{tournament.status==='draft'}}">
+    <view class="section-head">
+      <view class="section-title">开赛准备</view>
+      <text class="count-pill">{{mandatoryDone}} / {{mandatoryTotal}}</text>
+    </view>
 
-    <view class="muted section-tip" wx:if="{{maxMatches>0}}">最大可选：{{maxMatches}} 场</view>
-    <view class="muted section-tip" wx:else>人数不足 4 也可先预配置，开赛时会再校验</view>
+    <view class="prep-list">
+      <view class="prep-item {{isAdmin ? 'tappable' : ''}}" data-key="params" bindtap="onPrepActionTap">
+        <view class="prep-main">
+          <view class="prep-title">比赛参数</view>
+          <view class="prep-sub">{{settingsReady ? '参数已保存' : '参数未保存'}}</view>
+        </view>
+        <view class="prep-side">
+          <text class="status-pill {{settingsReady ? 'ok' : 'pending'}}">{{settingsReady ? '已完成' : '待完成'}}</text>
+          <text class="prep-jump" wx:if="{{isAdmin}}">{{settingsReady ? '查看' : '去设置'}}</text>
+        </view>
+      </view>
+
+      <view class="prep-item {{isAdmin ? 'tappable' : ''}}" data-key="players" bindtap="onPrepActionTap">
+        <view class="prep-main">
+          <view class="prep-title">参赛名单</view>
+          <view class="prep-sub">{{playersCount}} 人（至少 4 人）</view>
+        </view>
+        <view class="prep-side">
+          <text class="status-pill {{playersReady ? 'ok' : 'pending'}}">{{playersStatusText}}</text>
+          <text class="prep-jump" wx:if="{{isAdmin}}">{{isDraft ? '去大厅' : '查看'}}</text>
+        </view>
+      </view>
+
+    </view>
+  </view>
+
+  <view class="card panel settings-panel" id="section-params">
+    <view class="row row-top">
+      <view class="section-title">比赛参数</view>
+      <text class="status-pill {{settingsReady ? 'ok' : 'pending'}}">{{settingsReady ? '已完成' : '待完成'}}</text>
+    </view>
+    <view class="muted small section-tip" wx:if="{{tournament.status!=='draft'}}">赛事已开赛，参数已锁定</view>
 
     <view class="form-item">
       <view class="form-label">总场次</view>
@@ -30,10 +62,6 @@
       </view>
     </view>
 
-    <view class="chips" wx:if="{{isAdmin && tournament.status==='draft' && recommendations.length>0}}">
-      <view class="chip" wx:for="{{recommendations}}" wx:key="key" data-m="{{item.m}}" bindtap="applyRecommend">{{item.label}}：{{item.m}}场</view>
-    </view>
-
     <view class="form-item">
       <view class="form-label">每轮最多场数</view>
       <view class="form-field">
@@ -48,58 +76,71 @@
       </view>
     </view>
 
+    <view class="form-item">
+      <view class="form-label">活动时长</view>
+      <view class="form-field">
+        <block wx:if="{{isAdmin && tournament.status==='draft'}}">
+          <picker mode="selector" range="{{sessionMinuteOptions}}" value="{{sessionMinuteIndex}}" bindchange="onPickSessionMinutes">
+            <view class="picker">{{sessionMinutes}} 分钟</view>
+          </picker>
+        </block>
+        <block wx:else>
+          <view class="picker disabled">{{sessionMinutes}} 分钟</view>
+        </block>
+      </view>
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">单场占用时间</view>
+      <view class="form-field">
+        <block wx:if="{{isAdmin && tournament.status==='draft'}}">
+          <picker mode="selector" range="{{slotMinuteOptions}}" value="{{slotMinuteIndex}}" bindchange="onPickSlotMinutes">
+            <view class="picker">{{slotMinutes}} 分钟</view>
+          </picker>
+        </block>
+        <block wx:else>
+          <view class="picker disabled">{{slotMinutes}} 分钟</view>
+        </block>
+      </view>
+    </view>
+
+    <view class="muted small section-tip">{{capacityHintShort}}</view>
+    <view class="muted small section-tip" wx:if="{{rosterHint}}">{{rosterHint}}</view>
+
     <button class="btn btn-primary settings-save" bindtap="saveSettings" wx:if="{{isAdmin && tournament.status==='draft'}}">保存参数</button>
     <view class="muted small section-tip" wx:else>仅管理员可在草稿阶段修改并保存参数。</view>
   </view>
 
-  <view class="card panel settings-panel">
+  <view class="card panel settings-panel" id="section-players">
     <view class="row row-top">
-      <view class="section-title">裁判（比分录入权限）</view>
-      <view class="referee-badge" wx:if="{{refereeId}}">已设置</view>
+      <view class="section-title">参赛者管理</view>
+      <text class="status-pill {{playersReady ? 'ok' : 'pending'}}">{{playersStatusText}}</text>
     </view>
-
-    <view class="referee-current {{refereeId ? 'set' : 'unset'}}">
-      <view class="referee-left">
-        <text class="muted">当前裁判</text>
-        <text class="referee-name">{{refereeName}}</text>
-      </view>
-      <view class="referee-actions" wx:if="{{isAdmin}}">
-        <picker mode="selector" range="{{refereeOptions}}" range-key="name" value="{{refereeIndex}}" bindchange="onPickReferee">
-          <view class="referee-btn primary">选择裁判</view>
-        </picker>
-        <button class="referee-btn ghost" bindtap="clearReferee" wx:if="{{refereeId}}">清空</button>
-      </view>
-    </view>
-
-    <view class="muted small section-tip">可为空；不设置则仅管理员可录入比分</view>
-  </view>
-
-  <view class="card panel settings-panel">
-    <view class="section-title">参赛者管理</view>
-    <view class="muted small section-tip">草稿阶段可添加/移除（创建者不可移除）</view>
-
     <view wx:if="{{isAdmin && tournament.status==='draft'}}">
-      <view class="muted small section-tip">每行一个名字；支持空格/逗号/换行分隔。示例：张三 李四 王五</view>
-      <textarea class="textarea" placeholder="请输入参赛者名单" value="{{addNamesText}}" bindinput="onAddNamesInput"></textarea>
-
-      <view class="btn-row table-actions">
-        <button class="btn btn-primary" bindtap="addPlayers">添加</button>
-        <button class="btn btn-ghost" bindtap="clearAddNames">清空</button>
-      </view>
+      <view class="muted small section-tip">导入名单请在大厅完成</view>
+      <button class="btn btn-subtle player-route-btn" bindtap="goLobbyManagePlayers">回到大厅导入</button>
     </view>
     <view class="muted section-tip" wx:else>赛事已开赛或你不是管理员，参赛名单已锁定。</view>
 
     <view class="players" wx:if="{{tournament.players.length>0}}">
       <view class="player" wx:for="{{tournament.players}}" wx:key="id">
-        <view class="player-name ellipsis">{{item.name}}</view>
+        <view class="player-main">
+          <view class="player-name ellipsis">{{item.name}}</view>
+          <picker
+            mode="selector"
+            range="{{genderOptions}}"
+            value="{{item.gender==='male' ? 1 : (item.gender==='female' ? 2 : 0)}}"
+            bindchange="onPickPlayerGender"
+            data-player="{{item.id}}"
+            wx:if="{{isAdmin && tournament.status==='draft'}}"
+          >
+            <view class="player-gender-chip">{{item.gender==='male' ? '男' : (item.gender==='female' ? '女' : '未设')}}</view>
+          </picker>
+          <view class="player-gender-chip" wx:else>{{item.gender==='male' ? '男' : (item.gender==='female' ? '女' : '未设')}}</view>
+        </view>
         <button class="btn-mini danger" data-player="{{item.id}}" bindtap="removePlayer" wx:if="{{isAdmin && tournament.status==='draft' && item.id!==tournament.creatorId}}">移除</button>
       </view>
     </view>
-  </view>
-
-  <view class="card panel settings-panel" wx:if="{{isAdmin}}">
-    <view class="section-title">其他</view>
-    <button class="btn btn-danger settings-save" bindtap="resetTournament">重置回草稿</button>
   </view>
 
   <view class="retry-box panel-soft" wx:if="{{canRetryAction}}">

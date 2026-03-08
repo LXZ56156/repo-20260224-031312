@@ -21,9 +21,11 @@ function normalizePlayer(p) {
     const idRaw = String(p || '').trim();
     const alnum = idRaw.replace(/[^0-9a-zA-Z]/g, '');
     const suffix = (alnum.slice(-4) || idRaw.slice(-4) || '').trim();
-    return { id: idRaw, name: suffix || '匿名' };
+    return { id: idRaw, name: suffix || '匿名', gender: 'unknown' };
   }
-  return { ...p, id: String(p.id || p.playerId || ''), name: safePlayerName(p) };
+  const genderRaw = String(p.gender || '').trim().toLowerCase();
+  const gender = (genderRaw === 'male' || genderRaw === 'female') ? genderRaw : 'unknown';
+  return { ...p, id: String(p.id || p.playerId || ''), name: safePlayerName(p), gender };
 }
 
 function normalizeTournament(t) {
@@ -80,7 +82,11 @@ function normalizeTournament(t) {
     return { ...r, name };
   }) : [];
 
-  return { ...t, players, rounds, rankings };
+  const modeRaw = String(t.mode || '').trim().toLowerCase();
+  let mode = 'multi_rotate';
+  if (modeRaw === 'squad_doubles' || modeRaw === 'fixed_pair_rr' || modeRaw === 'multi_rotate') mode = modeRaw;
+  if (modeRaw === 'mixed_fallback' || modeRaw === 'doubles') mode = 'multi_rotate';
+  return { ...t, mode, players, rounds, rankings };
 }
 
 module.exports = {

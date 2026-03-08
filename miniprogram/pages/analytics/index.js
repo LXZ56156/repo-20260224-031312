@@ -2,6 +2,8 @@ const cloud = require('../../core/cloud');
 const storage = require('../../core/storage');
 const normalize = require('../../core/normalize');
 const tournamentSync = require('../../core/tournamentSync');
+const nav = require('../../core/nav');
+const adGuard = require('../../core/adGuard');
 
 function pickScoreVal(v) {
   if (v === 0 || v === '0') return 0;
@@ -183,6 +185,29 @@ function computeAnalytics(tournament) {
   };
 }
 
+function buildBattleReport(analytics) {
+  const a = analytics || {};
+  const t = a.tournament || {};
+  const s = a.summary || {};
+  const top = Array.isArray(a.top3) ? a.top3 : [];
+  const pairHot = Array.isArray(a.pairHot) ? a.pairHot : [];
+  const duelHot = Array.isArray(a.duelHot) ? a.duelHot : [];
+
+  const lines = [];
+  lines.push(`已完赛 ${s.finishedMatches || 0}/${s.totalMatches || 0}（完赛率 ${s.completionRate || '0%'}）`);
+  lines.push(`总得分 ${s.totalPoints || 0}，平均分差 ${s.avgDiff || '0.0'}`);
+  if (top[0]) lines.push(`当前榜首：${top[0].name}（胜${top[0].wins} 负${top[0].losses}）`);
+  if (pairHot[0]) lines.push(`高频搭档：${pairHot[0].label}（${pairHot[0].count}次）`);
+  if (duelHot[0]) lines.push(`高频对阵：${duelHot[0].label}（${duelHot[0].count}次）`);
+
+  const headline = top[0]
+    ? `榜首 ${top[0].name}，当前完赛率 ${s.completionRate || '0%'}`
+    : `当前完赛率 ${s.completionRate || '0%'}，已完赛 ${s.finishedMatches || 0} 场`;
+  const briefText = [lines[0], lines[1], lines[2]].filter(Boolean).join('\n');
+  const shareText = `${t.name || '羽毛球比赛'}战报\n${lines.join('\n')}`;
+  return { lines, shareText, headline, briefText };
+}
+
 Page({
   data: {
     tournamentId: '',
@@ -192,6 +217,11 @@ Page({
     playerStats: [],
     pairHot: [],
     duelHot: [],
+    reportLines: [],
+    reportShareText: '',
+    reportHeadline: '',
+    reportBriefText: '',
+    showAnalyticsAdSlot: false,
     networkOffline: false,
     canRetryAction: false,
     lastFailedActionText: '',
@@ -215,6 +245,9 @@ Page({
   },
 
   onShow() {
+    const currentId = String(this.data.tournamentId || '').trim();
+    nav.consumeRefreshFlag(currentId);
+    this.refreshAnalyticsAdSlot();
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
     if (this.data.tournamentId && !this.watcher) this.startWatch(this.data.tournamentId);
   },
@@ -230,7 +263,14 @@ Page({
   },
 
   onRetry() {
+    this.refreshAnalyticsAdSlot();
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
+  },
+
+  refreshAnalyticsAdSlot() {
+    const showAnalyticsAdSlot = adGuard.shouldExposePageSlot('analytics');
+    this.setData({ showAnalyticsAdSlot });
+    if (showAnalyticsAdSlot) adGuard.markPageExposed('analytics');
   },
 
   startWatch(tid) {
@@ -249,6 +289,7 @@ Page({
   applyTournament(tournament) {
     if (!tournament) return;
     const analytics = computeAnalytics(tournament);
+    const report = buildBattleReport(analytics);
     this.setData({
       loadError: false,
       tournament: analytics.tournament,
@@ -256,9 +297,31 @@ Page({
       top3: analytics.top3,
       playerStats: analytics.playerStats,
       pairHot: analytics.pairHot,
-      duelHot: analytics.duelHot
+      duelHot: analytics.duelHot,
+      reportLines: report.lines,
+      reportShareText: report.shareText,
+      reportHeadline: report.headline,
+      reportBriefText: report.briefText
     });
     this.clearLastFailedAction();
+  },
+
+  copyBattleReport() {
+    const text = String(this.data.reportShareText || '').trim();
+    if (!text) return;
+    wx.setClipboardData({
+      data: text,
+      success: () => wx.showToast({ title: '战报已复制', icon: 'success' })
+    });
+  },
+
+  copyBriefReport() {
+    const text = String(this.data.reportBriefText || '').trim();
+    if (!text) return;
+    wx.setClipboardData({
+      data: text,
+      success: () => wx.showToast({ title: '摘要已复制', icon: 'success' })
+    });
   },
 
   setLastFailedAction(text, fn) {
@@ -278,10 +341,6 @@ Page({
     if (typeof this._lastFailedAction === 'function') this._lastFailedAction();
   },
 
-  goBack() {
-    wx.navigateBack({ delta: 1 });
-  },
-
   async cloneCurrentTournament() {
     const sourceTournamentId = String(this.data.tournamentId || '').trim();
     if (!sourceTournamentId) return;
@@ -297,9 +356,8 @@ Page({
       wx.navigateTo({ url: `/pages/lobby/index?tournamentId=${nextId}` });
     } catch (e) {
       wx.hideLoading();
-      const parsed = cloud.parseCloudError(e, '复制失败');
       this.setLastFailedAction('再办一场', () => this.cloneCurrentTournament());
-      wx.showToast({ title: parsed.userMessage || '复制失败', icon: 'none' });
+      wx.showToast({ title: cloud.getUnifiedErrorMessage(e, '复制失败'), icon: 'none' });
     }
   }
 });

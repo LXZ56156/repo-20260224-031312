@@ -7,54 +7,75 @@
         <view class="hero-title">第{{roundIndex + 1}}轮 · 第{{matchIndex + 1}}场</view>
         <view class="hero-sub">{{tournamentName}}</view>
       </view>
-      <view class="tag">{{match.status==='finished' ? '已完赛' : '待录分'}}</view>
+      <view class="tag">{{matchStatusText}}</view>
     </view>
     <view class="batch-badge" wx:if="{{batchMode}}">批量录分模式</view>
-    <view class="batch-switch" wx:if="{{batchMode}}">
-      <text class="muted small">自动跳到下一场</text>
-      <switch color="#1ea65e" checked="{{autoNext}}" bindchange="onToggleAutoNext" />
-    </view>
+    <view class="muted small batch-note" wx:if="{{batchMode}}">提交后自动进入下一场</view>
   </view>
 
   <view class="card panel">
     <view class="section-title">本场对阵</view>
     <view class="match-vs">{{pair1Text}} <text class="vs">vs</text> {{pair2Text}}</view>
-    <view class="muted small" wx:if="{{!pair1Text || !pair2Text}}">提示：若为空，请返回大厅重新开赛生成赛程，或检查参赛者昵称。</view>
+    <view class="muted small" wx:if="{{!pair1Text || !pair2Text}}">对阵未就绪，请回大厅重开赛程。</view>
   </view>
 
   <view class="card panel">
     <view class="row row-top">
       <view class="section-title">比分录入</view>
-      <text class="muted small">默认 21 分制</text>
+      <text class="muted small">{{pointsPerGame}} 分制</text>
+    </view>
+
+    <view class="lock-panel" wx:if="{{match.status==='pending'}}">
+      <view class="lock-hint">{{lockHintText}}</view>
+      <view class="lock-actions" wx:if="{{userCanScore && lockState==='idle'}}">
+        <button class="btn btn-primary btn-sm lock-btn-primary" bindtap="onStartScoring" loading="{{lockBusy}}" disabled="{{lockBusy}}">开始录分</button>
+      </view>
+      <view class="lock-actions" wx:elif="{{userCanScore && lockState==='locked_by_other'}}">
+        <button class="btn btn-subtle btn-sm lock-btn" bindtap="onRefreshLock" loading="{{lockBusy}}" disabled="{{lockBusy}}">刷新状态</button>
+        <button class="btn btn-danger btn-sm lock-btn" wx:if="{{isAdmin}}" bindtap="onTakeOverScoring" loading="{{lockBusy}}" disabled="{{lockBusy}}">接管录分</button>
+      </view>
     </view>
 
     <view class="score-row" wx:if="{{!canEdit}}">
       <view class="score-col">
         <view class="muted small">左侧得分</view>
         <view class="tiny" wx:if="{{pair1Text}}">{{pair1Text}}</view>
-        <view class="score-box">{{scoreA || '-'}}</view>
+        <view class="score-box">{{displayScoreA}}</view>
       </view>
       <view class="score-col">
         <view class="muted small">右侧得分</view>
         <view class="tiny" wx:if="{{pair2Text}}">{{pair2Text}}</view>
-        <view class="score-box">{{scoreB || '-'}}</view>
+        <view class="score-box">{{displayScoreB}}</view>
       </view>
     </view>
-    <view class="muted score-tip" wx:if="{{!canEdit}}">仅管理员/裁判可录入比分。</view>
+    <view class="muted score-tip" wx:if="{{!userCanScore}}">仅管理员或参赛成员可录分。</view>
+    <view class="muted score-tip" wx:elif="{{!canEdit && match.status==='pending'}}">请先点击“开始录分”。</view>
 
-    <view class="score-row" wx:else>
+    <view class="score-toolbar" wx:if="{{canEdit}}">
+      <text class="muted small">滚轮录分</text>
+      <button class="btn-mini mode-undo {{!canUndo ? 'disabled' : ''}}" bindtap="onUndoStep" disabled="{{!canUndo}}">撤销</button>
+    </view>
+
+    <view class="score-row" wx:if="{{canEdit}}">
       <view class="score-col">
         <view class="muted small">左侧得分</view>
         <view class="tiny" wx:if="{{pair1Text}}">{{pair1Text}}</view>
-        <input class="input" type="number" value="{{scoreA}}" bindinput="onScoreA" />
+        <picker mode="selector" range="{{scoreOptions}}" value="{{scoreAIndex}}" bindchange="onPickScoreA">
+          <view class="picker score-wheel">{{scoreA}}</view>
+        </picker>
       </view>
       <view class="score-col">
         <view class="muted small">右侧得分</view>
         <view class="tiny" wx:if="{{pair2Text}}">{{pair2Text}}</view>
-        <input class="input" type="number" value="{{scoreB}}" bindinput="onScoreB" />
+        <picker mode="selector" range="{{scoreOptions}}" value="{{scoreBIndex}}" bindchange="onPickScoreB">
+          <view class="picker score-wheel">{{scoreB}}</view>
+        </picker>
       </view>
     </view>
-    <button class="btn btn-primary" wx:if="{{canEdit}}" bindtap="submit">{{batchMode && autoNext ? '提交并录下一场' : '提交比分'}}</button>
+  </view>
+
+  <view class="submit-bar" wx:if="{{canEdit}}">
+    <button class="btn btn-primary submit-btn" bindtap="submit">{{batchMode ? '提交并录下一场' : '提交比分'}}</button>
   </view>
 
   <view class="retry-box panel-soft" wx:if="{{canRetryAction}}">
@@ -62,7 +83,6 @@
     <button class="btn btn-subtle btn-sm" bindtap="retryLastAction">重试提交</button>
   </view>
 
-  <button class="btn btn-ghost" bindtap="goBack">返回</button>
 </view>
 
 <view class="container safe-bottom match-page" wx:elif="{{loadError}}">
@@ -70,7 +90,6 @@
     <view class="state-title">加载失败</view>
     <view class="muted">请检查网络后重试。</view>
     <button class="btn btn-subtle" bindtap="onRetry">重新加载</button>
-    <button class="btn btn-ghost" bindtap="goBack">返回上一页</button>
   </view>
 </view>
 

@@ -16,13 +16,100 @@
   padding-top: 22rpx;
 }
 
+.prep-panel {
+  padding-top: 22rpx;
+}
+
+.prep-list {
+  margin-top: 12rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.prep-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14rpx;
+  padding: 14rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid #dde6f0;
+  background: #f7fafd;
+}
+
+.prep-item.tappable:active {
+  background: #eef4fb;
+}
+
+.prep-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.prep-title {
+  font-size: 27rpx;
+  font-weight: 760;
+  color: var(--text-1, #0f172a);
+}
+
+.prep-sub {
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: var(--text-2, #64748b);
+}
+
+.prep-side {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.prep-jump {
+  color: var(--brand-strong, #14804b);
+  font-size: 24rpx;
+  font-weight: 760;
+}
+
 .section-title {
   font-size: 30rpx;
   font-weight: 760;
 }
 
+.row-top {
+  justify-content: space-between;
+}
+
 .section-tip {
   margin-top: 10rpx;
+}
+
+.status-pill {
+  padding: 6rpx 12rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid #dbe5ef;
+  background: #f3f4f6;
+  color: #64748b;
+  font-size: 22rpx;
+  font-weight: 760;
+}
+
+.status-pill.ok {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.status-pill.pending {
+  background: #fef3c7;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
+.status-pill.optional {
+  background: #eef2f7;
+  border-color: #dde6f0;
+  color: #64748b;
 }
 
 .form-item {
@@ -62,7 +149,7 @@
   margin-top: 20rpx;
 }
 
-.table-actions {
+.player-route-btn {
   margin-top: 12rpx;
 }
 
@@ -103,16 +190,6 @@
   white-space: nowrap;
 }
 
-.referee-badge {
-  padding: 6rpx 14rpx;
-  border-radius: 999rpx;
-  background: #fef3c7;
-  color: #b45309;
-  border: 1rpx solid #fcd34d;
-  font-size: 24rpx;
-  font-weight: 800;
-}
-
 .referee-actions {
   display: flex;
   align-items: center;
@@ -134,11 +211,6 @@
 .referee-btn.primary {
   background: #16a34a;
   color: #fff;
-}
-
-.referee-btn.ghost {
-  background: #f3f4f6;
-  color: #111827;
 }
 
 button.referee-btn::after {
@@ -165,6 +237,25 @@ button.referee-btn::after {
 .player-name {
   font-size: 28rpx;
   color: #111827;
+  font-weight: 700;
+}
+
+.player-main {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  min-width: 0;
+}
+
+.player-gender-chip {
+  min-width: 70rpx;
+  text-align: center;
+  padding: 6rpx 10rpx;
+  border-radius: 999rpx;
+  background: #eef4fb;
+  border: 1rpx solid #dce5ef;
+  color: #475569;
+  font-size: 22rpx;
   font-weight: 700;
 }
 

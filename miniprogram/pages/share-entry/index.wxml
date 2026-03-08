@@ -1,0 +1,8 @@
+<view class="container share-entry-page">
+  <view class="card panel">
+    <view class="share-title">{{title}}</view>
+    <view class="muted">{{message}}</view>
+    <button class="btn btn-primary" wx:if="{{showRetry}}" bindtap="onRetry">重新进入</button>
+  </view>
+</view>
+

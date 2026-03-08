@@ -4,18 +4,46 @@ const db = cloud.database();
 const _ = db.command;
 const common = require('./lib/common');
 
-function uniqNames(names) {
+function normalizeGender(gender) {
+  const v = String(gender || '').trim().toLowerCase();
+  if (v === 'male' || v === 'female') return v;
+  return 'unknown';
+}
+
+function normalizeInputPlayers(payloadPlayers, payloadNames) {
   const seen = new Set();
-  const out = [];
-  for (const raw of (names || [])) {
-    const n = String(raw || '').trim();
-    if (!n) continue;
+  const validUnique = [];
+  const duplicateNames = [];
+  const invalidNames = [];
+  const source = Array.isArray(payloadPlayers) && payloadPlayers.length
+    ? payloadPlayers.map((item) => {
+        if (item && typeof item === 'object') {
+          return { name: item.name, gender: item.gender };
+        }
+        return { name: '', gender: 'unknown' };
+      })
+    : (payloadNames || []).map((name) => ({ name, gender: 'unknown' }));
+
+  for (const raw of source) {
+    const n = String(raw && raw.name || '').trim();
+    if (!n) {
+      invalidNames.push('');
+      continue;
+    }
+    if (n.length > 20) {
+      invalidNames.push(n);
+      continue;
+    }
     const key = n.toLowerCase();
-    if (seen.has(key)) continue;
+    if (seen.has(key)) {
+      duplicateNames.push(n);
+      continue;
+    }
     seen.add(key);
-    out.push(n);
+    validUnique.push({ name: n, gender: normalizeGender(raw && raw.gender) });
   }
-  return out;
+
+  return { validUnique, duplicateNames, invalidNames };
 }
 
 function makeId(i) {
@@ -25,9 +53,26 @@ function makeId(i) {
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
   const tournamentId = String((event && event.tournamentId) || '').trim();
-  const names = uniqNames(event && event.names);
+  const normalized = normalizeInputPlayers(event && event.players, event && event.names);
+  const entries = normalized.validUnique;
   if (!tournamentId) throw new Error('缺少 tournamentId');
-  if (!Array.isArray(names) || names.length === 0) throw new Error('缺少 names');
+  if (!Array.isArray(entries) || entries.length === 0) {
+    if (normalized.invalidNames.length > 0 || normalized.duplicateNames.length > 0) {
+      return {
+        ok: true,
+        added: 0,
+        addedCount: 0,
+        maleCount: 0,
+        femaleCount: 0,
+        unknownCount: 0,
+        duplicateCount: normalized.duplicateNames.length,
+        invalidCount: normalized.invalidNames.length,
+        duplicateNames: normalized.duplicateNames,
+        invalidNames: normalized.invalidNames
+      };
+    }
+    throw new Error('缺少 names');
+  }
 
   try {
     return await db.runTransaction(async (transaction) => {
@@ -39,26 +84,62 @@ exports.main = async (event) => {
 
       const players = Array.isArray(t.players) ? t.players.slice() : [];
       const existingNames = new Set(players.map(p => String(p.name || '').trim().toLowerCase()));
+      const duplicateNames = normalized.duplicateNames.slice();
+      const invalidNames = normalized.invalidNames.slice();
 
       const toAdd = [];
-      for (let i = 0; i < names.length; i++) {
-        const n = names[i];
+      for (let i = 0; i < entries.length; i++) {
+        const item = entries[i];
+        const n = item.name;
         const key = n.toLowerCase();
-        if (existingNames.has(key)) continue;
+        if (existingNames.has(key)) {
+          duplicateNames.push(n);
+          continue;
+        }
         existingNames.add(key);
-        toAdd.push({ id: makeId(i), name: n, type: 'guest' });
+        toAdd.push({ id: makeId(i), name: n, type: 'guest', gender: item.gender || 'unknown', squad: '' });
       }
-      if (toAdd.length === 0) return { ok: true, added: 0 };
+      if (toAdd.length === 0) {
+        return {
+          ok: true,
+          added: 0,
+          addedCount: 0,
+          maleCount: 0,
+          femaleCount: 0,
+          unknownCount: 0,
+          duplicateCount: duplicateNames.length,
+          invalidCount: invalidNames.length,
+          duplicateNames,
+          invalidNames
+        };
+      }
+      const nextPlayers = players.concat(toAdd);
+      const nextPlayerIds = Array.from(new Set(nextPlayers.map((item) => String(item && item.id || '').trim()).filter(Boolean)));
 
       const updRes = await transaction.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({
         data: {
-          players: players.concat(toAdd),
+          players: nextPlayers,
+          playerIds: nextPlayerIds,
           updatedAt: db.serverDate(),
           version: _.inc(1)
         }
       });
       common.assertOptimisticUpdate(updRes, '写入冲突，请重试');
-      return { ok: true, added: toAdd.length };
+      const maleCount = toAdd.filter((p) => p.gender === 'male').length;
+      const femaleCount = toAdd.filter((p) => p.gender === 'female').length;
+      const unknownCount = toAdd.length - maleCount - femaleCount;
+      return {
+        ok: true,
+        added: toAdd.length,
+        addedCount: toAdd.length,
+        maleCount,
+        femaleCount,
+        unknownCount,
+        duplicateCount: duplicateNames.length,
+        invalidCount: invalidNames.length,
+        duplicateNames,
+        invalidNames
+      };
     });
   } catch (err) {
     throw common.normalizeConflictError(err, '添加失败');

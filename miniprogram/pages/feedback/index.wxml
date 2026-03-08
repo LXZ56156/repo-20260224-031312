@@ -1,0 +1,40 @@
+<view class="container safe-bottom feedback-page">
+  <view class="card panel feedback-block" wx:if="{{blocked}}">
+    <view class="feedback-block-title">{{blockTitle}}</view>
+    <view class="muted">{{blockMessage}}</view>
+    <button class="btn btn-primary" wx:if="{{blockNeedProfile}}" bindtap="onGoCompleteProfile">去完善资料</button>
+    <button class="btn btn-secondary" wx:if="{{blockNeedProfile}}" bindtap="onRetryReady">我已完成，刷新状态</button>
+    <button class="btn btn-primary" wx:else bindtap="onRetryReady">重新尝试</button>
+  </view>
+
+  <block wx:else>
+  <view class="hero">
+    <view class="hero-title">意见反馈</view>
+    <view class="hero-sub">告诉我们你遇到的问题或建议</view>
+  </view>
+
+  <view class="card panel">
+    <view class="form-item">
+      <view class="form-label">问题类型</view>
+      <picker mode="selector" range="{{categoryOptions}}" value="{{categoryIndex}}" bindchange="onPickCategory">
+        <view class="picker">{{categoryOptions[categoryIndex]}}</view>
+      </picker>
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">反馈内容</view>
+      <textarea class="textarea" maxlength="500" placeholder="请描述操作步骤与问题现象（至少10字）" value="{{content}}" bindinput="onContentInput"></textarea>
+      <view class="muted small">{{contentLength}} / 500</view>
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">联系方式（可选）</view>
+      <input class="input" maxlength="40" placeholder="微信号/手机号/邮箱" value="{{contact}}" bindinput="onContactInput" />
+    </view>
+  </view>
+
+  <view class="feedback-actions">
+    <button class="btn btn-primary" bindtap="onSubmit" loading="{{submitting}}">提交反馈</button>
+  </view>
+  </block>
+</view>

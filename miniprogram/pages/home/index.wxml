@@ -1,176 +1,112 @@
 <view class="page home-page" wx:if="{{!loadError}}">
   <view class="offline-banner" wx:if="{{networkOffline}}">当前网络不可用，写入操作可能失败</view>
 
+  <view class="card panel-soft profile-nudge reveal reveal-1" wx:if="{{showProfileNudge}}">
+    <view class="section-head">
+      <view class="section-title">完善资料后更顺畅</view>
+      <text class="count-pill">推荐</text>
+    </view>
+    <view class="muted">完善昵称和性别后，可一键发起或参赛。</view>
+    <view class="profile-nudge-actions">
+      <button class="btn btn-subtle btn-sm" bindtap="goProfileFromNudge">去完善</button>
+      <text class="profile-nudge-later" bindtap="dismissProfileNudge">稍后</text>
+    </view>
+  </view>
+
   <view class="onboarding card panel reveal reveal-1" wx:if="{{showOnboarding}}">
     <view class="section-head">
-      <view class="section-title">3 步完成首场赛事</view>
+      <view class="section-title">开赛三步</view>
       <text class="count-pill">新手引导</text>
     </view>
-    <view class="guide-step"><text class="guide-index">1</text><text class="guide-text">创建赛事并预设参数</text></view>
-    <view class="guide-step"><text class="guide-index">2</text><text class="guide-text">导入参赛者并完成开赛检查</text></view>
-    <view class="guide-step"><text class="guide-index">3</text><text class="guide-text">开赛后直接批量录分，自动更新排名</text></view>
-    <view class="btn-row onboarding-actions">
-      <button class="btn btn-primary" bindtap="goCreate">开始创建</button>
-      <button class="btn btn-subtle" bindtap="dismissOnboarding">稍后再看</button>
-    </view>
+    <view class="guide-step"><text class="guide-index">1</text><text class="guide-text">创建并设参数</text></view>
+    <view class="guide-step"><text class="guide-index">2</text><text class="guide-text">导入参赛者</text></view>
+    <view class="guide-step"><text class="guide-index">3</text><text class="guide-text">开赛后录分</text></view>
+    <view class="muted small onboarding-tip">从底部“发起”进入创建流程。</view>
+    <text class="onboarding-later" bindtap="dismissOnboarding">稍后再看</text>
   </view>
 
-  <view class="hero-card card panel-strong reveal reveal-2">
+  <view class="card panel continue-card reveal reveal-2" wx:if="{{continueItem}}">
+    <view class="section-head">
+      <view class="section-title">继续最近一场</view>
+      <text class="count-pill">进行中</text>
+    </view>
+    <view class="continue-name ellipsis">{{continueItem.name}}</view>
+    <view class="continue-meta muted small">{{continueItem.playersCount}} 人 · {{continueItem.matchProgressText}}</view>
+    <button class="btn btn-primary btn-sm continue-btn" data-id="{{continueItem._id}}" bindtap="goLobby">继续</button>
+  </view>
+
+  <view class="hero-card card panel-strong reveal reveal-3">
     <view class="hero-grid">
       <view class="hero-main">
-        <view class="h-kicker">赛事中枢</view>
-        <view class="h-title">羽毛球轮转赛</view>
-        <view class="h-sub">群聊分享直达赛事；观赛可见实时排名，加入后可录入成绩。</view>
-        <view class="h-badges">
-          <text class="h-badge">分享进群</text>
-          <text class="h-badge">观赛实时排名</text>
-          <text class="h-badge">可选加入参赛</text>
-        </view>
-      </view>
-      <view class="hero-cta">
-        <button class="btn btn-primary btn-create" bindtap="goCreate">创建赛事</button>
-        <view class="hero-tip">新建后可直接分享到群</view>
+        <view class="h-title">赛事中枢</view>
+        <view class="h-desc">参赛后可在首页继续录分并查看结果</view>
       </view>
     </view>
   </view>
 
-  <view class="empty panel-soft" wx:if="{{loading && !ongoing.length && !drafts.length && !finished.length && !unknown.length}}">加载中...</view>
+  <view class="sort-row reveal reveal-4">
+    <text class="sort-label">排序</text>
+    <text class="sort-chip {{sortMode==='updated' ? 'active' : ''}}" data-mode="updated" bindtap="onChangeSortMode">最近更新</text>
+    <text class="sort-chip {{sortMode==='players' ? 'active' : ''}}" data-mode="players" bindtap="onChangeSortMode">按人数</text>
+    <text class="sort-chip {{sortMode==='status' ? 'active' : ''}}" data-mode="status" bindtap="onChangeSortMode">按状态</text>
+  </view>
+  <view class="sort-note muted small reveal reveal-4">排序作用于全部赛事</view>
 
-  <view class="section reveal reveal-3">
+  <view class="filter-row reveal reveal-5">
+    <text class="filter-chip {{filterStatus==='all' ? 'active' : ''}}" data-status="all" bindtap="onChangeFilterStatus">全部 {{items.length}}</text>
+    <text class="filter-chip {{filterStatus==='running' ? 'active' : ''}}" data-status="running" bindtap="onChangeFilterStatus">进行中 {{statusCountRunning}}</text>
+    <text class="filter-chip {{filterStatus==='draft' ? 'active' : ''}}" data-status="draft" bindtap="onChangeFilterStatus">草稿 {{statusCountDraft}}</text>
+    <text class="filter-chip {{filterStatus==='finished' ? 'active' : ''}}" data-status="finished" bindtap="onChangeFilterStatus">已结束 {{statusCountFinished}}</text>
+  </view>
+
+  <view class="card panel-soft ad-breakpoint reveal reveal-6" wx:if="{{showHomeAdSlot}}">
+    <view class="ad-badge">广告</view>
+    <view class="muted small">免开发智能接入广告位（仅浏览页展示）</view>
+  </view>
+
+  <view class="section reveal reveal-7">
     <view class="section-head">
-      <view class="section-title">进行中</view>
-      <text class="count-pill">{{ongoing.length}} 个</text>
+      <view class="section-title">赛事列表</view>
+      <text class="count-pill">{{visibleCount}} 个</text>
     </view>
-    <block wx:if="{{ongoing.length}}">
-      <block wx:for="{{ongoing}}" wx:key="_id">
-        <view class="swipe-row card" data-list="ongoing" data-idx="{{index}}" data-id="{{item._id}}"
-          bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd">
-          <view class="swipe-actions">
-            <view class="del-btn" catchtap="onDeleteTap" data-id="{{item._id}}">删除</view>
-          </view>
-          <view class="swipe-content tone-{{item.status}}" style="transform: translateX({{item._offset}}rpx);" catchtap="onCardTap" data-id="{{item._id}}">
-            <view class="t-card">
-              <view class="row t-top">
-                <view class="flex-1 minw0">
-                  <view class="t-title ellipsis">{{item.name || '未命名赛事'}}</view>
+
+    <view class="empty panel-soft" wx:if="{{loading && !items.length}}">加载中...</view>
+
+    <block wx:if="{{visibleCount>0}}">
+      <block wx:for="{{items}}" wx:key="_id">
+        <block wx:if="{{filterStatus==='all' || item.status===filterStatus}}">
+          <view class="swipe-row card" data-idx="{{index}}" data-id="{{item._id}}"
+            bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd">
+            <view class="swipe-actions">
+              <view class="del-btn" catchtap="onDeleteTap" data-id="{{item._id}}">删除</view>
+            </view>
+            <view class="swipe-content tone-{{item.status}}" style="transform: translateX({{item._offset}}rpx);" catchtap="onCardTap" data-id="{{item._id}}" data-idx="{{index}}">
+              <view class="t-card">
+                <view class="row t-top">
+                  <view class="flex-1 minw0">
+                    <view class="t-title ellipsis">{{item.name || '未命名赛事'}}</view>
+                  </view>
+                  <view class="badge {{item.statusClass}}">{{item.statusLabel}}</view>
                 </view>
-                <view class="badge {{item.statusClass}}">{{item.statusLabel}}</view>
+                <view class="t-stats">
+                  <text class="pill">{{item.modeLabel}}</text>
+                  <text class="pill">{{item.playersCount}}人</text>
+                  <text class="pill">{{item.matchProgressText}}</text>
+                </view>
+                <view class="t-time muted small">更新 {{item.updatedAtText}}</view>
+                <view class="t-actions" wx:if="{{item.status!=='missing'}}">
+                  <text class="t-copy-link" catchtap="onCloneTap" data-id="{{item._id}}">再办一场</text>
+                </view>
               </view>
-              <view class="t-stats">
-                <text class="pill">{{item.playersCount}}人</text>
-                <text class="pill">{{item.matchProgressText}}</text>
-              </view>
-              <view class="t-time muted small">更新 {{item.updatedAtText}}</view>
             </view>
           </view>
-        </view>
+        </block>
       </block>
     </block>
     <view wx:else class="empty panel-soft section-empty">
-      <view class="empty-text">暂无进行中的赛事</view>
-      <button class="btn btn-subtle btn-sm" bindtap="goCreate">创建并开赛</button>
+      <view class="empty-text">当前筛选下暂无赛事</view>
+      <text class="empty-link" bindtap="goCreate">去发起比赛</text>
     </view>
-  </view>
-
-  <view class="section reveal reveal-4">
-    <view class="section-head">
-      <view class="section-title">草稿</view>
-      <text class="count-pill">{{drafts.length}} 个</text>
-    </view>
-    <block wx:if="{{drafts.length}}">
-      <block wx:for="{{drafts}}" wx:key="_id">
-        <view class="swipe-row card" data-list="drafts" data-idx="{{index}}" data-id="{{item._id}}"
-          bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd">
-          <view class="swipe-actions">
-            <view class="del-btn" catchtap="onDeleteTap" data-id="{{item._id}}">删除</view>
-          </view>
-          <view class="swipe-content tone-{{item.status}}" style="transform: translateX({{item._offset}}rpx);" catchtap="onCardTap" data-id="{{item._id}}">
-            <view class="t-card">
-              <view class="row t-top">
-                <view class="flex-1 minw0">
-                  <view class="t-title ellipsis">{{item.name || '未命名赛事'}}</view>
-                </view>
-                <view class="badge {{item.statusClass}}">{{item.statusLabel}}</view>
-              </view>
-              <view class="t-stats">
-                <text class="pill">{{item.playersCount}}人</text>
-                <text class="pill">{{item.matchProgressText}}</text>
-              </view>
-              <view class="t-time muted small">更新 {{item.updatedAtText}}</view>
-              <view class="t-actions">
-                <button class="t-copy-btn" catchtap="onCloneTap" data-id="{{item._id}}">复制草稿</button>
-              </view>
-            </view>
-          </view>
-        </view>
-      </block>
-    </block>
-    <view wx:else class="empty panel-soft section-empty">
-      <view class="empty-text">暂无草稿</view>
-      <button class="btn btn-subtle btn-sm" bindtap="goCreate">创建草稿</button>
-    </view>
-  </view>
-
-  <view class="section reveal reveal-5">
-    <view class="section-head">
-      <view class="section-title">已结束</view>
-      <text class="count-pill">{{finished.length}} 个</text>
-    </view>
-    <block wx:if="{{finished.length}}">
-      <block wx:for="{{finished}}" wx:key="_id">
-        <view class="swipe-row card" data-list="finished" data-idx="{{index}}" data-id="{{item._id}}"
-          bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd">
-          <view class="swipe-actions">
-            <view class="del-btn" catchtap="onDeleteTap" data-id="{{item._id}}">删除</view>
-          </view>
-          <view class="swipe-content tone-{{item.status}}" style="transform: translateX({{item._offset}}rpx);" catchtap="onCardTap" data-id="{{item._id}}">
-            <view class="t-card">
-              <view class="row t-top">
-                <view class="flex-1 minw0">
-                  <view class="t-title ellipsis">{{item.name || '未命名赛事'}}</view>
-                </view>
-                <view class="badge {{item.statusClass}}">{{item.statusLabel}}</view>
-              </view>
-              <view class="t-stats">
-                <text class="pill">{{item.playersCount}}人</text>
-                <text class="pill">{{item.matchProgressText}}</text>
-              </view>
-              <view class="t-time muted small">更新 {{item.updatedAtText}}</view>
-            </view>
-          </view>
-        </view>
-      </block>
-    </block>
-    <view wx:else class="empty panel-soft section-empty">
-      <view class="empty-text">暂无历史赛事</view>
-      <button class="btn btn-subtle btn-sm" bindtap="goCreate">创建新赛事</button>
-    </view>
-  </view>
-
-  <view class="section reveal reveal-6" wx:if="{{unknown.length}}">
-    <view class="section-head">
-      <view class="section-title">已移除</view>
-      <text class="count-pill">{{unknown.length}} 个</text>
-    </view>
-    <block wx:for="{{unknown}}" wx:key="_id">
-      <view class="swipe-row card" data-list="unknown" data-idx="{{index}}" data-id="{{item._id}}"
-        bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd">
-        <view class="swipe-actions">
-          <view class="del-btn" catchtap="onDeleteTap" data-id="{{item._id}}">删除</view>
-        </view>
-        <view class="swipe-content tone-{{item.status}}" style="transform: translateX({{item._offset}}rpx);" catchtap="onCardTap" data-id="{{item._id}}">
-          <view class="t-card">
-            <view class="row t-top">
-              <view class="flex-1 minw0">
-                <view class="t-title ellipsis">{{item.name || '赛事已移除'}}</view>
-              </view>
-              <view class="badge {{item.statusClass}}">{{item.statusLabel}}</view>
-            </view>
-            <view class="t-time muted small">可左滑删除本机记录</view>
-          </view>
-        </view>
-      </view>
-    </block>
   </view>
 
   <view class="retry-box panel-soft" wx:if="{{canRetryAction}}">
@@ -184,6 +120,5 @@
     <view class="section-title">加载失败</view>
     <view class="muted">请检查网络后重试。</view>
     <button class="btn btn-subtle" bindtap="onRetry">重新加载</button>
-    <button class="btn btn-ghost" bindtap="goCreate">创建赛事</button>
   </view>
 </view>

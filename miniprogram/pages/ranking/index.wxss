@@ -41,6 +41,32 @@
   text-align: right;
 }
 
+.trend-pill {
+  margin-top: 6rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 96rpx;
+  padding: 2rpx 10rpx;
+  border-radius: 999rpx;
+  font-size: 21rpx;
+  border: 1rpx solid #dbe5ef;
+  color: #64748b;
+  background: #f8fbff;
+}
+
+.trend-pill.up {
+  color: #166534;
+  border-color: #bbf7d0;
+  background: #ecfdf3;
+}
+
+.trend-pill.down {
+  color: #9f1239;
+  border-color: #fecdd3;
+  background: #fff1f2;
+}
+
 .metric-title {
   font-size: 28rpx;
   font-weight: 760;

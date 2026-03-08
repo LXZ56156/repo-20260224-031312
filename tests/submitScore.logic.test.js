@@ -27,13 +27,20 @@ function fixtureTournament() {
 
 test('buildSubmitResult updates score, ranking and finished status', () => {
   const t = fixtureTournament();
-  const out = logic.buildSubmitResult(t, 0, 0, 21, 17);
+  const out = logic.buildSubmitResult(t, 0, 0, 21, 17, {
+    id: 'u2',
+    name: 'B',
+    scoredAt: '2026-02-28T00:00:00.000Z'
+  });
 
   assert.equal(out.finished, true);
   assert.equal(out.nextStatus, 'finished');
   assert.equal(out.rounds[0].matches[0].teamAScore, 21);
   assert.equal(out.rounds[0].matches[0].teamBScore, 17);
   assert.equal(out.rounds[0].matches[0].status, 'finished');
+  assert.equal(out.rounds[0].matches[0].scorerId, 'u2');
+  assert.equal(out.rounds[0].matches[0].scorerName, 'B');
+  assert.equal(out.rounds[0].matches[0].scoredAt, '2026-02-28T00:00:00.000Z');
 
   const top = out.rankings[0];
   assert.equal(top.wins, 1);

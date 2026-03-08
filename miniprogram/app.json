@@ -1,22 +1,49 @@
 {
   "pages": [
     "pages/home/index",
+    "pages/launch/index",
+    "pages/mine/index",
+    "pages/profile/index",
+    "pages/feedback/index",
+    "pages/share-entry/index",
     "pages/create/index",
     "pages/lobby/index",
     "pages/schedule/index",
     "pages/match/index",
     "pages/ranking/index",
     "pages/analytics/index",
-    "pages/settings/index"
+    "pages/settings/index",
+    "pages/preferences/index"
   ],
+  "tabBar": {
+    "color": "#8A93A0",
+    "selectedColor": "#1EA65E",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/launch/index",
+        "text": "发起"
+      },
+      {
+        "pagePath": "pages/mine/index",
+        "text": "我的"
+      }
+    ]
+  },
   "window": {
-    "navigationBarTitleText": "羽毛球轮转赛",
+    "navigationBarTitleText": "羽毛球比赛",
     "navigationBarBackgroundColor": "#ffffff",
     "navigationBarTextStyle": "black",
     "backgroundColor": "#F6F7FB",
     "backgroundTextStyle": "light",
     "enablePullDownRefresh": false
   },
+  "subPackages": [],
   "style": "v2",
   "sitemapLocation": "sitemap.json"
 }

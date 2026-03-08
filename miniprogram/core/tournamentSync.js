@@ -1,4 +1,5 @@
 const watchUtil = require('../sync/watch');
+const storage = require('./storage');
 
 function closeWatcher(ctx) {
   if (!ctx) return;
@@ -12,6 +13,7 @@ function startWatch(ctx, tournamentId, onDoc) {
   if (!ctx || !tournamentId) return;
   closeWatcher(ctx);
   ctx.watcher = watchUtil.watchTournament(tournamentId, (doc) => {
+    storage.upsertLocalCompletedTournamentSnapshot(doc);
     if (typeof onDoc === 'function') onDoc(doc);
   });
 }
@@ -22,6 +24,7 @@ async function fetchTournament(tournamentId, onDoc) {
     const db = wx.cloud.database();
     const res = await db.collection('tournaments').doc(tournamentId).get();
     const doc = res && res.data;
+    if (doc) storage.upsertLocalCompletedTournamentSnapshot(doc);
     if (doc && typeof onDoc === 'function') onDoc(doc);
     return doc || null;
   } catch (e) {

@@ -12,11 +12,15 @@
   margin-bottom: 8rpx;
 }
 
-.state-btn {
+.state-link {
   margin-top: 12rpx;
-  width: auto;
-  min-width: 220rpx;
-  padding: 0 24rpx;
+  display: inline-flex;
+  align-items: center;
+  min-height: 48rpx;
+  padding: 0 12rpx;
+  color: var(--brand-strong, #14804b);
+  font-size: 24rpx;
+  font-weight: 760;
 }
 
 .round-card {
@@ -101,6 +105,15 @@
 .pill-finished {
   background: rgba(59, 130, 246, 0.12);
   color: #1d4ed8;
+}
+
+.pill-canceled {
+  background: rgba(148, 163, 184, 0.2);
+  color: #475569;
+}
+
+.team-meta {
+  margin-top: 6rpx;
 }
 
 .rest {

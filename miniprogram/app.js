@@ -4,7 +4,11 @@ App({
   globalData: {
     openid: '',
     currentTournamentId: '',
-    networkOffline: false
+    networkOffline: false,
+    needRefreshTournament: '',
+    lobbyIntentTournamentId: '',
+    lobbyIntentAction: '',
+    adSessionExposureCount: 0
   },
 
   async onLaunch() {

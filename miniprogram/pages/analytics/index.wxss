@@ -51,6 +51,55 @@
   color: var(--text-1, #0f172a);
 }
 
+.report-card {
+  border-style: solid;
+}
+
+.report-headline {
+  margin-top: 10rpx;
+  padding: 12rpx 14rpx;
+  border-radius: 14rpx;
+  border: 1rpx solid #dbe5ef;
+  background: #f7fafd;
+  font-size: 25rpx;
+  font-weight: 760;
+  color: #0f172a;
+}
+
+.report-line {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #1e293b;
+  line-height: 1.5;
+}
+
+.report-copy-btn {
+  margin-top: 12rpx;
+  width: auto;
+  min-width: 220rpx;
+}
+
+.ad-breakpoint {
+  margin-top: 14rpx;
+  padding: 16rpx;
+  border-radius: 18rpx;
+  border: 1rpx dashed #cfe0ef;
+  background: #f8fbff;
+}
+
+.ad-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rpx 12rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid #dbe5ef;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 21rpx;
+  margin-bottom: 8rpx;
+}
+
 .top-list {
   margin-top: 12rpx;
   display: flex;

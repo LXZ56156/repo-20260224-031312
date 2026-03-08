@@ -1,0 +1,32 @@
+.feedback-page {
+  gap: 20rpx;
+}
+
+.feedback-block {
+  margin-top: 0;
+}
+
+.feedback-block .btn + .btn {
+  margin-top: 12rpx;
+}
+
+.feedback-block-title {
+  font-size: 32rpx;
+  font-weight: 760;
+  color: #0f172a;
+  margin-bottom: 10rpx;
+}
+
+.form-item {
+  margin-top: 20rpx;
+}
+
+.form-label {
+  font-size: 26rpx;
+  color: #5b6577;
+  margin-bottom: 12rpx;
+}
+
+.feedback-actions {
+  margin-top: 12rpx;
+}

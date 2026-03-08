@@ -1,0 +1,79 @@
+<view class="container safe-bottom profile-page">
+  <view class="hero">
+    <view class="hero-title">完善个人资料</view>
+    <view class="hero-sub">用于自动加入比赛与生成赛程</view>
+  </view>
+
+  <view class="card panel">
+    <view class="section-title">基础信息</view>
+
+    <view class="quick-fill-box">
+      <button
+        class="btn btn-subtle btn-sm quick-fill-btn"
+        open-type="chooseAvatar"
+        bindchooseavatar="onQuickFillChooseAvatar"
+        loading="{{quickFillLoading}}"
+        disabled="{{quickFillLoading || saving}}"
+      >
+        一键填写微信资料
+      </button>
+      <view class="muted small quick-fill-tip">自动带入微信头像，并引导使用微信昵称输入。</view>
+    </view>
+
+    <view class="profile-avatar-row">
+      <image class="profile-avatar" src="{{avatarDisplay}}" mode="aspectFill"></image>
+      <view class="avatar-actions">
+        <button class="btn-mini" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">选择头像</button>
+        <button class="btn-mini danger" wx:if="{{avatarUploadFailed}}" bindtap="onRetryAvatarUpload">重试上传</button>
+      </view>
+    </view>
+    <view class="muted small avatar-tip" wx:if="{{avatarUploading}}">头像上传中，请稍候…</view>
+    <view class="field-error" wx:if="{{fieldErrors.avatar}}">{{fieldErrors.avatar}}</view>
+
+    <view class="form-item">
+      <view class="form-label">昵称（必填）</view>
+      <input
+        class="input {{fieldErrors.nickname ? 'input-error' : ''}}"
+        type="nickname"
+        focus="{{nicknameFocus}}"
+        maxlength="20"
+        placeholder="输入昵称（支持微信昵称）"
+        value="{{nickname}}"
+        bindfocus="onNicknameFocus"
+        bindblur="onNicknameBlur"
+        bindinput="onNicknameInput"
+      />
+      <view class="field-error" wx:if="{{fieldErrors.nickname}}">{{fieldErrors.nickname}}</view>
+      <view class="muted small">可点击输入框使用微信昵称能力。</view>
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">性别（必填）</view>
+      <view class="gender-segment {{fieldErrors.gender ? 'gender-segment-error' : ''}}">
+        <view
+          class="gender-option {{gender==='male' ? 'selected' : ''}}"
+          data-gender="male"
+          hover-class="gender-option-press"
+          bindtap="onChooseGender"
+        >
+          <text>男</text>
+          <text class="gender-check" wx:if="{{gender==='male'}}">✓</text>
+        </view>
+        <view
+          class="gender-option {{gender==='female' ? 'selected' : ''}}"
+          data-gender="female"
+          hover-class="gender-option-press"
+          bindtap="onChooseGender"
+        >
+          <text>女</text>
+          <text class="gender-check" wx:if="{{gender==='female'}}">✓</text>
+        </view>
+      </view>
+      <view class="field-error" wx:if="{{fieldErrors.gender}}">{{fieldErrors.gender}}</view>
+    </view>
+  </view>
+
+  <view class="profile-actions">
+    <button class="btn btn-primary" bindtap="onSave" loading="{{saving}}" disabled="{{saving || quickFillLoading || avatarUploading}}">保存资料</button>
+  </view>
+</view>

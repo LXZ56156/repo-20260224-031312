@@ -5,7 +5,8 @@ function findNextPending(rounds, currentRoundIndex, currentMatchIndex) {
     const rIdx = Number(round && round.roundIndex);
     const matches = Array.isArray(round && round.matches) ? round.matches : [];
     for (const match of matches) {
-      if (!match || String(match.status || '') === 'finished') continue;
+      const status = String(match && match.status || '').trim();
+      if (!match || status === 'finished' || status === 'canceled') continue;
       all.push({ roundIndex: rIdx, matchIndex: Number(match.matchIndex) });
     }
   }

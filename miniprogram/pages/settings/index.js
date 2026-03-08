@@ -2,6 +2,8 @@ const cloud = require('../../core/cloud');
 const storage = require('../../core/storage');
 const perm = require('../../permission/permission');
 const tournamentSync = require('../../core/tournamentSync');
+const nav = require('../../core/nav');
+const flow = require('../../core/uxFlow');
 
 Page({
   data: {
@@ -25,14 +27,31 @@ Page({
     courtOptions: Array.from({ length: 10 }, (_, i) => i + 1),
     courtIndex: 0,
 
-    refereeOptions: [],
-    refereeId: '',
-    refereeIndex: 0,
-    refereeName: '未设置',
+    mode: flow.MODE_MULTI_ROTATE,
+    modeLabel: flow.getModeLabel(flow.MODE_MULTI_ROTATE),
+    allowOpenTeam: false,
+    genderOptions: ['未设', '男', '女'],
 
-    addNamesText: '',
     maxMatches: 0,
-    recommendations: [],
+    suggestedMatches: 1,
+    capacityMax: 1,
+    capacityHintShort: '',
+    capacityReason: 'time',
+    rosterHint: '',
+    sessionMinuteOptions: flow.SESSION_MINUTE_OPTIONS,
+    slotMinuteOptions: flow.SLOT_MINUTE_OPTIONS,
+    sessionMinutes: flow.DEFAULT_SESSION_MINUTES,
+    slotMinutes: flow.DEFAULT_SLOT_MINUTES,
+    sessionMinuteIndex: 2,
+    slotMinuteIndex: Math.max(0, flow.SLOT_MINUTE_OPTIONS.indexOf(flow.DEFAULT_SLOT_MINUTES)),
+    isDraft: false,
+    settingsReady: false,
+    playersReady: false,
+    playersCount: 0,
+    playersGap: 0,
+    playersStatusText: '',
+    mandatoryDone: 0,
+    mandatoryTotal: 2,
     networkOffline: false,
     canRetryAction: false,
     lastFailedActionText: '',
@@ -58,8 +77,18 @@ Page({
 
   onLoad(options) {
     const tid = options.tournamentId;
+    const section = String((options && options.section) || '').trim().toLowerCase();
+    this._initialSection = section;
     this.openid = (getApp().globalData.openid || storage.get('openid', ''));
+    const sessionMinutes = flow.normalizeSessionMinutes(storage.getSessionMinutesPref(), flow.DEFAULT_SESSION_MINUTES);
+    const slotMinutes = flow.normalizeSlotMinutes(storage.getSlotMinutesPref(), flow.DEFAULT_SLOT_MINUTES);
     this.setData({ tournamentId: tid });
+    this.setData({
+      sessionMinutes,
+      slotMinutes,
+      sessionMinuteIndex: Math.max(0, flow.SESSION_MINUTE_OPTIONS.indexOf(sessionMinutes)),
+      slotMinuteIndex: Math.max(0, flow.SLOT_MINUTE_OPTIONS.indexOf(slotMinutes))
+    });
 
     const app = getApp();
     this.setData({ networkOffline: !!(app && app.globalData && app.globalData.networkOffline) });
@@ -79,11 +108,15 @@ Page({
 
   onUnload() {
     tournamentSync.closeWatcher(this);
+    if (this._autoBackTimer) clearTimeout(this._autoBackTimer);
+    this._autoBackTimer = null;
     if (typeof this._offNetwork === 'function') this._offNetwork();
     this._offNetwork = null;
   },
 
   onShow() {
+    const currentId = String(this.data.tournamentId || '').trim();
+    nav.consumeRefreshFlag(currentId);
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
     if (this.data.tournamentId && !this.watcher) this.startWatch(this.data.tournamentId);
   },
@@ -108,22 +141,50 @@ Page({
   applyTournament(t) {
     if (!t) return;
     const isAdmin = perm.isAdmin(t, this.openid);
+    const isDraft = String(t.status || 'draft') === 'draft';
 
     const players = Array.isArray(t.players) ? t.players : [];
+    const mode = flow.normalizeMode(t.mode || flow.MODE_MULTI_ROTATE);
+    const modeLabel = flow.getModeLabel(mode);
+    const allowOpenTeam = false;
     const n = players.length;
-    const maxMatches = this.calcMaxMatches(n);
-    const recommendations = this.buildRecommendations(n, maxMatches);
+    const playersCount = n;
+    const playersGap = playersCount >= 4 ? 0 : (4 - playersCount);
+    const genderCount = flow.countGenderPlayers(players);
+    const aCount = players.filter((item) => String(item && item.squad || '').trim().toUpperCase() === 'A').length;
+    const bCount = players.filter((item) => String(item && item.squad || '').trim().toUpperCase() === 'B').length;
+    const pairTeams = Array.isArray(t.pairTeams) ? t.pairTeams : [];
+    const pairTeamCount = pairTeams.filter((item) => Array.isArray(item && item.playerIds) && item.playerIds.length === 2).length;
+    let playersReady = playersGap === 0;
+    if (mode === flow.MODE_SQUAD_DOUBLES) {
+      playersReady = playersReady && aCount >= 2 && bCount >= 2;
+    } else if (mode === flow.MODE_FIXED_PAIR_RR) {
+      playersReady = playersReady && pairTeamCount >= 2;
+    }
+    let maxMatches = flow.calcMaxMatchesByPlayers(n);
+    if (mode === flow.MODE_FIXED_PAIR_RR) {
+      maxMatches = pairTeamCount >= 2 ? Math.floor((pairTeamCount * (pairTeamCount - 1)) / 2) : 0;
+    }
 
-    const refereeOptions = [{ id: '', name: '未设置' }].concat(players.map((p) => ({ id: p.id, name: p.name })));
-    const refereeId = t.refereeId || '';
-    const referee = refereeOptions.find((x) => x.id === refereeId);
-    const refereeIndex = Math.max(0, refereeOptions.findIndex((x) => x.id === refereeId));
-
-    let editM = Number(t.totalMatches) || 8;
+    let editM = Number(t.totalMatches) || 0;
+    const recommendation = flow.buildMatchCountRecommendations({
+      mode,
+      maleCount: genderCount.maleCount,
+      femaleCount: genderCount.femaleCount,
+      unknownCount: genderCount.unknownCount,
+      allowOpenTeam,
+      playersCount,
+      courts: Number(t.courts) || 1,
+      sessionMinutes: this.data.sessionMinutes,
+      slotMinutes: this.data.slotMinutes
+    });
+    if (editM < 1) editM = Number(recommendation.suggestedMatches || 8);
     if (editM < 1) editM = 1;
     if (maxMatches > 0 && editM > maxMatches) editM = maxMatches;
 
     const editC = Math.max(1, Math.min(10, Number(t.courts) || 1));
+    const settingsReady = t.settingsConfigured === true || (editM >= 1 && editC >= 1);
+    const mandatoryDone = (settingsReady ? 1 : 0) + (playersReady ? 1 : 0);
 
     // 总场次 picker：最大值不大时用 selector，彻底禁止越界
     const useSimpleMPicker = maxMatches > 0 && maxMatches <= 200;
@@ -138,9 +199,31 @@ Page({
     this.setData({
       loadError: false,
       tournament: t,
+      mode,
+      modeLabel,
+      allowOpenTeam,
       isAdmin,
+      isDraft,
       maxMatches,
-      recommendations,
+      suggestedMatches: Number(recommendation.suggestedMatches) || 1,
+      capacityMax: Number(recommendation.capacityMax) || 1,
+      capacityHintShort: String(recommendation.capacityHintShort || ''),
+      capacityReason: String(recommendation.capacityReason || 'time'),
+      rosterHint: String(recommendation.rosterHint || ''),
+      settingsReady,
+      playersReady,
+      playersCount,
+      playersGap,
+      playersStatusText: playersReady
+        ? '已完成'
+        : (playersGap > 0
+          ? `还差 ${playersGap} 人`
+          : (mode === flow.MODE_SQUAD_DOUBLES
+            ? `A队 ${aCount} / B队 ${bCount}（至少各2人）`
+            : (mode === flow.MODE_FIXED_PAIR_RR
+              ? `需至少2支队伍（当前${pairTeamCount}）`
+              : '请补全参赛信息'))),
+      mandatoryDone,
 
       editM,
       editC,
@@ -151,29 +234,31 @@ Page({
       mDigitRange,
       mDigitValue,
 
-      courtIndex: Math.max(0, Math.min(9, editC - 1)),
-      refereeOptions,
-      refereeId,
-      refereeIndex,
-      refereeName: referee ? referee.name : '未设置'
+      courtIndex: Math.max(0, Math.min(9, editC - 1))
     });
+
+    if (this._initialSection) {
+      const sectionMap = {
+        params: '#section-params',
+        players: '#section-players'
+      };
+      const selector = sectionMap[this._initialSection];
+      this._initialSection = '';
+      if (selector) {
+        setTimeout(() => this.scrollToSection(selector), 90);
+      }
+    }
+
     this.clearLastFailedAction();
   },
 
   handleWriteError(err, fallbackMessage, onRefresh) {
-    const parsed = cloud.parseCloudError(err, fallbackMessage);
-    if (parsed.isConflict) {
-      wx.showModal({
-        title: '写入冲突',
-        content: '数据已被其他人更新，是否立即刷新当前赛事？',
-        confirmText: '刷新',
-        success: (res) => {
-          if (res.confirm && typeof onRefresh === 'function') onRefresh();
-        }
-      });
-      return;
-    }
-    wx.showToast({ title: parsed.userMessage || fallbackMessage, icon: 'none' });
+    cloud.presentWriteError({
+      err,
+      fallbackMessage,
+      conflictContent: '数据已被其他人更新，刷新后可继续当前设置。',
+      onRefresh
+    });
   },
 
   setLastFailedAction(text, fn) {
@@ -193,45 +278,36 @@ Page({
     if (typeof this._lastFailedAction === 'function') this._lastFailedAction();
   },
 
-  // MaxMatches = C(n,4) * 3
-  calcMaxMatches(n) {
-    const nn = Number(n) || 0;
-    if (nn < 4) return 0;
-    const comb4 = (nn * (nn - 1) * (nn - 2) * (nn - 3)) / 24;
-    return Math.floor(comb4 * 3);
-  },
-
-  buildRecommendations(n, maxMatches) {
-    const nn = Number(n) || 0;
-    if (nn < 4) return [];
-    const clamp = (m) => {
-      const mm = Math.max(1, Math.floor(m));
-      return maxMatches > 0 ? Math.min(mm, maxMatches) : mm;
-    };
-    // 每场 4 人上场：目标“每人平均上场次数”= 2/3/4
-    const relax = clamp(Math.ceil((nn * 2) / 4));
-    const standard = clamp(Math.ceil((nn * 3) / 4));
-    const intense = clamp(Math.ceil((nn * 4) / 4));
-
-    const uniq = [];
-    const push = (key, label, m) => {
-      if (m >= 1 && !uniq.some((x) => x.m === m)) uniq.push({ key, label, m });
-    };
-    push('relax', '轻松', relax);
-    push('standard', '标准', standard);
-    push('intense', '强度', intense);
-    return uniq;
-  },
-
-  applyRecommend(e) {
-    const m = Number(e.currentTarget.dataset.m);
-    if (!m) return;
-    if (this.data.useSimpleMPicker) {
-      this.setData({ editM: m, mIndex: Math.max(0, m - 1) });
-    } else {
-      const len = (this.data.mDigitRange || []).length || Math.max(2, String(this.data.maxMatches || 999).length);
-      this.setData({ editM: m, mDigitValue: this._valueToDigitValue(m, len) });
+  scrollToSection(selector) {
+    if (!selector) return;
+    try {
+      wx.pageScrollTo({ selector, duration: 220 });
+    } catch (_) {
+      // ignore
     }
+  },
+
+  onPrepActionTap(e) {
+    const key = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.key) || '').trim();
+    if (key === 'params') {
+      this.scrollToSection('#section-params');
+      return;
+    }
+    if (key === 'players') {
+      if (this.data.isAdmin && this.data.isDraft) {
+        this.goLobbyManagePlayers();
+        return;
+      }
+      this.scrollToSection('#section-players');
+      return;
+    }
+  },
+
+  goLobbyManagePlayers() {
+    const tid = String(this.data.tournamentId || '').trim();
+    if (!tid) return;
+    nav.setLobbyIntent(tid, 'quickImport');
+    nav.navigateBackOrRedirect(`/pages/lobby/index?tournamentId=${tid}`);
   },
 
   onPickTotalMatchesSimple(e) {
@@ -256,7 +332,48 @@ Page({
   onPickCourts(e) {
     const idx = Number(e.detail.value);
     const courts = (this.data.courtOptions || [])[idx] || 1;
-    this.setData({ editC: courts, courtIndex: idx });
+    this.setData({ editC: courts, courtIndex: idx }, () => this.refreshRecommendations());
+  },
+
+  onPickSessionMinutes(e) {
+    const idx = Number(e.detail.value);
+    const options = this.data.sessionMinuteOptions || flow.SESSION_MINUTE_OPTIONS;
+    const sessionMinutes = Number(options[idx] || flow.DEFAULT_SESSION_MINUTES);
+    storage.setSessionMinutesPref(sessionMinutes);
+    this.setData({ sessionMinutes, sessionMinuteIndex: idx }, () => this.refreshRecommendations());
+  },
+
+  onPickSlotMinutes(e) {
+    const idx = Number(e.detail.value);
+    const options = this.data.slotMinuteOptions || flow.SLOT_MINUTE_OPTIONS;
+    const slotMinutes = Number(options[idx] || flow.DEFAULT_SLOT_MINUTES);
+    storage.setSlotMinutesPref(slotMinutes);
+    this.setData({ slotMinutes, slotMinuteIndex: idx }, () => this.refreshRecommendations());
+  },
+
+  refreshRecommendations() {
+    const players = this.data.tournament && Array.isArray(this.data.tournament.players)
+      ? this.data.tournament.players
+      : [];
+    const genderCount = flow.countGenderPlayers(players);
+    const recommendation = flow.buildMatchCountRecommendations({
+      mode: this.data.mode,
+      maleCount: genderCount.maleCount,
+      femaleCount: genderCount.femaleCount,
+      unknownCount: genderCount.unknownCount,
+      allowOpenTeam: this.data.allowOpenTeam,
+      playersCount: Number(this.data.playersCount) || 0,
+      courts: this.data.editC,
+      sessionMinutes: this.data.sessionMinutes,
+      slotMinutes: this.data.slotMinutes
+    });
+    this.setData({
+      suggestedMatches: Number(recommendation.suggestedMatches) || 1,
+      capacityMax: Number(recommendation.capacityMax) || 1,
+      capacityHintShort: String(recommendation.capacityHintShort || ''),
+      capacityReason: String(recommendation.capacityReason || 'time'),
+      rosterHint: String(recommendation.rosterHint || '')
+    });
   },
 
   async saveSettings() {
@@ -278,13 +395,19 @@ Page({
       await cloud.call('updateSettings', {
         tournamentId: this.data.tournamentId,
         totalMatches: M,
-        courts: C
+        courts: C,
+        allowOpenTeam: this.data.allowOpenTeam
       });
       wx.hideLoading();
       this.clearLastFailedAction();
       wx.showToast({ title: maxMatches > 0 ? '已保存' : '已预配置', icon: 'success' });
       // 主动刷新（真机监听不稳定时也能立即更新 UI）
-      this.fetchTournament(this.data.tournamentId);
+      await this.fetchTournament(this.data.tournamentId);
+      nav.markRefreshFlag(this.data.tournamentId);
+      if (this._autoBackTimer) clearTimeout(this._autoBackTimer);
+      this._autoBackTimer = setTimeout(() => {
+        nav.navigateBackOrRedirect(`/pages/lobby/index?tournamentId=${this.data.tournamentId}`);
+      }, 420);
     } catch (e) {
       wx.hideLoading();
       this.setLastFailedAction('保存参数', () => this.saveSettings());
@@ -292,101 +415,38 @@ Page({
     }
   },
 
-  // 参赛者添加（管理员在草稿阶段手动录入）
-  onAddNamesInput(e) {
-    this.setData({ addNamesText: e.detail.value });
+  onAllowOpenChange(e) {
+    const allowOpenTeam = !!(e && e.detail && e.detail.value);
+    this.setData({ allowOpenTeam }, () => this.refreshRecommendations());
   },
 
-  clearAddNames() {
-    this.setData({ addNamesText: '' });
-  },
-
-  parseNamesText(text) {
-    const raw = String(text || '').trim();
-    if (!raw) return [];
-    // 支持：换行 / 空格 / 逗号 / 分号
-    return raw
-      .split(/[\n,，;；\t ]+/)
-      .map((s) => String(s || '').trim())
-      .filter(Boolean);
-  },
-
-  async addPlayers() {
-    if (!this.data.isAdmin) {
-      wx.showToast({ title: '无权限', icon: 'none' });
-      return;
-    }
-    if (!this.data.tournament || this.data.tournament.status !== 'draft') {
-      wx.showToast({ title: '仅草稿阶段可添加', icon: 'none' });
-      return;
-    }
-    const names = this.parseNamesText(this.data.addNamesText);
-    if (names.length === 0) {
-      wx.showToast({ title: '请输入参赛者名字', icon: 'none' });
-      return;
-    }
-    if (names.length > 60) {
-      wx.showToast({ title: '一次最多添加 60 人', icon: 'none' });
-      return;
-    }
-    wx.showLoading({ title: '添加中...' });
-    try {
-      const res = await cloud.call('addPlayers', {
-        tournamentId: this.data.tournamentId,
-        names
-      });
-      await this.fetchTournament(this.data.tournamentId);
-      this.setData({ addNamesText: '' });
-      wx.hideLoading();
-      this.clearLastFailedAction();
-      const added = (res && res.added) || 0;
-      wx.showToast({ title: added > 0 ? `已添加 ${added} 人` : '没有新增（可能重复）', icon: 'none' });
-    } catch (e) {
-      wx.hideLoading();
-      this.setLastFailedAction('添加参赛者', () => this.addPlayers());
-      this.handleWriteError(e, '添加失败', () => this.fetchTournament(this.data.tournamentId));
-    }
-  },
-
-  onPickReferee(e) {
+  async onPickPlayerGender(e) {
+    if (!this.data.isAdmin || !this.data.isDraft) return;
+    const playerId = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.player) || '').trim();
     const idx = Number(e.detail.value);
-    const opt = (this.data.refereeOptions || [])[idx];
-    if (!opt) return;
-    const rollbackState = {
-      refereeIndex: this.data.refereeIndex,
-      refereeId: this.data.refereeId,
-      refereeName: this.data.refereeName
-    };
-    // 立即更新 UI（真机 onSnapshot/网络延迟时也能立刻看到变化）
-    this.setData({
-      refereeIndex: idx,
-      refereeId: opt.id,
-      refereeName: opt.id ? (opt.name || '已设置') : '未设置'
-    });
-    this.setReferee(opt.id, rollbackState);
+    if (!playerId || Number.isNaN(idx)) return;
+    const map = ['unknown', 'male', 'female'];
+    const gender = map[idx] || 'unknown';
+    return this.updatePlayerGender(playerId, gender);
   },
 
-  async clearReferee() {
-    this.setReferee('');
-  },
-
-  async setReferee(refereeId, rollbackState = null) {
-    if (!this.data.isAdmin) return;
-    wx.showLoading({ title: '设置中...' });
+  async updatePlayerGender(playerId, gender) {
+    const id = String(playerId || '').trim();
+    if (!id) return;
+    wx.showLoading({ title: '保存中...' });
     try {
-      await cloud.call('setReferee', {
+      await cloud.call('updateSettings', {
         tournamentId: this.data.tournamentId,
-        refereeId
+        playerGenderPatch: { [id]: gender }
       });
       wx.hideLoading();
       this.clearLastFailedAction();
-      wx.showToast({ title: '已更新', icon: 'success' });
       await this.fetchTournament(this.data.tournamentId);
-    } catch (e) {
+      nav.markRefreshFlag(this.data.tournamentId);
+    } catch (err) {
       wx.hideLoading();
-      if (rollbackState) this.setData(rollbackState);
-      this.setLastFailedAction('设置裁判', () => this.setReferee(refereeId));
-      this.handleWriteError(e, '设置失败', () => this.fetchTournament(this.data.tournamentId));
+      this.setLastFailedAction('更新球员性别', () => this.updatePlayerGender(id, gender));
+      this.handleWriteError(err, '保存失败', () => this.fetchTournament(this.data.tournamentId));
     }
   },
 
@@ -411,28 +471,6 @@ Page({
           wx.hideLoading();
           this.setLastFailedAction('移除参赛者', () => this.removePlayer({ currentTarget: { dataset: { player: playerId } } }));
           this.handleWriteError(err, '移除失败', () => this.fetchTournament(this.data.tournamentId));
-        }
-      }
-    });
-  },
-
-  async resetTournament() {
-    wx.showModal({
-      title: '确认重置？',
-      content: '将清空赛程、比分和排名并回到草稿状态。',
-      success: async (res) => {
-        if (!res.confirm) return;
-        wx.showLoading({ title: '重置中...' });
-        try {
-          await cloud.call('resetTournament', { tournamentId: this.data.tournamentId });
-          wx.hideLoading();
-          this.clearLastFailedAction();
-          wx.showToast({ title: '已重置', icon: 'success' });
-          this.fetchTournament(this.data.tournamentId);
-        } catch (e) {
-          wx.hideLoading();
-          this.setLastFailedAction('重置赛事', () => this.resetTournament());
-          this.handleWriteError(e, '重置失败', () => this.fetchTournament(this.data.tournamentId));
         }
       }
     });

@@ -21,12 +21,22 @@ exports.main = async (event) => {
       if (playerId === t.creatorId) throw new Error('不能移除创建者');
 
       const players = Array.isArray(t.players) ? t.players.filter(p => p.id !== playerId) : [];
+      const playerIds = Array.from(new Set(players.map((item) => String(item && item.id || '').trim()).filter(Boolean)));
       const refereeId = (t.refereeId === playerId) ? '' : (t.refereeId || '');
+      const pairTeamsRaw = Array.isArray(t.pairTeams) ? t.pairTeams : [];
+      const pairTeams = pairTeamsRaw
+        .map((team) => {
+          const playerIds = Array.isArray(team && team.playerIds) ? team.playerIds.filter((id) => String(id) !== playerId) : [];
+          return { ...team, playerIds };
+        })
+        .filter((team) => Array.isArray(team.playerIds) && team.playerIds.length === 2);
 
       const updRes = await transaction.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({
         data: {
           players,
+          playerIds,
           refereeId,
+          pairTeams,
           updatedAt: db.serverDate(),
           version: _.inc(1)
         }

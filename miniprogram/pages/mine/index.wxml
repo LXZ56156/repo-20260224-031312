@@ -1,0 +1,63 @@
+<view class="container safe-bottom mine-page">
+  <view class="hero mine-hero">
+    <view class="row profile-row profile-top">
+      <image class="profile-avatar" src="{{avatar}}" mode="aspectFill"></image>
+      <view class="flex-1 minw0 profile-main">
+        <view class="hero-title ellipsis">{{nickname}}</view>
+        <view class="hero-sub">个人中心</view>
+      </view>
+      <text class="hero-setting-link" bindtap="goSettings">设置</text>
+    </view>
+    <view class="hero-actions">
+      <view class="hero-action" bindtap="goProfile">编辑资料</view>
+      <text class="hero-action-secondary" bindtap="goHome">查看比赛</text>
+    </view>
+  </view>
+
+  <view class="card panel section-card">
+    <view class="section-head">
+      <view class="section-title">我的战绩</view>
+      <text class="count-pill">本地已完成</text>
+    </view>
+    <view class="stats-grid">
+      <view class="stats-item">
+        <view class="stats-label">已完成参赛</view>
+        <view class="stats-value">{{tournamentsCompleted}}</view>
+      </view>
+      <view class="stats-item">
+        <view class="stats-label">参赛场次</view>
+        <view class="stats-value">{{matchesPlayed}}</view>
+      </view>
+      <view class="stats-item">
+        <view class="stats-label">胜场</view>
+        <view class="stats-value">{{wins}}</view>
+      </view>
+      <view class="stats-item">
+        <view class="stats-label">胜率</view>
+        <view class="stats-value">{{winRateText}}</view>
+      </view>
+    </view>
+    <view class="stats-foot muted" wx:if="{{!noPerformanceData}}">
+      净胜分 {{pointDiffText}}<text wx:if="{{last10Text}}"> · {{last10Text}}</text>
+    </view>
+    <view class="stats-empty muted" wx:if="{{noPerformanceData}}">
+      还没有已完成参赛记录，<text class="stats-empty-link" bindtap="goLaunch">去发起或加入一场比赛</text>
+    </view>
+  </view>
+
+  <view class="card panel section-card">
+    <view class="section-head">
+      <view class="section-title">我的服务</view>
+    </view>
+    <view class="service-grid">
+      <view class="service-btn" bindtap="goMyTournaments">
+        <view class="service-title">我的比赛</view>
+        <view class="service-desc">查看赛事</view>
+      </view>
+      <view class="service-btn" bindtap="onFeedback">
+        <view class="service-title">意见反馈</view>
+        <view class="service-desc">提交建议</view>
+      </view>
+    </view>
+  </view>
+</view>

@@ -10,6 +10,18 @@
   padding-top: 22rpx;
 }
 
+.mode-chip {
+  border: 1rpx solid var(--line-soft, #dbe5ef);
+  background: var(--surface-2, #edf2f8);
+  color: var(--text-1, #0f172a);
+}
+
+.mode-chip.active {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #166534;
+}
+
 .section-title {
   font-size: 30rpx;
   font-weight: 760;
@@ -71,22 +83,28 @@
   width: calc((100% - 12rpx) / 2);
 }
 
+.param-picker {
+  min-height: 88rpx;
+  line-height: 88rpx;
+  border-radius: 18rpx;
+  border: 1rpx solid var(--line-soft, #dbe5ef);
+  background: var(--surface-2, #edf2f8);
+  padding: 0 20rpx;
+  font-size: 30rpx;
+  color: var(--text-1, #0f172a);
+}
+
+.param-picker.disabled {
+  background: #f8fafc;
+  color: #64748b;
+}
+
 .create-tip {
   margin-top: 10rpx;
 }
 
-.advanced-toggle {
-  margin-top: 14rpx;
-  color: var(--brand-strong, #14804b);
-  font-size: 25rpx;
-  font-weight: 760;
-}
-
-.advanced-panel {
-  margin-top: 10rpx;
-  padding: 14rpx;
-  border-radius: 16rpx;
-  border: 1rpx solid var(--line-soft, #dbe5ef);
+.create-recommend-chips {
+  margin-top: 12rpx;
 }
 
 .retry-box {

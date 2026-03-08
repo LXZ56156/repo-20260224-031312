@@ -2,12 +2,14 @@ function isAdmin(tournament, openid) {
   return tournament && openid && tournament.creatorId === openid;
 }
 
-function isReferee(tournament, openid) {
-  return tournament && openid && tournament.refereeId === openid;
+function isParticipant(tournament, openid) {
+  if (!tournament || !openid) return false;
+  const players = Array.isArray(tournament.players) ? tournament.players : [];
+  return players.some((player) => String((player && player.id) || '') === String(openid || ''));
 }
 
 function canEditScore(tournament, openid) {
-  return isAdmin(tournament, openid) || isReferee(tournament, openid);
+  return isAdmin(tournament, openid) || isParticipant(tournament, openid);
 }
 
-module.exports = { isAdmin, isReferee, canEditScore };
+module.exports = { isAdmin, isParticipant, canEditScore };

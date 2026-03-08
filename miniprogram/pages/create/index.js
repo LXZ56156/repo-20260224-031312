@@ -1,28 +1,114 @@
 const cloud = require('../../core/cloud');
 const storage = require('../../core/storage');
 const flow = require('../../core/uxFlow');
+const profileCore = require('../../core/profile');
+
+const POINT_OPTIONS = [11, 15, 21];
+const END_CONDITION_OPTIONS = [
+  { key: 'total_matches', label: '打满总场数' },
+  { key: 'total_rounds', label: '打满总轮数' },
+  { key: 'target_wins', label: '先到目标胜场' }
+];
+
+function normalizeEndConditionType(type) {
+  const v = String(type || '').trim().toLowerCase();
+  if (v === 'total_rounds' || v === 'target_wins' || v === 'total_matches') return v;
+  return 'total_matches';
+}
+
+function clampTarget(target, options) {
+  const list = Array.isArray(options) ? options : [];
+  const min = list.length ? Number(list[0] || 1) : 1;
+  const max = list.length ? Number(list[list.length - 1] || 1) : 1;
+  const n = Math.floor(Number(target) || 1);
+  return Math.max(min, Math.min(max, n));
+}
+
+function suggestEndConditionTarget(type, totalMatches, courts) {
+  const normalized = normalizeEndConditionType(type);
+  const M = Math.max(1, Math.floor(Number(totalMatches) || 1));
+  const C = Math.max(1, Math.floor(Number(courts) || 1));
+  if (normalized === 'total_matches') return M;
+  if (normalized === 'total_rounds') return Math.max(1, Math.ceil(M / C));
+  return Math.max(1, Math.ceil(M / 2));
+}
+
+function buildEndConditionUi(type, target) {
+  const normalized = normalizeEndConditionType(type);
+  const t = Math.max(1, Math.floor(Number(target) || 1));
+  if (normalized === 'total_matches') {
+    return {
+      targetLabel: '总场数（自动）',
+      targetUnit: '场',
+      targetHint: `比赛累计打满 ${t} 场后结束（与总场次一致）。`,
+      showTargetPicker: false
+    };
+  }
+  if (normalized === 'total_rounds') {
+    return {
+      targetLabel: '总轮数',
+      targetUnit: '轮',
+      targetHint: `比赛进行到第 ${t} 轮后结束。`,
+      showTargetPicker: true
+    };
+  }
+  return {
+    targetLabel: '目标胜场',
+    targetUnit: '胜',
+    targetHint: `任一队先拿到 ${t} 胜即结束。`,
+    showTargetPicker: true
+  };
+}
 
 Page({
   data: {
-    name: '轮转赛',
-    nickname: '',
-    avatar: '',
-    avatarDisplay: '/assets/avatar-default.png',
-    focusNick: false,
+    name: '',
+    mode: flow.MODE_MULTI_ROTATE,
+    modeLabel: flow.getModeLabel(flow.MODE_MULTI_ROTATE),
+    modeIntro: flow.getModeIntro(flow.MODE_MULTI_ROTATE),
+    allowOpenTeam: false,
 
     quickPresetKey: 'standard',
     presetOptions: flow.getPresetOptions(),
+    totalMatchOptions: Array.from({ length: 200 }, (_, i) => i + 1),
+    totalMatchIndex: 7,
+    courtOptions: Array.from({ length: 10 }, (_, i) => i + 1),
+    courtIndex: 1,
     totalMatches: 8,
     courts: 2,
-    advancedOpen: false,
-    shareHintAfterCreate: true,
+    sessionMinuteOptions: flow.SESSION_MINUTE_OPTIONS,
+    slotMinuteOptions: flow.SLOT_MINUTE_OPTIONS,
+    sessionMinutes: flow.DEFAULT_SESSION_MINUTES,
+    slotMinutes: flow.DEFAULT_SLOT_MINUTES,
+    sessionMinuteIndex: 2,
+    slotMinuteIndex: Math.max(0, flow.SLOT_MINUTE_OPTIONS.indexOf(flow.DEFAULT_SLOT_MINUTES)),
+    suggestedMatches: 1,
+    capacityMax: 1,
+    capacityHintShort: '',
+    capacityReason: 'time',
+    rosterHint: '',
+
+    pointsOptions: POINT_OPTIONS,
+    pointsPerGame: 21,
+    pointsIndex: 2,
+    endConditionOptions: END_CONDITION_OPTIONS,
+    endConditionType: 'total_matches',
+    endConditionIndex: 0,
+    endConditionTargetOptions: Array.from({ length: 200 }, (_, i) => i + 1),
+    endConditionTarget: 10,
+    endConditionTargetIndex: 9,
+    endConditionTargetLabel: '总场数（自动）',
+    endConditionTargetUnit: '场',
+    endConditionTargetHint: '',
+    showEndConditionTargetPicker: false,
+    showSquadEndCondition: false,
 
     networkOffline: false,
     canRetryAction: false,
     lastFailedActionText: ''
   },
 
-  onLoad() {
+  async onLoad(options = {}) {
     const app = getApp();
     this.setData({ networkOffline: !!(app && app.globalData && app.globalData.networkOffline) });
     if (app && typeof app.subscribeNetworkChange === 'function') {
@@ -31,18 +117,31 @@ Page({
       });
     }
 
-    // 优先使用本机已缓存的昵称/头像（不强制弹窗授权）
-    const p = storage.getUserProfile();
-    if (p && typeof p === 'object') {
-      let nick = String(p.nickName || p.nickname || '').trim();
-      if (nick === '微信用户') nick = '';
-      const avatar = String(p.avatarUrl || p.avatar || '').trim();
-      const next = {};
-      if (!this.data.nickname && nick) next.nickname = nick;
-      if (!this.data.avatar && avatar) next.avatar = avatar;
-      if (Object.keys(next).length) this.setData(next);
-      if (avatar) this.setAvatarDisplay(avatar);
+    const gate = await profileCore.ensureProfileForAction('create', '/pages/create/index');
+    if (!gate.ok) {
+      if (gate.reason === 'login_failed') {
+        wx.showToast({ title: '登录失败，请重试', icon: 'none' });
+      }
+      return;
     }
+
+    const mode = flow.normalizeMode(options.mode || storage.getDefaultMode());
+    const modeLabel = flow.getModeLabel(mode);
+    const sessionMinutes = flow.normalizeSessionMinutes(storage.getSessionMinutesPref(), flow.DEFAULT_SESSION_MINUTES);
+    const slotMinutes = flow.normalizeSlotMinutes(storage.getSlotMinutesPref(), flow.DEFAULT_SLOT_MINUTES);
+    this.setData({
+      name: modeLabel,
+      mode,
+      modeLabel,
+      modeIntro: flow.getModeIntro(mode),
+      showSquadEndCondition: mode === flow.MODE_SQUAD_DOUBLES,
+      sessionMinutes,
+      slotMinutes,
+      sessionMinuteIndex: Math.max(0, flow.SESSION_MINUTE_OPTIONS.indexOf(sessionMinutes)),
+      slotMinuteIndex: Math.max(0, flow.SLOT_MINUTE_OPTIONS.indexOf(slotMinutes))
+    });
+    this.syncEndConditionUi();
+    this.refreshRecommendations({ adoptSuggested: true });
   },
 
   onUnload() {
@@ -50,21 +149,116 @@ Page({
     this._offNetwork = null;
   },
 
-  onName(e) { this.setData({ name: e.detail.value }); },
-  onNick(e) { this.setData({ nickname: e.detail.value }); },
-
-  onTotalMatchesInput(e) {
-    const m = flow.parsePositiveInt(e.detail.value, 1);
-    this.setData({ totalMatches: m || 1, quickPresetKey: 'custom' });
+  onName(e) {
+    this.setData({ name: e.detail.value });
   },
 
-  onCourtsInput(e) {
-    const c = flow.parsePositiveInt(e.detail.value, 1, 10);
-    this.setData({ courts: c || 1, quickPresetKey: 'custom' });
+  onPickTotalMatches(e) {
+    const idx = Number(e.detail.value);
+    const totalMatches = (this.data.totalMatchOptions || [])[idx] || 1;
+    const next = { totalMatches, totalMatchIndex: idx, quickPresetKey: 'custom' };
+    if (this.data.endConditionType === 'total_matches') {
+      const target = clampTarget(totalMatches, this.data.endConditionTargetOptions);
+      next.endConditionTarget = target;
+      next.endConditionTargetIndex = Math.max(0, target - 1);
+    }
+    this.setData(next, () => this.syncEndConditionUi());
   },
 
-  toggleAdvanced() {
-    this.setData({ advancedOpen: !this.data.advancedOpen });
+  onPickCourts(e) {
+    const idx = Number(e.detail.value);
+    const courts = (this.data.courtOptions || [])[idx] || 1;
+    this.setData({ courts, courtIndex: idx, quickPresetKey: 'custom' }, () => {
+      this.syncEndConditionUi();
+      this.refreshRecommendations();
+    });
+  },
+
+  onPickSessionMinutes(e) {
+    const idx = Number(e.detail.value);
+    const options = this.data.sessionMinuteOptions || flow.SESSION_MINUTE_OPTIONS;
+    const sessionMinutes = Number(options[idx] || flow.DEFAULT_SESSION_MINUTES);
+    storage.setSessionMinutesPref(sessionMinutes);
+    this.setData({ sessionMinutes, sessionMinuteIndex: idx, quickPresetKey: 'custom' }, () => this.refreshRecommendations());
+  },
+
+  onPickSlotMinutes(e) {
+    const idx = Number(e.detail.value);
+    const options = this.data.slotMinuteOptions || flow.SLOT_MINUTE_OPTIONS;
+    const slotMinutes = Number(options[idx] || flow.DEFAULT_SLOT_MINUTES);
+    storage.setSlotMinutesPref(slotMinutes);
+    this.setData({ slotMinutes, slotMinuteIndex: idx, quickPresetKey: 'custom' }, () => this.refreshRecommendations());
+  },
+
+  onPickPointsPerGame(e) {
+    const idx = Number(e.detail.value);
+    const options = this.data.pointsOptions || POINT_OPTIONS;
+    const pointsPerGame = Number(options[idx] || 21);
+    this.setData({ pointsPerGame, pointsIndex: idx });
+  },
+
+  onPickEndConditionType(e) {
+    const idx = Number(e.detail.value);
+    const options = this.data.endConditionOptions || END_CONDITION_OPTIONS;
+    const item = options[idx] || options[0];
+    const endConditionType = normalizeEndConditionType(item.key);
+    const suggestedTarget = suggestEndConditionTarget(
+      endConditionType,
+      this.data.totalMatches,
+      this.data.courts
+    );
+    const nextTarget = clampTarget(suggestedTarget, this.data.endConditionTargetOptions);
+    this.setData({
+      endConditionType,
+      endConditionIndex: idx,
+      endConditionTarget: nextTarget,
+      endConditionTargetIndex: Math.max(0, nextTarget - 1)
+    }, () => this.syncEndConditionUi());
+  },
+
+  onPickEndConditionTarget(e) {
+    const idx = Number(e.detail.value);
+    const options = this.data.endConditionTargetOptions || [];
+    const target = Number(options[idx] || 1);
+    this.setData({
+      endConditionTarget: target,
+      endConditionTargetIndex: idx
+    }, () => this.syncEndConditionUi());
+  },
+
+  refreshRecommendations(options = {}) {
+    const opts = options || {};
+    const recommendation = flow.buildMatchCountRecommendations({
+      mode: this.data.mode,
+      playersCount: 0,
+      courts: this.data.courts,
+      sessionMinutes: this.data.sessionMinutes,
+      slotMinutes: this.data.slotMinutes,
+      allowOpenTeam: this.data.allowOpenTeam
+    });
+    const suggestedMatches = Number(recommendation.suggestedMatches) || 1;
+    const nextState = {
+      suggestedMatches,
+      capacityMax: Number(recommendation.capacityMax) || 1,
+      capacityHintShort: String(recommendation.capacityHintShort || ''),
+      capacityReason: String(recommendation.capacityReason || 'time'),
+      rosterHint: String(recommendation.rosterHint || '')
+    };
+    if (opts.adoptSuggested === true) {
+      const bounded = Math.max(1, Math.min(
+        suggestedMatches,
+        Array.isArray(this.data.totalMatchOptions) ? this.data.totalMatchOptions.length : 200
+      ));
+      nextState.totalMatches = bounded;
+      nextState.totalMatchIndex = Math.max(0, bounded - 1);
+      if (this.data.endConditionType === 'total_matches') {
+        nextState.endConditionTarget = bounded;
+        nextState.endConditionTargetIndex = Math.max(0, bounded - 1);
+      }
+    }
+    this.setData(nextState, () => {
+      if (opts.adoptSuggested === true) this.syncEndConditionUi();
+    });
   },
 
   applyPreset(e) {
@@ -73,7 +267,37 @@ Page({
     this.setData({
       quickPresetKey: preset.key,
       totalMatches: preset.totalMatches,
-      courts: preset.courts
+      courts: preset.courts,
+      totalMatchIndex: Math.max(0, preset.totalMatches - 1),
+      courtIndex: Math.max(0, preset.courts - 1)
+    }, () => {
+      if (this.data.endConditionType === 'total_matches') {
+        const target = clampTarget(this.data.totalMatches, this.data.endConditionTargetOptions);
+        this.setData({
+          endConditionTarget: target,
+          endConditionTargetIndex: Math.max(0, target - 1)
+        }, () => {
+          this.syncEndConditionUi();
+          this.refreshRecommendations();
+        });
+        return;
+      }
+      this.syncEndConditionUi();
+      this.refreshRecommendations();
+    });
+  },
+
+  syncEndConditionUi() {
+    const type = normalizeEndConditionType(this.data.endConditionType);
+    const target = clampTarget(this.data.endConditionTarget, this.data.endConditionTargetOptions);
+    const ui = buildEndConditionUi(type, target);
+    this.setData({
+      endConditionTarget: target,
+      endConditionTargetIndex: Math.max(0, target - 1),
+      endConditionTargetLabel: ui.targetLabel,
+      endConditionTargetUnit: ui.targetUnit,
+      endConditionTargetHint: ui.targetHint,
+      showEndConditionTargetPicker: ui.showTargetPicker
     });
   },
 
@@ -94,107 +318,54 @@ Page({
     if (typeof this._lastFailedAction === 'function') this._lastFailedAction();
   },
 
-  // 微信已逐步回收通过接口直接获取真实昵称/头像的能力；
-  // 这里使用“昵称填写能力”(input type="nickname") + chooseAvatar 让用户主动选择。
-  focusNickInput() {
-    this.setData({ focusNick: true });
-    wx.showToast({ title: '点昵称输入框，键盘上方可一键填入微信昵称', icon: 'none' });
-    setTimeout(() => this.setData({ focusNick: false }), 200);
-  },
-
-  async onChooseAvatar(e) {
-    // 自定义头像：上传到云存储，保存 fileID
-    try {
-      const tempPath = e && e.detail && e.detail.avatarUrl;
-      if (!tempPath) return;
-      const openid = (getApp().globalData.openid || storage.get('openid', ''));
-      wx.showLoading({ title: '上传头像...' });
-      const up = await wx.cloud.uploadFile({
-        cloudPath: `avatars/${openid || 'user'}_${Date.now()}.png`,
-        filePath: tempPath
-      });
-      wx.hideLoading();
-      const fileID = up && up.fileID;
-      if (fileID) {
-        this.setData({ avatar: fileID });
-        await this.setAvatarDisplay(fileID);
-        const old = storage.getUserProfile() || {};
-        storage.setUserProfile({ ...old, avatar: fileID });
-      }
-    } catch (e2) {
-      wx.hideLoading();
-      wx.showToast({ title: '头像上传失败', icon: 'none' });
-    }
-  },
-
-  async setAvatarDisplay(avatar) {
-    const fallback = '/assets/avatar-default.png';
-    const a = String(avatar || '').trim();
-    if (!a) {
-      this.setData({ avatarDisplay: fallback });
-      return;
-    }
-    if (a.startsWith('cloud://')) {
-      try {
-        const res = await wx.cloud.getTempFileURL({ fileList: [a] });
-        const url = res && res.fileList && res.fileList[0] && res.fileList[0].tempFileURL;
-        this.setData({ avatarDisplay: url || fallback });
-      } catch (_) {
-        this.setData({ avatarDisplay: fallback });
-      }
-    } else {
-      this.setData({ avatarDisplay: a });
-    }
-  },
-
   async handleCreate() {
-    const name = (this.data.name || '').trim();
+    const name = String(this.data.name || '').trim();
     if (!name) {
       wx.showToast({ title: '请输入赛事名称', icon: 'none' });
       return;
     }
 
+    const gate = await profileCore.ensureProfileForAction('create', '/pages/create/index');
+    if (!gate.ok) {
+      if (gate.reason === 'login_failed') {
+        wx.showToast({ title: '登录失败，请重试', icon: 'none' });
+      }
+      return;
+    }
+    const profile = gate.profile || {};
+
     wx.showLoading({ title: '创建中...' });
     try {
-      // 若未填写昵称但本地已有缓存，优先使用
-      let nick = (this.data.nickname || '').trim();
-      let avatar = String(this.data.avatar || '').trim();
-      if (!nick || !avatar) {
-        const p = storage.getUserProfile();
-        if (p && typeof p === 'object') {
-          if (!nick) nick = String(p.nickName || p.nickname || '').trim() || nick;
-          if (!avatar) avatar = String(p.avatarUrl || p.avatar || '').trim() || avatar;
-        }
-      }
-
       const settings = flow.resolveCreateSettings({
+        mode: this.data.mode,
         presetKey: this.data.quickPresetKey,
         totalMatches: this.data.totalMatches,
         courts: this.data.courts
       });
+      const endConditionType = normalizeEndConditionType(this.data.endConditionType);
+      const endConditionTarget = Math.max(1, Number(this.data.endConditionTarget) || 1);
 
       const res = await cloud.call('createTournament', {
         name,
-        nickname: nick,
-        avatar,
+        nickname: String(profile.nickName || profile.nickname || '').trim(),
+        avatar: String(profile.avatar || profile.avatarUrl || '').trim(),
+        mode: settings.mode,
+        creatorGender: storage.normalizeGender(profile.gender),
+        allowOpenTeam: false,
         totalMatches: settings.totalMatches,
         courts: settings.courts,
-        presetKey: settings.presetKey
+        presetKey: settings.presetKey,
+        pointsPerGame: Number(this.data.pointsPerGame) || 21,
+        endConditionType: settings.mode === flow.MODE_SQUAD_DOUBLES ? endConditionType : 'total_matches',
+        endConditionTarget: settings.mode === flow.MODE_SQUAD_DOUBLES ? endConditionTarget : settings.totalMatches
       });
       wx.hideLoading();
       this.clearLastFailedAction();
-      const tip = this.data.shareHintAfterCreate ? 1 : 0;
-      // 用 redirectTo 避免“返回”回到创建页
-      wx.redirectTo({ url: `/pages/lobby/index?tournamentId=${res.tournamentId}&fromCreate=1&presetApplied=1&shareTip=${tip}` });
+      wx.redirectTo({ url: `/pages/lobby/index?tournamentId=${res.tournamentId}&fromCreate=1&presetApplied=1&shareTip=1` });
     } catch (e) {
       wx.hideLoading();
-      const parsed = cloud.parseCloudError(e, '创建失败');
-      this.setLastFailedAction('创建赛事', () => this.handleCreate());
-      wx.showToast({ title: parsed.userMessage || '创建失败，请稍后重试', icon: 'none' });
+      this.setLastFailedAction('创建比赛', () => this.handleCreate());
+      wx.showToast({ title: cloud.getUnifiedErrorMessage(e, '创建失败'), icon: 'none' });
     }
-  },
-
-  goBack() {
-    wx.navigateBack();
   }
 });

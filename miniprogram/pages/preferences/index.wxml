@@ -1,0 +1,81 @@
+<view class="container safe-bottom pref-page">
+  <view class="card panel">
+    <view class="section-head">
+      <view class="section-title">账号与资料</view>
+      <text class="count-pill">个人</text>
+    </view>
+    <view class="muted">昵称：{{nickname}}</view>
+    <view class="muted">性别：{{genderText}}</view>
+    <view class="muted">资料状态：{{profileStatusText}}</view>
+  </view>
+
+  <view class="card panel">
+    <view class="section-head">
+      <view class="section-title">显示与交互</view>
+      <text class="count-pill">通用</text>
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">首页默认排序</view>
+      <view class="chips">
+        <view class="chip {{sortMode==='updated'?'active':''}}" data-mode="updated" bindtap="setSortMode">最近更新</view>
+        <view class="chip {{sortMode==='players'?'active':''}}" data-mode="players" bindtap="setSortMode">按人数</view>
+        <view class="chip {{sortMode==='status'?'active':''}}" data-mode="status" bindtap="setSortMode">按状态</view>
+      </view>
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">动效强度</view>
+      <view class="chips">
+        <view class="chip {{motionLevel==='standard'?'active':''}}" data-level="standard" bindtap="setMotionLevel">标准</view>
+        <view class="chip {{motionLevel==='light'?'active':''}}" data-level="light" bindtap="setMotionLevel">简化</view>
+        <view class="chip {{motionLevel==='off'?'active':''}}" data-level="off" bindtap="setMotionLevel">关闭</view>
+      </view>
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">列表密度</view>
+      <view class="chips">
+        <view class="chip {{listDensity==='comfortable'?'active':''}}" data-density="comfortable" bindtap="setListDensity">舒适</view>
+        <view class="chip {{listDensity==='compact'?'active':''}}" data-density="compact" bindtap="setListDensity">紧凑</view>
+      </view>
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">主题模式</view>
+      <view class="chips">
+        <view class="chip {{themeMode==='system'?'active':''}}" data-mode="system" bindtap="setThemeMode">跟随系统</view>
+        <view class="chip {{themeMode==='light'?'active':''}}" data-mode="light" bindtap="setThemeMode">浅色</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="card panel">
+    <view class="section-head">
+      <view class="section-title">提醒</view>
+      <text class="count-pill">开关</text>
+    </view>
+    <view class="form-item switch-item">
+      <view class="form-label">录分后自动返回</view>
+      <switch checked="{{autoReturn}}" color="#1EA65E" bindchange="onAutoReturnChange"></switch>
+    </view>
+    <view class="form-item switch-item">
+      <view class="form-label">录分后自动下一场</view>
+      <switch checked="{{autoNext}}" color="#1EA65E" bindchange="onAutoNextChange"></switch>
+    </view>
+    <view class="form-item switch-item">
+      <view class="form-label">开赛提醒</view>
+      <switch checked="{{notifyStart}}" color="#1EA65E" bindchange="onNotifyStartChange"></switch>
+    </view>
+    <view class="form-item switch-item">
+      <view class="form-label">结果提醒</view>
+      <switch checked="{{notifyResult}}" color="#1EA65E" bindchange="onNotifyResultChange"></switch>
+    </view>
+  </view>
+
+  <view class="card panel panel-soft">
+    <view class="section-title">隐私与数据</view>
+    <view class="muted pref-tip">版本：{{version}}</view>
+    <button class="btn btn-subtle" bindtap="clearCache">清除本地缓存</button>
+  </view>
+</view>

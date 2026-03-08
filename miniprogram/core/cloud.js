@@ -13,6 +13,8 @@ function parseCloudError(err, fallbackMessage = '操作失败') {
   const low = cleaned.toLowerCase();
   const isConflict = (
     cleaned.includes('写入冲突') ||
+    cleaned.includes('并发冲突') ||
+    cleaned.includes('冲突') ||
     low.includes('version') ||
     low.includes('conflict')
   );
@@ -29,6 +31,62 @@ function parseCloudError(err, fallbackMessage = '操作失败') {
     rawMessage,
     userMessage: cleaned || fallbackMessage
   };
+}
+
+function classifyCloudError(parsed) {
+  const p = parsed || {};
+  if (p.isConflict) return 'conflict';
+  if (p.isNetwork) return 'network';
+  const low = String(p.userMessage || '').toLowerCase();
+  if (
+    low.includes('permission') ||
+    low.includes('权限') ||
+    low.includes('无权限') ||
+    low.includes('仅管理员')
+  ) return 'permission';
+  if (
+    low.includes('invalid') ||
+    low.includes('不合法') ||
+    low.includes('参数') ||
+    low.includes('缺少')
+  ) return 'param';
+  return 'unknown';
+}
+
+function getUnifiedErrorMessage(err, fallbackMessage = '操作失败') {
+  const parsed = parseCloudError(err, fallbackMessage);
+  const level = classifyCloudError(parsed);
+  if (level === 'network') return '网络异常，请重试';
+  if (level === 'permission') return '权限不足';
+  if (level === 'param') return '参数有误，请检查';
+  return parsed.userMessage || fallbackMessage;
+}
+
+function presentWriteError(options = {}) {
+  const err = options.err;
+  const fallbackMessage = options.fallbackMessage || '操作失败';
+  const parsed = parseCloudError(err, fallbackMessage);
+  const level = classifyCloudError(parsed);
+
+  if (parsed.isConflict) {
+    wx.showModal({
+      title: options.conflictTitle || '写入冲突',
+      content: options.conflictContent || '数据已被他人更新，是否刷新后重试？',
+      confirmText: options.confirmText || '刷新',
+      cancelText: options.cancelText || '保留草稿',
+      success: (res) => {
+        if (res.confirm && typeof options.onRefresh === 'function') options.onRefresh();
+        if (res.cancel && typeof options.onKeepDraft === 'function') options.onKeepDraft();
+      }
+    });
+    return { ...parsed, level };
+  }
+
+  wx.showToast({
+    title: getUnifiedErrorMessage(err, fallbackMessage),
+    icon: 'none'
+  });
+  return { ...parsed, level };
 }
 
 function showDevHint(title, content) {
@@ -68,4 +126,10 @@ function call(name, data = {}) {
     });
 }
 
-module.exports = { call, parseCloudError };
+module.exports = {
+  call,
+  parseCloudError,
+  classifyCloudError,
+  getUnifiedErrorMessage,
+  presentWriteError
+};

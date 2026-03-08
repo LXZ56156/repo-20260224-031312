@@ -1,0 +1,14 @@
+.share-entry-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.share-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1f2d3d;
+  margin-bottom: 12rpx;
+}
+

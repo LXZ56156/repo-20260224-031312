@@ -1,0 +1,45 @@
+.launch-page {
+  padding-bottom: 36rpx;
+}
+
+.launch-card {
+  margin-top: 16rpx;
+}
+
+.launch-card.is-default {
+  border-color: rgba(30, 166, 94, 0.44);
+  box-shadow: 0 16rpx 30rpx rgba(30, 166, 94, 0.16);
+}
+
+.launch-row {
+  align-items: flex-start;
+  gap: 12rpx;
+}
+
+.launch-title {
+  font-size: 34rpx;
+  font-weight: 760;
+}
+
+.launch-sub {
+  margin-top: 8rpx;
+  line-height: 1.5;
+}
+
+.launch-btn {
+  min-width: 180rpx;
+}
+
+.launch-actions {
+  margin-top: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.launch-rule-link {
+  color: #ef4444;
+  font-size: 26rpx;
+  font-weight: 700;
+}

@@ -31,7 +31,113 @@ function safePlayerName(p) {
   return suffix || '匿名';
 }
 
+function normalizeMode(mode) {
+  const v = String(mode || '').trim().toLowerCase();
+  if (v === 'multi_rotate' || v === 'squad_doubles' || v === 'fixed_pair_rr') return v;
+  if (v === 'mixed_fallback' || v === 'doubles') return 'multi_rotate';
+  return 'multi_rotate';
+}
+
+function buildTeamTemplate(tournament) {
+  const mode = normalizeMode(tournament && tournament.mode);
+  if (mode === 'squad_doubles') {
+    return [
+      { entityId: 'A', name: 'A队' },
+      { entityId: 'B', name: 'B队' }
+    ];
+  }
+  const list = Array.isArray(tournament && tournament.pairTeams) ? tournament.pairTeams : [];
+  return list.map((team, idx) => ({
+    entityId: String(team && team.id || `pair_${idx}`),
+    name: String(team && team.name || `第${idx + 1}队`)
+  }));
+}
+
 function computeRankings(t) {
+  const mode = normalizeMode(t && t.mode);
+  if (mode === 'squad_doubles' || mode === 'fixed_pair_rr') {
+    const stats = {};
+    const template = buildTeamTemplate(t);
+    for (const team of template) {
+      stats[team.entityId] = {
+        entityType: 'team',
+        entityId: team.entityId,
+        playerId: team.entityId,
+        name: team.name,
+        wins: 0,
+        losses: 0,
+        played: 0,
+        pointsFor: 0,
+        pointsAgainst: 0,
+        pointDiff: 0
+      };
+    }
+
+    for (const r of (t.rounds || [])) {
+      for (const m of (r.matches || [])) {
+        if (m.status !== 'finished') continue;
+        const sp = extractScorePairAny(m.score || m);
+        const a = sp.a;
+        const b = sp.b;
+        if (!Number.isFinite(a) || !Number.isFinite(b) || a === b) continue;
+        const unitAId = String(m.unitAId || (mode === 'squad_doubles' ? 'A' : '')).trim();
+        const unitBId = String(m.unitBId || (mode === 'squad_doubles' ? 'B' : '')).trim();
+        if (!unitAId || !unitBId) continue;
+        if (!stats[unitAId]) {
+          stats[unitAId] = {
+            entityType: 'team',
+            entityId: unitAId,
+            playerId: unitAId,
+            name: String(m.unitAName || unitAId),
+            wins: 0,
+            losses: 0,
+            played: 0,
+            pointsFor: 0,
+            pointsAgainst: 0,
+            pointDiff: 0
+          };
+        }
+        if (!stats[unitBId]) {
+          stats[unitBId] = {
+            entityType: 'team',
+            entityId: unitBId,
+            playerId: unitBId,
+            name: String(m.unitBName || unitBId),
+            wins: 0,
+            losses: 0,
+            played: 0,
+            pointsFor: 0,
+            pointsAgainst: 0,
+            pointDiff: 0
+          };
+        }
+        const aWin = a > b;
+        const winId = aWin ? unitAId : unitBId;
+        const loseId = aWin ? unitBId : unitAId;
+        const winScore = aWin ? a : b;
+        const loseScore = aWin ? b : a;
+        stats[winId].wins += 1;
+        stats[winId].played += 1;
+        stats[winId].pointsFor += winScore;
+        stats[winId].pointsAgainst += loseScore;
+        stats[winId].pointDiff += (winScore - loseScore);
+        stats[loseId].losses += 1;
+        stats[loseId].played += 1;
+        stats[loseId].pointsFor += loseScore;
+        stats[loseId].pointsAgainst += winScore;
+        stats[loseId].pointDiff += (loseScore - winScore);
+      }
+    }
+    const list = Object.values(stats);
+    list.sort((x, y) => {
+      if (y.wins !== x.wins) return y.wins - x.wins;
+      if (y.pointDiff !== x.pointDiff) return y.pointDiff - x.pointDiff;
+      if (y.pointsFor !== x.pointsFor) return y.pointsFor - x.pointsFor;
+      return String(x.name || '').localeCompare(String(y.name || ''));
+    });
+    return list;
+  }
+
   const players = Array.isArray(t.players) ? t.players : [];
   const stats = {};
 
@@ -39,6 +145,8 @@ function computeRankings(t) {
     const pid = extractId(p);
     if (!pid) continue;
     stats[pid] = {
+      entityType: 'player',
+      entityId: pid,
       playerId: pid,
       name: safePlayerName(p),
       wins: 0,

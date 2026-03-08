@@ -28,13 +28,9 @@
   font-size: 22rpx;
 }
 
-.batch-switch {
-  margin-top: 12rpx;
-  padding-top: 10rpx;
-  border-top: 1rpx solid rgba(255, 255, 255, 0.28);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.batch-note {
+  margin-top: 10rpx;
+  opacity: 0.92;
 }
 
 .section-title {
@@ -87,6 +83,78 @@
 
 .score-tip {
   margin-top: 14rpx;
+}
+
+.lock-panel {
+  margin-top: 12rpx;
+  padding: 14rpx;
+  border-radius: 14rpx;
+  border: 1rpx solid #dbe5ef;
+  background: #f8fbff;
+}
+
+.lock-hint {
+  font-size: 24rpx;
+  color: #334155;
+}
+
+.lock-actions {
+  margin-top: 10rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.lock-btn-primary {
+  width: auto;
+  min-width: 200rpx;
+}
+
+.lock-btn {
+  width: auto;
+  min-width: 160rpx;
+}
+
+.score-toolbar {
+  margin-top: 12rpx;
+  display: flex;
+  align-items: center;
+}
+
+.mode-undo {
+  margin-left: auto;
+}
+
+.mode-undo.disabled {
+  opacity: 0.45;
+}
+
+.score-wheel {
+  margin-top: 10rpx;
+  min-height: 72rpx;
+  line-height: 72rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid #dce5ef;
+  background: #f8fbff;
+  font-size: 36rpx;
+  font-weight: 760;
+  text-align: center;
+}
+
+.submit-bar {
+  position: sticky;
+  bottom: calc(env(safe-area-inset-bottom) + 10rpx);
+  margin-top: 14rpx;
+  padding: 10rpx;
+  border-radius: 20rpx;
+  border: 1rpx solid #dbe5ef;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8rpx 20rpx rgba(15, 23, 42, 0.12);
+  z-index: 9;
+}
+
+.submit-btn {
+  margin-top: 0 !important;
 }
 
 .retry-box {

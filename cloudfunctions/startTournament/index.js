@@ -4,8 +4,9 @@ const db = cloud.database();
 const _ = db.command;
 const common = require('./lib/common');
 
-const { generateSchedule } = require('./rotation');
+const { generateSchedule, selectSchedulerPolicy } = require('./rotation');
 const { validateBeforeGenerate } = require('./logic');
+const { buildSquadSchedule, buildFixedPairSchedule } = require('./scheduleModes');
 
 function safePlayerName(p) {
   const raw = p && (p.name || p.nickname || p.nickName || p.displayName);
@@ -24,13 +25,55 @@ function idToPlayerMap(players) {
   const m = {};
   for (const p of (players || [])) {
     if (!p || !p.id) continue;
-    m[p.id] = { id: p.id, name: safePlayerName(p), type: p.type || 'user' };
+    const g = String(p.gender || '').trim().toLowerCase();
+    m[p.id] = {
+      id: p.id,
+      name: safePlayerName(p),
+      type: p.type || 'user',
+      gender: (g === 'male' || g === 'female') ? g : 'unknown'
+    };
   }
   return m;
 }
 
-function buildInitialRankings(players) {
+function buildInitialRankings(mode, players, pairTeams = []) {
+  const m = String(mode || '').trim().toLowerCase();
+  if (m === 'squad_doubles') {
+    const teams = [
+      { id: 'A', name: 'A队' },
+      { id: 'B', name: 'B队' }
+    ];
+    return teams.map((team) => ({
+      entityType: 'team',
+      entityId: team.id,
+      playerId: team.id,
+      name: team.name,
+      wins: 0,
+      losses: 0,
+      played: 0,
+      pointsFor: 0,
+      pointsAgainst: 0,
+      pointDiff: 0
+    }));
+  }
+  if (m === 'fixed_pair_rr') {
+    const list = Array.isArray(pairTeams) ? pairTeams : [];
+    return list.map((team, idx) => ({
+      entityType: 'team',
+      entityId: String(team && team.id || `pair_${idx}`),
+      playerId: String(team && team.id || `pair_${idx}`),
+      name: String(team && team.name || `第${idx + 1}队`),
+      wins: 0,
+      losses: 0,
+      played: 0,
+      pointsFor: 0,
+      pointsAgainst: 0,
+      pointDiff: 0
+    }));
+  }
   return (players || []).map(p => ({
+    entityType: 'player',
+    entityId: p.id,
     playerId: p.id,
     name: safePlayerName(p),
     wins: 0,
@@ -58,15 +101,61 @@ exports.main = async (event) => {
     const players = checked.players;
     const M = checked.totalMatches;
     const C = checked.courts;
+    const mode = checked.mode || 'multi_rotate';
+    const allowOpenTeam = checked.allowOpenTeam === true;
+    const rules = checked.rules || {};
+    const endCondition = rules.endCondition || { type: 'total_matches', target: M };
+    const pairTeams = Array.isArray(checked.pairTeams) ? checked.pairTeams : [];
 
     const oldVersion = Number(t.version) || 1;
-    const schedule = generateSchedule(players, M, C);
+    const policy = selectSchedulerPolicy(players.length, C, M);
+    const schedulerProfileRaw = String((event && event.schedulerProfile) || '').trim().toLowerCase();
+    const schedulerProfile = ['rest', 'balanced', 'repeat'].includes(schedulerProfileRaw) ? schedulerProfileRaw : 'rest';
+    const profileWeights = {
+      rest: { delta: 2.0, epsilon: policy.selectedEpsilon + 0.2, beta: 3.0, gamma: 1.5 },
+      balanced: { delta: 2.0, epsilon: policy.selectedEpsilon, beta: 3.0, gamma: 1.5 },
+      repeat: { delta: 1.8, epsilon: Math.max(1.0, policy.selectedEpsilon - 0.1), beta: 3.4, gamma: 1.9 }
+    }[schedulerProfile];
+    let schedule;
+    if (mode === 'squad_doubles') {
+      schedule = buildSquadSchedule(players, M, C, { endCondition });
+      if (schedule && schedule.schedulerMeta) {
+        schedule.schedulerMeta.schedulerProfile = schedulerProfile;
+      }
+    } else if (mode === 'fixed_pair_rr') {
+      schedule = buildFixedPairSchedule(players, C, pairTeams);
+      if (schedule && schedule.schedulerMeta) {
+        schedule.schedulerMeta.schedulerProfile = schedulerProfile;
+      }
+    } else {
+      const schedulerOptions = {
+        mode: 'doubles',
+        allowOpen: allowOpenTeam,
+        policy,
+        searchSeeds: policy.selectedSearchSeeds,
+        seedStep: 7919,
+        epsilon: profileWeights.epsilon,
+        delta: profileWeights.delta,
+        beta: profileWeights.beta,
+        gamma: profileWeights.gamma
+      };
+      schedule = generateSchedule(players, M, C, schedulerOptions);
+      if (schedule && schedule.schedulerMeta) {
+        schedule.schedulerMeta.schedulerProfile = schedulerProfile;
+      }
+    }
     const map = idToPlayerMap(players);
 
     const rounds = (schedule.rounds || []).map(r => ({
       roundIndex: r.roundIndex,
       matches: (r.matches || []).map(m => ({
         matchIndex: m.matchIndex,
+        matchType: m.matchType || '',
+        logicalRound: Number(m.logicalRound) || 0,
+        unitAId: String(m.unitAId || ''),
+        unitBId: String(m.unitBId || ''),
+        unitAName: String(m.unitAName || ''),
+        unitBName: String(m.unitBName || ''),
         teamA: (m.teamA || []).map(id => map[id]).filter(Boolean),
         teamB: (m.teamB || []).map(id => map[id]).filter(Boolean),
         status: 'pending',
@@ -79,7 +168,7 @@ exports.main = async (event) => {
       restPlayers: (r.restPlayers || []).map(id => map[id]).filter(Boolean)
     }));
 
-    const rankings = buildInitialRankings(players);
+    const rankings = buildInitialRankings(mode, players, pairTeams);
 
     const updRes = await db.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({
       data: {
@@ -87,10 +176,14 @@ exports.main = async (event) => {
         rounds,
         rankings,
         scheduleSeed: schedule.seed,
+        mode,
+        allowOpenTeam,
+        pairTeams,
         fairnessScore: schedule.fairnessScore,
         // Store diagnostic details as JSON strings to avoid dot-path conflicts when existing fields are null.
         fairnessJson: JSON.stringify(schedule.fairness || {}),
         playerStatsJson: JSON.stringify(schedule.playerStats || {}),
+        schedulerMetaJson: JSON.stringify(schedule.schedulerMeta || {}),
         // Clean legacy fields if they exist.
         fairness: _.remove(),
         playerStats: _.remove(),

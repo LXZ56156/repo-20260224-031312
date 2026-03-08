@@ -27,12 +27,33 @@ function uniqueName(base, players, selfId) {
   return `${base}${Date.now() % 1000}`;
 }
 
+function normalizeGender(gender) {
+  const v = String(gender || '').trim().toLowerCase();
+  if (v === 'male' || v === 'female') return v;
+  return 'unknown';
+}
+
+function normalizeMode(mode) {
+  const v = String(mode || '').trim().toLowerCase();
+  if (v === 'multi_rotate' || v === 'squad_doubles' || v === 'fixed_pair_rr') return v;
+  if (v === 'mixed_fallback' || v === 'doubles') return 'multi_rotate';
+  return 'multi_rotate';
+}
+
+function normalizeSquadChoice(choice) {
+  const v = String(choice || '').trim().toUpperCase();
+  if (v === 'A' || v === 'B') return v;
+  return '';
+}
+
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
   const openid = wxContext.OPENID;
   const tournamentId = event.tournamentId;
   const rawNickname = event.nickname;
   const avatar = String(event.avatar || '').trim();
+  let gender = normalizeGender(event.gender);
+  const squadChoice = normalizeSquadChoice(event && event.squadChoice);
 
   if (!tournamentId) return { ok: false, message: '缺少赛事ID' };
 
@@ -46,7 +67,18 @@ exports.main = async (event, context) => {
   }
 
   const players = Array.isArray(t.players) ? t.players : [];
+  const mode = normalizeMode(t.mode);
   const idx = players.findIndex(p => p && p.id === openid);
+
+  if (gender === 'unknown') {
+    try {
+      const profileRes = await db.collection('user_profiles').where({ openid }).limit(1).get();
+      const profile = Array.isArray(profileRes.data) && profileRes.data[0] ? profileRes.data[0] : null;
+      if (profile) gender = normalizeGender(profile.gender);
+    } catch (_) {
+      // ignore profile read errors; join logic remains available
+    }
+  }
 
   // 生成/更新昵称（允许为空：使用原名或默认）
   let nickname = normalizeName(rawNickname);
@@ -63,13 +95,20 @@ exports.main = async (event, context) => {
     const cur = Object.assign({}, nextPlayers[idx]);
     cur.name = nickname || cur.name;
     if (avatar) cur.avatar = avatar;
+    cur.gender = gender === 'unknown' ? normalizeGender(cur.gender) : gender;
+    if (mode === 'squad_doubles') {
+      const nextSquad = squadChoice || normalizeSquadChoice(cur.squad) || 'A';
+      cur.squad = nextSquad;
+    }
     nextPlayers[idx] = cur;
+    const nextPlayerIds = Array.from(new Set(nextPlayers.map((item) => String(item && item.id || '').trim()).filter(Boolean)));
 
     const up = await db.collection('tournaments')
       .where({ _id: tournamentId, version: t.version })
       .update({
         data: {
           players: nextPlayers,
+          playerIds: nextPlayerIds,
           version: _.inc(1),
           updatedAt: db.serverDate()
         }
@@ -83,13 +122,22 @@ exports.main = async (event, context) => {
     return { ok: true, updated: true, player: cur };
   }
 
-  const player = { id: openid, name: nickname, avatar: avatar || '' };
+  const player = {
+    id: openid,
+    name: nickname,
+    avatar: avatar || '',
+    gender,
+    squad: mode === 'squad_doubles' ? (squadChoice || 'A') : ''
+  };
+  const nextPlayers = players.concat(player);
+  const nextPlayerIds = Array.from(new Set(nextPlayers.map((item) => String(item && item.id || '').trim()).filter(Boolean)));
 
   const res = await db.collection('tournaments')
     .where({ _id: tournamentId, version: t.version })
     .update({
       data: {
-        players: _.push(player),
+        players: nextPlayers,
+        playerIds: nextPlayerIds,
         version: _.inc(1),
         updatedAt: db.serverDate()
       }

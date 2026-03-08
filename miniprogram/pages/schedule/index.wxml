@@ -7,16 +7,15 @@
       </view>
       <view class="tag {{statusClass}}">{{statusText}}</view>
     </view>
-    <view class="hero-actions" wx:if="{{statusText==='进行中' || statusText==='已结束'}}">
-      <button class="btn btn-subtle btn-sm hero-btn" wx:if="{{statusText==='进行中' && canEditScore && hasPending}}" bindtap="goBatchScoring">批量录分</button>
-      <button class="btn btn-subtle btn-sm hero-btn" wx:if="{{statusText==='已结束'}}" bindtap="goAnalytics">赛事复盘</button>
+    <view class="hero-actions" wx:if="{{nextActionText}}">
+      <button class="btn btn-subtle btn-sm hero-btn" bindtap="onHeroActionTap">{{nextActionText}}</button>
     </view>
   </view>
 
   <view class="card panel panel-soft state-card" wx:if="{{!roundsUi.length}}">
     <view class="state-title">暂无赛程</view>
-    <view class="muted small">请在赛事大厅由管理员“开赛并锁定赛程”后生成。</view>
-    <button class="btn btn-subtle btn-sm state-btn" bindtap="goLobby">返回大厅</button>
+    <view class="muted small">请在比赛大厅由管理员“开赛并锁定赛程”后生成。</view>
+    <text class="state-link" bindtap="goLobby">去大厅</text>
   </view>
 
   <view class="round-card panel" wx:for="{{roundsUi}}" wx:key="roundIndex">
@@ -25,11 +24,14 @@
       <text class="muted small">{{item.matchesUi.length}} 场</text>
     </view>
 
-    <view class="match-card" wx:for="{{item.matchesUi}}" wx:for-item="m" wx:key="key" data-round="{{m.roundIndex}}" data-match="{{m.matchIndex}}" bindtap="openMatch">
+    <view class="match-card" wx:for="{{item.matchesUi}}" wx:for-item="m" wx:key="key" data-round="{{m.roundIndex}}" data-match="{{m.matchIndex}}" data-status="{{m.status}}" bindtap="openMatch">
       <view class="match-left">
         <view class="match-title">{{m.title}}</view>
         <view class="match-sub">{{m.left}} <text class="vs">vs</text> {{m.right}}</view>
+        <view class="muted tiny team-meta" wx:if="{{m.leftMeta}}">{{m.leftMeta}}</view>
+        <view class="muted tiny team-meta" wx:if="{{m.rightMeta}}">{{m.rightMeta}}</view>
         <view class="score" wx:if="{{m.scoreText}}">比分：{{m.scoreText}}</view>
+        <view class="score" wx:if="{{m.scorerText}}">{{m.scorerText}}</view>
       </view>
       <view class="match-right">
         <view class="pill {{m.statusClass}}">{{m.statusText}}</view>

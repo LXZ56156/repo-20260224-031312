@@ -1,6 +1,8 @@
 const storage = require('../../core/storage');
 const cloud = require('../../core/cloud');
 const { normalizeTournament } = require('../../core/normalize');
+const adGuard = require('../../core/adGuard');
+const flow = require('../../core/uxFlow');
 
 function pad2(n) {
   return n < 10 ? `0${n}` : String(n);
@@ -11,7 +13,7 @@ function formatTime(d) {
     if (!d) return '';
     const dt = d instanceof Date ? d : new Date(d);
     if (Number.isNaN(dt.getTime())) return '';
-    return `${dt.getFullYear()}-${pad2(dt.getMonth()+1)}-${pad2(dt.getDate())} ${pad2(dt.getHours())}:${pad2(dt.getMinutes())}`;
+    return `${dt.getFullYear()}-${pad2(dt.getMonth() + 1)}-${pad2(dt.getDate())} ${pad2(dt.getHours())}:${pad2(dt.getMinutes())}`;
   } catch (e) {
     return '';
   }
@@ -47,36 +49,56 @@ function statusClass(s) {
   return 'gray';
 }
 
+function isVisibleByFilter(item, filterStatus) {
+  const status = String(filterStatus || 'all').trim();
+  if (!item) return false;
+  if (status === 'all') return true;
+  return String(item.status || 'unknown') === status;
+}
+
 Page({
   data: {
     loading: false,
     loadError: false,
     showOnboarding: false,
+    showProfileNudge: false,
+    sortMode: 'updated',
+    filterStatus: 'all',
+    showHomeAdSlot: false,
     networkOffline: false,
     canRetryAction: false,
     lastFailedActionText: '',
-    ongoing: [],
-    drafts: [],
-    finished: [],
-    unknown: []
+    continueItem: null,
+    visibleCount: 0,
+    statusCountRunning: 0,
+    statusCountDraft: 0,
+    statusCountFinished: 0,
+    statusCountMissing: 0,
+    items: []
   },
 
   onLoad() {
-    // wx.cloud 已在 app.js 初始化
     const sys = wx.getSystemInfoSync();
     this._winWidth = sys.windowWidth || 375;
-    this._delWidthRpx = 160; // 与 wxss 中一致
+    this._delWidthRpx = 160;
 
     const app = getApp();
     this.setData({
       networkOffline: !!(app && app.globalData && app.globalData.networkOffline),
-      showOnboarding: !storage.isOnboardingDone()
+      showOnboarding: !storage.isOnboardingDone(),
+      showProfileNudge: this.shouldShowProfileNudge(),
+      sortMode: storage.getHomeSortMode(),
+      filterStatus: storage.getHomeFilterStatus()
     });
+    if (storage.getEntryPruneVersion() < 1) storage.setEntryPruneVersion(1);
+
     if (app && typeof app.subscribeNetworkChange === 'function') {
       this._offNetwork = app.subscribeNetworkChange((offline) => {
         this.setData({ networkOffline: !!offline });
       });
     }
+
+    if (adGuard.shouldShowDailySplash()) adGuard.markSplashShown();
   },
 
   onUnload() {
@@ -85,6 +107,8 @@ Page({
   },
 
   onShow() {
+    this.refreshProfileNudgeState();
+    this.refreshHomeAdSlot();
     this.loadRecents();
   },
 
@@ -93,12 +117,110 @@ Page({
   },
 
   onRetry() {
+    this.refreshHomeAdSlot();
     this.loadRecents();
+  },
+
+  shouldShowProfileNudge() {
+    const profile = storage.getUserProfile();
+    return !storage.isProfileNudgeDismissed() && !storage.isProfileComplete(profile);
+  },
+
+  refreshProfileNudgeState() {
+    const showProfileNudge = this.shouldShowProfileNudge();
+    if (showProfileNudge !== this.data.showProfileNudge) {
+      this.setData({ showProfileNudge });
+    }
+  },
+
+  dismissProfileNudge() {
+    storage.setProfileNudgeDismissed(true);
+    this.setData({ showProfileNudge: false });
+  },
+
+  goProfileFromNudge() {
+    storage.setProfileNudgeDismissed(true);
+    this.setData({ showProfileNudge: false });
+    wx.navigateTo({
+      url: `/pages/profile/index?returnUrl=${encodeURIComponent('/pages/home/index')}`
+    });
+  },
+
+  refreshHomeAdSlot() {
+    const showHomeAdSlot = adGuard.shouldExposePageSlot('home');
+    this.setData({ showHomeAdSlot });
+    if (showHomeAdSlot) adGuard.markPageExposed('home');
   },
 
   dismissOnboarding() {
     storage.setOnboardingDone(true);
     this.setData({ showOnboarding: false });
+  },
+
+  onChangeSortMode(e) {
+    const mode = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.mode) || '').trim();
+    if (!mode || mode === this.data.sortMode) return;
+    storage.setHomeSortMode(mode);
+    this.setData({ sortMode: mode });
+    this.loadRecents();
+  },
+
+  onChangeFilterStatus(e) {
+    const status = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.status) || '').trim();
+    if (!status || status === this.data.filterStatus) return;
+    storage.setHomeFilterStatus(status);
+    this._closeAllSwipe();
+    this.setData({ filterStatus: status }, () => this.refreshVisibleState());
+  },
+
+  sortItems(items, mode) {
+    const list = Array.isArray(items) ? items.slice() : [];
+    const m = String(mode || '').trim();
+    const statusOrder = { running: 0, draft: 1, finished: 2, missing: 3, unknown: 4 };
+    list.sort((a, b) => {
+      if (m === 'players') {
+        const pDiff = (Number(b.playersCount) || 0) - (Number(a.playersCount) || 0);
+        if (pDiff !== 0) return pDiff;
+      } else if (m === 'status') {
+        const sa = statusOrder[String(a.status || 'unknown')] ?? 9;
+        const sb = statusOrder[String(b.status || 'unknown')] ?? 9;
+        if (sa !== sb) return sa - sb;
+      }
+      return (Number(b.updatedAtTs) || 0) - (Number(a.updatedAtTs) || 0);
+    });
+    return list;
+  },
+
+  refreshVisibleState() {
+    const items = Array.isArray(this.data.items) ? this.data.items : [];
+    const filterStatus = this.data.filterStatus;
+    let visibleCount = 0;
+    let running = 0;
+    let draft = 0;
+    let finished = 0;
+    let missing = 0;
+    for (const item of items) {
+      const status = String((item && item.status) || 'unknown');
+      if (status === 'running') running += 1;
+      else if (status === 'draft') draft += 1;
+      else if (status === 'finished') finished += 1;
+      else missing += 1;
+      if (isVisibleByFilter(item, filterStatus)) visibleCount += 1;
+    }
+
+    const continueItem = items
+      .filter((x) => String(x.status || '') === 'running')
+      .slice()
+      .sort((a, b) => (Number(b.updatedAtTs) || 0) - (Number(a.updatedAtTs) || 0))[0] || null;
+
+    this.setData({
+      visibleCount,
+      continueItem,
+      statusCountRunning: running,
+      statusCountDraft: draft,
+      statusCountFinished: finished,
+      statusCountMissing: missing
+    });
   },
 
   setLastFailedAction(text, fn) {
@@ -122,7 +244,17 @@ Page({
     this.setData({ loading: true, loadError: false });
     const ids = storage.getRecentTournamentIds();
     if (!ids.length) {
-      this.setData({ loading: false, loadError: false, ongoing: [], drafts: [], finished: [], unknown: [] });
+      this.setData({
+        loading: false,
+        loadError: false,
+        items: [],
+        continueItem: null,
+        visibleCount: 0,
+        statusCountRunning: 0,
+        statusCountDraft: 0,
+        statusCountFinished: 0,
+        statusCountMissing: 0
+      });
       this.clearLastFailedAction();
       return;
     }
@@ -135,18 +267,21 @@ Page({
       const res = await db.collection('tournaments').where({ _id: _.in(ids) }).get();
       docs = (res && res.data) || [];
     } catch (e) {
-      // 数据库未初始化 / 权限问题
       wx.showToast({ title: '读取赛事记录失败', icon: 'none' });
       this.setData({ loading: false, loadError: true });
       return;
     }
 
     const map = {};
-    for (const d of docs) map[d._id] = d;
+    for (const d of docs) {
+      map[d._id] = d;
+      storage.upsertLocalCompletedTournamentSnapshot(d);
+    }
 
-    const items = ids.map(id => {
+    const items = ids.map((id) => {
       const raw = map[id];
       if (!raw) {
+        storage.removeLocalCompletedTournamentSnapshot(id);
         return {
           _id: id,
           name: '赛事已移除',
@@ -160,6 +295,7 @@ Page({
           finishedMatches: 0,
           createdAtText: '',
           updatedAtText: '',
+          updatedAtTs: 0,
           _offset: 0
         };
       }
@@ -171,14 +307,20 @@ Page({
       const hasConfigured = (t.status !== 'draft') ? true : (t.settingsConfigured === true);
       const matchProgressText = (hasConfigured && mTotalRaw > 0) ? `${done}/${mTotalRaw}场` : '未设置';
       const updatedAt = t.updatedAt || t.createdAt;
-
-      const createdAtText = formatTime(t.createdAt);
-      const updatedAtText = formatTime(updatedAt);
+      const updatedAtTs = (() => {
+        try {
+          return updatedAt ? (new Date(updatedAt)).getTime() : 0;
+        } catch (_) {
+          return 0;
+        }
+      })();
 
       return {
         _id: t._id,
         name: t.name || '未命名赛事',
         status: t.status || 'unknown',
+        mode: flow.normalizeMode(t.mode || flow.MODE_MULTI_ROTATE),
+        modeLabel: flow.getModeLabel(t.mode || flow.MODE_MULTI_ROTATE),
         statusLabel: statusLabel(t.status),
         statusClass: statusClass(t.status),
         playersCount: players.length,
@@ -187,31 +329,25 @@ Page({
         totalMatches: mTotalRaw,
         finishedMatches: done,
         matchProgressText,
-        createdAtText,
-        updatedAtText,
+        createdAtText: formatTime(t.createdAt),
+        updatedAtText: formatTime(updatedAt),
+        updatedAtTs,
         _offset: 0
       };
     });
 
-    const ongoing = [];
-    const drafts = [];
-    const finished = [];
-    const unknown = [];
-    for (const it of items) {
-      if (it.status === 'running') ongoing.push(it);
-      else if (it.status === 'draft') drafts.push(it);
-      else if (it.status === 'finished') finished.push(it);
-      else unknown.push(it);
-    }
-
     this._closeAllSwipe();
-    this.setData({ loading: false, loadError: false, ongoing, drafts, finished, unknown });
+    this.setData({
+      loading: false,
+      loadError: false,
+      items: this.sortItems(items, this.data.sortMode)
+    }, () => this.refreshVisibleState());
     this.clearLastFailedAction();
   },
 
   goCreate() {
     if (this.data.showOnboarding) this.dismissOnboarding();
-    wx.navigateTo({ url: '/pages/create/index' });
+    wx.switchTab({ url: '/pages/launch/index' });
   },
 
   goLobby(e) {
@@ -236,86 +372,58 @@ Page({
       wx.navigateTo({ url: `/pages/lobby/index?tournamentId=${nextId}` });
     } catch (err) {
       wx.hideLoading();
-      this.setLastFailedAction('复制草稿', () => this.onCloneTap({ currentTarget: { dataset: { id: sourceTournamentId } } }));
+      this.setLastFailedAction('再办一场', () => this.onCloneTap({ currentTarget: { dataset: { id: sourceTournamentId } } }));
       this.handleWriteError(err, '复制失败', () => this.loadRecents());
     }
   },
 
   handleWriteError(err, fallbackMessage, onRefresh) {
-    const parsed = cloud.parseCloudError(err, fallbackMessage);
-    if (parsed.isConflict) {
-      wx.showModal({
-        title: '写入冲突',
-        content: '数据已被其他人更新，是否立即刷新列表后重试？',
-        confirmText: '刷新',
-        success: (res) => {
-          if (res.confirm && typeof onRefresh === 'function') onRefresh();
-        }
-      });
-      return;
-    }
-    wx.showToast({ title: parsed.userMessage || fallbackMessage, icon: 'none' });
+    cloud.presentWriteError({
+      err,
+      fallbackMessage,
+      conflictContent: '数据已被其他人更新，刷新后可重试该操作。',
+      onRefresh
+    });
   },
 
-  // ===== Swipe delete =====
   _px2rpx(px) {
     return Math.round((px * 750) / (this._winWidth || 375));
   },
 
-  _setOffset(listKey, idx, offsetRpx) {
-    const p = `${listKey}[${idx}]._offset`;
-    this.setData({ [p]: offsetRpx });
+  _setOffset(idx, offsetRpx) {
+    this.setData({ [`items[${idx}]._offset`]: offsetRpx });
   },
 
-  _getItem(listKey, idx) {
-    const list = this.data[listKey] || [];
-    return list[idx];
+  _getItem(idx) {
+    return (this.data.items || [])[idx];
   },
 
   _closeAllSwipe() {
-    const keys = ['ongoing', 'drafts', 'finished', 'unknown'];
+    const list = this.data.items || [];
     const patch = {};
-    for (const k of keys) {
-      const list = this.data[k] || [];
-      for (let i = 0; i < list.length; i += 1) {
-        if ((list[i] && list[i]._offset) || 0) {
-          patch[`${k}[${i}]._offset`] = 0;
-        }
-      }
+    for (let i = 0; i < list.length; i += 1) {
+      if ((list[i] && list[i]._offset) || 0) patch[`items[${i}]._offset`] = 0;
     }
     if (Object.keys(patch).length) this.setData(patch);
     this._openRow = null;
     this._touch = null;
   },
 
-  _closeOthers(openListKey, openIdx) {
-    const keys = ['ongoing', 'drafts', 'finished', 'unknown'];
-    const patch = {};
-    for (const k of keys) {
-      const list = this.data[k] || [];
-      for (let i = 0; i < list.length; i += 1) {
-        if (k === openListKey && i === openIdx) continue;
-        if ((list[i] && list[i]._offset) || 0) {
-          patch[`${k}[${i}]._offset`] = 0;
-        }
-      }
-    }
-    if (Object.keys(patch).length) this.setData(patch);
-  },
-
   onTouchStart(e) {
-    const { list, idx, id } = e.currentTarget.dataset;
-    if (list === undefined || idx === undefined) return;
+    const idx = Number((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.idx));
+    const id = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.id) || '').trim();
     const touch = e.touches && e.touches[0];
-    if (!touch) return;
+    if (!touch || Number.isNaN(idx)) return;
 
-    this._closeOthers(list, Number(idx));
+    if (this._openRow && this._openRow.idx !== idx) {
+      this._setOffset(this._openRow.idx, 0);
+      this._openRow = null;
+    }
 
-    const item = this._getItem(list, Number(idx)) || {};
+    const item = this._getItem(idx) || {};
     this._touch = {
       id,
-      listKey: list,
-      idx: Number(idx),
+      idx,
       startX: touch.clientX,
       startY: touch.clientY,
       startOffset: Number(item._offset) || 0,
@@ -331,10 +439,8 @@ Page({
     const dx = touch.clientX - this._touch.startX;
     const dy = touch.clientY - this._touch.startY;
     if (!this._touch.locked) {
-      // 方向锁：明显横向才处理
       if (Math.abs(dx) < 6) return;
       if (Math.abs(dx) <= Math.abs(dy) + 6) {
-        // 认为是纵向滚动
         this._touch = null;
         return;
       }
@@ -346,33 +452,30 @@ Page({
     let next = this._touch.startOffset + dxRpx;
     if (next < del) next = del;
     if (next > 0) next = 0;
-
-    this._setOffset(this._touch.listKey, this._touch.idx, next);
+    this._setOffset(this._touch.idx, next);
   },
 
   onTouchEnd() {
     if (!this._touch) return;
-    const { listKey, idx } = this._touch;
-    const item = this._getItem(listKey, idx) || {};
+    const idx = this._touch.idx;
+    const item = this._getItem(idx) || {};
     const cur = Number(item._offset) || 0;
-    const del = -this._delWidthRpx;
     const shouldOpen = Math.abs(cur) > (this._delWidthRpx / 2);
-    const next = shouldOpen ? del : 0;
-    this._setOffset(listKey, idx, next);
-    this._openRow = shouldOpen ? { listKey, idx } : null;
+    const next = shouldOpen ? -this._delWidthRpx : 0;
+    this._setOffset(idx, next);
+    this._openRow = shouldOpen ? { idx } : null;
     this._touch = null;
   },
 
   onCardTap(e) {
-    const id = e.currentTarget.dataset.id;
-    if (!id) return;
+    const id = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.id) || '').trim();
+    const idx = Number((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.idx));
+    if (!id || Number.isNaN(idx)) return;
 
-    // 如果当前有展开的删除按钮，优先收起，避免误触进入
-    if (this._openRow) {
-      const { listKey, idx } = this._openRow;
-      const item = this._getItem(listKey, idx) || {};
-      if (item._id === id && (Number(item._offset) || 0) !== 0) {
-        this._setOffset(listKey, idx, 0);
+    if (this._openRow && this._openRow.idx === idx) {
+      const item = this._getItem(idx) || {};
+      if ((Number(item._offset) || 0) !== 0) {
+        this._setOffset(idx, 0);
         this._openRow = null;
         return;
       }
@@ -382,13 +485,11 @@ Page({
   },
 
   async onDeleteTap(e) {
-    const id = e.currentTarget.dataset.id;
+    const id = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.id) || '').trim();
     if (!id) return;
 
-    // 取到 item，决定是否展示“删除云端”
     const openid = (getApp().globalData.openid || storage.get('openid', ''));
-    const findIn = (key) => (this.data[key] || []).find(x => x && x._id === id);
-    const item = findIn('ongoing') || findIn('drafts') || findIn('finished') || findIn('unknown') || {};
+    const item = (this.data.items || []).find((x) => x && x._id === id) || {};
     const isCreator = !!(item.creatorId && openid && item.creatorId === openid);
     const canDeleteCloud = isCreator && item.status !== 'missing';
 
@@ -399,6 +500,7 @@ Page({
         const tapIndex = res.tapIndex;
         if (tapIndex === 0) {
           storage.removeRecentTournamentId(id);
+          storage.removeLocalCompletedTournamentSnapshot(id);
           this.clearLastFailedAction();
           this.loadRecents();
           return;
@@ -417,6 +519,7 @@ Page({
                 wx.hideLoading();
                 this.clearLastFailedAction();
                 storage.removeRecentTournamentId(id);
+                storage.removeLocalCompletedTournamentSnapshot(id);
                 await this.loadRecents();
                 wx.showToast({ title: '已删除', icon: 'success' });
               } catch (err) {

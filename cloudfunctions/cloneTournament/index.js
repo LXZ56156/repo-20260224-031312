@@ -25,11 +25,13 @@ function copyPlayers(sourcePlayers, openid) {
     const pid = String(raw.id || '').trim();
     const name = normalizeName(raw.name || raw.nickname || raw.nickName) || `球员${idx + 1}`;
     const avatar = String(raw.avatar || raw.avatarUrl || '').trim();
+    const g = String(raw.gender || '').trim().toLowerCase();
+    const gender = (g === 'male' || g === 'female') ? g : 'unknown';
     const isCreator = pid === openid || (idx === 0 && !pid);
     if (isCreator) {
-      return { id: openid, name, type: 'user', avatar };
+      return { id: openid, name, type: 'user', avatar, gender, squad: '' };
     }
-    return { id: makeGuestId(idx), name, type: 'guest', avatar };
+    return { id: makeGuestId(idx), name, type: 'guest', avatar, gender, squad: '' };
   });
 }
 
@@ -49,23 +51,33 @@ exports.main = async (event) => {
     const courts = toPosInt(source.courts, 0);
     const settingsConfigured = Boolean(source.settingsConfigured) && totalMatches >= 1 && courts >= 1;
     const players = copyPlayers(source.players, OPENID);
+    const playerIds = Array.from(new Set(players.map((item) => String(item && item.id || '').trim()).filter(Boolean)));
 
-    const nextName = renamed || `${normalizeName(source.name) || '轮转赛'}（副本）`;
+    const nextName = renamed || `${normalizeName(source.name) || '比赛'}（副本）`;
     const rules = source && source.rules && typeof source.rules === 'object'
       ? source.rules
-      : { gamesPerMatch: 1, pointsPerGame: 21 };
+      : { gamesPerMatch: 1, pointsPerGame: 21, endCondition: { type: 'total_matches', target: 1 }, unfinishedPolicy: 'admin_decide' };
+    const modeRaw = String(source.mode || '').trim().toLowerCase();
+    let mode = 'multi_rotate';
+    if (modeRaw === 'multi_rotate' || modeRaw === 'squad_doubles' || modeRaw === 'fixed_pair_rr') mode = modeRaw;
+    if (modeRaw === 'mixed_fallback' || modeRaw === 'doubles') mode = 'multi_rotate';
+    const allowOpenTeam = source.allowOpenTeam === true;
 
     const addRes = await db.collection('tournaments').add({
       data: {
         name: nextName,
         status: 'draft',
         creatorId: OPENID,
+        mode,
+        allowOpenTeam,
         refereeId: '',
         settingsConfigured,
         totalMatches,
         courts,
         rules,
         players,
+        playerIds,
+        pairTeams: [],
         rounds: [],
         rankings: [],
         scheduleSeed: null,

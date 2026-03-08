@@ -34,3 +34,39 @@ test('validateBeforeGenerate returns normalized values', () => {
   assert.equal(out.courts, 10);
   assert.equal(out.maxMatches > 0, true);
 });
+
+test('validateBeforeGenerate accepts legacy mixed mode and maps to multi_rotate', () => {
+  const players = [
+    { id: 'p1', name: 'P1', gender: 'male' },
+    { id: 'p2', name: 'P2', gender: 'male' },
+    { id: 'p3', name: 'P3', gender: 'female' },
+    { id: 'p4', name: 'P4', gender: 'unknown' }
+  ];
+  const out = logic.validateBeforeGenerate({
+    players,
+    totalMatches: 1,
+    courts: 1,
+    mode: 'mixed_fallback',
+    allowOpenTeam: false
+  });
+  assert.equal(out.mode, 'multi_rotate');
+  assert.equal(out.maxMatches > 0, true);
+});
+
+test('validateBeforeGenerate accepts explicit multi_rotate regardless of gender mix', () => {
+  const players = [
+    { id: 'p1', name: 'P1', gender: 'male' },
+    { id: 'p2', name: 'P2', gender: 'male' },
+    { id: 'p3', name: 'P3', gender: 'female' },
+    { id: 'p4', name: 'P4', gender: 'unknown' }
+  ];
+  const out = logic.validateBeforeGenerate({
+    players,
+    totalMatches: 1,
+    courts: 1,
+    mode: 'multi_rotate',
+    allowOpenTeam: false
+  });
+  assert.equal(out.mode, 'multi_rotate');
+  assert.equal(out.maxMatches > 0, true);
+});

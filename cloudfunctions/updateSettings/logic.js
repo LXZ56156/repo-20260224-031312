@@ -13,9 +13,69 @@ function calcMaxMatches(n) {
   return Math.floor(comb4 * 3);
 }
 
-function validateSettings(players, totalMatches, courts) {
+function comb(n, k) {
+  const nn = Math.floor(Number(n) || 0);
+  const kk = Math.floor(Number(k) || 0);
+  if (kk < 0 || nn < 0 || kk > nn) return 0;
+  if (kk === 0 || kk === nn) return 1;
+  const m = Math.min(kk, nn - kk);
+  let numerator = 1;
+  let denominator = 1;
+  for (let i = 1; i <= m; i += 1) {
+    numerator *= (nn - m + i);
+    denominator *= i;
+  }
+  return Math.floor(numerator / denominator);
+}
+
+function normalizeMode(mode) {
+  const v = String(mode || '').trim().toLowerCase();
+  if (v === 'multi_rotate' || v === 'squad_doubles' || v === 'fixed_pair_rr') return v;
+  if (v === 'mixed_fallback' || v === 'doubles') return 'multi_rotate';
+  return 'multi_rotate';
+}
+
+function normalizeGender(gender) {
+  const v = String(gender || '').trim().toLowerCase();
+  if (v === 'male' || v === 'female') return v;
+  return 'unknown';
+}
+
+function countGender(players) {
+  let maleCount = 0;
+  let femaleCount = 0;
+  let unknownCount = 0;
+  for (const player of (players || [])) {
+    const g = normalizeGender(player && player.gender);
+    if (g === 'male') maleCount += 1;
+    else if (g === 'female') femaleCount += 1;
+    else unknownCount += 1;
+  }
+  return { maleCount, femaleCount, unknownCount };
+}
+
+function calcMaxMatchesMixed(maleCount, femaleCount, unknownCount, allowOpenTeam = false) {
+  const male = Math.max(0, Number(maleCount) || 0);
+  const female = Math.max(0, Number(femaleCount) || 0);
+  const unknown = Math.max(0, Number(unknownCount) || 0);
+  const total = male + female + unknown;
+  if (total < 4) return 0;
+  const mx = comb(male, 2) * comb(female, 2);
+  const mm = comb(male, 4);
+  const ff = comb(female, 4);
+  const open = allowOpenTeam ? comb(total, 4) : 0;
+  return Math.floor((mx + mm + ff + open) * 3);
+}
+
+function validateSettings(players, totalMatches, courts, mode = 'multi_rotate', allowOpenTeam = false, pairTeams = []) {
   const list = Array.isArray(players) ? players : [];
-  const maxMatches = calcMaxMatches(list.length);
+  const normalizedMode = normalizeMode(mode);
+  let maxMatches = calcMaxMatches(list.length);
+  if (normalizedMode === 'fixed_pair_rr') {
+    const teams = Array.isArray(pairTeams) ? pairTeams : [];
+    const teamCount = teams.length > 0 ? teams.length : Math.floor(list.length / 2);
+    maxMatches = teamCount >= 2 ? comb(teamCount, 2) : 0;
+  }
 
   if (totalMatches !== null) {
     // 允许在人数不足 4 时先做预配置；开赛前由 startTournament 做最终校验。
@@ -35,5 +95,9 @@ function validateSettings(players, totalMatches, courts) {
 module.exports = {
   parsePosInt,
   calcMaxMatches,
+  calcMaxMatchesMixed,
+  normalizeMode,
+  normalizeGender,
+  countGender,
   validateSettings
 };
