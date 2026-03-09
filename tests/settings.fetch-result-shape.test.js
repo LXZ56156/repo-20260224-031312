@@ -28,6 +28,8 @@ function createSettingsPageContext(definition) {
   for (const [key, value] of Object.entries(definition || {})) {
     if (typeof value === 'function') ctx[key] = value;
   }
+  ctx._fetchSeq = 0;
+  ctx._watchGen = 0;
   ctx.applyTournament = (doc) => {
     ctx.applied.push(doc);
   };
@@ -73,6 +75,19 @@ test('settings page handles structured fetchTournament results and clears stale 
     assert.equal(doc, null);
     assert.equal(ctx.data.loadError, true);
     assert.equal(ctx.data.showStaleSyncHint, false);
+    assert.equal(ctx.data.loadErrorTitle, '加载失败');
+    assert.equal(ctx.data.showLoadErrorHome, false);
+
+    tournamentSync.fetchTournament = async () => ({
+      ok: false,
+      errorType: 'not_found',
+      errorMessage: 'missing',
+      cachedDoc: null
+    });
+    doc = await ctx.fetchTournament('t_missing');
+    assert.equal(doc, null);
+    assert.equal(ctx.data.loadErrorTitle, '比赛不存在或已关闭');
+    assert.equal(ctx.data.showLoadErrorHome, true);
 
     ctx.data.showStaleSyncHint = true;
     tournamentSync.startWatch = (_page, tid, onDoc) => {

@@ -151,9 +151,10 @@
 
 <view class="container safe-bottom settings-page" wx:elif="{{loadError}}">
   <view class="card panel">
-    <view class="state-title">加载失败</view>
-    <view class="muted">请检查网络后重试。</view>
+    <view class="state-title">{{loadErrorTitle}}</view>
+    <view class="muted">{{loadErrorMessage}}</view>
     <button class="btn btn-subtle" bindtap="onRetry">重新加载</button>
+    <button class="btn btn-ghost" bindtap="goHome" wx:if="{{showLoadErrorHome}}">返回首页</button>
   </view>
 </view>
 
