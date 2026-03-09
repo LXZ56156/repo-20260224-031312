@@ -513,6 +513,7 @@ Page({
         if (tapIndex === 0) {
           storage.removeRecentTournamentId(id);
           storage.removeLocalCompletedTournamentSnapshot(id);
+          storage.removeLocalTournamentCache(id);
           this.clearLastFailedAction();
           this.loadRecents();
           return;
@@ -535,6 +536,7 @@ Page({
                   this.clearLastFailedAction();
                   storage.removeRecentTournamentId(id);
                   storage.removeLocalCompletedTournamentSnapshot(id);
+                  storage.removeLocalTournamentCache(id);
                   await this.loadRecents();
                   wx.showToast({ title: '已删除', icon: 'success' });
                 } catch (err) {

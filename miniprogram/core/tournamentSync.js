@@ -22,6 +22,10 @@ function persistTournamentDoc(doc) {
   storage.upsertLocalCompletedTournamentSnapshot(doc);
 }
 
+function shouldAllowCachedFallback(errorType) {
+  return errorType === 'network' || errorType === 'timeout' || errorType === 'unknown';
+}
+
 function closeWatcher(ctx) {
   if (!ctx) return;
   if (ctx.watcher && ctx.watcher.close) {
@@ -62,12 +66,14 @@ async function fetchTournament(tournamentId, onDoc) {
       ok: false,
       errorType: 'not_found',
       errorMessage: '未找到赛事',
-      cachedDoc: storage.getLocalTournamentCache(tid)
+      cachedDoc: null
     };
   } catch (e) {
     console.error('fetchTournament failed', e);
-    const cachedDoc = storage.getLocalTournamentCache(tid);
     const parsed = classifyFetchError(e);
+    const cachedDoc = shouldAllowCachedFallback(parsed.errorType)
+      ? storage.getLocalTournamentCache(tid)
+      : null;
     return {
       ok: false,
       errorType: parsed.errorType,
@@ -82,5 +88,6 @@ module.exports = {
   startWatch,
   fetchTournament,
   classifyFetchError,
+  shouldAllowCachedFallback,
   persistTournamentDoc
 };
