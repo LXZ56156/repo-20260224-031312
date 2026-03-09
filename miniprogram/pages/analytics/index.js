@@ -1,4 +1,5 @@
 const cloud = require('../../core/cloud');
+const actionGuard = require('../../core/actionGuard');
 const storage = require('../../core/storage');
 const tournamentSync = require('../../core/tournamentSync');
 const nav = require('../../core/nav');
@@ -170,20 +171,24 @@ Page({
   async cloneCurrentTournament() {
     const sourceTournamentId = String(this.data.tournamentId || '').trim();
     if (!sourceTournamentId) return;
-    wx.showLoading({ title: '复制中...' });
-    try {
-      const res = await cloud.call('cloneTournament', { sourceTournamentId });
-      const nextId = String((res && res.tournamentId) || '').trim();
-      if (!nextId) throw new Error('复制失败');
-      wx.hideLoading();
-      this.clearLastFailedAction();
-      storage.addRecentTournamentId(nextId);
-      wx.showToast({ title: '已生成副本', icon: 'success' });
-      wx.navigateTo({ url: `/pages/lobby/index?tournamentId=${nextId}` });
-    } catch (e) {
-      wx.hideLoading();
-      this.setLastFailedAction('再办一场', () => this.cloneCurrentTournament());
-      wx.showToast({ title: cloud.getUnifiedErrorMessage(e, '复制失败'), icon: 'none' });
-    }
+    const actionKey = `analytics:cloneTournament:${sourceTournamentId}`;
+    if (actionGuard.isBusy(actionKey)) return;
+    return actionGuard.run(actionKey, async () => {
+      wx.showLoading({ title: '复制中...' });
+      try {
+        const res = await cloud.call('cloneTournament', { sourceTournamentId });
+        const nextId = String((res && res.tournamentId) || '').trim();
+        if (!nextId) throw new Error('复制失败');
+        wx.hideLoading();
+        this.clearLastFailedAction();
+        storage.addRecentTournamentId(nextId);
+        wx.showToast({ title: '已生成副本', icon: 'success' });
+        wx.navigateTo({ url: `/pages/lobby/index?tournamentId=${nextId}` });
+      } catch (e) {
+        wx.hideLoading();
+        this.setLastFailedAction('再办一场', () => this.cloneCurrentTournament());
+        wx.showToast({ title: cloud.getUnifiedErrorMessage(e, '复制失败'), icon: 'none' });
+      }
+    });
   }
 });
