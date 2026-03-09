@@ -5,10 +5,18 @@ function classifyFetchError(err) {
   const message = String((err && (err.message || err.errMsg)) || err || '').trim();
   const low = message.toLowerCase();
   if (!message) return { errorType: 'unknown', errorMessage: '同步失败' };
-  if (low.includes('timeout') || low.includes('network') || low.includes('connect') || message.includes('网络')) {
+  if (low.includes('timeout') || message.includes('超时')) {
+    return { errorType: 'timeout', errorMessage: message };
+  }
+  if (low.includes('network') || low.includes('connect') || low.includes('socket') || message.includes('网络')) {
     return { errorType: 'network', errorMessage: message };
   }
-  if (low.includes('not found') || low.includes('does not exist') || low.includes('get:fail')) {
+  if (
+    low.includes('not found') ||
+    low.includes('resource not found') ||
+    low.includes('does not exist') ||
+    low.includes('document does not exist')
+  ) {
     return { errorType: 'not_found', errorMessage: message };
   }
   return { errorType: 'unknown', errorMessage: message };

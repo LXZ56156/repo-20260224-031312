@@ -67,3 +67,33 @@ test('tournamentSync.fetchTournament does not use stale cache for not_found or p
     global.wx = originalWx;
   }
 });
+
+test('tournamentSync.fetchTournament keeps cached fallback for non-not-found get failures', async () => {
+  const originalWx = global.wx;
+  const storageState = {
+    local_tournament_cache_t_1: {
+      _id: 't_1',
+      name: 'Cached Tournament'
+    }
+  };
+
+  try {
+    global.wx = buildWx(storageState, async () => {
+      throw new Error('document.get:fail permission denied');
+    });
+    const permissionDenied = await tournamentSync.fetchTournament('t_1');
+    assert.equal(permissionDenied.ok, false);
+    assert.equal(permissionDenied.errorType, 'unknown');
+    assert.deepEqual(permissionDenied.cachedDoc, storageState.local_tournament_cache_t_1);
+
+    global.wx = buildWx(storageState, async () => {
+      throw new Error('cloud env invalid');
+    });
+    const invalidEnv = await tournamentSync.fetchTournament('t_1');
+    assert.equal(invalidEnv.ok, false);
+    assert.equal(invalidEnv.errorType, 'unknown');
+    assert.deepEqual(invalidEnv.cachedDoc, storageState.local_tournament_cache_t_1);
+  } finally {
+    global.wx = originalWx;
+  }
+});

@@ -62,7 +62,7 @@ test('tournamentSync.fetchTournament persists remote doc and falls back to cache
     shouldFailRef.value = true;
     const fallback = await tournamentSync.fetchTournament('t_1');
     assert.equal(fallback.ok, false);
-    assert.equal(fallback.errorType, 'network');
+    assert.equal(fallback.errorType, 'timeout');
     assert.deepEqual(fallback.cachedDoc, remoteDoc);
   } finally {
     global.wx = originalWx;
