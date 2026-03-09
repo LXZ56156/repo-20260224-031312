@@ -62,6 +62,7 @@ test('shareMeta builds live watch state for running tournament viewers', () => {
   assert.equal(preview.primaryAction.text, '查看赛况');
   assert.equal(preview.showRankingPreview, true);
   assert.equal(preview.rankingsPreview[0].name, '组织者');
+  assert.match(preview.currentRoundText, /轮/);
 });
 
 test('shareMeta builds result view state for finished tournament viewers', () => {
@@ -78,4 +79,17 @@ test('shareMeta falls back to invalid state for missing tournaments', () => {
   const preview = shareMeta.buildShareEntryViewModel({ tournament: null, openid: 'u_new' });
   assert.equal(preview.viewMode, 'invalid-match');
   assert.equal(preview.primaryAction.text, '重新加载');
+});
+
+test('shareMeta builds share copy based on tournament lifecycle', () => {
+  const draftShare = shareMeta.buildShareMessage(buildTournament('draft'));
+  const runningShare = shareMeta.buildShareMessage(buildTournament('running'));
+  const finishedShare = shareMeta.buildShareMessage(buildTournament('finished'));
+
+  assert.match(draftShare.title, /来看看这场比赛/);
+  assert.equal(draftShare.intent, 'join');
+  assert.match(runningShare.title, /查看当前赛况/);
+  assert.equal(runningShare.intent, 'watch');
+  assert.match(finishedShare.title, /查看比赛结果/);
+  assert.equal(finishedShare.intent, 'result');
 });

@@ -10,12 +10,12 @@ test('lobby draft UI promotes share invite ahead of bulk import', () => {
     path.join(__dirname, '..', 'miniprogram/pages/lobby/index.wxml'),
     'utf8'
   );
-  const shareIndex = wxml.indexOf('分享邀请');
+  const shareIndex = wxml.indexOf('id="share-invite"');
   const importIndex = wxml.indexOf('备用：批量导入名单');
   assert.notEqual(shareIndex, -1);
   assert.notEqual(importIndex, -1);
   assert.ok(shareIndex < importIndex);
-  assert.match(wxml, /open-type="share">分享比赛链接<\/button>/);
+  assert.match(wxml, /open-type="share">\{\{shareButtonText\}\}<\/button>/);
 });
 
 test('lobby checklist routes player preparation to share invite area', () => {

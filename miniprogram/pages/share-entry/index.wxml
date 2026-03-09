@@ -47,6 +47,10 @@
         <text class="info-label">加入说明</text>
         <text class="info-value">{{preview.availabilityText}}</text>
       </view>
+      <view class="info-item" wx:if="{{preview.showProgressSummary}}">
+        <text class="info-label">当前进度</text>
+        <text class="info-value">{{preview.currentRoundText}}</text>
+      </view>
     </view>
   </view>
 
@@ -69,6 +73,7 @@
     </view>
     <view class="progress-summary">
       <view class="summary-value">{{preview.progressText}}</view>
+      <view class="muted small">{{preview.currentRoundText}}</view>
       <view class="muted small">比赛开始后仍可通过分享链接查看排名、赛况和已完成轮次。</view>
     </view>
     <view class="ranking-preview" wx:if="{{preview.showRankingPreview}}">

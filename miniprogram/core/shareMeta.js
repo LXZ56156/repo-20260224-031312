@@ -83,6 +83,61 @@ function buildRankingPreview(tournament, limit = 3) {
   }));
 }
 
+function resolveCurrentRoundText(rounds, lifecycle = 'draft') {
+  const list = Array.isArray(rounds) ? rounds : [];
+  if (!list.length) {
+    return lifecycle === 'draft' ? '尚未开赛' : '暂无轮次信息';
+  }
+  for (const round of list) {
+    const roundIndex = Number(round && round.roundIndex);
+    const matches = Array.isArray(round && round.matches) ? round.matches : [];
+    if (matches.some((match) => {
+      const status = String(match && match.status || '').trim();
+      return status !== 'finished' && status !== 'canceled';
+    })) {
+      return `当前第 ${Number.isFinite(roundIndex) ? roundIndex + 1 : 1} 轮`;
+    }
+  }
+  return `共 ${list.length} 轮`;
+}
+
+function buildShareMessage(tournament) {
+  const t = tournament && typeof tournament === 'object' ? normalize.normalizeTournament(tournament) : null;
+  const lifecycle = normalizeLifecycleStatus(t && t.status);
+  const tournamentName = String(t && t.name || '').trim() || '羽毛球比赛';
+  if (lifecycle === 'running') {
+    return {
+      title: `${tournamentName} · 查看当前赛况`,
+      intent: 'watch',
+      panelTitle: '分享当前赛况',
+      panelHint: '比赛进行中，可把当前状态、排名和已完成场次分享给其他人查看。',
+      badgeText: '进行中',
+      buttonText: '分享赛况',
+      detailText: resolveCurrentRoundText(t && t.rounds, lifecycle)
+    };
+  }
+  if (lifecycle === 'finished') {
+    return {
+      title: `${tournamentName} · 查看比赛结果`,
+      intent: 'result',
+      panelTitle: '分享比赛结果',
+      panelHint: '比赛已结束，可把最终排名和结果发出去，方便大家查看复盘。',
+      badgeText: '已结束',
+      buttonText: '分享结果',
+      detailText: resolveCurrentRoundText(t && t.rounds, lifecycle)
+    };
+  }
+  return {
+    title: `${tournamentName} · 来看看这场比赛`,
+    intent: 'join',
+    panelTitle: '分享邀请',
+    panelHint: '先把比赛发出去，让大家先查看信息，再决定是否加入。',
+    badgeText: '主路径',
+    buttonText: '分享比赛链接',
+    detailText: '导入名单保留为备用方案'
+  };
+}
+
 function buildPrimaryAction({ lifecycle, joined, joinAllowed }) {
   if (joined) {
     if (lifecycle === 'finished') return { key: 'result', text: '查看结果' };
@@ -201,6 +256,7 @@ function buildShareEntryViewModel({ tournament, openid = '' }) {
   const progressText = progress.totalMatches
     ? `已完成 ${progress.finishedMatches}/${progress.totalMatches} 场`
     : (lifecycle === 'draft' ? '比赛尚未开始' : '暂无已完成场次');
+  const currentRoundText = resolveCurrentRoundText(normalizedTournament.rounds, lifecycle);
 
   return {
     viewMode: previewMode,
@@ -222,6 +278,7 @@ function buildShareEntryViewModel({ tournament, openid = '' }) {
     venueText,
     timeText: timeText ? formatDateTime(timeText) : '未设置',
     progressText,
+    currentRoundText,
     roundsText: progress.totalRounds ? `${progress.completedRounds}/${progress.totalRounds} 轮已完成` : '暂无轮次',
     rankingsPreview,
     rankingTitle: lifecycle === 'finished' ? '结果摘要' : '赛况摘要',
@@ -235,8 +292,10 @@ module.exports = {
   normalizeLifecycleStatus,
   resolveOrganizerName,
   countRoundProgress,
+  resolveCurrentRoundText,
   buildRankingPreview,
   buildInvalidShareEntryState,
   buildShareEntryViewModel,
+  buildShareMessage,
   formatDateTime
 };

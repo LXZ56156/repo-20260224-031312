@@ -1,5 +1,6 @@
 const perm = require('../../permission/permission');
 const normalize = require('../../core/normalize');
+const shareMeta = require('../../core/shareMeta');
 const flow = require('../../core/uxFlow');
 
 function findFirstPendingPosition(rounds) {
@@ -267,6 +268,7 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
     canEditScore,
     hasPending
   });
+  const shareMessage = shareMeta.buildShareMessage(t);
 
   return {
     tournament: t,
@@ -325,6 +327,11 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       hasPending,
       nextActionKey: showJoin ? '' : nextAction.key,
       nextActionText: showJoin ? '' : nextAction.text,
+      shareCardTitle: String(shareMessage.panelTitle || '分享比赛'),
+      shareCardHint: String(shareMessage.panelHint || ''),
+      shareCardBadge: String(shareMessage.badgeText || statusText),
+      shareButtonText: String(shareMessage.buttonText || '分享比赛链接'),
+      shareCardDetailText: String(shareMessage.detailText || ''),
       joinSquadChoice: String((myPlayer && myPlayer.squad) || data.joinSquadChoice || 'A').trim().toUpperCase() === 'B' ? 'B' : 'A'
     }
   };

@@ -59,6 +59,22 @@
     <view class="muted small" wx:for="{{modeRules}}" wx:key="*this">{{item}}</view>
   </view>
 
+  <view class="card panel share-invite reveal reveal-3" id="share-invite" wx:if="{{tournament}}">
+    <view class="section-head share-invite-head">
+      <view>
+        <view class="section-title">{{shareCardTitle}}</view>
+        <view class="muted small">{{shareCardHint}}</view>
+      </view>
+      <text class="count-pill">{{shareCardBadge}}</text>
+    </view>
+    <button class="btn btn-primary {{sharePulse ? 'share-pulse' : ''}}" open-type="share">{{shareButtonText}}</button>
+    <view class="share-invite-meta">
+      <view class="muted small">{{shareCardDetailText}}</view>
+      <text class="link-btn" wx:if="{{tournament.status==='draft' && isAdmin}}" bindtap="focusQuickImportArea">备用：批量导入名单</text>
+      <text class="link-btn" wx:elif="{{tournament.status!=='draft'}}" bindtap="goRanking">查看排名</text>
+    </view>
+  </view>
+
   <view class="card panel reveal reveal-3">
     <view class="section-head">
       <view class="section-title">参赛名单</view>
@@ -162,21 +178,6 @@
           <view class="prep-sub">{{checkStartReady ? '可立即开赛' : '完成前两项后可开赛'}}</view>
         </view>
         <text class="prep-jump">{{checkStartReady ? '开赛' : '去完成'}}</text>
-      </view>
-    </view>
-
-    <view class="share-invite panel-soft" id="share-invite" wx:if="{{tournament.status==='draft'}}">
-      <view class="section-head share-invite-head">
-        <view>
-          <view class="section-title">分享邀请</view>
-          <view class="muted small">先把比赛发出去，让大家先查看信息，再决定是否加入。</view>
-        </view>
-        <text class="count-pill">主路径</text>
-      </view>
-      <button class="btn btn-primary {{sharePulse ? 'share-pulse' : ''}}" open-type="share">分享比赛链接</button>
-      <view class="share-invite-meta">
-        <view class="muted small">适合群邀请、先观赛后加入、临时补人等常见场景。</view>
-        <text class="link-btn" bindtap="focusQuickImportArea">备用：批量导入名单</text>
       </view>
     </view>
 

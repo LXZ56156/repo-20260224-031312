@@ -1,5 +1,6 @@
 const storage = require('../../core/storage');
 const tournamentSync = require('../../core/tournamentSync');
+const shareMeta = require('../../core/shareMeta');
 const flow = require('../../core/uxFlow');
 const nav = require('../../core/nav');
 const viewModel = require('./lobbyViewModel');
@@ -92,6 +93,11 @@ Page({
     quickChecklistPending: 0,
 
     sharePulse: false,
+    shareCardTitle: '分享比赛',
+    shareCardHint: '',
+    shareCardBadge: '主路径',
+    shareButtonText: '分享比赛链接',
+    shareCardDetailText: '',
     networkOffline: false,
     showStaleSyncHint: false,
     canRetryAction: false,
@@ -297,10 +303,10 @@ Page({
 
   onShareAppMessage() {
     const tid = this.data.tournamentId;
-    const name = (this.data.tournament && this.data.tournament.name) ? this.data.tournament.name : '羽毛球比赛';
+    const meta = shareMeta.buildShareMessage(this.data.tournament);
     return {
-      title: `${name} · 邀请你参赛`,
-      path: `/pages/share-entry/index?tournamentId=${tid}&intent=join`
+      title: meta.title,
+      path: `/pages/share-entry/index?tournamentId=${tid}&intent=${encodeURIComponent(String(meta.intent || 'view'))}`
     };
   }
 });
