@@ -57,6 +57,7 @@ Page({
     settingsBusy: false,
     canRetryAction: false,
     lastFailedActionText: '',
+    showStaleSyncHint: false,
     loadError: false
   },
 
@@ -129,15 +130,25 @@ Page({
 
   startWatch(tid) {
     tournamentSync.startWatch(this, tid, (doc) => {
+      this.setData({ showStaleSyncHint: false });
       this.applyTournament(doc);
     });
   },
 
   async fetchTournament(tid) {
-    const doc = await tournamentSync.fetchTournament(tid, (doc) => {
-      this.applyTournament(doc);
-    });
-    if (!doc) this.setData({ loadError: true });
+    const result = await tournamentSync.fetchTournament(tid);
+    if (result && result.ok && result.doc) {
+      this.setData({ showStaleSyncHint: false });
+      this.applyTournament(result.doc);
+      return result.doc;
+    }
+    if (result && result.cachedDoc) {
+      this.setData({ showStaleSyncHint: true, loadError: false });
+      this.applyTournament(result.cachedDoc);
+      return result.cachedDoc;
+    }
+    this.setData({ loadError: true, showStaleSyncHint: false });
+    return null;
   },
 
   applyTournament(t) {
