@@ -8,20 +8,36 @@ const CODE_TO_MESSAGE = {
   JOIN_FAILED: '加入失败，请稍后重试'
 };
 
+const ACTION_CODE_TO_MESSAGE = {
+  profile_update: {
+    JOIN_DRAFT_ONLY: '比赛已开始，当前不可修改参赛信息'
+  }
+};
+
 function getJoinFailureCode(input) {
   return String(
     (input && (input.joinCode || input.code || (input.result && input.result.code))) || ''
   ).trim().toUpperCase();
 }
 
-function normalizeJoinFailure(input, fallbackMessage = '加入失败，请稍后重试') {
-  const code = getJoinFailureCode(input);
-  const rawMessage = String(
-    (input && (input.message || input.errMsg || (input.result && input.result.message))) || fallbackMessage
+function getRawJoinFailureMessage(input, fallbackMessage = '加入失败，请稍后重试') {
+  return String(
+    (input && (input.joinRawMessage || input.message || input.errMsg || (input.result && input.result.message))) || fallbackMessage
   ).trim() || fallbackMessage;
+}
+
+function mapJoinFailureMessage(code, rawMessage, fallbackMessage, options = {}) {
+  const action = String((options && options.action) || '').trim().toLowerCase();
+  const actionMessage = ACTION_CODE_TO_MESSAGE[action] && ACTION_CODE_TO_MESSAGE[action][code];
+  return actionMessage || CODE_TO_MESSAGE[code] || rawMessage || fallbackMessage;
+}
+
+function normalizeJoinFailure(input, fallbackMessage = '加入失败，请稍后重试', options = {}) {
+  const code = getJoinFailureCode(input);
+  const rawMessage = getRawJoinFailureMessage(input, fallbackMessage);
   const err = input instanceof Error ? input : new Error(rawMessage);
-  const mappedMessage = CODE_TO_MESSAGE[code];
-  err.message = mappedMessage || rawMessage || fallbackMessage;
+  err.joinRawMessage = rawMessage;
+  err.message = mapJoinFailureMessage(code, rawMessage, fallbackMessage, options);
   if (code) {
     err.code = code;
     err.joinCode = code;
@@ -29,9 +45,11 @@ function normalizeJoinFailure(input, fallbackMessage = '加入失败，请稍后
   return err;
 }
 
-function resolveJoinFailureMessage(input, fallbackMessage = '加入失败，请稍后重试') {
-  const err = normalizeJoinFailure(input, fallbackMessage);
-  if (getJoinFailureCode(err)) return err.message || fallbackMessage;
+function resolveJoinFailureMessage(input, fallbackMessage = '加入失败，请稍后重试', options = {}) {
+  const code = getJoinFailureCode(input);
+  const rawMessage = getRawJoinFailureMessage(input, fallbackMessage);
+  if (code) return mapJoinFailureMessage(code, rawMessage, fallbackMessage, options);
+  const err = normalizeJoinFailure(input, fallbackMessage, options);
   return cloud.getUnifiedErrorMessage(err, fallbackMessage);
 }
 

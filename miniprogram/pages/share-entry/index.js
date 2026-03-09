@@ -279,7 +279,7 @@ Page({
         this.goLobby();
       } catch (err) {
         wx.hideLoading();
-        wx.showToast({ title: joinError.resolveJoinFailureMessage(err, '加入失败，请稍后重试'), icon: 'none' });
+        wx.showToast({ title: joinError.resolveJoinFailureMessage(err, '加入失败，请稍后重试', { action: 'join' }), icon: 'none' });
         await this.fetchTournament(tournamentId);
       }
     });

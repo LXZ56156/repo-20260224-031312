@@ -260,7 +260,7 @@ module.exports = {
           gender,
           squadChoice
         });
-        if (res && res.ok === false) throw joinError.normalizeJoinFailure(res, '加入失败，请稍后重试');
+        if (res && res.ok === false) throw joinError.normalizeJoinFailure(res, '加入失败，请稍后重试', { action: 'join' });
         wx.hideLoading();
         this.clearLastFailedAction();
         wx.showToast({ title: '已加入', icon: 'success' });
@@ -269,8 +269,8 @@ module.exports = {
       } catch (err) {
         wx.hideLoading();
         this.setLastFailedAction('加入参赛', () => this.handleJoin());
-        const normalizedError = joinError.normalizeJoinFailure(err, '加入失败，请稍后重试');
-        this.handleWriteError(normalizedError, joinError.resolveJoinFailureMessage(normalizedError, '加入失败，请稍后重试'), () => this.fetchTournament(tid));
+        const normalizedError = joinError.normalizeJoinFailure(err, '加入失败，请稍后重试', { action: 'join' });
+        this.handleWriteError(normalizedError, joinError.resolveJoinFailureMessage(normalizedError, '加入失败，请稍后重试', { action: 'join' }), () => this.fetchTournament(tid));
       }
     });
   },
@@ -302,7 +302,7 @@ module.exports = {
           gender: storage.normalizeGender((storage.getUserProfile() || {}).gender),
           squadChoice: this.data.mode === flow.MODE_SQUAD_DOUBLES ? String(this.data.joinSquadChoice || 'A').trim().toUpperCase() : ''
         });
-        if (res && res.ok === false) throw joinError.normalizeJoinFailure(res, '保存失败，请稍后重试');
+        if (res && res.ok === false) throw joinError.normalizeJoinFailure(res, '保存失败，请稍后重试', { action: 'profile_update' });
         wx.hideLoading();
         this.clearLastFailedAction();
         wx.showToast({ title: '已更新', icon: 'success' });
@@ -320,8 +320,8 @@ module.exports = {
       } catch (err) {
         wx.hideLoading();
         this.setLastFailedAction('保存我的信息', () => this.saveMyProfile());
-        const normalizedError = joinError.normalizeJoinFailure(err, '保存失败，请稍后重试');
-        this.handleWriteError(normalizedError, joinError.resolveJoinFailureMessage(normalizedError, '保存失败，请稍后重试'), () => this.fetchTournament(this.data.tournamentId));
+        const normalizedError = joinError.normalizeJoinFailure(err, '保存失败，请稍后重试', { action: 'profile_update' });
+        this.handleWriteError(normalizedError, joinError.resolveJoinFailureMessage(normalizedError, '保存失败，请稍后重试', { action: 'profile_update' }), () => this.fetchTournament(this.data.tournamentId));
       }
     });
   }
