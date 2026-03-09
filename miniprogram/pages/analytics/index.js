@@ -4,6 +4,7 @@ const storage = require('../../core/storage');
 const tournamentSync = require('../../core/tournamentSync');
 const nav = require('../../core/nav');
 const adGuard = require('../../core/adGuard');
+const shareMeta = require('../../core/shareMeta');
 const analyticsLogic = require('./logic');
 
 Page({
@@ -21,6 +22,7 @@ Page({
     reportShareText: '',
     reportHeadline: '',
     reportBriefText: '',
+    shareButtonText: '分享比赛链接',
     showAnalyticsAdSlot: false,
     networkOffline: false,
     showStaleSyncHint: false,
@@ -144,7 +146,8 @@ Page({
       reportLines: report.lines,
       reportShareText: report.shareText,
       reportHeadline: report.headline,
-      reportBriefText: report.briefText
+      reportBriefText: report.briefText,
+      shareButtonText: String((shareMeta.buildShareMessage(analytics.tournament) || {}).buttonText || '分享比赛链接')
     });
     this.clearLastFailedAction();
   },
@@ -206,5 +209,14 @@ Page({
         wx.showToast({ title: cloud.getUnifiedErrorMessage(e, '复制失败'), icon: 'none' });
       }
     });
+  },
+
+  onShareAppMessage() {
+    const tid = String(this.data.tournamentId || '').trim();
+    const meta = shareMeta.buildShareMessage(this.data.tournament);
+    return {
+      title: meta.title,
+      path: `/pages/share-entry/index?tournamentId=${encodeURIComponent(tid)}&intent=${encodeURIComponent(String(meta.intent || 'view'))}`
+    };
   }
 });

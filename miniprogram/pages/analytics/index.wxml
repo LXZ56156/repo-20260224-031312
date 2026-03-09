@@ -6,6 +6,7 @@
     <view class="hero-title">赛事复盘</view>
     <view class="hero-sub">{{tournament.name}}</view>
     <view class="hero-actions">
+      <button class="btn btn-subtle btn-sm" open-type="share">{{shareButtonText}}</button>
       <button class="btn btn-secondary btn-sm" bindtap="cloneCurrentTournament">再办一场</button>
     </view>
   </view>

@@ -4,6 +4,7 @@ const playerUtils = require('../../core/playerUtils');
 const perm = require('../../permission/permission');
 const tournamentSync = require('../../core/tournamentSync');
 const nav = require('../../core/nav');
+const shareMeta = require('../../core/shareMeta');
 
 function asName(p) {
   if (!p) return '未知';
@@ -119,6 +120,7 @@ Page({
     firstPendingMatchIndex: -1,
     nextActionKey: '',
     nextActionText: '',
+    shareButtonText: '分享比赛链接',
     showStaleSyncHint: false,
     loadError: false
   },
@@ -242,7 +244,8 @@ Page({
       firstPendingRoundIndex: firstPending ? firstPending.roundIndex : -1,
       firstPendingMatchIndex: firstPending ? firstPending.matchIndex : -1,
       nextActionKey,
-      nextActionText
+      nextActionText,
+      shareButtonText: String((shareMeta.buildShareMessage(t) || {}).buttonText || '分享比赛链接')
     });
   },
 
@@ -294,5 +297,14 @@ Page({
 
   goLobby() {
     wx.navigateTo({ url: `/pages/lobby/index?tournamentId=${this.data.tournamentId}` });
+  },
+
+  onShareAppMessage() {
+    const tid = String(this.data.tournamentId || '').trim();
+    const meta = shareMeta.buildShareMessage(this.data.tournament);
+    return {
+      title: meta.title,
+      path: `/pages/share-entry/index?tournamentId=${encodeURIComponent(tid)}&intent=${encodeURIComponent(String(meta.intent || 'view'))}`
+    };
   }
 });

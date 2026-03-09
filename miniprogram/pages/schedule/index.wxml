@@ -8,8 +8,9 @@
       </view>
       <view class="tag {{statusClass}}">{{statusText}}</view>
     </view>
-    <view class="hero-actions" wx:if="{{nextActionText}}">
-      <button class="btn btn-subtle btn-sm hero-btn" bindtap="onHeroActionTap">{{nextActionText}}</button>
+    <view class="hero-actions" wx:if="{{nextActionText || tournament}}">
+      <button class="btn btn-subtle btn-sm hero-btn" wx:if="{{nextActionText}}" bindtap="onHeroActionTap">{{nextActionText}}</button>
+      <button class="btn btn-subtle btn-sm hero-btn" open-type="share" wx:if="{{tournament}}">{{shareButtonText}}</button>
     </view>
   </view>
 
