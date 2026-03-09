@@ -1,8 +1,104 @@
-<view class="container share-entry-page">
-  <view class="card panel">
-    <view class="share-title">{{title}}</view>
-    <view class="muted">{{message}}</view>
-    <button class="btn btn-primary" wx:if="{{showRetry}}" bindtap="onRetry">重新进入</button>
+<view class="container safe-bottom share-entry-page">
+  <view class="stale-banner" wx:if="{{showStaleSyncHint}}">当前显示的是最近一次同步到本机的比赛信息</view>
+
+  <view class="card panel share-hero">
+    <view class="row hero-top">
+      <view class="flex-1 minw0">
+        <view class="share-title">{{preview.tournamentName}}</view>
+        <view class="share-headline">{{preview.headline}}</view>
+      </view>
+      <view class="tag {{preview.statusClass}}">{{preview.statusText}}</view>
+    </view>
+    <view class="share-subtitle">{{preview.subtitle}}</view>
+    <view class="share-pills">
+      <text class="rule-chip">{{preview.modeLabel}}</text>
+      <text class="rule-chip">{{preview.playersCountText}}</text>
+      <text class="rule-chip">{{preview.joinAllowed ? '可加入' : '当前不可加入'}}</text>
+    </view>
+  </view>
+
+  <view class="card panel share-info">
+    <view class="section-head">
+      <view class="section-title">比赛信息</view>
+      <text class="count-pill">{{preview.viewMode}}</text>
+    </view>
+    <view class="info-list">
+      <view class="info-item">
+        <text class="info-label">组织者</text>
+        <text class="info-value">{{preview.organizerName}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">比赛状态</text>
+        <text class="info-value">{{preview.statusText}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">当前人数</text>
+        <text class="info-value">{{preview.playersCountText}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">比赛时间</text>
+        <text class="info-value">{{preview.timeText}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">场地 / 地点</text>
+        <text class="info-value">{{preview.venueText}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">加入说明</text>
+        <text class="info-value">{{preview.availabilityText}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card panel panel-soft" wx:if="{{tournament && tournament.mode==='squad_doubles' && preview.joinAllowed && !preview.joined}}">
+    <view class="section-head">
+      <view class="section-title">加入前选择队伍</view>
+      <text class="count-pill">仅加入时生效</text>
+    </view>
+    <view class="muted small">小队转需要先选 A/B 队，点击“加入比赛”后才会真正加入。</view>
+    <view class="chips squad-chooser">
+      <view class="chip {{joinSquadChoice==='A' ? 'active' : ''}}" data-squad="A" bindtap="onPickJoinSquad">A队</view>
+      <view class="chip {{joinSquadChoice==='B' ? 'active' : ''}}" data-squad="B" bindtap="onPickJoinSquad">B队</view>
+    </view>
+  </view>
+
+  <view class="card panel" wx:if="{{preview.showProgressSummary}}">
+    <view class="section-head">
+      <view class="section-title">{{preview.rankingTitle}}</view>
+      <text class="count-pill">{{preview.roundsText}}</text>
+    </view>
+    <view class="progress-summary">
+      <view class="summary-value">{{preview.progressText}}</view>
+      <view class="muted small">比赛开始后仍可通过分享链接查看排名、赛况和已完成轮次。</view>
+    </view>
+    <view class="ranking-preview" wx:if="{{preview.showRankingPreview}}">
+      <view class="ranking-row" wx:for="{{preview.rankingsPreview}}" wx:key="rank">
+        <view class="ranking-left">
+          <text class="ranking-rank">#{{item.rank}}</text>
+          <text class="ranking-name">{{item.name}}</text>
+        </view>
+        <view class="ranking-right">{{item.wins}} 胜 {{item.losses}} 负 · 净胜 {{item.pointDiff}}</view>
+      </view>
+    </view>
+    <view class="muted small" wx:else>比赛尚未产生可展示的排名摘要。</view>
+  </view>
+
+  <view class="card panel panel-soft" wx:if="{{loadError && !tournament}}">
+    <view class="section-title">打开失败</view>
+    <view class="muted">请检查分享链接是否有效，或稍后重新打开。</view>
+  </view>
+
+  <view class="share-actions">
+    <button
+      class="btn btn-primary"
+      bindtap="onPrimaryAction"
+      loading="{{joinBusy}}"
+      disabled="{{joinBusy}}"
+    >
+      {{preview.primaryAction.text}}
+    </button>
+    <button class="btn btn-subtle" wx:if="{{preview.secondaryAction}}" bindtap="onSecondaryAction">
+      {{preview.secondaryAction.text}}
+    </button>
   </view>
 </view>
-

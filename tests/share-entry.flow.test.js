@@ -9,37 +9,12 @@ test('parseTournamentId supports direct options and scene payload', () => {
   assert.equal(flow.parseTournamentId({ scene: encodeURIComponent('tid=tid_3') }), 'tid_3');
 });
 
-test('resolveShareEntryFlow returns invalid state without tournamentId', () => {
-  const out = flow.resolveShareEntryFlow({ tournamentId: '', intent: 'join', gate: null });
-  assert.equal(out.action, 'invalid');
-  assert.equal(out.state.showRetry, true);
-});
-
-test('resolveShareEntryFlow returns gate-specific states', () => {
-  const loginFailed = flow.resolveShareEntryFlow({
-    tournamentId: 'tid_1',
-    intent: 'join',
-    gate: { ok: false, reason: 'login_failed' }
-  });
-  assert.equal(loginFailed.action, 'login_failed');
-  assert.equal(loginFailed.state.showRetry, true);
-
-  const needProfile = flow.resolveShareEntryFlow({
-    tournamentId: 'tid_1',
-    intent: 'join',
-    gate: { ok: false, reason: 'need_profile' }
-  });
-  assert.equal(needProfile.action, 'need_profile');
-  assert.equal(needProfile.state.showRetry, false);
-});
-
-test('resolveShareEntryFlow returns redirect urls when gate passes', () => {
-  const out = flow.resolveShareEntryFlow({
-    tournamentId: 'tid_1',
-    intent: 'join',
-    gate: { ok: true, reason: 'ok' }
-  });
-  assert.equal(out.action, 'redirect');
-  assert.match(out.returnUrl, /pages\/share-entry\/index\?tournamentId=tid_1&intent=join/);
-  assert.match(out.lobbyUrl, /pages\/lobby\/index\?tournamentId=tid_1&intent=join&fromShare=1/);
+test('share-entry flow builders keep links compatible with old params', () => {
+  assert.equal(flow.normalizeIntent('join'), 'join');
+  assert.equal(flow.normalizeIntent('unknown'), 'view');
+  assert.match(flow.buildReturnUrl('tid_1', 'join'), /pages\/share-entry\/index\?tournamentId=tid_1&intent=join/);
+  assert.match(flow.buildLobbyUrl('tid_1'), /pages\/lobby\/index\?tournamentId=tid_1&fromShare=1/);
+  assert.match(flow.buildScheduleUrl('tid_1'), /pages\/schedule\/index\?tournamentId=tid_1/);
+  assert.match(flow.buildRankingUrl('tid_1'), /pages\/ranking\/index\?tournamentId=tid_1/);
+  assert.match(flow.buildAnalyticsUrl('tid_1'), /pages\/analytics\/index\?tournamentId=tid_1/);
 });

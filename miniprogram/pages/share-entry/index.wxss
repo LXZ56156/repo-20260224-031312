@@ -1,14 +1,140 @@
 .share-entry-page {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 28rpx);
+}
+
+.share-hero {
+  margin-top: 12rpx;
 }
 
 .share-title {
-  font-size: 34rpx;
-  font-weight: 700;
-  color: #1f2d3d;
-  margin-bottom: 12rpx;
+  font-size: 38rpx;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.25;
 }
 
+.share-headline {
+  margin-top: 10rpx;
+  font-size: 28rpx;
+  font-weight: 720;
+  color: #14804b;
+}
+
+.share-subtitle {
+  margin-top: 12rpx;
+  color: #64748b;
+  font-size: 24rpx;
+  line-height: 1.6;
+}
+
+.share-pills {
+  margin-top: 14rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.share-info {
+  margin-top: 16rpx;
+}
+
+.info-list {
+  margin-top: 12rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 16rpx;
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid #e8eef5;
+}
+
+.info-item:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.info-label {
+  flex: none;
+  color: #64748b;
+  font-size: 24rpx;
+}
+
+.info-value {
+  flex: 1;
+  color: #0f172a;
+  font-size: 24rpx;
+  text-align: right;
+  line-height: 1.6;
+}
+
+.squad-chooser {
+  margin-top: 14rpx;
+}
+
+.progress-summary {
+  margin-top: 12rpx;
+}
+
+.summary-value {
+  font-size: 30rpx;
+  font-weight: 760;
+  color: #0f172a;
+  margin-bottom: 8rpx;
+}
+
+.ranking-preview {
+  margin-top: 14rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.ranking-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+  padding: 14rpx 16rpx;
+  border-radius: 16rpx;
+  background: #f8fbff;
+  border: 1rpx solid #dce7f2;
+}
+
+.ranking-left {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  min-width: 0;
+}
+
+.ranking-rank {
+  font-size: 24rpx;
+  font-weight: 760;
+  color: #14804b;
+}
+
+.ranking-name {
+  font-size: 25rpx;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.ranking-right {
+  flex: 1;
+  text-align: right;
+  font-size: 22rpx;
+  color: #64748b;
+}
+
+.share-actions {
+  margin-top: 18rpx;
+}
+
+.share-actions .btn + .btn {
+  margin-top: 12rpx;
+}

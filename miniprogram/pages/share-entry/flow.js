@@ -8,67 +8,38 @@ function parseTournamentId(options = {}) {
   return tid;
 }
 
-function buildReturnUrl(tournamentId, intent = 'join') {
-  return `/pages/share-entry/index?tournamentId=${encodeURIComponent(String(tournamentId || '').trim())}&intent=${encodeURIComponent(String(intent || 'join').trim() || 'join')}`;
+function normalizeIntent(intent = 'view') {
+  const value = String(intent || '').trim().toLowerCase();
+  if (value === 'join' || value === 'watch' || value === 'result' || value === 'view') return value;
+  return 'view';
 }
 
-function buildLobbyUrl(tournamentId, intent = 'join') {
-  return `/pages/lobby/index?tournamentId=${encodeURIComponent(String(tournamentId || '').trim())}&intent=${encodeURIComponent(String(intent || 'join').trim() || 'join')}&fromShare=1`;
+function buildReturnUrl(tournamentId, intent = 'view') {
+  return `/pages/share-entry/index?tournamentId=${encodeURIComponent(String(tournamentId || '').trim())}&intent=${encodeURIComponent(normalizeIntent(intent))}`;
 }
 
-function resolveShareEntryFlow({ tournamentId, intent = 'join', gate }) {
-  const tid = String(tournamentId || '').trim();
-  const nextIntent = String(intent || 'join').trim() || 'join';
-  if (!tid) {
-    return {
-      action: 'invalid',
-      state: {
-        title: '链接无效',
-        message: '未识别到赛事信息，请重新打开分享链接。',
-        showRetry: true
-      }
-    };
-  }
+function buildLobbyUrl(tournamentId) {
+  return `/pages/lobby/index?tournamentId=${encodeURIComponent(String(tournamentId || '').trim())}&fromShare=1`;
+}
 
-  const currentGate = gate && typeof gate === 'object' ? gate : {};
-  if (!currentGate.ok) {
-    if (currentGate.reason === 'login_failed') {
-      return {
-        action: 'login_failed',
-        state: {
-          title: '登录失败',
-          message: '请检查网络后重试。',
-          showRetry: true
-        }
-      };
-    }
-    if (currentGate.reason === 'need_profile') {
-      return {
-        action: 'need_profile',
-        state: {
-          title: '正在校验资料',
-          message: '首次进入需完善昵称和性别。',
-          showRetry: false
-        }
-      };
-    }
-  }
+function buildScheduleUrl(tournamentId) {
+  return `/pages/schedule/index?tournamentId=${encodeURIComponent(String(tournamentId || '').trim())}`;
+}
 
-  return {
-    action: 'redirect',
-    state: {
-      title: '正在进入比赛',
-      message: '即将打开赛事页面...',
-      showRetry: false
-    },
-    lobbyUrl: buildLobbyUrl(tid, nextIntent),
-    returnUrl: buildReturnUrl(tid, nextIntent)
-  };
+function buildRankingUrl(tournamentId) {
+  return `/pages/ranking/index?tournamentId=${encodeURIComponent(String(tournamentId || '').trim())}`;
+}
+
+function buildAnalyticsUrl(tournamentId) {
+  return `/pages/analytics/index?tournamentId=${encodeURIComponent(String(tournamentId || '').trim())}`;
 }
 
 module.exports = {
   parseTournamentId,
+  normalizeIntent,
   buildReturnUrl,
   buildLobbyUrl,
-  resolveShareEntryFlow
+  buildScheduleUrl,
+  buildRankingUrl,
+  buildAnalyticsUrl
 };
