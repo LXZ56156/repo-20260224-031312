@@ -220,6 +220,35 @@ function buildInvalidShareEntryState(reason = '未找到赛事') {
   };
 }
 
+function buildRetryableShareEntryState(reason = '同步失败，请稍后重试') {
+  return {
+    viewMode: 'retryable-error',
+    viewModeLabel: '同步失败',
+    headline: reason,
+    subtitle: '比赛信息暂时同步失败，可能是当前网络波动；你可以重新加载或稍后再试。',
+    statusText: '暂不可用',
+    statusClass: 'tag-muted',
+    primaryAction: { key: 'retry', text: '重新加载' },
+    secondaryAction: { key: 'home', text: '返回首页' },
+    joinAllowed: false,
+    joined: false,
+    availabilityText: '当前无法同步比赛信息，请确认网络后重试。',
+    tournamentName: '比赛信息同步失败',
+    organizerName: '赛事组织者',
+    modeLabel: '未识别',
+    playersCountText: '—',
+    venueText: '未设置',
+    timeText: '未设置',
+    progressText: '暂无赛况',
+    roundsText: '—',
+    rankingsPreview: [],
+    rankingTitle: '赛况摘要',
+    showRankingPreview: false,
+    showProgressSummary: false,
+    tournament: null
+  };
+}
+
 function buildShareEntryViewModel({ tournament, openid = '' }) {
   if (!tournament || typeof tournament !== 'object') {
     return buildInvalidShareEntryState();
@@ -298,6 +327,7 @@ module.exports = {
   resolveCurrentRoundText,
   buildRankingPreview,
   buildInvalidShareEntryState,
+  buildRetryableShareEntryState,
   buildShareEntryViewModel,
   buildShareMessage,
   formatDateTime

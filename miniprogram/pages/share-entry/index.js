@@ -152,14 +152,18 @@ Page({
       return result.cachedDoc;
     }
 
-    const invalidReason = result && result.errorType === 'not_found'
-      ? '比赛不存在或已关闭'
-      : (result && result.errorType === 'param' ? '链接无效' : '加载失败');
+    const errorType = String((result && result.errorType) || '').trim();
+    let preview = shareMeta.buildRetryableShareEntryState('同步失败，请稍后重试');
+    if (errorType === 'not_found') {
+      preview = shareMeta.buildInvalidShareEntryState('比赛不存在或已关闭');
+    } else if (errorType === 'param') {
+      preview = shareMeta.buildInvalidShareEntryState('链接无效');
+    }
     this.setData({
       loadError: true,
       showStaleSyncHint: false,
       tournament: null,
-      preview: shareMeta.buildInvalidShareEntryState(invalidReason)
+      preview
     });
     return null;
   },

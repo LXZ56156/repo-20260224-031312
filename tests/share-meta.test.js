@@ -84,6 +84,14 @@ test('shareMeta falls back to invalid state for missing tournaments', () => {
   assert.equal(preview.secondaryAction.text, '返回首页');
 });
 
+test('shareMeta can build retryable sync failure state separately from invalid links', () => {
+  const preview = shareMeta.buildRetryableShareEntryState('同步失败，请稍后重试');
+  assert.equal(preview.viewMode, 'retryable-error');
+  assert.equal(preview.viewModeLabel, '同步失败');
+  assert.equal(preview.primaryAction.text, '重新加载');
+  assert.equal(preview.secondaryAction.text, '返回首页');
+});
+
 test('shareMeta builds share copy based on tournament lifecycle', () => {
   const draftShare = shareMeta.buildShareMessage(buildTournament('draft'));
   const runningShare = shareMeta.buildShareMessage(buildTournament('running'));
