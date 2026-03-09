@@ -13,7 +13,7 @@ function copyPlayers(sourcePlayers, openid, createGuestId = makeGuestId) {
   const players = list.map((player, idx) => {
     const item = player || {};
     const sourceId = String(item.id || '').trim();
-    const name = normalizeName(item.name || item.nickname || item.nickName, `球员${idx + 1}`);
+    const name = normalizeName(item.name || item.nickName || item.nickname, `球员${idx + 1}`);
     const avatar = String(item.avatar || item.avatarUrl || '').trim();
     const genderRaw = String(item.gender || '').trim().toLowerCase();
     const gender = (genderRaw === 'male' || genderRaw === 'female') ? genderRaw : 'unknown';

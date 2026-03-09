@@ -5,7 +5,7 @@ function extractPlayerId(player) {
 }
 
 function safePlayerName(player) {
-  const raw = player && (player.name || player.nickname || player.nickName || player.displayName);
+  const raw = player && (player.name || player.nickName || player.nickname || player.displayName);
   const name = String(raw || '').trim();
   if (name) {
     const matched = name.match(/^成员([0-9a-zA-Z]{1,16})$/);

@@ -10,6 +10,7 @@ test('playerUtils extracts player ids and safe names consistently', () => {
   assert.equal(playerUtils.safePlayerName({ id: 'guest_abc1234' }), '1234');
   assert.equal(playerUtils.safePlayerName({ id: 'u_4', name: '成员A001' }), 'A001');
   assert.equal(playerUtils.safePlayerName({ id: 'u_5', nickName: '老王' }), '老王');
+  assert.equal(playerUtils.safePlayerName({ id: 'u_6', nickName: '新昵称', nickname: '旧昵称' }), '新昵称');
 });
 
 test('playerUtils detects tournament participants from playerIds and players', () => {

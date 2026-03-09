@@ -10,7 +10,7 @@ const { validateBeforeGenerate } = require('./logic');
 const { buildSquadSchedule, buildFixedPairSchedule } = require('./scheduleModes');
 
 function safePlayerName(p) {
-  const raw = p && (p.name || p.nickname || p.nickName || p.displayName);
+  const raw = p && (p.name || p.nickName || p.nickname || p.displayName);
   const name = String(raw || '').trim();
   if (name) {
     const m = name.match(/^成员([0-9a-zA-Z]{1,16})$/);

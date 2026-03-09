@@ -18,6 +18,16 @@ test('copyPlayers keeps creator and remaps guests', () => {
   assert.equal(out.playerIdMap.p3, 'guest_2');
 });
 
+test('copyPlayers prefers canonical nickName over legacy nickname alias', () => {
+  const out = logic.copyPlayers(
+    [{ id: 'p1', nickName: '新昵称', nickname: '旧昵称', gender: 'male' }],
+    'creator-openid',
+    () => 'guest_1'
+  );
+
+  assert.equal(out.players[0].name, '新昵称');
+});
+
 test('copyPairTeams preserves team name and remaps members for fixed pair replay', () => {
   const out = logic.copyPairTeams(
     [

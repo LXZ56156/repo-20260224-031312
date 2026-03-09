@@ -6,7 +6,7 @@ const permission = require('./lib/permission');
 const logic = require('./logic');
 
 function safePlayerName(player) {
-  const raw = player && (player.name || player.nickname || player.nickName || player.displayName);
+  const raw = player && (player.name || player.nickName || player.nickname || player.displayName);
   const name = String(raw || '').trim();
   if (name) return name;
   const idRaw = String((player && (player.id || player._id)) || '').trim();
