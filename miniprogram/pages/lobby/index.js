@@ -3,6 +3,7 @@ const tournamentSync = require('../../core/tournamentSync');
 const shareMeta = require('../../core/shareMeta');
 const flow = require('../../core/uxFlow');
 const nav = require('../../core/nav');
+const tournamentEntry = require('../../core/tournamentEntry');
 const viewModel = require('./lobbyViewModel');
 const profileActions = require('./lobbyProfileActions');
 const draftActions = require('./lobbyDraftActions');
@@ -106,7 +107,10 @@ Page({
     profileNicknameFocus: false,
     profileAvatarUploading: false,
     profileSaving: false,
-    profileFieldError: ''
+    profileFieldError: '',
+    loadErrorTitle: '加载失败',
+    loadErrorMessage: '请检查网络或分享链接是否有效。',
+    showLoadErrorHome: false
   },
 
   ...profileActions,
@@ -114,12 +118,7 @@ Page({
   ...pairTeamActions,
 
   onLoad(options) {
-    let tid = options.tournamentId;
-    if (!tid && options && options.scene) {
-      const scene = decodeURIComponent(options.scene);
-      const matched = /tournamentId=([^&]+)/.exec(scene) || /tid=([^&]+)/.exec(scene);
-      if (matched) tid = matched[1];
-    }
+    const tid = tournamentEntry.parseTournamentIdFromOptions(options || {});
     this.setData({ tournamentId: tid });
     this._fromCreate = String((options && options.fromCreate) || '') === '1';
     this._showShareHint = this._fromCreate && String((options && options.shareTip) || '') === '1';
@@ -229,7 +228,12 @@ Page({
     const result = await tournamentSync.fetchTournament(tid);
     if (!this.isLatestFetchSeq(requestSeq)) return null;
     if (result && result.ok && result.doc) {
-      this.setData({ showStaleSyncHint: false });
+      this.setData({
+        showStaleSyncHint: false,
+        loadErrorTitle: '加载失败',
+        loadErrorMessage: '请检查网络或分享链接是否有效。',
+        showLoadErrorHome: false
+      });
       this.setTournament(result.doc);
       return result.doc;
     }
@@ -238,8 +242,33 @@ Page({
       this.setTournament(result.cachedDoc);
       return result.cachedDoc;
     }
-    this.setData({ loadError: true, showStaleSyncHint: false });
+    let loadErrorTitle = '加载失败';
+    let loadErrorMessage = '请检查网络后重试。';
+    let showLoadErrorHome = false;
+    if (result && result.errorType === 'not_found') {
+      loadErrorTitle = '比赛不存在或已关闭';
+      loadErrorMessage = '分享链接可能已失效，或比赛已被删除。';
+      showLoadErrorHome = true;
+    } else if (result && result.errorType === 'param') {
+      loadErrorTitle = '链接无效';
+      loadErrorMessage = '请确认分享链接或二维码是否完整。';
+      showLoadErrorHome = true;
+    }
+    this.setData({
+      loadError: true,
+      showStaleSyncHint: false,
+      loadErrorTitle,
+      loadErrorMessage,
+      showLoadErrorHome
+    });
     return null;
+  },
+
+  goHome() {
+    wx.reLaunch({
+      url: '/pages/home/index',
+      fail: () => wx.navigateTo({ url: '/pages/home/index' })
+    });
   },
 
   setLastFailedAction(text, fn) {

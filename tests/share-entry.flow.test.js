@@ -2,13 +2,15 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const flow = require('../miniprogram/pages/share-entry/flow');
+const tournamentEntry = require('../miniprogram/core/tournamentEntry');
 
 test('parseTournamentId supports direct options and scene payload', () => {
-  assert.equal(flow.parseTournamentId({ tournamentId: 'tid_1' }), 'tid_1');
-  assert.equal(flow.parseTournamentId({ scene: encodeURIComponent('tournamentId=tid_2&intent=join') }), 'tid_2');
-  assert.equal(flow.parseTournamentId({ scene: encodeURIComponent('tid=tid_3') }), 'tid_3');
-  assert.equal(flow.parseTournamentId({ scene: encodeURIComponent('tid_legacy_4') }), 'tid_legacy_4');
-  assert.equal(flow.parseTournamentId({ scene: '%E0%A4%A' }), '%E0%A4%A');
+  assert.equal(tournamentEntry.parseTournamentIdFromOptions({ tournamentId: 'tid_1' }), 'tid_1');
+  assert.equal(tournamentEntry.parseTournamentIdFromOptions({ scene: encodeURIComponent('tournamentId=tid_2&intent=join') }), 'tid_2');
+  assert.equal(tournamentEntry.parseTournamentIdFromOptions({ scene: encodeURIComponent('tid=tid_3') }), 'tid_3');
+  assert.equal(tournamentEntry.parseTournamentIdFromOptions({ scene: encodeURIComponent('tid_legacy_4') }), 'tid_legacy_4');
+  assert.equal(tournamentEntry.parseTournamentIdFromOptions({ scene: '%E0%A4%A' }), '%E0%A4%A');
+  assert.equal(flow.parseTournamentId({ scene: encodeURIComponent('tournamentId=tid_5') }), 'tid_5');
 });
 
 test('share-entry flow builders keep links compatible with old params', () => {

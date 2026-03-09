@@ -293,9 +293,10 @@
 
 <view class="container safe-bottom" wx:elif="{{loadError}}">
   <view class="card panel reveal reveal-1">
-    <view class="loading-title">加载失败</view>
-    <view class="muted">请检查网络或分享链接是否有效。</view>
+    <view class="loading-title">{{loadErrorTitle}}</view>
+    <view class="muted">{{loadErrorMessage}}</view>
     <button class="btn btn-subtle" bindtap="onRetry">重新加载</button>
+    <button class="btn btn-ghost" wx:if="{{showLoadErrorHome}}" bindtap="goHome">返回首页</button>
   </view>
 </view>
 
