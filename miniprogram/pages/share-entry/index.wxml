@@ -20,7 +20,7 @@
   <view class="card panel share-info">
     <view class="section-head">
       <view class="section-title">比赛信息</view>
-      <text class="count-pill">{{preview.viewMode}}</text>
+      <text class="count-pill">{{preview.viewModeLabel}}</text>
     </view>
     <view class="info-list">
       <view class="info-item">
@@ -89,8 +89,8 @@
   </view>
 
   <view class="card panel panel-soft" wx:if="{{loadError && !tournament}}">
-    <view class="section-title">打开失败</view>
-    <view class="muted">请检查分享链接是否有效，或稍后重新打开。</view>
+    <view class="section-title">{{preview.headline}}</view>
+    <view class="muted">{{preview.subtitle}}</view>
   </view>
 
   <view class="share-actions">

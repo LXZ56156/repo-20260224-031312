@@ -38,6 +38,7 @@ test('shareMeta builds join preview for draft tournaments', () => {
     openid: 'u_new'
   });
   assert.equal(preview.viewMode, 'join-preview');
+  assert.equal(preview.viewModeLabel, '先看后加入');
   assert.equal(preview.joinAllowed, true);
   assert.equal(preview.primaryAction.text, '加入比赛');
   assert.equal(preview.organizerName, '组织者');
@@ -86,10 +87,10 @@ test('shareMeta builds share copy based on tournament lifecycle', () => {
   const runningShare = shareMeta.buildShareMessage(buildTournament('running'));
   const finishedShare = shareMeta.buildShareMessage(buildTournament('finished'));
 
-  assert.match(draftShare.title, /来看看这场比赛/);
+  assert.match(draftShare.title, /查看比赛信息/);
   assert.equal(draftShare.intent, 'join');
-  assert.match(runningShare.title, /查看当前赛况/);
+  assert.match(runningShare.title, /查看赛况与排名/);
   assert.equal(runningShare.intent, 'watch');
-  assert.match(finishedShare.title, /查看比赛结果/);
+  assert.match(finishedShare.title, /查看结果与排名/);
   assert.equal(finishedShare.intent, 'result');
 });

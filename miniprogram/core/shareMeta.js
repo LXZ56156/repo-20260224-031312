@@ -107,7 +107,7 @@ function buildShareMessage(tournament) {
   const tournamentName = String(t && t.name || '').trim() || '羽毛球比赛';
   if (lifecycle === 'running') {
     return {
-      title: `${tournamentName} · 查看当前赛况`,
+      title: `${tournamentName} · 查看赛况与排名`,
       intent: 'watch',
       panelTitle: '分享当前赛况',
       panelHint: '比赛进行中，可把当前状态、排名和已完成场次分享给其他人查看。',
@@ -118,7 +118,7 @@ function buildShareMessage(tournament) {
   }
   if (lifecycle === 'finished') {
     return {
-      title: `${tournamentName} · 查看比赛结果`,
+      title: `${tournamentName} · 查看结果与排名`,
       intent: 'result',
       panelTitle: '分享比赛结果',
       panelHint: '比赛已结束，可把最终排名和结果发出去，方便大家查看复盘。',
@@ -128,13 +128,13 @@ function buildShareMessage(tournament) {
     };
   }
   return {
-    title: `${tournamentName} · 来看看这场比赛`,
+    title: `${tournamentName} · 查看比赛信息`,
     intent: 'join',
     panelTitle: '分享邀请',
     panelHint: '先把比赛发出去，让大家先查看信息，再决定是否加入。',
     badgeText: '主路径',
     buttonText: '分享比赛链接',
-    detailText: '导入名单保留为备用方案'
+    detailText: '支持先查看、再决定是否加入；导入名单保留为备用方案'
   };
 }
 
@@ -179,33 +179,20 @@ function buildPreviewMode({ lifecycle, joined, joinAllowed }) {
 
 function buildAvailabilityText({ lifecycle, joined, joinAllowed }) {
   if (joined) {
-    if (lifecycle === 'draft') return '你已在参赛名单中，可直接进入比赛。';
-    if (lifecycle === 'running') return '你已加入这场比赛，可直接进入继续查看与录分。';
-    return '你已参加过这场比赛，可直接查看结果。';
+    if (lifecycle === 'draft') return '你已在参赛名单中，可直接进入比赛详情。';
+    if (lifecycle === 'running') return '你已在参赛名单中，可直接进入查看赛程、排名和录分入口。';
+    return '你已参加过这场比赛，可直接查看结果和排名。';
   }
-  if (joinAllowed) return '当前可加入比赛；点击按钮后才会真正加入。';
-  if (lifecycle === 'running') return '比赛正在进行，当前仅开放查看赛况与排名。';
-  if (lifecycle === 'finished') return '比赛已结束，当前不可加入，可直接查看结果。';
+  if (joinAllowed) return '当前可加入比赛；只有点击“加入比赛”后才会真正写入参赛名单。';
+  if (lifecycle === 'running') return '比赛正在进行，当前以查看赛况与排名为主，不会自动把你加入名单。';
+  if (lifecycle === 'finished') return '比赛已结束，当前不可加入；你可以直接查看结果和排名。';
   return '当前无法打开这场比赛，请稍后重试。';
-}
-
-function buildHeadline(lifecycle) {
-  if (lifecycle === 'draft') return '先看比赛信息，再决定是否加入';
-  if (lifecycle === 'running') return '这场比赛正在进行';
-  if (lifecycle === 'finished') return '这场比赛已经结束';
-  return '这场比赛当前不可用';
-}
-
-function buildSubtitle(lifecycle) {
-  if (lifecycle === 'draft') return '查看玩法、人数和组织信息后，再决定是否加入比赛。';
-  if (lifecycle === 'running') return '可先查看当前状态、已完成场次和排名摘要。';
-  if (lifecycle === 'finished') return '可查看最终排名、比赛结果和已完成场次概览。';
-  return '请检查分享链接是否有效，或稍后重试。';
 }
 
 function buildInvalidShareEntryState(reason = '未找到赛事') {
   return {
     viewMode: 'invalid-match',
+    viewModeLabel: '链接异常',
     headline: reason,
     subtitle: '链接可能已失效、比赛已被删除，或当前参数不完整。',
     statusText: '不可用',
@@ -244,6 +231,13 @@ function buildShareEntryViewModel({ tournament, openid = '' }) {
   const joined = playerUtils.isParticipantInTournament(normalizedTournament, openid);
   const joinAllowed = lifecycle === 'draft';
   const previewMode = buildPreviewMode({ lifecycle, joined, joinAllowed });
+  const viewModeLabelMap = {
+    'join-preview': '先看后加入',
+    'joined-entry': '已加入',
+    'live-watch': '查看赛况',
+    'result-view': '查看结果',
+    'invalid-match': '链接异常'
+  };
   const progress = countRoundProgress(normalizedTournament.rounds);
   const rankingsPreview = lifecycle === 'draft' ? [] : buildRankingPreview(normalizedTournament);
   const organizerName = resolveOrganizerName(normalizedTournament);
@@ -260,8 +254,15 @@ function buildShareEntryViewModel({ tournament, openid = '' }) {
 
   return {
     viewMode: previewMode,
-    headline: buildHeadline(lifecycle),
-    subtitle: buildSubtitle(lifecycle),
+    viewModeLabel: viewModeLabelMap[previewMode] || '查看比赛',
+    headline: lifecycle === 'draft'
+      ? '先看这场比赛，再决定是否加入'
+      : (lifecycle === 'running' ? '打开即可查看这场比赛的赛况' : '打开即可查看这场比赛的结果'),
+    subtitle: lifecycle === 'draft'
+      ? '你可以先看玩法、人数和组织信息，点击“加入比赛”后才会真正写入名单。'
+      : (lifecycle === 'running'
+        ? '比赛进行中，当前分享更适合查看赛况、排名和已完成轮次。'
+        : '比赛已结束，当前分享更适合查看排名、结果和赛后复盘。'),
     statusText: buildStatusText(lifecycle),
     statusClass: buildStatusClass(lifecycle),
     primaryAction: buildPrimaryAction({ lifecycle, joined, joinAllowed }),
