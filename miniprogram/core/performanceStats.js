@@ -1,9 +1,8 @@
+const playerUtils = require('./playerUtils');
 const scoreUtils = require('./scoreUtils');
 
 function extractId(player) {
-  if (!player) return '';
-  if (typeof player === 'string') return String(player).trim();
-  return String(player.id || player.playerId || '').trim();
+  return playerUtils.extractPlayerId(player);
 }
 
 function parseScore(match) {
@@ -24,12 +23,7 @@ function resolveMySide(match, openid) {
 }
 
 function isParticipant(tournament, openid) {
-  const oid = String(openid || '').trim();
-  if (!oid || !tournament) return false;
-  const playerIds = Array.isArray(tournament.playerIds) ? tournament.playerIds.map((id) => String(id || '').trim()) : [];
-  if (playerIds.includes(oid)) return true;
-  const players = Array.isArray(tournament.players) ? tournament.players : [];
-  return players.some((item) => extractId(item) === oid);
+  return playerUtils.isParticipantInTournament(tournament, openid);
 }
 
 function toTimestamp(value) {

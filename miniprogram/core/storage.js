@@ -1,4 +1,5 @@
 const modeHelper = require('./mode');
+const playerUtils = require('./playerUtils');
 const scoreUtils = require('./scoreUtils');
 
 const get = (key, fallback = null) => {
@@ -114,9 +115,7 @@ const LOCAL_TOURNAMENT_CACHE_PREFIX = 'local_tournament_cache_';
 const LOCAL_COMPLETED_MAX = 500;
 
 function extractEntityId(raw) {
-  if (!raw) return '';
-  if (typeof raw === 'string') return String(raw).trim();
-  return String(raw.id || raw.playerId || raw._id || '').trim();
+  return playerUtils.extractPlayerId(raw);
 }
 
 function parseScorePair(match) {
@@ -255,14 +254,7 @@ function buildLocalTournamentSnapshot(tournament) {
 }
 
 function isParticipantInTournament(tournament, openid) {
-  const oid = String(openid || '').trim();
-  if (!oid || !tournament || typeof tournament !== 'object') return false;
-  const playerIds = Array.isArray(tournament.playerIds)
-    ? tournament.playerIds.map((id) => String(id || '').trim()).filter(Boolean)
-    : [];
-  if (playerIds.includes(oid)) return true;
-  const players = Array.isArray(tournament.players) ? tournament.players : [];
-  return players.some((item) => extractEntityId(item) === oid);
+  return playerUtils.isParticipantInTournament(tournament, openid);
 }
 
 function upsertLocalCompletedTournamentSnapshot(tournament, openid = '') {

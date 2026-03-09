@@ -1,7 +1,8 @@
 const modeHelper = require('./mode');
+const playerUtils = require('./playerUtils');
 const scoreUtils = require('./scoreUtils');
 
-const safePlayerName = modeHelper.safePlayerName;
+const safePlayerName = playerUtils.safePlayerName;
 
 function normalizePlayer(p) {
   if (!p) return p;

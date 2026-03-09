@@ -4,16 +4,12 @@ const db = cloud.database();
 const _ = db.command;
 const common = require('./lib/common');
 const permission = require('./lib/permission');
+const playerUtils = require('./lib/player');
 const scoreUtils = require('./lib/score');
 const { buildSubmitResult, buildIdempotentRetryResult } = require('./logic');
 
 function safePlayerName(player) {
-  const raw = player && (player.name || player.nickname || player.nickName || player.displayName);
-  const name = String(raw || '').trim();
-  if (name) return name;
-  const idRaw = String((player && (player.id || player._id)) || '').trim();
-  const suffix = idRaw.replace(/[^0-9a-zA-Z]/g, '').slice(-4);
-  return suffix || '球友';
+  return playerUtils.safePlayerName(player);
 }
 
 function resolvePlayerName(tournament, openid) {

@@ -1,3 +1,5 @@
+const playerUtils = require('./playerUtils');
+
 const MODE_MULTI_ROTATE = 'multi_rotate';
 const MODE_SQUAD_DOUBLES = 'squad_doubles';
 const MODE_FIXED_PAIR_RR = 'fixed_pair_rr';
@@ -24,16 +26,7 @@ function getModeLabel(mode) {
 }
 
 function safePlayerName(player) {
-  const raw = player && (player.name || player.nickname || player.nickName || player.displayName);
-  const name = String(raw || '').trim();
-  if (name) {
-    const matched = name.match(/^成员([0-9a-zA-Z]{1,16})$/);
-    return matched ? matched[1] : name;
-  }
-  const idRaw = String((player && (player.id || player.playerId || player._id)) || '').trim();
-  const alnum = idRaw.replace(/[^0-9a-zA-Z]/g, '');
-  const suffix = (alnum.slice(-4) || idRaw.slice(-4) || '').trim();
-  return suffix || '匿名';
+  return playerUtils.safePlayerName(player);
 }
 
 function buildInitialRankings(mode, players, pairTeams = []) {

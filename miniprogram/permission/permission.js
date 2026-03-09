@@ -1,11 +1,11 @@
+const playerUtils = require('../core/playerUtils');
+
 function isAdmin(tournament, openid) {
-  return tournament && openid && tournament.creatorId === openid;
+  return !!(tournament && openid && String(tournament.creatorId || '') === String(openid || ''));
 }
 
 function isParticipant(tournament, openid) {
-  if (!tournament || !openid) return false;
-  const players = Array.isArray(tournament.players) ? tournament.players : [];
-  return players.some((player) => String((player && player.id) || '') === String(openid || ''));
+  return playerUtils.isParticipantInTournament(tournament, openid);
 }
 
 function canEditScore(tournament, openid) {
