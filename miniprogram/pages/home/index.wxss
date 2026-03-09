@@ -13,6 +13,16 @@
   font-size: 23rpx;
 }
 
+.stale-home-banner {
+  margin-bottom: 12rpx;
+  padding: 12rpx 16rpx;
+  border-radius: 16rpx;
+  background: rgba(15, 118, 110, 0.08);
+  border: 1rpx solid rgba(15, 118, 110, 0.18);
+  color: #0f766e;
+  font-size: 23rpx;
+}
+
 .onboarding {
   margin-top: 0;
 }

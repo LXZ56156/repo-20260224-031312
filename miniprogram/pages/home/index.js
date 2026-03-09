@@ -58,6 +58,62 @@ function isVisibleByFilter(item, filterStatus) {
   return String(item.status || 'unknown') === status;
 }
 
+function buildMissingHomeItem(id) {
+  return {
+    _id: id,
+    name: '赛事已移除',
+    status: 'missing',
+    statusLabel: statusLabel('missing'),
+    statusClass: statusClass('missing'),
+    playersCount: 0,
+    creatorId: '',
+    courts: 0,
+    totalMatches: 0,
+    finishedMatches: 0,
+    createdAtText: '',
+    updatedAtText: '',
+    updatedAtTs: 0,
+    _offset: 0
+  };
+}
+
+function buildHomeItem(raw, fallbackId = '') {
+  const t = normalizeTournament(raw || {});
+  const players = Array.isArray(t.players) ? t.players : [];
+  const { done, total } = calcProgress(t);
+  const mTotalRaw = Number(t.totalMatches) || total || 0;
+  const hasConfigured = (t.status !== 'draft') ? true : (t.settingsConfigured === true);
+  const matchProgressText = (hasConfigured && mTotalRaw > 0) ? `${done}/${mTotalRaw}场` : '未设置';
+  const updatedAt = t.updatedAt || t.createdAt;
+  const updatedAtTs = (() => {
+    try {
+      return updatedAt ? (new Date(updatedAt)).getTime() : 0;
+    } catch (_) {
+      return 0;
+    }
+  })();
+
+  return {
+    _id: t._id || String(fallbackId || '').trim(),
+    name: t.name || '未命名赛事',
+    status: t.status || 'unknown',
+    mode: flow.normalizeMode(t.mode || flow.MODE_MULTI_ROTATE),
+    modeLabel: flow.getModeLabel(t.mode || flow.MODE_MULTI_ROTATE),
+    statusLabel: statusLabel(t.status),
+    statusClass: statusClass(t.status),
+    playersCount: players.length,
+    creatorId: t.creatorId || '',
+    courts: Number(t.courts) || 1,
+    totalMatches: mTotalRaw,
+    finishedMatches: done,
+    matchProgressText,
+    createdAtText: formatTime(t.createdAt),
+    updatedAtText: formatTime(updatedAt),
+    updatedAtTs,
+    _offset: 0
+  };
+}
+
 Page({
   data: {
     loading: false,
@@ -73,6 +129,7 @@ Page({
     canRetryAction: false,
     lastFailedActionText: '',
     continueItem: null,
+    showStaleSyncHint: false,
     visibleCount: 0,
     statusCountRunning: 0,
     statusCountDraft: 0,
@@ -256,6 +313,7 @@ Page({
       this.setData({
         loading: false,
         loadError: false,
+        showStaleSyncHint: false,
         items: [],
         continueItem: null,
         visibleCount: 0,
@@ -276,8 +334,28 @@ Page({
       const res = await db.collection('tournaments').where({ _id: _.in(ids) }).get();
       docs = (res && res.data) || [];
     } catch (e) {
-      wx.showToast({ title: '读取赛事记录失败', icon: 'none' });
-      this.setData({ loading: false, loadError: true });
+      const cachedItems = ids
+        .map((id) => {
+          const cachedDoc = storage.getLocalTournamentCache(id);
+          if (!cachedDoc || typeof cachedDoc !== 'object') return null;
+          return buildHomeItem(cachedDoc, id);
+        })
+        .filter(Boolean);
+
+      if (!cachedItems.length) {
+        wx.showToast({ title: '读取赛事记录失败', icon: 'none' });
+        this.setData({ loading: false, loadError: true, showStaleSyncHint: false });
+        return;
+      }
+
+      this._closeAllSwipe();
+      this.setData({
+        loading: false,
+        loadError: false,
+        showStaleSyncHint: true,
+        items: this.sortItems(cachedItems, this.data.sortMode)
+      }, () => this.refreshVisibleState());
+      this.clearLastFailedAction();
       return;
     }
 
@@ -291,64 +369,16 @@ Page({
       const raw = map[id];
       if (!raw) {
         storage.removeLocalCompletedTournamentSnapshot(id);
-        return {
-          _id: id,
-          name: '赛事已移除',
-          status: 'missing',
-          statusLabel: statusLabel('missing'),
-          statusClass: statusClass('missing'),
-          playersCount: 0,
-          creatorId: '',
-          courts: 0,
-          totalMatches: 0,
-          finishedMatches: 0,
-          createdAtText: '',
-          updatedAtText: '',
-          updatedAtTs: 0,
-          _offset: 0
-        };
+        return buildMissingHomeItem(id);
       }
-
-      const t = normalizeTournament(raw);
-      const players = Array.isArray(t.players) ? t.players : [];
-      const { done, total } = calcProgress(t);
-      const mTotalRaw = Number(t.totalMatches) || total || 0;
-      const hasConfigured = (t.status !== 'draft') ? true : (t.settingsConfigured === true);
-      const matchProgressText = (hasConfigured && mTotalRaw > 0) ? `${done}/${mTotalRaw}场` : '未设置';
-      const updatedAt = t.updatedAt || t.createdAt;
-      const updatedAtTs = (() => {
-        try {
-          return updatedAt ? (new Date(updatedAt)).getTime() : 0;
-        } catch (_) {
-          return 0;
-        }
-      })();
-
-      return {
-        _id: t._id,
-        name: t.name || '未命名赛事',
-        status: t.status || 'unknown',
-        mode: flow.normalizeMode(t.mode || flow.MODE_MULTI_ROTATE),
-        modeLabel: flow.getModeLabel(t.mode || flow.MODE_MULTI_ROTATE),
-        statusLabel: statusLabel(t.status),
-        statusClass: statusClass(t.status),
-        playersCount: players.length,
-        creatorId: t.creatorId || '',
-        courts: Number(t.courts) || 1,
-        totalMatches: mTotalRaw,
-        finishedMatches: done,
-        matchProgressText,
-        createdAtText: formatTime(t.createdAt),
-        updatedAtText: formatTime(updatedAt),
-        updatedAtTs,
-        _offset: 0
-      };
+      return buildHomeItem(raw, id);
     });
 
     this._closeAllSwipe();
     this.setData({
       loading: false,
       loadError: false,
+      showStaleSyncHint: false,
       items: this.sortItems(items, this.data.sortMode)
     }, () => this.refreshVisibleState());
     this.clearLastFailedAction();

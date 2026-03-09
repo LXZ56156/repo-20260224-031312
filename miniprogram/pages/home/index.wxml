@@ -1,5 +1,6 @@
 <view class="page home-page" wx:if="{{!loadError}}">
   <view class="offline-banner" wx:if="{{networkOffline}}">当前网络不可用，写入操作可能失败</view>
+  <view class="stale-home-banner" wx:if="{{showStaleSyncHint}}">当前为最近一次同步的赛事列表</view>
 
   <view class="card panel-soft profile-nudge reveal reveal-1" wx:if="{{showProfileNudge}}">
     <view class="section-head">
