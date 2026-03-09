@@ -1,3 +1,6 @@
+const modeHelper = require('./mode');
+const scoreUtils = require('./scoreUtils');
+
 function toId(player) {
   if (!player) return '';
   if (typeof player === 'string') return player;
@@ -5,10 +8,7 @@ function toId(player) {
 }
 
 function normalizeMode(mode) {
-  const v = String(mode || '').trim().toLowerCase();
-  if (v === 'multi_rotate' || v === 'squad_doubles' || v === 'fixed_pair_rr') return v;
-  if (v === 'mixed_fallback' || v === 'doubles') return 'multi_rotate';
-  return 'multi_rotate';
+  return modeHelper.normalizeMode(mode);
 }
 
 function toName(player) {
@@ -18,10 +18,8 @@ function toName(player) {
 }
 
 function parseScore(match) {
-  const a = Number(match && (match.teamAScore ?? match.scoreA ?? (match.score && match.score.teamA)));
-  const b = Number(match && (match.teamBScore ?? match.scoreB ?? (match.score && match.score.teamB)));
-  if (!Number.isFinite(a) || !Number.isFinite(b) || a === b) return null;
-  return { a, b };
+  if (!scoreUtils.isValidFinishedScore(match)) return null;
+  return scoreUtils.extractScorePairAny(match);
 }
 
 function sortRanking(list) {
@@ -305,5 +303,6 @@ function buildRankingWithTrend(tournament) {
 }
 
 module.exports = {
-  buildRankingWithTrend
+  buildRankingWithTrend,
+  normalizeCurrentRankings
 };

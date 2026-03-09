@@ -3,16 +3,8 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 const common = require('./lib/common');
-
-function extractScorePairAny(obj) {
-  if (!obj) return { a: NaN, b: NaN };
-  const isPlain = (v) => (typeof v === 'number' || typeof v === 'string');
-  const aRaw = (obj.teamAScore ?? obj.scoreA ?? obj.a ?? obj.left ?? (isPlain(obj.teamA) ? obj.teamA : undefined));
-  const bRaw = (obj.teamBScore ?? obj.scoreB ?? obj.b ?? obj.right ?? (isPlain(obj.teamB) ? obj.teamB : undefined));
-  const a = Number(aRaw);
-  const b = Number(bRaw);
-  return { a, b };
-}
+const modeHelper = require('./lib/mode');
+const scoreUtils = require('./lib/score');
 
 function extractId(p) {
   if (!p) return '';
@@ -31,15 +23,8 @@ function safePlayerName(p) {
   return suffix || '匿名';
 }
 
-function normalizeMode(mode) {
-  const v = String(mode || '').trim().toLowerCase();
-  if (v === 'multi_rotate' || v === 'squad_doubles' || v === 'fixed_pair_rr') return v;
-  if (v === 'mixed_fallback' || v === 'doubles') return 'multi_rotate';
-  return 'multi_rotate';
-}
-
 function buildTeamTemplate(tournament) {
-  const mode = normalizeMode(tournament && tournament.mode);
+  const mode = modeHelper.normalizeMode(tournament && tournament.mode);
   if (mode === 'squad_doubles') {
     return [
       { entityId: 'A', name: 'A队' },
@@ -54,8 +39,8 @@ function buildTeamTemplate(tournament) {
 }
 
 function computeRankings(t) {
-  const mode = normalizeMode(t && t.mode);
-  if (mode === 'squad_doubles' || mode === 'fixed_pair_rr') {
+  const mode = modeHelper.normalizeMode(t && t.mode);
+  if (modeHelper.isTeamMode(mode)) {
     const stats = {};
     const template = buildTeamTemplate(t);
     for (const team of template) {
@@ -76,7 +61,7 @@ function computeRankings(t) {
     for (const r of (t.rounds || [])) {
       for (const m of (r.matches || [])) {
         if (m.status !== 'finished') continue;
-        const sp = extractScorePairAny(m.score || m);
+        const sp = scoreUtils.extractScorePairAny(m);
         const a = sp.a;
         const b = sp.b;
         if (!Number.isFinite(a) || !Number.isFinite(b) || a === b) continue;
@@ -161,7 +146,7 @@ function computeRankings(t) {
   for (const r of (t.rounds || [])) {
     for (const m of (r.matches || [])) {
       if (m.status !== 'finished') continue;
-      const sp = extractScorePairAny(m.score || m);
+      const sp = scoreUtils.extractScorePairAny(m);
       const a = sp.a;
       const b = sp.b;
       if (!Number.isFinite(a) || !Number.isFinite(b) || a === b) continue;

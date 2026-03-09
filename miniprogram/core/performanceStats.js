@@ -1,3 +1,5 @@
+const scoreUtils = require('./scoreUtils');
+
 function extractId(player) {
   if (!player) return '';
   if (typeof player === 'string') return String(player).trim();
@@ -5,12 +7,8 @@ function extractId(player) {
 }
 
 function parseScore(match) {
-  const raw = match || {};
-  const scoreObj = raw.score || {};
-  const a = Number(raw.teamAScore ?? raw.scoreA ?? raw.a ?? raw.left ?? scoreObj.teamA);
-  const b = Number(raw.teamBScore ?? raw.scoreB ?? raw.b ?? raw.right ?? scoreObj.teamB);
-  if (!Number.isFinite(a) || !Number.isFinite(b) || a === b) return null;
-  return { a, b };
+  if (!scoreUtils.isValidFinishedScore(match)) return null;
+  return scoreUtils.extractScorePairAny(match);
 }
 
 function resolveMySide(match, openid) {

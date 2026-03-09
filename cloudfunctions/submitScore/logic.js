@@ -1,4 +1,5 @@
 const modeHelper = require('./lib/mode');
+const scoreUtils = require('./lib/score');
 
 function extractId(p) {
   if (!p) return '';
@@ -21,17 +22,6 @@ function safePlayerName(p) {
 
 function isTeamMode(mode) {
   return modeHelper.isTeamMode(mode);
-}
-
-function extractScorePairAny(obj) {
-  if (!obj) return { a: NaN, b: NaN };
-  const aLegacy = (obj.teamAScore ?? obj.teamAScore1 ?? obj.teamAScore2 ?? obj.scoreA ?? obj.a ?? obj.left);
-  const bLegacy = (obj.teamBScore ?? obj.teamBScore1 ?? obj.teamBScore2 ?? obj.scoreB ?? obj.b ?? obj.right);
-  const aStd = (Array.isArray(obj.teamA) || typeof obj.teamA === 'object') ? undefined : obj.teamA;
-  const bStd = (Array.isArray(obj.teamB) || typeof obj.teamB === 'object') ? undefined : obj.teamB;
-  const aRaw = (aLegacy ?? aStd);
-  const bRaw = (bLegacy ?? bStd);
-  return { a: Number(aRaw), b: Number(bRaw) };
 }
 
 function sortRanking(list) {
@@ -131,7 +121,7 @@ function computePlayerRankings(t) {
   for (const r of (t.rounds || [])) {
     for (const m of (r.matches || [])) {
       if (String(m.status || '') !== 'finished') continue;
-      const sp = extractScorePairAny(m.score || m);
+      const sp = scoreUtils.extractScorePairAny(m);
       const a = sp.a;
       const b = sp.b;
       if (!Number.isFinite(a) || !Number.isFinite(b) || a === b) continue;
@@ -166,7 +156,7 @@ function computePlayerRankings(t) {
 }
 
 function computeTeamRankings(t) {
-  const mode = normalizeMode(t && t.mode);
+  const mode = modeHelper.normalizeMode(t && t.mode);
   const stats = {};
   const template = buildTeamRankingTemplate(t);
   for (const row of template) stats[row.entityId] = row;
@@ -174,7 +164,7 @@ function computeTeamRankings(t) {
   for (const r of (t.rounds || [])) {
     for (const m of (r.matches || [])) {
       if (String(m.status || '') !== 'finished') continue;
-      const sp = extractScorePairAny(m.score || m);
+      const sp = scoreUtils.extractScorePairAny(m);
       const a = sp.a;
       const b = sp.b;
       if (!Number.isFinite(a) || !Number.isFinite(b) || a === b) continue;
@@ -257,11 +247,15 @@ function applyScoreToRounds(rounds, roundIndex, matchIndex, scoreA, scoreB, scor
   if (idx < 0) throw new Error('比赛不存在');
 
   const match = matches[idx] || {};
-  delete match.score;
-  match.teamAScore = scoreA;
-  match.teamBScore = scoreB;
-  match.scoreA = scoreA;
-  match.scoreB = scoreB;
+  delete match.teamAScore;
+  delete match.teamBScore;
+  delete match.scoreA;
+  delete match.scoreB;
+  delete match.a;
+  delete match.b;
+  delete match.left;
+  delete match.right;
+  match.score = scoreUtils.normalizeScoreObject({ teamA: scoreA, teamB: scoreB });
   if (scorer && scorer.id) {
     match.scorerId = String(scorer.id || '');
     match.scorerName = String(scorer.name || '').trim();
@@ -302,7 +296,7 @@ function buildIdempotentRetryResult(match, scoreA, scoreB, requesterId, fallback
   const status = String(match && match.status || '').trim();
   if (status !== 'finished') return null;
 
-  const current = extractScorePairAny(match && (match.score || match));
+  const current = scoreUtils.extractScorePairAny(match);
   if (!Number.isFinite(current.a) || !Number.isFinite(current.b)) return null;
   if (Number(current.a) !== Number(scoreA) || Number(current.b) !== Number(scoreB)) return null;
 

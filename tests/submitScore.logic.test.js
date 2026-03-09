@@ -35,8 +35,11 @@ test('buildSubmitResult updates score, ranking and finished status', () => {
 
   assert.equal(out.finished, true);
   assert.equal(out.nextStatus, 'finished');
-  assert.equal(out.rounds[0].matches[0].teamAScore, 21);
-  assert.equal(out.rounds[0].matches[0].teamBScore, 17);
+  assert.deepEqual(out.rounds[0].matches[0].score, { teamA: 21, teamB: 17 });
+  assert.equal('teamAScore' in out.rounds[0].matches[0], false);
+  assert.equal('teamBScore' in out.rounds[0].matches[0], false);
+  assert.equal('scoreA' in out.rounds[0].matches[0], false);
+  assert.equal('scoreB' in out.rounds[0].matches[0], false);
   assert.equal(out.rounds[0].matches[0].status, 'finished');
   assert.equal(out.rounds[0].matches[0].scorerId, 'u2');
   assert.equal(out.rounds[0].matches[0].scorerName, 'B');

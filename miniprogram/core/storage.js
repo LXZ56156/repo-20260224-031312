@@ -1,4 +1,5 @@
 const modeHelper = require('./mode');
+const scoreUtils = require('./scoreUtils');
 
 const get = (key, fallback = null) => {
   try {
@@ -119,12 +120,9 @@ function extractEntityId(raw) {
 }
 
 function parseScorePair(match) {
-  const m = match || {};
-  const scoreObj = m.score || {};
-  const a = Number(m.teamAScore ?? m.scoreA ?? m.a ?? m.left ?? scoreObj.teamA);
-  const b = Number(m.teamBScore ?? m.scoreB ?? m.b ?? m.right ?? scoreObj.teamB);
-  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
-  return { a: Math.floor(a), b: Math.floor(b) };
+  const pair = scoreUtils.extractScorePairAny(match);
+  if (!Number.isFinite(pair.a) || !Number.isFinite(pair.b)) return null;
+  return pair;
 }
 
 function toTs(value) {

@@ -4,6 +4,7 @@ const db = cloud.database();
 const _ = db.command;
 const common = require('./lib/common');
 const permission = require('./lib/permission');
+const scoreUtils = require('./lib/score');
 const { buildSubmitResult, buildIdempotentRetryResult } = require('./logic');
 
 function safePlayerName(player) {
@@ -64,18 +65,14 @@ exports.main = async (event) => {
   const clientRequestId = String((event && event.clientRequestId) || '').trim();
   console.info('[submitScore]', traceId || '-', tournamentId || '-', roundIndex, matchIndex, OPENID || '-');
 
-  const scoreA = (event && (event.scoreA ?? event.teamAScore ?? event.teamA ?? event.a));
-  const scoreB = (event && (event.scoreB ?? event.teamBScore ?? event.teamB ?? event.b));
-
-  const a = Number(scoreA);
-  const b = Number(scoreB);
+  const scorePair = scoreUtils.extractScorePairAny(event);
+  const a = scorePair.a;
+  const b = scorePair.b;
 
   if (!tournamentId) throw new Error('缺少 tournamentId');
   if (!Number.isFinite(roundIndex) || roundIndex < 0) throw new Error('roundIndex 不合法');
   if (!Number.isFinite(matchIndex) || matchIndex < 0) throw new Error('matchIndex 不合法');
-  if (!Number.isFinite(a) || !Number.isFinite(b) || a < 0 || b < 0) throw new Error('比分不合法');
-  if (!Number.isInteger(a) || !Number.isInteger(b)) throw new Error('比分必须为整数');
-  if (a === b) throw new Error('比分不可相同');
+  if (!scoreUtils.isValidFinishedScore({ teamA: a, teamB: b })) throw new Error('比分不合法');
 
   try {
     const docRes = await db.collection('tournaments').doc(tournamentId).get();
