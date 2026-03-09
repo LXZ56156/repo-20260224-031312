@@ -33,6 +33,7 @@ Page({
     preview: shareMeta.buildInvalidShareEntryState('正在读取比赛信息'),
     showStaleSyncHint: false,
     loadError: false,
+    identityPending: false,
     joinBusy: false,
     joinSquadChoice: 'A'
   },
@@ -43,12 +44,16 @@ Page({
     this.openid = '';
     this._fetchSeq = 0;
     this._watchGen = 0;
-    this.setData({ tournamentId, intent });
+    this.readCachedOpenid();
+    this.setData({
+      tournamentId,
+      intent,
+      identityPending: !String(this.openid || '').trim()
+    });
     if (!tournamentId) {
       this.setData({ preview: shareMeta.buildInvalidShareEntryState('链接无效') });
       return;
     }
-    this.readCachedOpenid();
     this.fetchTournament(tournamentId);
     this.startWatch(tournamentId);
     this.primeViewerIdentity();
@@ -64,7 +69,13 @@ Page({
     const currentId = String(this.data.tournamentId || '').trim();
     if (!currentId) return;
     nav.consumeRefreshFlag(currentId);
+    const beforeOpenid = String(this.openid || '').trim();
     this.readCachedOpenid();
+    const afterOpenid = String(this.openid || '').trim();
+    if (afterOpenid && !beforeOpenid && this.data.identityPending) {
+      this.setData({ identityPending: false });
+      if (this.data.tournament) this.applyTournament(this.data.tournament);
+    }
     this.fetchTournament(currentId);
     if (!this.watcher) this.startWatch(currentId);
   },
@@ -115,14 +126,23 @@ Page({
   },
 
   async primeViewerIdentity() {
-    if (String(this.openid || '').trim()) return;
+    if (String(this.openid || '').trim()) {
+      if (this.data.identityPending) this.setData({ identityPending: false });
+      return;
+    }
     try {
       const openid = await auth.login();
-      if (!openid) return;
+      if (!openid) {
+        this.setData({ identityPending: false });
+        if (this.data.tournament) this.applyTournament(this.data.tournament);
+        return;
+      }
       this.openid = String(openid || '').trim();
+      this.setData({ identityPending: false });
       if (this.data.tournament) this.applyTournament(this.data.tournament);
     } catch (_) {
-      // Preview remains available without login; joined state will refresh once identity is ready.
+      this.setData({ identityPending: false });
+      if (this.data.tournament) this.applyTournament(this.data.tournament);
     }
   },
 
@@ -169,10 +189,19 @@ Page({
   },
 
   applyTournament(tournament) {
-    const preview = shareMeta.buildShareEntryViewModel({
+    let preview = shareMeta.buildShareEntryViewModel({
       tournament,
       openid: this.openid
     });
+    const lifecycle = String((tournament && tournament.status) || '').trim();
+    if (this.data.identityPending && !String(this.openid || '').trim() && lifecycle === 'draft') {
+      preview = {
+        ...preview,
+        viewModeLabel: '识别中',
+        availabilityText: '正在识别你的参赛状态，完成后会显示加入或进入比赛。',
+        primaryAction: { key: 'identity_pending', text: '识别中...' }
+      };
+    }
     this.setData({
       loadError: false,
       tournament,
@@ -258,6 +287,7 @@ Page({
 
   onPrimaryAction() {
     const key = String((this.data.preview && this.data.preview.primaryAction && this.data.preview.primaryAction.key) || '').trim();
+    if (key === 'identity_pending') return;
     if (key === 'join') return this.handleJoin();
     if (key === 'enter') return this.goLobby();
     if (key === 'watch') return this.goSchedule();
