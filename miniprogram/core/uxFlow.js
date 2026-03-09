@@ -1,3 +1,5 @@
+const modeHelper = require('./mode');
+
 const PRESET_OPTIONS = [
   { key: 'relax', label: '轻松', totalMatches: 6, courts: 2 },
   { key: 'standard', label: '标准', totalMatches: 8, courts: 2 },
@@ -12,11 +14,11 @@ const DEFAULT_SLOT_MINUTES = 15;
 const DEFAULT_WARMUP_BUFFER = 10;
 const DEFAULT_ESTIMATED_PLAYERS = 8;
 const RECOMMEND_MODEL_VERSION = 'v2';
-const MODE_MULTI_ROTATE = 'multi_rotate';
-const MODE_SQUAD_DOUBLES = 'squad_doubles';
-const MODE_FIXED_PAIR_RR = 'fixed_pair_rr';
-const MODE_DOUBLES = 'doubles';
-const MODE_MIXED_FALLBACK = 'mixed_fallback';
+const MODE_MULTI_ROTATE = modeHelper.MODE_MULTI_ROTATE;
+const MODE_SQUAD_DOUBLES = modeHelper.MODE_SQUAD_DOUBLES;
+const MODE_FIXED_PAIR_RR = modeHelper.MODE_FIXED_PAIR_RR;
+const MODE_DOUBLES = modeHelper.MODE_DOUBLES;
+const MODE_MIXED_FALLBACK = modeHelper.MODE_MIXED_FALLBACK;
 
 const ACTION_TEMPLATES = {
   join: { text: '加入参赛' },
@@ -44,17 +46,11 @@ function normalizePresetKey(key) {
 }
 
 function normalizeMode(mode) {
-  const v = String(mode || '').trim().toLowerCase();
-  if (v === MODE_MULTI_ROTATE || v === MODE_SQUAD_DOUBLES || v === MODE_FIXED_PAIR_RR) return v;
-  if (v === MODE_MIXED_FALLBACK || v === MODE_DOUBLES) return MODE_MULTI_ROTATE;
-  return MODE_MULTI_ROTATE;
+  return modeHelper.normalizeMode(mode);
 }
 
 function getModeLabel(mode) {
-  const v = normalizeMode(mode);
-  if (v === MODE_SQUAD_DOUBLES) return '小队转';
-  if (v === MODE_FIXED_PAIR_RR) return '固搭循环赛';
-  return '多人转';
+  return modeHelper.getModeLabel(mode);
 }
 
 function getModeIntro(mode) {

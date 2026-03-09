@@ -38,6 +38,7 @@
   <view class="hero-card card panel-strong reveal reveal-3">
     <view class="hero-grid">
       <view class="hero-main">
+        <view class="hero-env-badge" wx:if="{{showEnvBadge}}">{{envBadgeLabel}}</view>
         <view class="h-title">赛事中枢</view>
         <view class="h-desc">参赛后可在首页继续录分并查看结果</view>
       </view>

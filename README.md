@@ -12,7 +12,9 @@
 
 ## 2. 绑定云开发环境
 1. 右上角 **云开发** → 选择环境
-2. 选择/创建云环境后，把环境 ID 改为：`cloud1-1ghmqjyt6428702b`（本包已写入 `miniprogram/app.js`）
+2. 选择/创建云环境后，确认 `miniprogram/config/env.js` 中对应环境的 `cloudEnvId`
+3. 默认已内置：`cloud1-1ghmqjyt6428702b`
+4. 开发版/体验版/正式版会按 `envVersion` 读取对应配置；首页在非正式环境会显示环境标识
 
 ## 3. 数据库初始化（必须）
 > 你遇到的 `database collection not exists: tournaments` 就是因为没有创建集合。
@@ -31,7 +33,7 @@
    ```bash
    ./scripts/sync-cloud-common.sh
    ```
-   用于同步云函数公共库到各函数目录。
+   用于同步云函数公共库、模式工具、权限工具到各函数目录。
 2. 在开发者工具左侧资源管理器里，找到 `cloudfunctions/`
 3. 右键 `cloudfunctions` → **上传并部署：所有云函数**
 4. 部署完成后再运行项目，否则会出现 `FUNCTION_NOT_FOUND`。

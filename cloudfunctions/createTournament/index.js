@@ -2,6 +2,7 @@ const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const common = require('./lib/common');
+const modeHelper = require('./lib/mode');
 
 async function ensureTournamentsCollection() {
   try {
@@ -17,13 +18,6 @@ function intOr(v, d, maxV) {
   const nn = Math.floor(n);
   if (nn < 1) return d;
   return Number.isFinite(maxV) ? Math.min(nn, maxV) : nn;
-}
-
-function normalizeMode(mode) {
-  const v = String(mode || '').trim().toLowerCase();
-  if (v === 'multi_rotate' || v === 'squad_doubles' || v === 'fixed_pair_rr') return v;
-  if (v === 'mixed_fallback' || v === 'doubles') return 'multi_rotate';
-  return 'multi_rotate';
 }
 
 function normalizeGender(gender) {
@@ -50,7 +44,7 @@ exports.main = async (event) => {
   const nickname = String((event && event.nickname) || '').trim();
   const avatar = String((event && (event.avatar || event.avatarUrl)) || '').trim();
   const presetKey = String((event && event.presetKey) || 'standard').trim().toLowerCase();
-  const mode = normalizeMode(event && event.mode);
+  const mode = modeHelper.normalizeMode(event && event.mode);
   const creatorGender = normalizeGender(event && event.creatorGender);
   const allowOpenTeam = event && Object.prototype.hasOwnProperty.call(event, 'allowOpenTeam')
     ? event.allowOpenTeam === true

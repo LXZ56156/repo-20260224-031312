@@ -43,6 +43,17 @@ function normalizeConflictError(err, fallbackMessage = '操作失败') {
   return new Error(msg);
 }
 
+async function cleanupScoreLocks(db, tournamentId) {
+  const tid = String(tournamentId || '').trim();
+  if (!db || !tid) return;
+  try {
+    await db.collection('score_locks').where({ tournamentId: tid }).remove();
+  } catch (err) {
+    if (isCollectionNotExists(err)) return;
+    throw err;
+  }
+}
+
 module.exports = {
   errMsg,
   isCollectionNotExists,
@@ -51,5 +62,6 @@ module.exports = {
   assertCreator,
   assertDraft,
   assertOptimisticUpdate,
-  normalizeConflictError
+  normalizeConflictError,
+  cleanupScoreLocks
 };

@@ -1,3 +1,5 @@
+const modeHelper = require('./lib/mode');
+
 function parsePosInt(v, maxV) {
   if (v === undefined || v === null || v === '') return null;
   const n = Number(v);
@@ -26,13 +28,6 @@ function comb(n, k) {
     denominator *= i;
   }
   return Math.floor(numerator / denominator);
-}
-
-function normalizeMode(mode) {
-  const v = String(mode || '').trim().toLowerCase();
-  if (v === 'multi_rotate' || v === 'squad_doubles' || v === 'fixed_pair_rr') return v;
-  if (v === 'mixed_fallback' || v === 'doubles') return 'multi_rotate';
-  return 'multi_rotate';
 }
 
 function normalizeGender(gender) {
@@ -69,7 +64,7 @@ function calcMaxMatchesMixed(maleCount, femaleCount, unknownCount, allowOpenTeam
 
 function validateSettings(players, totalMatches, courts, mode = 'multi_rotate', allowOpenTeam = false, pairTeams = []) {
   const list = Array.isArray(players) ? players : [];
-  const normalizedMode = normalizeMode(mode);
+  const normalizedMode = modeHelper.normalizeMode(mode);
   let maxMatches = calcMaxMatches(list.length);
   if (normalizedMode === 'fixed_pair_rr') {
     const teams = Array.isArray(pairTeams) ? pairTeams : [];
@@ -96,7 +91,7 @@ module.exports = {
   parsePosInt,
   calcMaxMatches,
   calcMaxMatchesMixed,
-  normalizeMode,
+  normalizeMode: modeHelper.normalizeMode,
   normalizeGender,
   countGender,
   validateSettings

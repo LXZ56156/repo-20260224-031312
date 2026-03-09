@@ -12,14 +12,27 @@ function isConflictError(err) {
   return msg.includes('冲突') || msg.includes('conflict') || msg.includes('version');
 }
 
-function isDocNotExists(err) {
-  const msg = errMsg(err).toLowerCase();
-  return msg.includes('document.get:fail') || msg.includes('does not exist') || msg.includes('not found');
-}
-
 function assertTournamentExists(t) {
   if (!t) throw new Error('赛事不存在');
   return t;
+}
+
+function assertCreator(t, openid, message = '无权限') {
+  if (!t || !openid || String(t.creatorId || '') !== String(openid || '')) {
+    throw new Error(message);
+  }
+}
+
+function assertDraft(t, message = '非草稿阶段不可操作') {
+  if (!t || String(t.status || '') !== 'draft') {
+    throw new Error(message);
+  }
+}
+
+function assertOptimisticUpdate(updRes, message = '写入冲突，请刷新赛事后重试') {
+  if (!updRes || !updRes.stats || Number(updRes.stats.updated || 0) <= 0) {
+    throw new Error(message);
+  }
 }
 
 function normalizeConflictError(err, fallbackMessage = '操作失败') {
@@ -30,11 +43,25 @@ function normalizeConflictError(err, fallbackMessage = '操作失败') {
   return new Error(msg);
 }
 
+async function cleanupScoreLocks(db, tournamentId) {
+  const tid = String(tournamentId || '').trim();
+  if (!db || !tid) return;
+  try {
+    await db.collection('score_locks').where({ tournamentId: tid }).remove();
+  } catch (err) {
+    if (isCollectionNotExists(err)) return;
+    throw err;
+  }
+}
+
 module.exports = {
   errMsg,
   isCollectionNotExists,
   isConflictError,
-  isDocNotExists,
   assertTournamentExists,
-  normalizeConflictError
+  assertCreator,
+  assertDraft,
+  assertOptimisticUpdate,
+  normalizeConflictError,
+  cleanupScoreLocks
 };

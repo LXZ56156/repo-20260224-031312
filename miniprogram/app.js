@@ -1,4 +1,5 @@
 const auth = require('./core/auth');
+const envConfig = require('./config/env');
 
 App({
   globalData: {
@@ -8,7 +9,8 @@ App({
     needRefreshTournament: '',
     lobbyIntentTournamentId: '',
     lobbyIntentAction: '',
-    adSessionExposureCount: 0
+    adSessionExposureCount: 0,
+    runtimeEnv: envConfig.resolveRuntimeEnv('release')
   },
 
   async onLaunch() {
@@ -17,8 +19,11 @@ App({
       return;
     }
 
+    const runtimeEnv = envConfig.resolveRuntimeEnv();
+    this.globalData.runtimeEnv = runtimeEnv;
+
     wx.cloud.init({
-      env: 'cloud1-1ghmqjyt6428702b',
+      env: runtimeEnv.cloudEnvId,
       traceUser: true
     });
 

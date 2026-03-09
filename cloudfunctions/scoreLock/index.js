@@ -2,14 +2,8 @@ const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const common = require('./lib/common');
-
-const LOCK_TTL_MS = 45 * 1000;
-
-function normalizeAction(action) {
-  const v = String(action || '').trim().toLowerCase();
-  if (v === 'acquire' || v === 'heartbeat' || v === 'release' || v === 'status') return v;
-  return '';
-}
+const permission = require('./lib/permission');
+const logic = require('./logic');
 
 function safePlayerName(player) {
   const raw = player && (player.name || player.nickname || player.nickName || player.displayName);
@@ -18,20 +12,6 @@ function safePlayerName(player) {
   const idRaw = String((player && (player.id || player._id)) || '').trim();
   const suffix = idRaw.replace(/[^0-9a-zA-Z]/g, '').slice(-4);
   return suffix || '球友';
-}
-
-function isAdmin(tournament, openid) {
-  return tournament && openid && String(tournament.creatorId || '') === String(openid || '');
-}
-
-function isParticipant(tournament, openid) {
-  if (!tournament || !openid) return false;
-  const players = Array.isArray(tournament.players) ? tournament.players : [];
-  return players.some((player) => String((player && player.id) || '') === String(openid || ''));
-}
-
-function canUseLock(tournament, openid) {
-  return isAdmin(tournament, openid) || isParticipant(tournament, openid);
 }
 
 function findMatch(tournament, roundIndex, matchIndex) {
@@ -50,10 +30,6 @@ function resolveOwnerName(tournament, ownerId, fallback = '') {
   return fallbackName || '其他成员';
 }
 
-function buildLockId(tournamentId, roundIndex, matchIndex) {
-  return `${String(tournamentId || '').trim()}_${Number(roundIndex)}_${Number(matchIndex)}`;
-}
-
 async function ensureScoreLocksCollection() {
   try {
     if (typeof db.createCollection === 'function') {
@@ -64,34 +40,9 @@ async function ensureScoreLocksCollection() {
   }
 }
 
-function buildOccupiedResult(lockDoc, nowTs, tournament) {
-  const expireAt = Number(lockDoc && lockDoc.expireAt) || 0;
-  const ownerId = String((lockDoc && lockDoc.ownerId) || '').trim();
-  return {
-    ok: false,
-    state: 'occupied',
-    ownerId,
-    ownerName: resolveOwnerName(tournament, ownerId, lockDoc && lockDoc.ownerName),
-    expireAt,
-    remainingMs: Math.max(0, expireAt - nowTs)
-  };
-}
-
-function buildExpiredResult(lockDoc, tournament) {
-  const ownerId = String((lockDoc && lockDoc.ownerId) || '').trim();
-  return {
-    ok: false,
-    state: 'expired',
-    ownerId,
-    ownerName: resolveOwnerName(tournament, ownerId, lockDoc && lockDoc.ownerName),
-    expireAt: Number(lockDoc && lockDoc.expireAt) || 0,
-    remainingMs: 0
-  };
-}
-
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
-  const action = normalizeAction(event && event.action);
+  const action = logic.normalizeAction(event && event.action);
   const tournamentId = String((event && event.tournamentId) || '').trim();
   const roundIndex = Number(event && event.roundIndex);
   const matchIndex = Number(event && event.matchIndex);
@@ -103,14 +54,14 @@ exports.main = async (event) => {
   if (!Number.isFinite(matchIndex) || matchIndex < 0) throw new Error('matchIndex 不合法');
 
   await ensureScoreLocksCollection();
-  const lockId = buildLockId(tournamentId, roundIndex, matchIndex);
+  const lockId = logic.buildLockId(tournamentId, roundIndex, matchIndex);
 
   try {
     return await db.runTransaction(async (transaction) => {
       const tRes = await transaction.collection('tournaments').doc(tournamentId).get();
       const tournament = common.assertTournamentExists(tRes.data);
-      const admin = isAdmin(tournament, OPENID);
-      if (!canUseLock(tournament, OPENID)) {
+      const admin = permission.isAdmin(tournament, OPENID);
+      if (!permission.canEditScore(tournament, OPENID)) {
         return {
           ok: false,
           state: 'forbidden',
@@ -154,102 +105,37 @@ exports.main = async (event) => {
       }
 
       const nowTs = Date.now();
-      const expireAt = Number(lockDoc && lockDoc.expireAt) || 0;
-      const expired = !lockDoc || expireAt <= nowTs;
-      const sameOwner = !!(lockDoc && String(lockDoc.ownerId || '') === String(OPENID || ''));
+      const resolved = logic.resolveLockAction({
+        action,
+        nowTs,
+        lockDoc,
+        admin,
+        force,
+        canUseLock: permission.canEditScore(tournament, OPENID),
+        tournamentStatus: status,
+        matchExists: true,
+        matchStatus: String(match.status || ''),
+        openid: OPENID,
+        ownerName: resolveOwnerName(tournament, OPENID),
+        resolveOwnerName: (ownerId, fallback) => resolveOwnerName(tournament, ownerId, fallback)
+      });
 
-      if (action === 'status') {
-        if (!lockDoc || expired) {
-          return { ok: true, state: 'idle', ownerId: '', ownerName: '', expireAt: 0, remainingMs: 0 };
-        }
-        if (sameOwner) {
-          return {
-            ok: true,
-            state: 'acquired',
-            ownerId: String(OPENID || ''),
-            ownerName: resolveOwnerName(tournament, OPENID, lockDoc.ownerName),
-            expireAt,
-            remainingMs: Math.max(0, expireAt - nowTs)
-          };
-        }
-        return buildOccupiedResult(lockDoc, nowTs, tournament);
-      }
-
-      if (action === 'acquire') {
-        if (lockDoc && !expired && !sameOwner && !(force && admin)) {
-          return buildOccupiedResult(lockDoc, nowTs, tournament);
-        }
-
-        const ownerId = String(OPENID || '');
-        const ownerName = resolveOwnerName(tournament, ownerId);
-        const nextExpireAt = nowTs + LOCK_TTL_MS;
+      if (resolved.nextLockDoc) {
         await transaction.collection('score_locks').doc(lockId).set({
           data: {
             _id: lockId,
             tournamentId,
             roundIndex,
             matchIndex,
-            ownerId,
-            ownerName,
-            expireAt: nextExpireAt,
+            ...resolved.nextLockDoc,
             updatedAt: db.serverDate()
           }
         });
-        return {
-          ok: true,
-          state: 'acquired',
-          ownerId,
-          ownerName,
-          expireAt: nextExpireAt,
-          remainingMs: LOCK_TTL_MS
-        };
       }
-
-      if (action === 'heartbeat') {
-        if (!lockDoc || expired) {
-          return buildExpiredResult(lockDoc, tournament);
-        }
-        if (!sameOwner && !(force && admin)) {
-          return buildOccupiedResult(lockDoc, nowTs, tournament);
-        }
-        const ownerId = sameOwner ? String(lockDoc.ownerId || '') : String(OPENID || '');
-        const ownerName = resolveOwnerName(tournament, ownerId, lockDoc.ownerName);
-        const nextExpireAt = nowTs + LOCK_TTL_MS;
-        await transaction.collection('score_locks').doc(lockId).set({
-          data: {
-            ...lockDoc,
-            _id: lockId,
-            tournamentId,
-            roundIndex,
-            matchIndex,
-            ownerId,
-            ownerName,
-            expireAt: nextExpireAt,
-            updatedAt: db.serverDate()
-          }
-        });
-        return {
-          ok: true,
-          state: 'acquired',
-          ownerId,
-          ownerName,
-          expireAt: nextExpireAt,
-          remainingMs: LOCK_TTL_MS
-        };
-      }
-
-      if (action === 'release') {
-        if (!lockDoc || expired) {
-          return { ok: true, state: 'released', ownerId: '', ownerName: '', expireAt: 0, remainingMs: 0 };
-        }
-        if (!sameOwner && !(force && admin)) {
-          return buildOccupiedResult(lockDoc, nowTs, tournament);
-        }
+      if (resolved.removeLock) {
         await transaction.collection('score_locks').doc(lockId).remove();
-        return { ok: true, state: 'released', ownerId: '', ownerName: '', expireAt: 0, remainingMs: 0 };
       }
-
-      throw new Error('不支持的 action');
+      return resolved.response;
     });
   } catch (err) {
     if (common.isCollectionNotExists(err)) {

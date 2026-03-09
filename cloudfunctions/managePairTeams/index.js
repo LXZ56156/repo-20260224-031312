@@ -4,13 +4,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 const logic = require('./logic');
-
-function normalizeMode(mode) {
-  const v = String(mode || '').trim().toLowerCase();
-  if (v === 'multi_rotate' || v === 'squad_doubles' || v === 'fixed_pair_rr') return v;
-  if (v === 'mixed_fallback' || v === 'doubles') return 'multi_rotate';
-  return 'multi_rotate';
-}
+const modeHelper = require('./lib/mode');
 
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
@@ -24,7 +18,7 @@ exports.main = async (event) => {
   if (!t) throw new Error('赛事不存在');
   if (String(t.creatorId || '') !== String(OPENID || '')) throw new Error('仅管理员可管理队伍');
   if (String(t.status || '') !== 'draft') throw new Error('仅草稿阶段可管理队伍');
-  if (normalizeMode(t.mode) !== 'fixed_pair_rr') throw new Error('仅固搭循环赛支持队伍管理');
+  if (modeHelper.normalizeMode(t.mode) !== 'fixed_pair_rr') throw new Error('仅固搭循环赛支持队伍管理');
 
   const players = Array.isArray(t.players) ? t.players : [];
   const validPlayerIds = logic.buildValidPlayerIds(players);

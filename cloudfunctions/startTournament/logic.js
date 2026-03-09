@@ -1,3 +1,5 @@
+const modeHelper = require('./lib/mode');
+
 function calcMaxMatches(n) {
   const nn = Number(n) || 0;
   if (nn < 4) return 0;
@@ -18,13 +20,6 @@ function comb(n, k) {
     denominator *= i;
   }
   return Math.floor(numerator / denominator);
-}
-
-function normalizeMode(mode) {
-  const v = String(mode || '').trim().toLowerCase();
-  if (v === 'multi_rotate' || v === 'squad_doubles' || v === 'fixed_pair_rr') return v;
-  if (v === 'mixed_fallback' || v === 'doubles') return 'multi_rotate';
-  return 'multi_rotate';
 }
 
 function normalizeGender(gender) {
@@ -64,7 +59,7 @@ function validateBeforeGenerate(tournament) {
   const players = Array.isArray(t.players) ? t.players : [];
   if (players.length < 4) throw new Error('参赛人数不足 4 人');
 
-  const mode = normalizeMode(t.mode);
+  const mode = modeHelper.normalizeMode(t.mode);
   const allowOpenTeam = false;
 
   const rules = t && t.rules && typeof t.rules === 'object' ? t.rules : {};
@@ -115,7 +110,7 @@ function validateBeforeGenerate(tournament) {
 module.exports = {
   calcMaxMatches,
   calcMaxMatchesMixed,
-  normalizeMode,
+  normalizeMode: modeHelper.normalizeMode,
   normalizeGender,
   countGender,
   validateBeforeGenerate
