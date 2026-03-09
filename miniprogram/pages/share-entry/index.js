@@ -193,8 +193,8 @@ Page({
     this.setData({ joinSquadChoice: squad });
   },
 
-  goLobby() {
-    wx.navigateTo({ url: flow.buildLobbyUrl(this.data.tournamentId) });
+  goLobby(entryMode = '') {
+    wx.navigateTo({ url: flow.buildLobbyUrl(this.data.tournamentId, entryMode) });
   },
 
   goSchedule() {
@@ -266,6 +266,7 @@ Page({
   onSecondaryAction() {
     const key = String((this.data.preview && this.data.preview.secondaryAction && this.data.preview.secondaryAction.key) || '').trim();
     if (key === 'lobby') return this.goLobby();
+    if (key === 'lobby_view') return this.goLobby('view_only');
     if (key === 'ranking') return this.goRanking();
     if (key === 'home') return this.goHome();
   }

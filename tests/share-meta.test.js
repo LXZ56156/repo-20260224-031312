@@ -41,6 +41,7 @@ test('shareMeta builds join preview for draft tournaments', () => {
   assert.equal(preview.viewModeLabel, '先看后加入');
   assert.equal(preview.joinAllowed, true);
   assert.equal(preview.primaryAction.text, '加入比赛');
+  assert.equal(preview.secondaryAction.text, '查看完整名单');
   assert.equal(preview.organizerName, '组织者');
 });
 

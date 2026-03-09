@@ -150,7 +150,9 @@ function buildPrimaryAction({ lifecycle, joined, joinAllowed }) {
 }
 
 function buildSecondaryAction({ lifecycle, joined }) {
-  if (lifecycle === 'draft') return { key: 'lobby', text: joined ? '查看比赛详情' : '先看比赛详情' };
+  if (lifecycle === 'draft') return joined
+    ? { key: 'lobby', text: '查看比赛详情' }
+    : { key: 'lobby_view', text: '查看完整名单' };
   if (lifecycle === 'running') return { key: 'ranking', text: '查看排名' };
   if (lifecycle === 'finished') return { key: 'ranking', text: '查看排名' };
   return null;

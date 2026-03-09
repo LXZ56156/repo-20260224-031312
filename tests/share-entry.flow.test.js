@@ -18,6 +18,7 @@ test('share-entry flow builders keep links compatible with old params', () => {
   assert.equal(flow.normalizeIntent('unknown'), 'view');
   assert.match(flow.buildReturnUrl('tid_1', 'join'), /pages\/share-entry\/index\?tournamentId=tid_1&intent=join/);
   assert.match(flow.buildLobbyUrl('tid_1'), /pages\/lobby\/index\?tournamentId=tid_1&fromShare=1/);
+  assert.match(flow.buildLobbyUrl('tid_1', 'view_only'), /pages\/lobby\/index\?tournamentId=tid_1&fromShare=1&entry=view_only/);
   assert.match(flow.buildScheduleUrl('tid_1'), /pages\/schedule\/index\?tournamentId=tid_1/);
   assert.match(flow.buildRankingUrl('tid_1'), /pages\/ranking\/index\?tournamentId=tid_1/);
   assert.match(flow.buildAnalyticsUrl('tid_1'), /pages\/analytics\/index\?tournamentId=tid_1/);

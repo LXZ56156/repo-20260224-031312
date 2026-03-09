@@ -166,7 +166,13 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
   const isAdmin = perm.isAdmin(t, openid);
   const myPlayer = openid ? players.find((player) => player && player.id === openid) : null;
   const myJoined = !!myPlayer;
-  const showJoin = status === 'draft' && !myJoined;
+  const isViewOnlyEntry = status === 'draft'
+    && !myJoined
+    && !isAdmin
+    && String(data.entryMode || '').trim().toLowerCase() === 'view_only'
+    && !data.viewOnlyJoinExpanded;
+  const showViewOnlyJoinPrompt = isViewOnlyEntry;
+  const showJoin = status === 'draft' && !myJoined && !showViewOnlyJoinPrompt;
   const showMyProfile = status === 'draft' && myJoined;
   const showAllPlayers = !!data.showAllPlayers;
   const displayPlayers = buildDisplayPlayers(showAllPlayers ? players : players.slice(0, 12), avatarCache);
@@ -325,8 +331,9 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       checkStartReady,
       canEditScore,
       hasPending,
-      nextActionKey: showJoin ? '' : nextAction.key,
-      nextActionText: showJoin ? '' : nextAction.text,
+      nextActionKey: (showJoin || showViewOnlyJoinPrompt) ? '' : nextAction.key,
+      nextActionText: (showJoin || showViewOnlyJoinPrompt) ? '' : nextAction.text,
+      showViewOnlyJoinPrompt,
       shareCardTitle: String(shareMessage.panelTitle || '分享比赛'),
       shareCardHint: String(shareMessage.panelHint || ''),
       shareCardBadge: String(shareMessage.badgeText || statusText),

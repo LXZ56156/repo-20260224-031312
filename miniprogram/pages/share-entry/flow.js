@@ -14,8 +14,11 @@ function buildReturnUrl(tournamentId, intent = 'view') {
   return `/pages/share-entry/index?tournamentId=${encodeURIComponent(String(tournamentId || '').trim())}&intent=${encodeURIComponent(normalizeIntent(intent))}`;
 }
 
-function buildLobbyUrl(tournamentId) {
-  return `/pages/lobby/index?tournamentId=${encodeURIComponent(String(tournamentId || '').trim())}&fromShare=1`;
+function buildLobbyUrl(tournamentId, entry = '') {
+  const tid = encodeURIComponent(String(tournamentId || '').trim());
+  const normalizedEntry = String(entry || '').trim().toLowerCase();
+  const entryQuery = normalizedEntry ? `&entry=${encodeURIComponent(normalizedEntry)}` : '';
+  return `/pages/lobby/index?tournamentId=${tid}&fromShare=1${entryQuery}`;
 }
 
 function buildScheduleUrl(tournamentId) {

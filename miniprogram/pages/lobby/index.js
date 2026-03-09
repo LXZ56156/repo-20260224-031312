@@ -29,6 +29,9 @@ Page({
     isAdmin: false,
 
     showJoin: false,
+    showViewOnlyJoinPrompt: false,
+    entryMode: '',
+    viewOnlyJoinExpanded: false,
     showAllPlayers: false,
     playersPreview: [],
     displayPlayers: [],
@@ -119,7 +122,12 @@ Page({
 
   onLoad(options) {
     const tid = tournamentEntry.parseTournamentIdFromOptions(options || {});
-    this.setData({ tournamentId: tid });
+    const entryMode = String((options && options.entry) || '').trim().toLowerCase() === 'view_only' ? 'view_only' : '';
+    this.setData({
+      tournamentId: tid,
+      entryMode,
+      viewOnlyJoinExpanded: false
+    });
     this._fromCreate = String((options && options.fromCreate) || '') === '1';
     this._showShareHint = this._fromCreate && String((options && options.shareTip) || '') === '1';
     this._pendingIntentAction = '';
@@ -268,6 +276,13 @@ Page({
     wx.reLaunch({
       url: '/pages/home/index',
       fail: () => wx.navigateTo({ url: '/pages/home/index' })
+    });
+  },
+
+  enterJoinFromViewOnly() {
+    this.setData({
+      viewOnlyJoinExpanded: true,
+      profileNicknameFocus: true
     });
   },
 

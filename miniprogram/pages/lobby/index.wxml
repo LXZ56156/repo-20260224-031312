@@ -100,6 +100,15 @@
     </view>
   </view>
 
+  <view class="card panel panel-soft profile-panel reveal reveal-4" wx:if="{{showViewOnlyJoinPrompt}}">
+    <view class="section-head">
+      <view class="section-title">当前仅查看比赛信息</view>
+      <text class="count-pill">不会自动加入</text>
+    </view>
+    <view class="muted small profile-hint">你正在查看比赛详情和参赛名单。如需参赛，请先点击“我要加入”，再填写资料并确认加入。</view>
+    <button class="btn btn-primary" bindtap="enterJoinFromViewOnly">我要加入</button>
+  </view>
+
   <view class="card panel panel-soft profile-panel reveal reveal-4" wx:if="{{showJoin || showMyProfile}}">
     <view class="section-head">
       <view class="section-title">{{showJoin ? '参赛信息' : '我的信息'}}</view>
