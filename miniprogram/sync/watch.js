@@ -137,12 +137,34 @@ function startPolling(tournamentId, onData, onError) {
   });
 }
 
+function createPollingSource(channel, tournamentId) {
+  return startPolling(
+    tournamentId,
+    (doc) => {
+      if (!channel || channel.disposed) return;
+      emitData(channel, doc);
+    },
+    (err) => {
+      if (!channel || channel.disposed) return;
+      const type = classifyWatchError(err);
+      console.warn(`[watch:poll:${type}]`, err);
+      emitError(channel, err);
+    }
+  );
+}
+
 function closeSource(channel) {
   const src = channel && channel.source;
   if (src && src.close) {
     try { src.close(); } catch (e) {}
   }
   if (channel) channel.source = null;
+}
+
+function fallbackToPolling(channel, tournamentId) {
+  if (!channel || channel.disposed) return;
+  closeSource(channel);
+  channel.source = createPollingSource(channel, tournamentId);
 }
 
 function disposeChannel(channel) {
@@ -193,24 +215,11 @@ function attachSource(channel, tournamentId) {
         if (channel.disposed) return;
         const type = classifyWatchError(err);
         console.warn(`[watch:realtime:${type}]`, err);
-        if (isRealtimeNotSupported(err)) {
-          if (!fallback) {
-            fallback = true;
-            closeSource(channel);
-            channel.source = startPolling(
-              tournamentId,
-              (doc) => { if (!channel.disposed) emitData(channel, doc); },
-              (e) => {
-                if (channel.disposed) return;
-                const pType = classifyWatchError(e);
-                console.warn(`[watch:poll:${pType}]`, e);
-                emitError(channel, e);
-              }
-            );
-          }
-          return;
-        }
         emitError(channel, err);
+        if ((type === 'realtime_not_supported' || type === 'network' || type === 'unknown') && !fallback) {
+          fallback = true;
+          fallbackToPolling(channel, tournamentId);
+        }
       }
     });
 
@@ -218,16 +227,7 @@ function attachSource(channel, tournamentId) {
   } catch (err) {
     const type = classifyWatchError(err);
     console.warn(`[watch:attach:${type}]`, err);
-    channel.source = startPolling(
-      tournamentId,
-      (doc) => { if (!channel.disposed) emitData(channel, doc); },
-      (e) => {
-        if (channel.disposed) return;
-        const pType = classifyWatchError(e);
-        console.warn(`[watch:poll:${pType}]`, e);
-        emitError(channel, e);
-      }
-    );
+    channel.source = createPollingSource(channel, tournamentId);
   }
 }
 
@@ -271,5 +271,6 @@ function closeWatch(tournamentId) {
 module.exports = {
   watchTournament,
   closeWatch,
-  createPollingController
+  createPollingController,
+  classifyWatchError
 };
