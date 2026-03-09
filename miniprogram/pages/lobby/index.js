@@ -171,11 +171,13 @@ Page({
   },
 
   onHide() {
+    this.invalidateFetchSeq();
     this.invalidateWatchGen();
     tournamentSync.closeWatcher(this);
   },
 
   onUnload() {
+    this.invalidateFetchSeq();
     this.invalidateWatchGen();
     tournamentSync.closeWatcher(this);
     if (this._sharePulseTimer) clearTimeout(this._sharePulseTimer);
@@ -207,6 +209,10 @@ Page({
 
   isLatestFetchSeq(requestSeq) {
     return Number(requestSeq) === Number(this._fetchSeq || 0);
+  },
+
+  invalidateFetchSeq() {
+    this._fetchSeq = Number(this._fetchSeq || 0) + 1;
   },
 
   nextWatchGen() {

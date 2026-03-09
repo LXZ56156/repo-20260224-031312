@@ -96,3 +96,33 @@ test('schedule page ignores stale watch callbacks after restarting watch', () =>
     delete require.cache[schedulePagePath];
   }
 });
+
+test('schedule page ignores fetch responses after onHide invalidates the page request', async () => {
+  const originalFetchTournament = tournamentSync.fetchTournament;
+
+  try {
+    const definition = loadSchedulePageDefinition();
+    const ctx = createSchedulePageContext(definition);
+    const resolvers = [];
+
+    tournamentSync.fetchTournament = async () => new Promise((resolve) => {
+      resolvers.push(resolve);
+    });
+
+    const pending = ctx.fetchTournament('t_1');
+    ctx.onHide();
+
+    resolvers[0]({
+      ok: true,
+      source: 'remote',
+      doc: { _id: 't_1', name: 'Should Be Ignored' }
+    });
+
+    const result = await pending;
+    assert.equal(result, null);
+    assert.equal(ctx.latestTournament, undefined);
+  } finally {
+    tournamentSync.fetchTournament = originalFetchTournament;
+    delete require.cache[schedulePagePath];
+  }
+});

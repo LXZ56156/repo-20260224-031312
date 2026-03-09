@@ -55,6 +55,7 @@ Page({
   },
 
   onHide() {
+    this.invalidateFetchSeq();
     this.invalidateWatchGen();
     tournamentSync.closeWatcher(this);
   },
@@ -69,6 +70,7 @@ Page({
   },
 
   onUnload() {
+    this.invalidateFetchSeq();
     this.invalidateWatchGen();
     tournamentSync.closeWatcher(this);
   },
@@ -80,6 +82,10 @@ Page({
 
   isLatestFetchSeq(requestSeq) {
     return Number(requestSeq) === Number(this._fetchSeq || 0);
+  },
+
+  invalidateFetchSeq() {
+    this._fetchSeq = Number(this._fetchSeq || 0) + 1;
   },
 
   nextWatchGen() {
