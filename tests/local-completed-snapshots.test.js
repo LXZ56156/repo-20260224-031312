@@ -2,8 +2,10 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const memory = new Map();
+let legacyReadCount = 0;
 global.wx = {
   getStorageSync(key) {
+    if (String(key || '').startsWith('local_tournament_snapshot_')) legacyReadCount += 1;
     return memory.has(key) ? memory.get(key) : undefined;
   },
   setStorageSync(key, value) {
@@ -19,6 +21,7 @@ const storage = require('../miniprogram/core/storage');
 
 function resetStore() {
   memory.clear();
+  legacyReadCount = 0;
 }
 
 function buildTournament(id, updatedAt) {
@@ -69,6 +72,7 @@ test('local completed tournament snapshots can read legacy per-key cache and bac
   assert.deepEqual(snapshots.map((item) => item._id), ['t_legacy']);
   const snapshotMap = storage.get('local_completed_tournament_map_v2', {});
   assert.equal(snapshotMap.t_legacy._id, 't_legacy');
+  assert.equal(storage.getLocalCompletedTournamentCompatVersion(), 1);
 });
 
 test('local tournament snapshot prefers newer legacy entry and backfills aggregate map', () => {
@@ -93,6 +97,10 @@ test('local tournament snapshot prefers newer legacy entry and backfills aggrega
   const snapshot = storage.getLocalTournamentSnapshot('t_sync');
   assert.equal(snapshot.updatedAtTs, 200);
   assert.equal(storage.get('local_completed_tournament_map_v2', {}).t_sync.updatedAtTs, 200);
+  legacyReadCount = 0;
+  const cached = storage.getLocalTournamentSnapshot('t_sync');
+  assert.equal(cached.updatedAtTs, 200);
+  assert.equal(legacyReadCount, 0);
 });
 
 test('local completed tournament snapshots prefer newer legacy entries over stale aggregate map', () => {
@@ -119,6 +127,11 @@ test('local completed tournament snapshots prefer newer legacy entries over stal
   assert.equal(snapshots.length, 1);
   assert.equal(snapshots[0].updatedAtTs, 300);
   assert.equal(storage.get('local_completed_tournament_map_v2', {}).t_a.updatedAtTs, 300);
+  assert.equal(storage.getLocalCompletedTournamentCompatVersion(), 1);
+  legacyReadCount = 0;
+  const nextSnapshots = storage.getLocalCompletedTournamentSnapshots();
+  assert.equal(nextSnapshots[0].updatedAtTs, 300);
+  assert.equal(legacyReadCount, 0);
 });
 
 test('local completed tournament snapshots trim overflow entries from aggregate map too', () => {

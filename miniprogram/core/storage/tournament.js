@@ -5,9 +5,11 @@ const { get, set, del } = require('./base');
 const RECENT_TOURNAMENTS_KEY = 'recentTournaments';
 const LOCAL_COMPLETED_TOURNAMENT_IDS_KEY = 'local_completed_tournament_ids_v1';
 const LOCAL_COMPLETED_TOURNAMENT_MAP_KEY = 'local_completed_tournament_map_v2';
+const LOCAL_COMPLETED_TOURNAMENT_COMPAT_VERSION_KEY = 'local_completed_tournament_compat_version_v1';
 const LOCAL_TOURNAMENT_SNAPSHOT_PREFIX = 'local_tournament_snapshot_';
 const LOCAL_TOURNAMENT_CACHE_PREFIX = 'local_tournament_cache_';
 const LOCAL_COMPLETED_MAX = 500;
+const LOCAL_COMPLETED_TOURNAMENT_COMPAT_VERSION = 1;
 
 function getRecentTournamentIds() {
   const ids = get(RECENT_TOURNAMENTS_KEY, []);
@@ -87,23 +89,74 @@ function setLocalCompletedTournamentMap(map) {
   set(LOCAL_COMPLETED_TOURNAMENT_MAP_KEY, value);
 }
 
+function getLocalCompletedTournamentCompatVersion() {
+  return Number(get(LOCAL_COMPLETED_TOURNAMENT_COMPAT_VERSION_KEY, 0)) || 0;
+}
+
+function setLocalCompletedTournamentCompatVersion(version = LOCAL_COMPLETED_TOURNAMENT_COMPAT_VERSION) {
+  set(LOCAL_COMPLETED_TOURNAMENT_COMPAT_VERSION_KEY, Number(version) || 0);
+}
+
 function setLocalCompletedTournamentIds(ids) {
   const next = Array.isArray(ids) ? ids.map((id) => String(id || '').trim()).filter(Boolean) : [];
   set(LOCAL_COMPLETED_TOURNAMENT_IDS_KEY, next);
 }
 
+function needsLegacySnapshotMigration() {
+  return getLocalCompletedTournamentCompatVersion() < LOCAL_COMPLETED_TOURNAMENT_COMPAT_VERSION;
+}
+
+function readLegacySnapshotById(tournamentId) {
+  return get(getLocalTournamentSnapshotKey(tournamentId), null);
+}
+
+function migrateLocalCompletedSnapshotMap(ids = getLocalCompletedTournamentIds()) {
+  const list = Array.isArray(ids) ? ids.map((id) => String(id || '').trim()).filter(Boolean) : [];
+  const snapshotMap = getLocalCompletedTournamentMap();
+  let mapChanged = false;
+
+  for (const id of list) {
+    const preferred = choosePreferredSnapshot(
+      snapshotMap[id],
+      readLegacySnapshotById(id)
+    );
+    if (preferred.source === 'legacy' && preferred.snapshot) {
+      snapshotMap[id] = preferred.snapshot;
+      mapChanged = true;
+    }
+  }
+
+  if (mapChanged) setLocalCompletedTournamentMap(snapshotMap);
+  setLocalCompletedTournamentCompatVersion();
+  return mapChanged ? getLocalCompletedTournamentMap() : snapshotMap;
+}
+
 function getLocalTournamentSnapshot(tournamentId) {
   const tid = String(tournamentId || '').trim();
   if (!tid) return null;
-  const snapshotMap = getLocalCompletedTournamentMap();
+  const needsMigration = needsLegacySnapshotMigration();
+  const snapshotMap = needsMigration
+    ? migrateLocalCompletedSnapshotMap()
+    : getLocalCompletedTournamentMap();
   const mapSnapshot = snapshotMap[tid];
-  const legacySnapshot = get(getLocalTournamentSnapshotKey(tid), null);
-  const preferred = choosePreferredSnapshot(mapSnapshot, legacySnapshot);
-  if (preferred.source === 'legacy') {
-    snapshotMap[tid] = preferred.snapshot;
-    setLocalCompletedTournamentMap(snapshotMap);
+  if (needsMigration) {
+    const preferred = choosePreferredSnapshot(mapSnapshot, readLegacySnapshotById(tid));
+    if (preferred.snapshot && preferred.snapshot !== mapSnapshot) {
+      snapshotMap[tid] = preferred.snapshot;
+      setLocalCompletedTournamentMap(snapshotMap);
+    }
+    if (preferred.snapshot) return preferred.snapshot;
   }
-  return preferred.snapshot;
+  if (mapSnapshot && typeof mapSnapshot === 'object') return mapSnapshot;
+
+  const legacySnapshot = readLegacySnapshotById(tid);
+  if (legacySnapshot && typeof legacySnapshot === 'object') {
+    snapshotMap[tid] = legacySnapshot;
+    setLocalCompletedTournamentMap(snapshotMap);
+    setLocalCompletedTournamentCompatVersion();
+    return legacySnapshot;
+  }
+  return null;
 }
 
 function setLocalTournamentSnapshot(tournamentId, snapshot) {
@@ -113,6 +166,7 @@ function setLocalTournamentSnapshot(tournamentId, snapshot) {
   const snapshotMap = getLocalCompletedTournamentMap();
   snapshotMap[tid] = snapshot;
   setLocalCompletedTournamentMap(snapshotMap);
+  setLocalCompletedTournamentCompatVersion();
 }
 
 function getLocalTournamentCache(tournamentId) {
@@ -145,6 +199,7 @@ function removeLocalCompletedTournamentSnapshot(tournamentId) {
     delete snapshotMap[tid];
     setLocalCompletedTournamentMap(snapshotMap);
   }
+  setLocalCompletedTournamentCompatVersion();
 }
 
 function buildLocalTournamentSnapshot(tournament) {
@@ -225,26 +280,28 @@ function upsertLocalCompletedTournamentSnapshot(tournament, openid = '') {
   }
   setLocalCompletedTournamentMap(snapshotMap);
   setLocalCompletedTournamentIds(nextIds.slice(0, LOCAL_COMPLETED_MAX));
+  setLocalCompletedTournamentCompatVersion();
   return true;
 }
 
 function getLocalCompletedTournamentSnapshots() {
   const ids = getLocalCompletedTournamentIds();
-  const snapshotMap = getLocalCompletedTournamentMap();
+  const snapshotMap = needsLegacySnapshotMigration()
+    ? migrateLocalCompletedSnapshotMap(ids)
+    : getLocalCompletedTournamentMap();
   const out = [];
-  let mapChanged = false;
   for (const id of ids) {
-    const preferred = choosePreferredSnapshot(
-      snapshotMap[id],
-      get(getLocalTournamentSnapshotKey(id), null)
-    );
-    if (preferred.source === 'legacy' && preferred.snapshot) {
-      snapshotMap[id] = preferred.snapshot;
-      mapChanged = true;
+    let snapshot = snapshotMap[id];
+    if ((!snapshot || typeof snapshot !== 'object') && id) {
+      snapshot = readLegacySnapshotById(id);
+      if (snapshot && typeof snapshot === 'object') {
+        snapshotMap[id] = snapshot;
+        setLocalCompletedTournamentMap(snapshotMap);
+        setLocalCompletedTournamentCompatVersion();
+      }
     }
-    if (preferred.snapshot) out.push(preferred.snapshot);
+    if (snapshot && typeof snapshot === 'object') out.push(snapshot);
   }
-  if (mapChanged) setLocalCompletedTournamentMap(snapshotMap);
   out.sort((a, b) => (Number(b.updatedAtTs) || 0) - (Number(a.updatedAtTs) || 0));
   return out;
 }
@@ -267,6 +324,10 @@ module.exports = {
   setLocalCompletedTournamentIds,
   getLocalCompletedTournamentMap,
   setLocalCompletedTournamentMap,
+  getLocalCompletedTournamentCompatVersion,
+  setLocalCompletedTournamentCompatVersion,
+  needsLegacySnapshotMigration,
+  migrateLocalCompletedSnapshotMap,
   buildLocalTournamentSnapshot,
   getCurrentOpenid,
   snapshotUpdatedAtTs,
