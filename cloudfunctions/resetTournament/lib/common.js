@@ -12,6 +12,11 @@ function isConflictError(err) {
   return msg.includes('冲突') || msg.includes('conflict') || msg.includes('version');
 }
 
+function isDocNotExists(err) {
+  const msg = errMsg(err).toLowerCase();
+  return msg.includes('document.get:fail') || msg.includes('does not exist') || msg.includes('not found');
+}
+
 function assertTournamentExists(t) {
   if (!t) throw new Error('赛事不存在');
   return t;
@@ -58,6 +63,7 @@ module.exports = {
   errMsg,
   isCollectionNotExists,
   isConflictError,
+  isDocNotExists,
   assertTournamentExists,
   assertCreator,
   assertDraft,
