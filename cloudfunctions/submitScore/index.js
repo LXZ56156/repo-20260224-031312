@@ -46,8 +46,7 @@ async function readScoreLock(lockId) {
     return res && res.data ? res.data : null;
   } catch (err) {
     if (common.isCollectionNotExists(err)) return null;
-    const msg = common.errMsg(err).toLowerCase();
-    if (msg.includes('document.get:fail') || msg.includes('does not exist') || msg.includes('not found')) return null;
+    if (common.isDocNotExists(err)) return null;
     throw err;
   }
 }
