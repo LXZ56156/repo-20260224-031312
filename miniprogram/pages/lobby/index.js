@@ -134,7 +134,8 @@ Page({
     }
 
     this.openid = getApp().globalData.openid || storage.get('openid', '');
-    this._pageRequestSeq = 0;
+    this._fetchSeq = 0;
+    this._watchGen = 0;
     const sessionMinutes = flow.normalizeSessionMinutes(storage.getSessionMinutesPref(), flow.DEFAULT_SESSION_MINUTES);
     const slotMinutes = flow.normalizeSlotMinutes(storage.getSlotMinutesPref(), flow.DEFAULT_SLOT_MINUTES);
     this.setData({
@@ -163,10 +164,12 @@ Page({
   },
 
   onHide() {
+    this.invalidateWatchGen();
     tournamentSync.closeWatcher(this);
   },
 
   onUnload() {
+    this.invalidateWatchGen();
     tournamentSync.closeWatcher(this);
     if (this._sharePulseTimer) clearTimeout(this._sharePulseTimer);
     this._sharePulseTimer = null;
@@ -190,28 +193,41 @@ Page({
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
   },
 
-  nextRequestSeq() {
-    this._pageRequestSeq = Number(this._pageRequestSeq || 0) + 1;
-    return this._pageRequestSeq;
+  nextFetchSeq() {
+    this._fetchSeq = Number(this._fetchSeq || 0) + 1;
+    return this._fetchSeq;
   },
 
-  isLatestRequestSeq(requestSeq) {
-    return Number(requestSeq) === Number(this._pageRequestSeq || 0);
+  isLatestFetchSeq(requestSeq) {
+    return Number(requestSeq) === Number(this._fetchSeq || 0);
+  },
+
+  nextWatchGen() {
+    this._watchGen = Number(this._watchGen || 0) + 1;
+    return this._watchGen;
+  },
+
+  isActiveWatchGen(watchGen) {
+    return Number(watchGen) === Number(this._watchGen || 0);
+  },
+
+  invalidateWatchGen() {
+    this._watchGen = Number(this._watchGen || 0) + 1;
   },
 
   startWatch(tid) {
+    const watchGen = this.nextWatchGen();
     tournamentSync.startWatch(this, tid, (doc) => {
-      const requestSeq = this.nextRequestSeq();
-      if (!this.isLatestRequestSeq(requestSeq)) return;
+      if (!this.isActiveWatchGen(watchGen)) return;
       this.setData({ showStaleSyncHint: false });
       this.setTournament(doc);
     });
   },
 
   async fetchTournament(tid) {
-    const requestSeq = this.nextRequestSeq();
+    const requestSeq = this.nextFetchSeq();
     const result = await tournamentSync.fetchTournament(tid);
-    if (!this.isLatestRequestSeq(requestSeq)) return null;
+    if (!this.isLatestFetchSeq(requestSeq)) return null;
     if (result && result.ok && result.doc) {
       this.setData({ showStaleSyncHint: false });
       this.setTournament(result.doc);

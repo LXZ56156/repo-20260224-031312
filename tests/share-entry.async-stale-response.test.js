@@ -3,21 +3,21 @@ const assert = require('node:assert/strict');
 
 const tournamentSync = require('../miniprogram/core/tournamentSync');
 
-const schedulePagePath = require.resolve('../miniprogram/pages/schedule/index.js');
+const shareEntryPagePath = require.resolve('../miniprogram/pages/share-entry/index.js');
 
-function loadSchedulePageDefinition() {
+function loadShareEntryPageDefinition() {
   const originalPage = global.Page;
   let definition = null;
   global.Page = (options) => {
     definition = options;
   };
-  delete require.cache[schedulePagePath];
-  require(schedulePagePath);
+  delete require.cache[shareEntryPagePath];
+  require(shareEntryPagePath);
   global.Page = originalPage;
   return definition;
 }
 
-function createSchedulePageContext(definition) {
+function createShareEntryPageContext(definition) {
   const ctx = {
     data: JSON.parse(JSON.stringify(definition.data)),
     setData(update) {
@@ -35,12 +35,12 @@ function createSchedulePageContext(definition) {
   return ctx;
 }
 
-test('schedule page ignores stale fetchTournament responses', async () => {
+test('share-entry page ignores stale fetchTournament responses', async () => {
   const originalFetchTournament = tournamentSync.fetchTournament;
 
   try {
-    const definition = loadSchedulePageDefinition();
-    const ctx = createSchedulePageContext(definition);
+    const definition = loadShareEntryPageDefinition();
+    const ctx = createShareEntryPageContext(definition);
     const resolvers = [];
 
     tournamentSync.fetchTournament = async () => new Promise((resolve) => {
@@ -53,31 +53,31 @@ test('schedule page ignores stale fetchTournament responses', async () => {
     resolvers[1]({
       ok: true,
       source: 'remote',
-      doc: { _id: 't_1', name: 'Fresh Schedule Tournament' }
+      doc: { _id: 't_1', name: 'Fresh Share Tournament' }
     });
     await second;
 
     resolvers[0]({
       ok: true,
       source: 'remote',
-      doc: { _id: 't_1', name: 'Stale Schedule Tournament' }
+      doc: { _id: 't_1', name: 'Stale Share Tournament' }
     });
     const firstResult = await first;
 
     assert.equal(firstResult, null);
-    assert.equal(ctx.latestTournament && ctx.latestTournament.name, 'Fresh Schedule Tournament');
+    assert.equal(ctx.latestTournament && ctx.latestTournament.name, 'Fresh Share Tournament');
   } finally {
     tournamentSync.fetchTournament = originalFetchTournament;
-    delete require.cache[schedulePagePath];
+    delete require.cache[shareEntryPagePath];
   }
 });
 
-test('schedule page ignores stale watch callbacks after restarting watch', () => {
+test('share-entry page ignores stale watch callbacks after restarting watch', () => {
   const originalStartWatch = tournamentSync.startWatch;
 
   try {
-    const definition = loadSchedulePageDefinition();
-    const ctx = createSchedulePageContext(definition);
+    const definition = loadShareEntryPageDefinition();
+    const ctx = createShareEntryPageContext(definition);
     const watchers = [];
 
     tournamentSync.startWatch = (_page, _tid, onData) => {
@@ -87,12 +87,12 @@ test('schedule page ignores stale watch callbacks after restarting watch', () =>
     ctx.startWatch('t_1');
     ctx.startWatch('t_1');
 
-    watchers[0]({ _id: 't_1', name: 'Stale Schedule Watch Tournament' });
-    watchers[1]({ _id: 't_1', name: 'Fresh Schedule Watch Tournament' });
+    watchers[0]({ _id: 't_1', name: 'Stale Share Watch Tournament' });
+    watchers[1]({ _id: 't_1', name: 'Fresh Share Watch Tournament' });
 
-    assert.equal(ctx.latestTournament && ctx.latestTournament.name, 'Fresh Schedule Watch Tournament');
+    assert.equal(ctx.latestTournament && ctx.latestTournament.name, 'Fresh Share Watch Tournament');
   } finally {
     tournamentSync.startWatch = originalStartWatch;
-    delete require.cache[schedulePagePath];
+    delete require.cache[shareEntryPagePath];
   }
 });

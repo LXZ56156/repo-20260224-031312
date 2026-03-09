@@ -49,7 +49,8 @@ Page({
     const tournamentId = flow.parseTournamentId(options || {});
     const intent = flow.normalizeIntent(options && options.intent);
     this.openid = '';
-    this._pageRequestSeq = 0;
+    this._fetchSeq = 0;
+    this._watchGen = 0;
     this.setData({ tournamentId, intent });
     if (!tournamentId) {
       this.setData({ preview: shareMeta.buildInvalidShareEntryState('链接无效') });
@@ -62,6 +63,7 @@ Page({
   },
 
   onHide() {
+    this.invalidateWatchGen();
     tournamentSync.closeWatcher(this);
   },
 
@@ -75,16 +77,30 @@ Page({
   },
 
   onUnload() {
+    this.invalidateWatchGen();
     tournamentSync.closeWatcher(this);
   },
 
-  nextRequestSeq() {
-    this._pageRequestSeq = Number(this._pageRequestSeq || 0) + 1;
-    return this._pageRequestSeq;
+  nextFetchSeq() {
+    this._fetchSeq = Number(this._fetchSeq || 0) + 1;
+    return this._fetchSeq;
   },
 
-  isLatestRequestSeq(requestSeq) {
-    return Number(requestSeq) === Number(this._pageRequestSeq || 0);
+  isLatestFetchSeq(requestSeq) {
+    return Number(requestSeq) === Number(this._fetchSeq || 0);
+  },
+
+  nextWatchGen() {
+    this._watchGen = Number(this._watchGen || 0) + 1;
+    return this._watchGen;
+  },
+
+  isActiveWatchGen(watchGen) {
+    return Number(watchGen) === Number(this._watchGen || 0);
+  },
+
+  invalidateWatchGen() {
+    this._watchGen = Number(this._watchGen || 0) + 1;
   },
 
   readCachedOpenid() {
@@ -113,18 +129,18 @@ Page({
   },
 
   startWatch(tournamentId) {
+    const watchGen = this.nextWatchGen();
     tournamentSync.startWatch(this, tournamentId, (doc) => {
-      const requestSeq = this.nextRequestSeq();
-      if (!this.isLatestRequestSeq(requestSeq)) return;
+      if (!this.isActiveWatchGen(watchGen)) return;
       this.setData({ showStaleSyncHint: false });
       this.applyTournament(doc);
     });
   },
 
   async fetchTournament(tournamentId) {
-    const requestSeq = this.nextRequestSeq();
+    const requestSeq = this.nextFetchSeq();
     const result = await tournamentSync.fetchTournament(tournamentId);
-    if (!this.isLatestRequestSeq(requestSeq)) return null;
+    if (!this.isLatestFetchSeq(requestSeq)) return null;
 
     if (result && result.ok && result.doc) {
       this.setData({ showStaleSyncHint: false });

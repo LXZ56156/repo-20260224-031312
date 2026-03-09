@@ -27,7 +27,8 @@ function createAnalyticsPageContext(definition) {
   for (const [key, value] of Object.entries(definition || {})) {
     if (typeof value === 'function') ctx[key] = value;
   }
-  ctx._pageRequestSeq = 0;
+  ctx._fetchSeq = 0;
+  ctx._watchGen = 0;
   ctx.applyTournament = (doc) => {
     ctx.latestTournament = doc;
   };
@@ -67,6 +68,31 @@ test('analytics page ignores stale fetchTournament responses', async () => {
     assert.equal(ctx.latestTournament && ctx.latestTournament.name, 'Fresh Analytics Tournament');
   } finally {
     tournamentSync.fetchTournament = originalFetchTournament;
+    delete require.cache[analyticsPagePath];
+  }
+});
+
+test('analytics page ignores stale watch callbacks after restarting watch', () => {
+  const originalStartWatch = tournamentSync.startWatch;
+
+  try {
+    const definition = loadAnalyticsPageDefinition();
+    const ctx = createAnalyticsPageContext(definition);
+    const watchers = [];
+
+    tournamentSync.startWatch = (_page, _tid, onData) => {
+      watchers.push(onData);
+    };
+
+    ctx.startWatch('t_1');
+    ctx.startWatch('t_1');
+
+    watchers[0]({ _id: 't_1', name: 'Stale Analytics Watch Tournament' });
+    watchers[1]({ _id: 't_1', name: 'Fresh Analytics Watch Tournament' });
+
+    assert.equal(ctx.latestTournament && ctx.latestTournament.name, 'Fresh Analytics Watch Tournament');
+  } finally {
+    tournamentSync.startWatch = originalStartWatch;
     delete require.cache[analyticsPagePath];
   }
 });

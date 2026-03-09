@@ -27,7 +27,8 @@ function createLobbyPageContext(definition) {
   for (const [key, value] of Object.entries(definition || {})) {
     if (typeof value === 'function') ctx[key] = value;
   }
-  ctx._pageRequestSeq = 0;
+  ctx._fetchSeq = 0;
+  ctx._watchGen = 0;
   ctx.setTournament = (doc) => {
     ctx.latestTournament = doc;
   };
@@ -67,6 +68,31 @@ test('lobby page ignores stale fetchTournament responses', async () => {
     assert.equal(ctx.latestTournament && ctx.latestTournament.name, 'Fresh Lobby Tournament');
   } finally {
     tournamentSync.fetchTournament = originalFetchTournament;
+    delete require.cache[lobbyPagePath];
+  }
+});
+
+test('lobby page ignores stale watch callbacks after restarting watch', () => {
+  const originalStartWatch = tournamentSync.startWatch;
+
+  try {
+    const definition = loadLobbyPageDefinition();
+    const ctx = createLobbyPageContext(definition);
+    const watchers = [];
+
+    tournamentSync.startWatch = (_page, _tid, onData) => {
+      watchers.push(onData);
+    };
+
+    ctx.startWatch('t_1');
+    ctx.startWatch('t_1');
+
+    watchers[0]({ _id: 't_1', name: 'Stale Lobby Watch Tournament' });
+    watchers[1]({ _id: 't_1', name: 'Fresh Lobby Watch Tournament' });
+
+    assert.equal(ctx.latestTournament && ctx.latestTournament.name, 'Fresh Lobby Watch Tournament');
+  } finally {
+    tournamentSync.startWatch = originalStartWatch;
     delete require.cache[lobbyPagePath];
   }
 });
