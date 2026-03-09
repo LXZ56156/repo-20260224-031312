@@ -125,6 +125,7 @@ Page({
   onLoad(options) {
     const tid = options.tournamentId;
     this.openid = (getApp().globalData.openid || storage.get('openid', ''));
+    this._pageRequestSeq = 0;
     this.setData({ tournamentId: tid });
 
     this.fetchTournament(tid);
@@ -151,15 +152,28 @@ Page({
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
   },
 
+  nextRequestSeq() {
+    this._pageRequestSeq = Number(this._pageRequestSeq || 0) + 1;
+    return this._pageRequestSeq;
+  },
+
+  isLatestRequestSeq(requestSeq) {
+    return Number(requestSeq) === Number(this._pageRequestSeq || 0);
+  },
+
   startWatch(tid) {
     tournamentSync.startWatch(this, tid, (doc) => {
+      const requestSeq = this.nextRequestSeq();
+      if (!this.isLatestRequestSeq(requestSeq)) return;
       this.setData({ showStaleSyncHint: false });
       this.applyTournament(doc);
     });
   },
 
   async fetchTournament(tid) {
+    const requestSeq = this.nextRequestSeq();
     const result = await tournamentSync.fetchTournament(tid);
+    if (!this.isLatestRequestSeq(requestSeq)) return null;
     if (result && result.ok && result.doc) {
       this.setData({ showStaleSyncHint: false });
       this.applyTournament(result.doc);

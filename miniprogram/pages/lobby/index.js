@@ -128,6 +128,7 @@ Page({
     }
 
     this.openid = getApp().globalData.openid || storage.get('openid', '');
+    this._pageRequestSeq = 0;
     const sessionMinutes = flow.normalizeSessionMinutes(storage.getSessionMinutesPref(), flow.DEFAULT_SESSION_MINUTES);
     const slotMinutes = flow.normalizeSlotMinutes(storage.getSlotMinutesPref(), flow.DEFAULT_SLOT_MINUTES);
     this.setData({
@@ -184,15 +185,28 @@ Page({
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
   },
 
+  nextRequestSeq() {
+    this._pageRequestSeq = Number(this._pageRequestSeq || 0) + 1;
+    return this._pageRequestSeq;
+  },
+
+  isLatestRequestSeq(requestSeq) {
+    return Number(requestSeq) === Number(this._pageRequestSeq || 0);
+  },
+
   startWatch(tid) {
     tournamentSync.startWatch(this, tid, (doc) => {
+      const requestSeq = this.nextRequestSeq();
+      if (!this.isLatestRequestSeq(requestSeq)) return;
       this.setData({ showStaleSyncHint: false });
       this.setTournament(doc);
     });
   },
 
   async fetchTournament(tid) {
+    const requestSeq = this.nextRequestSeq();
     const result = await tournamentSync.fetchTournament(tid);
+    if (!this.isLatestRequestSeq(requestSeq)) return null;
     if (result && result.ok && result.doc) {
       this.setData({ showStaleSyncHint: false });
       this.setTournament(result.doc);
