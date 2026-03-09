@@ -40,6 +40,14 @@ function normalizeSquadChoice(choice) {
   return '';
 }
 
+function fail(code, message) {
+  return {
+    ok: false,
+    code: String(code || 'JOIN_FAILED').trim().toUpperCase() || 'JOIN_FAILED',
+    message: String(message || '加入失败').trim() || '加入失败'
+  };
+}
+
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
   const openid = wxContext.OPENID;
@@ -51,15 +59,26 @@ exports.main = async (event, context) => {
   let gender = normalizeGender(event.gender);
   const squadChoice = normalizeSquadChoice(event && event.squadChoice);
 
-  if (!tournamentId) return { ok: false, message: '缺少赛事ID' };
+  if (!tournamentId) return fail('TOURNAMENT_ID_REQUIRED', '缺少赛事ID');
 
-  const docRes = await db.collection('tournaments').doc(tournamentId).get();
+  let docRes;
+  try {
+    docRes = await db.collection('tournaments').doc(tournamentId).get();
+  } catch (err) {
+    if (common.isCollectionNotExists(err) || common.isDocNotExists(err)) {
+      return fail('TOURNAMENT_NOT_FOUND', '赛事不存在');
+    }
+    throw err;
+  }
   let t;
   try {
     t = common.assertTournamentExists(docRes.data);
     common.assertDraft(t, '非草稿阶段不可加入/修改');
   } catch (err) {
-    return { ok: false, message: err.message || '加入失败' };
+    const msg = String((err && err.message) || '').trim();
+    if (msg.includes('赛事不存在')) return fail('TOURNAMENT_NOT_FOUND', msg || '赛事不存在');
+    if (msg.includes('非草稿阶段')) return fail('JOIN_DRAFT_ONLY', msg || '非草稿阶段不可加入/修改');
+    return fail('JOIN_FAILED', msg || '加入失败');
   }
 
   const players = Array.isArray(t.players) ? t.players : [];
@@ -113,7 +132,7 @@ exports.main = async (event, context) => {
     try {
       common.assertOptimisticUpdate(up, '并发冲突，请重试');
     } catch (_) {
-      return { ok: false, message: '并发冲突，请重试' };
+      return fail('VERSION_CONFLICT', '并发冲突，请重试');
     }
     return { ok: true, updated: true, player: cur };
   }
@@ -142,7 +161,7 @@ exports.main = async (event, context) => {
   try {
     common.assertOptimisticUpdate(res, '并发冲突，请重试');
   } catch (_) {
-    return { ok: false, message: '并发冲突，请重试' };
+    return fail('VERSION_CONFLICT', '并发冲突，请重试');
   }
 
   return { ok: true, added: true, player };

@@ -1,21 +1,13 @@
 const auth = require('../../core/auth');
 const actionGuard = require('../../core/actionGuard');
 const cloud = require('../../core/cloud');
+const joinError = require('../../core/joinTournamentError');
 const nav = require('../../core/nav');
 const profileCore = require('../../core/profile');
 const shareMeta = require('../../core/shareMeta');
 const storage = require('../../core/storage');
 const tournamentSync = require('../../core/tournamentSync');
 const flow = require('./flow');
-
-function resolveJoinErrorMessage(err) {
-  const raw = String((err && (err.message || err.errMsg)) || err || '').trim();
-  if (!raw) return '加入失败，请稍后重试';
-  if (raw.includes('非草稿阶段不可加入')) return '比赛当前不可加入，可先查看赛况或结果';
-  if (raw.includes('赛事不存在')) return '比赛已不存在，请确认分享链接是否有效';
-  if (raw.includes('并发冲突')) return '名单刚刚更新，请稍后再试';
-  return cloud.getUnifiedErrorMessage(err, '加入失败，请稍后重试');
-}
 
 function buildJoinPayload(page, profile = {}) {
   const localProfile = storage.getUserProfile() || {};
@@ -239,7 +231,7 @@ Page({
       try {
         const res = await cloud.call('joinTournament', payload);
         if (res && res.ok === false) {
-          throw new Error(String(res.message || '加入失败'));
+          throw joinError.normalizeJoinFailure(res, '加入失败，请稍后重试');
         }
         wx.hideLoading();
         nav.markRefreshFlag(tournamentId);
@@ -248,7 +240,7 @@ Page({
         this.goLobby();
       } catch (err) {
         wx.hideLoading();
-        wx.showToast({ title: resolveJoinErrorMessage(err), icon: 'none' });
+        wx.showToast({ title: joinError.resolveJoinFailureMessage(err, '加入失败，请稍后重试'), icon: 'none' });
         await this.fetchTournament(tournamentId);
       }
     });
