@@ -80,6 +80,7 @@ test('shareMeta falls back to invalid state for missing tournaments', () => {
   const preview = shareMeta.buildShareEntryViewModel({ tournament: null, openid: 'u_new' });
   assert.equal(preview.viewMode, 'invalid-match');
   assert.equal(preview.primaryAction.text, '重新加载');
+  assert.equal(preview.secondaryAction.text, '返回首页');
 });
 
 test('shareMeta builds share copy based on tournament lifecycle', () => {

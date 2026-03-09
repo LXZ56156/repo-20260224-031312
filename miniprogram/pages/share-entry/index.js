@@ -193,6 +193,13 @@ Page({
     wx.navigateTo({ url: flow.buildAnalyticsUrl(this.data.tournamentId) });
   },
 
+  goHome() {
+    wx.reLaunch({
+      url: '/pages/home/index',
+      fail: () => wx.navigateTo({ url: '/pages/home/index' })
+    });
+  },
+
   async handleJoin() {
     if (this.data.joinBusy) return;
     const tournamentId = String(this.data.tournamentId || '').trim();
@@ -244,5 +251,6 @@ Page({
     const key = String((this.data.preview && this.data.preview.secondaryAction && this.data.preview.secondaryAction.key) || '').trim();
     if (key === 'lobby') return this.goLobby();
     if (key === 'ranking') return this.goRanking();
+    if (key === 'home') return this.goHome();
   }
 });

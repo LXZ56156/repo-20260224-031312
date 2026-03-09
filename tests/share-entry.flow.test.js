@@ -7,6 +7,8 @@ test('parseTournamentId supports direct options and scene payload', () => {
   assert.equal(flow.parseTournamentId({ tournamentId: 'tid_1' }), 'tid_1');
   assert.equal(flow.parseTournamentId({ scene: encodeURIComponent('tournamentId=tid_2&intent=join') }), 'tid_2');
   assert.equal(flow.parseTournamentId({ scene: encodeURIComponent('tid=tid_3') }), 'tid_3');
+  assert.equal(flow.parseTournamentId({ scene: encodeURIComponent('tid_legacy_4') }), 'tid_legacy_4');
+  assert.equal(flow.parseTournamentId({ scene: '%E0%A4%A' }), '%E0%A4%A');
 });
 
 test('share-entry flow builders keep links compatible with old params', () => {

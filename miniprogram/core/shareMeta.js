@@ -198,7 +198,7 @@ function buildInvalidShareEntryState(reason = '未找到赛事') {
     statusText: '不可用',
     statusClass: 'tag-muted',
     primaryAction: { key: 'retry', text: '重新加载' },
-    secondaryAction: null,
+    secondaryAction: { key: 'home', text: '返回首页' },
     joinAllowed: false,
     joined: false,
     availabilityText: '当前无法打开这场比赛，请确认链接是否有效。',

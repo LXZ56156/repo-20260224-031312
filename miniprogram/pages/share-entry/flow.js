@@ -1,9 +1,15 @@
 function parseTournamentId(options = {}) {
   let tid = String(options.tournamentId || '').trim();
   if (!tid && options.scene) {
-    const scene = decodeURIComponent(options.scene);
+    let scene = '';
+    try {
+      scene = decodeURIComponent(options.scene);
+    } catch (_) {
+      scene = String(options.scene || '').trim();
+    }
     const matched = /tournamentId=([^&]+)/.exec(scene) || /tid=([^&]+)/.exec(scene);
     if (matched) tid = matched[1];
+    if (!tid && scene && !scene.includes('=') && !scene.includes('&')) tid = scene;
   }
   return tid;
 }
