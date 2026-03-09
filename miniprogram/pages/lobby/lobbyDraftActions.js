@@ -19,7 +19,7 @@ module.exports = {
       schedule: () => this.goSchedule(),
       ranking: () => this.goRanking(),
       clone: () => this.cloneCurrentTournament(),
-      share: () => this.pulseShareHint()
+      share: () => this.focusShareInviteArea()
     };
     const fn = handlers[key];
     if (typeof fn === 'function') return fn();
@@ -77,6 +77,15 @@ module.exports = {
     } catch (_) {
       // ignore
     }
+  },
+
+  focusShareInviteArea() {
+    try {
+      wx.pageScrollTo({ selector: '#share-invite', duration: 220 });
+    } catch (_) {
+      // ignore
+    }
+    this.pulseShareHint(2200);
   },
 
   onPickQuickConfigMSimple(e) {
@@ -305,7 +314,7 @@ module.exports = {
       return;
     }
     if (key === 'players') {
-      this.focusQuickImportArea();
+      this.focusShareInviteArea();
       return;
     }
     if (key === 'start') {
@@ -314,7 +323,7 @@ module.exports = {
         return;
       }
       if (!this.data.checkSettingsOk) this.focusQuickConfigArea();
-      else this.focusQuickImportArea();
+      else this.focusShareInviteArea();
     }
   },
 

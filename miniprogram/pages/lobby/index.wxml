@@ -78,6 +78,10 @@
         <view class="player-gender" wx:if="{{mode==='squad_doubles'}}">{{item.squad ? item.squad + '队' : '未分队'}}</view>
       </view>
     </view>
+    <view class="panel-soft list-empty" wx:else>
+      <view class="list-empty-title">先分享比赛链接，再决定谁加入比赛</view>
+      <view class="muted small">正常使用建议先分享邀请，让大家先查看比赛信息；批量导入名单可作为备用方案。</view>
+    </view>
   </view>
 
   <view class="card panel panel-soft profile-panel reveal reveal-4" wx:if="{{showJoin || showMyProfile}}">
@@ -146,10 +150,10 @@
       <view class="prep-tile" data-key="players" bindtap="onChecklistTap">
         <text class="prep-indicator {{checkPlayersOk ? 'ok' : ''}}"></text>
         <view class="prep-main">
-          <view class="prep-title">2. 名单</view>
-          <view class="prep-sub">{{playersChecklistHint}}</view>
+          <view class="prep-title">2. 邀请成员</view>
+          <view class="prep-sub">{{tournament.players.length ? playersChecklistHint : '优先分享邀请，导入名单仅作备用'}}</view>
         </view>
-        <text class="prep-jump">{{checkPlayersOk ? '查看' : '去导入'}}</text>
+        <text class="prep-jump">{{checkPlayersOk ? '查看' : '去分享'}}</text>
       </view>
       <view class="prep-tile" data-key="start" bindtap="onChecklistTap">
         <text class="prep-indicator {{checkStartReady ? 'ok' : ''}}"></text>
@@ -158,6 +162,21 @@
           <view class="prep-sub">{{checkStartReady ? '可立即开赛' : '完成前两项后可开赛'}}</view>
         </view>
         <text class="prep-jump">{{checkStartReady ? '开赛' : '去完成'}}</text>
+      </view>
+    </view>
+
+    <view class="share-invite panel-soft" id="share-invite" wx:if="{{tournament.status==='draft'}}">
+      <view class="section-head share-invite-head">
+        <view>
+          <view class="section-title">分享邀请</view>
+          <view class="muted small">先把比赛发出去，让大家先查看信息，再决定是否加入。</view>
+        </view>
+        <text class="count-pill">主路径</text>
+      </view>
+      <button class="btn btn-primary {{sharePulse ? 'share-pulse' : ''}}" open-type="share">分享比赛链接</button>
+      <view class="share-invite-meta">
+        <view class="muted small">适合群邀请、先观赛后加入、临时补人等常见场景。</view>
+        <text class="link-btn" bindtap="focusQuickImportArea">备用：批量导入名单</text>
       </view>
     </view>
 
@@ -202,7 +221,8 @@
     </view>
 
     <view class="quick-import panel-soft" wx:if="{{tournament.status==='draft'}}">
-      <view class="quick-import-head">快速导入名单</view>
+      <view class="quick-import-head">备用：批量导入名单</view>
+      <view class="muted small">适合线下已有名单、代录报名或集中建档。</view>
       <textarea
         id="quick-import"
         class="textarea quick-import-input"
@@ -260,7 +280,6 @@
     </view>
 
     <view class="admin-actions">
-      <button class="btn btn-subtle {{sharePulse ? 'share-pulse' : ''}}" open-type="share">分享到群</button>
       <button class="btn btn-danger" bindtap="handleReset" wx:if="{{tournament.status!=='draft'}}">重置回草稿</button>
     </view>
   </view>

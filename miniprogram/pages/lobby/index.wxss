@@ -192,6 +192,20 @@
   gap: 14rpx 12rpx;
 }
 
+.list-empty {
+  margin-top: 14rpx;
+  padding: 16rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid #dde6f0;
+}
+
+.list-empty-title {
+  font-size: 25rpx;
+  font-weight: 760;
+  color: var(--text-1, #0f172a);
+  margin-bottom: 8rpx;
+}
+
 .player-cell {
   width: calc((100% - 36rpx) / 4);
   min-width: 132rpx;
@@ -362,6 +376,26 @@
   border-radius: 18rpx;
   border: 1rpx solid #dde6f0;
   padding: 14rpx;
+}
+
+.share-invite {
+  margin-top: 14rpx;
+  border-radius: 18rpx;
+  border: 1rpx solid #cfe1d8;
+  background: linear-gradient(180deg, #f4fbf6 0%, #f9fcfa 100%);
+  padding: 16rpx;
+}
+
+.share-invite-head {
+  align-items: flex-start;
+}
+
+.share-invite-meta {
+  margin-top: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
 }
 
 .quick-config {
