@@ -36,6 +36,8 @@ Page({
     this._latestTournament = null;
     this._pageRequestSeq = 0;
     this._lastFailedAction = null;
+    this._pageActive = true;
+    this._navTimers = new Set();
     this.matchDraft.clearUndo();
 
     this.setData({ tournamentId: tid, roundIndex, matchIndex, batchMode });
@@ -53,11 +55,14 @@ Page({
   },
 
   onHide() {
+    this._pageActive = false;
+    this.clearNavTimers();
     releaseAndTeardown(this);
   },
 
   onShow() {
     ensureControllers(this);
+    this._pageActive = true;
     this._lockStatusKey = '';
     const currentId = String(this.data.tournamentId || '').trim();
     nav.consumeRefreshFlag(currentId);
@@ -66,6 +71,8 @@ Page({
   },
 
   onUnload() {
+    this._pageActive = false;
+    this.clearNavTimers();
     releaseAndTeardown(this);
     this.matchDraft.teardown();
     if (typeof this._offNetwork === 'function') this._offNetwork();
@@ -79,6 +86,32 @@ Page({
 
   isLatestRequestSeq(requestSeq) {
     return Number(requestSeq) === Number(this._pageRequestSeq || 0);
+  },
+
+  isPageActive() {
+    return this._pageActive !== false;
+  },
+
+  registerNavTimer(fn, delay = 0) {
+    if (typeof fn !== 'function') return null;
+    if (!(this._navTimers instanceof Set)) this._navTimers = new Set();
+    let timerId = null;
+    timerId = setTimeout(() => {
+      if (this._navTimers instanceof Set) this._navTimers.delete(timerId);
+      if (!this.isPageActive()) return;
+      fn();
+    }, Math.max(0, Number(delay) || 0));
+    this._navTimers.add(timerId);
+    return timerId;
+  },
+
+  clearNavTimers() {
+    if (!(this._navTimers instanceof Set)) {
+      this._navTimers = new Set();
+      return;
+    }
+    for (const timerId of this._navTimers) clearTimeout(timerId);
+    this._navTimers.clear();
   },
 
   onRetry() {

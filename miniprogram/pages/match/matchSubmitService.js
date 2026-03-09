@@ -17,10 +17,32 @@ function createMatchSubmitService(ctx, deps = {}) {
   const matchFlowApi = deps.matchFlow || matchFlow;
   const navApi = deps.nav || nav;
 
+  function scheduleNavigation(fn, delay = 0) {
+    if (typeof fn !== 'function') return null;
+    const wait = Math.max(0, Number(delay) || 0);
+    if (wait <= 0) {
+      if (typeof ctx.isPageActive === 'function' && !ctx.isPageActive()) return null;
+      return fn();
+    }
+    if (typeof ctx.registerNavTimer === 'function') {
+      return ctx.registerNavTimer(fn, wait);
+    }
+    return setTimeout(() => {
+      if (typeof ctx.isPageActive === 'function' && !ctx.isPageActive()) return;
+      fn();
+    }, wait);
+  }
+
   function returnToSchedule(delay = 0) {
     const tid = String(ctx.data.tournamentId || '').trim();
     if (!tid) return;
-    navApi.redirectOrBack(`/pages/schedule/index?tournamentId=${tid}`, delay);
+    const url = `/pages/schedule/index?tournamentId=${tid}`;
+    if (delay > 0) {
+      scheduleNavigation(() => navApi.redirectOrBack(url, 0), delay);
+      return;
+    }
+    if (typeof ctx.isPageActive === 'function' && !ctx.isPageActive()) return;
+    navApi.redirectOrBack(url, 0);
   }
 
   async function jumpToNextPending(tournamentDoc, noPendingMessage, forceBatch = false) {
@@ -91,7 +113,7 @@ function createMatchSubmitService(ctx, deps = {}) {
     if (code === 'MATCH_FINISHED') {
       ctx.lockController.setLockState('finished', res);
       if (ctx.data.batchMode) {
-        setTimeout(() => jumpAfterBatch('该场已录完，已跳到下一场'), 160);
+        scheduleNavigation(() => jumpAfterBatch('该场已录完，已跳到下一场'), 160);
       } else {
         refreshTournamentDoc();
       }
@@ -180,7 +202,7 @@ function createMatchSubmitService(ctx, deps = {}) {
         navApi.markRefreshFlag(ctx.data.tournamentId);
 
         if (ctx.data.batchMode) {
-          setTimeout(() => {
+          scheduleNavigation(() => {
             jumpAfterBatch('已全部录完');
           }, 260);
           return;
@@ -189,7 +211,7 @@ function createMatchSubmitService(ctx, deps = {}) {
         const autoNext = storageApi.get(SCORE_AUTO_NEXT_KEY, true) !== false;
         const autoReturn = storageApi.get(SCORE_AUTO_RETURN_KEY, true) !== false;
         if (autoNext) {
-          setTimeout(async () => {
+          scheduleNavigation(async () => {
             const latestDoc = await refreshTournamentDoc();
             if (latestDoc) {
               await jumpToNextPending(latestDoc, '已全部录完', false);
