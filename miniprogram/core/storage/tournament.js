@@ -36,6 +36,21 @@ function toTs(value) {
   }
 }
 
+function snapshotUpdatedAtTs(snapshot) {
+  return Number(snapshot && snapshot.updatedAtTs) || 0;
+}
+
+function choosePreferredSnapshot(mapSnapshot, legacySnapshot) {
+  const mapValue = mapSnapshot && typeof mapSnapshot === 'object' ? mapSnapshot : null;
+  const legacyValue = legacySnapshot && typeof legacySnapshot === 'object' ? legacySnapshot : null;
+  if (!mapValue) return { snapshot: legacyValue, source: legacyValue ? 'legacy' : '' };
+  if (!legacyValue) return { snapshot: mapValue, source: 'map' };
+  if (snapshotUpdatedAtTs(legacyValue) > snapshotUpdatedAtTs(mapValue)) {
+    return { snapshot: legacyValue, source: 'legacy' };
+  }
+  return { snapshot: mapValue, source: 'map' };
+}
+
 function getCurrentOpenid() {
   const cached = String(get('openid', '') || '').trim();
   if (cached) return cached;
@@ -81,9 +96,14 @@ function getLocalTournamentSnapshot(tournamentId) {
   const tid = String(tournamentId || '').trim();
   if (!tid) return null;
   const snapshotMap = getLocalCompletedTournamentMap();
-  if (snapshotMap[tid] && typeof snapshotMap[tid] === 'object') return snapshotMap[tid];
-  const snapshot = get(getLocalTournamentSnapshotKey(tid), null);
-  return snapshot && typeof snapshot === 'object' ? snapshot : null;
+  const mapSnapshot = snapshotMap[tid];
+  const legacySnapshot = get(getLocalTournamentSnapshotKey(tid), null);
+  const preferred = choosePreferredSnapshot(mapSnapshot, legacySnapshot);
+  if (preferred.source === 'legacy') {
+    snapshotMap[tid] = preferred.snapshot;
+    setLocalCompletedTournamentMap(snapshotMap);
+  }
+  return preferred.snapshot;
 }
 
 function setLocalTournamentSnapshot(tournamentId, snapshot) {
@@ -214,15 +234,15 @@ function getLocalCompletedTournamentSnapshots() {
   const out = [];
   let mapChanged = false;
   for (const id of ids) {
-    let snapshot = snapshotMap[id];
-    if (!snapshot || typeof snapshot !== 'object') {
-      snapshot = get(getLocalTournamentSnapshotKey(id), null);
-      if (snapshot && typeof snapshot === 'object') {
-        snapshotMap[id] = snapshot;
-        mapChanged = true;
-      }
+    const preferred = choosePreferredSnapshot(
+      snapshotMap[id],
+      get(getLocalTournamentSnapshotKey(id), null)
+    );
+    if (preferred.source === 'legacy' && preferred.snapshot) {
+      snapshotMap[id] = preferred.snapshot;
+      mapChanged = true;
     }
-    if (snapshot) out.push(snapshot);
+    if (preferred.snapshot) out.push(preferred.snapshot);
   }
   if (mapChanged) setLocalCompletedTournamentMap(snapshotMap);
   out.sort((a, b) => (Number(b.updatedAtTs) || 0) - (Number(a.updatedAtTs) || 0));
@@ -248,5 +268,7 @@ module.exports = {
   getLocalCompletedTournamentMap,
   setLocalCompletedTournamentMap,
   buildLocalTournamentSnapshot,
-  getCurrentOpenid
+  getCurrentOpenid,
+  snapshotUpdatedAtTs,
+  choosePreferredSnapshot
 };

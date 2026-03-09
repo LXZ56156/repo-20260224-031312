@@ -71,6 +71,56 @@ test('local completed tournament snapshots can read legacy per-key cache and bac
   assert.equal(snapshotMap.t_legacy._id, 't_legacy');
 });
 
+test('local tournament snapshot prefers newer legacy entry and backfills aggregate map', () => {
+  resetStore();
+  storage.set('local_completed_tournament_map_v2', {
+    t_sync: {
+      _id: 't_sync',
+      updatedAtTs: 100,
+      status: 'finished',
+      players: [],
+      rounds: []
+    }
+  });
+  storage.set('local_tournament_snapshot_t_sync', {
+    _id: 't_sync',
+    updatedAtTs: 200,
+    status: 'finished',
+    players: [],
+    rounds: []
+  });
+
+  const snapshot = storage.getLocalTournamentSnapshot('t_sync');
+  assert.equal(snapshot.updatedAtTs, 200);
+  assert.equal(storage.get('local_completed_tournament_map_v2', {}).t_sync.updatedAtTs, 200);
+});
+
+test('local completed tournament snapshots prefer newer legacy entries over stale aggregate map', () => {
+  resetStore();
+  storage.set('local_completed_tournament_ids_v1', ['t_a']);
+  storage.set('local_completed_tournament_map_v2', {
+    t_a: {
+      _id: 't_a',
+      updatedAtTs: 100,
+      status: 'finished',
+      players: [],
+      rounds: []
+    }
+  });
+  storage.set('local_tournament_snapshot_t_a', {
+    _id: 't_a',
+    updatedAtTs: 300,
+    status: 'finished',
+    players: [],
+    rounds: []
+  });
+
+  const snapshots = storage.getLocalCompletedTournamentSnapshots();
+  assert.equal(snapshots.length, 1);
+  assert.equal(snapshots[0].updatedAtTs, 300);
+  assert.equal(storage.get('local_completed_tournament_map_v2', {}).t_a.updatedAtTs, 300);
+});
+
 test('local completed tournament snapshots trim overflow entries from aggregate map too', () => {
   resetStore();
   const ids = Array.from({ length: 500 }, (_, idx) => `t_${idx}`);
