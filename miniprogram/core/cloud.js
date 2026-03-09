@@ -1,4 +1,5 @@
 const trace = require('./trace');
+const envConfig = require('../config/env');
 
 function normalizeErrMsg(err) {
   if (!err) return '';
@@ -55,12 +56,28 @@ function classifyCloudError(parsed) {
   return 'unknown';
 }
 
+function getRuntimeEnv() {
+  try {
+    if (typeof getApp === 'function') {
+      const app = getApp();
+      const runtimeEnv = app && app.globalData && app.globalData.runtimeEnv;
+      if (runtimeEnv && typeof runtimeEnv === 'object') return runtimeEnv;
+    }
+  } catch (_) {
+    // ignore
+  }
+  return envConfig.resolveRuntimeEnv();
+}
+
 function getUnifiedErrorMessage(err, fallbackMessage = '操作失败') {
   const parsed = parseCloudError(err, fallbackMessage);
   const level = classifyCloudError(parsed);
   if (level === 'network') return '网络异常，请重试';
   if (level === 'permission') return '权限不足';
   if (level === 'param') return '参数有误，请检查';
+  if (String(getRuntimeEnv().envVersion || 'release') === 'release') {
+    return '操作失败，请稍后重试';
+  }
   return parsed.userMessage || fallbackMessage;
 }
 
@@ -92,16 +109,18 @@ function presentWriteError(options = {}) {
 }
 
 function showDevHint(title, content) {
-  // 仅在开发阶段提示更友好；线上同样不影响功能。
+  if (String(getRuntimeEnv().envVersion || 'release') === 'release') return false;
   try {
     wx.showModal({
       title,
       content,
       showCancel: false
     });
+    return true;
   } catch (e) {
     // ignore
   }
+  return false;
 }
 
 function call(name, data = {}) {
@@ -136,6 +155,7 @@ module.exports = {
   call,
   parseCloudError,
   classifyCloudError,
+  getRuntimeEnv,
   getUnifiedErrorMessage,
   presentWriteError
 };
