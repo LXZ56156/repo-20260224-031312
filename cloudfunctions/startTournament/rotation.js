@@ -89,7 +89,9 @@ function squareCost(count) {
   return c * c;
 }
 
-function normalizeMode(mode) {
+// Scheduler mode resolution accepts legacy/internal aliases that should not leak
+// into the global business-mode normalizeMode semantics.
+function resolveSchedulerMode(mode) {
   const v = String(mode || '').trim().toLowerCase();
   if (v === 'multi_rotate') return MODE_DOUBLES;
   if (v === MODE_MIXED_FALLBACK || v === MODE_DOUBLES) return v;
@@ -222,7 +224,7 @@ function computeRestDebt(players4, eligibleIds, state) {
 }
 
 function scoreGroup(players4, state, weights, eligibleIds, options = {}) {
-  const mode = normalizeMode(options.mode);
+  const mode = resolveSchedulerMode(options.mode);
   const allowOpen = options.allowOpen === true;
   const genderById = options.genderById || {};
   const typeTargets = options.typeTargets || { MX: 0, MM: 0.5, FF: 0.5, OPEN: 0 };
@@ -492,7 +494,7 @@ function buildCandidateGroupsMixed(eligible, rng, genderById, allowOpen, warmSta
 }
 
 function buildCandidateGroups(eligible, rng, warmStartGroups = [], options = {}) {
-  const mode = normalizeMode(options.mode);
+  const mode = resolveSchedulerMode(options.mode);
   if (mode === MODE_MIXED_FALLBACK) {
     return buildCandidateGroupsMixed(
       eligible,
@@ -574,7 +576,7 @@ function compareObjective(a, b) {
 }
 
 function generateScheduleOnce(ids, totalMatches, courts, weights, seed, options = {}) {
-  const mode = normalizeMode(options.mode);
+  const mode = resolveSchedulerMode(options.mode);
   const allowOpen = options.allowOpen === true;
   const genderById = options.genderById || {};
   const typeTargets = options.typeTargets || { MX: 0, MM: 0.5, FF: 0.5, OPEN: 0 };
@@ -757,7 +759,7 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
   const M = Math.max(1, Number(totalMatches || 1));
   const C = Math.max(1, Number(courts || 1));
   const ids = players.map((p) => p.id);
-  const mode = normalizeMode(options.mode);
+  const mode = resolveSchedulerMode(options.mode);
   const allowOpen = options.allowOpen === true;
   const genderById = buildGenderMap(players);
   const typeTargets = buildTypeTargets(players, allowOpen, options.typeWeights);
