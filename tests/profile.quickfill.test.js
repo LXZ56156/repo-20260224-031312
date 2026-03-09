@@ -10,6 +10,7 @@ test('normalizeQuickFillInput marks cancelled when avatar path is empty', () => 
   );
   assert.equal(out.cancelled, true);
   assert.equal(out.avatarTempPath, '');
+  assert.equal(out.nickName, '球友A');
   assert.equal(out.nickname, '球友A');
   assert.equal(out.nicknameFilled, true);
 });
@@ -21,6 +22,7 @@ test('normalizeQuickFillInput keeps explicit nickname first', () => {
   );
   assert.equal(out.cancelled, false);
   assert.equal(out.avatarTempPath, 'wxfile://avatar.png');
+  assert.equal(out.nickName, '张三');
   assert.equal(out.nickname, '张三');
   assert.equal(out.nicknameFilled, true);
 });
@@ -30,6 +32,7 @@ test('normalizeQuickFillInput falls back to profile nickname', () => {
     { avatarTempPath: 'wxfile://avatar.png', nickname: '' },
     { nickname: '  球友C  ' }
   );
+  assert.equal(out.nickName, '球友C');
   assert.equal(out.nickname, '球友C');
   assert.equal(out.nicknameFilled, true);
 });

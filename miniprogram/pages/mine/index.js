@@ -30,7 +30,7 @@ Page({
   async onShow() {
     const synced = await profileCore.syncCloudProfile();
     const profile = synced || storage.getUserProfile() || {};
-    const nick = String(profile.nickName || profile.nickname || '').trim();
+    const nick = storage.getProfileNickName(profile);
     const avatar = String(profile.avatar || profile.avatarUrl || '').trim();
     this.setData({
       nickname: nick || '未设置昵称',

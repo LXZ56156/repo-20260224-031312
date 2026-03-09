@@ -44,10 +44,10 @@ module.exports = {
         return;
       }
       if (this.data.showJoin) {
-        if (!String(this.data.nickname || '').trim() && quick.nicknameFilled) this.setData({ nickname: quick.nickname });
+        if (!String(this.data.nickname || '').trim() && quick.nicknameFilled) this.setData({ nickname: quick.nickName });
       } else if (!String(this.data.myNickname || '').trim() && quick.nicknameFilled) {
         this._myEditedNick = true;
-        this.setData({ myNickname: quick.nickname });
+        this.setData({ myNickname: quick.nickName });
       }
       this.focusProfileNickname();
       await this.applyProfileAvatarTemp(quick.avatarTempPath, { showLoading: false, silentToast: true });
@@ -229,14 +229,14 @@ module.exports = {
       const profile = gate.profile || {};
 
       const tid = this.data.tournamentId;
-      let nickname = String(this.data.nickname || '').trim() || String(profile.nickName || profile.nickname || '').trim();
+      let nickname = String(this.data.nickname || '').trim() || storage.getProfileNickName(profile);
       let avatar = String(this.data.joinAvatar || '').trim() || String(profile.avatar || profile.avatarUrl || '').trim();
       let gender = storage.normalizeGender(profile.gender);
 
       if (!nickname || !avatar || gender === 'unknown') {
         const localProfile = storage.getUserProfile();
         if (localProfile && typeof localProfile === 'object') {
-          if (!nickname) nickname = String(localProfile.nickName || localProfile.nickname || '').trim() || nickname;
+          if (!nickname) nickname = storage.getProfileNickName(localProfile) || nickname;
           if (!avatar) avatar = String(localProfile.avatarUrl || localProfile.avatar || '').trim() || avatar;
           if (gender === 'unknown') gender = storage.normalizeGender(localProfile.gender);
         }
@@ -244,7 +244,7 @@ module.exports = {
 
       if (nickname || avatar) {
         const old = storage.getUserProfile() || {};
-        storage.setUserProfile({ ...old, nickname, avatar });
+        storage.setUserProfile({ ...old, nickName: nickname, avatar });
       }
 
       wx.showLoading({ title: '加入中...' });
@@ -307,7 +307,12 @@ module.exports = {
         nav.markRefreshFlag(this.data.tournamentId);
 
         const old = storage.getUserProfile() || {};
-        storage.setUserProfile({ ...old, nickName: nickname || old.nickName || '', avatarUrl: old.avatarUrl || '', avatar: avatar || old.avatar || '' });
+        storage.setUserProfile({
+          ...old,
+          nickName: nickname || storage.getProfileNickName(old),
+          avatarUrl: old.avatarUrl || '',
+          avatar: avatar || old.avatar || ''
+        });
 
         this.fetchTournament(this.data.tournamentId);
       } catch (err) {

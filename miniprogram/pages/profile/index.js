@@ -35,7 +35,7 @@ Page({
 
   applyProfile(profile) {
     const p = profile || {};
-    const nickname = String(p.nickName || p.nickname || '').trim();
+    const nickname = storage.getProfileNickName(p);
     const gender = storage.normalizeGender(p.gender);
     const avatar = String(p.avatar || p.avatarUrl || '').trim();
     this.setData({
@@ -105,7 +105,7 @@ Page({
         return;
       }
       if (!String(this.data.nickname || '').trim() && quick.nicknameFilled) {
-        this.setData({ nickname: quick.nickname });
+        this.setData({ nickname: quick.nickName });
       }
       await this.handleAvatarFromTemp(quick.avatarTempPath, { showLoading: false, silentToast: true });
       this.focusNicknameInput();

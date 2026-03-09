@@ -142,8 +142,7 @@ Page({
 
     const profile = storage.getUserProfile();
     if (profile && typeof profile === 'object') {
-      let nick = String(profile.nickName || profile.nickname || '').trim();
-      if (nick === '微信用户') nick = '';
+      const nick = storage.getProfileNickName(profile);
       const avatar = String(profile.avatarUrl || profile.avatar || '').trim();
       if (nick) this.setData({ nickname: nick, myNickname: nick });
       if (avatar) {

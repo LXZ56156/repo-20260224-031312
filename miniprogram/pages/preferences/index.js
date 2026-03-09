@@ -26,7 +26,7 @@ Page({
 
   onShow() {
     const profile = storage.getUserProfile() || {};
-    const nickname = String(profile.nickName || profile.nickname || '').trim() || '未设置';
+    const nickname = storage.getProfileNickName(profile) || '未设置';
     const gender = storage.normalizeGender(profile.gender);
     const genderText = gender === 'male' ? '男' : (gender === 'female' ? '女' : '未设置');
     const profileStatusText = storage.isProfileComplete(profile) ? '已完善' : '待完善';

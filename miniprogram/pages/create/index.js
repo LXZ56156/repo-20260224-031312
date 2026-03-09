@@ -352,7 +352,7 @@ Page({
 
         const res = await cloud.call('createTournament', {
           name,
-          nickname: String(profile.nickName || profile.nickname || '').trim(),
+          nickname: storage.getProfileNickName(profile),
           avatar: String(profile.avatar || profile.avatarUrl || '').trim(),
           mode: settings.mode,
           creatorGender: storage.normalizeGender(profile.gender),

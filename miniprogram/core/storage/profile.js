@@ -6,11 +6,17 @@ function normalizeGender(gender) {
   return 'unknown';
 }
 
+function getProfileNickName(profile) {
+  if (!profile || typeof profile !== 'object') return '';
+  const preferred = String(profile.nickName || '').trim();
+  const legacy = preferred ? '' : String(profile.nickname || '').trim();
+  const nickName = preferred || legacy;
+  return nickName === '微信用户' ? '' : nickName;
+}
+
 function sanitizeUserProfile(profile) {
   if (!profile || typeof profile !== 'object') return null;
-  const rawNick = String(profile.nickName || profile.nickname || '').trim();
-  const nickName = rawNick === '微信用户' ? '' : rawNick;
-  const nickname = nickName;
+  const nickName = getProfileNickName(profile);
 
   const rawAvatarUrl = String(profile.avatarUrl || profile.avatarURL || '').trim();
   const rawAvatar = String(profile.avatar || '').trim();
@@ -21,12 +27,14 @@ function sanitizeUserProfile(profile) {
   const gender = normalizeGender(profile.gender);
 
   if (!nickName && !avatarUrl && !avatar) return null;
-  return { ...profile, nickName, nickname, avatarUrl, avatar, gender };
+  const sanitized = { ...profile, nickName, avatarUrl, avatar, gender };
+  if (Object.prototype.hasOwnProperty.call(sanitized, 'nickname')) delete sanitized.nickname;
+  return sanitized;
 }
 
 function isProfileComplete(profile) {
   if (!profile || typeof profile !== 'object') return false;
-  const nickname = String(profile.nickName || profile.nickname || '').trim();
+  const nickname = getProfileNickName(profile);
   const gender = normalizeGender(profile.gender);
   return !!nickname && gender !== 'unknown';
 }
@@ -59,6 +67,7 @@ function getProfileUpdatedAt() {
 
 module.exports = {
   normalizeGender,
+  getProfileNickName,
   sanitizeUserProfile,
   isProfileComplete,
   getUserProfile,

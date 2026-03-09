@@ -14,11 +14,12 @@ function mergeProfile(base, incoming) {
   const merged = {
     ...b,
     ...i,
-    nickName: String(i.nickName || i.nickname || b.nickName || b.nickname || '').trim(),
+    nickName: storage.getProfileNickName(i) || storage.getProfileNickName(b),
     avatar: String(i.avatar || i.avatarUrl || b.avatar || b.avatarUrl || '').trim(),
     avatarUrl: String(i.avatarUrl || i.avatar || b.avatarUrl || b.avatar || '').trim(),
     gender: storage.normalizeGender(i.gender || b.gender || 'unknown')
   };
+  if (Object.prototype.hasOwnProperty.call(merged, 'nickname')) delete merged.nickname;
   return merged;
 }
 
@@ -50,13 +51,12 @@ async function saveCloudProfile(profile) {
 function normalizeQuickFillInput(options = {}, profile = null) {
   const p = profile && typeof profile === 'object' ? profile : {};
   const avatarTempPath = String(options.avatarTempPath || '').trim();
-  const incomingNick = String(options.nickname || '').trim();
-  const localNick = String(p.nickName || p.nickname || '').trim();
-  const nickname = incomingNick || localNick;
+  const nickName = storage.getProfileNickName(options) || storage.getProfileNickName(p);
   return {
     avatarTempPath,
-    nickname,
-    nicknameFilled: !!nickname,
+    nickName,
+    nickname: nickName,
+    nicknameFilled: !!nickName,
     cancelled: !avatarTempPath
   };
 }
