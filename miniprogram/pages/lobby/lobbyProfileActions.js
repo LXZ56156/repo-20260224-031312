@@ -217,7 +217,7 @@ module.exports = {
       this.setData({ profileFieldError: '' });
       const gate = await profileCore.ensureProfileForAction(
         'join',
-        `/pages/lobby/index?tournamentId=${encodeURIComponent(this.data.tournamentId)}&intent=join`
+        `/pages/lobby/index?tournamentId=${encodeURIComponent(this.data.tournamentId)}`
       );
       if (!gate.ok) {
         if (gate.reason === 'login_failed') {

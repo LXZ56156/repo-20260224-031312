@@ -117,7 +117,7 @@ Page({
     this.setData({ tournamentId: tid });
     this._fromCreate = String((options && options.fromCreate) || '') === '1';
     this._showShareHint = this._fromCreate && String((options && options.shareTip) || '') === '1';
-    this._pendingIntentAction = String((options && options.intent) || '').trim();
+    this._pendingIntentAction = '';
 
     const app = getApp();
     this.setData({ networkOffline: !!(app && app.globalData && app.globalData.networkOffline) });

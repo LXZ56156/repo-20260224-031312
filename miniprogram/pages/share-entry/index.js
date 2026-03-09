@@ -203,7 +203,7 @@ Page({
 
     const actionKey = `shareEntry:joinTournament:${tournamentId}`;
     return actionGuard.runWithPageBusy(this, 'joinBusy', actionKey, async () => {
-      const gate = await profileCore.ensureProfileForAction('share_join', flow.buildReturnUrl(tournamentId, 'join'));
+      const gate = await profileCore.ensureProfileForAction('share_join', flow.buildReturnUrl(tournamentId, 'view'));
       if (!gate.ok) {
         if (gate.reason === 'login_failed') {
           wx.showToast({ title: '登录失败，请稍后重试', icon: 'none' });
