@@ -34,7 +34,8 @@ Page({
     this._lockStatusKey = '';
     this._batchOccupiedKey = '';
     this._latestTournament = null;
-    this._pageRequestSeq = 0;
+    this._fetchSeq = 0;
+    this._watchGen = 0;
     this._lastFailedAction = null;
     this._pageActive = true;
     this._navTimers = new Set();
@@ -56,6 +57,8 @@ Page({
 
   onHide() {
     this._pageActive = false;
+    this.invalidateFetchSeq();
+    this.invalidateWatchGen();
     this.clearNavTimers();
     releaseAndTeardown(this);
   },
@@ -72,6 +75,8 @@ Page({
 
   onUnload() {
     this._pageActive = false;
+    this.invalidateFetchSeq();
+    this.invalidateWatchGen();
     this.clearNavTimers();
     releaseAndTeardown(this);
     this.matchDraft.teardown();
@@ -79,13 +84,30 @@ Page({
     this._offNetwork = null;
   },
 
-  nextRequestSeq() {
-    this._pageRequestSeq = Number(this._pageRequestSeq || 0) + 1;
-    return this._pageRequestSeq;
+  nextFetchSeq() {
+    this._fetchSeq = Number(this._fetchSeq || 0) + 1;
+    return this._fetchSeq;
   },
 
-  isLatestRequestSeq(requestSeq) {
-    return Number(requestSeq) === Number(this._pageRequestSeq || 0);
+  isLatestFetchSeq(requestSeq) {
+    return Number(requestSeq) === Number(this._fetchSeq || 0);
+  },
+
+  invalidateFetchSeq() {
+    this._fetchSeq = Number(this._fetchSeq || 0) + 1;
+  },
+
+  nextWatchGen() {
+    this._watchGen = Number(this._watchGen || 0) + 1;
+    return this._watchGen;
+  },
+
+  isActiveWatchGen(watchGen) {
+    return Number(watchGen) === Number(this._watchGen || 0);
+  },
+
+  invalidateWatchGen() {
+    this._watchGen = Number(this._watchGen || 0) + 1;
   },
 
   isPageActive() {
@@ -121,19 +143,20 @@ Page({
   startWatch(tournamentId) {
     if (!tournamentId) return;
     ensureControllers(this);
+    const watchGen = this.nextWatchGen();
     tournamentSync.startWatch(this, tournamentId, (doc) => {
-      const requestSeq = this.nextRequestSeq();
+      if (!this.isActiveWatchGen(watchGen)) return;
       this.setData({ showStaleSyncHint: false });
-      this.applyTournament(doc, { requestSeq });
+      this.applyTournament(doc);
     });
   },
 
   async fetchTournament(tournamentId) {
     if (!tournamentId) return null;
     ensureControllers(this);
-    const requestSeq = this.nextRequestSeq();
+    const requestSeq = this.nextFetchSeq();
     const result = await tournamentSync.fetchTournament(tournamentId);
-    if (!this.isLatestRequestSeq(requestSeq)) return null;
+    if (!this.isLatestFetchSeq(requestSeq)) return null;
     if (result && result.ok && result.doc) {
       this.setData({ showStaleSyncHint: false });
       this.applyTournament(result.doc, { requestSeq });
@@ -152,7 +175,7 @@ Page({
     if (!tournament) return;
     ensureControllers(this);
     const requestSeq = Number(options.requestSeq) || 0;
-    if (requestSeq && !this.isLatestRequestSeq(requestSeq)) return;
+    if (requestSeq && !this.isLatestFetchSeq(requestSeq)) return;
 
     const viewState = buildTournamentViewState(tournament, {
       tournamentId: this.data.tournamentId,

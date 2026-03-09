@@ -33,7 +33,8 @@ function createMatchPageContext(definition) {
   ctx._lockStatusKey = '';
   ctx._batchOccupiedKey = '';
   ctx._latestTournament = null;
-  ctx._pageRequestSeq = 0;
+  ctx._fetchSeq = 0;
+  ctx._watchGen = 0;
   return ctx;
 }
 
@@ -108,6 +109,80 @@ test('match page ignores stale fetchTournament responses', async () => {
   } finally {
     global.wx = originalWx;
     global.getApp = originalGetApp;
+    tournamentSync.fetchTournament = originalFetchTournament;
+    delete require.cache[matchPagePath];
+  }
+});
+
+test('match page ignores stale watch callbacks after restarting watch', () => {
+  const originalStartWatch = tournamentSync.startWatch;
+
+  try {
+    const definition = loadMatchPageDefinition();
+    const ctx = createMatchPageContext(definition);
+    const watchers = [];
+
+    tournamentSync.startWatch = (_page, _tid, onData) => {
+      watchers.push(onData);
+    };
+
+    ctx.startWatch('t_1');
+    ctx.startWatch('t_1');
+
+    watchers[0]({
+      _id: 't_1',
+      name: 'Stale Tournament',
+      status: 'running',
+      players: [],
+      rounds: []
+    });
+    watchers[1]({
+      _id: 't_1',
+      name: 'Fresh Tournament',
+      status: 'running',
+      players: [],
+      rounds: []
+    });
+
+    assert.equal(ctx.data.tournamentName, 'Fresh Tournament');
+    assert.equal(ctx._latestTournament && ctx._latestTournament.name, 'Fresh Tournament');
+  } finally {
+    tournamentSync.startWatch = originalStartWatch;
+    delete require.cache[matchPagePath];
+  }
+});
+
+test('match page ignores fetch responses after onHide invalidates the page request', async () => {
+  const originalFetchTournament = tournamentSync.fetchTournament;
+
+  try {
+    const definition = loadMatchPageDefinition();
+    const ctx = createMatchPageContext(definition);
+    const resolvers = [];
+
+    tournamentSync.fetchTournament = async () => new Promise((resolve) => {
+      resolvers.push(resolve);
+    });
+
+    const pending = ctx.fetchTournament('t_1');
+    ctx.onHide();
+
+    resolvers[0]({
+      ok: true,
+      source: 'remote',
+      doc: {
+        _id: 't_1',
+        name: 'Should Be Ignored',
+        status: 'running',
+        players: [],
+        rounds: []
+      }
+    });
+
+    const result = await pending;
+    assert.equal(result, null);
+    assert.equal(ctx._latestTournament, null);
+  } finally {
     tournamentSync.fetchTournament = originalFetchTournament;
     delete require.cache[matchPagePath];
   }

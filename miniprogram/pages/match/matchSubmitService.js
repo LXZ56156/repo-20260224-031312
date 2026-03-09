@@ -62,9 +62,9 @@ function createMatchSubmitService(ctx, deps = {}) {
   async function refreshTournamentDoc() {
     const tournamentId = String(ctx.data.tournamentId || '').trim();
     if (!tournamentId) return null;
-    const requestSeq = typeof ctx.nextRequestSeq === 'function' ? ctx.nextRequestSeq() : 0;
+    const requestSeq = typeof ctx.nextFetchSeq === 'function' ? ctx.nextFetchSeq() : 0;
     const result = await tournamentSyncApi.fetchTournament(tournamentId);
-    if (requestSeq && typeof ctx.isLatestRequestSeq === 'function' && !ctx.isLatestRequestSeq(requestSeq)) {
+    if (requestSeq && typeof ctx.isLatestFetchSeq === 'function' && !ctx.isLatestFetchSeq(requestSeq)) {
       return null;
     }
     if (result && result.ok && result.doc) {

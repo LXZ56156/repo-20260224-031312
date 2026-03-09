@@ -103,10 +103,10 @@ test('match submit service uses page navigation timers for delayed post-submit r
         scheduled.push(delay);
         return { fn, delay };
       },
-      nextRequestSeq() {
+      nextFetchSeq() {
         return 1;
       },
-      isLatestRequestSeq() {
+      isLatestFetchSeq() {
         return true;
       },
       applyTournament() {},
