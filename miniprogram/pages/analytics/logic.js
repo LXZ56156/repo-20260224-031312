@@ -1,5 +1,6 @@
 const normalize = require('../../core/normalize');
 const modeHelper = require('../../core/mode');
+const playerUtils = require('../../core/playerUtils');
 const rankingCore = require('../../core/ranking');
 
 function pickScoreVal(value) {
@@ -25,7 +26,7 @@ function extractId(player) {
 
 function asName(player, map) {
   const id = extractId(player);
-  const name = String(player && (player.name || player.nickname || player.nickName) || '').trim();
+  const name = playerUtils.safePlayerName(player);
   if (name) return name;
   if (id && map[id]) return map[id];
   return '未知';
@@ -105,7 +106,7 @@ function computeAnalytics(tournament) {
   for (const player of players) {
     const id = extractId(player);
     if (!id) continue;
-    nameMap[id] = String(player.name || '').trim() || nameMap[id] || '未知';
+    nameMap[id] = playerUtils.safePlayerName(player) || nameMap[id] || '未知';
   }
 
   let totalMatches = 0;

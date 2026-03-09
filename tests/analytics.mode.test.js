@@ -104,3 +104,31 @@ test('analytics keeps only pair teams for fixed_pair_rr', () => {
   );
   assert.ok(analytics.playerStats.every((row) => row.entityType === 'team'));
 });
+
+test('analytics prefers canonical nickName over legacy nickname alias in matchup labels', () => {
+  const analytics = analyticsLogic.computeAnalytics({
+    mode: 'multi_rotate',
+    players: [
+      { id: 'u1', nickName: '新昵称A', nickname: '旧昵称A' },
+      { id: 'u2', nickName: '新昵称B', nickname: '旧昵称B' },
+      { id: 'u3', name: '对手C' },
+      { id: 'u4', name: '对手D' }
+    ],
+    rounds: [{
+      roundIndex: 0,
+      matches: [makeMatch(
+        [{ id: 'u1', nickName: '新昵称A', nickname: '旧昵称A' }, { id: 'u2', nickName: '新昵称B', nickname: '旧昵称B' }],
+        [{ id: 'u3', name: '对手C' }, { id: 'u4', name: '对手D' }],
+        21,
+        18
+      )]
+    }],
+    rankings: [
+      { entityType: 'player', entityId: 'u1', playerId: 'u1', name: '新昵称A', wins: 1, losses: 0, played: 1, pointsFor: 21, pointsAgainst: 18, pointDiff: 3 },
+      { entityType: 'player', entityId: 'u2', playerId: 'u2', name: '新昵称B', wins: 1, losses: 0, played: 1, pointsFor: 21, pointsAgainst: 18, pointDiff: 3 }
+    ]
+  });
+
+  assert.equal(analytics.pairHot[0].label, '新昵称A / 新昵称B');
+  assert.equal(analytics.duelHot[0].label.includes('新昵称A / 新昵称B'), true);
+});

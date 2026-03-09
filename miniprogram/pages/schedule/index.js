@@ -1,5 +1,6 @@
 const storage = require('../../core/storage');
 const normalize = require('../../core/normalize');
+const playerUtils = require('../../core/playerUtils');
 const perm = require('../../permission/permission');
 const tournamentSync = require('../../core/tournamentSync');
 const nav = require('../../core/nav');
@@ -7,7 +8,7 @@ const nav = require('../../core/nav');
 function asName(p) {
   if (!p) return '未知';
   if (typeof p === 'string') return p;
-  return (p.name || p.nickname || p.id || '未知');
+  return playerUtils.safePlayerName(p) || '未知';
 }
 
 function pickScoreVal(v) {
