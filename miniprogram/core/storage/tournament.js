@@ -4,6 +4,7 @@ const { get, set, del } = require('./base');
 
 const RECENT_TOURNAMENTS_KEY = 'recentTournaments';
 const LOCAL_COMPLETED_TOURNAMENT_IDS_KEY = 'local_completed_tournament_ids_v1';
+const LOCAL_COMPLETED_TOURNAMENT_MAP_KEY = 'local_completed_tournament_map_v2';
 const LOCAL_TOURNAMENT_SNAPSHOT_PREFIX = 'local_tournament_snapshot_';
 const LOCAL_TOURNAMENT_CACHE_PREFIX = 'local_tournament_cache_';
 const LOCAL_COMPLETED_MAX = 500;
@@ -61,6 +62,16 @@ function getLocalCompletedTournamentIds() {
   return ids.map((id) => String(id || '').trim()).filter(Boolean);
 }
 
+function getLocalCompletedTournamentMap() {
+  const raw = get(LOCAL_COMPLETED_TOURNAMENT_MAP_KEY, null);
+  return raw && typeof raw === 'object' ? raw : {};
+}
+
+function setLocalCompletedTournamentMap(map) {
+  const value = map && typeof map === 'object' ? map : {};
+  set(LOCAL_COMPLETED_TOURNAMENT_MAP_KEY, value);
+}
+
 function setLocalCompletedTournamentIds(ids) {
   const next = Array.isArray(ids) ? ids.map((id) => String(id || '').trim()).filter(Boolean) : [];
   set(LOCAL_COMPLETED_TOURNAMENT_IDS_KEY, next);
@@ -69,6 +80,8 @@ function setLocalCompletedTournamentIds(ids) {
 function getLocalTournamentSnapshot(tournamentId) {
   const tid = String(tournamentId || '').trim();
   if (!tid) return null;
+  const snapshotMap = getLocalCompletedTournamentMap();
+  if (snapshotMap[tid] && typeof snapshotMap[tid] === 'object') return snapshotMap[tid];
   const snapshot = get(getLocalTournamentSnapshotKey(tid), null);
   return snapshot && typeof snapshot === 'object' ? snapshot : null;
 }
@@ -77,6 +90,9 @@ function setLocalTournamentSnapshot(tournamentId, snapshot) {
   const tid = String(tournamentId || '').trim();
   if (!tid || !snapshot || typeof snapshot !== 'object') return;
   set(getLocalTournamentSnapshotKey(tid), snapshot);
+  const snapshotMap = getLocalCompletedTournamentMap();
+  snapshotMap[tid] = snapshot;
+  setLocalCompletedTournamentMap(snapshotMap);
 }
 
 function getLocalTournamentCache(tournamentId) {
@@ -104,6 +120,11 @@ function removeLocalCompletedTournamentSnapshot(tournamentId) {
   const nextIds = getLocalCompletedTournamentIds().filter((id) => id !== tid);
   setLocalCompletedTournamentIds(nextIds);
   del(getLocalTournamentSnapshotKey(tid));
+  const snapshotMap = getLocalCompletedTournamentMap();
+  if (snapshotMap[tid]) {
+    delete snapshotMap[tid];
+    setLocalCompletedTournamentMap(snapshotMap);
+  }
 }
 
 function buildLocalTournamentSnapshot(tournament) {
@@ -173,21 +194,37 @@ function upsertLocalCompletedTournamentSnapshot(tournament, openid = '') {
 
   const ids = getLocalCompletedTournamentIds();
   const nextIds = [tid, ...ids.filter((id) => id !== tid)];
+  const snapshotMap = getLocalCompletedTournamentMap();
+  snapshotMap[tid] = snapshot;
   if (nextIds.length > LOCAL_COMPLETED_MAX) {
     const overflowIds = nextIds.slice(LOCAL_COMPLETED_MAX);
-    overflowIds.forEach((id) => del(getLocalTournamentSnapshotKey(id)));
+    overflowIds.forEach((id) => {
+      del(getLocalTournamentSnapshotKey(id));
+      delete snapshotMap[id];
+    });
   }
+  setLocalCompletedTournamentMap(snapshotMap);
   setLocalCompletedTournamentIds(nextIds.slice(0, LOCAL_COMPLETED_MAX));
   return true;
 }
 
 function getLocalCompletedTournamentSnapshots() {
   const ids = getLocalCompletedTournamentIds();
+  const snapshotMap = getLocalCompletedTournamentMap();
   const out = [];
+  let mapChanged = false;
   for (const id of ids) {
-    const snapshot = getLocalTournamentSnapshot(id);
+    let snapshot = snapshotMap[id];
+    if (!snapshot || typeof snapshot !== 'object') {
+      snapshot = get(getLocalTournamentSnapshotKey(id), null);
+      if (snapshot && typeof snapshot === 'object') {
+        snapshotMap[id] = snapshot;
+        mapChanged = true;
+      }
+    }
     if (snapshot) out.push(snapshot);
   }
+  if (mapChanged) setLocalCompletedTournamentMap(snapshotMap);
   out.sort((a, b) => (Number(b.updatedAtTs) || 0) - (Number(a.updatedAtTs) || 0));
   return out;
 }
@@ -208,6 +245,8 @@ module.exports = {
   getLocalTournamentSnapshotKey,
   getLocalTournamentCacheKey,
   setLocalCompletedTournamentIds,
+  getLocalCompletedTournamentMap,
+  setLocalCompletedTournamentMap,
   buildLocalTournamentSnapshot,
   getCurrentOpenid
 };
