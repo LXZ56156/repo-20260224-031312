@@ -163,7 +163,11 @@ function computeAnalytics(tournament) {
   }
 
   const rankingRows = buildRankingRows(t);
-  const top3 = rankingRows.slice(0, 3).map((row, idx) => ({
+  const rankedRows = rankingRows.map((row, idx) => ({
+    ...row,
+    rank: idx + 1
+  }));
+  const top3 = rankedRows.slice(0, 3).map((row, idx) => ({
     ...row,
     rankLabel: `TOP ${idx + 1}`
   }));
@@ -181,7 +185,7 @@ function computeAnalytics(tournament) {
       avgDiff: finishedMatches > 0 ? (Math.round((diffSum * 10) / finishedMatches) / 10).toFixed(1) : '0.0'
     },
     top3,
-    playerStats: rankingRows,
+    playerStats: rankedRows,
     pairHot,
     duelHot,
     rankingTitle: isTeamMode ? '队伍数据' : '球员数据',
@@ -212,7 +216,81 @@ function buildBattleReport(analytics) {
   return { lines, shareText, headline, briefText };
 }
 
+function formatCompactMatches(finished, total) {
+  return `${Number(finished) || 0}/${Number(total) || 0}`;
+}
+
+function getStatusLabel(status) {
+  const value = String(status || '').trim();
+  if (value === 'running') return '进行中';
+  if (value === 'finished') return '已结束';
+  return '准备中';
+}
+
+function buildAnalyticsPageModel(analytics, report) {
+  const data = analytics || {};
+  const tournament = data.tournament || {};
+  const summary = data.summary || {};
+  const top3 = Array.isArray(data.top3) ? data.top3 : [];
+  const playerStats = Array.isArray(data.playerStats) ? data.playerStats : [];
+  const pairHot = Array.isArray(data.pairHot) ? data.pairHot : [];
+  const duelHot = Array.isArray(data.duelHot) ? data.duelHot : [];
+  const topLeader = top3[0] || null;
+
+  const modeLabel = modeHelper.getModeLabel(tournament.mode);
+  const statusLabel = getStatusLabel(tournament.status);
+  const finishedMatches = Number(summary.finishedMatches) || 0;
+  const totalMatches = Number(summary.totalMatches) || 0;
+  const completionRate = String(summary.completionRate || '0%');
+  const totalPoints = Number(summary.totalPoints) || 0;
+  const avgDiff = String(summary.avgDiff || '0.0');
+
+  let heroHeadline = '等待首场完赛';
+  let heroSubline = '完成比赛后，这里会自动生成复盘结论。';
+  if (topLeader) {
+    heroHeadline = `榜首 ${topLeader.name}`;
+    heroSubline = `胜${topLeader.wins} 负${topLeader.losses} · 净胜 ${topLeader.pointDiff}`;
+  } else if (finishedMatches > 0) {
+    heroHeadline = `已完成 ${finishedMatches} 场比赛`;
+    heroSubline = `当前完赛率 ${completionRate}`;
+  }
+
+  const heroStats = [
+    { label: '完赛', value: formatCompactMatches(finishedMatches, totalMatches) },
+    { label: '总分', value: String(totalPoints) },
+    { label: '分差', value: avgDiff }
+  ];
+
+  const summaryStats = [
+    { label: '完赛率', value: completionRate },
+    { label: '总场次', value: String(totalMatches) },
+    { label: '平均分差', value: avgDiff }
+  ];
+
+  const focusFacts = [];
+  if (topLeader) focusFacts.push(`榜首 ${topLeader.name}，战绩 ${topLeader.wins} 胜 ${topLeader.losses} 负`);
+  focusFacts.push(`已完赛 ${formatCompactMatches(finishedMatches, totalMatches)}，完赛率 ${completionRate}`);
+  focusFacts.push(`总得分 ${totalPoints}，平均分差 ${avgDiff}`);
+  if (pairHot[0]) focusFacts.push(`高频搭档 ${pairHot[0].label} · ${pairHot[0].count} 次`);
+  if (duelHot[0]) focusFacts.push(`高频对阵 ${duelHot[0].label} · ${duelHot[0].count} 次`);
+
+  return {
+    modeLabel,
+    statusLabel,
+    heroHeadline,
+    heroSubline,
+    heroStats,
+    summaryStats,
+    focusFacts: focusFacts.slice(0, 4),
+    reportHeadline: String((report && report.headline) || '').trim(),
+    topSectionTitle: top3.length >= 3 ? 'TOP 3' : '领先榜',
+    top3,
+    fullRankings: playerStats
+  };
+}
+
 module.exports = {
   computeAnalytics,
-  buildBattleReport
+  buildBattleReport,
+  buildAnalyticsPageModel
 };

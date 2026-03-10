@@ -110,7 +110,7 @@ function buildShareMessage(tournament) {
       title: `${tournamentName} · 查看赛况与排名`,
       intent: 'watch',
       panelTitle: '分享当前赛况',
-      panelHint: '比赛进行中，可把当前状态、排名和已完成场次分享给其他人查看。',
+      panelHint: '比赛进行中，可直接把赛况和排名发出去。',
       badgeText: '进行中',
       buttonText: '分享赛况',
       detailText: resolveCurrentRoundText(t && t.rounds, lifecycle)
@@ -121,7 +121,7 @@ function buildShareMessage(tournament) {
       title: `${tournamentName} · 查看结果与排名`,
       intent: 'result',
       panelTitle: '分享比赛结果',
-      panelHint: '比赛已结束，可把最终排名和结果发出去，方便大家查看复盘。',
+      panelHint: '比赛已结束，可直接把结果和排名发出去。',
       badgeText: '已结束',
       buttonText: '分享结果',
       detailText: resolveCurrentRoundText(t && t.rounds, lifecycle)
@@ -130,11 +130,11 @@ function buildShareMessage(tournament) {
   return {
     title: `${tournamentName} · 查看比赛信息`,
     intent: 'join',
-    panelTitle: '分享邀请',
-    panelHint: '先把比赛发出去，让大家先查看信息，再决定是否加入。',
-    badgeText: '主路径',
+    panelTitle: '分享比赛',
+    panelHint: '先发出去，让大家先看比赛，再决定是否加入。',
+    badgeText: '推荐',
     buttonText: '分享比赛链接',
-    detailText: '支持先查看、再决定是否加入；导入名单保留为备用方案'
+    detailText: '先分享，再决定谁加入'
   };
 }
 
@@ -181,13 +181,13 @@ function buildPreviewMode({ lifecycle, joined, joinAllowed }) {
 
 function buildAvailabilityText({ lifecycle, joined, joinAllowed }) {
   if (joined) {
-    if (lifecycle === 'draft') return '你已在参赛名单中，可直接进入比赛详情。';
-    if (lifecycle === 'running') return '你已在参赛名单中，可直接进入查看赛程、排名和录分入口。';
+    if (lifecycle === 'draft') return '你已在名单中，可直接进入比赛。';
+    if (lifecycle === 'running') return '你已在名单中，可直接查看赛程、排名和录分入口。';
     return '你已参加过这场比赛，可直接查看结果和排名。';
   }
-  if (joinAllowed) return '当前可加入比赛；只有点击“加入比赛”后才会真正写入参赛名单。';
-  if (lifecycle === 'running') return '比赛正在进行，当前以查看赛况与排名为主，不会自动把你加入名单。';
-  if (lifecycle === 'finished') return '比赛已结束，当前不可加入；你可以直接查看结果和排名。';
+  if (joinAllowed) return '点“加入比赛”后才会真正写入名单。';
+  if (lifecycle === 'running') return '比赛正在进行，当前以查看赛况和排名为主。';
+  if (lifecycle === 'finished') return '比赛已结束，当前不可加入。';
   return '当前无法打开这场比赛，请稍后重试。';
 }
 
@@ -196,7 +196,7 @@ function buildInvalidShareEntryState(reason = '未找到赛事') {
     viewMode: 'invalid-match',
     viewModeLabel: '链接异常',
     headline: reason,
-    subtitle: '链接可能已失效、比赛已被删除，或当前参数不完整。',
+    subtitle: '链接可能已失效、比赛已删除，或当前参数不完整。',
     statusText: '不可用',
     statusClass: 'tag-muted',
     primaryAction: { key: 'retry', text: '重新加载' },
@@ -225,7 +225,7 @@ function buildRetryableShareEntryState(reason = '同步失败，请稍后重试'
     viewMode: 'retryable-error',
     viewModeLabel: '同步失败',
     headline: reason,
-    subtitle: '比赛信息暂时同步失败，可能是当前网络波动；你可以重新加载或稍后再试。',
+    subtitle: '比赛信息暂时同步失败，你可以重新加载或稍后再试。',
     statusText: '暂不可用',
     statusClass: 'tag-muted',
     primaryAction: { key: 'retry', text: '重新加载' },
@@ -287,13 +287,13 @@ function buildShareEntryViewModel({ tournament, openid = '' }) {
     viewMode: previewMode,
     viewModeLabel: viewModeLabelMap[previewMode] || '查看比赛',
     headline: lifecycle === 'draft'
-      ? '先看这场比赛，再决定是否加入'
-      : (lifecycle === 'running' ? '打开即可查看这场比赛的赛况' : '打开即可查看这场比赛的结果'),
+      ? '先看比赛，再决定是否加入'
+      : (lifecycle === 'running' ? '这场比赛正在进行中' : '这场比赛已结束'),
     subtitle: lifecycle === 'draft'
-      ? '你可以先看玩法、人数和组织信息，点击“加入比赛”后才会真正写入名单。'
+      ? '先看玩法、人数和组织信息；点击“加入比赛”后才会真正写入名单。'
       : (lifecycle === 'running'
-        ? '比赛进行中，当前分享更适合查看赛况、排名和已完成轮次。'
-        : '比赛已结束，当前分享更适合查看排名、结果和赛后复盘。'),
+        ? '当前更适合查看赛况、排名和比赛进度。'
+        : '当前更适合查看排名、结果和赛后复盘。'),
     statusText: buildStatusText(lifecycle),
     statusClass: buildStatusClass(lifecycle),
     primaryAction: buildPrimaryAction({ lifecycle, joined, joinAllowed }),

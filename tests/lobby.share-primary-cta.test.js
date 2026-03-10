@@ -11,7 +11,7 @@ test('lobby draft UI promotes share invite ahead of bulk import', () => {
     'utf8'
   );
   const shareIndex = wxml.indexOf('id="share-invite"');
-  const importIndex = wxml.indexOf('备用：批量导入名单');
+  const importIndex = wxml.indexOf('备用：导入名单');
   assert.notEqual(shareIndex, -1);
   assert.notEqual(importIndex, -1);
   assert.ok(shareIndex < importIndex);

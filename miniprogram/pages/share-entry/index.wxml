@@ -1,5 +1,5 @@
 <view class="container safe-bottom share-entry-page">
-  <view class="stale-banner" wx:if="{{showStaleSyncHint}}">当前显示的是最近一次同步到本机的比赛信息</view>
+  <view class="stale-banner" wx:if="{{showStaleSyncHint}}">当前为最近一次同步的比赛信息</view>
 
   <view class="card panel share-hero">
     <view class="row hero-top">
@@ -19,39 +19,28 @@
 
   <view class="card panel share-info">
     <view class="section-head">
-      <view class="section-title">比赛信息</view>
+      <view class="section-title">快速了解</view>
       <text class="count-pill">{{preview.viewModeLabel}}</text>
     </view>
-    <view class="info-list">
-      <view class="info-item">
-        <text class="info-label">组织者</text>
-        <text class="info-value">{{preview.organizerName}}</text>
+    <view class="share-facts">
+      <view class="share-fact">
+        <text class="share-fact-label">组织者</text>
+        <text class="share-fact-value">{{preview.organizerName}}</text>
       </view>
-      <view class="info-item">
-        <text class="info-label">比赛状态</text>
-        <text class="info-value">{{preview.statusText}}</text>
+      <view class="share-fact">
+        <text class="share-fact-label">状态</text>
+        <text class="share-fact-value">{{preview.statusText}}</text>
       </view>
-      <view class="info-item">
-        <text class="info-label">当前人数</text>
-        <text class="info-value">{{preview.playersCountText}}</text>
+      <view class="share-fact">
+        <text class="share-fact-label">时间</text>
+        <text class="share-fact-value">{{preview.timeText}}</text>
       </view>
-      <view class="info-item">
-        <text class="info-label">比赛时间</text>
-        <text class="info-value">{{preview.timeText}}</text>
-      </view>
-      <view class="info-item">
-        <text class="info-label">场地 / 地点</text>
-        <text class="info-value">{{preview.venueText}}</text>
-      </view>
-      <view class="info-item">
-        <text class="info-label">加入说明</text>
-        <text class="info-value">{{preview.availabilityText}}</text>
-      </view>
-      <view class="info-item" wx:if="{{preview.showProgressSummary}}">
-        <text class="info-label">当前进度</text>
-        <text class="info-value">{{preview.currentRoundText}}</text>
+      <view class="share-fact">
+        <text class="share-fact-label">地点</text>
+        <text class="share-fact-value">{{preview.venueText}}</text>
       </view>
     </view>
+    <view class="share-note">{{preview.availabilityText}}</view>
   </view>
 
   <view class="card panel panel-soft" wx:if="{{tournament && tournament.mode==='squad_doubles' && preview.joinAllowed && !preview.joined}}">
@@ -73,8 +62,7 @@
     </view>
     <view class="progress-summary">
       <view class="summary-value">{{preview.progressText}}</view>
-      <view class="muted small">{{preview.currentRoundText}}</view>
-      <view class="muted small">比赛开始后仍可通过分享链接查看排名、赛况和已完成轮次。</view>
+      <view class="muted small">{{preview.currentRoundText}} · {{preview.roundsText}}</view>
     </view>
     <view class="ranking-preview" wx:if="{{preview.showRankingPreview}}">
       <view class="ranking-row" wx:for="{{preview.rankingsPreview}}" wx:key="rank">

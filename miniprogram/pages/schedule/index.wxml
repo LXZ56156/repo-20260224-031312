@@ -1,22 +1,37 @@
 <view class="container safe-bottom schedule-page" wx:if="{{tournament}}">
   <view class="stale-banner" wx:if="{{showStaleSyncHint}}">当前为最近一次同步数据</view>
   <view class="hero">
-    <view class="row">
-      <view>
-        <view class="hero-title">赛程</view>
-        <view class="hero-sub">{{tournament.name}}</view>
+    <view class="row hero-head">
+      <view class="flex-1 minw0">
+        <view class="hero-kicker">当前赛程</view>
+        <view class="hero-title ellipsis">{{tournament.name}}</view>
+        <view class="hero-sub">{{heroSummaryText}}</view>
       </view>
       <view class="tag {{statusClass}}">{{statusText}}</view>
     </view>
+    <view class="hero-stats">
+      <view class="hero-stat">
+        <view class="hero-stat-value">{{heroRoundText}}</view>
+        <view class="hero-stat-label">轮次</view>
+      </view>
+      <view class="hero-stat">
+        <view class="hero-stat-value">{{heroMatchText}}</view>
+        <view class="hero-stat-label">进度</view>
+      </view>
+      <view class="hero-stat">
+        <view class="hero-stat-value">{{heroPendingText}}</view>
+        <view class="hero-stat-label">状态</view>
+      </view>
+    </view>
     <view class="hero-actions" wx:if="{{nextActionText || tournament}}">
-      <button class="btn btn-subtle btn-sm hero-btn" wx:if="{{nextActionText}}" bindtap="onHeroActionTap">{{nextActionText}}</button>
-      <button class="btn btn-subtle btn-sm hero-btn" open-type="share" wx:if="{{tournament}}">{{shareButtonText}}</button>
+      <button class="btn btn-primary btn-sm hero-btn hero-primary" wx:if="{{nextActionText}}" bindtap="onHeroActionTap">{{nextActionText}}</button>
+      <button class="hero-link-btn" open-type="share" wx:if="{{tournament}}">{{shareButtonText}}</button>
     </view>
   </view>
 
   <view class="card panel panel-soft state-card" wx:if="{{!roundsUi.length}}">
-    <view class="state-title">暂无赛程</view>
-    <view class="muted small">请在比赛大厅由管理员“开赛并锁定赛程”后生成。</view>
+    <view class="state-title">还没有赛程</view>
+    <view class="muted small">管理员开赛后，这里会出现每一轮对阵和录分状态。</view>
     <text class="state-link" bindtap="goLobby">去大厅</text>
   </view>
 

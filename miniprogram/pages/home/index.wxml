@@ -4,10 +4,10 @@
 
   <view class="card panel-soft profile-nudge reveal reveal-1" wx:if="{{showProfileNudge}}">
     <view class="section-head">
-      <view class="section-title">完善资料后更顺畅</view>
+      <view class="section-title">先补资料</view>
       <text class="count-pill">推荐</text>
     </view>
-    <view class="muted">完善昵称和性别后，可一键发起或参赛。</view>
+    <view class="muted">昵称和性别完整后，发起和加入都会更顺手。</view>
     <view class="profile-nudge-actions">
       <button class="btn btn-subtle btn-sm" bindtap="goProfileFromNudge">去完善</button>
       <text class="profile-nudge-later" bindtap="dismissProfileNudge">稍后</text>
@@ -16,19 +16,19 @@
 
   <view class="onboarding card panel reveal reveal-1" wx:if="{{showOnboarding}}">
     <view class="section-head">
-      <view class="section-title">开赛三步</view>
+      <view class="section-title">三步开赛</view>
       <text class="count-pill">新手引导</text>
     </view>
     <view class="guide-step"><text class="guide-index">1</text><text class="guide-text">创建并设参数</text></view>
-    <view class="guide-step"><text class="guide-index">2</text><text class="guide-text">导入参赛者</text></view>
+    <view class="guide-step"><text class="guide-index">2</text><text class="guide-text">分享邀请或导入名单</text></view>
     <view class="guide-step"><text class="guide-index">3</text><text class="guide-text">开赛后录分</text></view>
-    <view class="muted small onboarding-tip">从底部“发起”进入创建流程。</view>
+    <view class="muted small onboarding-tip">发起入口在底部标签栏。</view>
     <text class="onboarding-later" bindtap="dismissOnboarding">稍后再看</text>
   </view>
 
   <view class="card panel continue-card reveal reveal-2" wx:if="{{continueItem}}">
     <view class="section-head">
-      <view class="section-title">继续最近一场</view>
+      <view class="section-title">继续比赛</view>
       <text class="count-pill">进行中</text>
     </view>
     <view class="continue-name ellipsis">{{continueItem.name}}</view>
@@ -41,7 +41,12 @@
       <view class="hero-main">
         <view class="hero-env-badge" wx:if="{{showEnvBadge}}">{{envBadgeLabel}}</view>
         <view class="h-title">赛事中枢</view>
-        <view class="h-desc">参赛后可在首页继续录分并查看结果</view>
+        <view class="h-desc">发起、继续、看结果</view>
+        <view class="hero-stat-row">
+          <view class="hero-stat-pill">进行中 {{statusCountRunning}}</view>
+          <view class="hero-stat-pill">草稿 {{statusCountDraft}}</view>
+          <view class="hero-stat-pill">已结束 {{statusCountFinished}}</view>
+        </view>
       </view>
     </view>
   </view>
@@ -52,7 +57,6 @@
     <text class="sort-chip {{sortMode==='players' ? 'active' : ''}}" data-mode="players" bindtap="onChangeSortMode">按人数</text>
     <text class="sort-chip {{sortMode==='status' ? 'active' : ''}}" data-mode="status" bindtap="onChangeSortMode">按状态</text>
   </view>
-  <view class="sort-note muted small reveal reveal-4">排序作用于全部赛事</view>
 
   <view class="filter-row reveal reveal-5">
     <text class="filter-chip {{filterStatus==='all' ? 'active' : ''}}" data-status="all" bindtap="onChangeFilterStatus">全部 {{items.length}}</text>
@@ -68,7 +72,7 @@
 
   <view class="section reveal reveal-7">
     <view class="section-head">
-      <view class="section-title">赛事列表</view>
+      <view class="section-title">我的赛事</view>
       <text class="count-pill">{{visibleCount}} 个</text>
     </view>
 
@@ -106,7 +110,7 @@
       </block>
     </block>
     <view wx:else class="empty panel-soft section-empty">
-      <view class="empty-text">当前筛选下暂无赛事</view>
+      <view class="empty-text">当前筛选下还没有比赛</view>
       <text class="empty-link" bindtap="goCreate">去发起比赛</text>
     </view>
   </view>

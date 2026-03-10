@@ -18,6 +18,16 @@ Page({
     duelHot: [],
     rankingTitle: '球员数据',
     rankingUnit: '人',
+    modeLabel: '',
+    statusLabel: '',
+    topSectionTitle: 'TOP 3',
+    heroHeadline: '',
+    heroSubline: '',
+    heroStats: [],
+    summaryStats: [],
+    focusFacts: [],
+    fullRankings: [],
+    displayRankings: [],
     reportLines: [],
     reportShareText: '',
     reportHeadline: '',
@@ -28,6 +38,7 @@ Page({
     showStaleSyncHint: false,
     canRetryAction: false,
     lastFailedActionText: '',
+    showAllRankings: false,
     loadError: false
   },
 
@@ -139,23 +150,45 @@ Page({
     if (!tournament) return;
     const analytics = analyticsLogic.computeAnalytics(tournament);
     const report = analyticsLogic.buildBattleReport(analytics);
+    const pageModel = analyticsLogic.buildAnalyticsPageModel(analytics, report);
+    const fullRankings = Array.isArray(pageModel.fullRankings) ? pageModel.fullRankings : [];
     this.setData({
       loadError: false,
       tournament: analytics.tournament,
       summary: analytics.summary,
-      top3: analytics.top3,
+      top3: pageModel.top3,
       playerStats: analytics.playerStats,
-      pairHot: analytics.pairHot,
-      duelHot: analytics.duelHot,
+      pairHot: analytics.pairHot.slice(0, 3),
+      duelHot: analytics.duelHot.slice(0, 3),
       rankingTitle: analytics.rankingTitle,
       rankingUnit: analytics.rankingUnit,
       reportLines: report.lines,
       reportShareText: report.shareText,
       reportHeadline: report.headline,
       reportBriefText: report.briefText,
-      shareButtonText: String((shareMeta.buildShareMessage(analytics.tournament) || {}).buttonText || '分享比赛链接')
+      shareButtonText: String((shareMeta.buildShareMessage(analytics.tournament) || {}).buttonText || '分享比赛链接'),
+      modeLabel: pageModel.modeLabel,
+      statusLabel: pageModel.statusLabel,
+      topSectionTitle: pageModel.topSectionTitle,
+      heroHeadline: pageModel.heroHeadline,
+      heroSubline: pageModel.heroSubline,
+      heroStats: pageModel.heroStats,
+      summaryStats: pageModel.summaryStats,
+      focusFacts: pageModel.focusFacts,
+      fullRankings,
+      displayRankings: fullRankings.slice(0, 5),
+      showAllRankings: false
     });
     this.clearLastFailedAction();
+  },
+
+  toggleRankingRows() {
+    const nextShowAllRankings = !this.data.showAllRankings;
+    const fullRankings = Array.isArray(this.data.fullRankings) ? this.data.fullRankings : [];
+    this.setData({
+      showAllRankings: nextShowAllRankings,
+      displayRankings: nextShowAllRankings ? fullRankings : fullRankings.slice(0, 5)
+    });
   },
 
   copyBattleReport() {

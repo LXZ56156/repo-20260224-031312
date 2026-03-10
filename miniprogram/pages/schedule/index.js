@@ -5,6 +5,7 @@ const perm = require('../../permission/permission');
 const tournamentSync = require('../../core/tournamentSync');
 const nav = require('../../core/nav');
 const shareMeta = require('../../core/shareMeta');
+const flow = require('../../core/uxFlow');
 
 function asName(p) {
   if (!p) return '未知';
@@ -107,13 +108,40 @@ function findFirstPending(roundsUi) {
   return null;
 }
 
+function summarizeRounds(roundsUi) {
+  const rounds = Array.isArray(roundsUi) ? roundsUi : [];
+  let totalMatches = 0;
+  let finishedMatches = 0;
+  let pendingMatches = 0;
+  for (const round of rounds) {
+    const matches = Array.isArray(round && round.matchesUi) ? round.matchesUi : [];
+    totalMatches += matches.length;
+    for (const match of matches) {
+      const status = String((match && match.status) || '').trim();
+      if (status === 'finished') finishedMatches += 1;
+      else if (status !== 'canceled') pendingMatches += 1;
+    }
+  }
+  return {
+    totalRounds: rounds.length,
+    totalMatches,
+    finishedMatches,
+    pendingMatches
+  };
+}
+
 Page({
   data: {
     tournamentId: '',
     tournament: null,
     statusText: '',
     statusClass: 'tag-draft',
+    modeLabel: '',
     roundsUi: [],
+    heroSummaryText: '',
+    heroRoundText: '',
+    heroMatchText: '',
+    heroPendingText: '',
     canEditScore: false,
     hasPending: false,
     firstPendingRoundIndex: -1,
@@ -218,12 +246,14 @@ Page({
     t = normalize.normalizeTournament(t);
 
     const status = t.status || 'draft';
+    const modeLabel = flow.getModeLabel(t.mode || flow.MODE_MULTI_ROTATE);
     let statusText = '草稿';
     let statusClass = 'tag-draft';
     if (status === 'running') { statusText = '进行中'; statusClass = 'tag-running'; }
     if (status === 'finished') { statusText = '已结束'; statusClass = 'tag-finished'; }
 
     const roundsUi = decorateRounds(t);
+    const roundsSummary = summarizeRounds(roundsUi);
     const firstPending = findFirstPending(roundsUi);
     const canEditScore = perm.canEditScore(t, this.openid);
     let nextActionKey = '';
@@ -239,12 +269,28 @@ Page({
       nextActionText = '查看排名';
     }
 
+    const heroSummaryText = status === 'draft'
+      ? `${modeLabel} · 开赛后生成赛程`
+      : `${modeLabel} · ${roundsSummary.totalRounds || 0} 轮`;
+    const heroRoundText = roundsSummary.totalRounds ? `${roundsSummary.totalRounds} 轮` : '未排赛';
+    const heroMatchText = roundsSummary.totalMatches
+      ? `${roundsSummary.finishedMatches}/${roundsSummary.totalMatches} 场`
+      : '暂无场次';
+    const heroPendingText = status === 'draft'
+      ? '待开赛'
+      : (roundsSummary.pendingMatches ? `待录分 ${roundsSummary.pendingMatches}` : '已录完');
+
     this.setData({
       loadError: false,
       tournament: t,
       statusText,
       statusClass,
+      modeLabel,
       roundsUi,
+      heroSummaryText,
+      heroRoundText,
+      heroMatchText,
+      heroPendingText,
       canEditScore,
       hasPending: !!firstPending,
       firstPendingRoundIndex: firstPending ? firstPending.roundIndex : -1,
