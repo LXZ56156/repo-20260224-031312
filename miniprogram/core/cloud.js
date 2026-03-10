@@ -10,6 +10,16 @@ function stripCloudPrefix(msg) {
   return String(msg || '').replace(/^cloud\.call:fail\s*/i, '').trim();
 }
 
+function isInvalidWriteShapeMessage(msg) {
+  const normalized = String(msg || '');
+  const low = normalized.toLowerCase();
+  return (
+    low.includes('invalid parameters') ||
+    normalized.includes('不能更新_id的值') ||
+    normalized.includes('包含保留字段 _id')
+  );
+}
+
 function parseCloudError(err, fallbackMessage = '操作失败') {
   const rawMessage = normalizeErrMsg(err);
   const cleaned = stripCloudPrefix(rawMessage);
@@ -27,10 +37,12 @@ function parseCloudError(err, fallbackMessage = '操作失败') {
     low.includes('fail to connect') ||
     cleaned.includes('网络')
   );
+  const isInvalidWriteShape = isInvalidWriteShapeMessage(cleaned);
 
   return {
     isConflict,
     isNetwork,
+    isInvalidWriteShape,
     rawMessage,
     userMessage: cleaned || fallbackMessage
   };
@@ -40,6 +52,7 @@ function classifyCloudError(parsed) {
   const p = parsed || {};
   if (p.isConflict) return 'conflict';
   if (p.isNetwork) return 'network';
+  if (p.isInvalidWriteShape) return 'param';
   const low = String(p.userMessage || '').toLowerCase();
   if (
     low.includes('permission') ||
@@ -144,6 +157,11 @@ function call(name, data = {}) {
         showDevHint(
           '数据库集合不存在',
           '缺少 tournaments 集合。解决：云开发控制台 → 数据库 → 创建集合 tournaments（读权限允许，写入走云函数）。'
+        );
+      } else if (isInvalidWriteShapeMessage(msg)) {
+        console.warn(
+          '云函数写入参数不合法',
+          '检测到云函数向数据库根级写入了保留字段 _id，请检查 doc(id).set/update/add 的 data。'
         );
       }
 

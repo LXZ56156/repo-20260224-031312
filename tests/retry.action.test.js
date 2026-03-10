@@ -13,6 +13,12 @@ test('parseCloudError detects network errors', () => {
   assert.equal(parsed.isNetwork, true);
 });
 
+test('parseCloudError detects invalid root _id write shape errors', () => {
+  const parsed = cloud.parseCloudError(new Error('document.set:fail -501007 invalid parameters. 不能更新_id的值'), '失败');
+  assert.equal(parsed.isInvalidWriteShape, true);
+  assert.equal(cloud.classifyCloudError(parsed), 'param');
+});
+
 test('parseCloudError keeps fallback when message empty', () => {
   const parsed = cloud.parseCloudError(null, '操作失败');
   assert.equal(parsed.userMessage, '操作失败');
@@ -28,6 +34,11 @@ test('classifyCloudError maps permission and param', () => {
 test('getUnifiedErrorMessage returns normalized network message', () => {
   const msg = cloud.getUnifiedErrorMessage(new Error('request:fail timeout'), '失败');
   assert.equal(msg, '网络异常，请重试');
+});
+
+test('getUnifiedErrorMessage normalizes invalid root _id write shape errors', () => {
+  const msg = cloud.getUnifiedErrorMessage(new Error('document.set:fail -501007 invalid parameters. 不能更新_id的值'), '失败');
+  assert.equal(msg, '参数有误，请检查');
 });
 
 test('getUnifiedErrorMessage hides internal unknown cloud details in release env', () => {
@@ -84,5 +95,43 @@ test('cloud.call only shows detailed developer hint outside release env', async 
   } finally {
     global.wx = originalWx;
     global.getApp = originalGetApp;
+  }
+});
+
+test('cloud.call does not show user-facing modal for invalid write shape errors', async () => {
+  const originalWx = global.wx;
+  const originalGetApp = global.getApp;
+  const originalWarn = console.warn;
+  const modalCalls = [];
+  const warnCalls = [];
+
+  global.getApp = () => ({
+    globalData: {
+      runtimeEnv: { envVersion: 'trial' }
+    }
+  });
+  console.warn = (...args) => {
+    warnCalls.push(args);
+  };
+  global.wx = {
+    showModal(payload) {
+      modalCalls.push(payload);
+    },
+    cloud: {
+      callFunction() {
+        return Promise.reject(new Error('document.set:fail -501007 invalid parameters. 不能更新_id的值'));
+      }
+    }
+  };
+
+  try {
+    await assert.rejects(() => cloud.call('scoreLock', {}), /不能更新_id的值/);
+    assert.equal(modalCalls.length, 0);
+    assert.equal(warnCalls.length, 1);
+    assert.match(String(warnCalls[0][0] || ''), /云函数写入参数不合法/);
+  } finally {
+    global.wx = originalWx;
+    global.getApp = originalGetApp;
+    console.warn = originalWarn;
   }
 });

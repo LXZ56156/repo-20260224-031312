@@ -18,13 +18,14 @@ exports.main = async (event) => {
     common.assertCreator(t, OPENID);
 
     const oldVersion = Number(t.version) || 1;
+    const data = common.assertNoReservedRootKeys({
+      ...logic.buildResetTournamentPatch(t),
+      ...logic.buildResetTournamentRemovals(_.remove()),
+      updatedAt: db.serverDate(),
+      version: _.inc(1)
+    }, ['_id'], '赛事重置写入数据');
     const updRes = await db.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({
-      data: {
-        ...logic.buildResetTournamentPatch(t),
-        ...logic.buildResetTournamentRemovals(_.remove()),
-        updatedAt: db.serverDate(),
-        version: _.inc(1)
-      }
+      data
     });
     common.assertOptimisticUpdate(updRes, '写入冲突，请刷新赛事后重试');
     await logic.cleanupScoreLocksBestEffort(() => common.cleanupScoreLocks(db, tournamentId), tournamentId, console);

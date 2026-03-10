@@ -117,13 +117,13 @@ exports.main = async (event) => {
     });
 
     const updRes = await db.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({
-      data: {
+      data: common.assertNoReservedRootKeys({
         rounds: computed.rounds,
         rankings: computed.rankings,
         status: computed.nextStatus,
         updatedAt: db.serverDate(),
         version: _.inc(1)
-      }
+      }, ['_id'], '比分提交写入数据')
     });
 
     if (!updRes || !updRes.stats || Number(updRes.stats.updated || 0) <= 0) {

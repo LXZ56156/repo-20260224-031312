@@ -41,33 +41,34 @@ exports.main = async (event) => {
     const pairTeams = mode === 'fixed_pair_rr'
       ? logic.copyPairTeams(source.pairTeams, copied.playerIdMap)
       : [];
+    const data = common.assertNoReservedRootKeys({
+      name: nextName,
+      status: 'draft',
+      creatorId: OPENID,
+      mode,
+      allowOpenTeam,
+      refereeId: '',
+      settingsConfigured,
+      totalMatches,
+      courts,
+      rules,
+      players,
+      playerIds,
+      pairTeams,
+      rounds: [],
+      rankings: [],
+      scheduleSeed: null,
+      fairnessScore: 0,
+      fairnessJson: '',
+      playerStatsJson: '',
+      schedulerMetaJson: '',
+      createdAt: db.serverDate(),
+      updatedAt: db.serverDate(),
+      version: 1
+    }, ['_id'], '赛事复制数据');
 
     const addRes = await db.collection('tournaments').add({
-      data: {
-        name: nextName,
-        status: 'draft',
-        creatorId: OPENID,
-        mode,
-        allowOpenTeam,
-        refereeId: '',
-        settingsConfigured,
-        totalMatches,
-        courts,
-        rules,
-        players,
-        playerIds,
-        pairTeams,
-        rounds: [],
-        rankings: [],
-        scheduleSeed: null,
-        fairnessScore: 0,
-        fairnessJson: '',
-        playerStatsJson: '',
-        schedulerMetaJson: '',
-        createdAt: db.serverDate(),
-        updatedAt: db.serverDate(),
-        version: 1
-      }
+      data
     });
 
     return { ok: true, tournamentId: addRes._id };

@@ -14,6 +14,14 @@ function buildResponse({ ok, state, ownerId = '', ownerName = '', expireAt = 0, 
   return { ok, state, ownerId, ownerName, expireAt, remainingMs };
 }
 
+function buildWritableLockDoc(ownerId, ownerName, expireAt) {
+  return {
+    ownerId: String(ownerId || '').trim(),
+    ownerName: String(ownerName || '').trim(),
+    expireAt: Number(expireAt) || 0
+  };
+}
+
 function resolveLockAction(input = {}) {
   const action = normalizeAction(input.action);
   const nowTs = Number(input.nowTs) || Date.now();
@@ -96,11 +104,7 @@ function resolveLockAction(input = {}) {
         expireAt: nextExpireAt,
         remainingMs: LOCK_TTL_MS
       }),
-      nextLockDoc: {
-        ownerId: openid,
-        ownerName,
-        expireAt: nextExpireAt
-      }
+      nextLockDoc: buildWritableLockDoc(openid, ownerName, nextExpireAt)
     };
   }
 
@@ -142,12 +146,7 @@ function resolveLockAction(input = {}) {
         expireAt: nextExpireAt,
         remainingMs: LOCK_TTL_MS
       }),
-      nextLockDoc: {
-        ...(lockDoc || {}),
-        ownerId,
-        ownerName,
-        expireAt: nextExpireAt
-      }
+      nextLockDoc: buildWritableLockDoc(ownerId, ownerName, nextExpireAt)
     };
   }
 
@@ -177,5 +176,6 @@ module.exports = {
   LOCK_TTL_MS,
   normalizeAction,
   buildLockId,
+  buildWritableLockDoc,
   resolveLockAction
 };

@@ -121,12 +121,12 @@ exports.main = async (event, context) => {
     const up = await db.collection('tournaments')
       .where({ _id: tournamentId, version: t.version })
       .update({
-        data: {
+        data: common.assertNoReservedRootKeys({
           players: nextPlayers,
           playerIds: nextPlayerIds,
           version: _.inc(1),
           updatedAt: db.serverDate()
-        }
+        }, ['_id'], '赛事加入更新数据')
       });
 
     try {
@@ -150,12 +150,12 @@ exports.main = async (event, context) => {
   const res = await db.collection('tournaments')
     .where({ _id: tournamentId, version: t.version })
     .update({
-      data: {
+      data: common.assertNoReservedRootKeys({
         players: nextPlayers,
         playerIds: nextPlayerIds,
         version: _.inc(1),
         updatedAt: db.serverDate()
-      }
+      }, ['_id'], '赛事加入写入数据')
     });
 
   try {

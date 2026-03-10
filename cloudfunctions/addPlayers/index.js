@@ -117,12 +117,12 @@ exports.main = async (event) => {
       const nextPlayerIds = Array.from(new Set(nextPlayers.map((item) => String(item && item.id || '').trim()).filter(Boolean)));
 
       const updRes = await transaction.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({
-        data: {
+        data: common.assertNoReservedRootKeys({
           players: nextPlayers,
           playerIds: nextPlayerIds,
           updatedAt: db.serverDate(),
           version: _.inc(1)
-        }
+        }, ['_id'], '赛事导入名单写入数据')
       });
       common.assertOptimisticUpdate(updRes, '写入冲突，请重试');
       const maleCount = toAdd.filter((p) => p.gender === 'male').length;

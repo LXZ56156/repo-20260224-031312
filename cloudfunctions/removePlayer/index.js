@@ -32,14 +32,14 @@ exports.main = async (event) => {
         .filter((team) => Array.isArray(team.playerIds) && team.playerIds.length === 2);
 
       const updRes = await transaction.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({
-        data: {
+        data: common.assertNoReservedRootKeys({
           players,
           playerIds,
           refereeId,
           pairTeams,
           updatedAt: db.serverDate(),
           version: _.inc(1)
-        }
+        }, ['_id'], '移除参赛成员写入数据')
       });
       common.assertOptimisticUpdate(updRes, '写入冲突，请重试');
       return { ok: true };

@@ -80,34 +80,35 @@ exports.main = async (event) => {
   };
 
   try {
+    const data = common.assertNoReservedRootKeys({
+      name,
+      status: 'draft',
+      creatorId: OPENID,
+      mode,
+      allowOpenTeam,
+      refereeId: '',
+      // 创建页可直接预配置参数；未配置时仍保持草稿态并可后续设置
+      presetKey: ['relax', 'standard', 'intense', 'custom'].includes(presetKey) ? presetKey : 'standard',
+      settingsConfigured,
+      totalMatches: settingsConfigured ? totalMatches : 0,
+      courts: settingsConfigured ? courts : 0,
+      rules,
+      players: [creatorPlayer],
+      playerIds: [OPENID],
+      pairTeams: [],
+      rounds: [],
+      rankings: [],
+      scheduleSeed: null,
+      fairnessScore: 0,
+      // Avoid nested-object updates causing DB dot-path conflicts.
+      fairnessJson: '',
+      playerStatsJson: '',
+      createdAt: db.serverDate(),
+      updatedAt: db.serverDate(),
+      version: 1
+    }, ['_id'], '赛事创建数据');
     const res = await db.collection('tournaments').add({
-      data: {
-        name,
-        status: 'draft',
-        creatorId: OPENID,
-        mode,
-        allowOpenTeam,
-        refereeId: '',
-        // 创建页可直接预配置参数；未配置时仍保持草稿态并可后续设置
-        presetKey: ['relax', 'standard', 'intense', 'custom'].includes(presetKey) ? presetKey : 'standard',
-        settingsConfigured,
-        totalMatches: settingsConfigured ? totalMatches : 0,
-        courts: settingsConfigured ? courts : 0,
-        rules,
-        players: [creatorPlayer],
-        playerIds: [OPENID],
-        pairTeams: [],
-        rounds: [],
-        rankings: [],
-        scheduleSeed: null,
-        fairnessScore: 0,
-        // Avoid nested-object updates causing DB dot-path conflicts.
-        fairnessJson: '',
-        playerStatsJson: '',
-        createdAt: db.serverDate(),
-        updatedAt: db.serverDate(),
-        version: 1
-      }
+      data
     });
     return { tournamentId: res._id };
   } catch (err) {

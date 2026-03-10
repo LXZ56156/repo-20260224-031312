@@ -125,7 +125,7 @@ exports.main = async (event) => {
     const rankings = modeHelper.buildInitialRankings(mode, players, pairTeams);
 
     const updRes = await db.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({
-      data: {
+      data: common.assertNoReservedRootKeys({
         status: 'running',
         rounds,
         rankings,
@@ -143,7 +143,7 @@ exports.main = async (event) => {
         playerStats: _.remove(),
         updatedAt: db.serverDate(),
         version: _.inc(1)
-      }
+      }, ['_id'], '赛事开赛写入数据')
     });
 
     common.assertOptimisticUpdate(updRes, '写入冲突，请刷新赛事后重试');

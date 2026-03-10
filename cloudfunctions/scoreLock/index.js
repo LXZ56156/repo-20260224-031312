@@ -121,15 +121,15 @@ exports.main = async (event) => {
       });
 
       if (resolved.nextLockDoc) {
+        const data = common.assertNoReservedRootKeys({
+          tournamentId,
+          roundIndex,
+          matchIndex,
+          ...resolved.nextLockDoc,
+          updatedAt: db.serverDate()
+        }, ['_id'], '录分锁写入数据');
         await transaction.collection('score_locks').doc(lockId).set({
-          data: {
-            _id: lockId,
-            tournamentId,
-            roundIndex,
-            matchIndex,
-            ...resolved.nextLockDoc,
-            updatedAt: db.serverDate()
-          }
+          data
         });
       }
       if (resolved.removeLock) {

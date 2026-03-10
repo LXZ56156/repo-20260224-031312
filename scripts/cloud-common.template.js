@@ -48,6 +48,17 @@ function normalizeConflictError(err, fallbackMessage = '操作失败') {
   return new Error(msg);
 }
 
+function assertNoReservedRootKeys(data, reservedKeys = ['_id'], context = '写入数据') {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return data;
+  const hits = (Array.isArray(reservedKeys) ? reservedKeys : ['_id'])
+    .map((key) => String(key || '').trim())
+    .filter((key) => key && Object.prototype.hasOwnProperty.call(data, key));
+  if (hits.length > 0) {
+    throw new Error(`${String(context || '写入数据').trim() || '写入数据'}包含保留字段 ${hits.join(', ')}`);
+  }
+  return data;
+}
+
 async function cleanupScoreLocks(db, tournamentId) {
   const tid = String(tournamentId || '').trim();
   if (!db || !tid) return;
@@ -68,6 +79,7 @@ module.exports = {
   assertCreator,
   assertDraft,
   assertOptimisticUpdate,
+  assertNoReservedRootKeys,
   normalizeConflictError,
   cleanupScoreLocks
 };

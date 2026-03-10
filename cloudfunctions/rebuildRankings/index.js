@@ -20,11 +20,11 @@ exports.main = async (event) => {
     const updRes = await db.collection('tournaments')
       .where({ _id: tournamentId, version: oldVersion })
       .update({
-        data: {
+        data: common.assertNoReservedRootKeys({
           rankings,
           updatedAt: db.serverDate(),
           version: _.inc(1)
-        }
+        }, ['_id'], '重算排名写入数据')
       });
 
     common.assertOptimisticUpdate(updRes, '写入冲突：请刷新后重试');

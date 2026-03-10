@@ -46,6 +46,7 @@ exports.main = async (event) => {
         });
         data.players = nextPlayers;
       }
+      common.assertNoReservedRootKeys(data, ['_id'], '赛事设置更新数据');
 
       const updRes = await transaction.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({ data });
       common.assertOptimisticUpdate(updRes, '写入冲突，请重试');

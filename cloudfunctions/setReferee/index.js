@@ -24,11 +24,11 @@ exports.main = async (event) => {
 
       const oldVersion = Number(t.version) || 1;
       const updRes = await transaction.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({
-        data: {
+        data: common.assertNoReservedRootKeys({
           refereeId,
           updatedAt: db.serverDate(),
           version: _.inc(1)
-        }
+        }, ['_id'], '裁判设置写入数据')
       });
       common.assertOptimisticUpdate(updRes, '写入冲突，请重试');
       return { ok: true };

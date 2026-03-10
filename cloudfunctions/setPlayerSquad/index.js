@@ -4,6 +4,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 const modeHelper = require('./lib/mode');
+const common = require('./lib/common');
 
 function normalizeSquad(squad) {
   const v = String(squad || '').trim().toUpperCase();
@@ -34,11 +35,11 @@ exports.main = async (event) => {
 
   const oldVersion = Number(t.version) || 1;
   const updRes = await db.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({
-    data: {
+    data: common.assertNoReservedRootKeys({
       players,
       updatedAt: db.serverDate(),
       version: _.inc(1)
-    }
+    }, ['_id'], '分队调整写入数据')
   });
   if (!updRes || !updRes.stats || Number(updRes.stats.updated || 0) <= 0) {
     throw new Error('写入冲突，请刷新后重试');

@@ -86,6 +86,9 @@ function createDbHarness(lockGetImpl) {
                     return lockGetImpl(id);
                   },
                   async set(payload) {
+                    if (payload && payload.data && Object.prototype.hasOwnProperty.call(payload.data, '_id')) {
+                      throw new Error('score_locks set payload must not include _id');
+                    }
                     calls.set.push({ id, payload });
                   },
                   async remove() {
@@ -149,6 +152,34 @@ test('scoreLock index can acquire when lock doc is missing', async () => {
   assert.equal(calls.set.length, 1);
   assert.equal(calls.remove.length, 0);
   assert.equal(calls.set[0].id, 't_1_0_0');
-  assert.equal(calls.set[0].payload.data._id, 't_1_0_0');
+  assert.equal(Object.prototype.hasOwnProperty.call(calls.set[0].payload.data, '_id'), false);
+  assert.equal(calls.set[0].payload.data.ownerId, 'u_admin');
+});
+
+test('scoreLock index strips stored _id before heartbeat writeback', async () => {
+  const { db, calls } = createDbHarness(async () => ({
+    data: {
+      _id: 't_1_0_0',
+      tournamentId: 't_1',
+      roundIndex: 0,
+      matchIndex: 0,
+      ownerId: 'u_admin',
+      ownerName: '管理员',
+      expireAt: Date.now() + 5_000
+    }
+  }));
+  const { main } = loadScoreLockMain(db);
+
+  const result = await main({
+    action: 'heartbeat',
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.state, 'acquired');
+  assert.equal(calls.set.length, 1);
+  assert.equal(Object.prototype.hasOwnProperty.call(calls.set[0].payload.data, '_id'), false);
   assert.equal(calls.set[0].payload.data.ownerId, 'u_admin');
 });

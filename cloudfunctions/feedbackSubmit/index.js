@@ -2,6 +2,7 @@ const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 
 const db = cloud.database();
+const common = require('./lib/common');
 
 function sanitizeText(v, max = 500) {
   return String(v || '').replace(/\r/g, '').trim().slice(0, max);
@@ -38,15 +39,14 @@ exports.main = async (event) => {
   }
 
   const addRes = await col.add({
-    data: {
+    data: common.assertNoReservedRootKeys({
       openid: OPENID,
       category,
       content,
       contact,
       createdAt: nowDate,
       createdAtMs: now
-    }
+    }, ['_id'], '反馈提交数据')
   });
   return { ok: true, feedbackId: addRes._id };
 };
-

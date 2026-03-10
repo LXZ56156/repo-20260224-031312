@@ -5,6 +5,7 @@ const db = cloud.database();
 const _ = db.command;
 const logic = require('./logic');
 const modeHelper = require('./lib/mode');
+const common = require('./lib/common');
 
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
@@ -38,11 +39,11 @@ exports.main = async (event) => {
   const nextTeams = Array.isArray(actionRes.pairTeams) ? actionRes.pairTeams : teams;
   const oldVersion = Number(t.version) || 1;
   const updRes = await db.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({
-    data: {
+    data: common.assertNoReservedRootKeys({
       pairTeams: nextTeams,
       updatedAt: db.serverDate(),
       version: _.inc(1)
-    }
+    }, ['_id'], '队伍管理写入数据')
   });
   if (!updRes || !updRes.stats || Number(updRes.stats.updated || 0) <= 0) {
     throw new Error('写入冲突，请刷新后重试');

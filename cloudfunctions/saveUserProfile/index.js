@@ -2,6 +2,7 @@ const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 
 const db = cloud.database();
+const common = require('./lib/common');
 
 function normalizeGender(gender) {
   const v = String(gender || '').trim().toLowerCase();
@@ -34,24 +35,24 @@ exports.main = async (event) => {
   const doc = Array.isArray(findRes.data) && findRes.data[0] ? findRes.data[0] : null;
   if (!doc) {
     const addRes = await col.add({
-      data: {
+      data: common.assertNoReservedRootKeys({
         openid: OPENID,
         nickname,
         avatar,
         gender,
         createdAt: now,
         updatedAt: now
-      }
+      }, ['_id'], '用户资料新增数据')
     });
     return { ok: true, profileId: addRes._id };
   }
   await col.doc(doc._id).update({
-    data: {
+    data: common.assertNoReservedRootKeys({
       nickname,
       avatar,
       gender,
       updatedAt: now
-    }
+    }, ['_id'], '用户资料更新数据')
   });
   return { ok: true, profileId: doc._id };
 };
