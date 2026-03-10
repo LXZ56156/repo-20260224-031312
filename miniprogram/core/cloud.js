@@ -1,8 +1,26 @@
 const trace = require('./trace');
 const envConfig = require('../config/env');
 
+const CONFLICT_CODES = new Set(['VERSION_CONFLICT']);
+const NETWORK_CODES = new Set(['NETWORK_ERROR']);
+const PERMISSION_CODES = new Set(['PERMISSION_DENIED', 'LOCK_FORBIDDEN', 'JOIN_DRAFT_ONLY', 'START_DRAFT_ONLY', 'SETTINGS_DRAFT_ONLY']);
+const PARAM_CODES = new Set([
+  'ACTION_REQUIRED',
+  'TOURNAMENT_ID_REQUIRED',
+  'TOURNAMENT_NOT_FOUND',
+  'PROFILE_MINIMUM_REQUIRED',
+  'SCORE_OUT_OF_RANGE',
+  'SETTINGS_REQUIRED',
+  'SETTINGS_INVALID',
+  'START_VALIDATION_FAILED'
+]);
+
 function normalizeErrMsg(err) {
   if (!err) return '';
+  if (err && typeof err === 'object') {
+    const message = String(err.message || err.errMsg || err.userMessage || '').trim();
+    if (message) return message;
+  }
   return (err.errMsg || err.message || String(err));
 }
 
@@ -20,11 +38,29 @@ function isInvalidWriteShapeMessage(msg) {
   );
 }
 
+function normalizeResultCode(err) {
+  return String(err && err.code || '').trim().toUpperCase();
+}
+
+function normalizeResultState(err) {
+  return String(err && err.state || '').trim().toLowerCase();
+}
+
+function normalizeTraceId(err) {
+  return String(err && (err.traceId || err.__traceId) || '').trim();
+}
+
 function parseCloudError(err, fallbackMessage = '操作失败') {
+  const code = normalizeResultCode(err);
+  const state = normalizeResultState(err);
+  const traceId = normalizeTraceId(err);
   const rawMessage = normalizeErrMsg(err);
   const cleaned = stripCloudPrefix(rawMessage);
   const low = cleaned.toLowerCase();
+  const hasStructuredContext = !!(code || state);
   const isConflict = (
+    CONFLICT_CODES.has(code) ||
+    state === 'conflict' ||
     cleaned.includes('写入冲突') ||
     cleaned.includes('并发冲突') ||
     cleaned.includes('冲突') ||
@@ -32,16 +68,33 @@ function parseCloudError(err, fallbackMessage = '操作失败') {
     low.includes('conflict')
   );
   const isNetwork = (
+    NETWORK_CODES.has(code) ||
+    state === 'network' ||
     low.includes('network') ||
     low.includes('timeout') ||
     low.includes('fail to connect') ||
     cleaned.includes('网络')
   );
+  const isPermission = (
+    PERMISSION_CODES.has(code) ||
+    state === 'forbidden'
+  );
   const isInvalidWriteShape = isInvalidWriteShapeMessage(cleaned);
+  const isParam = (
+    PARAM_CODES.has(code) ||
+    state === 'invalid' ||
+    isInvalidWriteShape
+  );
 
   return {
+    code,
+    state,
+    traceId,
+    hasStructuredContext,
     isConflict,
     isNetwork,
+    isPermission,
+    isParam,
     isInvalidWriteShape,
     rawMessage,
     userMessage: cleaned || fallbackMessage
@@ -52,7 +105,8 @@ function classifyCloudError(parsed) {
   const p = parsed || {};
   if (p.isConflict) return 'conflict';
   if (p.isNetwork) return 'network';
-  if (p.isInvalidWriteShape) return 'param';
+  if (p.isPermission) return 'permission';
+  if (p.isParam || p.isInvalidWriteShape) return 'param';
   const low = String(p.userMessage || '').toLowerCase();
   if (
     low.includes('permission') ||
@@ -86,12 +140,42 @@ function getUnifiedErrorMessage(err, fallbackMessage = '操作失败') {
   const parsed = parseCloudError(err, fallbackMessage);
   const level = classifyCloudError(parsed);
   if (level === 'network') return '网络异常，请重试';
-  if (level === 'permission') return '权限不足';
-  if (level === 'param') return '参数有误，请检查';
+  if (level === 'conflict') {
+    return parsed.hasStructuredContext
+      ? (parsed.userMessage || '数据已被其他人更新，请刷新后重试')
+      : '数据已被其他人更新，请刷新后重试';
+  }
+  if (level === 'permission') {
+    return parsed.hasStructuredContext
+      ? (parsed.userMessage || '权限不足')
+      : '权限不足';
+  }
+  if (level === 'param') {
+    return parsed.hasStructuredContext
+      ? (parsed.userMessage || '参数有误，请检查')
+      : '参数有误，请检查';
+  }
   if (String(getRuntimeEnv().envVersion || 'release') === 'release') {
     return '操作失败，请稍后重试';
   }
   return parsed.userMessage || fallbackMessage;
+}
+
+function normalizeWriteFailure(result, fallbackMessage = '操作失败') {
+  const parsed = parseCloudError(result, fallbackMessage);
+  const err = new Error(parsed.userMessage || fallbackMessage);
+  if (parsed.code) err.code = parsed.code;
+  if (parsed.state) err.state = parsed.state;
+  if (parsed.traceId) err.traceId = parsed.traceId;
+  err.rawResult = result;
+  return err;
+}
+
+function assertWriteResult(result, fallbackMessage = '操作失败') {
+  if (result && typeof result === 'object' && result.ok === false) {
+    throw normalizeWriteFailure(result, fallbackMessage);
+  }
+  return result;
 }
 
 function presentWriteError(options = {}) {
@@ -175,5 +259,7 @@ module.exports = {
   classifyCloudError,
   getRuntimeEnv,
   getUnifiedErrorMessage,
-  presentWriteError
+  presentWriteError,
+  normalizeWriteFailure,
+  assertWriteResult
 };

@@ -108,14 +108,18 @@ test('joinTournament returns stable codes for missing id and missing tournament'
   assert.deepEqual(await missingIdMain({}, {}), {
     ok: false,
     code: 'TOURNAMENT_ID_REQUIRED',
-    message: '缺少赛事ID'
+    message: '缺少赛事ID',
+    state: 'invalid',
+    traceId: ''
   });
 
   const missingDocMain = loadJoinTournamentMain(createDbHarness({ shouldThrowMissingDoc: true })).main;
   assert.deepEqual(await missingDocMain({ tournamentId: 't_1' }, {}), {
     ok: false,
     code: 'TOURNAMENT_NOT_FOUND',
-    message: '赛事不存在'
+    message: '赛事不存在',
+    state: 'not_found',
+    traceId: ''
   });
 });
 
@@ -127,7 +131,9 @@ test('joinTournament returns JOIN_DRAFT_ONLY for non-draft tournaments', async (
   assert.deepEqual(await main({ tournamentId: 't_1' }, {}), {
     ok: false,
     code: 'JOIN_DRAFT_ONLY',
-    message: '非草稿阶段不可加入/修改'
+    message: '非草稿阶段不可加入/修改',
+    state: 'forbidden',
+    traceId: ''
   });
 });
 
@@ -145,6 +151,8 @@ test('joinTournament returns VERSION_CONFLICT for optimistic update misses', asy
   }, {}), {
     ok: false,
     code: 'VERSION_CONFLICT',
-    message: '并发冲突，请重试'
+    message: '并发冲突，请重试',
+    state: 'conflict',
+    traceId: ''
   });
 });

@@ -7,6 +7,7 @@ const { parsePosInt, validateSettings, normalizeGender } = require('./logic');
 
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
+  const traceId = String((event && event.__traceId) || '').trim();
   const tournamentId = String((event && event.tournamentId) || '').trim();
   const totalMatches = parsePosInt(event && event.totalMatches);
   // 并行场地（每轮最多场数）上限 10
@@ -17,7 +18,9 @@ exports.main = async (event) => {
   const playerGenderPatch = (event && typeof event.playerGenderPatch === 'object' && event.playerGenderPatch)
     ? event.playerGenderPatch
     : null;
-  if (!tournamentId) throw new Error('缺少 tournamentId');
+  if (!tournamentId) {
+    return common.failResult('TOURNAMENT_ID_REQUIRED', '缺少 tournamentId', { traceId, state: 'invalid' });
+  }
 
   try {
     return await db.runTransaction(async (transaction) => {
@@ -50,9 +53,42 @@ exports.main = async (event) => {
 
       const updRes = await transaction.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({ data });
       common.assertOptimisticUpdate(updRes, '写入冲突，请重试');
-      return { ok: true };
+      return common.okResult('SETTINGS_UPDATED', '已保存比赛参数', {
+        traceId,
+        state: 'updated',
+        version: oldVersion + 1
+      });
     });
   } catch (err) {
+    const mapped = mapUpdateSettingsFailure(err, traceId);
+    if (mapped) return mapped;
     throw common.normalizeConflictError(err, '保存失败');
   }
 };
+
+function mapUpdateSettingsFailure(err, traceId = '') {
+  const message = String((err && err.message) || '').trim();
+  if (!message) return null;
+  if (common.isConflictError(err)) {
+    return common.failResult('VERSION_CONFLICT', '写入冲突，请重试', { traceId, state: 'conflict' });
+  }
+  if (message.includes('赛事不存在')) {
+    return common.failResult('TOURNAMENT_NOT_FOUND', message, { traceId, state: 'not_found' });
+  }
+  if (message.includes('无权限')) {
+    return common.failResult('PERMISSION_DENIED', message, { traceId, state: 'forbidden' });
+  }
+  if (message.includes('非草稿阶段不可修改')) {
+    return common.failResult('SETTINGS_DRAFT_ONLY', message, { traceId, state: 'forbidden' });
+  }
+  if (
+    message.includes('总场次') ||
+    message.includes('场地') ||
+    message.includes('参数') ||
+    message.includes('人数') ||
+    message.includes('队伍')
+  ) {
+    return common.failResult('SETTINGS_INVALID', message, { traceId, state: 'invalid' });
+  }
+  return null;
+}

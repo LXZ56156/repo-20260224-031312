@@ -133,12 +133,12 @@ module.exports = {
     return actionGuard.runWithPageBusy(this, 'settingsBusy', actionKey, async () => {
       wx.showLoading({ title: '保存中...' });
       try {
-        await cloud.call('updateSettings', {
+        cloud.assertWriteResult(await cloud.call('updateSettings', {
           tournamentId: this.data.tournamentId,
           totalMatches: M,
           courts: C,
           allowOpenTeam: this.data.allowOpenTeam
-        });
+        }), '保存失败');
         wx.hideLoading();
         this.clearLastFailedAction();
         wx.showToast({ title: maxMatches > 0 ? '已保存' : '已预配置', icon: 'success' });
@@ -179,10 +179,10 @@ module.exports = {
     return actionGuard.run(actionKey, async () => {
       wx.showLoading({ title: '保存中...' });
       try {
-        await cloud.call('updateSettings', {
+        cloud.assertWriteResult(await cloud.call('updateSettings', {
           tournamentId: this.data.tournamentId,
           playerGenderPatch: { [id]: gender }
-        });
+        }), '保存失败');
         wx.hideLoading();
         this.clearLastFailedAction();
         await this.fetchTournament(this.data.tournamentId);

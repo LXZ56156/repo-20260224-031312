@@ -58,12 +58,11 @@ function listMissingProfileFields(profile) {
   return missing;
 }
 
-function fail(code, message) {
-  return {
-    ok: false,
-    code: String(code || 'JOIN_FAILED').trim().toUpperCase() || 'JOIN_FAILED',
-    message: String(message || '加入失败').trim() || '加入失败'
-  };
+function fail(traceId, code, message, extra = {}) {
+  return common.failResult(code || 'JOIN_FAILED', message || '加入失败', {
+    traceId,
+    ...extra
+  });
 }
 
 exports.main = async (event, context) => {
@@ -77,14 +76,14 @@ exports.main = async (event, context) => {
   let gender = normalizeGender(event.gender);
   const squadChoice = normalizeSquadChoice(event && event.squadChoice);
 
-  if (!tournamentId) return fail('TOURNAMENT_ID_REQUIRED', '缺少赛事ID');
+  if (!tournamentId) return fail(traceId, 'TOURNAMENT_ID_REQUIRED', '缺少赛事ID', { state: 'invalid' });
 
   let docRes;
   try {
     docRes = await db.collection('tournaments').doc(tournamentId).get();
   } catch (err) {
     if (common.isCollectionNotExists(err) || common.isDocNotExists(err)) {
-      return fail('TOURNAMENT_NOT_FOUND', '赛事不存在');
+      return fail(traceId, 'TOURNAMENT_NOT_FOUND', '赛事不存在', { state: 'not_found' });
     }
     throw err;
   }
@@ -94,9 +93,9 @@ exports.main = async (event, context) => {
     common.assertDraft(t, '非草稿阶段不可加入/修改');
   } catch (err) {
     const msg = String((err && err.message) || '').trim();
-    if (msg.includes('赛事不存在')) return fail('TOURNAMENT_NOT_FOUND', msg || '赛事不存在');
-    if (msg.includes('非草稿阶段')) return fail('JOIN_DRAFT_ONLY', msg || '非草稿阶段不可加入/修改');
-    return fail('JOIN_FAILED', msg || '加入失败');
+    if (msg.includes('赛事不存在')) return fail(traceId, 'TOURNAMENT_NOT_FOUND', msg || '赛事不存在', { state: 'not_found' });
+    if (msg.includes('非草稿阶段')) return fail(traceId, 'JOIN_DRAFT_ONLY', msg || '非草稿阶段不可加入/修改', { state: 'forbidden' });
+    return fail(traceId, 'JOIN_FAILED', msg || '加入失败');
   }
 
   const players = Array.isArray(t.players) ? t.players : [];
@@ -124,7 +123,7 @@ exports.main = async (event, context) => {
 
   const missingFields = listMissingProfileFields({ nickname, avatar, gender });
   if (missingFields.length) {
-    return fail('PROFILE_MINIMUM_REQUIRED', `请先完善${missingFields.join('、')}后再加入比赛`);
+    return fail(traceId, 'PROFILE_MINIMUM_REQUIRED', `请先完善${missingFields.join('、')}后再加入比赛`, { state: 'invalid' });
   }
 
   // 去重
@@ -158,9 +157,15 @@ exports.main = async (event, context) => {
     try {
       common.assertOptimisticUpdate(up, '并发冲突，请重试');
     } catch (_) {
-      return fail('VERSION_CONFLICT', '并发冲突，请重试');
+      return fail(traceId, 'VERSION_CONFLICT', '并发冲突，请重试', { state: 'conflict' });
     }
-    return { ok: true, updated: true, player: cur };
+    return common.okResult('JOIN_UPDATED', '已更新参赛信息', {
+      traceId,
+      state: 'updated',
+      updated: true,
+      version: oldVersionPlusOne(t.version),
+      player: cur
+    });
   }
 
   const player = {
@@ -187,8 +192,19 @@ exports.main = async (event, context) => {
   try {
     common.assertOptimisticUpdate(res, '并发冲突，请重试');
   } catch (_) {
-    return fail('VERSION_CONFLICT', '并发冲突，请重试');
+    return fail(traceId, 'VERSION_CONFLICT', '并发冲突，请重试', { state: 'conflict' });
   }
 
-  return { ok: true, added: true, player };
+  return common.okResult('JOINED', '已加入比赛', {
+    traceId,
+    state: 'joined',
+    added: true,
+    version: oldVersionPlusOne(t.version),
+    player
+  });
 };
+
+function oldVersionPlusOne(version) {
+  const current = Number(version) || 1;
+  return current + 1;
+}

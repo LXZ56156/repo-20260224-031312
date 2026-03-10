@@ -42,16 +42,17 @@ async function ensureScoreLocksCollection() {
 
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
+  const traceId = String((event && event.__traceId) || '').trim();
   const action = logic.normalizeAction(event && event.action);
   const tournamentId = String((event && event.tournamentId) || '').trim();
   const roundIndex = Number(event && event.roundIndex);
   const matchIndex = Number(event && event.matchIndex);
   const force = event && event.force === true;
 
-  if (!action) throw new Error('缺少 action');
-  if (!tournamentId) throw new Error('缺少 tournamentId');
-  if (!Number.isFinite(roundIndex) || roundIndex < 0) throw new Error('roundIndex 不合法');
-  if (!Number.isFinite(matchIndex) || matchIndex < 0) throw new Error('matchIndex 不合法');
+  if (!action) return common.failResult('ACTION_REQUIRED', '缺少 action', { traceId, state: 'invalid' });
+  if (!tournamentId) return common.failResult('TOURNAMENT_ID_REQUIRED', '缺少 tournamentId', { traceId, state: 'invalid' });
+  if (!Number.isFinite(roundIndex) || roundIndex < 0) return common.failResult('ROUND_INDEX_INVALID', 'roundIndex 不合法', { traceId, state: 'invalid' });
+  if (!Number.isFinite(matchIndex) || matchIndex < 0) return common.failResult('MATCH_INDEX_INVALID', 'matchIndex 不合法', { traceId, state: 'invalid' });
 
   await ensureScoreLocksCollection();
   const lockId = logic.buildLockId(tournamentId, roundIndex, matchIndex);
@@ -135,7 +136,10 @@ exports.main = async (event) => {
       if (resolved.removeLock) {
         await transaction.collection('score_locks').doc(lockId).remove();
       }
-      return resolved.response;
+      return common.withWriteResult(resolved.response, {
+        ...describeScoreLockState(resolved.response),
+        traceId
+      });
     });
   } catch (err) {
     if (common.isCollectionNotExists(err)) {
@@ -144,3 +148,33 @@ exports.main = async (event) => {
     throw common.normalizeConflictError(err, '录分锁操作失败');
   }
 };
+
+function describeScoreLockState(result = {}) {
+  const state = String(result.state || '').trim().toLowerCase();
+  if (state === 'idle') {
+    return { code: 'LOCK_IDLE', message: '当前可开始录分', state: 'idle' };
+  }
+  if (state === 'acquired') {
+    return { code: 'LOCK_ACQUIRED', message: '已进入录分状态', state: 'acquired' };
+  }
+  if (state === 'occupied') {
+    return { code: 'LOCK_OCCUPIED', message: '当前有人正在录入比分', state: 'occupied' };
+  }
+  if (state === 'forbidden') {
+    return { code: 'LOCK_FORBIDDEN', message: '仅管理员或参赛成员可录分', state: 'forbidden' };
+  }
+  if (state === 'finished') {
+    return { code: 'MATCH_FINISHED', message: '该场已结束', state: 'finished' };
+  }
+  if (state === 'expired') {
+    return { code: 'LOCK_EXPIRED', message: '录分会话已过期，请重新开始录分', state: 'expired' };
+  }
+  if (state === 'released') {
+    return { code: 'LOCK_RELEASED', message: '已结束录分会话', state: 'released' };
+  }
+  return {
+    code: result && result.ok === false ? 'LOCK_FAILED' : 'LOCK_OK',
+    message: result && result.ok === false ? '录分锁操作失败' : '录分锁状态已同步',
+    state
+  };
+}

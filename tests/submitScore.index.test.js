@@ -147,7 +147,9 @@ test('submitScore returns LOCK_EXPIRED when score lock document is missing', asy
   assert.deepEqual(result, {
     ok: false,
     code: 'LOCK_EXPIRED',
-    message: '录分会话已过期，请重新开始录分'
+    message: '录分会话已过期，请重新开始录分',
+    state: 'expired',
+    traceId: ''
   });
   assert.equal(calls.tournamentGet, 1);
   assert.equal(calls.lockGet, 1);

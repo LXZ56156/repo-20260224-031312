@@ -134,16 +134,24 @@ function createMatchLockController(ctx, deps = {}) {
     }
     if (state === 'occupied') {
       setLockState('locked_by_other', result);
+      if (!options.silent && !ctx.data.batchMode) {
+        const ownerName = String(result.ownerName || '').trim();
+        const message = ownerName
+          ? `当前由 ${ownerName} 正在录分`
+          : String(result.message || '当前有人正在录分');
+        wx.showToast({ title: message, icon: 'none' });
+      }
       if (typeof ctx.tryBatchSkipOnOccupied === 'function') ctx.tryBatchSkipOnOccupied();
       return;
     }
     if (state === 'finished') {
       setLockState('finished', result);
+      if (!options.silent) wx.showToast({ title: String(result.message || '该场已结束'), icon: 'none' });
       return;
     }
     if (state === 'forbidden') {
       setLockState('forbidden', result);
-      if (!options.silent) wx.showToast({ title: '仅管理员或参赛成员可录分', icon: 'none' });
+      if (!options.silent) wx.showToast({ title: String(result.message || '仅管理员或参赛成员可录分'), icon: 'none' });
       return;
     }
     if (state === 'expired') {

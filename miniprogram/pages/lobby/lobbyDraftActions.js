@@ -210,12 +210,12 @@ module.exports = {
     return actionGuard.run(actionKey, async () => {
       wx.showLoading({ title: '保存中...' });
       try {
-        await cloud.call('updateSettings', {
+        cloud.assertWriteResult(await cloud.call('updateSettings', {
           tournamentId: this.data.tournamentId,
           totalMatches: matchCount,
           courts,
           allowOpenTeam: this.data.allowOpenTeam
-        });
+        }), '保存失败');
         wx.hideLoading();
         this.clearLastFailedAction();
         wx.showToast({ title: '参数已保存', icon: 'success' });
@@ -417,10 +417,10 @@ module.exports = {
       wx.showLoading({ title: '生成赛程...' });
       try {
         const schedulerProfile = storage.getSchedulerProfile();
-        await cloud.call('startTournament', {
+        cloud.assertWriteResult(await cloud.call('startTournament', {
           tournamentId: this.data.tournamentId,
           schedulerProfile
-        });
+        }), '开赛失败');
         wx.hideLoading();
         this.clearLastFailedAction();
         wx.showToast({ title: '已开赛', icon: 'success' });

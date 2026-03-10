@@ -116,7 +116,9 @@ test('joinTournament rejects join requests that still miss minimum profile field
   assert.deepEqual(result, {
     ok: false,
     code: 'PROFILE_MINIMUM_REQUIRED',
-    message: '请先完善昵称、头像、性别后再加入比赛'
+    message: '请先完善昵称、头像、性别后再加入比赛',
+    state: 'invalid',
+    traceId: ''
   });
   assert.equal(calls.updatePayload, null);
 });

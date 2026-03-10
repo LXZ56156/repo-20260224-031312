@@ -48,6 +48,32 @@ function normalizeConflictError(err, fallbackMessage = '操作失败') {
   return new Error(msg);
 }
 
+function normalizeResultCode(code, fallback = 'OP_FAILED') {
+  const normalized = String(code || '').trim().toUpperCase().replace(/\s+/g, '_');
+  return normalized || String(fallback || 'OP_FAILED').trim().toUpperCase() || 'OP_FAILED';
+}
+
+function withWriteResult(result = {}, defaults = {}) {
+  const source = (result && typeof result === 'object') ? result : {};
+  const preset = (defaults && typeof defaults === 'object') ? defaults : {};
+  const ok = source.ok === false ? false : preset.ok !== false;
+  const output = { ...source };
+  output.ok = ok;
+  output.code = normalizeResultCode(source.code || preset.code || (ok ? 'OK' : 'OP_FAILED'), ok ? 'OK' : 'OP_FAILED');
+  output.message = String(source.message || preset.message || (ok ? '操作成功' : '操作失败')).trim() || (ok ? '操作成功' : '操作失败');
+  output.state = String(source.state || preset.state || '').trim();
+  output.traceId = String(source.traceId || preset.traceId || '').trim();
+  return output;
+}
+
+function okResult(code = 'OK', message = '操作成功', extra = {}) {
+  return withWriteResult(extra, { ok: true, code, message });
+}
+
+function failResult(code = 'OP_FAILED', message = '操作失败', extra = {}) {
+  return withWriteResult({ ...extra, ok: false }, { ok: false, code, message });
+}
+
 function assertNoReservedRootKeys(data, reservedKeys = ['_id'], context = '写入数据') {
   if (!data || typeof data !== 'object' || Array.isArray(data)) return data;
   const hits = (Array.isArray(reservedKeys) ? reservedKeys : ['_id'])
@@ -81,5 +107,8 @@ module.exports = {
   assertOptimisticUpdate,
   assertNoReservedRootKeys,
   normalizeConflictError,
-  cleanupScoreLocks
+  cleanupScoreLocks,
+  withWriteResult,
+  okResult,
+  failResult
 };

@@ -42,7 +42,9 @@ exports.main = async (event) => {
   const traceId = String((event && event.__traceId) || '').trim();
   const tournamentId = String((event && event.tournamentId) || '').trim();
   console.info('[startTournament]', traceId || '-', tournamentId || '-', OPENID || '-');
-  if (!tournamentId) throw new Error('缺少 tournamentId');
+  if (!tournamentId) {
+    return common.failResult('TOURNAMENT_ID_REQUIRED', '缺少 tournamentId', { traceId, state: 'invalid' });
+  }
 
   try {
     const docRes = await db.collection('tournaments').doc(tournamentId).get();
@@ -147,11 +149,47 @@ exports.main = async (event) => {
     });
 
     common.assertOptimisticUpdate(updRes, '写入冲突，请刷新赛事后重试');
-    return { ok: true };
+    return common.okResult('TOURNAMENT_STARTED', '已开赛', {
+      traceId,
+      state: 'started',
+      version: oldVersion + 1
+    });
   } catch (err) {
     if (common.isCollectionNotExists(err)) {
       throw new Error('数据库集合 tournaments 不存在：请在云开发控制台（数据库 -> 创建集合）创建 tournaments 后再试。');
     }
+    const mapped = mapStartTournamentFailure(err, traceId);
+    if (mapped) return mapped;
     throw common.normalizeConflictError(err, '开赛失败');
   }
 };
+
+function mapStartTournamentFailure(err, traceId = '') {
+  const message = String((err && err.message) || '').trim();
+  if (!message) return null;
+  if (common.isConflictError(err)) {
+    return common.failResult('VERSION_CONFLICT', '写入冲突，请刷新赛事后重试', { traceId, state: 'conflict' });
+  }
+  if (message.includes('赛事不存在')) {
+    return common.failResult('TOURNAMENT_NOT_FOUND', message, { traceId, state: 'not_found' });
+  }
+  if (message.includes('无权限')) {
+    return common.failResult('PERMISSION_DENIED', message, { traceId, state: 'forbidden' });
+  }
+  if (message.includes('赛事已开赛/已结束')) {
+    return common.failResult('START_DRAFT_ONLY', message, { traceId, state: 'forbidden' });
+  }
+  if (message.includes('请先在“赛事设置”中保存比赛参数')) {
+    return common.failResult('SETTINGS_REQUIRED', message, { traceId, state: 'invalid' });
+  }
+  if (
+    message.includes('参赛人数不足') ||
+    message.includes('总场次不能超过') ||
+    message.includes('至少') ||
+    message.includes('场地') ||
+    message.includes('队伍')
+  ) {
+    return common.failResult('START_VALIDATION_FAILED', message, { traceId, state: 'invalid' });
+  }
+  return null;
+}

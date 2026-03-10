@@ -65,7 +65,9 @@ test('submitScore rejects unreasonably large scores before touching the database
   assert.deepEqual(result, {
     ok: false,
     code: 'SCORE_OUT_OF_RANGE',
-    message: '比分不能超过 60 分'
+    message: '比分不能超过 60 分',
+    state: 'invalid',
+    traceId: ''
   });
   assert.equal(collectionCalls, 0);
 });

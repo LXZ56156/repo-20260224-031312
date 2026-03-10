@@ -122,7 +122,10 @@ test('scoreLock index treats missing lock doc as idle for status', async () => {
 
   assert.deepEqual(result, {
     ok: true,
+    code: 'LOCK_IDLE',
+    message: '当前可开始录分',
     state: 'idle',
+    traceId: '',
     ownerId: '',
     ownerName: '',
     expireAt: 0,

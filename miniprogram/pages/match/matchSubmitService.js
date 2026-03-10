@@ -127,7 +127,7 @@ function createMatchSubmitService(ctx, deps = {}) {
     if (code === 'VERSION_CONFLICT') {
       restoreLockAfterSubmitFail(lockSnapshot);
       ctx.setLastFailedAction('提交比分', () => submit());
-      ctx.handleWriteError(new Error(String(res.message || '写入冲突')), '提交失败', () => ctx.fetchTournament(ctx.data.tournamentId));
+      ctx.handleWriteError(res, '提交失败', () => ctx.fetchTournament(ctx.data.tournamentId));
       return true;
     }
     return false;
