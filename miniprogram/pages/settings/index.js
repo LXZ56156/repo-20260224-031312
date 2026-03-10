@@ -1,7 +1,8 @@
 const storage = require('../../core/storage');
-const tournamentSync = require('../../core/tournamentSync');
 const nav = require('../../core/nav');
 const flow = require('../../core/uxFlow');
+const pageTournamentSync = require('../../core/pageTournamentSync');
+const retryAction = require('../../core/retryAction');
 const settingsActions = require('./settingsActions');
 const settingsSyncController = require('./settingsSyncController');
 const settingsViewModel = require('./settingsViewModel');
@@ -57,14 +58,14 @@ Page({
 
   ...settingsSyncController,
   ...settingsActions,
+  ...retryAction.createRetryMethods(),
 
   onLoad(options) {
     const tid = options.tournamentId;
     const section = String((options && options.section) || '').trim().toLowerCase();
     this._initialSection = section;
     this.openid = (getApp().globalData.openid || storage.get('openid', ''));
-    this._fetchSeq = 0;
-    this._watchGen = 0;
+    pageTournamentSync.initTournamentSync(this);
     const sessionMinutes = flow.normalizeSessionMinutes(storage.getSessionMinutesPref(), flow.DEFAULT_SESSION_MINUTES);
     const slotMinutes = flow.normalizeSlotMinutes(storage.getSlotMinutesPref(), flow.DEFAULT_SLOT_MINUTES);
     this.setData({ tournamentId: tid });
@@ -88,15 +89,11 @@ Page({
   },
 
   onHide() {
-    this.invalidateFetchSeq();
-    this.invalidateWatchGen();
-    tournamentSync.closeWatcher(this);
+    pageTournamentSync.teardownTournamentSync(this);
   },
 
   onUnload() {
-    this.invalidateFetchSeq();
-    this.invalidateWatchGen();
-    tournamentSync.closeWatcher(this);
+    pageTournamentSync.teardownTournamentSync(this);
     if (this._autoBackTimer) clearTimeout(this._autoBackTimer);
     this._autoBackTimer = null;
     if (typeof this._offNetwork === 'function') this._offNetwork();

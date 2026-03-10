@@ -3,33 +3,15 @@ const actionGuard = require('../../core/actionGuard');
 const storage = require('../../core/storage');
 const nav = require('../../core/nav');
 const flow = require('../../core/uxFlow');
+const retryAction = require('../../core/retryAction');
 const viewModel = require('./settingsViewModel');
 
 module.exports = {
   handleWriteError(err, fallbackMessage, onRefresh) {
-    cloud.presentWriteError({
-      err,
-      fallbackMessage,
+    retryAction.presentWriteError(this, err, fallbackMessage, {
       conflictContent: '数据已被其他人更新，刷新后可继续当前设置。',
       onRefresh
     });
-  },
-
-  setLastFailedAction(text, fn) {
-    this._lastFailedAction = typeof fn === 'function' ? fn : null;
-    this.setData({
-      canRetryAction: !!this._lastFailedAction,
-      lastFailedActionText: String(text || '').trim() || '上次操作失败，可重试'
-    });
-  },
-
-  clearLastFailedAction() {
-    this._lastFailedAction = null;
-    this.setData({ canRetryAction: false, lastFailedActionText: '' });
-  },
-
-  retryLastAction() {
-    if (typeof this._lastFailedAction === 'function') this._lastFailedAction();
   },
 
   scrollToSection(selector) {

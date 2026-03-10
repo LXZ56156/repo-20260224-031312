@@ -3,11 +3,11 @@ const actionGuard = require('../../core/actionGuard');
 const cloud = require('../../core/cloud');
 const joinError = require('../../core/joinTournamentError');
 const nav = require('../../core/nav');
+const pageTournamentSync = require('../../core/pageTournamentSync');
 const pageTimers = require('../../core/pageTimers');
 const profileCore = require('../../core/profile');
 const shareMeta = require('../../core/shareMeta');
 const storage = require('../../core/storage');
-const tournamentSync = require('../../core/tournamentSync');
 const flow = require('./flow');
 
 const IDENTITY_TIMEOUT_MS = 2500;
@@ -28,6 +28,24 @@ function buildJoinPayload(page, profile = {}) {
   };
 }
 
+const shareEntrySyncController = pageTournamentSync.createTournamentSyncMethods({
+  buildLoadErrorState(result) {
+    const errorType = String((result && result.errorType) || '').trim();
+    let preview = shareMeta.buildRetryableShareEntryState('同步失败，请稍后重试');
+    if (errorType === 'not_found') {
+      preview = shareMeta.buildInvalidShareEntryState('比赛不存在或已关闭');
+    } else if (errorType === 'param') {
+      preview = shareMeta.buildInvalidShareEntryState('链接无效');
+    }
+    return {
+      loadError: true,
+      showStaleSyncHint: false,
+      tournament: null,
+      preview
+    };
+  }
+});
+
 Page({
   data: {
     tournamentId: '',
@@ -42,12 +60,13 @@ Page({
     joinSquadChoice: 'A'
   },
 
+  ...shareEntrySyncController,
+
   onLoad(options) {
     const tournamentId = flow.parseTournamentId(options || {});
     const intent = flow.normalizeIntent(options && options.intent);
     this.openid = '';
-    this._fetchSeq = 0;
-    this._watchGen = 0;
+    pageTournamentSync.initTournamentSync(this);
     this._identityAttemptSeq = 0;
     this.readCachedOpenid();
     this.setData({
@@ -66,10 +85,8 @@ Page({
   },
 
   onHide() {
-    this.invalidateFetchSeq();
-    this.invalidateWatchGen();
+    pageTournamentSync.teardownTournamentSync(this);
     pageTimers.clearNamedTimer(this, 'identityPending');
-    tournamentSync.closeWatcher(this);
   },
 
   onShow() {
@@ -89,11 +106,9 @@ Page({
   },
 
   onUnload() {
-    this.invalidateFetchSeq();
-    this.invalidateWatchGen();
+    pageTournamentSync.teardownTournamentSync(this);
     this.invalidateIdentityAttempt();
     pageTimers.clearAllTimers(this);
-    tournamentSync.closeWatcher(this);
   },
 
   nextFetchSeq() {
@@ -180,48 +195,6 @@ Page({
       if (Number(attemptSeq) !== Number(this._identityAttemptSeq || 0)) return;
       this.finishIdentityResolution({ timedOut: false });
     }
-  },
-
-  startWatch(tournamentId) {
-    const watchGen = this.nextWatchGen();
-    tournamentSync.startWatch(this, tournamentId, (doc) => {
-      if (!this.isActiveWatchGen(watchGen)) return;
-      this.setData({ showStaleSyncHint: false });
-      this.applyTournament(doc);
-    });
-  },
-
-  async fetchTournament(tournamentId) {
-    const requestSeq = this.nextFetchSeq();
-    const result = await tournamentSync.fetchTournament(tournamentId);
-    if (!this.isLatestFetchSeq(requestSeq)) return null;
-
-    if (result && result.ok && result.doc) {
-      this.setData({ showStaleSyncHint: false });
-      this.applyTournament(result.doc);
-      return result.doc;
-    }
-
-    if (result && result.cachedDoc) {
-      this.setData({ showStaleSyncHint: true, loadError: false });
-      this.applyTournament(result.cachedDoc);
-      return result.cachedDoc;
-    }
-
-    const errorType = String((result && result.errorType) || '').trim();
-    let preview = shareMeta.buildRetryableShareEntryState('同步失败，请稍后重试');
-    if (errorType === 'not_found') {
-      preview = shareMeta.buildInvalidShareEntryState('比赛不存在或已关闭');
-    } else if (errorType === 'param') {
-      preview = shareMeta.buildInvalidShareEntryState('链接无效');
-    }
-    this.setData({
-      loadError: true,
-      showStaleSyncHint: false,
-      tournament: null,
-      preview
-    });
-    return null;
   },
 
   applyTournament(tournament) {

@@ -1,5 +1,6 @@
 const cloud = require('../../core/cloud');
 const actionGuard = require('../../core/actionGuard');
+const retryAction = require('../../core/retryAction');
 const storage = require('../../core/storage');
 const flow = require('../../core/uxFlow');
 const nav = require('../../core/nav');
@@ -377,9 +378,7 @@ module.exports = {
   },
 
   handleWriteError(err, fallbackMessage, onRefresh) {
-    cloud.presentWriteError({
-      err,
-      fallbackMessage,
+    retryAction.presentWriteError(this, err, fallbackMessage, {
       conflictContent: '数据已被其他人更新，刷新后可继续当前操作。',
       onRefresh
     });

@@ -1,11 +1,14 @@
 const cloud = require('../../core/cloud');
 const actionGuard = require('../../core/actionGuard');
+const pageTournamentSync = require('../../core/pageTournamentSync');
+const retryAction = require('../../core/retryAction');
 const storage = require('../../core/storage');
-const tournamentSync = require('../../core/tournamentSync');
 const nav = require('../../core/nav');
 const adGuard = require('../../core/adGuard');
 const shareMeta = require('../../core/shareMeta');
 const analyticsLogic = require('./logic');
+
+const analyticsSyncController = pageTournamentSync.createTournamentSyncMethods();
 
 Page({
   data: {
@@ -42,10 +45,12 @@ Page({
     loadError: false
   },
 
+  ...analyticsSyncController,
+  ...retryAction.createRetryMethods(),
+
   onLoad(options) {
     const tid = String((options && options.tournamentId) || '').trim();
-    this._fetchSeq = 0;
-    this._watchGen = 0;
+    pageTournamentSync.initTournamentSync(this);
     this.setData({ tournamentId: tid });
 
     const app = getApp();
@@ -69,15 +74,11 @@ Page({
   },
 
   onHide() {
-    this.invalidateFetchSeq();
-    this.invalidateWatchGen();
-    tournamentSync.closeWatcher(this);
+    pageTournamentSync.teardownTournamentSync(this);
   },
 
   onUnload() {
-    this.invalidateFetchSeq();
-    this.invalidateWatchGen();
-    tournamentSync.closeWatcher(this);
+    pageTournamentSync.teardownTournamentSync(this);
     if (typeof this._offNetwork === 'function') this._offNetwork();
     this._offNetwork = null;
   },
@@ -87,63 +88,10 @@ Page({
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
   },
 
-  nextFetchSeq() {
-    this._fetchSeq = Number(this._fetchSeq || 0) + 1;
-    return this._fetchSeq;
-  },
-
-  isLatestFetchSeq(requestSeq) {
-    return Number(requestSeq) === Number(this._fetchSeq || 0);
-  },
-
-  invalidateFetchSeq() {
-    this._fetchSeq = Number(this._fetchSeq || 0) + 1;
-  },
-
-  nextWatchGen() {
-    this._watchGen = Number(this._watchGen || 0) + 1;
-    return this._watchGen;
-  },
-
-  isActiveWatchGen(watchGen) {
-    return Number(watchGen) === Number(this._watchGen || 0);
-  },
-
-  invalidateWatchGen() {
-    this._watchGen = Number(this._watchGen || 0) + 1;
-  },
-
   refreshAnalyticsAdSlot() {
     const showAnalyticsAdSlot = adGuard.shouldExposePageSlot('analytics');
     this.setData({ showAnalyticsAdSlot });
     if (showAnalyticsAdSlot) adGuard.markPageExposed('analytics');
-  },
-
-  startWatch(tid) {
-    const watchGen = this.nextWatchGen();
-    tournamentSync.startWatch(this, tid, (doc) => {
-      if (!this.isActiveWatchGen(watchGen)) return;
-      this.setData({ showStaleSyncHint: false });
-      this.applyTournament(doc);
-    });
-  },
-
-  async fetchTournament(tid) {
-    const requestSeq = this.nextFetchSeq();
-    const result = await tournamentSync.fetchTournament(tid);
-    if (!this.isLatestFetchSeq(requestSeq)) return null;
-    if (result && result.ok && result.doc) {
-      this.setData({ showStaleSyncHint: false });
-      this.applyTournament(result.doc);
-      return result.doc;
-    }
-    if (result && result.cachedDoc) {
-      this.setData({ showStaleSyncHint: true, loadError: false });
-      this.applyTournament(result.cachedDoc);
-      return result.cachedDoc;
-    }
-    this.setData({ loadError: true, showStaleSyncHint: false });
-    return null;
   },
 
   applyTournament(tournament) {
@@ -207,23 +155,6 @@ Page({
       data: text,
       success: () => wx.showToast({ title: '摘要已复制', icon: 'success' })
     });
-  },
-
-  setLastFailedAction(text, fn) {
-    this._lastFailedAction = typeof fn === 'function' ? fn : null;
-    this.setData({
-      canRetryAction: !!this._lastFailedAction,
-      lastFailedActionText: String(text || '').trim() || '上次操作失败，可重试'
-    });
-  },
-
-  clearLastFailedAction() {
-    this._lastFailedAction = null;
-    this.setData({ canRetryAction: false, lastFailedActionText: '' });
-  },
-
-  retryLastAction() {
-    if (typeof this._lastFailedAction === 'function') this._lastFailedAction();
   },
 
   async cloneCurrentTournament() {

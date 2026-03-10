@@ -1,6 +1,7 @@
 const storage = require('../../core/storage');
 const cloud = require('../../core/cloud');
 const actionGuard = require('../../core/actionGuard');
+const retryAction = require('../../core/retryAction');
 const { normalizeTournament } = require('../../core/normalize');
 const adGuard = require('../../core/adGuard');
 const flow = require('../../core/uxFlow');
@@ -137,6 +138,8 @@ Page({
     statusCountMissing: 0,
     items: []
   },
+
+  ...retryAction.createRetryMethods(),
 
   onLoad() {
     const sys = wx.getSystemInfoSync();
@@ -289,23 +292,6 @@ Page({
     });
   },
 
-  setLastFailedAction(text, fn) {
-    this._lastFailedAction = typeof fn === 'function' ? fn : null;
-    this.setData({
-      canRetryAction: !!this._lastFailedAction,
-      lastFailedActionText: String(text || '').trim() || '上次操作失败，可重试'
-    });
-  },
-
-  clearLastFailedAction() {
-    this._lastFailedAction = null;
-    this.setData({ canRetryAction: false, lastFailedActionText: '' });
-  },
-
-  retryLastAction() {
-    if (typeof this._lastFailedAction === 'function') this._lastFailedAction();
-  },
-
   async loadRecents() {
     this.setData({ loading: true, loadError: false });
     const ids = storage.getRecentTournamentIds();
@@ -420,9 +406,7 @@ Page({
   },
 
   handleWriteError(err, fallbackMessage, onRefresh) {
-    cloud.presentWriteError({
-      err,
-      fallbackMessage,
+    retryAction.presentWriteError(this, err, fallbackMessage, {
       conflictContent: '数据已被其他人更新，刷新后可重试该操作。',
       onRefresh
     });

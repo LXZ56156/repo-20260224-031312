@@ -2,8 +2,8 @@ const storage = require('../../core/storage');
 const normalize = require('../../core/normalize');
 const playerUtils = require('../../core/playerUtils');
 const perm = require('../../permission/permission');
-const tournamentSync = require('../../core/tournamentSync');
 const nav = require('../../core/nav');
+const pageTournamentSync = require('../../core/pageTournamentSync');
 const shareMeta = require('../../core/shareMeta');
 const flow = require('../../core/uxFlow');
 
@@ -130,6 +130,8 @@ function summarizeRounds(roundsUi) {
   };
 }
 
+const scheduleSyncController = pageTournamentSync.createTournamentSyncMethods();
+
 Page({
   data: {
     tournamentId: '',
@@ -153,11 +155,12 @@ Page({
     loadError: false
   },
 
+  ...scheduleSyncController,
+
   onLoad(options) {
     const tid = options.tournamentId;
     this.openid = (getApp().globalData.openid || storage.get('openid', ''));
-    this._fetchSeq = 0;
-    this._watchGen = 0;
+    pageTournamentSync.initTournamentSync(this);
     this.setData({ tournamentId: tid });
 
     this.fetchTournament(tid);
@@ -165,9 +168,7 @@ Page({
   },
 
   onHide() {
-    this.invalidateFetchSeq();
-    this.invalidateWatchGen();
-    tournamentSync.closeWatcher(this);
+    pageTournamentSync.teardownTournamentSync(this);
   },
 
   onShow() {
@@ -179,66 +180,7 @@ Page({
   },
 
   onUnload() {
-    this.invalidateFetchSeq();
-    this.invalidateWatchGen();
-    tournamentSync.closeWatcher(this);
-  },
-
-  onRetry() {
-    if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
-  },
-
-  nextFetchSeq() {
-    this._fetchSeq = Number(this._fetchSeq || 0) + 1;
-    return this._fetchSeq;
-  },
-
-  isLatestFetchSeq(requestSeq) {
-    return Number(requestSeq) === Number(this._fetchSeq || 0);
-  },
-
-  invalidateFetchSeq() {
-    this._fetchSeq = Number(this._fetchSeq || 0) + 1;
-  },
-
-  nextWatchGen() {
-    this._watchGen = Number(this._watchGen || 0) + 1;
-    return this._watchGen;
-  },
-
-  isActiveWatchGen(watchGen) {
-    return Number(watchGen) === Number(this._watchGen || 0);
-  },
-
-  invalidateWatchGen() {
-    this._watchGen = Number(this._watchGen || 0) + 1;
-  },
-
-  startWatch(tid) {
-    const watchGen = this.nextWatchGen();
-    tournamentSync.startWatch(this, tid, (doc) => {
-      if (!this.isActiveWatchGen(watchGen)) return;
-      this.setData({ showStaleSyncHint: false });
-      this.applyTournament(doc);
-    });
-  },
-
-  async fetchTournament(tid) {
-    const requestSeq = this.nextFetchSeq();
-    const result = await tournamentSync.fetchTournament(tid);
-    if (!this.isLatestFetchSeq(requestSeq)) return null;
-    if (result && result.ok && result.doc) {
-      this.setData({ showStaleSyncHint: false });
-      this.applyTournament(result.doc);
-      return result.doc;
-    }
-    if (result && result.cachedDoc) {
-      this.setData({ showStaleSyncHint: true, loadError: false });
-      this.applyTournament(result.cachedDoc);
-      return result.cachedDoc;
-    }
-    this.setData({ loadError: true, showStaleSyncHint: false });
-    return null;
+    pageTournamentSync.teardownTournamentSync(this);
   },
 
   applyTournament(t) {
