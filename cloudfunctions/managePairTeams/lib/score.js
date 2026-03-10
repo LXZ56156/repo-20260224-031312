@@ -1,3 +1,5 @@
+const SCORE_ABSOLUTE_MAX = 60;
+
 function isScalarScoreValue(value) {
   return typeof value === 'number' || typeof value === 'string';
 }
@@ -41,8 +43,17 @@ function isValidFinishedScore(input) {
   return pair.a !== pair.b;
 }
 
+function isScoreWithinBounds(input, maxScore = SCORE_ABSOLUTE_MAX) {
+  const pair = extractScorePairAny(input);
+  if (!Number.isFinite(pair.a) || !Number.isFinite(pair.b)) return false;
+  const limit = Math.max(1, Math.floor(Number(maxScore) || SCORE_ABSOLUTE_MAX));
+  return pair.a <= limit && pair.b <= limit;
+}
+
 module.exports = {
+  SCORE_ABSOLUTE_MAX,
   extractScorePairAny,
   normalizeScoreObject,
-  isValidFinishedScore
+  isValidFinishedScore,
+  isScoreWithinBounds
 };

@@ -4,6 +4,7 @@ const CODE_TO_MESSAGE = {
   TOURNAMENT_ID_REQUIRED: '未识别到比赛，请重新打开链接',
   TOURNAMENT_NOT_FOUND: '比赛已不存在，请确认分享链接是否有效',
   JOIN_DRAFT_ONLY: '比赛当前不可加入，可先查看赛况或结果',
+  PROFILE_MINIMUM_REQUIRED: '请先完善昵称、头像和性别',
   VERSION_CONFLICT: '并发冲突，请重试',
   JOIN_FAILED: '加入失败，请稍后重试'
 };

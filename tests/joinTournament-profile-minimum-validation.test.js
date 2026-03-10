@@ -35,10 +35,24 @@ function loadJoinTournamentMain(db) {
   }
 }
 
+function buildTournament(extra = {}) {
+  return {
+    _id: 't_1',
+    creatorId: 'u_admin',
+    status: 'draft',
+    mode: 'multi_rotate',
+    version: 1,
+    players: [],
+    ...extra
+  };
+}
+
 function createDbHarness(options = {}) {
-  const tournamentDoc = options.tournamentDoc;
-  const updateStats = options.updateStats || { updated: 1 };
-  const shouldThrowMissingDoc = !!options.shouldThrowMissingDoc;
+  const tournamentDoc = options.tournamentDoc || buildTournament();
+  const userProfiles = Array.isArray(options.userProfiles) ? options.userProfiles : [];
+  const calls = {
+    updatePayload: null
+  };
   const db = {
     command: {
       inc(value) {
@@ -55,7 +69,6 @@ function createDbHarness(options = {}) {
             assert.equal(id, 't_1');
             return {
               async get() {
-                if (shouldThrowMissingDoc) throw new Error('document.get:fail document does not exist');
                 return { data: tournamentDoc };
               }
             };
@@ -63,8 +76,9 @@ function createDbHarness(options = {}) {
           where(query) {
             assert.deepEqual(query, { _id: 't_1', version: 1 });
             return {
-              async update() {
-                return { stats: updateStats };
+              async update(payload) {
+                calls.updatePayload = payload;
+                return { stats: { updated: 1 } };
               }
             };
           }
@@ -72,12 +86,14 @@ function createDbHarness(options = {}) {
       }
       if (name === 'user_profiles') {
         return {
-          where() {
+          where(query) {
+            assert.deepEqual(query, { openid: 'u_viewer' });
             return {
-              limit() {
+              limit(size) {
+                assert.equal(size, 1);
                 return {
                   async get() {
-                    return { data: [] };
+                    return { data: userProfiles };
                   }
                 };
               }
@@ -88,63 +104,44 @@ function createDbHarness(options = {}) {
       throw new Error(`unexpected collection ${name}`);
     }
   };
-  return db;
+  return { db, calls };
 }
 
-function buildTournament(extra = {}) {
-  return {
-    _id: 't_1',
-    creatorId: 'u_admin',
-    status: 'draft',
-    mode: 'multi_rotate',
-    version: 1,
-    players: [],
-    ...extra
-  };
-}
+test('joinTournament rejects join requests that still miss minimum profile fields after fallback', async () => {
+  const { db, calls } = createDbHarness();
+  const { main } = loadJoinTournamentMain(db);
 
-test('joinTournament returns stable codes for missing id and missing tournament', async () => {
-  const missingIdMain = loadJoinTournamentMain(createDbHarness({ tournamentDoc: buildTournament() })).main;
-  assert.deepEqual(await missingIdMain({}, {}), {
-    ok: false,
-    code: 'TOURNAMENT_ID_REQUIRED',
-    message: '缺少赛事ID'
-  });
+  const result = await main({ tournamentId: 't_1' }, {});
 
-  const missingDocMain = loadJoinTournamentMain(createDbHarness({ shouldThrowMissingDoc: true })).main;
-  assert.deepEqual(await missingDocMain({ tournamentId: 't_1' }, {}), {
+  assert.deepEqual(result, {
     ok: false,
-    code: 'TOURNAMENT_NOT_FOUND',
-    message: '赛事不存在'
+    code: 'PROFILE_MINIMUM_REQUIRED',
+    message: '请先完善昵称、头像、性别后再加入比赛'
   });
+  assert.equal(calls.updatePayload, null);
 });
 
-test('joinTournament returns JOIN_DRAFT_ONLY for non-draft tournaments', async () => {
-  const { main } = loadJoinTournamentMain(createDbHarness({
-    tournamentDoc: buildTournament({ status: 'running' })
-  }));
-
-  assert.deepEqual(await main({ tournamentId: 't_1' }, {}), {
-    ok: false,
-    code: 'JOIN_DRAFT_ONLY',
-    message: '非草稿阶段不可加入/修改'
+test('joinTournament can backfill minimum profile fields from user_profiles', async () => {
+  const { db, calls } = createDbHarness({
+    userProfiles: [{
+      nickName: '云端球友',
+      avatar: 'cloud://avatar-file',
+      gender: 'female'
+    }]
   });
-});
+  const { main } = loadJoinTournamentMain(db);
 
-test('joinTournament returns VERSION_CONFLICT for optimistic update misses', async () => {
-  const { main } = loadJoinTournamentMain(createDbHarness({
-    tournamentDoc: buildTournament(),
-    updateStats: { updated: 0 }
-  }));
+  const result = await main({ tournamentId: 't_1' }, {});
 
-  assert.deepEqual(await main({
-    tournamentId: 't_1',
-    nickname: '新球友',
+  assert.equal(result.ok, true);
+  assert.equal(result.added, true);
+  assert.deepEqual(result.player, {
+    id: 'u_viewer',
+    name: '云端球友',
     avatar: 'cloud://avatar-file',
-    gender: 'male'
-  }, {}), {
-    ok: false,
-    code: 'VERSION_CONFLICT',
-    message: '并发冲突，请重试'
+    gender: 'female',
+    squad: ''
   });
+  assert.ok(calls.updatePayload && Array.isArray(calls.updatePayload.data.players));
+  assert.deepEqual(calls.updatePayload.data.players[0], result.player);
 });

@@ -40,6 +40,24 @@ function normalizeSquadChoice(choice) {
   return '';
 }
 
+function normalizeAvatar(avatar) {
+  return String(avatar || '').trim();
+}
+
+function resolveProfileNickName(profile) {
+  return normalizeName(
+    (profile && (profile.nickName || profile.nickname || profile.name || profile.displayName)) || ''
+  );
+}
+
+function listMissingProfileFields(profile) {
+  const missing = [];
+  if (!String(profile && profile.nickname || '').trim()) missing.push('昵称');
+  if (!String(profile && profile.avatar || '').trim()) missing.push('头像');
+  if (normalizeGender(profile && profile.gender) === 'unknown') missing.push('性别');
+  return missing;
+}
+
 function fail(code, message) {
   return {
     ok: false,
@@ -55,7 +73,7 @@ exports.main = async (event, context) => {
   const tournamentId = event.tournamentId;
   console.info('[joinTournament]', traceId || '-', String(tournamentId || '').trim() || '-', openid || '-');
   const rawNickname = event.nickname;
-  const avatar = String(event.avatar || '').trim();
+  let avatar = normalizeAvatar(event.avatar);
   let gender = normalizeGender(event.gender);
   const squadChoice = normalizeSquadChoice(event && event.squadChoice);
 
@@ -84,25 +102,33 @@ exports.main = async (event, context) => {
   const players = Array.isArray(t.players) ? t.players : [];
   const mode = modeHelper.normalizeMode(t.mode);
   const idx = players.findIndex(p => p && p.id === openid);
+  const currentPlayer = idx >= 0 ? (players[idx] || {}) : null;
 
-  if (gender === 'unknown') {
+  let nickname = normalizeName(rawNickname) || normalizeName(currentPlayer && currentPlayer.name);
+  if (!avatar && currentPlayer) avatar = normalizeAvatar(currentPlayer.avatar || currentPlayer.avatarUrl);
+  if (gender === 'unknown' && currentPlayer) gender = normalizeGender(currentPlayer.gender);
+
+  if (!nickname || !avatar || gender === 'unknown') {
     try {
       const profileRes = await db.collection('user_profiles').where({ openid }).limit(1).get();
       const profile = Array.isArray(profileRes.data) && profileRes.data[0] ? profileRes.data[0] : null;
-      if (profile) gender = normalizeGender(profile.gender);
+      if (profile) {
+        if (!nickname) nickname = resolveProfileNickName(profile);
+        if (!avatar) avatar = normalizeAvatar(profile.avatar || profile.avatarUrl);
+        if (gender === 'unknown') gender = normalizeGender(profile.gender);
+      }
     } catch (_) {
       // ignore profile read errors; join logic remains available
     }
   }
 
-  // 生成/更新昵称（允许为空：使用原名或默认）
-  let nickname = normalizeName(rawNickname);
-
-  // 若是新加入且昵称为空，则给默认名
-  if (idx < 0 && !nickname) nickname = `球员${players.length + 1}`;
+  const missingFields = listMissingProfileFields({ nickname, avatar, gender });
+  if (missingFields.length) {
+    return fail('PROFILE_MINIMUM_REQUIRED', `请先完善${missingFields.join('、')}后再加入比赛`);
+  }
 
   // 去重
-  nickname = uniqueName(nickname, players, openid) || (idx >= 0 ? String(players[idx].name || '') : `球员${players.length + 1}`);
+  nickname = uniqueName(nickname, players, openid) || (idx >= 0 ? String(players[idx].name || '') : '');
 
   if (idx >= 0) {
     // 已在列表：更新昵称/头像（允许只更新其中一个）

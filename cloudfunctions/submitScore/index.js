@@ -68,6 +68,9 @@ exports.main = async (event) => {
   if (!Number.isFinite(roundIndex) || roundIndex < 0) throw new Error('roundIndex 不合法');
   if (!Number.isFinite(matchIndex) || matchIndex < 0) throw new Error('matchIndex 不合法');
   if (!scoreUtils.isValidFinishedScore({ teamA: a, teamB: b })) throw new Error('比分不合法');
+  if (!scoreUtils.isScoreWithinBounds({ teamA: a, teamB: b }, scoreUtils.SCORE_ABSOLUTE_MAX)) {
+    return createCodeResult('SCORE_OUT_OF_RANGE', `比分不能超过 ${scoreUtils.SCORE_ABSOLUTE_MAX} 分`);
+  }
 
   try {
     const docRes = await db.collection('tournaments').doc(tournamentId).get();

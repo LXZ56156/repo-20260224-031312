@@ -3,11 +3,14 @@ const actionGuard = require('../../core/actionGuard');
 const cloud = require('../../core/cloud');
 const joinError = require('../../core/joinTournamentError');
 const nav = require('../../core/nav');
+const pageTimers = require('../../core/pageTimers');
 const profileCore = require('../../core/profile');
 const shareMeta = require('../../core/shareMeta');
 const storage = require('../../core/storage');
 const tournamentSync = require('../../core/tournamentSync');
 const flow = require('./flow');
+
+const IDENTITY_TIMEOUT_MS = 2500;
 
 function buildJoinPayload(page, profile = {}) {
   const localProfile = storage.getUserProfile() || {};
@@ -34,6 +37,7 @@ Page({
     showStaleSyncHint: false,
     loadError: false,
     identityPending: false,
+    identityTimedOut: false,
     joinBusy: false,
     joinSquadChoice: 'A'
   },
@@ -44,11 +48,13 @@ Page({
     this.openid = '';
     this._fetchSeq = 0;
     this._watchGen = 0;
+    this._identityAttemptSeq = 0;
     this.readCachedOpenid();
     this.setData({
       tournamentId,
       intent,
-      identityPending: !String(this.openid || '').trim()
+      identityPending: !String(this.openid || '').trim(),
+      identityTimedOut: false
     });
     if (!tournamentId) {
       this.setData({ preview: shareMeta.buildInvalidShareEntryState('链接无效') });
@@ -62,6 +68,7 @@ Page({
   onHide() {
     this.invalidateFetchSeq();
     this.invalidateWatchGen();
+    pageTimers.clearNamedTimer(this, 'identityPending');
     tournamentSync.closeWatcher(this);
   },
 
@@ -72,9 +79,10 @@ Page({
     const beforeOpenid = String(this.openid || '').trim();
     this.readCachedOpenid();
     const afterOpenid = String(this.openid || '').trim();
-    if (afterOpenid && !beforeOpenid && this.data.identityPending) {
-      this.setData({ identityPending: false });
-      if (this.data.tournament) this.applyTournament(this.data.tournament);
+    if (afterOpenid && !beforeOpenid && (this.data.identityPending || this.data.identityTimedOut)) {
+      this.finishIdentityResolution({ timedOut: false });
+    } else if (!afterOpenid && this.data.identityPending) {
+      this.startIdentityTimeout(this._identityAttemptSeq);
     }
     this.fetchTournament(currentId);
     if (!this.watcher) this.startWatch(currentId);
@@ -83,6 +91,8 @@ Page({
   onUnload() {
     this.invalidateFetchSeq();
     this.invalidateWatchGen();
+    this.invalidateIdentityAttempt();
+    pageTimers.clearAllTimers(this);
     tournamentSync.closeWatcher(this);
   },
 
@@ -125,24 +135,50 @@ Page({
     this.openid = appOpenid || String(storage.get('openid', '') || '').trim() || this.openid;
   },
 
+  invalidateIdentityAttempt() {
+    this._identityAttemptSeq = Number(this._identityAttemptSeq || 0) + 1;
+  },
+
+  startIdentityTimeout(attemptSeq) {
+    pageTimers.setNamedTimer(this, 'identityPending', () => {
+      if (Number(attemptSeq) !== Number(this._identityAttemptSeq || 0)) return;
+      if (String(this.openid || '').trim() || !this.data.identityPending) return;
+      this.finishIdentityResolution({ timedOut: true });
+    }, IDENTITY_TIMEOUT_MS);
+  },
+
+  finishIdentityResolution(options = {}) {
+    const timedOut = options.timedOut === true;
+    pageTimers.clearNamedTimer(this, 'identityPending');
+    this.setData({
+      identityPending: false,
+      identityTimedOut: timedOut
+    });
+    if (this.data.tournament) this.applyTournament(this.data.tournament);
+  },
+
   async primeViewerIdentity() {
     if (String(this.openid || '').trim()) {
-      if (this.data.identityPending) this.setData({ identityPending: false });
+      if (this.data.identityPending || this.data.identityTimedOut) {
+        this.finishIdentityResolution({ timedOut: false });
+      }
       return;
     }
+    this.invalidateIdentityAttempt();
+    const attemptSeq = this._identityAttemptSeq;
+    this.startIdentityTimeout(attemptSeq);
     try {
       const openid = await auth.login();
+      if (Number(attemptSeq) !== Number(this._identityAttemptSeq || 0)) return;
       if (!openid) {
-        this.setData({ identityPending: false });
-        if (this.data.tournament) this.applyTournament(this.data.tournament);
+        this.finishIdentityResolution({ timedOut: false });
         return;
       }
       this.openid = String(openid || '').trim();
-      this.setData({ identityPending: false });
-      if (this.data.tournament) this.applyTournament(this.data.tournament);
+      this.finishIdentityResolution({ timedOut: false });
     } catch (_) {
-      this.setData({ identityPending: false });
-      if (this.data.tournament) this.applyTournament(this.data.tournament);
+      if (Number(attemptSeq) !== Number(this._identityAttemptSeq || 0)) return;
+      this.finishIdentityResolution({ timedOut: false });
     }
   },
 
@@ -200,6 +236,14 @@ Page({
         viewModeLabel: '识别中',
         availabilityText: '正在识别你的参赛状态，完成后会显示加入或进入比赛。',
         primaryAction: { key: 'identity_pending', text: '识别中...' }
+      };
+    } else if (this.data.identityTimedOut && !String(this.openid || '').trim() && lifecycle === 'draft') {
+      preview = {
+        ...preview,
+        viewModeLabel: '游客查看',
+        availabilityText: '身份识别较慢，你可以先以游客身份查看比赛，稍后仍可加入。',
+        primaryAction: { key: 'lobby_view', text: '先观赛' },
+        secondaryAction: { key: 'join', text: '继续加入' }
       };
     }
     this.setData({
@@ -289,6 +333,7 @@ Page({
     const key = String((this.data.preview && this.data.preview.primaryAction && this.data.preview.primaryAction.key) || '').trim();
     if (key === 'identity_pending') return;
     if (key === 'join') return this.handleJoin();
+    if (key === 'lobby_view') return this.goLobby('view_only');
     if (key === 'enter') return this.goLobby();
     if (key === 'watch') return this.goSchedule();
     if (key === 'result') return this.goAnalytics();
@@ -297,6 +342,7 @@ Page({
 
   onSecondaryAction() {
     const key = String((this.data.preview && this.data.preview.secondaryAction && this.data.preview.secondaryAction.key) || '').trim();
+    if (key === 'join') return this.handleJoin();
     if (key === 'lobby') return this.goLobby();
     if (key === 'lobby_view') return this.goLobby('view_only');
     if (key === 'ranking') return this.goRanking();

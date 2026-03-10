@@ -250,14 +250,16 @@ function watchTournament(tournamentId, onData, onError) {
   const channel = ensureChannel(tournamentId);
   const listenerId = `l_${Date.now()}_${channel.nextListenerId++}`;
   channel.listeners[listenerId] = { onData, onError };
+  let closed = false;
 
   return {
     close() {
-      const c = channels[tournamentId];
-      if (!c || c.disposed) return;
-      delete c.listeners[listenerId];
-      if (Object.keys(c.listeners).length === 0) {
-        disposeChannel(c);
+      if (closed) return;
+      closed = true;
+      if (!channel || channel.disposed) return;
+      delete channel.listeners[listenerId];
+      if (Object.keys(channel.listeners).length === 0) {
+        disposeChannel(channel);
       }
     }
   };

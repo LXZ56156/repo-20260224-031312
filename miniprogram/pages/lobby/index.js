@@ -3,6 +3,7 @@ const tournamentSync = require('../../core/tournamentSync');
 const shareMeta = require('../../core/shareMeta');
 const flow = require('../../core/uxFlow');
 const nav = require('../../core/nav');
+const pageTimers = require('../../core/pageTimers');
 const tournamentEntry = require('../../core/tournamentEntry');
 const viewModel = require('./lobbyViewModel');
 const profileActions = require('./lobbyProfileActions');
@@ -174,14 +175,15 @@ Page({
     this.invalidateFetchSeq();
     this.invalidateWatchGen();
     tournamentSync.closeWatcher(this);
+    pageTimers.clearNamedTimer(this, 'sharePulse');
+    if (this.data.sharePulse) this.setData({ sharePulse: false });
   },
 
   onUnload() {
     this.invalidateFetchSeq();
     this.invalidateWatchGen();
     tournamentSync.closeWatcher(this);
-    if (this._sharePulseTimer) clearTimeout(this._sharePulseTimer);
-    this._sharePulseTimer = null;
+    pageTimers.clearAllTimers(this);
     this._pendingIntentAction = '';
     if (typeof this._offNetwork === 'function') this._offNetwork();
     this._offNetwork = null;
@@ -310,10 +312,8 @@ Page({
   },
 
   pulseShareHint(duration = 1800) {
-    if (this._sharePulseTimer) clearTimeout(this._sharePulseTimer);
     this.setData({ sharePulse: true });
-    this._sharePulseTimer = setTimeout(() => {
-      this._sharePulseTimer = null;
+    pageTimers.setNamedTimer(this, 'sharePulse', () => {
       this.setData({ sharePulse: false });
     }, duration);
   },

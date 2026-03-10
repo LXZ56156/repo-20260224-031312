@@ -14,6 +14,15 @@ function formatPointDiff(value) {
   return `${n}`;
 }
 
+function buildProfileViewState(profile = {}) {
+  const nick = storage.getProfileNickName(profile);
+  const avatar = String(profile.avatar || profile.avatarUrl || '').trim();
+  return {
+    nickname: nick || '未设置昵称',
+    avatar: avatar || '/assets/avatar-default.png'
+  };
+}
+
 Page({
   data: {
     nickname: '未设置昵称',
@@ -27,16 +36,19 @@ Page({
     noPerformanceData: true
   },
 
-  async onShow() {
-    const synced = await profileCore.syncCloudProfile();
-    const profile = synced || storage.getUserProfile() || {};
-    const nick = storage.getProfileNickName(profile);
-    const avatar = String(profile.avatar || profile.avatarUrl || '').trim();
-    this.setData({
-      nickname: nick || '未设置昵称',
-      avatar: avatar || '/assets/avatar-default.png'
-    });
-    await this.loadStats();
+  onShow() {
+    this._profileSyncSeq = Number(this._profileSyncSeq || 0) + 1;
+    const syncSeq = this._profileSyncSeq;
+    this.applyProfile(storage.getUserProfile() || {});
+    this.loadStats();
+    profileCore.syncCloudProfile().then((synced) => {
+      if (Number(syncSeq) !== Number(this._profileSyncSeq || 0)) return;
+      this.applyProfile(synced || storage.getUserProfile() || {});
+    }).catch(() => {});
+  },
+
+  applyProfile(profile = {}) {
+    this.setData(buildProfileViewState(profile));
   },
 
   async loadStats() {
