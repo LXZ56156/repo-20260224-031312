@@ -36,6 +36,31 @@
     </view>
   </view>
 
+  <view class="card panel panel-soft role-overview reveal reveal-2" wx:if="{{roleCards.length}}">
+    <view class="section-head">
+      <view class="section-title">角色与下一步</view>
+      <text class="count-pill">{{currentRoleTitle || '访客'}}</text>
+    </view>
+    <view class="muted small role-overview-hint">{{currentRoleSummary || '先看比赛信息，再决定下一步动作。'}}</view>
+    <view class="role-grid">
+      <view
+        class="role-card {{item.active ? 'active' : ''}} {{item.enabled ? 'clickable' : 'disabled'}}"
+        wx:for="{{roleCards}}"
+        wx:key="key"
+        data-action="{{item.actionKey}}"
+        data-enabled="{{item.enabled}}"
+        bindtap="onRoleActionTap"
+      >
+        <view class="role-card-top">
+          <view class="role-card-title">{{item.label}}</view>
+          <text class="count-pill">{{item.badgeText}}</text>
+        </view>
+        <view class="role-card-summary">{{item.summary}}</view>
+        <view class="role-card-action">下一步：{{item.actionText}}</view>
+      </view>
+    </view>
+  </view>
+
   <view class="card panel reveal reveal-2">
     <view class="section-head">
       <view class="section-title">本场信息</view>
@@ -164,29 +189,13 @@
     </view>
 
     <view class="draft-prep panel-soft" wx:if="{{tournament.status==='draft'}}">
-      <view class="prep-tile" data-key="settings" bindtap="onChecklistTap">
-        <text class="prep-indicator {{checkSettingsOk ? 'ok' : ''}}"></text>
+      <view class="prep-tile" wx:for="{{checklistItems}}" wx:key="key" data-key="{{item.key}}" bindtap="onChecklistTap">
+        <text class="prep-indicator {{item.done ? 'ok' : ''}}"></text>
         <view class="prep-main">
-          <view class="prep-title">1. 参数</view>
-          <view class="prep-sub">{{checkSettingsOk ? '已保存' : '待保存'}}</view>
+          <view class="prep-title">{{item.title}}</view>
+          <view class="prep-sub">{{item.summary}}</view>
         </view>
-        <text class="prep-jump">{{checkSettingsOk ? '查看' : '去填写'}}</text>
-      </view>
-      <view class="prep-tile" data-key="players" bindtap="onChecklistTap">
-        <text class="prep-indicator {{checkPlayersOk ? 'ok' : ''}}"></text>
-        <view class="prep-main">
-          <view class="prep-title">2. 邀请成员</view>
-          <view class="prep-sub">{{tournament.players.length ? playersChecklistHint : '优先分享邀请，导入名单作备用'}}</view>
-        </view>
-        <text class="prep-jump">{{checkPlayersOk ? '查看' : '去分享'}}</text>
-      </view>
-      <view class="prep-tile" data-key="start" bindtap="onChecklistTap">
-        <text class="prep-indicator {{checkStartReady ? 'ok' : ''}}"></text>
-        <view class="prep-main">
-          <view class="prep-title">3. 开赛</view>
-          <view class="prep-sub">{{checkStartReady ? '可立即开赛' : '完成前两项后可开赛'}}</view>
-        </view>
-        <text class="prep-jump">{{checkStartReady ? '开赛' : '去完成'}}</text>
+        <text class="prep-jump">{{item.actionText}}</text>
       </view>
     </view>
 
@@ -317,5 +326,20 @@
 </view>
 
 <view class="next-action-bar" wx:if="{{tournament && nextActionText}}">
+  <view class="next-action-main">
+    <view class="next-action-label">下一步 · {{currentRoleTitle || '访客'}}</view>
+    <view class="next-action-detail">{{nextActionDetail}}</view>
+    <view class="next-action-checklist" wx:if="{{isAdmin && tournament.status==='draft' && checklistItems.length}}">
+      <view
+        class="next-check-item {{item.done ? 'ok' : ''}}"
+        wx:for="{{checklistItems}}"
+        wx:key="key"
+        data-key="{{item.key}}"
+        bindtap="onChecklistTap"
+      >
+        {{item.label}} · {{item.done ? '已完成' : item.actionText}}
+      </view>
+    </view>
+  </view>
   <button class="btn btn-primary next-primary" bindtap="onNextActionTap">{{nextActionText}}</button>
 </view>

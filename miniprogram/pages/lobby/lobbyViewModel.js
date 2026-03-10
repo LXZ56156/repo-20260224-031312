@@ -147,6 +147,200 @@ function buildPairTeamModel(pairTeams, players, currentFirstIndex = 0, currentSe
   };
 }
 
+function buildTournamentDiffKey(tournament) {
+  const t = tournament || null;
+  if (!t || typeof t !== 'object') return '';
+  const id = String(t._id || t.id || '').trim();
+  const version = Number(t.version);
+  if (Number.isFinite(version) && version > 0) return `version:${id}:${version}`;
+  const updatedAt = String(t.updatedAt || '').trim();
+  if (updatedAt) return `updated:${id}:${updatedAt}`;
+  return `raw:${JSON.stringify(t)}`;
+}
+
+function isPlainObject(value) {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isTournamentLike(value) {
+  if (!isPlainObject(value)) return false;
+  return Array.isArray(value.players)
+    || Array.isArray(value.rounds)
+    || Array.isArray(value.rankings)
+    || Object.prototype.hasOwnProperty.call(value, 'version');
+}
+
+function isPatchValueEqual(left, right) {
+  if (left === right) return true;
+  if (Array.isArray(left) || Array.isArray(right)) {
+    if (!Array.isArray(left) || !Array.isArray(right)) return false;
+    if (left.length !== right.length) return false;
+    for (let i = 0; i < left.length; i += 1) {
+      if (!isPatchValueEqual(left[i], right[i])) return false;
+    }
+    return true;
+  }
+  if (isTournamentLike(left) || isTournamentLike(right)) {
+    return buildTournamentDiffKey(left) === buildTournamentDiffKey(right);
+  }
+  if (isPlainObject(left) || isPlainObject(right)) {
+    if (!isPlainObject(left) || !isPlainObject(right)) return false;
+    const leftKeys = Object.keys(left);
+    const rightKeys = Object.keys(right);
+    if (leftKeys.length !== rightKeys.length) return false;
+    for (const key of leftKeys) {
+      if (!Object.prototype.hasOwnProperty.call(right, key)) return false;
+      if (!isPatchValueEqual(left[key], right[key])) return false;
+    }
+    return true;
+  }
+  return false;
+}
+
+function diffLobbyPatch(current = {}, next = {}) {
+  const patch = {};
+  const source = current && typeof current === 'object' ? current : {};
+  const target = next && typeof next === 'object' ? next : {};
+  for (const key of Object.keys(target)) {
+    if (!isPatchValueEqual(source[key], target[key])) patch[key] = target[key];
+  }
+  return patch;
+}
+
+function buildChecklistItems({ checkSettingsOk, checkPlayersOk, checkStartReady, playersChecklistHint }) {
+  return [
+    {
+      key: 'settings',
+      label: '参数',
+      title: '1. 参数',
+      done: !!checkSettingsOk,
+      summary: checkSettingsOk ? '已保存' : '待保存',
+      actionText: checkSettingsOk ? '查看' : '去填写'
+    },
+    {
+      key: 'players',
+      label: '邀请成员',
+      title: '2. 邀请成员',
+      done: !!checkPlayersOk,
+      summary: String(playersChecklistHint || '').trim() || '优先分享邀请，导入名单作备用',
+      actionText: checkPlayersOk ? '查看' : '去分享'
+    },
+    {
+      key: 'start',
+      label: '开赛',
+      title: '3. 开赛',
+      done: !!checkStartReady,
+      summary: checkStartReady ? '可立即开赛' : '完成前两项后可开赛',
+      actionText: checkStartReady ? '开赛' : '去完成'
+    }
+  ];
+}
+
+function buildRoleCard(key, label, summary, actionKey, actionText, active) {
+  return {
+    key,
+    label,
+    summary: String(summary || '').trim(),
+    actionKey: String(actionKey || '').trim(),
+    actionText: String(actionText || '').trim(),
+    active: !!active,
+    enabled: !!active && !!String(actionKey || '').trim(),
+    badgeText: active ? '当前' : '角色'
+  };
+}
+
+function buildRoleCards(ctx) {
+  const {
+    status,
+    isAdmin,
+    myJoined,
+    showJoin,
+    showMyProfile,
+    showViewOnlyJoinPrompt,
+    checkSettingsOk,
+    checkPlayersOk,
+    checkStartReady,
+    canEditScore,
+    hasPending,
+    playersChecklistHint,
+    mode
+  } = ctx;
+
+  const activeRoleKey = isAdmin
+    ? 'admin'
+    : (myJoined ? 'joined' : (showJoin ? 'profile_pending' : 'viewer'));
+
+  let adminActionKey = 'schedule';
+  let adminActionText = '查看赛程';
+  let adminSummary = '管理员可维护参数、分享比赛并控制开赛。';
+  if (status === 'draft' && !checkSettingsOk) {
+    adminActionKey = 'settings';
+    adminActionText = '去保存参数';
+    adminSummary = '先保存比赛参数，再继续邀请成员和开赛。';
+  } else if (status === 'draft' && !checkPlayersOk) {
+    adminActionKey = 'share';
+    adminActionText = '去分享邀请';
+    adminSummary = `当前名单未就绪，${playersChecklistHint || '请先补全参赛信息'}。`;
+  } else if (status === 'draft' && checkStartReady) {
+    adminActionKey = 'start';
+    adminActionText = '开赛并锁定赛程';
+    adminSummary = '前置项已完成，可以直接开赛。';
+  } else if (status === 'running' && canEditScore && hasPending) {
+    adminActionKey = 'batch';
+    adminActionText = '去批量录分';
+    adminSummary = '当前还有待录分比赛，优先完成比分录入。';
+  } else if (status === 'finished') {
+    adminActionKey = 'analytics';
+    adminActionText = '查看赛事复盘';
+    adminSummary = '比赛已结束，可查看排名和复盘结果。';
+  }
+
+  let joinedActionKey = 'schedule';
+  let joinedActionText = '查看赛程';
+  let joinedSummary = '你已在名单中，可继续跟进比赛安排。';
+  if (status === 'draft') {
+    joinedActionKey = 'profile_save';
+    joinedActionText = showMyProfile ? '保存我的信息' : '查看我的资料';
+    joinedSummary = '你已加入比赛，草稿阶段仍可补充昵称和头像。';
+  } else if (status === 'running' && canEditScore && hasPending) {
+    joinedActionKey = 'batch';
+    joinedActionText = '去批量录分';
+    joinedSummary = '你有录分权限，当前还有待完成比赛。';
+  } else if (status === 'finished') {
+    joinedActionKey = 'analytics';
+    joinedActionText = '查看赛事复盘';
+    joinedSummary = '比赛已结束，可查看最终结果和复盘。';
+  }
+
+  let viewerActionKey = 'schedule';
+  let viewerActionText = '查看赛程';
+  let viewerSummary = '当前以观赛身份查看，不会自动加入名单。';
+  if (status === 'draft') {
+    viewerActionKey = showViewOnlyJoinPrompt ? 'view_only_join' : 'share';
+    viewerActionText = showViewOnlyJoinPrompt ? '我要加入' : '继续观赛';
+    viewerSummary = '可以先看比赛信息，确定后再显式加入。';
+  } else if (status === 'finished') {
+    viewerActionKey = 'ranking';
+    viewerActionText = '查看排名';
+    viewerSummary = '比赛已结束，可以直接查看排名结果。';
+  }
+
+  const pendingNeedsSquad = status === 'draft' && mode === flow.MODE_SQUAD_DOUBLES;
+  const pendingSummary = pendingNeedsSquad
+    ? '先补资料并选择 A/B 队，再确认加入。'
+    : '先补昵称和头像，再确认加入。';
+
+  return {
+    activeRoleKey,
+    cards: [
+      buildRoleCard('admin', '管理员', adminSummary, adminActionKey, adminActionText, activeRoleKey === 'admin'),
+      buildRoleCard('joined', '已加入用户', joinedSummary, joinedActionKey, joinedActionText, activeRoleKey === 'joined'),
+      buildRoleCard('viewer', '观赛用户', viewerSummary, viewerActionKey, viewerActionText, activeRoleKey === 'viewer'),
+      buildRoleCard('profile_pending', '待补资料用户', pendingSummary, 'profile_join', '确认加入', activeRoleKey === 'profile_pending')
+    ]
+  };
+}
+
 function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }) {
   const t = normalize.normalizeTournament(tournament || {});
   const status = t.status || 'draft';
@@ -264,16 +458,34 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
   const quickChecklistPending = (checkPlayersOk ? 0 : 1) + (checkSettingsOk ? 0 : 1);
   const canEditScore = perm.canEditScore(t, openid);
   const hasPending = flow.hasPendingMatch(t.rounds);
-  const nextAction = flow.pickNextAction({
+  const checklistItems = buildChecklistItems({
+    checkSettingsOk,
+    checkPlayersOk,
+    checkStartReady,
+    playersChecklistHint: players.length ? playersChecklistHint : '优先分享邀请，导入名单作备用'
+  });
+  const roleView = buildRoleCards({
     status,
     isAdmin,
     myJoined,
-    checkPlayersOk,
-    playersChecklistHint: checkPlayersOk ? playersChecklistHint : '当前名单暂不可排赛，请补全参赛信息',
+    showJoin,
+    showMyProfile,
+    showViewOnlyJoinPrompt,
     checkSettingsOk,
+    checkPlayersOk,
+    checkStartReady,
     canEditScore,
-    hasPending
+    hasPending,
+    playersChecklistHint: checkPlayersOk ? playersChecklistHint : '当前名单暂不可排赛，请补全参赛信息',
+    mode
   });
+  const activeRoleCard = roleView.cards.find((item) => item.active) || roleView.cards[0] || {
+    key: '',
+    label: '',
+    summary: '',
+    actionKey: '',
+    actionText: ''
+  };
   const shareMessage = shareMeta.buildShareMessage(t);
 
   return {
@@ -325,14 +537,20 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       pairTeamSecondIndex: pairTeamModel.pairTeamSecondIndex,
       showScheduleShortcut: status === 'running' || status === 'finished',
       quickChecklistPending,
+      checklistItems,
       checkPlayersOk,
       playersChecklistHint,
       checkSettingsOk,
       checkStartReady,
       canEditScore,
       hasPending,
-      nextActionKey: (showJoin || showViewOnlyJoinPrompt) ? '' : nextAction.key,
-      nextActionText: (showJoin || showViewOnlyJoinPrompt) ? '' : nextAction.text,
+      roleCards: roleView.cards,
+      currentRoleKey: activeRoleCard.key,
+      currentRoleTitle: activeRoleCard.label,
+      currentRoleSummary: activeRoleCard.summary,
+      nextActionKey: activeRoleCard.actionKey,
+      nextActionText: activeRoleCard.actionText,
+      nextActionDetail: activeRoleCard.summary,
       showViewOnlyJoinPrompt,
       shareCardTitle: String(shareMessage.panelTitle || '分享比赛'),
       shareCardHint: String(shareMessage.panelHint || ''),
@@ -350,6 +568,8 @@ module.exports = {
   buildDigitRange,
   valueToDigitValue,
   digitValueToNumber,
+  buildTournamentDiffKey,
+  diffLobbyPatch,
   buildDisplayPlayers,
   buildPairTeamModel,
   buildLobbyViewModel

@@ -163,6 +163,13 @@ module.exports = {
 
   async resolveDisplayPlayersAvatars() {
     try {
+      const generation = Number(this._displayPlayersAvatarGen || 0) + 1;
+      this._displayPlayersAvatarGen = generation;
+      const applyPatch = (patch) => {
+        if (typeof this.applyLobbyPatch === 'function') return this.applyLobbyPatch(patch);
+        this.setData(patch);
+        return patch;
+      };
       const list = Array.isArray(this.data.displayPlayers) ? this.data.displayPlayers.slice() : [];
       if (!list.length) return;
       const need = [];
@@ -188,10 +195,11 @@ module.exports = {
         }
       }
 
-      this.setData({ displayPlayers: list });
+      applyPatch({ displayPlayers: list });
 
       if (!need.length) return;
       const res = await wx.cloud.getTempFileURL({ fileList: need });
+      if (this._displayPlayersAvatarGen !== generation) return;
       const fileList = (res && res.fileList) || [];
       for (const item of fileList) {
         const fileID = item && item.fileID;
@@ -203,7 +211,7 @@ module.exports = {
           if (list[idx]) list[idx].avatarDisplay = url;
         }
       }
-      this.setData({ displayPlayers: list });
+      applyPatch({ displayPlayers: list });
     } catch (_) {
       // ignore
     }

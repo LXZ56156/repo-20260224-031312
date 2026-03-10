@@ -12,6 +12,9 @@ module.exports = {
     if (!key) return;
     const handlers = {
       join: () => this.handleJoin(),
+      profile_join: () => this.submitProfile(),
+      profile_save: () => this.submitProfile(),
+      view_only_join: () => this.enterJoinFromViewOnly(),
       settings: () => this.focusQuickConfigArea(),
       quickImport: () => this.focusQuickImportArea(),
       start: () => this.handleStart(),
@@ -24,6 +27,14 @@ module.exports = {
     };
     const fn = handlers[key];
     if (typeof fn === 'function') return fn();
+  },
+
+  onRoleActionTap(e) {
+    const enabled = !!(e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.enabled);
+    if (!enabled) return;
+    const key = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.action) || '').trim();
+    if (!key) return;
+    return this.runFlowAction(key);
   },
 
   parseImportPlayers(text) {

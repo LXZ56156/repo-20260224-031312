@@ -52,8 +52,11 @@ Page({
     entryMode: '',
     viewOnlyJoinExpanded: false,
     showAllPlayers: false,
-    playersPreview: [],
     displayPlayers: [],
+    roleCards: [],
+    currentRoleKey: '',
+    currentRoleTitle: '',
+    currentRoleSummary: '',
 
     createdAtText: '',
     kpiReady: false,
@@ -112,8 +115,10 @@ Page({
 
     nextActionKey: '',
     nextActionText: '',
+    nextActionDetail: '',
     showScheduleShortcut: false,
     quickChecklistPending: 0,
+    checklistItems: [],
 
     sharePulse: false,
     shareCardTitle: '分享比赛',
@@ -236,6 +241,12 @@ Page({
     }, duration);
   },
 
+  applyLobbyPatch(nextPatch) {
+    const patch = viewModel.diffLobbyPatch(this.data, nextPatch);
+    if (Object.keys(patch).length) this.setData(patch);
+    return patch;
+  },
+
   setTournament(tournament) {
     if (!tournament) return;
     const openid = this.openid || getApp().globalData.openid || storage.get('openid', '');
@@ -246,7 +257,7 @@ Page({
       avatarCache: this.avatarCache || {}
     });
 
-    this.setData(next.patch);
+    this.applyLobbyPatch(next.patch);
 
     if (this._showShareHint) {
       this._showShareHint = false;
@@ -277,12 +288,11 @@ Page({
     const next = !this.data.showAllPlayers;
     const tournament = this.data.tournament;
     const players = tournament && Array.isArray(tournament.players) ? tournament.players : [];
-    this.setData({
+    this.applyLobbyPatch({
       showAllPlayers: next,
       displayPlayers: viewModel.buildDisplayPlayers(next ? players : players.slice(0, 12), this.avatarCache || {})
-    }, () => {
-      this.resolveDisplayPlayersAvatars();
     });
+    this.resolveDisplayPlayersAvatars();
   },
 
   onShareAppMessage() {
