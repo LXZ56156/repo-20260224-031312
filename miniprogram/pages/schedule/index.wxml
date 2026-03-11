@@ -1,5 +1,11 @@
 <view class="container safe-bottom schedule-page" wx:if="{{tournament}}">
-  <view class="stale-banner" wx:if="{{showStaleSyncHint}}">当前为最近一次同步数据</view>
+  <view class="sync-banner sync-{{syncStatusTone}}" wx:if="{{syncStatusVisible}}">
+    <view class="sync-banner-main">
+      <view class="sync-banner-text">{{syncStatusText}}</view>
+      <view class="sync-banner-meta" wx:if="{{syncStatusMeta}}">{{syncStatusMeta}}</view>
+    </view>
+    <text class="sync-banner-action" bindtap="onRetry">{{syncStatusActionText}}</text>
+  </view>
   <view class="hero">
     <view class="row hero-head">
       <view class="flex-1 minw0">
@@ -35,18 +41,20 @@
     <text class="state-link" bindtap="goLobby">去大厅</text>
   </view>
 
-  <view class="round-card panel" wx:for="{{roundsUi}}" wx:key="roundIndex">
+  <view class="round-card panel {{item.isCurrentRound ? 'round-card-current' : ''}}" wx:for="{{roundsUi}}" wx:key="roundIndex">
     <view class="round-header">
       <view class="round-title">第{{item.roundIndex + 1}}轮</view>
-      <text class="muted small">{{item.matchesUi.length}} 场</text>
+      <text class="count-pill" wx:if="{{item.isCurrentRound}}">当前待录分轮次</text>
+      <text class="muted small" wx:else>{{item.matchesUi.length}} 场</text>
     </view>
 
-    <view class="match-card" wx:for="{{item.matchesUi}}" wx:for-item="m" wx:key="key" data-round="{{m.roundIndex}}" data-match="{{m.matchIndex}}" data-status="{{m.status}}" bindtap="openMatch">
+    <view class="match-card {{m.isFirstPending ? 'match-card-focus' : ''}}" wx:for="{{item.matchesUi}}" wx:for-item="m" wx:key="key" data-round="{{m.roundIndex}}" data-match="{{m.matchIndex}}" data-status="{{m.status}}" bindtap="openMatch">
       <view class="match-left">
         <view class="match-title">{{m.title}}</view>
         <view class="match-sub">{{m.left}} <text class="vs">vs</text> {{m.right}}</view>
         <view class="muted tiny team-meta" wx:if="{{m.leftMeta}}">{{m.leftMeta}}</view>
         <view class="muted tiny team-meta" wx:if="{{m.rightMeta}}">{{m.rightMeta}}</view>
+        <view class="focus-pill" wx:if="{{m.focusBadgeText}}">{{m.focusBadgeText}}</view>
         <view class="score" wx:if="{{m.scoreText}}">比分：{{m.scoreText}}</view>
         <view class="score" wx:if="{{m.scorerText}}">{{m.scorerText}}</view>
       </view>

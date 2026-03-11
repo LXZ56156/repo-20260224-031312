@@ -57,12 +57,16 @@ test('ranking page handles structured fetchTournament results and clears stale h
       ok: false,
       errorType: 'network',
       errorMessage: 'timeout',
-      cachedDoc
+      cachedDoc,
+      cachedAt: Date.parse('2026-03-10T10:05:00.000Z')
     });
     doc = await ctx.fetchTournament('t_cached');
     assert.equal(doc, cachedDoc);
     assert.equal(ctx.data.showStaleSyncHint, true);
     assert.equal(ctx.data.loadError, false);
+    assert.equal(ctx.data.syncUsingCache, true);
+    assert.equal(ctx.data.syncCachedAt, Date.parse('2026-03-10T10:05:00.000Z'));
+    assert.equal(ctx.data.syncStatusVisible, true);
     assert.deepEqual(ctx.applied.pop(), cachedDoc);
 
     tournamentSync.fetchTournament = async () => ({
@@ -96,6 +100,7 @@ test('ranking page handles structured fetchTournament results and clears stale h
     };
     ctx.startWatch('t_watch');
     assert.equal(ctx.data.showStaleSyncHint, false);
+    assert.equal(ctx.data.syncRefreshing, false);
     assert.deepEqual(ctx.applied.pop(), remoteDoc);
   } finally {
     tournamentSync.fetchTournament = originalFetchTournament;

@@ -26,23 +26,32 @@ function withJitter(ms) {
   return Math.max(280, n + delta);
 }
 
-function safeCall(fn, arg) {
+function safeCall(fn, ...args) {
   if (typeof fn !== 'function') return;
   try {
-    fn(arg);
+    fn(...args);
   } catch (e) {
     console.error('watch callback error', e);
   }
 }
 
-function emitData(channel, doc) {
-  const listeners = channel && channel.listeners ? Object.values(channel.listeners) : [];
-  for (const it of listeners) safeCall(it.onData, doc);
+function decorateWatchError(err, meta = {}) {
+  const base = (err && typeof err === 'object') ? err : new Error(msgOf(err) || 'watch failed');
+  base.__watchType = String(meta.type || classifyWatchError(base) || 'unknown');
+  base.__watchSource = String(meta.source || '').trim();
+  base.__watchFallback = !!meta.pollingFallback;
+  return base;
 }
 
-function emitError(channel, err) {
+function emitData(channel, doc, meta = {}) {
   const listeners = channel && channel.listeners ? Object.values(channel.listeners) : [];
-  for (const it of listeners) safeCall(it.onError, err);
+  for (const it of listeners) safeCall(it.onData, doc, meta);
+}
+
+function emitError(channel, err, meta = {}) {
+  const listeners = channel && channel.listeners ? Object.values(channel.listeners) : [];
+  const decorated = decorateWatchError(err, meta);
+  for (const it of listeners) safeCall(it.onError, decorated, meta);
 }
 
 async function fetchOnce(tournamentId, onData, onError) {
@@ -142,13 +151,13 @@ function createPollingSource(channel, tournamentId) {
     tournamentId,
     (doc) => {
       if (!channel || channel.disposed) return;
-      emitData(channel, doc);
+      emitData(channel, doc, { source: 'polling' });
     },
     (err) => {
       if (!channel || channel.disposed) return;
       const type = classifyWatchError(err);
       console.warn(`[watch:poll:${type}]`, err);
-      emitError(channel, err);
+      emitError(channel, err, { type, source: 'polling', pollingFallback: true });
     }
   );
 }
@@ -193,12 +202,12 @@ function attachSource(channel, tournamentId) {
 
   fetchOnce(
     tournamentId,
-    (doc) => { if (!channel.disposed) emitData(channel, doc); },
+    (doc) => { if (!channel.disposed) emitData(channel, doc, { source: 'init_fetch' }); },
     (err) => {
       if (channel.disposed) return;
       const type = classifyWatchError(err);
       console.warn(`[watch:init:${type}]`, err);
-      emitError(channel, err);
+      emitError(channel, err, { type, source: 'init_fetch', pollingFallback: false });
     }
   );
 
@@ -209,13 +218,14 @@ function attachSource(channel, tournamentId) {
       onChange: (snapshot) => {
         if (channel.disposed) return;
         const doc = extractDoc(snapshot);
-        if (doc) emitData(channel, doc);
+        if (doc) emitData(channel, doc, { source: 'realtime' });
       },
       onError: (err) => {
         if (channel.disposed) return;
         const type = classifyWatchError(err);
         console.warn(`[watch:realtime:${type}]`, err);
-        emitError(channel, err);
+        const shouldFallback = (type === 'realtime_not_supported' || type === 'network' || type === 'unknown') && !fallback;
+        emitError(channel, err, { type, source: 'realtime', pollingFallback: shouldFallback });
         if ((type === 'realtime_not_supported' || type === 'network' || type === 'unknown') && !fallback) {
           fallback = true;
           fallbackToPolling(channel, tournamentId);
@@ -227,6 +237,7 @@ function attachSource(channel, tournamentId) {
   } catch (err) {
     const type = classifyWatchError(err);
     console.warn(`[watch:attach:${type}]`, err);
+    emitError(channel, err, { type, source: 'attach', pollingFallback: true });
     channel.source = createPollingSource(channel, tournamentId);
   }
 }

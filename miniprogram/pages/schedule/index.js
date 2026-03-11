@@ -84,6 +84,8 @@ function decorateRounds(t) {
         rightMeta: isTeamMatch ? (rightMembers ? `成员：${rightMembers}` : '') : '',
         statusText,
         statusClass,
+        focusBadgeText: '',
+        isFirstPending: false,
         scoreText: finished ? (scoreText || '--') : '',
         scorerText: (finished && scorerName) ? `本场裁判：${scorerName}` : ''
       };
@@ -91,6 +93,7 @@ function decorateRounds(t) {
 
     return {
       roundIndex: r.roundIndex || 0,
+      isCurrentRound: false,
       matchesUi,
       restText: rest.length ? `轮空：${rest.map(asName).join(' / ')}` : ''
     };
@@ -130,6 +133,26 @@ function summarizeRounds(roundsUi) {
   };
 }
 
+function markPendingFocus(roundsUi, firstPending) {
+  if (!firstPending) return roundsUi;
+  return (roundsUi || []).map((round) => {
+    const isCurrentRound = Number(round && round.roundIndex) === Number(firstPending.roundIndex);
+    return {
+      ...round,
+      isCurrentRound,
+      matchesUi: (round && Array.isArray(round.matchesUi) ? round.matchesUi : []).map((match) => {
+        const isFirstPending = Number(match && match.roundIndex) === Number(firstPending.roundIndex) &&
+          Number(match && match.matchIndex) === Number(firstPending.matchIndex);
+        return {
+          ...match,
+          isFirstPending,
+          focusBadgeText: isFirstPending ? '优先录分' : ''
+        };
+      })
+    };
+  });
+}
+
 const scheduleSyncController = pageTournamentSync.createTournamentSyncMethods();
 
 Page({
@@ -151,8 +174,19 @@ Page({
     nextActionKey: '',
     nextActionText: '',
     shareButtonText: '分享比赛链接',
+    networkOffline: false,
     showStaleSyncHint: false,
-    loadError: false
+    loadError: false,
+    syncRefreshing: false,
+    syncUsingCache: false,
+    syncPollingFallback: false,
+    syncCachedAt: 0,
+    syncLastUpdatedAt: 0,
+    syncStatusVisible: false,
+    syncStatusTone: 'info',
+    syncStatusText: '',
+    syncStatusMeta: '',
+    syncStatusActionText: '刷新'
   },
 
   ...scheduleSyncController,
@@ -162,6 +196,15 @@ Page({
     this.openid = (getApp().globalData.openid || storage.get('openid', ''));
     pageTournamentSync.initTournamentSync(this);
     this.setData({ tournamentId: tid });
+
+    const app = getApp();
+    const initialOffline = !!(app && app.globalData && app.globalData.networkOffline);
+    this.setData(pageTournamentSync.composePageSyncPatch(this, { networkOffline: initialOffline }));
+    if (app && typeof app.subscribeNetworkChange === 'function') {
+      this._offNetwork = app.subscribeNetworkChange((offline) => {
+        this.setData(pageTournamentSync.composePageSyncPatch(this, { networkOffline: !!offline }));
+      });
+    }
 
     this.fetchTournament(tid);
     this.startWatch(tid);
@@ -181,6 +224,8 @@ Page({
 
   onUnload() {
     pageTournamentSync.teardownTournamentSync(this);
+    if (typeof this._offNetwork === 'function') this._offNetwork();
+    this._offNetwork = null;
   },
 
   applyTournament(t) {
@@ -194,9 +239,10 @@ Page({
     if (status === 'running') { statusText = '进行中'; statusClass = 'tag-running'; }
     if (status === 'finished') { statusText = '已结束'; statusClass = 'tag-finished'; }
 
-    const roundsUi = decorateRounds(t);
+    const rawRoundsUi = decorateRounds(t);
+    const firstPending = findFirstPending(rawRoundsUi);
+    const roundsUi = markPendingFocus(rawRoundsUi, firstPending);
     const roundsSummary = summarizeRounds(roundsUi);
-    const firstPending = findFirstPending(roundsUi);
     const canEditScore = perm.canEditScore(t, this.openid);
     let nextActionKey = '';
     let nextActionText = '';

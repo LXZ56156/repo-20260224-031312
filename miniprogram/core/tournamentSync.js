@@ -42,13 +42,13 @@ function closeWatcher(ctx) {
   ctx.watcher = null;
 }
 
-function startWatch(ctx, tournamentId, onDoc) {
+function startWatch(ctx, tournamentId, onDoc, onError) {
   if (!ctx || !tournamentId) return;
   closeWatcher(ctx);
-  ctx.watcher = watchUtil.watchTournament(tournamentId, (doc) => {
+  ctx.watcher = watchUtil.watchTournament(tournamentId, (doc, meta) => {
     persistTournamentDoc(doc);
-    if (typeof onDoc === 'function') onDoc(doc);
-  });
+    if (typeof onDoc === 'function') onDoc(doc, meta);
+  }, onError);
 }
 
 async function fetchTournament(tournamentId, onDoc) {
@@ -79,14 +79,15 @@ async function fetchTournament(tournamentId, onDoc) {
   } catch (e) {
     console.error('fetchTournament failed', e);
     const parsed = classifyFetchError(e);
-    const cachedDoc = shouldAllowCachedFallback(parsed.errorType)
-      ? storage.getLocalTournamentCache(tid)
-      : null;
+    const cacheInfo = shouldAllowCachedFallback(parsed.errorType)
+      ? storage.getLocalTournamentCacheInfo(tid)
+      : { doc: null, cachedAt: 0 };
     return {
       ok: false,
       errorType: parsed.errorType,
       errorMessage: parsed.errorMessage,
-      cachedDoc
+      cachedDoc: cacheInfo.doc,
+      cachedAt: cacheInfo.cachedAt
     };
   }
 }

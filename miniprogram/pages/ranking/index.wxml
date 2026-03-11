@@ -1,4 +1,11 @@
 <view class="container safe-bottom ranking-page" wx:if="{{tournament}}">
+  <view class="sync-banner sync-{{syncStatusTone}}" wx:if="{{syncStatusVisible}}">
+    <view class="sync-banner-main">
+      <view class="sync-banner-text">{{syncStatusText}}</view>
+      <view class="sync-banner-meta" wx:if="{{syncStatusMeta}}">{{syncStatusMeta}}</view>
+    </view>
+    <text class="sync-banner-action" bindtap="onRetry">{{syncStatusActionText}}</text>
+  </view>
   <view class="hero">
     <view class="hero-title">实时排名 · {{rankingTypeLabel}}</view>
     <view class="hero-sub">{{tournament.name}}</view>
@@ -38,8 +45,19 @@
 </view>
 
 <view class="container safe-bottom ranking-page" wx:else>
-  <view class="card panel">
+  <view class="card panel ranking-skeleton">
     <view class="empty-title">加载中...</view>
     <view class="muted">正在同步实时排名。</view>
+    <view class="skeleton-row" wx:for="{{loadingSkeletonRows}}" wx:key="*this">
+      <view class="skeleton-rank"></view>
+      <view class="skeleton-main">
+        <view class="skeleton-line skeleton-line-strong"></view>
+        <view class="skeleton-line"></view>
+      </view>
+      <view class="skeleton-side">
+        <view class="skeleton-line skeleton-line-short"></view>
+        <view class="skeleton-line skeleton-line-mini"></view>
+      </view>
+    </view>
   </view>
 </view>

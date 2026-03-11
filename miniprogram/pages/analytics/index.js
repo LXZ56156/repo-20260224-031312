@@ -39,6 +39,16 @@ Page({
     showAnalyticsAdSlot: false,
     networkOffline: false,
     showStaleSyncHint: false,
+    syncRefreshing: false,
+    syncUsingCache: false,
+    syncPollingFallback: false,
+    syncCachedAt: 0,
+    syncLastUpdatedAt: 0,
+    syncStatusVisible: false,
+    syncStatusTone: 'info',
+    syncStatusText: '',
+    syncStatusMeta: '',
+    syncStatusActionText: '刷新',
     canRetryAction: false,
     lastFailedActionText: '',
     showAllRankings: false,
@@ -54,10 +64,12 @@ Page({
     this.setData({ tournamentId: tid });
 
     const app = getApp();
-    this.setData({ networkOffline: !!(app && app.globalData && app.globalData.networkOffline) });
+    this.setData(pageTournamentSync.composePageSyncPatch(this, {
+      networkOffline: !!(app && app.globalData && app.globalData.networkOffline)
+    }));
     if (app && typeof app.subscribeNetworkChange === 'function') {
       this._offNetwork = app.subscribeNetworkChange((offline) => {
-        this.setData({ networkOffline: !!offline });
+        this.setData(pageTournamentSync.composePageSyncPatch(this, { networkOffline: !!offline }));
       });
     }
 

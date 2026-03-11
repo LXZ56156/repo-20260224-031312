@@ -56,13 +56,17 @@ test('pageTournamentSync handles remote, cached and error fetch states through o
     tournamentSync.fetchTournament = async () => ({
       ok: false,
       errorType: 'network',
-      cachedDoc: { _id: 't_cache' }
+      cachedDoc: { _id: 't_cache', updatedAt: '2026-03-10T10:00:00.000Z' },
+      cachedAt: Date.parse('2026-03-10T10:05:00.000Z')
     });
     doc = await ctx.fetchTournament('t_1');
     assert.equal(doc._id, 't_cache');
     assert.equal(ctx.data.sourceTag, 'cache');
+    assert.equal(ctx.data.syncUsingCache, true);
+    assert.equal(ctx.data.syncCachedAt, Date.parse('2026-03-10T10:05:00.000Z'));
+    assert.equal(ctx.data.syncStatusVisible, true);
     assert.deepEqual(ctx._applied.pop(), {
-      doc: { _id: 't_cache' },
+      doc: { _id: 't_cache', updatedAt: '2026-03-10T10:00:00.000Z' },
       meta: { requestSeq: 2, source: 'cache' }
     });
 
@@ -75,6 +79,7 @@ test('pageTournamentSync handles remote, cached and error fetch states through o
     assert.equal(doc, null);
     assert.equal(ctx.data.loadError, true);
     assert.equal(ctx.data.sourceTag, 'error');
+    assert.equal(ctx.data.syncRefreshing, false);
   } finally {
     tournamentSync.fetchTournament = originalFetchTournament;
   }
@@ -101,6 +106,26 @@ test('pageTournamentSync ignores stale watch callbacks after restarting a watch'
       doc: { _id: 't_new' },
       meta: { watchGen: 2, source: 'watch' }
     }]);
+  } finally {
+    tournamentSync.startWatch = originalStartWatch;
+  }
+});
+
+test('pageTournamentSync keeps polling fallback state when watch degrades from realtime', () => {
+  const originalStartWatch = tournamentSync.startWatch;
+  const methods = pageTournamentSync.createTournamentSyncMethods();
+  const ctx = createContext(methods);
+
+  try {
+    tournamentSync.startWatch = (_page, _tid, _onDoc, onError) => {
+      onError({ __watchFallback: true, __watchSource: 'realtime', __watchType: 'network' });
+    };
+
+    ctx.startWatch('t_1');
+
+    assert.equal(ctx.data.syncPollingFallback, true);
+    assert.equal(ctx.data.syncStatusVisible, true);
+    assert.match(ctx.data.syncStatusText, /轮询/);
   } finally {
     tournamentSync.startWatch = originalStartWatch;
   }

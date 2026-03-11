@@ -8,6 +8,7 @@ const LOCAL_COMPLETED_TOURNAMENT_MAP_KEY = 'local_completed_tournament_map_v2';
 const LOCAL_COMPLETED_TOURNAMENT_COMPAT_VERSION_KEY = 'local_completed_tournament_compat_version_v1';
 const LOCAL_TOURNAMENT_SNAPSHOT_PREFIX = 'local_tournament_snapshot_';
 const LOCAL_TOURNAMENT_CACHE_PREFIX = 'local_tournament_cache_';
+const LOCAL_TOURNAMENT_CACHE_AT_PREFIX = 'local_tournament_cache_at_';
 const LOCAL_COMPLETED_MAX = 500;
 const LOCAL_COMPLETED_TOURNAMENT_COMPAT_VERSION = 1;
 
@@ -71,6 +72,10 @@ function getLocalTournamentSnapshotKey(tournamentId) {
 
 function getLocalTournamentCacheKey(tournamentId) {
   return `${LOCAL_TOURNAMENT_CACHE_PREFIX}${String(tournamentId || '').trim()}`;
+}
+
+function getLocalTournamentCacheAtKey(tournamentId) {
+  return `${LOCAL_TOURNAMENT_CACHE_AT_PREFIX}${String(tournamentId || '').trim()}`;
 }
 
 function getLocalCompletedTournamentIds() {
@@ -176,16 +181,27 @@ function getLocalTournamentCache(tournamentId) {
   return doc && typeof doc === 'object' ? doc : null;
 }
 
+function getLocalTournamentCacheInfo(tournamentId) {
+  const tid = String(tournamentId || '').trim();
+  if (!tid) return { doc: null, cachedAt: 0 };
+  return {
+    doc: getLocalTournamentCache(tid),
+    cachedAt: Number(get(getLocalTournamentCacheAtKey(tid), 0)) || 0
+  };
+}
+
 function setLocalTournamentCache(tournamentId, tournamentDoc) {
   const tid = String(tournamentId || '').trim();
   if (!tid || !tournamentDoc || typeof tournamentDoc !== 'object') return;
   set(getLocalTournamentCacheKey(tid), tournamentDoc);
+  set(getLocalTournamentCacheAtKey(tid), Date.now());
 }
 
 function removeLocalTournamentCache(tournamentId) {
   const tid = String(tournamentId || '').trim();
   if (!tid) return;
   del(getLocalTournamentCacheKey(tid));
+  del(getLocalTournamentCacheAtKey(tid));
 }
 
 function removeLocalCompletedTournamentSnapshot(tournamentId) {
@@ -316,11 +332,13 @@ module.exports = {
   setLocalTournamentSnapshot,
   removeLocalCompletedTournamentSnapshot,
   getLocalTournamentCache,
+  getLocalTournamentCacheInfo,
   setLocalTournamentCache,
   removeLocalTournamentCache,
   upsertLocalCompletedTournamentSnapshot,
   getLocalTournamentSnapshotKey,
   getLocalTournamentCacheKey,
+  getLocalTournamentCacheAtKey,
   setLocalCompletedTournamentIds,
   getLocalCompletedTournamentMap,
   setLocalCompletedTournamentMap,

@@ -25,11 +25,23 @@ Page({
     tournament: null,
     rankings: [],
     rankingTypeLabel: '个人榜',
+    loadingSkeletonRows: [1, 2, 3, 4, 5],
+    networkOffline: false,
     showStaleSyncHint: false,
     loadError: false,
     loadErrorTitle: '加载失败',
     loadErrorMessage: '请检查网络后重试。',
-    showLoadErrorHome: false
+    showLoadErrorHome: false,
+    syncRefreshing: false,
+    syncUsingCache: false,
+    syncPollingFallback: false,
+    syncCachedAt: 0,
+    syncLastUpdatedAt: 0,
+    syncStatusVisible: false,
+    syncStatusTone: 'info',
+    syncStatusText: '',
+    syncStatusMeta: '',
+    syncStatusActionText: '刷新'
   },
 
   ...rankingSyncController,
@@ -38,6 +50,16 @@ Page({
     const tid = options.tournamentId;
     pageTournamentSync.initTournamentSync(this);
     this.setData({ tournamentId: tid });
+
+    const app = getApp();
+    const initialOffline = !!(app && app.globalData && app.globalData.networkOffline);
+    this.setData(pageTournamentSync.composePageSyncPatch(this, { networkOffline: initialOffline }));
+    if (app && typeof app.subscribeNetworkChange === 'function') {
+      this._offNetwork = app.subscribeNetworkChange((offline) => {
+        this.setData(pageTournamentSync.composePageSyncPatch(this, { networkOffline: !!offline }));
+      });
+    }
+
     this.fetchTournament(tid);
     this.startWatch(tid);
   },
@@ -56,6 +78,8 @@ Page({
 
   onUnload() {
     pageTournamentSync.teardownTournamentSync(this);
+    if (typeof this._offNetwork === 'function') this._offNetwork();
+    this._offNetwork = null;
   },
 
   applyTournament(t) {
