@@ -52,8 +52,19 @@ Page({
     intent: 'view',
     tournament: null,
     preview: shareMeta.buildInvalidShareEntryState('正在读取比赛信息'),
+    networkOffline: false,
     showStaleSyncHint: false,
     loadError: false,
+    syncRefreshing: false,
+    syncUsingCache: false,
+    syncPollingFallback: false,
+    syncCachedAt: 0,
+    syncLastUpdatedAt: 0,
+    syncStatusVisible: false,
+    syncStatusTone: 'info',
+    syncStatusText: '',
+    syncStatusMeta: '',
+    syncStatusActionText: '刷新',
     identityPending: false,
     identityTimedOut: false,
     joinBusy: false,
@@ -65,16 +76,23 @@ Page({
   onLoad(options) {
     const tournamentId = flow.parseTournamentId(options || {});
     const intent = flow.normalizeIntent(options && options.intent);
+    const app = getApp();
     this.openid = '';
     pageTournamentSync.initTournamentSync(this);
     this._identityAttemptSeq = 0;
     this.readCachedOpenid();
-    this.setData({
+    this.setData(pageTournamentSync.composePageSyncPatch(this, {
       tournamentId,
       intent,
+      networkOffline: !!(app && app.globalData && app.globalData.networkOffline),
       identityPending: !String(this.openid || '').trim(),
       identityTimedOut: false
-    });
+    }));
+    if (app && typeof app.subscribeNetworkChange === 'function') {
+      this._offNetwork = app.subscribeNetworkChange((offline) => {
+        this.setData(pageTournamentSync.composePageSyncPatch(this, { networkOffline: !!offline }));
+      });
+    }
     if (!tournamentId) {
       this.setData({ preview: shareMeta.buildInvalidShareEntryState('链接无效') });
       return;
@@ -109,32 +127,8 @@ Page({
     pageTournamentSync.teardownTournamentSync(this);
     this.invalidateIdentityAttempt();
     pageTimers.clearAllTimers(this);
-  },
-
-  nextFetchSeq() {
-    this._fetchSeq = Number(this._fetchSeq || 0) + 1;
-    return this._fetchSeq;
-  },
-
-  isLatestFetchSeq(requestSeq) {
-    return Number(requestSeq) === Number(this._fetchSeq || 0);
-  },
-
-  invalidateFetchSeq() {
-    this._fetchSeq = Number(this._fetchSeq || 0) + 1;
-  },
-
-  nextWatchGen() {
-    this._watchGen = Number(this._watchGen || 0) + 1;
-    return this._watchGen;
-  },
-
-  isActiveWatchGen(watchGen) {
-    return Number(watchGen) === Number(this._watchGen || 0);
-  },
-
-  invalidateWatchGen() {
-    this._watchGen = Number(this._watchGen || 0) + 1;
+    if (typeof this._offNetwork === 'function') this._offNetwork();
+    this._offNetwork = null;
   },
 
   readCachedOpenid() {

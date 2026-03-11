@@ -17,6 +17,22 @@ function normalizePlayer(p) {
   return { ...p, id: String(p.id || p.playerId || ''), name: safePlayerName(p), gender };
 }
 
+function parseLegacyObjectField(value) {
+  if (!value || typeof value !== 'string') return null;
+  try {
+    const parsed = JSON.parse(value);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+    return parsed;
+  } catch (_) {
+    return null;
+  }
+}
+
+function preferObjectField(current, legacyJson) {
+  if (current && typeof current === 'object' && !Array.isArray(current)) return current;
+  return parseLegacyObjectField(legacyJson);
+}
+
 function normalizeTournament(t) {
   if (!t) return t;
   const players = Array.isArray(t.players) ? t.players.map(normalizePlayer) : [];
@@ -54,11 +70,25 @@ function normalizeTournament(t) {
   }) : [];
 
   const mode = modeHelper.normalizeMode(t.mode);
-  return { ...t, mode, players, rounds, rankings };
+  const fairness = preferObjectField(t.fairness, t.fairnessJson);
+  const playerStats = preferObjectField(t.playerStats, t.playerStatsJson);
+  const schedulerMeta = preferObjectField(t.schedulerMeta, t.schedulerMetaJson);
+
+  return {
+    ...t,
+    mode,
+    players,
+    rounds,
+    rankings,
+    ...(fairness ? { fairness } : {}),
+    ...(playerStats ? { playerStats } : {}),
+    ...(schedulerMeta ? { schedulerMeta } : {})
+  };
 }
 
 module.exports = {
   safePlayerName,
+  parseLegacyObjectField,
   normalizeTournament,
   normalizePlayer
 };

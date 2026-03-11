@@ -48,10 +48,12 @@ Page({
     this.setData({ tournamentId: tid, roundIndex, matchIndex, batchMode });
 
     const app = getApp();
-    this.setData({ networkOffline: !!(app && app.globalData && app.globalData.networkOffline) });
+    this.setData(pageTournamentSync.composePageSyncPatch(this, {
+      networkOffline: !!(app && app.globalData && app.globalData.networkOffline)
+    }));
     if (app && typeof app.subscribeNetworkChange === 'function') {
       this._offNetwork = app.subscribeNetworkChange((offline) => {
-        this.setData({ networkOffline: !!offline });
+        this.setData(pageTournamentSync.composePageSyncPatch(this, { networkOffline: !!offline }));
       });
     }
 

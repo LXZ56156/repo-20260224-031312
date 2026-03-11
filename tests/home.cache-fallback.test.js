@@ -38,7 +38,7 @@ function createHomePageContext(definition) {
 test('home falls back to local tournament cache when recents query fails', async () => {
   const originalWx = global.wx;
   const originalGetRecentTournamentIds = storage.getRecentTournamentIds;
-  const originalGetLocalTournamentCache = storage.getLocalTournamentCache;
+  const originalGetLocalTournamentCacheInfo = storage.getLocalTournamentCacheInfo;
 
   global.wx = {
     cloud: {
@@ -70,16 +70,19 @@ test('home falls back to local tournament cache when recents query fails', async
     const definition = loadHomePageDefinition();
     const ctx = createHomePageContext(definition);
     storage.getRecentTournamentIds = () => ['t_1', 't_2'];
-    storage.getLocalTournamentCache = (id) => {
+    storage.getLocalTournamentCacheInfo = (id) => {
       if (id !== 't_1') return null;
       return {
-        _id: 't_1',
-        name: 'Cached Tournament',
-        status: 'running',
-        mode: 'multi_rotate',
-        players: [{ id: 'p_1' }, { id: 'p_2' }],
-        rounds: [],
-        updatedAt: '2026-03-10T10:00:00.000Z'
+        cachedAt: Date.parse('2026-03-10T10:05:00.000Z'),
+        doc: {
+          _id: 't_1',
+          name: 'Cached Tournament',
+          status: 'running',
+          mode: 'multi_rotate',
+          players: [{ id: 'p_1' }, { id: 'p_2' }],
+          rounds: [],
+          updatedAt: '2026-03-10T10:00:00.000Z'
+        }
       };
     };
 
@@ -87,13 +90,15 @@ test('home falls back to local tournament cache when recents query fails', async
 
     assert.equal(ctx.data.loadError, false);
     assert.equal(ctx.data.showStaleSyncHint, true);
+    assert.equal(ctx.data.syncUsingCache, true);
+    assert.equal(ctx.data.syncCachedAt, Date.parse('2026-03-10T10:05:00.000Z'));
     assert.equal(ctx.data.items.length, 1);
     assert.equal(ctx.data.items[0].name, 'Cached Tournament');
     assert.equal(ctx.clearedLastFailedAction, true);
   } finally {
     global.wx = originalWx;
     storage.getRecentTournamentIds = originalGetRecentTournamentIds;
-    storage.getLocalTournamentCache = originalGetLocalTournamentCache;
+    storage.getLocalTournamentCacheInfo = originalGetLocalTournamentCacheInfo;
     delete require.cache[homePagePath];
   }
 });
@@ -101,7 +106,6 @@ test('home falls back to local tournament cache when recents query fails', async
 test('home keeps missing tournaments as removed when remote query succeeds', async () => {
   const originalWx = global.wx;
   const originalGetRecentTournamentIds = storage.getRecentTournamentIds;
-  const originalGetLocalTournamentCache = storage.getLocalTournamentCache;
   const originalRemoveLocalCompletedTournamentSnapshot = storage.removeLocalCompletedTournamentSnapshot;
   const originalUpsertLocalCompletedTournamentSnapshot = storage.upsertLocalCompletedTournamentSnapshot;
 
@@ -146,14 +150,6 @@ test('home keeps missing tournaments as removed when remote query succeeds', asy
     const definition = loadHomePageDefinition();
     const ctx = createHomePageContext(definition);
     storage.getRecentTournamentIds = () => ['t_1', 't_2'];
-    storage.getLocalTournamentCache = () => ({
-      _id: 't_2',
-      name: 'Should Not Resurrect',
-      status: 'running',
-      mode: 'multi_rotate',
-      players: [],
-      rounds: []
-    });
     storage.removeLocalCompletedTournamentSnapshot = (id) => {
       removed.push(id);
     };
@@ -170,7 +166,6 @@ test('home keeps missing tournaments as removed when remote query succeeds', asy
   } finally {
     global.wx = originalWx;
     storage.getRecentTournamentIds = originalGetRecentTournamentIds;
-    storage.getLocalTournamentCache = originalGetLocalTournamentCache;
     storage.removeLocalCompletedTournamentSnapshot = originalRemoveLocalCompletedTournamentSnapshot;
     storage.upsertLocalCompletedTournamentSnapshot = originalUpsertLocalCompletedTournamentSnapshot;
     delete require.cache[homePagePath];
@@ -180,7 +175,7 @@ test('home keeps missing tournaments as removed when remote query succeeds', asy
 test('home keeps loadError when no local cache is available after remote failure', async () => {
   const originalWx = global.wx;
   const originalGetRecentTournamentIds = storage.getRecentTournamentIds;
-  const originalGetLocalTournamentCache = storage.getLocalTournamentCache;
+  const originalGetLocalTournamentCacheInfo = storage.getLocalTournamentCacheInfo;
 
   global.wx = {
     cloud: {
@@ -212,7 +207,7 @@ test('home keeps loadError when no local cache is available after remote failure
     const definition = loadHomePageDefinition();
     const ctx = createHomePageContext(definition);
     storage.getRecentTournamentIds = () => ['t_1'];
-    storage.getLocalTournamentCache = () => null;
+    storage.getLocalTournamentCacheInfo = () => ({ doc: null, cachedAt: 0 });
 
     await ctx.loadRecents();
 
@@ -221,7 +216,7 @@ test('home keeps loadError when no local cache is available after remote failure
   } finally {
     global.wx = originalWx;
     storage.getRecentTournamentIds = originalGetRecentTournamentIds;
-    storage.getLocalTournamentCache = originalGetLocalTournamentCache;
+    storage.getLocalTournamentCacheInfo = originalGetLocalTournamentCacheInfo;
     delete require.cache[homePagePath];
   }
 });

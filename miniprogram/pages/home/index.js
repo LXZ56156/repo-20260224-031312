@@ -2,6 +2,7 @@ const storage = require('../../core/storage');
 const cloud = require('../../core/cloud');
 const actionGuard = require('../../core/actionGuard');
 const retryAction = require('../../core/retryAction');
+const syncStatus = require('../../core/syncStatus');
 const { normalizeTournament } = require('../../core/normalize');
 const adGuard = require('../../core/adGuard');
 const flow = require('../../core/uxFlow');
@@ -115,6 +116,24 @@ function buildHomeItem(raw, fallbackId = '') {
   };
 }
 
+function composeHomeSyncPatch(page, patch) {
+  const basePatch = patch && typeof patch === 'object' ? { ...patch } : {};
+  const state = {
+    ...(page && page.data ? page.data : {}),
+    ...basePatch
+  };
+  return {
+    ...basePatch,
+    ...syncStatus.buildSyncBannerState(state)
+  };
+}
+
+function pickLatestUpdatedAt(items) {
+  return (Array.isArray(items) ? items : []).reduce((maxTs, item) => {
+    return Math.max(maxTs, Number((item && item.updatedAtTs) || 0) || 0);
+  }, 0);
+}
+
 Page({
   data: {
     loading: false,
@@ -131,6 +150,16 @@ Page({
     lastFailedActionText: '',
     continueItem: null,
     showStaleSyncHint: false,
+    syncRefreshing: false,
+    syncUsingCache: false,
+    syncPollingFallback: false,
+    syncCachedAt: 0,
+    syncLastUpdatedAt: 0,
+    syncStatusVisible: false,
+    syncStatusTone: 'info',
+    syncStatusText: '',
+    syncStatusMeta: '',
+    syncStatusActionText: '刷新',
     visibleCount: 0,
     statusCountRunning: 0,
     statusCountDraft: 0,
@@ -147,13 +176,13 @@ Page({
     this._delWidthRpx = 160;
 
     const app = getApp();
-    this.setData({
+    this.setData(composeHomeSyncPatch(this, {
       networkOffline: !!(app && app.globalData && app.globalData.networkOffline),
       showOnboarding: !storage.isOnboardingDone(),
       showProfileNudge: this.shouldShowProfileNudge(),
       sortMode: storage.getHomeSortMode(),
       filterStatus: storage.getHomeFilterStatus()
-    });
+    }));
     const runtimeEnv = (app && app.globalData && app.globalData.runtimeEnv) || envConfig.resolveRuntimeEnv();
     this.setData({
       showEnvBadge: !!runtimeEnv.showBadge,
@@ -163,7 +192,7 @@ Page({
 
     if (app && typeof app.subscribeNetworkChange === 'function') {
       this._offNetwork = app.subscribeNetworkChange((offline) => {
-        this.setData({ networkOffline: !!offline });
+        this.setData(composeHomeSyncPatch(this, { networkOffline: !!offline }));
       });
     }
 
@@ -293,13 +322,21 @@ Page({
   },
 
   async loadRecents() {
-    this.setData({ loading: true, loadError: false });
+    this.setData(composeHomeSyncPatch(this, {
+      loading: true,
+      loadError: false,
+      syncRefreshing: true
+    }));
     const ids = storage.getRecentTournamentIds();
     if (!ids.length) {
-      this.setData({
+      this.setData(composeHomeSyncPatch(this, {
         loading: false,
         loadError: false,
         showStaleSyncHint: false,
+        syncRefreshing: false,
+        syncUsingCache: false,
+        syncCachedAt: 0,
+        syncLastUpdatedAt: 0,
         items: [],
         continueItem: null,
         visibleCount: 0,
@@ -307,7 +344,7 @@ Page({
         statusCountDraft: 0,
         statusCountFinished: 0,
         statusCountMissing: 0
-      });
+      }));
       this.clearLastFailedAction();
       return;
     }
@@ -320,27 +357,44 @@ Page({
       const res = await db.collection('tournaments').where({ _id: _.in(ids) }).get();
       docs = (res && res.data) || [];
     } catch (e) {
-      const cachedItems = ids
+      const cachedEntries = ids
         .map((id) => {
-          const cachedDoc = storage.getLocalTournamentCache(id);
+          const cacheInfo = storage.getLocalTournamentCacheInfo(id);
+          const cachedDoc = cacheInfo && cacheInfo.doc;
           if (!cachedDoc || typeof cachedDoc !== 'object') return null;
-          return buildHomeItem(cachedDoc, id);
+          return {
+            item: buildHomeItem(cachedDoc, id),
+            cachedAt: Number((cacheInfo && cacheInfo.cachedAt) || 0) || 0
+          };
         })
         .filter(Boolean);
+      const cachedItems = cachedEntries.map((entry) => entry.item);
+      const latestCachedAt = cachedEntries.reduce((maxTs, entry) => Math.max(maxTs, Number(entry.cachedAt || 0) || 0), 0);
 
       if (!cachedItems.length) {
         wx.showToast({ title: '读取赛事记录失败', icon: 'none' });
-        this.setData({ loading: false, loadError: true, showStaleSyncHint: false });
+        this.setData(composeHomeSyncPatch(this, {
+          loading: false,
+          loadError: true,
+          showStaleSyncHint: false,
+          syncRefreshing: false,
+          syncUsingCache: false,
+          syncCachedAt: 0
+        }));
         return;
       }
 
       this._closeAllSwipe();
-      this.setData({
+      this.setData(composeHomeSyncPatch(this, {
         loading: false,
         loadError: false,
         showStaleSyncHint: true,
+        syncRefreshing: false,
+        syncUsingCache: true,
+        syncCachedAt: latestCachedAt,
+        syncLastUpdatedAt: pickLatestUpdatedAt(cachedItems),
         items: this.sortItems(cachedItems, this.data.sortMode)
-      }, () => this.refreshVisibleState());
+      }), () => this.refreshVisibleState());
       this.clearLastFailedAction();
       return;
     }
@@ -360,13 +414,18 @@ Page({
       return buildHomeItem(raw, id);
     });
 
+    const sortedItems = this.sortItems(items, this.data.sortMode);
     this._closeAllSwipe();
-    this.setData({
+    this.setData(composeHomeSyncPatch(this, {
       loading: false,
       loadError: false,
       showStaleSyncHint: false,
-      items: this.sortItems(items, this.data.sortMode)
-    }, () => this.refreshVisibleState());
+      syncRefreshing: false,
+      syncUsingCache: false,
+      syncCachedAt: 0,
+      syncLastUpdatedAt: pickLatestUpdatedAt(sortedItems),
+      items: sortedItems
+    }), () => this.refreshVisibleState());
     this.clearLastFailedAction();
   },
 

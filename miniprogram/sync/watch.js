@@ -2,6 +2,7 @@ const channels = {};
 
 const POLL_BASE_MS = 1500;
 const POLL_MAX_MS = 8000;
+const RECOVER_DELAYS_MS = [5000, 15000, 30000, 60000];
 
 function msgOf(err) {
   return String((err && (err.message || err.errMsg)) || err || '');
@@ -17,6 +18,15 @@ function classifyWatchError(err) {
   const m = msgOf(err).toLowerCase();
   if (m.includes('timeout') || m.includes('network') || m.includes('connect')) return 'network';
   return 'unknown';
+}
+
+function shouldAttemptRealtimeRecovery(type) {
+  return type === 'network' || type === 'unknown';
+}
+
+function getRecoveryDelayMs(attemptCount) {
+  const idx = Math.max(0, Math.min(RECOVER_DELAYS_MS.length - 1, Number(attemptCount) || 0));
+  return RECOVER_DELAYS_MS[idx];
 }
 
 function withJitter(ms) {
@@ -158,6 +168,7 @@ function createPollingSource(channel, tournamentId) {
       const type = classifyWatchError(err);
       console.warn(`[watch:poll:${type}]`, err);
       emitError(channel, err, { type, source: 'polling', pollingFallback: true });
+      if (shouldAttemptRealtimeRecovery(channel.fallbackReason)) scheduleRealtimeRecovery(channel, tournamentId);
     }
   );
 }
@@ -170,15 +181,46 @@ function closeSource(channel) {
   if (channel) channel.source = null;
 }
 
-function fallbackToPolling(channel, tournamentId) {
+function clearRecoverTimer(channel) {
+  if (!channel || !channel.recoverTimer) return;
+  try { clearTimeout(channel.recoverTimer); } catch (_) {}
+  channel.recoverTimer = null;
+}
+
+function scheduleRealtimeRecovery(channel, tournamentId) {
+  if (!channel || channel.disposed) return;
+  if (channel.mode !== 'polling') return;
+  if (!shouldAttemptRealtimeRecovery(channel.fallbackReason)) return;
+  if (channel.recoverTimer) return;
+  const delayMs = getRecoveryDelayMs(channel.recoverAttempts);
+  channel.recoverTimer = setTimeout(() => {
+    channel.recoverTimer = null;
+    if (!channel || channel.disposed) return;
+    if (channel.mode !== 'polling') return;
+    if (!shouldAttemptRealtimeRecovery(channel.fallbackReason)) return;
+    channel.recoverAttempts = Number(channel.recoverAttempts || 0) + 1;
+    attachSource(channel, tournamentId, { recoveryAttempt: true });
+  }, delayMs);
+}
+
+function fallbackToPolling(channel, tournamentId, reason = 'unknown') {
   if (!channel || channel.disposed) return;
   closeSource(channel);
+  channel.mode = 'polling';
+  channel.recovering = false;
+  channel.fallbackReason = String(reason || '').trim() || 'unknown';
   channel.source = createPollingSource(channel, tournamentId);
+  if (shouldAttemptRealtimeRecovery(channel.fallbackReason)) {
+    scheduleRealtimeRecovery(channel, tournamentId);
+  } else {
+    clearRecoverTimer(channel);
+  }
 }
 
 function disposeChannel(channel) {
   if (!channel || channel.disposed) return;
   channel.disposed = true;
+  clearRecoverTimer(channel);
   channel.listeners = {};
   closeSource(channel);
   if (channels[channel.tournamentId] === channel) {
@@ -196,9 +238,10 @@ function extractDoc(snapshot) {
   return null;
 }
 
-function attachSource(channel, tournamentId) {
+function attachSource(channel, tournamentId, options = {}) {
   if (!channel || channel.disposed) return;
   const db = wx.cloud.database();
+  const recoveryAttempt = options.recoveryAttempt === true;
 
   fetchOnce(
     tournamentId,
@@ -214,11 +257,19 @@ function attachSource(channel, tournamentId) {
   // Prefer realtime watch; if runtime does not support it, fallback to polling.
   try {
     let fallback = false;
+    closeSource(channel);
     const w = db.collection('tournaments').doc(tournamentId).watch({
       onChange: (snapshot) => {
         if (channel.disposed) return;
         const doc = extractDoc(snapshot);
-        if (doc) emitData(channel, doc, { source: 'realtime' });
+        if (!doc) return;
+        const source = channel.recovering ? 'realtime_recovered' : 'realtime';
+        channel.recovering = false;
+        channel.mode = 'realtime';
+        channel.fallbackReason = '';
+        channel.recoverAttempts = 0;
+        clearRecoverTimer(channel);
+        emitData(channel, doc, { source });
       },
       onError: (err) => {
         if (channel.disposed) return;
@@ -228,17 +279,20 @@ function attachSource(channel, tournamentId) {
         emitError(channel, err, { type, source: 'realtime', pollingFallback: shouldFallback });
         if ((type === 'realtime_not_supported' || type === 'network' || type === 'unknown') && !fallback) {
           fallback = true;
-          fallbackToPolling(channel, tournamentId);
+          fallbackToPolling(channel, tournamentId, type);
         }
       }
     });
 
     channel.source = w;
+    channel.mode = 'realtime';
+    channel.recovering = recoveryAttempt;
+    clearRecoverTimer(channel);
   } catch (err) {
     const type = classifyWatchError(err);
     console.warn(`[watch:attach:${type}]`, err);
     emitError(channel, err, { type, source: 'attach', pollingFallback: true });
-    channel.source = createPollingSource(channel, tournamentId);
+    fallbackToPolling(channel, tournamentId, type);
   }
 }
 
@@ -249,7 +303,12 @@ function ensureChannel(tournamentId) {
     listeners: {},
     nextListenerId: 1,
     source: null,
-    disposed: false
+    disposed: false,
+    mode: 'realtime',
+    fallbackReason: '',
+    recoverTimer: null,
+    recoverAttempts: 0,
+    recovering: false
   };
   channels[tournamentId] = c;
   attachSource(c, tournamentId);

@@ -50,6 +50,16 @@ Page({
     canRetryAction: false,
     lastFailedActionText: '',
     showStaleSyncHint: false,
+    syncRefreshing: false,
+    syncUsingCache: false,
+    syncPollingFallback: false,
+    syncCachedAt: 0,
+    syncLastUpdatedAt: 0,
+    syncStatusVisible: false,
+    syncStatusTone: 'info',
+    syncStatusText: '',
+    syncStatusMeta: '',
+    syncStatusActionText: '刷新',
     loadError: false,
     loadErrorTitle: '加载失败',
     loadErrorMessage: '请检查网络后重试。',
@@ -77,10 +87,12 @@ Page({
     });
 
     const app = getApp();
-    this.setData({ networkOffline: !!(app && app.globalData && app.globalData.networkOffline) });
+    this.setData(pageTournamentSync.composePageSyncPatch(this, {
+      networkOffline: !!(app && app.globalData && app.globalData.networkOffline)
+    }));
     if (app && typeof app.subscribeNetworkChange === 'function') {
       this._offNetwork = app.subscribeNetworkChange((offline) => {
-        this.setData({ networkOffline: !!offline });
+        this.setData(pageTournamentSync.composePageSyncPatch(this, { networkOffline: !!offline }));
       });
     }
 

@@ -1,5 +1,11 @@
 <view class="container safe-bottom settings-page" wx:if="{{tournament}}">
-  <view class="offline-banner" wx:if="{{networkOffline}}">当前网络不可用，写入操作可能失败</view>
+  <view class="sync-banner sync-{{syncStatusTone}}" wx:if="{{syncStatusVisible}}">
+    <view class="sync-banner-main">
+      <view class="sync-banner-text">{{syncStatusText}}</view>
+      <view class="sync-banner-meta" wx:if="{{syncStatusMeta}}">{{syncStatusMeta}}</view>
+    </view>
+    <text class="sync-banner-action" bindtap="onRetry">{{syncStatusActionText}}</text>
+  </view>
 
   <view class="hero">
     <view class="hero-title">赛事设置</view>

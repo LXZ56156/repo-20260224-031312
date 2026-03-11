@@ -99,7 +99,9 @@ function createTournamentSyncMethods(options = {}) {
           syncRefreshing: false,
           syncUsingCache: false,
           syncLastUpdatedAt: pickDocTimestamp(doc) || Number(this.data.syncLastUpdatedAt || 0) || 0,
-          syncPollingFallback: source === 'polling' ? true : !!this.data.syncPollingFallback
+          syncPollingFallback: source === 'polling'
+            ? true
+            : ((source === 'realtime' || source === 'realtime_recovered') ? false : !!this.data.syncPollingFallback)
         });
         this.setData(nextPatch);
         applyDoc(this, options, doc, { watchGen, source });

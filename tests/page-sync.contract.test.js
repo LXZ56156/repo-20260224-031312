@@ -130,3 +130,28 @@ test('pageTournamentSync keeps polling fallback state when watch degrades from r
     tournamentSync.startWatch = originalStartWatch;
   }
 });
+
+test('pageTournamentSync clears polling fallback after realtime recovery delivers data again', () => {
+  const originalStartWatch = tournamentSync.startWatch;
+  const methods = pageTournamentSync.createTournamentSyncMethods();
+  const ctx = createContext(methods);
+  let onData = null;
+  let onError = null;
+
+  try {
+    tournamentSync.startWatch = (_page, _tid, nextOnData, nextOnError) => {
+      onData = nextOnData;
+      onError = nextOnError;
+    };
+
+    ctx.startWatch('t_1');
+    onError({ __watchFallback: true, __watchSource: 'realtime', __watchType: 'network' });
+    assert.equal(ctx.data.syncPollingFallback, true);
+
+    onData({ _id: 't_1', updatedAt: '2026-03-11T09:00:00.000Z' }, { source: 'realtime_recovered' });
+    assert.equal(ctx.data.syncPollingFallback, false);
+    assert.equal(ctx.data.syncStatusVisible, false);
+  } finally {
+    tournamentSync.startWatch = originalStartWatch;
+  }
+});

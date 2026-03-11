@@ -1,5 +1,11 @@
 <view class="container safe-bottom share-entry-page">
-  <view class="stale-banner" wx:if="{{showStaleSyncHint}}">当前为最近一次同步的比赛信息</view>
+  <view class="sync-banner sync-{{syncStatusTone}}" wx:if="{{syncStatusVisible}}">
+    <view class="sync-banner-main">
+      <view class="sync-banner-text">{{syncStatusText}}</view>
+      <view class="sync-banner-meta" wx:if="{{syncStatusMeta}}">{{syncStatusMeta}}</view>
+    </view>
+    <text class="sync-banner-action" bindtap="onRetry">{{syncStatusActionText}}</text>
+  </view>
 
   <view class="card panel share-hero">
     <view class="row hero-top">

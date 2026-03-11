@@ -1,5 +1,7 @@
 const cloud = require('../../core/cloud');
 const actionGuard = require('../../core/actionGuard');
+const pageTournamentSync = require('../../core/pageTournamentSync');
+const syncStatus = require('../../core/syncStatus');
 const storage = require('../../core/storage');
 const tournamentSync = require('../../core/tournamentSync');
 const matchFlow = require('../../core/matchFlow');
@@ -68,12 +70,26 @@ function createMatchSubmitService(ctx, deps = {}) {
       return null;
     }
     if (result && result.ok && result.doc) {
-      ctx.setData({ showStaleSyncHint: false });
+      ctx.setData(pageTournamentSync.composePageSyncPatch(ctx, {
+        loadError: false,
+        showStaleSyncHint: false,
+        syncRefreshing: false,
+        syncUsingCache: false,
+        syncCachedAt: 0,
+        syncLastUpdatedAt: syncStatus.pickTournamentTimestamp(result.doc) || Number(ctx.data.syncLastUpdatedAt || 0) || 0
+      }));
       ctx.applyTournament(result.doc, { requestSeq });
       return result.doc;
     }
     if (result && result.cachedDoc) {
-      ctx.setData({ showStaleSyncHint: true, loadError: false });
+      ctx.setData(pageTournamentSync.composePageSyncPatch(ctx, {
+        loadError: false,
+        showStaleSyncHint: true,
+        syncRefreshing: false,
+        syncUsingCache: true,
+        syncCachedAt: Number(result.cachedAt || 0) || 0,
+        syncLastUpdatedAt: syncStatus.pickTournamentTimestamp(result.cachedDoc) || Number(ctx.data.syncLastUpdatedAt || 0) || 0
+      }));
       ctx.applyTournament(result.cachedDoc, { requestSeq });
       return result.cachedDoc;
     }
