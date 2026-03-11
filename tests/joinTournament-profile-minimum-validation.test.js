@@ -53,6 +53,29 @@ function createDbHarness(options = {}) {
   const calls = {
     updatePayload: null
   };
+
+  const buildTransactionApi = () => ({
+    collection(name) {
+      if (name === 'tournaments') {
+        return {
+          doc(id) {
+            assert.equal(id, 't_1');
+            return {
+              async get() {
+                return { data: tournamentDoc };
+              },
+              async update(payload) {
+                calls.updatePayload = payload;
+                return { stats: { updated: 1 } };
+              }
+            };
+          }
+        };
+      }
+      throw new Error(`unexpected transaction collection ${name}`);
+    }
+  });
+
   const db = {
     command: {
       inc(value) {
@@ -62,28 +85,10 @@ function createDbHarness(options = {}) {
     serverDate() {
       return { $serverDate: true };
     },
+    async runTransaction(fn) {
+      return fn(buildTransactionApi());
+    },
     collection(name) {
-      if (name === 'tournaments') {
-        return {
-          doc(id) {
-            assert.equal(id, 't_1');
-            return {
-              async get() {
-                return { data: tournamentDoc };
-              }
-            };
-          },
-          where(query) {
-            assert.deepEqual(query, { _id: 't_1', version: 1 });
-            return {
-              async update(payload) {
-                calls.updatePayload = payload;
-                return { stats: { updated: 1 } };
-              }
-            };
-          }
-        };
-      }
       if (name === 'user_profiles') {
         return {
           where(query) {
@@ -101,7 +106,7 @@ function createDbHarness(options = {}) {
           }
         };
       }
-      throw new Error(`unexpected collection ${name}`);
+      throw new Error(`unexpected top-level collection ${name}`);
     }
   };
   return { db, calls };

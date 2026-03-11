@@ -37,17 +37,10 @@ function loadJoinTournamentMain(db) {
 
 function createDbHarness(options = {}) {
   const tournamentDoc = options.tournamentDoc;
-  const updateStats = options.updateStats || { updated: 1 };
   const shouldThrowMissingDoc = !!options.shouldThrowMissingDoc;
-  const db = {
-    command: {
-      inc(value) {
-        return { $inc: value };
-      }
-    },
-    serverDate() {
-      return { $serverDate: true };
-    },
+  const shouldThrowConflict = !!options.shouldThrowConflict;
+
+  const buildTransactionApi = () => ({
     collection(name) {
       if (name === 'tournaments') {
         return {
@@ -57,19 +50,32 @@ function createDbHarness(options = {}) {
               async get() {
                 if (shouldThrowMissingDoc) throw new Error('document.get:fail document does not exist');
                 return { data: tournamentDoc };
-              }
-            };
-          },
-          where(query) {
-            assert.deepEqual(query, { _id: 't_1', version: 1 });
-            return {
+              },
               async update() {
-                return { stats: updateStats };
+                return { stats: { updated: 1 } };
               }
             };
           }
         };
       }
+      throw new Error(`unexpected transaction collection ${name}`);
+    }
+  });
+
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    async runTransaction(fn) {
+      if (shouldThrowConflict) throw new Error('write conflict');
+      return fn(buildTransactionApi());
+    },
+    collection(name) {
       if (name === 'user_profiles') {
         return {
           where() {
@@ -85,7 +91,7 @@ function createDbHarness(options = {}) {
           }
         };
       }
-      throw new Error(`unexpected collection ${name}`);
+      throw new Error(`unexpected top-level collection ${name}`);
     }
   };
   return db;
@@ -137,10 +143,10 @@ test('joinTournament returns JOIN_DRAFT_ONLY for non-draft tournaments', async (
   });
 });
 
-test('joinTournament returns VERSION_CONFLICT for optimistic update misses', async () => {
+test('joinTournament returns VERSION_CONFLICT when transaction detects concurrent write', async () => {
   const { main } = loadJoinTournamentMain(createDbHarness({
     tournamentDoc: buildTournament(),
-    updateStats: { updated: 0 }
+    shouldThrowConflict: true
   }));
 
   assert.deepEqual(await main({

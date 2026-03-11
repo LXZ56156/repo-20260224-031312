@@ -46,6 +46,10 @@ function normalizeJoinFailure(input, fallbackMessage = '加入失败，请稍后
   return err;
 }
 
+function isConflictResult(input) {
+  return getJoinFailureCode(input) === 'VERSION_CONFLICT';
+}
+
 function resolveJoinFailureMessage(input, fallbackMessage = '加入失败，请稍后重试', options = {}) {
   const code = getJoinFailureCode(input);
   const rawMessage = getRawJoinFailureMessage(input, fallbackMessage);
@@ -56,6 +60,7 @@ function resolveJoinFailureMessage(input, fallbackMessage = '加入失败，请�
 
 module.exports = {
   getJoinFailureCode,
+  isConflictResult,
   normalizeJoinFailure,
   resolveJoinFailureMessage
 };

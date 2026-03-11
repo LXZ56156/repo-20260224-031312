@@ -261,13 +261,17 @@ module.exports = {
         const squadChoice = this.data.mode === flow.MODE_SQUAD_DOUBLES
           ? String(this.data.joinSquadChoice || 'A').trim().toUpperCase()
           : '';
-        const res = await cloud.call('joinTournament', {
+        const joinPayload = {
           tournamentId: tid,
           nickname,
           avatar,
           gender,
           squadChoice
-        });
+        };
+        let res = await cloud.call('joinTournament', joinPayload);
+        if (res && res.ok === false && joinError.isConflictResult(res)) {
+          res = await cloud.call('joinTournament', joinPayload);
+        }
         if (res && res.ok === false) throw joinError.normalizeJoinFailure(res, '加入失败，请稍后重试', { action: 'join' });
         wx.hideLoading();
         this.clearLastFailedAction();
@@ -303,13 +307,17 @@ module.exports = {
       this.setData({ profileFieldError: '' });
       wx.showLoading({ title: '保存中...' });
       try {
-        const res = await cloud.call('joinTournament', {
+        const savePayload = {
           tournamentId: this.data.tournamentId,
           nickname,
           avatar,
           gender: storage.normalizeGender((storage.getUserProfile() || {}).gender),
           squadChoice: this.data.mode === flow.MODE_SQUAD_DOUBLES ? String(this.data.joinSquadChoice || 'A').trim().toUpperCase() : ''
-        });
+        };
+        let res = await cloud.call('joinTournament', savePayload);
+        if (res && res.ok === false && joinError.isConflictResult(res)) {
+          res = await cloud.call('joinTournament', savePayload);
+        }
         if (res && res.ok === false) throw joinError.normalizeJoinFailure(res, '保存失败，请稍后重试', { action: 'profile_update' });
         wx.hideLoading();
         this.clearLastFailedAction();

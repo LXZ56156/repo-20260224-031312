@@ -279,7 +279,10 @@ Page({
       const payload = buildJoinPayload(this, gate.profile || {});
       wx.showLoading({ title: '加入中...' });
       try {
-        const res = await cloud.call('joinTournament', payload);
+        let res = await cloud.call('joinTournament', payload);
+        if (res && res.ok === false && joinError.isConflictResult(res)) {
+          res = await cloud.call('joinTournament', payload);
+        }
         if (res && res.ok === false) {
           throw joinError.normalizeJoinFailure(res, '加入失败，请稍后重试');
         }

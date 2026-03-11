@@ -2,7 +2,6 @@ const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 
 const db = cloud.database();
-const _ = db.command;
 const common = require('./lib/common');
 const modeHelper = require('./lib/mode');
 
@@ -78,133 +77,125 @@ exports.main = async (event, context) => {
 
   if (!tournamentId) return fail(traceId, 'TOURNAMENT_ID_REQUIRED', '缺少赛事ID', { state: 'invalid' });
 
-  let docRes;
+  // 在事务外预读 profile，减少事务内锁范围
+  let profileData = null;
   try {
-    docRes = await db.collection('tournaments').doc(tournamentId).get();
-  } catch (err) {
-    if (common.isCollectionNotExists(err) || common.isDocNotExists(err)) {
-      return fail(traceId, 'TOURNAMENT_NOT_FOUND', '赛事不存在', { state: 'not_found' });
-    }
-    throw err;
-  }
-  let t;
-  try {
-    t = common.assertTournamentExists(docRes.data);
-    common.assertDraft(t, '非草稿阶段不可加入/修改');
-  } catch (err) {
-    const msg = String((err && err.message) || '').trim();
-    if (msg.includes('赛事不存在')) return fail(traceId, 'TOURNAMENT_NOT_FOUND', msg || '赛事不存在', { state: 'not_found' });
-    if (msg.includes('非草稿阶段')) return fail(traceId, 'JOIN_DRAFT_ONLY', msg || '非草稿阶段不可加入/修改', { state: 'forbidden' });
-    return fail(traceId, 'JOIN_FAILED', msg || '加入失败');
+    const profileRes = await db.collection('user_profiles').where({ openid }).limit(1).get();
+    profileData = Array.isArray(profileRes.data) && profileRes.data[0] ? profileRes.data[0] : null;
+  } catch (_) {
+    // ignore profile read errors; join logic remains available
   }
 
-  const players = Array.isArray(t.players) ? t.players : [];
-  const mode = modeHelper.normalizeMode(t.mode);
-  const idx = players.findIndex(p => p && p.id === openid);
-  const currentPlayer = idx >= 0 ? (players[idx] || {}) : null;
-
-  let nickname = normalizeName(rawNickname) || normalizeName(currentPlayer && currentPlayer.name);
-  if (!avatar && currentPlayer) avatar = normalizeAvatar(currentPlayer.avatar || currentPlayer.avatarUrl);
-  if (gender === 'unknown' && currentPlayer) gender = normalizeGender(currentPlayer.gender);
-
-  if (!nickname || !avatar || gender === 'unknown') {
-    try {
-      const profileRes = await db.collection('user_profiles').where({ openid }).limit(1).get();
-      const profile = Array.isArray(profileRes.data) && profileRes.data[0] ? profileRes.data[0] : null;
-      if (profile) {
-        if (!nickname) nickname = resolveProfileNickName(profile);
-        if (!avatar) avatar = normalizeAvatar(profile.avatar || profile.avatarUrl);
-        if (gender === 'unknown') gender = normalizeGender(profile.gender);
+  try {
+    return await db.runTransaction(async (transaction) => {
+      let t;
+      try {
+        const docRes = await transaction.collection('tournaments').doc(tournamentId).get();
+        t = docRes.data;
+      } catch (getErr) {
+        if (common.isDocNotExists(getErr)) {
+          return fail(traceId, 'TOURNAMENT_NOT_FOUND', '赛事不存在', { state: 'not_found' });
+        }
+        throw getErr;
       }
-    } catch (_) {
-      // ignore profile read errors; join logic remains available
-    }
-  }
+      if (!t) return fail(traceId, 'TOURNAMENT_NOT_FOUND', '赛事不存在', { state: 'not_found' });
+      if (String(t.status || '') !== 'draft') {
+        return fail(traceId, 'JOIN_DRAFT_ONLY', '非草稿阶段不可加入/修改', { state: 'forbidden' });
+      }
 
-  const missingFields = listMissingProfileFields({ nickname, avatar, gender });
-  if (missingFields.length) {
-    return fail(traceId, 'PROFILE_MINIMUM_REQUIRED', `请先完善${missingFields.join('、')}后再加入比赛`, { state: 'invalid' });
-  }
+      const players = Array.isArray(t.players) ? t.players : [];
+      const mode = modeHelper.normalizeMode(t.mode);
+      const idx = players.findIndex(p => p && p.id === openid);
+      const currentPlayer = idx >= 0 ? (players[idx] || {}) : null;
 
-  // 去重
-  nickname = uniqueName(nickname, players, openid) || (idx >= 0 ? String(players[idx].name || '') : '');
+      let nickname = normalizeName(rawNickname) || normalizeName(currentPlayer && currentPlayer.name);
+      if (!avatar && currentPlayer) avatar = normalizeAvatar(currentPlayer.avatar || currentPlayer.avatarUrl);
+      if (gender === 'unknown' && currentPlayer) gender = normalizeGender(currentPlayer.gender);
 
-  if (idx >= 0) {
-    // 已在列表：更新昵称/头像（允许只更新其中一个）
-    const nextPlayers = players.slice();
-    const cur = Object.assign({}, nextPlayers[idx]);
-    cur.name = nickname || cur.name;
-    if (avatar) cur.avatar = avatar;
-    cur.gender = gender === 'unknown' ? normalizeGender(cur.gender) : gender;
-    if (mode === 'squad_doubles') {
-      const nextSquad = squadChoice || normalizeSquadChoice(cur.squad) || 'A';
-      cur.squad = nextSquad;
-    }
-    nextPlayers[idx] = cur;
-    const nextPlayerIds = Array.from(new Set(nextPlayers.map((item) => String(item && item.id || '').trim()).filter(Boolean)));
+      if ((!nickname || !avatar || gender === 'unknown') && profileData) {
+        if (!nickname) nickname = resolveProfileNickName(profileData);
+        if (!avatar) avatar = normalizeAvatar(profileData.avatar || profileData.avatarUrl);
+        if (gender === 'unknown') gender = normalizeGender(profileData.gender);
+      }
 
-    const up = await db.collection('tournaments')
-      .where({ _id: tournamentId, version: t.version })
-      .update({
+      const missingFields = listMissingProfileFields({ nickname, avatar, gender });
+      if (missingFields.length) {
+        return fail(traceId, 'PROFILE_MINIMUM_REQUIRED', `请先完善${missingFields.join('、')}后再加入比赛`, { state: 'invalid' });
+      }
+
+      // 去重
+      nickname = uniqueName(nickname, players, openid) || (idx >= 0 ? String(players[idx].name || '') : '');
+      const nextVersion = (Number(t.version) || 1) + 1;
+
+      if (idx >= 0) {
+        // 已在列表：更新昵称/头像（允许只更新其中一个）
+        const nextPlayers = players.slice();
+        const cur = Object.assign({}, nextPlayers[idx]);
+        cur.name = nickname || cur.name;
+        if (avatar) cur.avatar = avatar;
+        cur.gender = gender === 'unknown' ? normalizeGender(cur.gender) : gender;
+        if (mode === 'squad_doubles') {
+          const nextSquad = squadChoice || normalizeSquadChoice(cur.squad) || 'A';
+          cur.squad = nextSquad;
+        }
+        nextPlayers[idx] = cur;
+        const nextPlayerIds = Array.from(new Set(nextPlayers.map((item) => String(item && item.id || '').trim()).filter(Boolean)));
+
+        await transaction.collection('tournaments').doc(tournamentId).update({
+          data: common.assertNoReservedRootKeys({
+            players: nextPlayers,
+            playerIds: nextPlayerIds,
+            version: nextVersion,
+            updatedAt: db.serverDate()
+          }, ['_id'], '赛事加入更新数据')
+        });
+
+        return common.okResult('JOIN_UPDATED', '已更新参赛信息', {
+          traceId,
+          state: 'updated',
+          updated: true,
+          version: nextVersion,
+          player: cur
+        });
+      }
+
+      const player = {
+        id: openid,
+        name: nickname,
+        avatar: avatar || '',
+        gender,
+        squad: mode === 'squad_doubles' ? (squadChoice || 'A') : ''
+      };
+      const nextPlayers = players.concat(player);
+      const nextPlayerIds = Array.from(new Set(nextPlayers.map((item) => String(item && item.id || '').trim()).filter(Boolean)));
+
+      await transaction.collection('tournaments').doc(tournamentId).update({
         data: common.assertNoReservedRootKeys({
           players: nextPlayers,
           playerIds: nextPlayerIds,
-          version: _.inc(1),
+          version: nextVersion,
           updatedAt: db.serverDate()
-        }, ['_id'], '赛事加入更新数据')
+        }, ['_id'], '赛事加入写入数据')
       });
 
-    try {
-      common.assertOptimisticUpdate(up, '并发冲突，请重试');
-    } catch (_) {
+      return common.okResult('JOINED', '已加入比赛', {
+        traceId,
+        state: 'joined',
+        added: true,
+        version: nextVersion,
+        player
+      });
+    });
+  } catch (err) {
+    if (common.isCollectionNotExists(err)) {
+      throw new Error('数据库集合 tournaments 不存在：请在云开发控制台创建 tournaments 后再试。');
+    }
+    if (common.isDocNotExists(err)) {
+      return fail(traceId, 'TOURNAMENT_NOT_FOUND', '赛事不存在', { state: 'not_found' });
+    }
+    if (common.isConflictError(err)) {
       return fail(traceId, 'VERSION_CONFLICT', '并发冲突，请重试', { state: 'conflict' });
     }
-    return common.okResult('JOIN_UPDATED', '已更新参赛信息', {
-      traceId,
-      state: 'updated',
-      updated: true,
-      version: oldVersionPlusOne(t.version),
-      player: cur
-    });
+    throw common.normalizeConflictError(err, '加入比赛失败');
   }
-
-  const player = {
-    id: openid,
-    name: nickname,
-    avatar: avatar || '',
-    gender,
-    squad: mode === 'squad_doubles' ? (squadChoice || 'A') : ''
-  };
-  const nextPlayers = players.concat(player);
-  const nextPlayerIds = Array.from(new Set(nextPlayers.map((item) => String(item && item.id || '').trim()).filter(Boolean)));
-
-  const res = await db.collection('tournaments')
-    .where({ _id: tournamentId, version: t.version })
-    .update({
-      data: common.assertNoReservedRootKeys({
-        players: nextPlayers,
-        playerIds: nextPlayerIds,
-        version: _.inc(1),
-        updatedAt: db.serverDate()
-      }, ['_id'], '赛事加入写入数据')
-    });
-
-  try {
-    common.assertOptimisticUpdate(res, '并发冲突，请重试');
-  } catch (_) {
-    return fail(traceId, 'VERSION_CONFLICT', '并发冲突，请重试', { state: 'conflict' });
-  }
-
-  return common.okResult('JOINED', '已加入比赛', {
-    traceId,
-    state: 'joined',
-    added: true,
-    version: oldVersionPlusOne(t.version),
-    player
-  });
 };
-
-function oldVersionPlusOne(version) {
-  const current = Number(version) || 1;
-  return current + 1;
-}
