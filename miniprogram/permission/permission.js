@@ -9,6 +9,8 @@ function isParticipant(tournament, openid) {
 }
 
 function canEditScore(tournament, openid) {
+  // `setReferee` is currently a reserved backend capability, not a frontend-exposed
+  // scoring role. Score entry stays on the existing admin/participant matrix.
   return isAdmin(tournament, openid) || isParticipant(tournament, openid);
 }
 

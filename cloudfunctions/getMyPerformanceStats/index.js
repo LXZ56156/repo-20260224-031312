@@ -46,6 +46,8 @@ function dedupeById(list) {
 }
 
 exports.main = async (event) => {
+  // This endpoint is a fallback / analysis path only.
+  // The "我的战绩" mainline stays on local completed snapshots to preserve product semantics.
   const { OPENID } = cloud.getWXContext();
   const window = logic.normalizeWindow(event && event.window);
   let fastRows = [];

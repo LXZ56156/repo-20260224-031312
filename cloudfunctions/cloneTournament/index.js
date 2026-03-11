@@ -27,16 +27,17 @@ exports.main = async (event) => {
     const totalMatches = toPosInt(source.totalMatches, 0);
     const courts = toPosInt(source.courts, 0);
     const settingsConfigured = Boolean(source.settingsConfigured) && totalMatches >= 1 && courts >= 1;
-    const copied = logic.copyPlayers(source.players, OPENID);
-    const players = copied.players;
-    const playerIds = Array.from(new Set(players.map((item) => String(item && item.id || '').trim()).filter(Boolean)));
-
     const nextName = renamed || `${logic.normalizeName(source.name) || '比赛'}（副本）`;
     const rules = source && source.rules && typeof source.rules === 'object'
       ? source.rules
       : { gamesPerMatch: 1, pointsPerGame: 21, endCondition: { type: 'total_matches', target: 1 }, unfinishedPolicy: 'admin_decide' };
     const modeRaw = String(source.mode || '').trim().toLowerCase();
     const mode = modeHelper.normalizeMode(modeRaw);
+    const copied = logic.copyPlayers(source.players, OPENID, undefined, {
+      preserveSquad: mode === 'squad_doubles'
+    });
+    const players = copied.players;
+    const playerIds = Array.from(new Set(players.map((item) => String(item && item.id || '').trim()).filter(Boolean)));
     const allowOpenTeam = source.allowOpenTeam === true;
     const pairTeams = mode === 'fixed_pair_rr'
       ? logic.copyPairTeams(source.pairTeams, copied.playerIdMap)

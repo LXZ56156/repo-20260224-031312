@@ -11,6 +11,7 @@ test('auth.login uses cached openid when ttl is still valid', async () => {
   const now = Date.now();
 
   try {
+    auth.__resetLoginStateForTests();
     storage.get = (key) => {
       if (key === auth.OPENID_CACHE_KEY) return 'cached_openid';
       if (key === auth.OPENID_CACHED_AT_KEY) return now - 1000;
@@ -23,6 +24,7 @@ test('auth.login uses cached openid when ttl is still valid', async () => {
     const openid = await auth.login();
     assert.equal(openid, 'cached_openid');
   } finally {
+    auth.__resetLoginStateForTests();
     storage.get = originalGet;
     cloud.call = originalCall;
   }
@@ -35,6 +37,7 @@ test('auth.login refreshes expired cache and stores openid with cached_at timest
   const writes = [];
 
   try {
+    auth.__resetLoginStateForTests();
     storage.get = (key) => {
       if (key === auth.OPENID_CACHE_KEY) return 'stale_openid';
       if (key === auth.OPENID_CACHED_AT_KEY) return Date.now() - auth.OPENID_CACHE_TTL_MS - 1000;
@@ -55,6 +58,7 @@ test('auth.login refreshes expired cache and stores openid with cached_at timest
     assert.equal(writes[1].key, auth.OPENID_CACHED_AT_KEY);
     assert.equal(Number.isFinite(writes[1].value), true);
   } finally {
+    auth.__resetLoginStateForTests();
     storage.get = originalGet;
     storage.set = originalSet;
     cloud.call = originalCall;
@@ -68,6 +72,7 @@ test('auth.login rejects empty openid responses and does not write cache', async
   let wrote = false;
 
   try {
+    auth.__resetLoginStateForTests();
     storage.get = () => '';
     storage.set = () => {
       wrote = true;
@@ -77,6 +82,7 @@ test('auth.login rejects empty openid responses and does not write cache', async
     await assert.rejects(() => auth.login(), /登录失败/);
     assert.equal(wrote, false);
   } finally {
+    auth.__resetLoginStateForTests();
     storage.get = originalGet;
     storage.set = originalSet;
     cloud.call = originalCall;

@@ -10,11 +10,34 @@ function readApp() {
   }
 }
 
+function readRefreshQueue(globalData) {
+  const queue = globalData && Array.isArray(globalData.needRefreshTournamentQueue)
+    ? globalData.needRefreshTournamentQueue
+    : [];
+  return queue.map((item) => trimText(item)).filter(Boolean);
+}
+
+function writeRefreshQueue(globalData, queue) {
+  if (!globalData) return;
+  const next = Array.isArray(queue) ? queue.map((item) => trimText(item)).filter(Boolean) : [];
+  globalData.needRefreshTournamentQueue = next;
+}
+
 function consumeRefreshFlag(tournamentId) {
   const tid = trimText(tournamentId);
   if (!tid) return false;
   const app = readApp();
   if (!app || !app.globalData) return false;
+  const queue = readRefreshQueue(app.globalData);
+  const queueIndex = queue.indexOf(tid);
+  if (queueIndex >= 0) {
+    queue.splice(queueIndex, 1);
+    writeRefreshQueue(app.globalData, queue);
+    if (trimText(app.globalData.needRefreshTournament) === tid) {
+      app.globalData.needRefreshTournament = queue[0] || '';
+    }
+    return true;
+  }
   const need = trimText(app.globalData.needRefreshTournament);
   if (!need || need !== tid) return false;
   app.globalData.needRefreshTournament = '';
@@ -26,6 +49,9 @@ function markRefreshFlag(tournamentId) {
   if (!tid) return;
   const app = readApp();
   if (!app || !app.globalData) return;
+  const queue = readRefreshQueue(app.globalData);
+  if (!queue.includes(tid)) queue.push(tid);
+  writeRefreshQueue(app.globalData, queue);
   app.globalData.needRefreshTournament = tid;
 }
 

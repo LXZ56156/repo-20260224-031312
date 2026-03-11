@@ -7,8 +7,14 @@ function makeGuestId(index) {
   return `guest_${Date.now()}_${index}_${Math.floor(Math.random() * 1000000)}`;
 }
 
-function copyPlayers(sourcePlayers, openid, createGuestId = makeGuestId) {
+function normalizeSquad(value) {
+  const squad = String(value || '').trim().toUpperCase();
+  return squad === 'A' || squad === 'B' ? squad : '';
+}
+
+function copyPlayers(sourcePlayers, openid, createGuestId = makeGuestId, options = {}) {
   const list = Array.isArray(sourcePlayers) ? sourcePlayers : [];
+  const preserveSquad = options && options.preserveSquad === true;
   const playerIdMap = {};
   const players = list.map((player, idx) => {
     const item = player || {};
@@ -17,16 +23,17 @@ function copyPlayers(sourcePlayers, openid, createGuestId = makeGuestId) {
     const avatar = String(item.avatar || item.avatarUrl || '').trim();
     const genderRaw = String(item.gender || '').trim().toLowerCase();
     const gender = (genderRaw === 'male' || genderRaw === 'female') ? genderRaw : 'unknown';
+    const squad = preserveSquad ? normalizeSquad(item.squad) : '';
     const isCreator = sourceId === openid || (idx === 0 && !sourceId);
 
     if (isCreator) {
       if (sourceId) playerIdMap[sourceId] = openid;
-      return { id: openid, name, type: 'user', avatar, gender, squad: '' };
+      return { id: openid, name, type: 'user', avatar, gender, squad };
     }
 
     const nextId = createGuestId(idx);
     if (sourceId) playerIdMap[sourceId] = nextId;
-    return { id: nextId, name, type: 'guest', avatar, gender, squad: '' };
+    return { id: nextId, name, type: 'guest', avatar, gender, squad };
   });
 
   return { players, playerIdMap };
@@ -54,6 +61,7 @@ function copyPairTeams(sourcePairTeams, playerIdMap) {
 
 module.exports = {
   normalizeName,
+  normalizeSquad,
   makeGuestId,
   copyPlayers,
   copyPairTeams

@@ -241,6 +241,8 @@ function buildTierMatches(cap, balancedRaw) {
 function buildMatchCountRecommendations(input) {
   const raw = input || {};
   const mode = normalizeMode(raw.mode);
+  // Compatibility-only field: keep legacy calculations readable, but do not treat
+  // `allowOpenTeam` as an actively expanding product capability.
   const allowOpenTeam = raw.allowOpenTeam === true;
   const playersCount = Math.max(0, Number(raw.playersCount) || 0);
   const maleCount = Math.max(0, Number(raw.maleCount) || 0);

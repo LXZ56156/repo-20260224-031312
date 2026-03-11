@@ -64,6 +64,8 @@ function buildSettingsViewState(tournament, options = {}) {
   const players = Array.isArray(t.players) ? t.players : [];
   const mode = flow.normalizeMode(t.mode || flow.MODE_MULTI_ROTATE);
   const modeLabel = flow.getModeLabel(mode);
+  // Compatibility-only: keep legacy field readable in settings state, but avoid
+  // expanding new product behavior around `allowOpenTeam`.
   const allowOpenTeam = false;
   const playersCount = players.length;
   const playersGap = playersCount >= 4 ? 0 : (4 - playersCount);

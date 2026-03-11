@@ -9,6 +9,8 @@ function isParticipant(tournament, openid) {
 }
 
 function canEditScore(tournament, openid) {
+  // Tournament-level referee assignment is currently reserved and does not gate
+  // score entry yet. Keep permission on the existing admin/participant contract.
   return isAdmin(tournament, openid) || isParticipant(tournament, openid);
 }
 

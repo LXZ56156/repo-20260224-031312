@@ -57,7 +57,7 @@ function buildLockHint(state, ownerName, remainingMs) {
   if (s === 'submitting') return '正在提交比分...';
   if (s === 'finished') return '该场已录完';
   if (s === 'forbidden') return '仅管理员或参赛成员可录分';
-  return '点击“开始录分”即可成为本场裁判';
+  return '点击“开始录分”即可进入录分';
 }
 
 function buildClientRequestId() {

@@ -9,6 +9,9 @@ exports.main = async (event) => {
   const tournamentId = String((event && event.tournamentId) || '').trim();
   const refereeId = String((event && event.refereeId) || '').trim();
   if (!tournamentId) throw new Error('缺少 tournamentId');
+  // Reserved boundary:
+  // this cloud function remains available for future tournament-level assignments,
+  // but current frontend score entry is still gated by admin/participant only.
 
   try {
     return await db.runTransaction(async (transaction) => {

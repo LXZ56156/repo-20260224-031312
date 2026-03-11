@@ -57,6 +57,8 @@ Page({
       this.applyStats();
       return;
     }
+    // Keep the mainline on local completed snapshots only.
+    // Do not swap this to getMyPerformanceStats without a product-level metric review.
     const snapshots = storage.getLocalCompletedTournamentSnapshots();
     const payload = buildLocalPerformancePayload(snapshots, openid);
     this.applyStats(payload);
