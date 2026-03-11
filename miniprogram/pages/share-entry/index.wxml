@@ -23,9 +23,37 @@
     </view>
   </view>
 
+  <view class="card panel panel-soft share-decision">
+    <view class="section-head">
+      <view class="section-title">现在可以做什么</view>
+      <text class="count-pill">{{preview.viewModeLabel}}</text>
+    </view>
+    <view class="share-note decision-note">{{preview.availabilityText}}</view>
+    <view class="card-inline-squad" wx:if="{{tournament && tournament.mode==='squad_doubles' && preview.joinAllowed && !preview.joined}}">
+      <view class="muted small">小队转需要先选 A/B 队，点击“加入比赛”后才会真正加入。</view>
+      <view class="chips squad-chooser">
+        <view class="chip {{joinSquadChoice==='A' ? 'active' : ''}}" data-squad="A" bindtap="onPickJoinSquad">A队</view>
+        <view class="chip {{joinSquadChoice==='B' ? 'active' : ''}}" data-squad="B" bindtap="onPickJoinSquad">B队</view>
+      </view>
+    </view>
+    <view class="share-actions">
+      <button
+        class="btn btn-primary"
+        bindtap="onPrimaryAction"
+        loading="{{joinBusy}}"
+        disabled="{{joinBusy || preview.primaryAction.key==='identity_pending'}}"
+      >
+        {{preview.primaryAction.text}}
+      </button>
+      <button class="btn btn-subtle" wx:if="{{preview.secondaryAction}}" bindtap="onSecondaryAction">
+        {{preview.secondaryAction.text}}
+      </button>
+    </view>
+  </view>
+
   <view class="card panel share-info">
     <view class="section-head">
-      <view class="section-title">快速了解</view>
+      <view class="section-title">比赛摘要</view>
       <text class="count-pill">{{preview.viewModeLabel}}</text>
     </view>
     <view class="share-facts">
@@ -45,19 +73,6 @@
         <text class="share-fact-label">地点</text>
         <text class="share-fact-value">{{preview.venueText}}</text>
       </view>
-    </view>
-    <view class="share-note">{{preview.availabilityText}}</view>
-  </view>
-
-  <view class="card panel panel-soft" wx:if="{{tournament && tournament.mode==='squad_doubles' && preview.joinAllowed && !preview.joined}}">
-    <view class="section-head">
-      <view class="section-title">加入前选择队伍</view>
-      <text class="count-pill">仅加入时生效</text>
-    </view>
-    <view class="muted small">小队转需要先选 A/B 队，点击“加入比赛”后才会真正加入。</view>
-    <view class="chips squad-chooser">
-      <view class="chip {{joinSquadChoice==='A' ? 'active' : ''}}" data-squad="A" bindtap="onPickJoinSquad">A队</view>
-      <view class="chip {{joinSquadChoice==='B' ? 'active' : ''}}" data-squad="B" bindtap="onPickJoinSquad">B队</view>
     </view>
   </view>
 
@@ -85,19 +100,5 @@
   <view class="card panel panel-soft" wx:if="{{loadError && !tournament}}">
     <view class="section-title">{{preview.headline}}</view>
     <view class="muted">{{preview.subtitle}}</view>
-  </view>
-
-  <view class="share-actions">
-    <button
-      class="btn btn-primary"
-      bindtap="onPrimaryAction"
-      loading="{{joinBusy}}"
-      disabled="{{joinBusy || preview.primaryAction.key==='identity_pending'}}"
-    >
-      {{preview.primaryAction.text}}
-    </button>
-    <button class="btn btn-subtle" wx:if="{{preview.secondaryAction}}" bindtap="onSecondaryAction">
-      {{preview.secondaryAction.text}}
-    </button>
   </view>
 </view>

@@ -7,78 +7,47 @@
     <text class="sync-banner-action" bindtap="onRetry">{{syncStatusActionText}}</text>
   </view>
 
-  <view class="card panel-soft profile-nudge reveal reveal-1" wx:if="{{showProfileNudge}}">
-    <view class="section-head">
-      <view class="section-title">先补资料</view>
-      <text class="count-pill">推荐</text>
-    </view>
-    <view class="muted">昵称和性别完整后，发起和加入都会更顺手。</view>
-    <view class="profile-nudge-actions">
-      <button class="btn btn-subtle btn-sm" bindtap="goProfileFromNudge">去完善</button>
-      <text class="profile-nudge-later" bindtap="dismissProfileNudge">稍后</text>
-    </view>
-  </view>
-
-  <view class="onboarding card panel reveal reveal-1" wx:if="{{showOnboarding}}">
-    <view class="section-head">
-      <view class="section-title">三步开赛</view>
-      <text class="count-pill">新手引导</text>
-    </view>
-    <view class="guide-step"><text class="guide-index">1</text><text class="guide-text">创建并设参数</text></view>
-    <view class="guide-step"><text class="guide-index">2</text><text class="guide-text">分享邀请或导入名单</text></view>
-    <view class="guide-step"><text class="guide-index">3</text><text class="guide-text">开赛后录分</text></view>
-    <view class="muted small onboarding-tip">发起入口在底部标签栏。</view>
-    <text class="onboarding-later" bindtap="dismissOnboarding">稍后再看</text>
-  </view>
-
-  <view class="card panel continue-card reveal reveal-2" wx:if="{{continueItem}}">
-    <view class="section-head">
-      <view class="section-title">继续比赛</view>
-      <text class="count-pill">进行中</text>
-    </view>
-    <view class="continue-name ellipsis">{{continueItem.name}}</view>
-    <view class="continue-meta muted small">{{continueItem.playersCount}} 人 · {{continueItem.matchProgressText}}</view>
-    <button class="btn btn-primary btn-sm continue-btn" data-id="{{continueItem._id}}" bindtap="goLobby">继续</button>
-  </view>
-
-  <view class="hero-card card panel-strong reveal reveal-3">
+  <view class="hero-card card panel-strong reveal reveal-1">
     <view class="hero-grid">
       <view class="hero-main">
         <view class="hero-env-badge" wx:if="{{showEnvBadge}}">{{envBadgeLabel}}</view>
-        <view class="h-title">赛事中枢</view>
-        <view class="h-desc">发起、继续、看结果</view>
+        <view class="h-title">继续你的比赛</view>
+        <view class="h-desc">先继续正在进行中的，再处理草稿和结果。</view>
         <view class="hero-stat-row">
           <view class="hero-stat-pill">进行中 {{statusCountRunning}}</view>
           <view class="hero-stat-pill">草稿 {{statusCountDraft}}</view>
           <view class="hero-stat-pill">已结束 {{statusCountFinished}}</view>
         </view>
+        <view class="hero-task-strip" wx:if="{{continueItem}}">
+          <view class="hero-task-label">最近进行中</view>
+          <view class="hero-task-name ellipsis">{{continueItem.name}}</view>
+          <view class="hero-task-meta">{{continueItem.playersCount}} 人 · {{continueItem.matchProgressText}}</view>
+          <button class="btn btn-primary btn-sm hero-task-btn" data-id="{{continueItem._id}}" bindtap="goLobby">继续最近比赛</button>
+        </view>
+        <view class="hero-task-strip hero-task-empty" wx:else>
+          <view class="hero-task-label">当前没有进行中的比赛</view>
+          <view class="hero-task-meta">直接从下面的赛事列表继续草稿或查看已结束结果。</view>
+        </view>
       </view>
     </view>
   </view>
 
-  <view class="sort-row reveal reveal-4">
-    <text class="sort-label">排序</text>
-    <text class="sort-chip {{sortMode==='updated' ? 'active' : ''}}" data-mode="updated" bindtap="onChangeSortMode">最近更新</text>
-    <text class="sort-chip {{sortMode==='players' ? 'active' : ''}}" data-mode="players" bindtap="onChangeSortMode">按人数</text>
-    <text class="sort-chip {{sortMode==='status' ? 'active' : ''}}" data-mode="status" bindtap="onChangeSortMode">按状态</text>
-  </view>
-
-  <view class="filter-row reveal reveal-5">
-    <text class="filter-chip {{filterStatus==='all' ? 'active' : ''}}" data-status="all" bindtap="onChangeFilterStatus">全部 {{items.length}}</text>
-    <text class="filter-chip {{filterStatus==='running' ? 'active' : ''}}" data-status="running" bindtap="onChangeFilterStatus">进行中 {{statusCountRunning}}</text>
-    <text class="filter-chip {{filterStatus==='draft' ? 'active' : ''}}" data-status="draft" bindtap="onChangeFilterStatus">草稿 {{statusCountDraft}}</text>
-    <text class="filter-chip {{filterStatus==='finished' ? 'active' : ''}}" data-status="finished" bindtap="onChangeFilterStatus">已结束 {{statusCountFinished}}</text>
-  </view>
-
-  <view class="card panel-soft ad-breakpoint reveal reveal-6" wx:if="{{showHomeAdSlot}}">
-    <view class="ad-badge">广告</view>
-    <view class="muted small">免开发智能接入广告位（仅浏览页展示）</view>
-  </view>
-
-  <view class="section reveal reveal-7">
+  <view class="section reveal reveal-2">
     <view class="section-head">
       <view class="section-title">我的赛事</view>
       <text class="count-pill">{{visibleCount}} 个</text>
+    </view>
+    <view class="sort-row" wx:if="{{items.length>1}}">
+      <text class="sort-label">排序</text>
+      <text class="sort-chip {{sortMode==='updated' ? 'active' : ''}}" data-mode="updated" bindtap="onChangeSortMode">最近更新</text>
+      <text class="sort-chip {{sortMode==='players' ? 'active' : ''}}" data-mode="players" bindtap="onChangeSortMode">按人数</text>
+      <text class="sort-chip {{sortMode==='status' ? 'active' : ''}}" data-mode="status" bindtap="onChangeSortMode">按状态</text>
+    </view>
+    <view class="filter-row" wx:if="{{items.length>1}}">
+      <text class="filter-chip {{filterStatus==='all' ? 'active' : ''}}" data-status="all" bindtap="onChangeFilterStatus">全部 {{items.length}}</text>
+      <text class="filter-chip {{filterStatus==='running' ? 'active' : ''}}" data-status="running" bindtap="onChangeFilterStatus">进行中 {{statusCountRunning}}</text>
+      <text class="filter-chip {{filterStatus==='draft' ? 'active' : ''}}" data-status="draft" bindtap="onChangeFilterStatus">草稿 {{statusCountDraft}}</text>
+      <text class="filter-chip {{filterStatus==='finished' ? 'active' : ''}}" data-status="finished" bindtap="onChangeFilterStatus">已结束 {{statusCountFinished}}</text>
     </view>
 
     <view class="empty panel-soft" wx:if="{{loading && !items.length}}">加载中...</view>
@@ -118,6 +87,35 @@
       <view class="empty-text">当前筛选下还没有比赛</view>
       <text class="empty-link" bindtap="goCreate">去发起比赛</text>
     </view>
+  </view>
+
+  <view class="card panel-soft profile-nudge reveal reveal-3" wx:if="{{showProfileNudge}}">
+    <view class="section-head">
+      <view class="section-title">先补资料</view>
+      <text class="count-pill">推荐</text>
+    </view>
+    <view class="muted">昵称和性别完整后，发起和加入都会更顺手。</view>
+    <view class="profile-nudge-actions">
+      <button class="btn btn-subtle btn-sm" bindtap="goProfileFromNudge">去完善</button>
+      <text class="profile-nudge-later" bindtap="dismissProfileNudge">稍后</text>
+    </view>
+  </view>
+
+  <view class="onboarding card panel reveal reveal-4" wx:if="{{showOnboarding}}">
+    <view class="section-head">
+      <view class="section-title">三步开赛</view>
+      <text class="count-pill">新手引导</text>
+    </view>
+    <view class="guide-step"><text class="guide-index">1</text><text class="guide-text">创建并设参数</text></view>
+    <view class="guide-step"><text class="guide-index">2</text><text class="guide-text">分享邀请或导入名单</text></view>
+    <view class="guide-step"><text class="guide-index">3</text><text class="guide-text">开赛后录分</text></view>
+    <view class="muted small onboarding-tip">发起入口仍在底部标签栏。</view>
+    <text class="onboarding-later" bindtap="dismissOnboarding">稍后再看</text>
+  </view>
+
+  <view class="card panel-soft ad-breakpoint reveal reveal-5" wx:if="{{showHomeAdSlot}}">
+    <view class="ad-badge">广告</view>
+    <view class="muted small">免开发智能接入广告位（仅浏览页展示）</view>
   </view>
 
   <view class="retry-box panel-soft" wx:if="{{canRetryAction}}">

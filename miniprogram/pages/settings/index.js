@@ -11,6 +11,11 @@ Page({
   data: {
     tournamentId: '',
     tournament: null,
+    pageTitle: '高级参数',
+    pageSubtitle: '',
+    contextTitle: '',
+    contextBody: '',
+    showLobbyReturn: false,
     isAdmin: false,
     editM: 0,
     editC: 1,

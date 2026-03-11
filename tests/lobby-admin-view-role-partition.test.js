@@ -38,19 +38,25 @@ test('lobby admin view model separates role lanes and keeps admin lane active', 
   assert.equal(cards.profile_pending.active, false);
   assert.match(cards.admin.summary, /先保存比赛参数/);
   assert.match(cards.profile_pending.summary, /先补昵称和头像/);
+  assert.equal(result.patch.statePanelTitle, '开赛前准备');
+  assert.equal(result.patch.statePrimaryActionKey, 'settings');
+  assert.equal(result.patch.showDraftAdminPanel, true);
+  assert.equal(result.patch.showStateChecklist, true);
 });
 
-test('lobby template exposes role overview card before generic info flow', () => {
+test('lobby template promotes state-driven next step before generic info flow', () => {
   const wxml = fs.readFileSync(
     path.join(__dirname, '..', 'miniprogram/pages/lobby/index.wxml'),
     'utf8'
   );
 
-  const roleIndex = wxml.indexOf('角色与下一步');
-  const infoIndex = wxml.indexOf('本场信息');
-  assert.notEqual(roleIndex, -1);
+  const stateIndex = wxml.indexOf('{{statePanelTitle}}');
+  const infoIndex = wxml.indexOf('比赛概览');
+  assert.notEqual(stateIndex, -1);
   assert.notEqual(infoIndex, -1);
-  assert.ok(roleIndex < infoIndex);
-  assert.match(wxml, /bindtap="onRoleActionTap"/);
-  assert.match(wxml, /下一步：\{\{item\.actionText\}\}/);
+  assert.ok(stateIndex < infoIndex);
+  assert.doesNotMatch(wxml, /角色与下一步/);
+  assert.doesNotMatch(wxml, /next-action-bar/);
+  assert.match(wxml, /bindtap="onNextActionTap"/);
+  assert.match(wxml, /bindtap="onStateSecondaryTap"/);
 });

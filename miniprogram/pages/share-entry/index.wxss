@@ -89,6 +89,18 @@
   margin-top: 16rpx;
 }
 
+.share-decision {
+  margin-top: 16rpx;
+}
+
+.decision-note {
+  margin-top: 10rpx;
+}
+
+.card-inline-squad {
+  margin-top: 14rpx;
+}
+
 .share-facts {
   margin-top: 12rpx;
   display: grid;
@@ -190,7 +202,7 @@
 }
 
 .share-actions {
-  margin-top: 18rpx;
+  margin-top: 16rpx;
 }
 
 .share-actions .btn + .btn {

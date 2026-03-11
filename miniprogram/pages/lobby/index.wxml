@@ -1,4 +1,4 @@
-<view class="container safe-bottom lobby-page {{nextActionText ? 'has-next-action' : ''}}" wx:if="{{tournament}}">
+<view class="container safe-bottom lobby-page" wx:if="{{tournament}}">
   <view class="sync-banner sync-{{syncStatusTone}}" wx:if="{{syncStatusVisible}}">
     <view class="sync-banner-main">
       <view class="sync-banner-text">{{syncStatusText}}</view>
@@ -41,96 +41,40 @@
     </view>
   </view>
 
-  <view class="card panel panel-soft role-overview reveal reveal-2" wx:if="{{roleCards.length}}">
+  <view class="card panel panel-soft state-overview reveal reveal-2" wx:if="{{statePanelSummary}}">
     <view class="section-head">
-      <view class="section-title">角色与下一步</view>
-      <text class="count-pill">{{currentRoleTitle || '访客'}}</text>
+      <view class="section-title">{{statePanelTitle}}</view>
+      <text class="count-pill">{{stateStageBadge}} · {{statePanelRoleLabel}}</text>
     </view>
-    <view class="muted small role-overview-hint">{{currentRoleSummary || '先看比赛信息，再决定下一步动作。'}}</view>
-    <view class="role-grid">
-      <view
-        class="role-card {{item.active ? 'active' : ''}} {{item.enabled ? 'clickable' : 'disabled'}}"
-        wx:for="{{roleCards}}"
-        wx:key="key"
-        data-action="{{item.actionKey}}"
-        data-enabled="{{item.enabled}}"
-        bindtap="onRoleActionTap"
-      >
-        <view class="role-card-top">
-          <view class="role-card-title">{{item.label}}</view>
-          <text class="count-pill">{{item.badgeText}}</text>
+    <view class="state-panel-summary">{{statePanelSummary}}</view>
+    <view class="muted small state-panel-detail" wx:if="{{statePanelDetail}}">{{statePanelDetail}}</view>
+    <view class="draft-prep panel-soft state-checklist" wx:if="{{showStateChecklist}}">
+      <view class="prep-tile" wx:for="{{checklistItems}}" wx:key="key" data-key="{{item.key}}" bindtap="onChecklistTap">
+        <text class="prep-indicator {{item.done ? 'ok' : ''}}"></text>
+        <view class="prep-main">
+          <view class="prep-title">{{item.title}}</view>
+          <view class="prep-sub">{{item.summary}}</view>
         </view>
-        <view class="role-card-summary">{{item.summary}}</view>
-        <view class="role-card-action">下一步：{{item.actionText}}</view>
+        <text class="prep-jump">{{item.actionText}}</text>
+      </view>
+    </view>
+    <view class="state-actions" wx:if="{{statePrimaryActionText}}">
+      <button class="btn btn-primary state-primary-btn" bindtap="onNextActionTap">{{statePrimaryActionText}}</button>
+      <view class="state-secondary-actions" wx:if="{{stateSecondaryActions.length}}">
+        <text
+          class="link-btn state-secondary-action"
+          wx:for="{{stateSecondaryActions}}"
+          wx:key="key"
+          data-action="{{item.key}}"
+          bindtap="onStateSecondaryTap"
+        >
+          {{item.text}}
+        </text>
       </view>
     </view>
   </view>
 
-  <view class="card panel reveal reveal-2">
-    <view class="section-head">
-      <view class="section-title">本场信息</view>
-      <text class="count-pill">{{statusText}}</text>
-    </view>
-    <view class="rule-chips">
-      <text class="rule-chip">{{modeLabel}}</text>
-      <text class="rule-chip">{{pointsPerGame}} 分制</text>
-      <text class="rule-chip">胜场优先</text>
-    </view>
-    <view class="info-highlight">{{matchInfoText}}</view>
-    <view class="muted small">{{genderSummaryText}}</view>
-    <view class="muted small" wx:if="{{tournament.createdAt}}">创建 {{createdAtText}}</view>
-  </view>
-
-  <view class="card panel panel-soft reveal reveal-3" wx:if="{{modeRules.length}}">
-    <view class="section-head">
-      <view class="section-title">规则说明</view>
-      <text class="count-pill">{{modeLabel}}</text>
-    </view>
-    <view class="muted small" wx:for="{{modeRules}}" wx:key="*this">{{item}}</view>
-  </view>
-
-  <view class="card panel share-invite reveal reveal-3" id="share-invite" wx:if="{{tournament}}">
-    <view class="section-head share-invite-head">
-      <view>
-        <view class="section-title">{{shareCardTitle}}</view>
-        <view class="muted small">{{shareCardHint}}</view>
-      </view>
-      <text class="count-pill">{{shareCardBadge}}</text>
-    </view>
-    <button class="btn btn-primary {{sharePulse ? 'share-pulse' : ''}}" open-type="share">{{shareButtonText}}</button>
-    <view class="share-invite-meta">
-      <view class="muted small">{{shareCardDetailText}}</view>
-      <text class="link-btn" wx:if="{{tournament.status==='draft' && isAdmin}}" bindtap="focusQuickImportArea">备用：导入名单</text>
-      <text class="link-btn" wx:elif="{{tournament.status!=='draft'}}" bindtap="goRanking">查看排名</text>
-    </view>
-  </view>
-
-  <view class="card panel reveal reveal-3">
-    <view class="section-head">
-      <view class="section-title">参赛名单</view>
-      <view class="row-right">
-        <text class="count-pill">{{tournament.players.length}} 人</text>
-        <text class="link-btn" wx:if="{{tournament.players.length>12}}" bindtap="togglePlayers">{{showAllPlayers?'收起':'展开'}}</text>
-      </view>
-    </view>
-    <view class="player-grid" wx:if="{{displayPlayers.length}}">
-      <view class="player-cell" wx:for="{{displayPlayers}}" wx:key="id" data-player="{{item.id}}" bindtap="onTogglePlayerSquad">
-        <view class="player-avatar {{item.colorClass}}">
-          <image class="player-avatar-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill"></image>
-          <text class="player-initial" wx:else>{{item.initial}}</text>
-        </view>
-        <view class="player-name ellipsis">{{item.name}}</view>
-        <view class="player-gender">{{item.genderLabel}}</view>
-        <view class="player-gender" wx:if="{{mode==='squad_doubles'}}">{{item.squad ? item.squad + '队' : '未分队'}}</view>
-      </view>
-    </view>
-    <view class="panel-soft list-empty" wx:else>
-      <view class="list-empty-title">先分享比赛链接</view>
-      <view class="muted small">让大家先看比赛，再决定是否加入；导入名单保留为备用方案。</view>
-    </view>
-  </view>
-
-  <view class="card panel panel-soft profile-panel reveal reveal-4" wx:if="{{showViewOnlyJoinPrompt}}">
+  <view class="card panel panel-soft profile-panel reveal reveal-3" wx:if="{{showViewOnlyJoinPrompt}}">
     <view class="section-head">
       <view class="section-title">先看比赛信息</view>
       <text class="count-pill">不会自动加入</text>
@@ -139,7 +83,7 @@
     <button class="btn btn-primary" bindtap="enterJoinFromViewOnly">我要加入</button>
   </view>
 
-  <view class="card panel panel-soft profile-panel reveal reveal-4" wx:if="{{showJoin || showMyProfile}}">
+  <view class="card panel panel-soft profile-panel reveal reveal-3" wx:if="{{showJoin || showMyProfile}}">
     <view class="section-head">
       <view class="section-title">{{showJoin ? '加入比赛' : '我的资料'}}</view>
       <text class="count-pill">{{showJoin ? '草稿可加入' : '草稿可修改'}}</text>
@@ -183,28 +127,32 @@
     <button class="btn btn-primary" bindtap="submitProfile" loading="{{profileSaving}}" disabled="{{profileSaving || profileQuickFillLoading || profileAvatarUploading}}">{{showJoin ? '确认加入' : '保存我的信息'}}</button>
   </view>
 
-  <view class="card panel admin-panel reveal reveal-6" wx:if="{{isAdmin}}">
+  <view class="card panel share-invite reveal reveal-3" id="share-invite" wx:if="{{tournament && tournament.status==='draft'}}">
+    <view class="section-head share-invite-head">
+      <view>
+        <view class="section-title">{{shareCardTitle}}</view>
+        <view class="muted small">{{shareCardHint}}</view>
+      </view>
+      <text class="count-pill">{{shareCardBadge}}</text>
+    </view>
+    <button class="btn btn-primary {{sharePulse ? 'share-pulse' : ''}}" open-type="share">{{shareButtonText}}</button>
+    <view class="share-invite-meta">
+      <view class="muted small">{{shareCardDetailText}}</view>
+      <text class="link-btn" wx:if="{{tournament.status==='draft' && isAdmin}}" bindtap="focusQuickImportArea">备用：导入名单</text>
+      <text class="link-btn" wx:elif="{{tournament.status!=='draft'}}" bindtap="goRanking">查看排名</text>
+    </view>
+  </view>
+
+  <view class="card panel admin-panel reveal reveal-4" wx:if="{{showDraftAdminPanel}}">
     <view class="section-head">
-      <view class="section-title">管理员操作</view>
+      <view class="section-title">管理员主准备区</view>
       <view class="row-right">
-        <text class="count-pill" wx:if="{{tournament.status==='draft'}}">待完成 {{quickChecklistPending}} 项</text>
-        <text class="count-pill" wx:else>进行中</text>
-        <text class="link-btn" bindtap="goSettings">比赛参数</text>
+        <text class="count-pill">待完成 {{quickChecklistPending}} 项</text>
+        <text class="link-btn" bindtap="goSettings">高级参数</text>
       </view>
     </view>
 
-    <view class="draft-prep panel-soft" wx:if="{{tournament.status==='draft'}}">
-      <view class="prep-tile" wx:for="{{checklistItems}}" wx:key="key" data-key="{{item.key}}" bindtap="onChecklistTap">
-        <text class="prep-indicator {{item.done ? 'ok' : ''}}"></text>
-        <view class="prep-main">
-          <view class="prep-title">{{item.title}}</view>
-          <view class="prep-sub">{{item.summary}}</view>
-        </view>
-        <text class="prep-jump">{{item.actionText}}</text>
-      </view>
-    </view>
-
-    <view class="quick-config panel-soft" id="quick-config" wx:if="{{tournament.status==='draft'}}">
+    <view class="quick-config panel-soft" id="quick-config">
       <view class="quick-config-head">比赛参数</view>
       <view class="muted small">按活动时长快速估算总场次</view>
       <view class="quick-config-row">
@@ -244,7 +192,7 @@
       <button class="btn btn-primary quick-config-save" bindtap="saveQuickSettings">保存参数</button>
     </view>
 
-    <view class="quick-import panel-soft" wx:if="{{tournament.status==='draft'}}">
+    <view class="quick-import panel-soft">
       <view class="quick-import-head">备用：导入名单</view>
       <view class="muted small">适合已有名单、代录报名或集中建档。</view>
       <textarea
@@ -264,7 +212,7 @@
       </view>
     </view>
 
-    <view class="fixed-team panel-soft" wx:if="{{tournament.status==='draft' && mode==='fixed_pair_rr'}}">
+    <view class="fixed-team panel-soft" wx:if="{{mode==='fixed_pair_rr'}}">
       <view class="fixed-team-head row row-top">
         <view class="quick-import-head">固搭队伍</view>
         <button class="btn-mini" bindtap="autoGeneratePairTeams" loading="{{pairTeamBusy}}" disabled="{{pairTeamBusy}}">自动组队</button>
@@ -302,9 +250,80 @@
       </view>
       <view class="muted small" wx:else>暂无可组队成员（每名成员仅可属于一支队伍）。</view>
     </view>
+  </view>
 
+  <view class="card panel reveal reveal-4">
+    <view class="section-head">
+      <view class="section-title">比赛概览</view>
+      <text class="count-pill">{{statusText}}</text>
+    </view>
+    <view class="rule-chips">
+      <text class="rule-chip">{{modeLabel}}</text>
+      <text class="rule-chip">{{pointsPerGame}} 分制</text>
+      <text class="rule-chip">胜场优先</text>
+    </view>
+    <view class="info-highlight">{{matchInfoText}}</view>
+    <view class="muted small">{{genderSummaryText}}</view>
+    <view class="muted small" wx:if="{{tournament.createdAt}}">创建 {{createdAtText}}</view>
+  </view>
+
+  <view class="card panel panel-soft reveal reveal-4" wx:if="{{showDraftRules && modeRules.length}}">
+    <view class="section-head">
+      <view class="section-title">规则说明</view>
+      <text class="count-pill">{{modeLabel}}</text>
+    </view>
+    <view class="muted small" wx:for="{{modeRules}}" wx:key="*this">{{item}}</view>
+  </view>
+
+  <view class="card panel reveal reveal-5">
+    <view class="section-head">
+      <view class="section-title">参赛名单</view>
+      <view class="row-right">
+        <text class="count-pill">{{tournament.players.length}} 人</text>
+        <text class="link-btn" wx:if="{{tournament.players.length>12}}" bindtap="togglePlayers">{{showAllPlayers?'收起':'展开'}}</text>
+      </view>
+    </view>
+    <view class="player-grid" wx:if="{{displayPlayers.length}}">
+      <view class="player-cell" wx:for="{{displayPlayers}}" wx:key="id" data-player="{{item.id}}" bindtap="onTogglePlayerSquad">
+        <view class="player-avatar {{item.colorClass}}">
+          <image class="player-avatar-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill"></image>
+          <text class="player-initial" wx:else>{{item.initial}}</text>
+        </view>
+        <view class="player-name ellipsis">{{item.name}}</view>
+        <view class="player-gender">{{item.genderLabel}}</view>
+        <view class="player-gender" wx:if="{{mode==='squad_doubles'}}">{{item.squad ? item.squad + '队' : '未分队'}}</view>
+      </view>
+    </view>
+    <view class="panel-soft list-empty" wx:else>
+      <view class="list-empty-title">先分享比赛链接</view>
+      <view class="muted small">让大家先看比赛，再决定是否加入；导入名单保留为备用方案。</view>
+    </view>
+  </view>
+
+  <view class="card panel share-invite reveal reveal-5" id="share-invite" wx:if="{{tournament && tournament.status!=='draft'}}">
+    <view class="section-head share-invite-head">
+      <view>
+        <view class="section-title">{{shareCardTitle}}</view>
+        <view class="muted small">{{shareCardHint}}</view>
+      </view>
+      <text class="count-pill">{{shareCardBadge}}</text>
+    </view>
+    <button class="btn btn-primary {{sharePulse ? 'share-pulse' : ''}}" open-type="share">{{shareButtonText}}</button>
+    <view class="share-invite-meta">
+      <view class="muted small">{{shareCardDetailText}}</view>
+      <text class="link-btn" wx:if="{{tournament.status==='draft' && isAdmin}}" bindtap="focusQuickImportArea">备用：导入名单</text>
+      <text class="link-btn" wx:elif="{{tournament.status!=='draft'}}" bindtap="goRanking">查看排名</text>
+    </view>
+  </view>
+
+  <view class="card panel panel-soft admin-panel reveal reveal-6" wx:if="{{showAdminMaintenance}}">
+    <view class="section-head">
+      <view class="section-title">管理员维护</view>
+      <text class="count-pill">次级操作</text>
+    </view>
     <view class="admin-actions">
-      <button class="btn btn-danger" bindtap="handleReset" wx:if="{{tournament.status!=='draft'}}">重置回草稿</button>
+      <view class="muted small">赛事已离开草稿阶段，主入口已切到赛程与结果页。</view>
+      <button class="btn btn-danger" bindtap="handleReset">重置回草稿</button>
     </view>
   </view>
 
@@ -328,23 +347,4 @@
     <view class="loading-title">加载中...</view>
     <view class="muted">若一直加载，请确认分享链接有效且数据库允许读取。</view>
   </view>
-</view>
-
-<view class="next-action-bar" wx:if="{{tournament && nextActionText}}">
-  <view class="next-action-main">
-    <view class="next-action-label">下一步 · {{currentRoleTitle || '访客'}}</view>
-    <view class="next-action-detail">{{nextActionDetail}}</view>
-    <view class="next-action-checklist" wx:if="{{isAdmin && tournament.status==='draft' && checklistItems.length}}">
-      <view
-        class="next-check-item {{item.done ? 'ok' : ''}}"
-        wx:for="{{checklistItems}}"
-        wx:key="key"
-        data-key="{{item.key}}"
-        bindtap="onChecklistTap"
-      >
-        {{item.label}} · {{item.done ? '已完成' : item.actionText}}
-      </view>
-    </view>
-  </view>
-  <button class="btn btn-primary next-primary" bindtap="onNextActionTap">{{nextActionText}}</button>
 </view>

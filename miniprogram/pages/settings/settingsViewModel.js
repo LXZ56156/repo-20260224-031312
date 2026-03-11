@@ -113,6 +113,15 @@ function buildSettingsViewState(tournament, options = {}) {
   return {
     loadError: false,
     tournament: t,
+    pageTitle: isDraft ? '高级参数' : '赛事参数',
+    pageSubtitle: isDraft
+      ? '大厅负责开赛准备，这里只处理完整参数和名单管理。'
+      : '赛事已开赛，这里主要查看锁定后的参数与名单。',
+    contextTitle: isDraft ? '主准备流程在大厅' : '这里主要查看高级参数',
+    contextBody: isDraft
+      ? '分享邀请、导入名单和主动作都在大厅完成；这里只保留完整设置。'
+      : '赛程、录分和结果入口已经切到其他页面，这里不再承担主导航。',
+    showLobbyReturn: isDraft && isAdmin,
     mode,
     modeLabel,
     allowOpenTeam,

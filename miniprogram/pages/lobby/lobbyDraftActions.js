@@ -37,6 +37,12 @@ module.exports = {
     return this.runFlowAction(key);
   },
 
+  onStateSecondaryTap(e) {
+    const key = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.action) || '').trim();
+    if (!key) return;
+    return this.runFlowAction(key);
+  },
+
   parseImportPlayers(text) {
     const raw = String(text || '').trim();
     if (!raw) return [];

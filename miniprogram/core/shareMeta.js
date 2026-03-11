@@ -290,10 +290,10 @@ function buildShareEntryViewModel({ tournament, openid = '' }) {
       ? '先看比赛，再决定是否加入'
       : (lifecycle === 'running' ? '这场比赛正在进行中' : '这场比赛已结束'),
     subtitle: lifecycle === 'draft'
-      ? '先看玩法、人数和组织信息；点击“加入比赛”后才会真正写入名单。'
+      ? '先看摘要，确定后再显式加入。'
       : (lifecycle === 'running'
-        ? '当前更适合查看赛况、排名和比赛进度。'
-        : '当前更适合查看排名、结果和赛后复盘。'),
+        ? '优先查看赛况、排名和比赛进度。'
+        : '优先查看排名、结果和赛后复盘。'),
     statusText: buildStatusText(lifecycle),
     statusClass: buildStatusClass(lifecycle),
     primaryAction: buildPrimaryAction({ lifecycle, joined, joinAllowed }),
