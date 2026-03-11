@@ -4,6 +4,7 @@
   "projectname": "badminton-rotation-miniapp",
   "srcMiniprogramRoot": "miniprogram/",
   "miniprogramRoot": "miniprogram/",
+  "cloudbaseRoot": "./",
   "cloudfunctionRoot": "cloudfunctions/",
   "compileType": "miniprogram",
   "simulatorType": "wechat",

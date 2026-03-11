@@ -8,6 +8,7 @@
 3. 如果你有自己的小程序 AppID：填你的 AppID（或使用测试号）
 4. 导入成功后，确认：
    - `miniprogramRoot` = `miniprogram/`
+   - `cloudbaseRoot` = `./`
    - `cloudfunctionRoot` = `cloudfunctions/`
 
 ## 2. 绑定云开发环境
@@ -15,6 +16,13 @@
 2. 选择/创建云环境后，确认 `miniprogram/config/env.js` 中对应环境的 `cloudEnvId`
 3. 默认已内置：`cloud1-1ghmqjyt6428702b`
 4. 开发版/体验版/正式版会按 `envVersion` 读取对应配置；首页在非正式环境会显示环境标识
+5. 如果上传云函数时出现 `请在编辑器云函数根目录（cloudfunctionRoot）选择一个云环境`：
+   - 这不是函数代码问题，而是微信开发者工具本地还没选定默认云环境
+   - 在开发者工具文件树中右键 `cloudfunctions/`
+   - 选择 **“选择想要上传的目标环境”**
+   - 选中环境 `cloud1-1ghmqjyt6428702b`
+   - 再执行“上传并部署：所有云函数”或单独上传 `addPlayers`
+6. 仓库已补充 `.cloudbaserc.json`，固定 CloudBase 默认 `envId` 和 `functionRoot`，避免运行时环境和部署环境继续漂移
 
 ## 3. 数据库初始化（必须）
 > 你遇到的 `database collection not exists: tournaments` 就是因为没有创建集合。
