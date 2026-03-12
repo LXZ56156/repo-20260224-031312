@@ -38,12 +38,6 @@
   font-weight: 820;
 }
 
-.analytics-hero-subline {
-  margin-top: 8rpx;
-  font-size: 25rpx;
-  opacity: 0.92;
-}
-
 .analytics-hero-stats {
   margin-top: 18rpx;
   display: grid;

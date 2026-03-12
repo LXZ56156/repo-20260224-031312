@@ -16,13 +16,12 @@
       <view class="tag">{{matchStatusText}}</view>
     </view>
     <view class="batch-badge" wx:if="{{batchMode}}">批量录分模式</view>
-    <view class="muted small batch-note" wx:if="{{batchMode}}">提交后自动进入下一场</view>
   </view>
 
   <view class="card panel">
     <view class="section-title">本场对阵</view>
     <view class="match-vs">{{pair1Text}} <text class="vs">vs</text> {{pair2Text}}</view>
-    <view class="muted small" wx:if="{{!pair1Text || !pair2Text}}">对阵未就绪，请回大厅重开赛程。</view>
+    <view class="muted small" wx:if="{{!pair1Text || !pair2Text}}">对阵未就绪</view>
   </view>
 
   <view class="card panel">
@@ -44,12 +43,10 @@
 
     <view class="score-row" wx:if="{{!canEdit}}">
       <view class="score-col">
-        <view class="muted small">左侧得分</view>
         <view class="tiny" wx:if="{{pair1Text}}">{{pair1Text}}</view>
         <view class="score-box">{{displayScoreA}}</view>
       </view>
       <view class="score-col">
-        <view class="muted small">右侧得分</view>
         <view class="tiny" wx:if="{{pair2Text}}">{{pair2Text}}</view>
         <view class="score-box">{{displayScoreB}}</view>
       </view>
@@ -58,20 +55,17 @@
     <view class="muted score-tip" wx:elif="{{!canEdit && match.status==='pending'}}">请先点击“开始录分”。</view>
 
     <view class="score-toolbar" wx:if="{{canEdit}}">
-      <text class="muted small">滚轮录分</text>
       <button class="btn-mini mode-undo {{!canUndo ? 'disabled' : ''}}" bindtap="onUndoStep" disabled="{{!canUndo}}">撤销</button>
     </view>
 
     <view class="score-row" wx:if="{{canEdit}}">
       <view class="score-col">
-        <view class="muted small">左侧得分</view>
         <view class="tiny" wx:if="{{pair1Text}}">{{pair1Text}}</view>
         <picker mode="selector" range="{{scoreOptions}}" value="{{scoreAIndex}}" bindchange="onPickScoreA">
           <view class="picker score-wheel">{{scoreA}}</view>
         </picker>
       </view>
       <view class="score-col">
-        <view class="muted small">右侧得分</view>
         <view class="tiny" wx:if="{{pair2Text}}">{{pair2Text}}</view>
         <picker mode="selector" range="{{scoreOptions}}" value="{{scoreBIndex}}" bindchange="onPickScoreB">
           <view class="picker score-wheel">{{scoreB}}</view>

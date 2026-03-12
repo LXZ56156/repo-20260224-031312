@@ -11,11 +11,10 @@
     <view class="row hero-top">
       <view class="flex-1 minw0">
         <view class="share-title">{{preview.tournamentName}}</view>
-        <view class="share-headline">{{preview.headline}}</view>
+      <view class="share-headline">{{preview.headline}}</view>
       </view>
       <view class="tag {{preview.statusClass}}">{{preview.statusText}}</view>
     </view>
-    <view class="share-subtitle">{{preview.subtitle}}</view>
     <view class="share-pills">
       <text class="rule-chip">{{preview.modeLabel}}</text>
       <text class="rule-chip">{{preview.playersCountText}}</text>
@@ -28,9 +27,7 @@
       <view class="section-title">现在可以做什么</view>
       <text class="count-pill">{{preview.viewModeLabel}}</text>
     </view>
-    <view class="share-note decision-note">{{preview.availabilityText}}</view>
     <view class="card-inline-squad" wx:if="{{tournament && tournament.mode==='squad_doubles' && preview.joinAllowed && !preview.joined}}">
-      <view class="muted small">小队转需要先选 A/B 队，点击“加入比赛”后才会真正加入。</view>
       <view class="chips squad-chooser">
         <view class="chip {{joinSquadChoice==='A' ? 'active' : ''}}" data-squad="A" bindtap="onPickJoinSquad">A队</view>
         <view class="chip {{joinSquadChoice==='B' ? 'active' : ''}}" data-squad="B" bindtap="onPickJoinSquad">B队</view>
@@ -94,7 +91,7 @@
         <view class="ranking-right">{{item.wins}} 胜 {{item.losses}} 负 · 净胜 {{item.pointDiff}}</view>
       </view>
     </view>
-    <view class="muted small" wx:else>比赛尚未产生可展示的排名摘要。</view>
+    <view class="muted small" wx:else>暂无排名摘要</view>
   </view>
 
   <view class="card panel panel-soft" wx:if="{{loadError && !tournament}}">

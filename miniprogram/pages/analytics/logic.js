@@ -246,13 +246,10 @@ function buildAnalyticsPageModel(analytics, report) {
   const avgDiff = String(summary.avgDiff || '0.0');
 
   let heroHeadline = '等待首场完赛';
-  let heroSubline = '完成比赛后，这里会自动生成复盘结论。';
   if (topLeader) {
     heroHeadline = `榜首 ${topLeader.name}`;
-    heroSubline = `胜${topLeader.wins} 负${topLeader.losses} · 净胜 ${topLeader.pointDiff}`;
   } else if (finishedMatches > 0) {
     heroHeadline = `已完成 ${finishedMatches} 场比赛`;
-    heroSubline = `当前完赛率 ${completionRate}`;
   }
 
   const heroStats = [
@@ -278,7 +275,6 @@ function buildAnalyticsPageModel(analytics, report) {
     modeLabel,
     statusLabel,
     heroHeadline,
-    heroSubline,
     heroStats,
     summaryStats,
     focusFacts: focusFacts.slice(0, 4),

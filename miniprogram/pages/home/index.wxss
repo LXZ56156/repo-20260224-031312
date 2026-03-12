@@ -103,10 +103,6 @@
   color: var(--text-1, #0f172a);
 }
 
-.onboarding-tip {
-  margin-top: 12rpx;
-}
-
 .onboarding-later {
   margin-top: 12rpx;
   display: block;
@@ -159,13 +155,6 @@
   font-weight: 820;
   line-height: 1.2;
   letter-spacing: 0.5rpx;
-}
-
-.h-desc {
-  margin-top: 10rpx;
-  font-size: 25rpx;
-  line-height: 1.45;
-  color: rgba(255, 255, 255, 0.88);
 }
 
 .hero-stat-row {

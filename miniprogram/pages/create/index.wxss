@@ -99,10 +99,6 @@
   color: #64748b;
 }
 
-.create-tip {
-  margin-top: 10rpx;
-}
-
 .create-recommend-chips {
   margin-top: 12rpx;
 }

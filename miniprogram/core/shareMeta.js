@@ -110,10 +110,8 @@ function buildShareMessage(tournament) {
       title: `${tournamentName} · 查看赛况与排名`,
       intent: 'watch',
       panelTitle: '分享当前赛况',
-      panelHint: '比赛进行中，可直接把赛况和排名发出去。',
       badgeText: '进行中',
-      buttonText: '分享赛况',
-      detailText: resolveCurrentRoundText(t && t.rounds, lifecycle)
+      buttonText: '分享赛况'
     };
   }
   if (lifecycle === 'finished') {
@@ -121,20 +119,16 @@ function buildShareMessage(tournament) {
       title: `${tournamentName} · 查看结果与排名`,
       intent: 'result',
       panelTitle: '分享比赛结果',
-      panelHint: '比赛已结束，可直接把结果和排名发出去。',
       badgeText: '已结束',
-      buttonText: '分享结果',
-      detailText: resolveCurrentRoundText(t && t.rounds, lifecycle)
+      buttonText: '分享结果'
     };
   }
   return {
     title: `${tournamentName} · 查看比赛信息`,
     intent: 'join',
     panelTitle: '分享比赛',
-    panelHint: '先发出去，让大家先看比赛，再决定是否加入。',
     badgeText: '推荐',
-    buttonText: '分享比赛链接',
-    detailText: '先分享，再决定谁加入'
+    buttonText: '分享比赛链接'
   };
 }
 

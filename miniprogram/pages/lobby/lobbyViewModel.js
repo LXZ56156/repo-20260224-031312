@@ -370,7 +370,6 @@ function buildStatePanel(ctx) {
   const secondaryActions = [];
   let title = '当前下一步';
   let summary = String(currentRoleSummary || '').trim() || '先看当前状态，再决定下一步。';
-  let detail = '';
 
   if (status === 'draft') {
     if (isAdmin) {
@@ -380,7 +379,6 @@ function buildStatePanel(ctx) {
         : (!checkPlayersOk
           ? '优先分享邀请，让名单先准备好。'
           : '前置项已完成，可以直接开赛。');
-      detail = '大厅只保留主准备流程；完整参数和名单管理放在设置页。';
       secondaryActions.push(
         { key: 'share', text: '分享邀请' },
         { key: 'settings', text: '高级参数' }
@@ -391,21 +389,17 @@ function buildStatePanel(ctx) {
       summary = mode === flow.MODE_SQUAD_DOUBLES
         ? '先补资料并选择 A/B 队，再确认加入。'
         : '先补昵称和头像，再确认加入。';
-      detail = '只有点“确认加入”后，才会真正写入名单。';
     } else if (showViewOnlyJoinPrompt) {
       title = '先看再决定';
       summary = '当前以只读方式查看比赛，不会自动加入名单。';
-      detail = '确定参赛时，再显式加入。';
     } else if (myJoined) {
       title = '等待开赛';
       summary = '你已在名单中，草稿阶段仍可补充昵称和头像。';
-      detail = '开赛后这里会自动切成赛程或录分入口。';
     }
   } else if (status === 'running') {
     if (canEditScore && hasPending) {
       title = '优先完成录分';
       summary = '当前还有待录分比赛，先把比分录完，赛程和排名会同步更新。';
-      detail = '录分后可继续跳到下一场，不需要回到大厅重新判断。';
       secondaryActions.push(
         { key: 'schedule', text: '查看赛程' },
         { key: 'ranking', text: '查看排名' }
@@ -413,7 +407,6 @@ function buildStatePanel(ctx) {
     } else {
       title = '查看当前赛程';
       summary = '比赛正在进行，当前更适合查看赛程和排名。';
-      detail = '若你有录分权限，待录分场次会优先出现在赛程页。';
       secondaryActions.push(
         { key: 'ranking', text: '查看排名' }
       );
@@ -423,7 +416,6 @@ function buildStatePanel(ctx) {
     summary = isAdmin
       ? '比赛已结束，可查看排名、复盘，或直接再办一场。'
       : '比赛已结束，可直接查看排名和赛事复盘。';
-    detail = '结束态默认只保留结果入口，不再把准备信息堆在首屏。';
     secondaryActions.push({ key: 'ranking', text: '查看排名' });
     secondaryActions.push({ key: 'analytics', text: '赛事复盘' });
     if (isAdmin) secondaryActions.push({ key: 'clone', text: '再办一场' });
@@ -440,7 +432,6 @@ function buildStatePanel(ctx) {
     statePanelTitle: title,
     statePanelRoleLabel: String(currentRoleTitle || '').trim() || '访客',
     statePanelSummary: summary,
-    statePanelDetail: detail,
     statePrimaryActionKey: String(nextActionKey || '').trim(),
     statePrimaryActionText: String(nextActionText || '').trim(),
     stateSecondaryActions: dedupedSecondaryActions
@@ -678,7 +669,6 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       statePanelTitle: statePanel.statePanelTitle,
       statePanelRoleLabel: statePanel.statePanelRoleLabel,
       statePanelSummary: statePanel.statePanelSummary,
-      statePanelDetail: statePanel.statePanelDetail,
       statePrimaryActionKey: statePanel.statePrimaryActionKey,
       statePrimaryActionText: statePanel.statePrimaryActionText,
       stateSecondaryActions: statePanel.stateSecondaryActions,
@@ -689,10 +679,8 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       showAdminMaintenance: isAdmin && status !== 'draft',
       showViewOnlyJoinPrompt,
       shareCardTitle: String(shareMessage.panelTitle || '分享比赛'),
-      shareCardHint: String(shareMessage.panelHint || ''),
       shareCardBadge: String(shareMessage.badgeText || statusText),
       shareButtonText: String(shareMessage.buttonText || '分享比赛链接'),
-      shareCardDetailText: String(shareMessage.detailText || ''),
       joinSquadChoice: String((myPlayer && myPlayer.squad) || data.joinSquadChoice || 'A').trim().toUpperCase() === 'B' ? 'B' : 'A'
     }
   };

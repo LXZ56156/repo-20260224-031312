@@ -4,7 +4,6 @@
       <image class="profile-avatar" src="{{avatar}}" mode="aspectFill"></image>
       <view class="flex-1 minw0 profile-main">
         <view class="hero-title ellipsis">{{nickname}}</view>
-        <view class="hero-sub">个人中心</view>
       </view>
       <text class="hero-setting-link" bindtap="goSettings">设置</text>
     </view>

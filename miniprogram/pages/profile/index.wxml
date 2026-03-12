@@ -1,7 +1,6 @@
 <view class="container safe-bottom profile-page">
   <view class="hero">
     <view class="hero-title">完善个人资料</view>
-    <view class="hero-sub">用于自动加入比赛与生成赛程</view>
   </view>
 
   <view class="card panel">
@@ -17,7 +16,6 @@
       >
         一键填写微信资料
       </button>
-      <view class="muted small quick-fill-tip">自动带入微信头像，并引导使用微信昵称输入。</view>
     </view>
 
     <view class="profile-avatar-row">
@@ -44,7 +42,6 @@
         bindinput="onNicknameInput"
       />
       <view class="field-error" wx:if="{{fieldErrors.nickname}}">{{fieldErrors.nickname}}</view>
-      <view class="muted small">可点击输入框使用微信昵称能力。</view>
     </view>
 
     <view class="form-item">

@@ -57,6 +57,8 @@ test('lobby template promotes state-driven next step before generic info flow', 
   assert.ok(stateIndex < infoIndex);
   assert.doesNotMatch(wxml, /角色与下一步/);
   assert.doesNotMatch(wxml, /next-action-bar/);
+  assert.doesNotMatch(wxml, /state-panel-detail/);
+  assert.doesNotMatch(wxml, /规则说明/);
   assert.match(wxml, /bindtap="onNextActionTap"/);
   assert.match(wxml, /bindtap="onStateSecondaryTap"/);
 });

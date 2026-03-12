@@ -12,7 +12,6 @@
       <view class="hero-main">
         <view class="hero-env-badge" wx:if="{{showEnvBadge}}">{{envBadgeLabel}}</view>
         <view class="h-title">继续你的比赛</view>
-        <view class="h-desc">先继续正在进行中的，再处理草稿和结果。</view>
         <view class="hero-stat-row">
           <view class="hero-stat-pill">进行中 {{statusCountRunning}}</view>
           <view class="hero-stat-pill">草稿 {{statusCountDraft}}</view>
@@ -26,7 +25,6 @@
         </view>
         <view class="hero-task-strip hero-task-empty" wx:else>
           <view class="hero-task-label">当前没有进行中的比赛</view>
-          <view class="hero-task-meta">直接从下面的赛事列表继续草稿或查看已结束结果。</view>
         </view>
       </view>
     </view>
@@ -94,7 +92,6 @@
       <view class="section-title">先补资料</view>
       <text class="count-pill">推荐</text>
     </view>
-    <view class="muted">昵称和性别完整后，发起和加入都会更顺手。</view>
     <view class="profile-nudge-actions">
       <button class="btn btn-subtle btn-sm" bindtap="goProfileFromNudge">去完善</button>
       <text class="profile-nudge-later" bindtap="dismissProfileNudge">稍后</text>
@@ -109,13 +106,11 @@
     <view class="guide-step"><text class="guide-index">1</text><text class="guide-text">创建并设参数</text></view>
     <view class="guide-step"><text class="guide-index">2</text><text class="guide-text">分享邀请或导入名单</text></view>
     <view class="guide-step"><text class="guide-index">3</text><text class="guide-text">开赛后录分</text></view>
-    <view class="muted small onboarding-tip">发起入口仍在底部标签栏。</view>
     <text class="onboarding-later" bindtap="dismissOnboarding">稍后再看</text>
   </view>
 
   <view class="card panel-soft ad-breakpoint reveal reveal-5" wx:if="{{showHomeAdSlot}}">
     <view class="ad-badge">广告</view>
-    <view class="muted small">免开发智能接入广告位（仅浏览页展示）</view>
   </view>
 
   <view class="retry-box panel-soft" wx:if="{{canRetryAction}}">

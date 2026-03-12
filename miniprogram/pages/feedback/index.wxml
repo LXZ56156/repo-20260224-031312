@@ -10,7 +10,6 @@
   <block wx:else>
   <view class="hero">
     <view class="hero-title">意见反馈</view>
-    <view class="hero-sub">告诉我们你遇到的问题或建议</view>
   </view>
 
   <view class="card panel">

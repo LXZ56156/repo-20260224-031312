@@ -15,6 +15,9 @@ test('share-entry landing page puts primary CTA ahead of compact summary facts',
   assert.ok(actionIndex < summaryIndex);
   assert.match(wxml, /share-facts/);
   assert.match(wxml, /share-actions/);
+  assert.doesNotMatch(wxml, /share-note/);
+  assert.doesNotMatch(wxml, /share-subtitle/);
   assert.doesNotMatch(wxml, /加入说明/);
+  assert.doesNotMatch(wxml, /小队转需要先选 A\/B 队/);
   assert.doesNotMatch(wxml, /比赛开始后仍可通过分享链接查看排名、赛况和已完成轮次/);
 });

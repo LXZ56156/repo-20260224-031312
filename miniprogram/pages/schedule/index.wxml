@@ -37,7 +37,6 @@
 
   <view class="card panel panel-soft state-card" wx:if="{{!roundsUi.length}}">
     <view class="state-title">还没有赛程</view>
-    <view class="muted small">管理员开赛后，这里会出现每一轮对阵和录分状态。</view>
     <text class="state-link" bindtap="goLobby">去大厅</text>
   </view>
 

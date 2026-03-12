@@ -17,7 +17,6 @@
       <button class="btn btn-primary btn-sm analytics-share-btn" open-type="share">{{shareButtonText}}</button>
     </view>
     <view class="analytics-hero-headline">{{heroHeadline}}</view>
-    <view class="analytics-hero-subline">{{heroSubline}}</view>
     <view class="analytics-hero-stats">
       <view class="analytics-hero-stat" wx:for="{{heroStats}}" wx:key="label">
         <text class="analytics-hero-stat-label">{{item.label}}</text>
@@ -57,7 +56,6 @@
 
   <view class="card panel-soft ad-breakpoint reveal reveal-4" wx:if="{{showAnalyticsAdSlot}}">
     <view class="ad-badge">广告</view>
-    <view class="muted small">免开发智能接入广告位（复盘页）</view>
   </view>
 
   <view class="card panel reveal reveal-5" wx:if="{{top3.length}}">
@@ -127,7 +125,6 @@
 
   <view class="card panel panel-soft reveal reveal-7" wx:if="{{summary && summary.finishedMatches===0}}">
     <view class="empty-title">暂无可复盘数据</view>
-    <view class="muted">先完成至少一场比赛，再查看{{rankingUnit==='队' ? '队伍' : '球员'}}表现与对阵亮点。</view>
   </view>
 
   <view class="retry-box panel-soft" wx:if="{{canRetryAction}}">

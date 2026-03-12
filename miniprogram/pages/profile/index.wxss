@@ -14,10 +14,6 @@
   margin: 0;
 }
 
-.quick-fill-tip {
-  margin-top: 8rpx;
-}
-
 .profile-avatar-row {
   display: flex;
   align-items: center;

@@ -3,7 +3,6 @@
 
   <view class="hero create-hero reveal reveal-1">
     <view class="hero-title">创建比赛</view>
-    <view class="hero-sub">{{modeLabel}} · {{modeIntro}}</view>
   </view>
 
   <view class="card panel create-panel reveal reveal-2">
@@ -91,12 +90,6 @@
       </view>
       <view class="param-col"></view>
     </view>
-    <view class="muted small create-tip" wx:if="{{showSquadEndCondition}}">{{endConditionTargetHint}}</view>
-
-    <view class="muted small create-tip">{{capacityHintShort}}</view>
-    <view class="muted small create-tip" wx:if="{{rosterHint}}">{{rosterHint}}</view>
-    <view class="muted small create-tip" wx:if="{{mode==='squad_doubles'}}">小队转将在加入比赛时选择 A 队或 B 队。</view>
-    <view class="muted small create-tip" wx:if="{{mode==='fixed_pair_rr'}}">固搭循环赛需在大厅由管理员统一组队。</view>
   </view>
 
   <view class="retry-box panel-soft" wx:if="{{canRetryAction}}">

@@ -60,7 +60,6 @@ Page({
     statePanelTitle: '',
     statePanelRoleLabel: '',
     statePanelSummary: '',
-    statePanelDetail: '',
     statePrimaryActionKey: '',
     statePrimaryActionText: '',
     stateSecondaryActions: [],
@@ -134,10 +133,8 @@ Page({
 
     sharePulse: false,
     shareCardTitle: '分享比赛',
-    shareCardHint: '',
     shareCardBadge: '主路径',
     shareButtonText: '分享比赛链接',
-    shareCardDetailText: '',
     networkOffline: false,
     showStaleSyncHint: false,
     syncRefreshing: false,

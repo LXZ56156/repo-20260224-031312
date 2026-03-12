@@ -9,7 +9,6 @@
 
   <view class="hero">
     <view class="hero-title">{{pageTitle}}</view>
-    <view class="hero-sub">{{modeLabel}} · {{pageSubtitle}}</view>
   </view>
 
   <view class="card panel panel-soft context-panel">
@@ -17,7 +16,6 @@
       <view class="section-title">{{contextTitle}}</view>
       <text class="count-pill">{{mandatoryDone}} / {{mandatoryTotal}}</text>
     </view>
-    <view class="muted small">{{contextBody}}</view>
     <view class="context-actions" wx:if="{{showLobbyReturn}}">
       <button class="btn btn-subtle player-route-btn" bindtap="goLobbyManagePlayers">回到大厅继续准备</button>
     </view>
@@ -28,7 +26,6 @@
       <view class="section-title">比赛参数</view>
       <text class="status-pill {{settingsReady ? 'ok' : 'pending'}}">{{settingsReady ? '已完成' : '待完成'}}</text>
     </view>
-    <view class="muted small section-tip" wx:if="{{tournament.status!=='draft'}}">赛事已开赛，参数已锁定</view>
 
     <view class="form-item">
       <view class="form-label">总场次</view>
@@ -89,11 +86,7 @@
       </view>
     </view>
 
-    <view class="muted small section-tip">{{capacityHintShort}}</view>
-    <view class="muted small section-tip" wx:if="{{rosterHint}}">{{rosterHint}}</view>
-
     <button class="btn btn-primary settings-save" bindtap="saveSettings" loading="{{settingsBusy}}" disabled="{{settingsBusy}}" wx:if="{{isAdmin && tournament.status==='draft'}}">保存参数</button>
-    <view class="muted small section-tip" wx:else>仅管理员可在草稿阶段修改并保存参数。</view>
   </view>
 
   <view class="card panel settings-panel" id="section-players">
@@ -102,10 +95,8 @@
       <text class="status-pill {{playersReady ? 'ok' : 'pending'}}">{{playersStatusText}}</text>
     </view>
     <view wx:if="{{isAdmin && tournament.status==='draft'}}">
-      <view class="muted small section-tip">导入名单请在大厅完成</view>
       <button class="btn btn-subtle player-route-btn" bindtap="goLobbyManagePlayers">回到大厅导入</button>
     </view>
-    <view class="muted section-tip" wx:else>赛事已开赛或你不是管理员，参赛名单已锁定。</view>
 
     <view class="players" wx:if="{{tournament.players.length>0}}">
       <view class="player" wx:for="{{tournament.players}}" wx:key="id">

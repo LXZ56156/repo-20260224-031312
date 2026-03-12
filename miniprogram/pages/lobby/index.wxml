@@ -47,7 +47,6 @@
       <text class="count-pill">{{stateStageBadge}} · {{statePanelRoleLabel}}</text>
     </view>
     <view class="state-panel-summary">{{statePanelSummary}}</view>
-    <view class="muted small state-panel-detail" wx:if="{{statePanelDetail}}">{{statePanelDetail}}</view>
     <view class="draft-prep panel-soft state-checklist" wx:if="{{showStateChecklist}}">
       <view class="prep-tile" wx:for="{{checklistItems}}" wx:key="key" data-key="{{item.key}}" bindtap="onChecklistTap">
         <text class="prep-indicator {{item.done ? 'ok' : ''}}"></text>
@@ -79,7 +78,6 @@
       <view class="section-title">先看比赛信息</view>
       <text class="count-pill">不会自动加入</text>
     </view>
-    <view class="muted small profile-hint">当前是只读查看；想参赛时，再点“我要加入”展开资料表单。</view>
     <button class="btn btn-primary" bindtap="enterJoinFromViewOnly">我要加入</button>
   </view>
 
@@ -88,7 +86,6 @@
       <view class="section-title">{{showJoin ? '加入比赛' : '我的资料'}}</view>
       <text class="count-pill">{{showJoin ? '草稿可加入' : '草稿可修改'}}</text>
     </view>
-    <view class="muted small profile-hint">{{showJoin ? '先补资料，再确认加入。' : '修改后会同步到名单展示。'}}</view>
     <view class="profile-col">
       <image class="avatar-img profile-avatar" src="{{showJoin ? joinAvatarDisplay : myAvatarDisplay}}" mode="aspectFill"></image>
       <input
@@ -101,7 +98,6 @@
         bindblur="onProfileNickBlur"
         bindinput="onProfileNickInput"
       />
-      <view class="muted small profile-inline-tip">可点击输入框使用微信昵称。</view>
       <view class="profile-actions profile-actions-center">
         <button
           class="btn-mini primary profile-quick-btn"
@@ -131,13 +127,11 @@
     <view class="section-head share-invite-head">
       <view>
         <view class="section-title">{{shareCardTitle}}</view>
-        <view class="muted small">{{shareCardHint}}</view>
       </view>
       <text class="count-pill">{{shareCardBadge}}</text>
     </view>
     <button class="btn btn-primary {{sharePulse ? 'share-pulse' : ''}}" open-type="share">{{shareButtonText}}</button>
     <view class="share-invite-meta">
-      <view class="muted small">{{shareCardDetailText}}</view>
       <text class="link-btn" wx:if="{{tournament.status==='draft' && isAdmin}}" bindtap="focusQuickImportArea">备用：导入名单</text>
       <text class="link-btn" wx:elif="{{tournament.status!=='draft'}}" bindtap="goRanking">查看排名</text>
     </view>
@@ -154,7 +148,6 @@
 
     <view class="quick-config panel-soft" id="quick-config">
       <view class="quick-config-head">比赛参数</view>
-      <view class="muted small">按活动时长快速估算总场次</view>
       <view class="quick-config-row">
         <view class="quick-config-col">
           <view class="quick-config-label">总场次</view>
@@ -186,15 +179,11 @@
           </picker>
         </view>
       </view>
-      <view class="muted small quick-config-tip">{{quickCapacityHintShort}}</view>
-      <view class="muted small quick-config-tip" wx:if="{{quickRosterHint}}">{{quickRosterHint}}</view>
-      <view class="muted small quick-config-tip" wx:if="{{mode==='fixed_pair_rr' && !pairTeamsUi.length}}">请先在下方完成组队后再开赛</view>
       <button class="btn btn-primary quick-config-save" bindtap="saveQuickSettings">保存参数</button>
     </view>
 
     <view class="quick-import panel-soft">
       <view class="quick-import-head">备用：导入名单</view>
-      <view class="muted small">适合已有名单、代录报名或集中建档。</view>
       <textarea
         id="quick-import"
         class="textarea quick-import-input"
@@ -217,7 +206,6 @@
         <view class="quick-import-head">固搭队伍</view>
         <button class="btn-mini" bindtap="autoGeneratePairTeams" loading="{{pairTeamBusy}}" disabled="{{pairTeamBusy}}">自动组队</button>
       </view>
-      <view class="muted small">管理员统一组队后即可开赛。</view>
 
       <view class="fixed-team-list" wx:if="{{pairTeamsUi.length}}">
         <view class="fixed-team-item" wx:for="{{pairTeamsUi}}" wx:key="id">
@@ -228,7 +216,7 @@
           <button class="btn-mini danger" data-team="{{item.id}}" bindtap="deletePairTeam" disabled="{{pairTeamBusy}}">删除</button>
         </view>
       </view>
-      <view class="muted small" wx:else>当前未创建队伍，可先自动组队或手动添加。</view>
+      <view class="muted small" wx:else>暂无队伍</view>
 
       <view class="fixed-team-create" wx:if="{{pairTeamCandidates.length >= 2}}">
         <input class="input fixed-team-name-input" placeholder="队伍名称（可选）" value="{{pairTeamName}}" bindinput="onPairTeamNameInput" />
@@ -248,7 +236,7 @@
         </view>
         <button class="btn btn-primary fixed-team-create-btn" bindtap="createPairTeam" loading="{{pairTeamBusy}}" disabled="{{pairTeamBusy}}">添加队伍</button>
       </view>
-      <view class="muted small" wx:else>暂无可组队成员（每名成员仅可属于一支队伍）。</view>
+      <view class="muted small" wx:else>暂无可组队成员</view>
     </view>
   </view>
 
@@ -265,14 +253,6 @@
     <view class="info-highlight">{{matchInfoText}}</view>
     <view class="muted small">{{genderSummaryText}}</view>
     <view class="muted small" wx:if="{{tournament.createdAt}}">创建 {{createdAtText}}</view>
-  </view>
-
-  <view class="card panel panel-soft reveal reveal-4" wx:if="{{showDraftRules && modeRules.length}}">
-    <view class="section-head">
-      <view class="section-title">规则说明</view>
-      <text class="count-pill">{{modeLabel}}</text>
-    </view>
-    <view class="muted small" wx:for="{{modeRules}}" wx:key="*this">{{item}}</view>
   </view>
 
   <view class="card panel reveal reveal-5">
@@ -296,7 +276,6 @@
     </view>
     <view class="panel-soft list-empty" wx:else>
       <view class="list-empty-title">先分享比赛链接</view>
-      <view class="muted small">让大家先看比赛，再决定是否加入；导入名单保留为备用方案。</view>
     </view>
   </view>
 
@@ -304,13 +283,11 @@
     <view class="section-head share-invite-head">
       <view>
         <view class="section-title">{{shareCardTitle}}</view>
-        <view class="muted small">{{shareCardHint}}</view>
       </view>
       <text class="count-pill">{{shareCardBadge}}</text>
     </view>
     <button class="btn btn-primary {{sharePulse ? 'share-pulse' : ''}}" open-type="share">{{shareButtonText}}</button>
     <view class="share-invite-meta">
-      <view class="muted small">{{shareCardDetailText}}</view>
       <text class="link-btn" wx:if="{{tournament.status==='draft' && isAdmin}}" bindtap="focusQuickImportArea">备用：导入名单</text>
       <text class="link-btn" wx:elif="{{tournament.status!=='draft'}}" bindtap="goRanking">查看排名</text>
     </view>
@@ -322,7 +299,6 @@
       <text class="count-pill">次级操作</text>
     </view>
     <view class="admin-actions">
-      <view class="muted small">赛事已离开草稿阶段，主入口已切到赛程与结果页。</view>
       <button class="btn btn-danger" bindtap="handleReset">重置回草稿</button>
     </view>
   </view>

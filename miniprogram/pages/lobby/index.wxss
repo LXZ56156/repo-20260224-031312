@@ -177,10 +177,6 @@
   font-weight: 780;
 }
 
-.state-panel-detail {
-  margin-top: 10rpx;
-}
-
 .state-checklist {
   margin-top: 16rpx;
 }
@@ -322,11 +318,6 @@
 
 .profile-panel {
   padding-top: 22rpx;
-}
-
-.profile-hint {
-  margin-top: 8rpx;
-  margin-bottom: 14rpx;
 }
 
 .profile-col {
@@ -506,10 +497,6 @@
   padding: 0 18rpx;
   font-size: 30rpx;
   color: var(--text-1, #0f172a);
-}
-
-.quick-config-tip {
-  margin-top: 10rpx;
 }
 
 .quick-recommend-chips {

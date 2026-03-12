@@ -69,11 +69,6 @@
   font-size: 22rpx;
 }
 
-.batch-note {
-  margin-top: 10rpx;
-  opacity: 0.92;
-}
-
 .section-title {
   font-size: 30rpx;
   font-weight: 760;

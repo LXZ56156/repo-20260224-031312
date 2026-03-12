@@ -12,4 +12,6 @@ test('settings page is framed as a secondary advanced page instead of prep dashb
   assert.match(wxml, /\{\{pageTitle\}\}/);
   assert.match(wxml, /回到大厅继续准备/);
   assert.doesNotMatch(wxml, /开赛准备/);
+  assert.doesNotMatch(wxml, /\{\{pageSubtitle\}\}/);
+  assert.doesNotMatch(wxml, /\{\{contextBody\}\}/);
 });

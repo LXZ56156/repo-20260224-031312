@@ -66,7 +66,6 @@ Page({
     name: '',
     mode: flow.MODE_MULTI_ROTATE,
     modeLabel: flow.getModeLabel(flow.MODE_MULTI_ROTATE),
-    modeIntro: flow.getModeIntro(flow.MODE_MULTI_ROTATE),
     allowOpenTeam: false,
 
     quickPresetKey: 'standard',
@@ -135,7 +134,6 @@ Page({
       name: modeLabel,
       mode,
       modeLabel,
-      modeIntro: flow.getModeIntro(mode),
       showSquadEndCondition: mode === flow.MODE_SQUAD_DOUBLES,
       sessionMinutes,
       slotMinutes,
