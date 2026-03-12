@@ -3,6 +3,7 @@ const nav = require('../../core/nav');
 const pageTournamentSync = require('../../core/pageTournamentSync');
 const rankingCore = require('../../core/ranking');
 const flow = require('../../core/uxFlow');
+const matchPrimaryNav = require('../../core/matchPrimaryNav');
 
 const rankingSyncController = pageTournamentSync.createTournamentSyncMethods({
   loadErrorMessages: {
@@ -41,7 +42,9 @@ Page({
     syncStatusTone: 'info',
     syncStatusText: '',
     syncStatusMeta: '',
-    syncStatusActionText: '刷新'
+    syncStatusActionText: '刷新',
+    primaryNavCurrent: 'ranking',
+    primaryNavItems: []
   },
 
   ...rankingSyncController,
@@ -49,7 +52,10 @@ Page({
   onLoad(options) {
     const tid = options.tournamentId;
     pageTournamentSync.initTournamentSync(this);
-    this.setData({ tournamentId: tid });
+    this.setData({
+      tournamentId: tid,
+      primaryNavItems: matchPrimaryNav.getPrimaryNavItems('ranking', tid)
+    });
 
     const app = getApp();
     const initialOffline = !!(app && app.globalData && app.globalData.networkOffline);
@@ -95,8 +101,9 @@ Page({
     });
   },
 
-  goSchedule() {
-    wx.navigateTo({ url: `/pages/schedule/index?tournamentId=${this.data.tournamentId}` });
+  onPrimaryNavTap(e) {
+    const key = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.key) || '').trim();
+    matchPrimaryNav.navigateToPrimary(key, this.data.tournamentId, 'ranking');
   },
 
   goHome() {

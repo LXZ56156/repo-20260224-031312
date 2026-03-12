@@ -11,7 +11,7 @@ test('joinTournament error helper prefers stable codes over raw backend messages
   }, '加入失败，请稍后重试', { action: 'join' });
 
   assert.equal(err.joinCode, 'JOIN_DRAFT_ONLY');
-  assert.equal(joinError.resolveJoinFailureMessage(err, '加入失败，请稍后重试', { action: 'join' }), '比赛当前不可加入，可先查看赛况或结果');
+  assert.equal(joinError.resolveJoinFailureMessage(err, '加入失败，请稍后重试', { action: 'join' }), '比赛当前不可加入，可先查看比赛信息');
 });
 
 test('joinTournament error helper can specialize draft-only copy for profile updates', () => {

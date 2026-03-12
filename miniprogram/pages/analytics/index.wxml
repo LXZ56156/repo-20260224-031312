@@ -14,7 +14,6 @@
         <view class="hero-title">{{tournament.name}}</view>
         <view class="hero-sub">{{modeLabel}} · {{statusLabel}}</view>
       </view>
-      <button class="btn btn-primary btn-sm analytics-share-btn" open-type="share">{{shareButtonText}}</button>
     </view>
     <view class="analytics-hero-headline">{{heroHeadline}}</view>
     <view class="analytics-hero-stats">

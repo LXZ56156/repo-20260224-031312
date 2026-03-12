@@ -36,7 +36,7 @@ test('lobby admin view model separates role lanes and keeps admin lane active', 
   assert.equal(cards.joined.active, false);
   assert.equal(cards.viewer.active, false);
   assert.equal(cards.profile_pending.active, false);
-  assert.match(cards.admin.summary, /先保存比赛参数/);
+  assert.match(cards.admin.summary, /先修改比赛信息/);
   assert.match(cards.profile_pending.summary, /先补昵称和头像/);
   assert.equal(result.patch.statePanelTitle, '开赛前准备');
   assert.equal(result.patch.statePrimaryActionKey, 'settings');
@@ -51,7 +51,7 @@ test('lobby template promotes state-driven next step before generic info flow', 
   );
 
   const stateIndex = wxml.indexOf('{{statePanelTitle}}');
-  const infoIndex = wxml.indexOf('比赛概览');
+  const infoIndex = wxml.indexOf('比赛信息');
   assert.notEqual(stateIndex, -1);
   assert.notEqual(infoIndex, -1);
   assert.ok(stateIndex < infoIndex);
@@ -61,6 +61,7 @@ test('lobby template promotes state-driven next step before generic info flow', 
   assert.doesNotMatch(wxml, /stateSecondaryActions/);
   assert.doesNotMatch(wxml, /bindtap="onStateSecondaryTap"/);
   assert.doesNotMatch(wxml, /次级操作/);
+  assert.doesNotMatch(wxml, /重置回草稿/);
   assert.doesNotMatch(wxml, /规则说明/);
   assert.match(wxml, /bindtap="onNextActionTap"/);
 });

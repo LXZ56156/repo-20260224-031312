@@ -1,4 +1,16 @@
 <view class="container safe-bottom ranking-page" wx:if="{{tournament}}">
+  <view class="match-primary-nav">
+    <view
+      class="match-primary-nav-item {{item.active ? 'active' : ''}}"
+      wx:for="{{primaryNavItems}}"
+      wx:key="key"
+      data-key="{{item.key}}"
+      bindtap="onPrimaryNavTap"
+    >
+      {{item.text}}
+    </view>
+  </view>
+
   <view class="sync-banner sync-{{syncStatusTone}}" wx:if="{{syncStatusVisible}}">
     <view class="sync-banner-main">
       <view class="sync-banner-text">{{syncStatusText}}</view>
@@ -7,14 +19,13 @@
     <text class="sync-banner-action" bindtap="onRetry">{{syncStatusActionText}}</text>
   </view>
   <view class="hero">
-    <view class="hero-title">实时排名 · {{rankingTypeLabel}}</view>
+    <view class="hero-title">排名 · {{rankingTypeLabel}}</view>
     <view class="hero-sub">{{tournament.name}}</view>
   </view>
 
   <view class="card panel panel-soft ranking-empty" wx:if="{{rankings.length===0}}">
     <view class="empty-title">暂无数据</view>
     <view class="muted">开赛并录入比分后会自动计算胜场与净胜分。</view>
-    <button class="btn btn-subtle btn-sm ranking-empty-btn" bindtap="goSchedule">查看赛程</button>
   </view>
 
   <view class="card panel ranking-card" wx:for="{{rankings}}" wx:for-item="r" wx:for-index="idx" wx:key="rankKey">
@@ -47,7 +58,7 @@
 <view class="container safe-bottom ranking-page" wx:else>
   <view class="card panel ranking-skeleton">
     <view class="empty-title">加载中...</view>
-    <view class="muted">正在同步实时排名。</view>
+    <view class="muted">正在同步排名。</view>
     <view class="skeleton-row" wx:for="{{loadingSkeletonRows}}" wx:key="*this">
       <view class="skeleton-rank"></view>
       <view class="skeleton-main">

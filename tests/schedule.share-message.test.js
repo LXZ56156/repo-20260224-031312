@@ -28,7 +28,7 @@ function createSchedulePageContext(definition) {
   return ctx;
 }
 
-test('schedule page shares running tournaments as watch links', () => {
+test('schedule page shares current tournament through the unified transfer contract', () => {
   const definition = loadSchedulePageDefinition();
   const ctx = createSchedulePageContext(definition);
 
@@ -47,8 +47,8 @@ test('schedule page shares running tournaments as watch links', () => {
     });
 
     const share = ctx.onShareAppMessage();
-    assert.match(share.title, /查看赛况与排名/);
-    assert.match(share.path, /intent=watch/);
+    assert.equal(share.title, '周末赛 · 查看比赛');
+    assert.equal(share.path, '/pages/share-entry/index?tournamentId=t_1');
   } finally {
     delete require.cache[schedulePagePath];
   }

@@ -1,4 +1,16 @@
 <view class="container safe-bottom lobby-page" wx:if="{{tournament}}">
+  <view class="match-primary-nav">
+    <view
+      class="match-primary-nav-item {{item.active ? 'active' : ''}}"
+      wx:for="{{primaryNavItems}}"
+      wx:key="key"
+      data-key="{{item.key}}"
+      bindtap="onPrimaryNavTap"
+    >
+      {{item.text}}
+    </view>
+  </view>
+
   <view class="sync-banner sync-{{syncStatusTone}}" wx:if="{{syncStatusVisible}}">
     <view class="sync-banner-main">
       <view class="sync-banner-text">{{syncStatusText}}</view>
@@ -19,10 +31,6 @@
     <view class="hero-meta">
       <view class="meta-pill meta-admin" wx:if="{{isAdmin}}">管理员</view>
       <view class="meta-pill meta-player" wx:if="{{myJoined}}">已参赛</view>
-    </view>
-
-    <view class="hero-shortcuts" wx:if="{{showScheduleShortcut}}">
-      <button class="btn-mini hero-shortcut-btn" bindtap="goSchedule">查看赛程</button>
     </view>
 
     <view class="kpi">
@@ -125,50 +133,16 @@
   <view class="card panel admin-panel reveal reveal-4" wx:if="{{showDraftAdminPanel}}">
     <view class="section-head">
       <view class="section-title">管理员主准备区</view>
-      <view class="row-right">
-        <text class="count-pill">待完成 {{quickChecklistPending}} 项</text>
-        <text class="link-btn" bindtap="goSettings">高级参数</text>
-      </view>
+      <text class="count-pill">待完成 {{quickChecklistPending}} 项</text>
     </view>
 
-    <view class="quick-config panel-soft" id="quick-config">
-      <view class="quick-config-head">比赛参数</view>
-      <view class="quick-config-row">
-        <view class="quick-config-col">
-          <view class="quick-config-label">总场次</view>
-          <picker wx:if="{{useSimpleQuickMPicker}}" mode="selector" range="{{quickConfigMOptions}}" value="{{quickConfigMIndex}}" bindchange="onPickQuickConfigMSimple">
-            <view class="picker quick-config-picker">{{quickConfigM}}</view>
-          </picker>
-          <picker wx:else mode="multiSelector" range="{{quickConfigMDigitRange}}" value="{{quickConfigMDigitValue}}" bindchange="onPickQuickConfigMDigit">
-            <view class="picker quick-config-picker">{{quickConfigM}}</view>
-          </picker>
-        </view>
-        <view class="quick-config-col">
-          <view class="quick-config-label">每轮最多场数</view>
-          <picker mode="selector" range="{{quickConfigCOptions}}" value="{{quickConfigCIndex}}" bindchange="onPickQuickConfigC">
-            <view class="picker quick-config-picker">{{quickConfigC}}</view>
-          </picker>
-        </view>
-      </view>
-      <view class="quick-config-row">
-        <view class="quick-config-col">
-          <view class="quick-config-label">活动时长</view>
-          <picker mode="selector" range="{{sessionMinuteOptions}}" value="{{sessionMinuteIndex}}" bindchange="onPickSessionMinutes">
-            <view class="picker quick-config-picker">{{sessionMinutes}} 分钟</view>
-          </picker>
-        </view>
-        <view class="quick-config-col">
-          <view class="quick-config-label">单场占用时间</view>
-          <picker mode="selector" range="{{slotMinuteOptions}}" value="{{slotMinuteIndex}}" bindchange="onPickSlotMinutes">
-            <view class="picker quick-config-picker">{{slotMinutes}} 分钟</view>
-          </picker>
-        </view>
-      </view>
-      <button class="btn btn-primary quick-config-save" bindtap="saveQuickSettings">保存参数</button>
+    <view class="admin-manage-actions">
+      <button class="btn btn-subtle" bindtap="goEditTournament">修改比赛</button>
+      <button class="btn btn-danger" bindtap="cancelTournament">取消比赛</button>
     </view>
 
     <view class="quick-import panel-soft">
-      <view class="quick-import-head">备用：导入名单</view>
+      <view class="quick-import-head">导入名单</view>
       <textarea
         id="quick-import"
         class="textarea quick-import-input"
@@ -227,7 +201,7 @@
 
   <view class="card panel reveal reveal-4">
     <view class="section-head">
-      <view class="section-title">比赛概览</view>
+      <view class="section-title">比赛信息</view>
       <text class="count-pill">{{statusText}}</text>
     </view>
     <view class="rule-chips">
@@ -260,7 +234,7 @@
       </view>
     </view>
     <view class="panel-soft list-empty" wx:else>
-      <view class="list-empty-title">先分享比赛链接</view>
+      <view class="list-empty-title">先转发比赛</view>
     </view>
   </view>
 
@@ -272,15 +246,6 @@
       <text class="count-pill">{{shareCardBadge}}</text>
     </view>
     <button class="btn btn-primary {{sharePulse ? 'share-pulse' : ''}}" open-type="share">{{shareButtonText}}</button>
-  </view>
-
-  <view class="card panel panel-soft admin-panel reveal reveal-6" wx:if="{{showAdminMaintenance}}">
-    <view class="section-head">
-      <view class="section-title">管理员维护</view>
-    </view>
-    <view class="admin-actions">
-      <button class="btn btn-danger" bindtap="handleReset">重置回草稿</button>
-    </view>
   </view>
 
   <view class="retry-box panel-soft" wx:if="{{canRetryAction}}">

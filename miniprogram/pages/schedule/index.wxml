@@ -1,4 +1,16 @@
 <view class="container safe-bottom schedule-page" wx:if="{{tournament}}">
+  <view class="match-primary-nav">
+    <view
+      class="match-primary-nav-item {{item.active ? 'active' : ''}}"
+      wx:for="{{primaryNavItems}}"
+      wx:key="key"
+      data-key="{{item.key}}"
+      bindtap="onPrimaryNavTap"
+    >
+      {{item.text}}
+    </view>
+  </view>
+
   <view class="sync-banner sync-{{syncStatusTone}}" wx:if="{{syncStatusVisible}}">
     <view class="sync-banner-main">
       <view class="sync-banner-text">{{syncStatusText}}</view>
@@ -9,7 +21,7 @@
   <view class="hero">
     <view class="row hero-head">
       <view class="flex-1 minw0">
-        <view class="hero-kicker">当前赛程</view>
+        <view class="hero-kicker">当前对阵</view>
         <view class="hero-title ellipsis">{{tournament.name}}</view>
         <view class="hero-sub">{{heroSummaryText}}</view>
       </view>
@@ -29,15 +41,13 @@
         <view class="hero-stat-label">状态</view>
       </view>
     </view>
-    <view class="hero-actions" wx:if="{{nextActionText || tournament}}">
+    <view class="hero-actions" wx:if="{{nextActionText}}">
       <button class="btn btn-primary btn-sm hero-btn hero-primary" wx:if="{{nextActionText}}" bindtap="onHeroActionTap">{{nextActionText}}</button>
-      <button class="hero-link-btn" open-type="share" wx:if="{{tournament}}">{{shareButtonText}}</button>
     </view>
   </view>
 
   <view class="card panel panel-soft state-card" wx:if="{{!roundsUi.length}}">
-    <view class="state-title">还没有赛程</view>
-    <text class="state-link" bindtap="goLobby">去大厅</text>
+    <view class="state-title">还没有对阵</view>
   </view>
 
   <view class="round-card panel {{item.isCurrentRound ? 'round-card-current' : ''}}" wx:for="{{roundsUi}}" wx:key="roundIndex">
@@ -79,6 +89,6 @@
 <view class="container safe-bottom schedule-page" wx:else>
   <view class="card panel state-card">
     <view class="state-title">加载中...</view>
-    <view class="muted">正在同步最新赛程。</view>
+    <view class="muted">正在同步最新对阵。</view>
   </view>
 </view>

@@ -34,7 +34,6 @@ Page({
     reportShareText: '',
     reportHeadline: '',
     reportBriefText: '',
-    shareButtonText: '分享比赛链接',
     showAnalyticsAdSlot: false,
     networkOffline: false,
     showStaleSyncHint: false,
@@ -125,7 +124,6 @@ Page({
       reportShareText: report.shareText,
       reportHeadline: report.headline,
       reportBriefText: report.briefText,
-      shareButtonText: String((shareMeta.buildShareMessage(analytics.tournament) || {}).buttonText || '分享比赛链接'),
       modeLabel: pageModel.modeLabel,
       statusLabel: pageModel.statusLabel,
       topSectionTitle: pageModel.topSectionTitle,
@@ -192,11 +190,10 @@ Page({
   },
 
   onShareAppMessage() {
-    const tid = String(this.data.tournamentId || '').trim();
     const meta = shareMeta.buildShareMessage(this.data.tournament);
     return {
       title: meta.title,
-      path: `/pages/share-entry/index?tournamentId=${encodeURIComponent(tid)}&intent=${encodeURIComponent(String(meta.intent || 'view'))}`
+      path: meta.path
     };
   }
 });

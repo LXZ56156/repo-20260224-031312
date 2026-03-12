@@ -28,7 +28,7 @@ function createAnalyticsPageContext(definition) {
   return ctx;
 }
 
-test('analytics page shares finished tournaments as result links', () => {
+test('analytics page shares current tournament through the unified transfer contract', () => {
   const definition = loadAnalyticsPageDefinition();
   const ctx = createAnalyticsPageContext(definition);
 
@@ -47,8 +47,8 @@ test('analytics page shares finished tournaments as result links', () => {
     });
 
     const share = ctx.onShareAppMessage();
-    assert.match(share.title, /查看结果与排名/);
-    assert.match(share.path, /intent=result/);
+    assert.equal(share.title, '周末赛 · 查看比赛');
+    assert.equal(share.path, '/pages/share-entry/index?tournamentId=t_1');
   } finally {
     delete require.cache[analyticsPagePath];
   }

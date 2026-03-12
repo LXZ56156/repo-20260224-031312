@@ -8,6 +8,13 @@ function parsePosInt(v, maxV) {
   return Number.isFinite(maxV) ? Math.min(nn, maxV) : nn;
 }
 
+function parseTargetInt(v, fallback = 1) {
+  if (v === undefined || v === null || v === '') return Math.max(1, Math.floor(Number(fallback) || 1));
+  const n = Number(v);
+  if (!Number.isFinite(n)) return Math.max(1, Math.floor(Number(fallback) || 1));
+  return Math.max(1, Math.floor(n));
+}
+
 function calcMaxMatches(n) {
   const nn = Number(n) || 0;
   if (nn < 4) return 0;
@@ -34,6 +41,22 @@ function normalizeGender(gender) {
   const v = String(gender || '').trim().toLowerCase();
   if (v === 'male' || v === 'female') return v;
   return 'unknown';
+}
+
+function normalizeTournamentName(name) {
+  return String(name || '').trim();
+}
+
+function normalizePoints(points) {
+  const value = Number(points);
+  if (value === 11 || value === 15 || value === 21) return value;
+  return 21;
+}
+
+function normalizeEndConditionType(type) {
+  const value = String(type || '').trim().toLowerCase();
+  if (value === 'total_matches' || value === 'total_rounds' || value === 'target_wins') return value;
+  return 'total_matches';
 }
 
 function countGender(players) {
@@ -89,10 +112,14 @@ function validateSettings(players, totalMatches, courts, mode = 'multi_rotate', 
 
 module.exports = {
   parsePosInt,
+  parseTargetInt,
   calcMaxMatches,
   calcMaxMatchesMixed,
   normalizeMode: modeHelper.normalizeMode,
   normalizeGender,
+  normalizeTournamentName,
+  normalizePoints,
+  normalizeEndConditionType,
   countGender,
   validateSettings
 };

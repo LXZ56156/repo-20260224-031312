@@ -212,26 +212,26 @@ function buildChecklistItems({ checkSettingsOk, checkPlayersOk, checkStartReady,
     {
       key: 'settings',
       label: '参数',
-      title: '1. 参数',
+      title: '1. 修改比赛',
       done: !!checkSettingsOk,
       summary: checkSettingsOk ? '已保存' : '待保存',
-      actionText: checkSettingsOk ? '查看' : '去填写'
+      actionText: checkSettingsOk ? '查看' : '去修改'
     },
     {
       key: 'players',
-      label: '邀请成员',
-      title: '2. 邀请成员',
+      label: '转发',
+      title: '2. 转发比赛',
       done: !!checkPlayersOk,
-      summary: String(playersChecklistHint || '').trim() || '优先分享邀请，导入名单作备用',
-      actionText: checkPlayersOk ? '查看' : '去分享'
+      summary: String(playersChecklistHint || '').trim() || '优先转发比赛，导入名单作备用',
+      actionText: checkPlayersOk ? '查看' : '去转发'
     },
     {
       key: 'start',
-      label: '开赛',
-      title: '3. 开赛',
+      label: '开始比赛',
+      title: '3. 开始比赛',
       done: !!checkStartReady,
       summary: checkStartReady ? '可立即开赛' : '完成前两项后可开赛',
-      actionText: checkStartReady ? '开赛' : '去完成'
+      actionText: checkStartReady ? '开始' : '去完成'
     }
   ];
 }
@@ -270,33 +270,33 @@ function buildRoleCards(ctx) {
     ? 'admin'
     : (myJoined ? 'joined' : (showJoin ? 'profile_pending' : 'viewer'));
 
-  let adminActionKey = 'schedule';
-  let adminActionText = '查看赛程';
-  let adminSummary = '管理员可维护参数、分享比赛并控制开赛。';
+  let adminActionKey = '';
+  let adminActionText = '';
+  let adminSummary = '管理员可修改比赛、转发比赛并开始比赛。';
   if (status === 'draft' && !checkSettingsOk) {
     adminActionKey = 'settings';
-    adminActionText = '去保存参数';
-    adminSummary = '先保存比赛参数，再继续邀请成员和开赛。';
+    adminActionText = '修改比赛';
+    adminSummary = '先修改比赛信息，再继续转发和开始比赛。';
   } else if (status === 'draft' && !checkPlayersOk) {
     adminActionKey = 'share';
-    adminActionText = '去分享邀请';
+    adminActionText = '转发';
     adminSummary = `当前名单未就绪，${playersChecklistHint || '请先补全参赛信息'}。`;
   } else if (status === 'draft' && checkStartReady) {
     adminActionKey = 'start';
-    adminActionText = '开赛并锁定赛程';
-    adminSummary = '前置项已完成，可以直接开赛。';
+    adminActionText = '开始比赛';
+    adminSummary = '前置项已完成，可以直接开始比赛。';
   } else if (status === 'running' && canEditScore && hasPending) {
     adminActionKey = 'batch';
-    adminActionText = '去批量录分';
+    adminActionText = '继续录分';
     adminSummary = '当前还有待录分比赛，优先完成比分录入。';
   } else if (status === 'finished') {
     adminActionKey = 'analytics';
     adminActionText = '查看赛事复盘';
-    adminSummary = '比赛已结束，可查看排名和复盘结果。';
+    adminSummary = '比赛已结束，可查看赛事复盘。';
   }
 
-  let joinedActionKey = 'schedule';
-  let joinedActionText = '查看赛程';
+  let joinedActionKey = '';
+  let joinedActionText = '';
   let joinedSummary = '你已在名单中，可继续跟进比赛安排。';
   if (status === 'draft') {
     joinedActionKey = 'profile_save';
@@ -304,25 +304,25 @@ function buildRoleCards(ctx) {
     joinedSummary = '你已加入比赛，草稿阶段仍可补充昵称和头像。';
   } else if (status === 'running' && canEditScore && hasPending) {
     joinedActionKey = 'batch';
-    joinedActionText = '去批量录分';
+    joinedActionText = '继续录分';
     joinedSummary = '你有录分权限，当前还有待完成比赛。';
   } else if (status === 'finished') {
     joinedActionKey = 'analytics';
     joinedActionText = '查看赛事复盘';
-    joinedSummary = '比赛已结束，可查看最终结果和复盘。';
+    joinedSummary = '比赛已结束，可查看最终结果和赛事复盘。';
   }
 
-  let viewerActionKey = 'schedule';
-  let viewerActionText = '查看赛程';
+  let viewerActionKey = '';
+  let viewerActionText = '';
   let viewerSummary = '当前以观赛身份查看，不会自动加入名单。';
   if (status === 'draft') {
     viewerActionKey = showViewOnlyJoinPrompt ? 'view_only_join' : 'share';
     viewerActionText = showViewOnlyJoinPrompt ? '我要加入' : '继续观赛';
     viewerSummary = '可以先看比赛信息，确定后再显式加入。';
   } else if (status === 'finished') {
-    viewerActionKey = 'ranking';
-    viewerActionText = '查看排名';
-    viewerSummary = '比赛已结束，可以直接查看排名结果。';
+    viewerActionKey = 'analytics';
+    viewerActionText = '查看赛事复盘';
+    viewerSummary = '比赛已结束，可以查看赛事复盘。';
   }
 
   const pendingNeedsSquad = status === 'draft' && mode === flow.MODE_SQUAD_DOUBLES;
@@ -374,10 +374,10 @@ function buildStatePanel(ctx) {
     if (isAdmin) {
       title = '开赛前准备';
       summary = !checkSettingsOk
-        ? '先保存比赛参数，再继续邀请成员和开赛。'
+        ? '先修改比赛信息，再继续转发和开始比赛。'
         : (!checkPlayersOk
-          ? '优先分享邀请，让名单先准备好。'
-          : '前置项已完成，可以直接开赛。');
+          ? '先转发比赛，让名单先准备好。'
+          : '前置项已完成，可以直接开始比赛。');
     } else if (showJoin) {
       title = '加入前确认';
       summary = mode === flow.MODE_SQUAD_DOUBLES
@@ -393,16 +393,16 @@ function buildStatePanel(ctx) {
   } else if (status === 'running') {
     if (canEditScore && hasPending) {
       title = '优先完成录分';
-      summary = '当前还有待录分比赛，先把比分录完，赛程和排名会同步更新。';
+      summary = '当前还有待录分比赛，先把比分录完。';
     } else {
-      title = '查看当前赛程';
-      summary = '比赛正在进行，当前更适合查看赛程和排名。';
+      title = '比赛进行中';
+      summary = '通过顶部切换查看对阵或排名。';
     }
   } else if (status === 'finished') {
     title = '比赛结果';
     summary = isAdmin
-      ? '比赛已结束，可查看排名、复盘，或直接再办一场。'
-      : '比赛已结束，可直接查看排名和赛事复盘。';
+      ? '比赛已结束，可查看排名与赛事复盘。'
+      : '比赛已结束，可查看排名与赛事复盘。';
   }
 
   return {
@@ -536,7 +536,7 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
     checkSettingsOk,
     checkPlayersOk,
     checkStartReady,
-    playersChecklistHint: players.length ? playersChecklistHint : '优先分享邀请，导入名单作备用'
+    playersChecklistHint: players.length ? playersChecklistHint : '优先转发比赛，导入名单作备用'
   });
   const roleView = buildRoleCards({
     status,
@@ -627,7 +627,6 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       pairTeamCandidates: pairTeamModel.pairTeamCandidates,
       pairTeamFirstIndex: pairTeamModel.pairTeamFirstIndex,
       pairTeamSecondIndex: pairTeamModel.pairTeamSecondIndex,
-      showScheduleShortcut: status === 'running' || status === 'finished',
       quickChecklistPending,
       checklistItems,
       checkPlayersOk,
@@ -652,11 +651,10 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       showStateChecklist: isAdmin && status === 'draft' && checklistItems.length > 0,
       showDraftRules: status === 'draft',
       showDraftAdminPanel: isAdmin && status === 'draft',
-      showAdminMaintenance: isAdmin && status !== 'draft',
       showViewOnlyJoinPrompt,
-      shareCardTitle: String(shareMessage.panelTitle || '分享比赛'),
+      shareCardTitle: String(shareMessage.panelTitle || '转发比赛'),
       shareCardBadge: String(shareMessage.badgeText || statusText),
-      shareButtonText: String(shareMessage.buttonText || '分享比赛链接'),
+      shareButtonText: String(shareMessage.buttonText || '转发'),
       joinSquadChoice: String((myPlayer && myPlayer.squad) || data.joinSquadChoice || 'A').trim().toUpperCase() === 'B' ? 'B' : 'A'
     }
   };

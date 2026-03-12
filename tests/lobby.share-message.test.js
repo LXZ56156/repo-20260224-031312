@@ -29,7 +29,7 @@ function createLobbyPageContext(definition, tournament) {
   return ctx;
 }
 
-test('lobby share title follows tournament lifecycle state', () => {
+test('lobby page uses a unified transfer contract across lifecycle states', () => {
   const definition = loadLobbyPageDefinition();
   try {
     const draftCtx = createLobbyPageContext(definition, { _id: 't_1', name: '周末比赛', status: 'draft' });
@@ -40,15 +40,12 @@ test('lobby share title follows tournament lifecycle state', () => {
     const runningShare = runningCtx.onShareAppMessage();
     const finishedShare = finishedCtx.onShareAppMessage();
 
-    assert.match(draftShare.title, /查看比赛信息/);
-    assert.doesNotMatch(draftShare.title, /邀请你参赛/);
-    assert.match(draftShare.path, /intent=join/);
-    assert.match(runningShare.title, /查看赛况与排名/);
-    assert.doesNotMatch(runningShare.title, /邀请你参赛/);
-    assert.match(runningShare.path, /intent=watch/);
-    assert.match(finishedShare.title, /查看结果与排名/);
-    assert.doesNotMatch(finishedShare.title, /邀请你参赛/);
-    assert.match(finishedShare.path, /intent=result/);
+    assert.equal(draftShare.title, '周末比赛 · 查看比赛');
+    assert.equal(draftShare.path, '/pages/share-entry/index?tournamentId=t_1');
+    assert.equal(runningShare.title, '周末比赛 · 查看比赛');
+    assert.equal(runningShare.path, '/pages/share-entry/index?tournamentId=t_1');
+    assert.equal(finishedShare.title, '周末比赛 · 查看比赛');
+    assert.equal(finishedShare.path, '/pages/share-entry/index?tournamentId=t_1');
   } finally {
     delete require.cache[lobbyPagePath];
   }

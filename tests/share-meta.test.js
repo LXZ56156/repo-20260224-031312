@@ -38,7 +38,7 @@ test('shareMeta builds join preview for draft tournaments', () => {
     openid: 'u_new'
   });
   assert.equal(preview.viewMode, 'join-preview');
-  assert.equal(preview.viewModeLabel, '先看后加入');
+  assert.equal(preview.viewModeLabel, '未加入');
   assert.equal(preview.joinAllowed, true);
   assert.equal(preview.primaryAction.text, '加入比赛');
   assert.equal(preview.secondaryAction, null);
@@ -55,26 +55,25 @@ test('shareMeta builds joined entry state for joined viewer', () => {
   assert.equal(preview.primaryAction.text, '进入比赛');
 });
 
-test('shareMeta builds live watch state for running tournament viewers', () => {
+test('shareMeta keeps unjoined running viewers on the same not-joined surface', () => {
   const preview = shareMeta.buildShareEntryViewModel({
     tournament: buildTournament('running'),
     openid: 'u_new'
   });
-  assert.equal(preview.viewMode, 'live-watch');
-  assert.equal(preview.primaryAction.text, '查看赛况');
+  assert.equal(preview.viewMode, 'join-closed');
+  assert.equal(preview.primaryAction.text, '查看比赛');
   assert.equal(preview.secondaryAction, null);
-  assert.equal(preview.showRankingPreview, true);
-  assert.equal(preview.rankingsPreview[0].name, '组织者');
-  assert.match(preview.currentRoundText, /轮/);
+  assert.equal(preview.showRankingPreview, false);
+  assert.match(preview.progressText, /已完成/);
 });
 
-test('shareMeta builds result view state for finished tournament viewers', () => {
+test('shareMeta keeps unjoined finished viewers on the same not-joined surface', () => {
   const preview = shareMeta.buildShareEntryViewModel({
     tournament: buildTournament('finished'),
     openid: 'u_new'
   });
-  assert.equal(preview.viewMode, 'result-view');
-  assert.equal(preview.primaryAction.text, '查看结果');
+  assert.equal(preview.viewMode, 'join-closed');
+  assert.equal(preview.primaryAction.text, '查看比赛');
   assert.equal(preview.secondaryAction, null);
   assert.match(preview.progressText, /已完成 1\/1 场/);
 });
@@ -94,15 +93,16 @@ test('shareMeta can build retryable sync failure state separately from invalid l
   assert.equal(preview.secondaryAction.text, '返回首页');
 });
 
-test('shareMeta builds share copy based on tournament lifecycle', () => {
+test('shareMeta builds lifecycle-agnostic share copy', () => {
   const draftShare = shareMeta.buildShareMessage(buildTournament('draft'));
   const runningShare = shareMeta.buildShareMessage(buildTournament('running'));
   const finishedShare = shareMeta.buildShareMessage(buildTournament('finished'));
 
-  assert.match(draftShare.title, /查看比赛信息/);
-  assert.equal(draftShare.intent, 'join');
-  assert.match(runningShare.title, /查看赛况与排名/);
-  assert.equal(runningShare.intent, 'watch');
-  assert.match(finishedShare.title, /查看结果与排名/);
-  assert.equal(finishedShare.intent, 'result');
+  assert.equal(draftShare.title, '周末友谊赛 · 查看比赛');
+  assert.equal(draftShare.intent, 'view');
+  assert.equal(draftShare.buttonText, '转发');
+  assert.equal(runningShare.title, '周末友谊赛 · 查看比赛');
+  assert.equal(runningShare.path, '/pages/share-entry/index?tournamentId=t_1');
+  assert.equal(finishedShare.title, '周末友谊赛 · 查看比赛');
+  assert.equal(finishedShare.panelTitle, '转发比赛');
 });

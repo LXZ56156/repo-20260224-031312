@@ -2,6 +2,7 @@ const storage = require('../../core/storage');
 const shareMeta = require('../../core/shareMeta');
 const flow = require('../../core/uxFlow');
 const nav = require('../../core/nav');
+const matchPrimaryNav = require('../../core/matchPrimaryNav');
 const pageTimers = require('../../core/pageTimers');
 const pageTournamentSync = require('../../core/pageTournamentSync');
 const retryAction = require('../../core/retryAction');
@@ -66,7 +67,8 @@ Page({
     showStateChecklist: false,
     showDraftRules: true,
     showDraftAdminPanel: false,
-    showAdminMaintenance: false,
+    primaryNavCurrent: 'match',
+    primaryNavItems: [],
 
     createdAtText: '',
     kpiReady: false,
@@ -126,14 +128,13 @@ Page({
     nextActionKey: '',
     nextActionText: '',
     nextActionDetail: '',
-    showScheduleShortcut: false,
     quickChecklistPending: 0,
     checklistItems: [],
 
     sharePulse: false,
-    shareCardTitle: '分享比赛',
-    shareCardBadge: '主路径',
-    shareButtonText: '分享比赛链接',
+    shareCardTitle: '转发比赛',
+    shareCardBadge: '比赛',
+    shareButtonText: '转发',
     networkOffline: false,
     showStaleSyncHint: false,
     syncRefreshing: false,
@@ -170,7 +171,8 @@ Page({
     this.setData({
       tournamentId: tid,
       entryMode,
-      viewOnlyJoinExpanded: false
+      viewOnlyJoinExpanded: false,
+      primaryNavItems: matchPrimaryNav.getPrimaryNavItems('match', tid)
     });
     this._fromCreate = String((options && options.fromCreate) || '') === '1';
     this._showShareHint = this._fromCreate && String((options && options.shareTip) || '') === '1';
@@ -238,6 +240,11 @@ Page({
     nav.consumeRefreshFlag(currentId);
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
     if (this.data.tournamentId && !this.watcher) this.startWatch(this.data.tournamentId);
+  },
+
+  onPrimaryNavTap(e) {
+    const key = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.key) || '').trim();
+    matchPrimaryNav.navigateToPrimary(key, this.data.tournamentId, 'match');
   },
 
   goHome() {
@@ -316,11 +323,10 @@ Page({
   },
 
   onShareAppMessage() {
-    const tid = this.data.tournamentId;
     const meta = shareMeta.buildShareMessage(this.data.tournament);
     return {
       title: meta.title,
-      path: `/pages/share-entry/index?tournamentId=${tid}&intent=${encodeURIComponent(String(meta.intent || 'view'))}`
+      path: meta.path
     };
   }
 });

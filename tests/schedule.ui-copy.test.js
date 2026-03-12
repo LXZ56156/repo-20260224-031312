@@ -8,8 +8,9 @@ test('schedule page hero focuses on current tournament state', () => {
     path.join(__dirname, '..', 'miniprogram/pages/schedule/index.wxml'),
     'utf8'
   );
-  assert.match(wxml, /当前赛程/);
+  assert.match(wxml, /当前对阵/);
   assert.match(wxml, /heroRoundText/);
   assert.match(wxml, /heroPendingText/);
-  assert.doesNotMatch(wxml, /<view class="hero-title">赛程<\/view>/);
+  assert.doesNotMatch(wxml, /open-type="share"/);
+  assert.doesNotMatch(wxml, /去大厅/);
 });

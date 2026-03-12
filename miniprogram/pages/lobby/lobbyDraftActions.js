@@ -15,13 +15,11 @@ module.exports = {
       profile_join: () => this.submitProfile(),
       profile_save: () => this.submitProfile(),
       view_only_join: () => this.enterJoinFromViewOnly(),
-      settings: () => this.focusQuickConfigArea(),
+      settings: () => this.goEditTournament(),
       quickImport: () => this.focusQuickImportArea(),
       start: () => this.handleStart(),
       batch: () => this.goBatchScoring(),
       analytics: () => this.goAnalytics(),
-      schedule: () => this.goSchedule(),
-      ranking: () => this.goRanking(),
       clone: () => this.cloneCurrentTournament(),
       share: () => this.focusShareInviteArea()
     };
@@ -69,10 +67,6 @@ module.exports = {
     return out;
   },
 
-  goSchedule() {
-    wx.navigateTo({ url: `/pages/schedule/index?tournamentId=${this.data.tournamentId}` });
-  },
-
   goSettings(section = '') {
     const tid = String(this.data.tournamentId || '').trim();
     if (!tid) return;
@@ -81,20 +75,12 @@ module.exports = {
     wx.navigateTo({ url: `/pages/settings/index?tournamentId=${tid}${suffix}` });
   },
 
-  goRanking() {
-    wx.navigateTo({ url: `/pages/ranking/index?tournamentId=${this.data.tournamentId}` });
+  goEditTournament() {
+    this.goSettings('params');
   },
 
   goAnalytics() {
     wx.navigateTo({ url: `/pages/analytics/index?tournamentId=${this.data.tournamentId}` });
-  },
-
-  focusQuickConfigArea() {
-    try {
-      wx.pageScrollTo({ selector: '#quick-config', duration: 220 });
-    } catch (_) {
-      // ignore
-    }
   },
 
   focusShareInviteArea() {
@@ -327,8 +313,7 @@ module.exports = {
   onChecklistTap(e) {
     const key = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.key) || '').trim();
     if (key === 'settings') {
-      if (this.data.checkSettingsOk) this.goSettings('params');
-      else this.focusQuickConfigArea();
+      this.goEditTournament();
       return;
     }
     if (key === 'players') {
@@ -340,7 +325,7 @@ module.exports = {
         this.handleStart();
         return;
       }
-      if (!this.data.checkSettingsOk) this.focusQuickConfigArea();
+      if (!this.data.checkSettingsOk) this.goEditTournament();
       else this.focusShareInviteArea();
     }
   },
@@ -413,14 +398,14 @@ module.exports = {
       return;
     }
     if (!this.data.checkSettingsOk) {
-      wx.showToast({ title: '请先保存比赛参数', icon: 'none' });
+      wx.showToast({ title: '请先修改比赛信息', icon: 'none' });
       return;
     }
 
     const actionKey = `lobby:startTournament:${this.data.tournamentId}`;
     if (actionGuard.isBusy(actionKey)) return;
     return actionGuard.run(actionKey, async () => {
-      wx.showLoading({ title: '生成赛程...' });
+      wx.showLoading({ title: '生成对阵...' });
       try {
         const schedulerProfile = storage.getSchedulerProfile();
         cloud.assertWriteResult(await cloud.call('startTournament', {
@@ -436,32 +421,47 @@ module.exports = {
         }, 280);
       } catch (err) {
         wx.hideLoading();
-        this.setLastFailedAction('开赛并锁定赛程', () => this.handleStart());
+        this.setLastFailedAction('开始比赛', () => this.handleStart());
         this.handleWriteError(err, '开赛失败', () => this.fetchTournament(this.data.tournamentId));
       }
     });
   },
 
-  async handleReset() {
+  async cancelTournament() {
+    const tournament = this.data.tournament;
+    if (!tournament || !this.data.isAdmin) return;
+    if (String(tournament.status || '').trim() !== 'draft') {
+      wx.showToast({ title: '仅草稿阶段可取消', icon: 'none' });
+      return;
+    }
     wx.showModal({
-      title: '确认重置？',
-      content: '将清空赛程与比分，回到草稿状态。',
+      title: '确认取消比赛？',
+      content: '删除后转发失效、不可恢复。',
+      confirmText: '取消比赛',
+      confirmColor: '#ef4444',
       success: async (res) => {
         if (!res.confirm) return;
-        const actionKey = `lobby:resetTournament:${this.data.tournamentId}`;
+        const actionKey = `lobby:cancelTournament:${this.data.tournamentId}`;
         if (actionGuard.isBusy(actionKey)) return;
         await actionGuard.run(actionKey, async () => {
-          wx.showLoading({ title: '重置中...' });
+          wx.showLoading({ title: '取消中...' });
           try {
-            await cloud.call('resetTournament', { tournamentId: this.data.tournamentId });
+            await cloud.call('deleteTournament', { tournamentId: this.data.tournamentId });
             wx.hideLoading();
             this.clearLastFailedAction();
-            wx.showToast({ title: '已重置', icon: 'success' });
+            storage.removeRecentTournamentId(this.data.tournamentId);
+            storage.removeLocalCompletedTournamentSnapshot(this.data.tournamentId);
+            storage.removeLocalTournamentCache(this.data.tournamentId);
+            wx.showToast({ title: '已取消', icon: 'success' });
             nav.markRefreshFlag(this.data.tournamentId);
+            wx.reLaunch({
+              url: '/pages/home/index',
+              fail: () => wx.navigateTo({ url: '/pages/home/index' })
+            });
           } catch (err) {
             wx.hideLoading();
-            this.setLastFailedAction('重置赛事', () => this.handleReset());
-            this.handleWriteError(err, '重置失败', () => this.fetchTournament(this.data.tournamentId));
+            this.setLastFailedAction('取消比赛', () => this.cancelTournament());
+            this.handleWriteError(err, '取消失败', () => this.fetchTournament(this.data.tournamentId));
           }
         });
       }

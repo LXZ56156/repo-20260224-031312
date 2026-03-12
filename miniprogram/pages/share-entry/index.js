@@ -209,7 +209,7 @@ Page({
         ...preview,
         viewModeLabel: '游客查看',
         availabilityText: '身份识别较慢，你可以先以游客身份查看比赛，稍后仍可加入。',
-        primaryAction: { key: 'lobby_view', text: '先观赛' },
+        primaryAction: { key: 'view', text: '查看比赛' },
         secondaryAction: null
       };
     }
@@ -237,18 +237,6 @@ Page({
 
   goLobby(entryMode = '') {
     wx.navigateTo({ url: flow.buildLobbyUrl(this.data.tournamentId, entryMode) });
-  },
-
-  goSchedule() {
-    wx.navigateTo({ url: flow.buildScheduleUrl(this.data.tournamentId) });
-  },
-
-  goRanking() {
-    wx.navigateTo({ url: flow.buildRankingUrl(this.data.tournamentId) });
-  },
-
-  goAnalytics() {
-    wx.navigateTo({ url: flow.buildAnalyticsUrl(this.data.tournamentId) });
   },
 
   goHome() {
@@ -303,10 +291,8 @@ Page({
     const key = String((this.data.preview && this.data.preview.primaryAction && this.data.preview.primaryAction.key) || '').trim();
     if (key === 'identity_pending') return;
     if (key === 'join') return this.handleJoin();
-    if (key === 'lobby_view') return this.goLobby('view_only');
+    if (key === 'view' || key === 'lobby_view') return this.goLobby('view_only');
     if (key === 'enter') return this.goLobby();
-    if (key === 'watch') return this.goSchedule();
-    if (key === 'result') return this.goAnalytics();
     return this.onRetry();
   },
 

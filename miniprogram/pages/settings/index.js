@@ -11,9 +11,10 @@ Page({
   data: {
     tournamentId: '',
     tournament: null,
-    pageTitle: '高级参数',
+    pageTitle: '修改比赛',
     contextTitle: '',
     isAdmin: false,
+    name: '',
     editM: 0,
     editC: 1,
     useSimpleMPicker: true,
@@ -26,13 +27,26 @@ Page({
     mode: flow.MODE_MULTI_ROTATE,
     modeLabel: flow.getModeLabel(flow.MODE_MULTI_ROTATE),
     allowOpenTeam: false,
-    genderOptions: ['未设', '男', '女'],
     maxMatches: 0,
     suggestedMatches: 1,
     capacityMax: 1,
     capacityHintShort: '',
     capacityReason: 'time',
     rosterHint: '',
+    pointsOptions: settingsViewModel.POINT_OPTIONS,
+    pointsPerGame: 21,
+    pointsIndex: 2,
+    endConditionOptions: settingsViewModel.END_CONDITION_OPTIONS,
+    endConditionType: 'total_matches',
+    endConditionIndex: 0,
+    endConditionTargetOptions: Array.from({ length: 200 }, (_, i) => i + 1),
+    endConditionTarget: 8,
+    endConditionTargetIndex: 7,
+    endConditionTargetLabel: '总场数（自动）',
+    endConditionTargetUnit: '场',
+    endConditionTargetHint: '',
+    showEndConditionTargetPicker: false,
+    showSquadEndCondition: false,
     sessionMinuteOptions: flow.SESSION_MINUTE_OPTIONS,
     slotMinuteOptions: flow.SLOT_MINUTE_OPTIONS,
     sessionMinutes: flow.DEFAULT_SESSION_MINUTES,
@@ -41,12 +55,8 @@ Page({
     slotMinuteIndex: Math.max(0, flow.SLOT_MINUTE_OPTIONS.indexOf(flow.DEFAULT_SLOT_MINUTES)),
     isDraft: false,
     settingsReady: false,
-    playersReady: false,
-    playersCount: 0,
-    playersGap: 0,
-    playersStatusText: '',
     mandatoryDone: 0,
-    mandatoryTotal: 2,
+    mandatoryTotal: 1,
     networkOffline: false,
     settingsBusy: false,
     canRetryAction: false,
@@ -132,8 +142,7 @@ Page({
 
     if (this._initialSection) {
       const sectionMap = {
-        params: '#section-params',
-        players: '#section-players'
+        params: '#section-params'
       };
       const selector = sectionMap[this._initialSection];
       this._initialSection = '';

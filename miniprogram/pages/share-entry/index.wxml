@@ -67,6 +67,14 @@
         <text class="share-fact-value">{{preview.statusText}}</text>
       </view>
       <view class="share-fact">
+        <text class="share-fact-label">人数</text>
+        <text class="share-fact-value">{{preview.playersCountText}}</text>
+      </view>
+      <view class="share-fact">
+        <text class="share-fact-label">进度</text>
+        <text class="share-fact-value">{{preview.progressText}}</text>
+      </view>
+      <view class="share-fact">
         <text class="share-fact-label">时间</text>
         <text class="share-fact-value">{{preview.timeText}}</text>
       </view>
@@ -75,27 +83,6 @@
         <text class="share-fact-value">{{preview.venueText}}</text>
       </view>
     </view>
-  </view>
-
-  <view class="card panel" wx:if="{{preview.showProgressSummary}}">
-    <view class="section-head">
-      <view class="section-title">{{preview.rankingTitle}}</view>
-      <text class="count-pill">{{preview.roundsText}}</text>
-    </view>
-    <view class="progress-summary">
-      <view class="summary-value">{{preview.progressText}}</view>
-      <view class="muted small">{{preview.currentRoundText}} · {{preview.roundsText}}</view>
-    </view>
-    <view class="ranking-preview" wx:if="{{preview.showRankingPreview}}">
-      <view class="ranking-row" wx:for="{{preview.rankingsPreview}}" wx:key="rank">
-        <view class="ranking-left">
-          <text class="ranking-rank">#{{item.rank}}</text>
-          <text class="ranking-name">{{item.name}}</text>
-        </view>
-        <view class="ranking-right">{{item.wins}} 胜 {{item.losses}} 负 · 净胜 {{item.pointDiff}}</view>
-      </view>
-    </view>
-    <view class="muted small" wx:else>暂无排名摘要</view>
   </view>
 
   <view class="card panel panel-soft" wx:if="{{loadError && !tournament}}">

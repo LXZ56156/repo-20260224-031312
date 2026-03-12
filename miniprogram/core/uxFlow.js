@@ -24,10 +24,10 @@ const ACTION_TEMPLATES = {
   join: { text: '加入参赛' },
   settings: { text: '去保存参数' },
   quickImport: { text: '去导入名单' },
-  start: { text: '开赛并锁定赛程' },
+  start: { text: '开始比赛' },
   batch: { text: '去批量录分' },
   analytics: { text: '查看赛事复盘' },
-  schedule: { text: '查看赛程' },
+  schedule: { text: '查看对阵' },
   ranking: { text: '查看排名' }
 };
 

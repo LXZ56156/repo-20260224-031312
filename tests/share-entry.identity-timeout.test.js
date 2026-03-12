@@ -113,7 +113,7 @@ test('share-entry falls back to guest spectating when identity lookup times out'
 
     assert.equal(ctx.data.identityPending, false);
     assert.equal(ctx.data.identityTimedOut, true);
-    assert.equal(ctx.data.preview.primaryAction.key, 'lobby_view');
+    assert.equal(ctx.data.preview.primaryAction.key, 'view');
     assert.equal(ctx.data.preview.secondaryAction, null);
     assert.match(String(ctx.data.preview.availabilityText || ''), /游客身份/);
   } finally {

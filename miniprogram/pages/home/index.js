@@ -572,56 +572,11 @@ Page({
   async onDeleteTap(e) {
     const id = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.id) || '').trim();
     if (!id) return;
-
-    const openid = (getApp().globalData.openid || storage.get('openid', ''));
-    const item = (this.data.items || []).find((x) => x && x._id === id) || {};
-    const isCreator = !!(item.creatorId && openid && item.creatorId === openid);
-    const canDeleteCloud = isCreator && item.status !== 'missing';
-
-    const itemList = canDeleteCloud ? ['仅删除本机记录', '删除云端赛事'] : ['仅删除本机记录'];
-    wx.showActionSheet({
-      itemList,
-      success: async (res) => {
-        const tapIndex = res.tapIndex;
-        if (tapIndex === 0) {
-          storage.removeRecentTournamentId(id);
-          storage.removeLocalCompletedTournamentSnapshot(id);
-          storage.removeLocalTournamentCache(id);
-          this.clearLastFailedAction();
-          this.loadRecents();
-          return;
-        }
-        if (tapIndex === 1 && canDeleteCloud) {
-          wx.showModal({
-            title: '删除云端赛事？',
-            content: '该操作不可恢复。删除后，群内分享链接将失效。',
-            confirmText: '删除',
-            confirmColor: '#ef4444',
-            success: async (r) => {
-              if (!r.confirm) return;
-              const actionKey = `home:deleteTournament:${id}`;
-              if (actionGuard.isBusy(actionKey)) return;
-              await actionGuard.run(actionKey, async () => {
-                wx.showLoading({ title: '删除中...' });
-                try {
-                  await cloud.call('deleteTournament', { tournamentId: id });
-                  wx.hideLoading();
-                  this.clearLastFailedAction();
-                  storage.removeRecentTournamentId(id);
-                  storage.removeLocalCompletedTournamentSnapshot(id);
-                  storage.removeLocalTournamentCache(id);
-                  await this.loadRecents();
-                  wx.showToast({ title: '已删除', icon: 'success' });
-                } catch (err) {
-                  wx.hideLoading();
-                  this.setLastFailedAction('删除云端赛事', () => this.onDeleteTap({ currentTarget: { dataset: { id } } }));
-                  this.handleWriteError(err, '删除失败', () => this.loadRecents());
-                }
-              });
-            }
-          });
-        }
-      }
-    });
+    storage.removeRecentTournamentId(id);
+    storage.removeLocalCompletedTournamentSnapshot(id);
+    storage.removeLocalTournamentCache(id);
+    this.clearLastFailedAction();
+    await this.loadRecents();
+    wx.showToast({ title: '已清理本机记录', icon: 'success' });
   }
 });

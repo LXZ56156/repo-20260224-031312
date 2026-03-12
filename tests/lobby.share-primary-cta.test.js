@@ -5,18 +5,22 @@ const path = require('node:path');
 
 const draftActions = require('../miniprogram/pages/lobby/lobbyDraftActions');
 
-test('lobby draft UI keeps share invite ahead of admin import area without extra share shortcuts', () => {
-  const wxml = fs.readFileSync(
-    path.join(__dirname, '..', 'miniprogram/pages/lobby/index.wxml'),
-    'utf8'
-  );
+function readPage(relativePath) {
+  return fs.readFileSync(path.join(__dirname, '..', relativePath), 'utf8');
+}
+
+test('only the match page keeps an explicit transfer button', () => {
+  const wxml = readPage('miniprogram/pages/lobby/index.wxml');
+  const scheduleWxml = readPage('miniprogram/pages/schedule/index.wxml');
+  const analyticsWxml = readPage('miniprogram/pages/analytics/index.wxml');
   const shareIndex = wxml.indexOf('id="share-invite"');
-  const importIndex = wxml.indexOf('备用：导入名单');
+  const importIndex = wxml.indexOf('导入名单');
   assert.notEqual(shareIndex, -1);
   assert.notEqual(importIndex, -1);
   assert.ok(shareIndex < importIndex);
   assert.match(wxml, /open-type="share">\{\{shareButtonText\}\}<\/button>/);
-  assert.doesNotMatch(wxml, /bindtap="focusQuickImportArea"/);
+  assert.doesNotMatch(scheduleWxml, /open-type="share"/);
+  assert.doesNotMatch(analyticsWxml, /open-type="share"/);
 });
 
 test('lobby checklist routes player preparation to share invite area', () => {

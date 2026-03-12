@@ -4,6 +4,7 @@ const playerUtils = require('../../core/playerUtils');
 const perm = require('../../permission/permission');
 const nav = require('../../core/nav');
 const pageTournamentSync = require('../../core/pageTournamentSync');
+const matchPrimaryNav = require('../../core/matchPrimaryNav');
 const shareMeta = require('../../core/shareMeta');
 const flow = require('../../core/uxFlow');
 
@@ -173,7 +174,8 @@ Page({
     firstPendingMatchIndex: -1,
     nextActionKey: '',
     nextActionText: '',
-    shareButtonText: '分享比赛链接',
+    primaryNavCurrent: 'schedule',
+    primaryNavItems: [],
     networkOffline: false,
     showStaleSyncHint: false,
     loadError: false,
@@ -195,7 +197,10 @@ Page({
     const tid = options.tournamentId;
     this.openid = (getApp().globalData.openid || storage.get('openid', ''));
     pageTournamentSync.initTournamentSync(this);
-    this.setData({ tournamentId: tid });
+    this.setData({
+      tournamentId: tid,
+      primaryNavItems: matchPrimaryNav.getPrimaryNavItems('schedule', tid)
+    });
 
     const app = getApp();
     const initialOffline = !!(app && app.globalData && app.globalData.networkOffline);
@@ -249,16 +254,10 @@ Page({
     if (status === 'running' && canEditScore && firstPending) {
       nextActionKey = 'batch';
       nextActionText = '继续录分';
-    } else if (status === 'finished') {
-      nextActionKey = 'analytics';
-      nextActionText = '查看赛事复盘';
-    } else if (status === 'running') {
-      nextActionKey = 'ranking';
-      nextActionText = '查看排名';
     }
 
     const heroSummaryText = status === 'draft'
-      ? `${modeLabel} · 开赛后生成赛程`
+      ? `${modeLabel} · 开赛后生成对阵`
       : `${modeLabel} · ${roundsSummary.totalRounds || 0} 轮`;
     const heroRoundText = roundsSummary.totalRounds ? `${roundsSummary.totalRounds} 轮` : '未排赛';
     const heroMatchText = roundsSummary.totalMatches
@@ -284,16 +283,13 @@ Page({
       firstPendingRoundIndex: firstPending ? firstPending.roundIndex : -1,
       firstPendingMatchIndex: firstPending ? firstPending.matchIndex : -1,
       nextActionKey,
-      nextActionText,
-      shareButtonText: String((shareMeta.buildShareMessage(t) || {}).buttonText || '分享比赛链接')
+      nextActionText
     });
   },
 
   onHeroActionTap() {
     const key = String(this.data.nextActionKey || '').trim();
     if (key === 'batch') return this.goBatchScoring();
-    if (key === 'analytics') return this.goAnalytics();
-    if (key === 'ranking') return this.goRanking();
   },
 
   openMatch(e) {
@@ -327,24 +323,16 @@ Page({
     });
   },
 
-  goAnalytics() {
-    wx.navigateTo({ url: `/pages/analytics/index?tournamentId=${this.data.tournamentId}` });
-  },
-
-  goRanking() {
-    wx.navigateTo({ url: `/pages/ranking/index?tournamentId=${this.data.tournamentId}` });
-  },
-
-  goLobby() {
-    wx.navigateTo({ url: `/pages/lobby/index?tournamentId=${this.data.tournamentId}` });
+  onPrimaryNavTap(e) {
+    const key = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.key) || '').trim();
+    matchPrimaryNav.navigateToPrimary(key, this.data.tournamentId, 'schedule');
   },
 
   onShareAppMessage() {
-    const tid = String(this.data.tournamentId || '').trim();
     const meta = shareMeta.buildShareMessage(this.data.tournament);
     return {
       title: meta.title,
-      path: `/pages/share-entry/index?tournamentId=${encodeURIComponent(tid)}&intent=${encodeURIComponent(String(meta.intent || 'view'))}`
+      path: meta.path
     };
   }
 });

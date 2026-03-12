@@ -32,15 +32,15 @@ test('lobby view model partitions admin role flow and promotes share before back
 
   assert.equal(result.patch.currentRoleKey, 'admin');
   assert.equal(result.patch.nextActionKey, 'share');
-  assert.equal(result.patch.nextActionText, '去分享邀请');
+  assert.equal(result.patch.nextActionText, '转发');
   assert.equal(result.patch.statePanelTitle, '开赛前准备');
   assert.equal(result.patch.statePrimaryActionKey, 'share');
-  assert.equal(result.patch.statePrimaryActionText, '去分享邀请');
+  assert.equal(result.patch.statePrimaryActionText, '转发');
   assert.deepEqual(
     result.patch.roleCards.map((item) => item.key),
     ['admin', 'joined', 'viewer', 'profile_pending']
   );
-  assert.equal(result.patch.checklistItems[1].actionText, '去分享');
+  assert.equal(result.patch.checklistItems[1].actionText, '去转发');
   assert.equal(result.patch.stateSecondaryActions, undefined);
 });
 
@@ -90,5 +90,5 @@ test('lobby view model turns finished state into result-first actions', () => {
   assert.equal(result.patch.statePrimaryActionKey, 'analytics');
   assert.equal(result.patch.stateSecondaryActions, undefined);
   assert.equal(result.patch.showDraftRules, false);
-  assert.equal(result.patch.showAdminMaintenance, true);
+  assert.equal(result.patch.showDraftAdminPanel, false);
 });

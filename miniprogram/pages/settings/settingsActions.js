@@ -9,7 +9,7 @@ const viewModel = require('./settingsViewModel');
 module.exports = {
   handleWriteError(err, fallbackMessage, onRefresh) {
     retryAction.presentWriteError(this, err, fallbackMessage, {
-      conflictContent: '数据已被其他人更新，刷新后可继续当前设置。',
+      conflictContent: '数据已被其他人更新，刷新后可继续修改比赛。',
       onRefresh
     });
   },
@@ -23,28 +23,6 @@ module.exports = {
     }
   },
 
-  onPrepActionTap(e) {
-    const key = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.key) || '').trim();
-    if (key === 'params') {
-      this.scrollToSection('#section-params');
-      return;
-    }
-    if (key === 'players') {
-      if (this.data.isAdmin && this.data.isDraft) {
-        this.goLobbyManagePlayers();
-        return;
-      }
-      this.scrollToSection('#section-players');
-    }
-  },
-
-  goLobbyManagePlayers() {
-    const tid = String(this.data.tournamentId || '').trim();
-    if (!tid) return;
-    nav.setLobbyIntent(tid, 'quickImport');
-    nav.navigateBackOrRedirect(`/pages/lobby/index?tournamentId=${tid}`);
-  },
-
   goHome() {
     wx.reLaunch({
       url: '/pages/home/index',
@@ -52,10 +30,19 @@ module.exports = {
     });
   },
 
+  onNameInput(e) {
+    this.setData({ name: String((e && e.detail && e.detail.value) || '') });
+  },
+
   onPickTotalMatchesSimple(e) {
     const idx = Number(e.detail.value);
     const m = (this.data.mOptions || [])[idx] || 1;
-    this.setData({ editM: m, mIndex: idx });
+    const next = { editM: m, mIndex: idx };
+    if (this.data.endConditionType === 'total_matches') {
+      next.endConditionTarget = m;
+      next.endConditionTargetIndex = Math.max(0, m - 1);
+    }
+    this.setData(next, () => this.syncEndConditionUi());
   },
 
   onPickTotalMatches(e) {
@@ -68,13 +55,21 @@ module.exports = {
       wx.showToast({ title: `已限制为最大可选 ${maxMatches} 场`, icon: 'none' });
     }
     const len = (this.data.mDigitRange || []).length || digitValue.length;
-    this.setData({ editM: m, mDigitValue: viewModel.valueToDigitValue(m, len) });
+    const next = { editM: m, mDigitValue: viewModel.valueToDigitValue(m, len) };
+    if (this.data.endConditionType === 'total_matches') {
+      next.endConditionTarget = m;
+      next.endConditionTargetIndex = Math.max(0, m - 1);
+    }
+    this.setData(next, () => this.syncEndConditionUi());
   },
 
   onPickCourts(e) {
     const idx = Number(e.detail.value);
     const courts = (this.data.courtOptions || [])[idx] || 1;
-    this.setData({ editC: courts, courtIndex: idx }, () => this.refreshRecommendations());
+    this.setData({ editC: courts, courtIndex: idx }, () => {
+      this.syncEndConditionUi();
+      this.refreshRecommendations();
+    });
   },
 
   onPickSessionMinutes(e) {
@@ -93,13 +88,70 @@ module.exports = {
     this.setData({ slotMinutes, slotMinuteIndex: idx }, () => this.refreshRecommendations());
   },
 
+  onPickPointsPerGame(e) {
+    const idx = Number(e.detail.value);
+    const options = this.data.pointsOptions || viewModel.POINT_OPTIONS;
+    const pointsPerGame = Number(options[idx] || 21);
+    this.setData({ pointsPerGame, pointsIndex: idx });
+  },
+
+  onPickEndConditionType(e) {
+    const idx = Number(e.detail.value);
+    const options = this.data.endConditionOptions || viewModel.END_CONDITION_OPTIONS;
+    const item = options[idx] || options[0] || { key: 'total_matches' };
+    const endConditionType = viewModel.normalizeEndConditionType(item.key);
+    const suggestedTarget = viewModel.suggestEndConditionTarget(
+      endConditionType,
+      this.data.editM,
+      this.data.editC
+    );
+    const nextTarget = viewModel.clampTarget(suggestedTarget, this.data.endConditionTargetOptions);
+    this.setData({
+      endConditionType,
+      endConditionIndex: idx,
+      endConditionTarget: nextTarget,
+      endConditionTargetIndex: Math.max(0, nextTarget - 1)
+    }, () => this.syncEndConditionUi());
+  },
+
+  onPickEndConditionTarget(e) {
+    const idx = Number(e.detail.value);
+    const options = this.data.endConditionTargetOptions || [];
+    const target = Number(options[idx] || 1);
+    this.setData({
+      endConditionTarget: target,
+      endConditionTargetIndex: idx
+    }, () => this.syncEndConditionUi());
+  },
+
+  syncEndConditionUi() {
+    const type = viewModel.normalizeEndConditionType(this.data.endConditionType);
+    const target = viewModel.clampTarget(this.data.endConditionTarget, this.data.endConditionTargetOptions);
+    const ui = viewModel.buildEndConditionUi(type, target);
+    const patch = {
+      endConditionType: type,
+      endConditionTarget: target,
+      endConditionTargetIndex: Math.max(0, target - 1),
+      endConditionTargetLabel: ui.targetLabel,
+      endConditionTargetUnit: ui.targetUnit,
+      endConditionTargetHint: ui.targetHint,
+      showEndConditionTargetPicker: ui.showTargetPicker
+    };
+    if (type === 'total_matches') {
+      patch.endConditionTarget = Math.max(1, Number(this.data.editM) || 1);
+      patch.endConditionTargetIndex = Math.max(0, patch.endConditionTarget - 1);
+      patch.endConditionTargetHint = viewModel.buildEndConditionUi(type, patch.endConditionTarget).targetHint;
+    }
+    this.setData(patch);
+  },
+
   refreshRecommendations() {
     const tournament = this.data.tournament || {};
     const players = Array.isArray(tournament.players) ? tournament.players : [];
     const { recommendation } = viewModel.buildRecommendationState({
       mode: this.data.mode,
       players,
-      playersCount: Number(this.data.playersCount) || 0,
+      playersCount: players.length,
       courts: this.data.editC,
       sessionMinutes: this.data.sessionMinutes,
       slotMinutes: this.data.slotMinutes,
@@ -120,6 +172,13 @@ module.exports = {
       wx.showToast({ title: '非草稿阶段不可修改', icon: 'none' });
       return;
     }
+
+    const name = String(this.data.name || '').trim();
+    if (!name) {
+      wx.showToast({ title: '请输入赛事名称', icon: 'none' });
+      return;
+    }
+
     const maxMatches = Number(this.data.maxMatches) || 0;
     const M = Number(this.data.editM) || 1;
     const C = Math.max(1, Math.min(10, Number(this.data.editC) || 1));
@@ -128,6 +187,13 @@ module.exports = {
       return;
     }
 
+    const endConditionType = this.data.showSquadEndCondition
+      ? viewModel.normalizeEndConditionType(this.data.endConditionType)
+      : 'total_matches';
+    const endConditionTarget = endConditionType === 'total_matches'
+      ? M
+      : viewModel.clampTarget(this.data.endConditionTarget, this.data.endConditionTargetOptions);
+
     const actionKey = `settings:updateSettings:${this.data.tournamentId}`;
     if (actionGuard.isBusy(actionKey)) return;
     return actionGuard.runWithPageBusy(this, 'settingsBusy', actionKey, async () => {
@@ -135,13 +201,17 @@ module.exports = {
       try {
         cloud.assertWriteResult(await cloud.call('updateSettings', {
           tournamentId: this.data.tournamentId,
+          name,
           totalMatches: M,
           courts: C,
-          allowOpenTeam: this.data.allowOpenTeam
+          allowOpenTeam: false,
+          pointsPerGame: Number(this.data.pointsPerGame) || 21,
+          endConditionType,
+          endConditionTarget
         }), '保存失败');
         wx.hideLoading();
         this.clearLastFailedAction();
-        wx.showToast({ title: maxMatches > 0 ? '已保存' : '已预配置', icon: 'success' });
+        wx.showToast({ title: '已保存', icon: 'success' });
         await this.fetchTournament(this.data.tournamentId);
         nav.markRefreshFlag(this.data.tournamentId);
         if (this._autoBackTimer) clearTimeout(this._autoBackTimer);
@@ -150,77 +220,8 @@ module.exports = {
         }, 420);
       } catch (e) {
         wx.hideLoading();
-        this.setLastFailedAction('保存参数', () => this.saveSettings());
+        this.setLastFailedAction('修改比赛', () => this.saveSettings());
         this.handleWriteError(e, '保存失败', () => this.fetchTournament(this.data.tournamentId));
-      }
-    });
-  },
-
-  onAllowOpenChange(e) {
-    const allowOpenTeam = !!(e && e.detail && e.detail.value);
-    this.setData({ allowOpenTeam }, () => this.refreshRecommendations());
-  },
-
-  async onPickPlayerGender(e) {
-    if (!this.data.isAdmin || !this.data.isDraft) return;
-    const playerId = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.player) || '').trim();
-    const idx = Number(e.detail.value);
-    if (!playerId || Number.isNaN(idx)) return;
-    const map = ['unknown', 'male', 'female'];
-    const gender = map[idx] || 'unknown';
-    return this.updatePlayerGender(playerId, gender);
-  },
-
-  async updatePlayerGender(playerId, gender) {
-    const id = String(playerId || '').trim();
-    if (!id) return;
-    const actionKey = `settings:updatePlayerGender:${this.data.tournamentId}:${id}`;
-    if (actionGuard.isBusy(actionKey)) return;
-    return actionGuard.run(actionKey, async () => {
-      wx.showLoading({ title: '保存中...' });
-      try {
-        cloud.assertWriteResult(await cloud.call('updateSettings', {
-          tournamentId: this.data.tournamentId,
-          playerGenderPatch: { [id]: gender }
-        }), '保存失败');
-        wx.hideLoading();
-        this.clearLastFailedAction();
-        await this.fetchTournament(this.data.tournamentId);
-        nav.markRefreshFlag(this.data.tournamentId);
-      } catch (err) {
-        wx.hideLoading();
-        this.setLastFailedAction('更新球员性别', () => this.updatePlayerGender(id, gender));
-        this.handleWriteError(err, '保存失败', () => this.fetchTournament(this.data.tournamentId));
-      }
-    });
-  },
-
-  async removePlayer(e) {
-    const playerId = e.currentTarget.dataset.player;
-    wx.showModal({
-      title: '确认移除？',
-      content: '仅草稿阶段可移除，创建者不可移除。',
-      success: async (res) => {
-        if (!res.confirm) return;
-        const actionKey = `settings:removePlayer:${this.data.tournamentId}:${playerId}`;
-        if (actionGuard.isBusy(actionKey)) return;
-        await actionGuard.run(actionKey, async () => {
-          wx.showLoading({ title: '移除中...' });
-          try {
-            await cloud.call('removePlayer', {
-              tournamentId: this.data.tournamentId,
-              playerId
-            });
-            wx.hideLoading();
-            this.clearLastFailedAction();
-            wx.showToast({ title: '已移除', icon: 'success' });
-            this.fetchTournament(this.data.tournamentId);
-          } catch (err) {
-            wx.hideLoading();
-            this.setLastFailedAction('移除参赛者', () => this.removePlayer({ currentTarget: { dataset: { player: playerId } } }));
-            this.handleWriteError(err, '移除失败', () => this.fetchTournament(this.data.tournamentId));
-          }
-        });
       }
     });
   }

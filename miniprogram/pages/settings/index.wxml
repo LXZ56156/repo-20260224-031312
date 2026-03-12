@@ -20,8 +20,21 @@
 
   <view class="card panel settings-panel" id="section-params">
     <view class="row row-top">
-      <view class="section-title">比赛参数</view>
+      <view class="section-title">修改比赛</view>
       <text class="status-pill {{settingsReady ? 'ok' : 'pending'}}">{{settingsReady ? '已完成' : '待完成'}}</text>
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">赛事名称</view>
+      <view class="form-field">
+        <input
+          class="picker input-like {{isAdmin && tournament.status==='draft' ? '' : 'disabled'}}"
+          placeholder="请输入赛事名称"
+          value="{{name}}"
+          bindinput="onNameInput"
+          disabled="{{!(isAdmin && tournament.status==='draft')}}"
+        />
+      </view>
     </view>
 
     <view class="form-item">
@@ -83,34 +96,49 @@
       </view>
     </view>
 
-    <button class="btn btn-primary settings-save" bindtap="saveSettings" loading="{{settingsBusy}}" disabled="{{settingsBusy}}" wx:if="{{isAdmin && tournament.status==='draft'}}">保存参数</button>
-  </view>
-
-  <view class="card panel settings-panel" id="section-players">
-    <view class="row row-top">
-      <view class="section-title">参赛者管理</view>
-      <text class="status-pill {{playersReady ? 'ok' : 'pending'}}">{{playersStatusText}}</text>
-    </view>
-
-    <view class="players" wx:if="{{tournament.players.length>0}}">
-      <view class="player" wx:for="{{tournament.players}}" wx:key="id">
-        <view class="player-main">
-          <view class="player-name ellipsis">{{item.name}}</view>
-          <picker
-            mode="selector"
-            range="{{genderOptions}}"
-            value="{{item.gender==='male' ? 1 : (item.gender==='female' ? 2 : 0)}}"
-            bindchange="onPickPlayerGender"
-            data-player="{{item.id}}"
-            wx:if="{{isAdmin && tournament.status==='draft'}}"
-          >
-            <view class="player-gender-chip">{{item.gender==='male' ? '男' : (item.gender==='female' ? '女' : '未设')}}</view>
+    <view class="form-item">
+      <view class="form-label">每局分制</view>
+      <view class="form-field">
+        <block wx:if="{{isAdmin && tournament.status==='draft'}}">
+          <picker mode="selector" range="{{pointsOptions}}" value="{{pointsIndex}}" bindchange="onPickPointsPerGame">
+            <view class="picker">{{pointsPerGame}} 分</view>
           </picker>
-          <view class="player-gender-chip" wx:else>{{item.gender==='male' ? '男' : (item.gender==='female' ? '女' : '未设')}}</view>
-        </view>
-        <button class="btn-mini danger" data-player="{{item.id}}" bindtap="removePlayer" wx:if="{{isAdmin && tournament.status==='draft' && item.id!==tournament.creatorId}}">移除</button>
+        </block>
+        <block wx:else>
+          <view class="picker disabled">{{pointsPerGame}} 分</view>
+        </block>
       </view>
     </view>
+
+    <view class="form-item" wx:if="{{showSquadEndCondition}}">
+      <view class="form-label">结束条件</view>
+      <view class="form-field">
+        <block wx:if="{{isAdmin && tournament.status==='draft'}}">
+          <picker mode="selector" range="{{endConditionOptions}}" range-key="label" value="{{endConditionIndex}}" bindchange="onPickEndConditionType">
+            <view class="picker">{{endConditionOptions[endConditionIndex].label}}</view>
+          </picker>
+        </block>
+        <block wx:else>
+          <view class="picker disabled">{{endConditionOptions[endConditionIndex].label}}</view>
+        </block>
+      </view>
+    </view>
+
+    <view class="form-item" wx:if="{{showSquadEndCondition}}">
+      <view class="form-label">{{endConditionTargetLabel}}</view>
+      <view class="form-field">
+        <block wx:if="{{isAdmin && tournament.status==='draft' && showEndConditionTargetPicker}}">
+          <picker mode="selector" range="{{endConditionTargetOptions}}" value="{{endConditionTargetIndex}}" bindchange="onPickEndConditionTarget">
+            <view class="picker">{{endConditionTarget}} {{endConditionTargetUnit}}</view>
+          </picker>
+        </block>
+        <block wx:elif="{{showSquadEndCondition}}">
+          <view class="picker disabled">{{endConditionTarget}} {{endConditionTargetUnit}}</view>
+        </block>
+      </view>
+    </view>
+
+    <button class="btn btn-primary settings-save" bindtap="saveSettings" loading="{{settingsBusy}}" disabled="{{settingsBusy}}" wx:if="{{isAdmin && tournament.status==='draft'}}">保存修改</button>
   </view>
 
   <view class="retry-box panel-soft" wx:if="{{canRetryAction}}">

@@ -131,6 +131,11 @@
   background: #f3f4f6;
 }
 
+.input-like {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .settings-save {
   margin-top: 20rpx;
 }

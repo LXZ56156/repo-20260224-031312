@@ -103,44 +103,22 @@ function resolveCurrentRoundText(rounds, lifecycle = 'draft') {
 
 function buildShareMessage(tournament) {
   const t = tournament && typeof tournament === 'object' ? normalize.normalizeTournament(tournament) : null;
-  const lifecycle = normalizeLifecycleStatus(t && t.status);
   const tournamentName = String(t && t.name || '').trim() || '羽毛球比赛';
-  if (lifecycle === 'running') {
-    return {
-      title: `${tournamentName} · 查看赛况与排名`,
-      intent: 'watch',
-      panelTitle: '分享当前赛况',
-      badgeText: '进行中',
-      buttonText: '分享赛况'
-    };
-  }
-  if (lifecycle === 'finished') {
-    return {
-      title: `${tournamentName} · 查看结果与排名`,
-      intent: 'result',
-      panelTitle: '分享比赛结果',
-      badgeText: '已结束',
-      buttonText: '分享结果'
-    };
-  }
   return {
-    title: `${tournamentName} · 查看比赛信息`,
-    intent: 'join',
-    panelTitle: '分享比赛',
-    badgeText: '推荐',
-    buttonText: '分享比赛链接'
+    title: `${tournamentName} · 查看比赛`,
+    intent: 'view',
+    panelTitle: '转发比赛',
+    badgeText: '比赛',
+    buttonText: '转发',
+    path: `/pages/share-entry/index?tournamentId=${encodeURIComponent(String(t && t._id || '').trim())}`
   };
 }
 
 function buildPrimaryAction({ lifecycle, joined, joinAllowed }) {
-  if (joined) {
-    if (lifecycle === 'finished') return { key: 'result', text: '查看结果' };
-    return { key: 'enter', text: '进入比赛' };
-  }
+  if (joined) return { key: 'enter', text: '进入比赛' };
   if (joinAllowed) return { key: 'join', text: '加入比赛' };
-  if (lifecycle === 'running') return { key: 'watch', text: '查看赛况' };
-  if (lifecycle === 'finished') return { key: 'result', text: '查看结果' };
-  return { key: 'retry', text: '重新加载' };
+  if (lifecycle === 'draft') return { key: 'retry', text: '重新加载' };
+  return { key: 'view', text: '查看比赛' };
 }
 
 function buildStatusText(lifecycle) {
@@ -158,21 +136,16 @@ function buildStatusClass(lifecycle) {
 }
 
 function buildPreviewMode({ lifecycle, joined, joinAllowed }) {
-  if (lifecycle === 'draft') return joined ? 'joined-entry' : (joinAllowed ? 'join-preview' : 'invalid-match');
-  if (lifecycle === 'running') return joined ? 'joined-entry' : 'live-watch';
-  if (lifecycle === 'finished') return joined ? 'joined-entry' : 'result-view';
+  if (joined) return 'joined-entry';
+  if (joinAllowed) return 'join-preview';
+  if (lifecycle === 'running' || lifecycle === 'finished') return 'join-closed';
   return 'invalid-match';
 }
 
 function buildAvailabilityText({ lifecycle, joined, joinAllowed }) {
-  if (joined) {
-    if (lifecycle === 'draft') return '你已在名单中，可直接进入比赛。';
-    if (lifecycle === 'running') return '你已在名单中，可直接查看赛程、排名和录分入口。';
-    return '你已参加过这场比赛，可直接查看结果和排名。';
-  }
-  if (joinAllowed) return '点“加入比赛”后才会真正写入名单。';
-  if (lifecycle === 'running') return '比赛正在进行，当前以查看赛况和排名为主。';
-  if (lifecycle === 'finished') return '比赛已结束，当前不可加入。';
+  if (joined) return '你已在名单中，可直接进入比赛。';
+  if (joinAllowed) return '确认后才会加入比赛名单。';
+  if (lifecycle === 'running' || lifecycle === 'finished') return '当前不可加入，可先查看比赛信息。';
   return '当前无法打开这场比赛，请稍后重试。';
 }
 
@@ -195,10 +168,10 @@ function buildInvalidShareEntryState(reason = '未找到赛事') {
     playersCountText: '—',
     venueText: '未设置',
     timeText: '未设置',
-    progressText: '暂无赛况',
+    progressText: '暂无比赛信息',
     roundsText: '—',
     rankingsPreview: [],
-    rankingTitle: '赛况摘要',
+    rankingTitle: '比赛摘要',
     showRankingPreview: false,
     showProgressSummary: false,
     tournament: null
@@ -224,10 +197,10 @@ function buildRetryableShareEntryState(reason = '同步失败，请稍后重试'
     playersCountText: '—',
     venueText: '未设置',
     timeText: '未设置',
-    progressText: '暂无赛况',
+    progressText: '暂无比赛信息',
     roundsText: '—',
     rankingsPreview: [],
-    rankingTitle: '赛况摘要',
+    rankingTitle: '比赛摘要',
     showRankingPreview: false,
     showProgressSummary: false,
     tournament: null
@@ -248,10 +221,9 @@ function buildShareEntryViewModel({ tournament, openid = '' }) {
   const joinAllowed = lifecycle === 'draft';
   const previewMode = buildPreviewMode({ lifecycle, joined, joinAllowed });
   const viewModeLabelMap = {
-    'join-preview': '先看后加入',
+    'join-preview': '未加入',
     'joined-entry': '已加入',
-    'live-watch': '查看赛况',
-    'result-view': '查看结果',
+    'join-closed': '未加入',
     'invalid-match': '链接异常'
   };
   const progress = countRoundProgress(normalizedTournament.rounds);
@@ -271,14 +243,8 @@ function buildShareEntryViewModel({ tournament, openid = '' }) {
   return {
     viewMode: previewMode,
     viewModeLabel: viewModeLabelMap[previewMode] || '查看比赛',
-    headline: lifecycle === 'draft'
-      ? '先看比赛，再决定是否加入'
-      : (lifecycle === 'running' ? '这场比赛正在进行中' : '这场比赛已结束'),
-    subtitle: lifecycle === 'draft'
-      ? '先看摘要，确定后再显式加入。'
-      : (lifecycle === 'running'
-        ? '优先查看赛况、排名和比赛进度。'
-        : '优先查看排名、结果和赛后复盘。'),
+    headline: joined ? '已加入这场比赛' : '先看比赛信息',
+    subtitle: joined ? '可以直接进入比赛页面。' : '是否加入由你手动确认，不会自动加入。',
     statusText: buildStatusText(lifecycle),
     statusClass: buildStatusClass(lifecycle),
     primaryAction: buildPrimaryAction({ lifecycle, joined, joinAllowed }),
@@ -298,9 +264,9 @@ function buildShareEntryViewModel({ tournament, openid = '' }) {
     currentRoundText,
     roundsText: progress.totalRounds ? `${progress.completedRounds}/${progress.totalRounds} 轮已完成` : '暂无轮次',
     rankingsPreview,
-    rankingTitle: lifecycle === 'finished' ? '结果摘要' : '赛况摘要',
-    showRankingPreview: rankingsPreview.length > 0,
-    showProgressSummary: lifecycle === 'running' || lifecycle === 'finished',
+    rankingTitle: '比赛摘要',
+    showRankingPreview: false,
+    showProgressSummary: false,
     tournament: normalizedTournament
   };
 }
