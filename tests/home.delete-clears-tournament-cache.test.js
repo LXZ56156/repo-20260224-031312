@@ -50,10 +50,13 @@ test('home delete clears local tournament cache for local-only deletion', async 
   const originalRemoveLocalTournamentCache = storage.removeLocalTournamentCache;
 
   const removed = [];
+  const toastCalls = [];
 
   global.getApp = () => ({ globalData: { openid: 'user_1' } });
   global.wx = {
-    showToast() {}
+    showToast(options) {
+      toastCalls.push(options);
+    }
   };
 
   try {
@@ -67,6 +70,7 @@ test('home delete clears local tournament cache for local-only deletion', async 
 
     assert.deepEqual(removed, ['recent:t_1', 'snapshot:t_1', 'cache:t_1']);
     assert.equal(ctx.loadRecentsCalled, 1);
+    assert.deepEqual(toastCalls, [{ title: '已删除', icon: 'success' }]);
   } finally {
     global.wx = originalWx;
     global.getApp = originalGetApp;
@@ -84,8 +88,11 @@ test('home delete no longer exposes cloud deletion and only clears local records
   const originalRemoveLocalTournamentCache = storage.removeLocalTournamentCache;
 
   const removed = [];
+  const toastCalls = [];
   global.wx = {
-    showToast() {}
+    showToast(options) {
+      toastCalls.push(options);
+    }
   };
 
   try {
@@ -99,6 +106,7 @@ test('home delete no longer exposes cloud deletion and only clears local records
 
     assert.deepEqual(removed, ['recent:t_1', 'snapshot:t_1', 'cache:t_1']);
     assert.equal(ctx.loadRecentsCalled, 1);
+    assert.deepEqual(toastCalls, [{ title: '已删除', icon: 'success' }]);
   } finally {
     global.wx = originalWx;
     storage.removeRecentTournamentId = originalRemoveRecentTournamentId;

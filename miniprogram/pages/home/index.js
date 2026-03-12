@@ -589,6 +589,6 @@ Page({
     storage.removeLocalTournamentCache(id);
     this.clearLastFailedAction();
     await this.loadRecents();
-    wx.showToast({ title: '已清理本机记录', icon: 'success' });
+    wx.showToast({ title: '已删除', icon: 'success' });
   }
 });
