@@ -24,8 +24,10 @@ test('preferences page no longer duplicates profile/feedback entry buttons', () 
   assert.equal(pref.includes('bindtap="goFeedback"'), false);
 });
 
-test('home page has only one fallback create entry and no hero create button', () => {
+test('home page collapses create fallback into the hero action', () => {
   const home = read('miniprogram/pages/home/index.wxml');
-  assert.equal(count(home, /bindtap="goCreate"/g), 1);
+  assert.equal(count(home, /bindtap="goCreate"/g), 0);
+  assert.equal(home.includes('bindtap="onHeroPrimaryTap"'), true);
   assert.equal(home.includes('btn-create'), false);
+  assert.equal(home.includes('empty-link'), false);
 });

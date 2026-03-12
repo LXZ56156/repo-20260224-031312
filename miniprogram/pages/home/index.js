@@ -7,6 +7,7 @@ const { normalizeTournament } = require('../../core/normalize');
 const adGuard = require('../../core/adGuard');
 const flow = require('../../core/uxFlow');
 const envConfig = require('../../config/env');
+const { buildHomeHeroCardState } = require('./heroCardState');
 
 function pad2(n) {
   return n < 10 ? `0${n}` : String(n);
@@ -148,7 +149,7 @@ Page({
     envBadgeLabel: '',
     canRetryAction: false,
     lastFailedActionText: '',
-    continueItem: null,
+    heroCard: buildHomeHeroCardState([]),
     showStaleSyncHint: false,
     syncRefreshing: false,
     syncUsingCache: false,
@@ -306,14 +307,11 @@ Page({
       if (isVisibleByFilter(item, filterStatus)) visibleCount += 1;
     }
 
-    const continueItem = items
-      .filter((x) => String(x.status || '') === 'running')
-      .slice()
-      .sort((a, b) => (Number(b.updatedAtTs) || 0) - (Number(a.updatedAtTs) || 0))[0] || null;
+    const heroCard = buildHomeHeroCardState(items);
 
     this.setData({
       visibleCount,
-      continueItem,
+      heroCard,
       statusCountRunning: running,
       statusCountDraft: draft,
       statusCountFinished: finished,
@@ -337,14 +335,8 @@ Page({
         syncUsingCache: false,
         syncCachedAt: 0,
         syncLastUpdatedAt: 0,
-        items: [],
-        continueItem: null,
-        visibleCount: 0,
-        statusCountRunning: 0,
-        statusCountDraft: 0,
-        statusCountFinished: 0,
-        statusCountMissing: 0
-      }));
+        items: []
+      }), () => this.refreshVisibleState());
       this.clearLastFailedAction();
       return;
     }
@@ -434,10 +426,30 @@ Page({
     wx.switchTab({ url: '/pages/launch/index' });
   },
 
+  goRanking(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    wx.navigateTo({ url: `/pages/ranking/index?tournamentId=${id}` });
+  },
+
   goLobby(e) {
     const id = e.currentTarget.dataset.id;
     if (!id) return;
     wx.navigateTo({ url: `/pages/lobby/index?tournamentId=${id}` });
+  },
+
+  onHeroPrimaryTap(e) {
+    const dataset = (e && e.currentTarget && e.currentTarget.dataset) || {};
+    const action = String(dataset.action || '').trim();
+    if (action === 'create') {
+      this.goCreate();
+      return;
+    }
+    if (action === 'ranking') {
+      this.goRanking({ currentTarget: { dataset } });
+      return;
+    }
+    this.goLobby({ currentTarget: { dataset } });
   },
 
   async onCloneTap(e) {

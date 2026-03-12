@@ -17,5 +17,6 @@ test('home page keeps tournament list ahead of profile and onboarding nudges', (
   assert.notEqual(onboardingIndex, -1);
   assert.ok(listIndex < profileIndex);
   assert.ok(listIndex < onboardingIndex);
-  assert.match(wxml, /继续最近比赛/);
+  assert.match(wxml, /\{\{heroCard\.actionText\}\}/);
+  assert.match(wxml, /bindtap="onHeroPrimaryTap"/);
 });

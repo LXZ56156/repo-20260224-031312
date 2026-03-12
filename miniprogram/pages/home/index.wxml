@@ -11,20 +11,17 @@
     <view class="hero-grid">
       <view class="hero-main">
         <view class="hero-env-badge" wx:if="{{showEnvBadge}}">{{envBadgeLabel}}</view>
-        <view class="h-title">继续你的比赛</view>
-        <view class="hero-stat-row">
-          <view class="hero-stat-pill">进行中 {{statusCountRunning}}</view>
-          <view class="hero-stat-pill">草稿 {{statusCountDraft}}</view>
-          <view class="hero-stat-pill">已结束 {{statusCountFinished}}</view>
-        </view>
-        <view class="hero-task-strip" wx:if="{{continueItem}}">
-          <view class="hero-task-label">最近进行中</view>
-          <view class="hero-task-name ellipsis">{{continueItem.name}}</view>
-          <view class="hero-task-meta">{{continueItem.playersCount}} 人 · {{continueItem.matchProgressText}}</view>
-          <button class="btn btn-primary btn-sm hero-task-btn" data-id="{{continueItem._id}}" bindtap="goLobby">继续最近比赛</button>
-        </view>
-        <view class="hero-task-strip hero-task-empty" wx:else>
-          <view class="hero-task-label">当前没有进行中的比赛</view>
+        <view class="h-title">{{heroCard.title}}</view>
+        <view class="hero-task-strip {{heroCard.empty ? 'hero-task-empty' : ''}}">
+          <view class="hero-task-label">{{heroCard.label}}</view>
+          <view class="hero-task-name ellipsis" wx:if="{{heroCard.name}}">{{heroCard.name}}</view>
+          <view class="hero-task-meta" wx:if="{{heroCard.meta}}">{{heroCard.meta}}</view>
+          <button class="btn btn-primary btn-sm hero-task-btn"
+            bindtap="onHeroPrimaryTap"
+            data-action="{{heroCard.actionTarget}}"
+            data-id="{{heroCard.actionId}}">
+            {{heroCard.actionText}}
+          </button>
         </view>
       </view>
     </view>
@@ -83,7 +80,6 @@
     </block>
     <view wx:else class="empty panel-soft section-empty">
       <view class="empty-text">当前筛选下还没有比赛</view>
-      <text class="empty-link" bindtap="goCreate">去发起比赛</text>
     </view>
   </view>
 
