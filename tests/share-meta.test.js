@@ -41,7 +41,7 @@ test('shareMeta builds join preview for draft tournaments', () => {
   assert.equal(preview.viewModeLabel, '先看后加入');
   assert.equal(preview.joinAllowed, true);
   assert.equal(preview.primaryAction.text, '加入比赛');
-  assert.equal(preview.secondaryAction.text, '查看完整名单');
+  assert.equal(preview.secondaryAction, null);
   assert.equal(preview.organizerName, '组织者');
 });
 
@@ -62,6 +62,7 @@ test('shareMeta builds live watch state for running tournament viewers', () => {
   });
   assert.equal(preview.viewMode, 'live-watch');
   assert.equal(preview.primaryAction.text, '查看赛况');
+  assert.equal(preview.secondaryAction, null);
   assert.equal(preview.showRankingPreview, true);
   assert.equal(preview.rankingsPreview[0].name, '组织者');
   assert.match(preview.currentRoundText, /轮/);
@@ -74,6 +75,7 @@ test('shareMeta builds result view state for finished tournament viewers', () =>
   });
   assert.equal(preview.viewMode, 'result-view');
   assert.equal(preview.primaryAction.text, '查看结果');
+  assert.equal(preview.secondaryAction, null);
   assert.match(preview.progressText, /已完成 1\/1 场/);
 });
 

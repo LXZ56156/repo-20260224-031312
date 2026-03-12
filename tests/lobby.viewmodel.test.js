@@ -41,10 +41,7 @@ test('lobby view model partitions admin role flow and promotes share before back
     ['admin', 'joined', 'viewer', 'profile_pending']
   );
   assert.equal(result.patch.checklistItems[1].actionText, '去分享');
-  assert.deepEqual(
-    result.patch.stateSecondaryActions.map((item) => item.key),
-    ['settings', 'quickImport']
-  );
+  assert.equal(result.patch.stateSecondaryActions, undefined);
 });
 
 test('lobby view model keeps unjoined draft visitors in pending-profile role once they expand join flow', () => {
@@ -91,10 +88,7 @@ test('lobby view model turns finished state into result-first actions', () => {
 
   assert.equal(result.patch.statePanelTitle, '比赛结果');
   assert.equal(result.patch.statePrimaryActionKey, 'analytics');
-  assert.deepEqual(
-    result.patch.stateSecondaryActions.map((item) => item.key),
-    ['ranking', 'clone']
-  );
+  assert.equal(result.patch.stateSecondaryActions, undefined);
   assert.equal(result.patch.showDraftRules, false);
   assert.equal(result.patch.showAdminMaintenance, true);
 });

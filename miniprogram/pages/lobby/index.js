@@ -62,7 +62,6 @@ Page({
     statePanelSummary: '',
     statePrimaryActionKey: '',
     statePrimaryActionText: '',
-    stateSecondaryActions: [],
     stateStageBadge: '',
     showStateChecklist: false,
     showDraftRules: true,

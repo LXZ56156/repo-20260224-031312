@@ -115,7 +115,6 @@ function buildSettingsViewState(tournament, options = {}) {
     tournament: t,
     pageTitle: isDraft ? '高级参数' : '赛事参数',
     contextTitle: isDraft ? '主准备流程在大厅' : '这里主要查看高级参数',
-    showLobbyReturn: isDraft && isAdmin,
     mode,
     modeLabel,
     allowOpenTeam,

@@ -5,7 +5,7 @@ const path = require('node:path');
 
 const draftActions = require('../miniprogram/pages/lobby/lobbyDraftActions');
 
-test('lobby draft UI promotes share invite ahead of bulk import', () => {
+test('lobby draft UI keeps share invite ahead of admin import area without extra share shortcuts', () => {
   const wxml = fs.readFileSync(
     path.join(__dirname, '..', 'miniprogram/pages/lobby/index.wxml'),
     'utf8'
@@ -16,6 +16,7 @@ test('lobby draft UI promotes share invite ahead of bulk import', () => {
   assert.notEqual(importIndex, -1);
   assert.ok(shareIndex < importIndex);
   assert.match(wxml, /open-type="share">\{\{shareButtonText\}\}<\/button>/);
+  assert.doesNotMatch(wxml, /bindtap="focusQuickImportArea"/);
 });
 
 test('lobby checklist routes player preparation to share invite area', () => {

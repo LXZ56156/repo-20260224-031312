@@ -42,7 +42,11 @@
       >
         {{preview.primaryAction.text}}
       </button>
-      <button class="btn btn-subtle" wx:if="{{preview.secondaryAction}}" bindtap="onSecondaryAction">
+      <button
+        class="btn btn-subtle"
+        wx:if="{{preview.secondaryAction && (preview.viewMode==='invalid-match' || preview.viewMode==='retryable-error')}}"
+        bindtap="onSecondaryAction"
+      >
         {{preview.secondaryAction.text}}
       </button>
     </view>

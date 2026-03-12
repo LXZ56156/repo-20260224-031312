@@ -210,7 +210,7 @@ Page({
         viewModeLabel: '游客查看',
         availabilityText: '身份识别较慢，你可以先以游客身份查看比赛，稍后仍可加入。',
         primaryAction: { key: 'lobby_view', text: '先观赛' },
-        secondaryAction: { key: 'join', text: '继续加入' }
+        secondaryAction: null
       };
     }
     this.setData({
@@ -312,10 +312,6 @@ Page({
 
   onSecondaryAction() {
     const key = String((this.data.preview && this.data.preview.secondaryAction && this.data.preview.secondaryAction.key) || '').trim();
-    if (key === 'join') return this.handleJoin();
-    if (key === 'lobby') return this.goLobby();
-    if (key === 'lobby_view') return this.goLobby('view_only');
-    if (key === 'ranking') return this.goRanking();
     if (key === 'home') return this.goHome();
   }
 });

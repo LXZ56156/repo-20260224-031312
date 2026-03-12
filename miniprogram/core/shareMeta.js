@@ -143,15 +143,6 @@ function buildPrimaryAction({ lifecycle, joined, joinAllowed }) {
   return { key: 'retry', text: '重新加载' };
 }
 
-function buildSecondaryAction({ lifecycle, joined }) {
-  if (lifecycle === 'draft') return joined
-    ? { key: 'lobby', text: '查看比赛详情' }
-    : { key: 'lobby_view', text: '查看完整名单' };
-  if (lifecycle === 'running') return { key: 'ranking', text: '查看排名' };
-  if (lifecycle === 'finished') return { key: 'ranking', text: '查看排名' };
-  return null;
-}
-
 function buildStatusText(lifecycle) {
   if (lifecycle === 'draft') return '未开始';
   if (lifecycle === 'running') return '进行中';
@@ -291,7 +282,7 @@ function buildShareEntryViewModel({ tournament, openid = '' }) {
     statusText: buildStatusText(lifecycle),
     statusClass: buildStatusClass(lifecycle),
     primaryAction: buildPrimaryAction({ lifecycle, joined, joinAllowed }),
-    secondaryAction: buildSecondaryAction({ lifecycle, joined }),
+    secondaryAction: null,
     joinAllowed,
     joined,
     availabilityText: buildAvailabilityText({ lifecycle, joined, joinAllowed }),

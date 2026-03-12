@@ -61,10 +61,6 @@
   padding-top: 22rpx;
 }
 
-.context-actions {
-  margin-top: 14rpx;
-}
-
 .section-title {
   font-size: 30rpx;
   font-weight: 760;
@@ -137,10 +133,6 @@
 
 .settings-save {
   margin-top: 20rpx;
-}
-
-.player-route-btn {
-  margin-top: 12rpx;
 }
 
 .referee-current {

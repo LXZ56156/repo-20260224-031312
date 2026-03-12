@@ -16,9 +16,6 @@
       <view class="section-title">{{contextTitle}}</view>
       <text class="count-pill">{{mandatoryDone}} / {{mandatoryTotal}}</text>
     </view>
-    <view class="context-actions" wx:if="{{showLobbyReturn}}">
-      <button class="btn btn-subtle player-route-btn" bindtap="goLobbyManagePlayers">回到大厅继续准备</button>
-    </view>
   </view>
 
   <view class="card panel settings-panel" id="section-params">
@@ -93,9 +90,6 @@
     <view class="row row-top">
       <view class="section-title">参赛者管理</view>
       <text class="status-pill {{playersReady ? 'ok' : 'pending'}}">{{playersStatusText}}</text>
-    </view>
-    <view wx:if="{{isAdmin && tournament.status==='draft'}}">
-      <button class="btn btn-subtle player-route-btn" bindtap="goLobbyManagePlayers">回到大厅导入</button>
     </view>
 
     <view class="players" wx:if="{{tournament.players.length>0}}">

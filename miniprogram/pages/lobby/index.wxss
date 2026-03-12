@@ -189,21 +189,6 @@
   margin-top: 0 !important;
 }
 
-.state-secondary-actions {
-  margin-top: 12rpx;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8rpx 12rpx;
-}
-
-.state-secondary-action {
-  min-height: 52rpx;
-  padding: 0 14rpx;
-  border-radius: 999rpx;
-  background: #f8fbff;
-  border: 1rpx solid #dce5ef;
-}
-
 .rule-chips {
   margin-top: 12rpx;
   display: flex;
@@ -449,14 +434,6 @@
 
 .share-invite-head {
   align-items: flex-start;
-}
-
-.share-invite-meta {
-  margin-top: 12rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12rpx;
 }
 
 .quick-config {

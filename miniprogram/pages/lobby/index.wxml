@@ -59,17 +59,6 @@
     </view>
     <view class="state-actions" wx:if="{{statePrimaryActionText}}">
       <button class="btn btn-primary state-primary-btn" bindtap="onNextActionTap">{{statePrimaryActionText}}</button>
-      <view class="state-secondary-actions" wx:if="{{stateSecondaryActions.length}}">
-        <text
-          class="link-btn state-secondary-action"
-          wx:for="{{stateSecondaryActions}}"
-          wx:key="key"
-          data-action="{{item.key}}"
-          bindtap="onStateSecondaryTap"
-        >
-          {{item.text}}
-        </text>
-      </view>
     </view>
   </view>
 
@@ -131,10 +120,6 @@
       <text class="count-pill">{{shareCardBadge}}</text>
     </view>
     <button class="btn btn-primary {{sharePulse ? 'share-pulse' : ''}}" open-type="share">{{shareButtonText}}</button>
-    <view class="share-invite-meta">
-      <text class="link-btn" wx:if="{{tournament.status==='draft' && isAdmin}}" bindtap="focusQuickImportArea">备用：导入名单</text>
-      <text class="link-btn" wx:elif="{{tournament.status!=='draft'}}" bindtap="goRanking">查看排名</text>
-    </view>
   </view>
 
   <view class="card panel admin-panel reveal reveal-4" wx:if="{{showDraftAdminPanel}}">
@@ -287,16 +272,11 @@
       <text class="count-pill">{{shareCardBadge}}</text>
     </view>
     <button class="btn btn-primary {{sharePulse ? 'share-pulse' : ''}}" open-type="share">{{shareButtonText}}</button>
-    <view class="share-invite-meta">
-      <text class="link-btn" wx:if="{{tournament.status==='draft' && isAdmin}}" bindtap="focusQuickImportArea">备用：导入名单</text>
-      <text class="link-btn" wx:elif="{{tournament.status!=='draft'}}" bindtap="goRanking">查看排名</text>
-    </view>
   </view>
 
   <view class="card panel panel-soft admin-panel reveal reveal-6" wx:if="{{showAdminMaintenance}}">
     <view class="section-head">
       <view class="section-title">管理员维护</view>
-      <text class="count-pill">次级操作</text>
     </view>
     <view class="admin-actions">
       <button class="btn btn-danger" bindtap="handleReset">重置回草稿</button>

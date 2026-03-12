@@ -13,7 +13,6 @@ Page({
     tournament: null,
     pageTitle: '高级参数',
     contextTitle: '',
-    showLobbyReturn: false,
     isAdmin: false,
     editM: 0,
     editC: 1,

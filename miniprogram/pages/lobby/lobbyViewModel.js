@@ -367,7 +367,6 @@ function buildStatePanel(ctx) {
     finished: '已结束'
   };
 
-  const secondaryActions = [];
   let title = '当前下一步';
   let summary = String(currentRoleSummary || '').trim() || '先看当前状态，再决定下一步。';
 
@@ -379,11 +378,6 @@ function buildStatePanel(ctx) {
         : (!checkPlayersOk
           ? '优先分享邀请，让名单先准备好。'
           : '前置项已完成，可以直接开赛。');
-      secondaryActions.push(
-        { key: 'share', text: '分享邀请' },
-        { key: 'settings', text: '高级参数' }
-      );
-      if (!checkPlayersOk) secondaryActions.push({ key: 'quickImport', text: '备用导入' });
     } else if (showJoin) {
       title = '加入前确认';
       summary = mode === flow.MODE_SQUAD_DOUBLES
@@ -400,32 +394,16 @@ function buildStatePanel(ctx) {
     if (canEditScore && hasPending) {
       title = '优先完成录分';
       summary = '当前还有待录分比赛，先把比分录完，赛程和排名会同步更新。';
-      secondaryActions.push(
-        { key: 'schedule', text: '查看赛程' },
-        { key: 'ranking', text: '查看排名' }
-      );
     } else {
       title = '查看当前赛程';
       summary = '比赛正在进行，当前更适合查看赛程和排名。';
-      secondaryActions.push(
-        { key: 'ranking', text: '查看排名' }
-      );
     }
   } else if (status === 'finished') {
     title = '比赛结果';
     summary = isAdmin
       ? '比赛已结束，可查看排名、复盘，或直接再办一场。'
       : '比赛已结束，可直接查看排名和赛事复盘。';
-    secondaryActions.push({ key: 'ranking', text: '查看排名' });
-    secondaryActions.push({ key: 'analytics', text: '赛事复盘' });
-    if (isAdmin) secondaryActions.push({ key: 'clone', text: '再办一场' });
   }
-
-  const dedupedSecondaryActions = secondaryActions.filter((item, index, list) => {
-    if (!item || !item.key || !item.text) return false;
-    if (item.key === nextActionKey) return false;
-    return list.findIndex((candidate) => candidate && candidate.key === item.key) === index;
-  });
 
   return {
     stageBadge: stageBadgeMap[status] || '当前',
@@ -433,8 +411,7 @@ function buildStatePanel(ctx) {
     statePanelRoleLabel: String(currentRoleTitle || '').trim() || '访客',
     statePanelSummary: summary,
     statePrimaryActionKey: String(nextActionKey || '').trim(),
-    statePrimaryActionText: String(nextActionText || '').trim(),
-    stateSecondaryActions: dedupedSecondaryActions
+    statePrimaryActionText: String(nextActionText || '').trim()
   };
 }
 
@@ -671,7 +648,6 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       statePanelSummary: statePanel.statePanelSummary,
       statePrimaryActionKey: statePanel.statePrimaryActionKey,
       statePrimaryActionText: statePanel.statePrimaryActionText,
-      stateSecondaryActions: statePanel.stateSecondaryActions,
       stateStageBadge: statePanel.stageBadge,
       showStateChecklist: isAdmin && status === 'draft' && checklistItems.length > 0,
       showDraftRules: status === 'draft',
