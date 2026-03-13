@@ -48,6 +48,55 @@ function teamTournament() {
   };
 }
 
+function squadTournament() {
+  return {
+    mode: 'squad_doubles',
+    rounds: [{
+      roundIndex: 0,
+      matches: [{
+        matchIndex: 0,
+        status: 'finished',
+        unitAId: 'A',
+        unitAName: 'A队',
+        unitBId: 'B',
+        unitBName: 'B队',
+        score: { teamA: 21, teamB: 18 }
+      }]
+    }]
+  };
+}
+
+function tieBreakTournament() {
+  return {
+    mode: 'multi_rotate',
+    players: [
+      { id: 'u1', name: 'A' },
+      { id: 'u2', name: 'B' },
+      { id: 'u3', name: 'C' },
+      { id: 'u4', name: 'D' }
+    ],
+    rounds: [{
+      roundIndex: 0,
+      matches: [
+        {
+          matchIndex: 0,
+          status: 'finished',
+          teamA: [{ id: 'u1' }, { id: 'u2' }],
+          teamB: [{ id: 'u3' }, { id: 'u4' }],
+          score: { teamA: 21, teamB: 19 }
+        },
+        {
+          matchIndex: 1,
+          status: 'finished',
+          teamA: [{ id: 'u3' }, { id: 'u4' }],
+          teamB: [{ id: 'u1' }, { id: 'u2' }],
+          score: { teamA: 21, teamB: 20 }
+        }
+      ]
+    }]
+  };
+}
+
 test('frontend and cloud ranking cores produce the same player rankings', () => {
   const tournament = playerTournament();
   assert.deepEqual(
@@ -58,6 +107,22 @@ test('frontend and cloud ranking cores produce the same player rankings', () => 
 
 test('frontend and cloud ranking cores produce the same team rankings', () => {
   const tournament = teamTournament();
+  assert.deepEqual(
+    frontendRankingCore.computeRankings(tournament),
+    cloudRankingCore.computeRankings(tournament)
+  );
+});
+
+test('frontend and cloud ranking cores produce the same squad rankings', () => {
+  const tournament = squadTournament();
+  assert.deepEqual(
+    frontendRankingCore.computeRankings(tournament),
+    cloudRankingCore.computeRankings(tournament)
+  );
+});
+
+test('frontend and cloud ranking cores keep tie-break ordering consistent', () => {
+  const tournament = tieBreakTournament();
   assert.deepEqual(
     frontendRankingCore.computeRankings(tournament),
     cloudRankingCore.computeRankings(tournament)

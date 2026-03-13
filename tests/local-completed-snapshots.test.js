@@ -155,3 +155,59 @@ test('local completed tournament snapshots trim overflow entries from aggregate 
   assert.equal(!!nextMap.t_newest, true);
   assert.equal(!!nextMap.t_499, false);
 });
+
+test('local completed tournament snapshots self-heal from fresher finished cache docs', () => {
+  resetStore();
+  storage.set('local_completed_tournament_ids_v1', ['t_heal']);
+  storage.set('local_completed_tournament_map_v2', {
+    t_heal: {
+      _id: 't_heal',
+      status: 'finished',
+      version: 1,
+      updatedAtTs: 100,
+      players: [{ id: 'u_me' }],
+      rounds: []
+    }
+  });
+
+  storage.setLocalTournamentCache('t_heal', {
+    ...buildTournament('t_heal', '2026-03-05T10:00:00.000Z'),
+    version: 3
+  });
+
+  const snapshots = storage.getLocalCompletedTournamentSnapshots();
+
+  assert.equal(snapshots.length, 1);
+  assert.equal(snapshots[0].version, 3);
+  assert.equal(storage.get('local_completed_tournament_map_v2', {}).t_heal.version, 3);
+});
+
+test('local completed tournament snapshots drop stale finished entries when fresher cache doc is no longer eligible', () => {
+  resetStore();
+  storage.set('local_completed_tournament_ids_v1', ['t_drop']);
+  storage.set('local_completed_tournament_map_v2', {
+    t_drop: {
+      _id: 't_drop',
+      status: 'finished',
+      version: 1,
+      updatedAtTs: 100,
+      players: [{ id: 'u_me' }],
+      rounds: []
+    }
+  });
+  storage.setLocalTournamentCache('t_drop', {
+    _id: 't_drop',
+    status: 'draft',
+    version: 2,
+    updatedAt: '2026-03-06T10:00:00.000Z',
+    playerIds: ['u_me'],
+    players: [{ id: 'u_me' }],
+    rounds: []
+  });
+
+  const snapshots = storage.getLocalCompletedTournamentSnapshots();
+
+  assert.deepEqual(snapshots, []);
+  assert.deepEqual(storage.getLocalCompletedTournamentIds(), []);
+  assert.equal(storage.get('local_completed_tournament_map_v2', {}).t_drop, undefined);
+});

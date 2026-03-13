@@ -69,7 +69,7 @@ function loadSubmitScoreMain(db) {
   }
 }
 
-function createDbHarness(lockGetImpl) {
+function createDbHarness(lockGetImpl, options = {}) {
   const calls = {
     tournamentGet: 0,
     lockGet: 0,
@@ -102,7 +102,7 @@ function createDbHarness(lockGetImpl) {
             return {
               async update() {
                 calls.update += 1;
-                return { stats: { updated: 1 } };
+                return { stats: { updated: options.updatedCount === undefined ? 1 : options.updatedCount } };
               }
             };
           }
@@ -154,5 +154,38 @@ test('submitScore returns LOCK_EXPIRED when score lock document is missing', asy
   assert.equal(calls.tournamentGet, 1);
   assert.equal(calls.lockGet, 1);
   assert.equal(calls.update, 0);
+  assert.equal(calls.remove, 0);
+});
+
+test('submitScore returns VERSION_CONFLICT when optimistic update reports updated: 0', async () => {
+  const { db, calls } = createDbHarness(async () => ({
+    data: {
+      ownerId: 'u_admin',
+      ownerName: '管理员',
+      expireAt: Date.now() + 60_000
+    }
+  }), {
+    updatedCount: 0
+  });
+  const { main } = loadSubmitScoreMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    scoreA: 21,
+    scoreB: 19
+  });
+
+  assert.deepEqual(result, {
+    ok: false,
+    code: 'VERSION_CONFLICT',
+    message: '写入冲突，请刷新赛事后重试',
+    state: 'conflict',
+    traceId: ''
+  });
+  assert.equal(calls.tournamentGet, 1);
+  assert.equal(calls.lockGet, 1);
+  assert.equal(calls.update, 1);
   assert.equal(calls.remove, 0);
 });

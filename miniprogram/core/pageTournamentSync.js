@@ -1,5 +1,6 @@
 const tournamentSync = require('./tournamentSync');
 const syncStatus = require('./syncStatus');
+const tournamentVersion = require('./tournamentVersion');
 
 function hasOwn(obj, key) {
   return !!obj && Object.prototype.hasOwnProperty.call(obj, key);
@@ -84,10 +85,18 @@ function createTournamentSyncMethods(options = {}) {
       this._watchGen = Number(this._watchGen || 0) + 1;
     },
 
+    hasActiveWatch() {
+      const watcher = this && this.watcher;
+      if (!watcher) return false;
+      if (typeof watcher.isActive === 'function') return watcher.isActive() === true;
+      return typeof watcher.close === 'function';
+    },
+
     startWatch(tournamentId) {
       const watchGen = this.nextWatchGen();
       tournamentSync.startWatch(this, tournamentId, (doc, meta = {}) => {
         if (!this.isActiveWatchGen(watchGen)) return;
+        if (!tournamentVersion.shouldAcceptTournamentDoc(this.data && this.data.tournament, doc)) return;
         const source = String((meta && meta.source) || 'watch').trim() || 'watch';
         const patch = typeof options.buildWatchState === 'function'
           ? options.buildWatchState.call(this, doc, { watchGen, source })
@@ -134,6 +143,10 @@ function createTournamentSyncMethods(options = {}) {
       if (!this.isLatestFetchSeq(requestSeq)) return null;
 
       if (result && result.ok && result.doc) {
+        if (!tournamentVersion.shouldAcceptTournamentDoc(this.data && this.data.tournament, result.doc)) {
+          this.setData(composePageSyncPatch(this, { syncRefreshing: false }));
+          return this.data && this.data.tournament ? this.data.tournament : null;
+        }
         const patch = typeof options.buildRemoteState === 'function'
           ? options.buildRemoteState.call(this, result, { requestSeq, source: result.source || 'remote' })
           : { showStaleSyncHint: false, loadError: false };
@@ -151,6 +164,10 @@ function createTournamentSyncMethods(options = {}) {
       }
 
       if (result && result.cachedDoc) {
+        if (!tournamentVersion.shouldAcceptTournamentDoc(this.data && this.data.tournament, result.cachedDoc)) {
+          this.setData(composePageSyncPatch(this, { syncRefreshing: false }));
+          return this.data && this.data.tournament ? this.data.tournament : null;
+        }
         const patch = typeof options.buildCachedState === 'function'
           ? options.buildCachedState.call(this, result, { requestSeq, source: 'cache' })
           : { showStaleSyncHint: true, loadError: false };
@@ -177,6 +194,18 @@ function createTournamentSyncMethods(options = {}) {
         syncCachedAt: 0
       }));
       return null;
+    },
+
+    handleNetworkChange(offline, options = {}) {
+      const nextOffline = !!offline;
+      const wasOffline = !!(this.data && this.data.networkOffline);
+      const tournamentId = String((options.tournamentId || (this.data && this.data.tournamentId)) || '').trim();
+      this.setData(composePageSyncPatch(this, { networkOffline: nextOffline }));
+      if (!nextOffline && wasOffline) {
+        if (tournamentId && typeof this.fetchTournament === 'function') this.fetchTournament(tournamentId);
+        if (tournamentId && !this.hasActiveWatch() && typeof this.startWatch === 'function') this.startWatch(tournamentId);
+        if (typeof options.onReconnect === 'function') options.onReconnect.call(this, tournamentId);
+      }
     },
 
     onRetry() {

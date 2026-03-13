@@ -38,7 +38,7 @@ function createMatchSubmitService(ctx, deps = {}) {
   function returnToSchedule(delay = 0) {
     const tid = String(ctx.data.tournamentId || '').trim();
     if (!tid) return;
-    const url = `/pages/schedule/index?tournamentId=${tid}`;
+    const url = navApi.buildTournamentUrl('/pages/schedule/index', tid);
     if (delay > 0) {
       scheduleNavigation(() => navApi.redirectOrBack(url, 0), delay);
       return;
@@ -56,9 +56,11 @@ function createMatchSubmitService(ctx, deps = {}) {
       return;
     }
 
-    wx.redirectTo({
-      url: `/pages/match/index?tournamentId=${ctx.data.tournamentId}&roundIndex=${next.roundIndex}&matchIndex=${next.matchIndex}${forceBatch ? '&batch=1' : ''}`
-    });
+    navApi.redirectOrNavigate(navApi.buildTournamentUrl('/pages/match/index', ctx.data.tournamentId, {
+      roundIndex: next.roundIndex,
+      matchIndex: next.matchIndex,
+      batch: forceBatch ? 1 : ''
+    }));
   }
 
   async function refreshTournamentDoc() {
@@ -142,7 +144,9 @@ function createMatchSubmitService(ctx, deps = {}) {
     }
     if (code === 'VERSION_CONFLICT') {
       restoreLockAfterSubmitFail(lockSnapshot);
-      ctx.setLastFailedAction('提交比分', () => submit());
+      ctx.setLastFailedAction('提交比分', () => submit(), {
+        actionKey: `match:submitScore:${ctx.data.tournamentId}:${ctx.data.roundIndex}:${ctx.data.matchIndex}`
+      });
       ctx.handleWriteError(res, '提交失败', () => ctx.fetchTournament(ctx.data.tournamentId));
       return true;
     }
@@ -240,7 +244,7 @@ function createMatchSubmitService(ctx, deps = {}) {
         if (autoReturn) returnToSchedule(420);
       } catch (err) {
         restoreLockAfterSubmitFail(lockSnapshot);
-        ctx.setLastFailedAction('提交比分', () => submit());
+        ctx.setLastFailedAction('提交比分', () => submit(), { actionKey });
         ctx.handleWriteError(err, '提交失败', () => ctx.fetchTournament(ctx.data.tournamentId));
       } finally {
         wx.hideLoading();

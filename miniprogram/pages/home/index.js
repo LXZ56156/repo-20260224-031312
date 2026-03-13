@@ -1,8 +1,12 @@
 const storage = require('../../core/storage');
-const cloud = require('../../core/cloud');
 const actionGuard = require('../../core/actionGuard');
+const cloneTournamentCore = require('../../core/cloneTournament');
+const cloud = require('../../core/cloud');
+const profileCore = require('../../core/profile');
 const retryAction = require('../../core/retryAction');
 const syncStatus = require('../../core/syncStatus');
+const nav = require('../../core/nav');
+const writeErrorUi = require('../../core/writeErrorUi');
 const { normalizeTournament } = require('../../core/normalize');
 const adGuard = require('../../core/adGuard');
 const flow = require('../../core/uxFlow');
@@ -192,8 +196,9 @@ Page({
     if (storage.getEntryPruneVersion() < 1) storage.setEntryPruneVersion(1);
 
     if (app && typeof app.subscribeNetworkChange === 'function') {
-      this._offNetwork = app.subscribeNetworkChange((offline) => {
+      this._offNetwork = app.subscribeNetworkChange((offline, meta = {}) => {
         this.setData(composeHomeSyncPatch(this, { networkOffline: !!offline }));
+        if (meta.reconnected) this.loadRecents();
       });
     }
 
@@ -241,7 +246,7 @@ Page({
     storage.setProfileNudgeDismissed(true);
     this.setData({ showProfileNudge: false });
     wx.navigateTo({
-      url: `/pages/profile/index?returnUrl=${encodeURIComponent('/pages/home/index')}`
+      url: profileCore.buildProfileUrl('/pages/home/index')
     });
   },
 
@@ -429,13 +434,13 @@ Page({
   goRanking(e) {
     const id = e.currentTarget.dataset.id;
     if (!id) return;
-    wx.navigateTo({ url: `/pages/ranking/index?tournamentId=${id}` });
+    wx.navigateTo({ url: nav.buildTournamentUrl('/pages/ranking/index', id) });
   },
 
   goLobby(e) {
     const id = e.currentTarget.dataset.id;
     if (!id) return;
-    wx.navigateTo({ url: `/pages/lobby/index?tournamentId=${id}` });
+    wx.navigateTo({ url: nav.buildTournamentUrl('/pages/lobby/index', id) });
   },
 
   onHeroPrimaryTap(e) {
@@ -460,24 +465,23 @@ Page({
     return actionGuard.run(actionKey, async () => {
       wx.showLoading({ title: '复制中...' });
       try {
-        const res = await cloud.call('cloneTournament', { sourceTournamentId });
-        const nextId = String((res && res.tournamentId) || '').trim();
-        if (!nextId) throw new Error('复制失败');
+        const nextId = await cloneTournamentCore.cloneTournament(sourceTournamentId);
         wx.hideLoading();
         this.clearLastFailedAction();
-        storage.addRecentTournamentId(nextId);
         wx.showToast({ title: '已复制', icon: 'success' });
-        wx.navigateTo({ url: `/pages/lobby/index?tournamentId=${nextId}` });
+        wx.navigateTo({ url: nav.buildTournamentUrl('/pages/lobby/index', nextId) });
       } catch (err) {
         wx.hideLoading();
-        this.setLastFailedAction('再办一场', () => this.onCloneTap({ currentTarget: { dataset: { id: sourceTournamentId } } }));
+        this.setLastFailedAction('再办一场', () => this.onCloneTap({ currentTarget: { dataset: { id: sourceTournamentId } } }), { actionKey });
         this.handleWriteError(err, '复制失败', () => this.loadRecents());
       }
     });
   },
 
   handleWriteError(err, fallbackMessage, onRefresh) {
-    retryAction.presentWriteError(this, err, fallbackMessage, {
+    writeErrorUi.presentWriteError({
+      err,
+      fallbackMessage,
       conflictContent: '数据已被其他人更新，刷新后可重试该操作。',
       onRefresh
     });
@@ -578,7 +582,7 @@ Page({
       }
     }
 
-    wx.navigateTo({ url: `/pages/lobby/index?tournamentId=${id}` });
+    wx.navigateTo({ url: nav.buildTournamentUrl('/pages/lobby/index', id) });
   },
 
   async onDeleteTap(e) {

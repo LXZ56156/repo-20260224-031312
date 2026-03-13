@@ -3,12 +3,14 @@ const actionGuard = require('../../core/actionGuard');
 const storage = require('../../core/storage');
 const nav = require('../../core/nav');
 const flow = require('../../core/uxFlow');
-const retryAction = require('../../core/retryAction');
+const writeErrorUi = require('../../core/writeErrorUi');
 const viewModel = require('./settingsViewModel');
 
 module.exports = {
   handleWriteError(err, fallbackMessage, onRefresh) {
-    retryAction.presentWriteError(this, err, fallbackMessage, {
+    writeErrorUi.presentWriteError({
+      err,
+      fallbackMessage,
       conflictContent: '数据已被其他人更新，刷新后可继续修改比赛。',
       onRefresh
     });
@@ -24,10 +26,7 @@ module.exports = {
   },
 
   goHome() {
-    wx.reLaunch({
-      url: '/pages/home/index',
-      fail: () => wx.navigateTo({ url: '/pages/home/index' })
-    });
+    nav.goHome();
   },
 
   onNameInput(e) {
@@ -216,11 +215,12 @@ module.exports = {
         nav.markRefreshFlag(this.data.tournamentId);
         if (this._autoBackTimer) clearTimeout(this._autoBackTimer);
         this._autoBackTimer = setTimeout(() => {
-          nav.navigateBackOrRedirect(`/pages/lobby/index?tournamentId=${this.data.tournamentId}`);
+          nav.navigateBackOrRedirect(nav.buildTournamentUrl('/pages/lobby/index', this.data.tournamentId));
         }, 420);
       } catch (e) {
         wx.hideLoading();
-        this.setLastFailedAction('修改比赛', () => this.saveSettings());
+        await this.fetchTournament(this.data.tournamentId);
+        this.setLastFailedAction('修改比赛', () => this.saveSettings(), { actionKey });
         this.handleWriteError(e, '保存失败', () => this.fetchTournament(this.data.tournamentId));
       }
     });

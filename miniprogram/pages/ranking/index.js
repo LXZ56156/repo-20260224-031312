@@ -62,7 +62,7 @@ Page({
     this.setData(pageTournamentSync.composePageSyncPatch(this, { networkOffline: initialOffline }));
     if (app && typeof app.subscribeNetworkChange === 'function') {
       this._offNetwork = app.subscribeNetworkChange((offline) => {
-        this.setData(pageTournamentSync.composePageSyncPatch(this, { networkOffline: !!offline }));
+        this.handleNetworkChange(offline);
       });
     }
 
@@ -79,7 +79,7 @@ Page({
     nav.consumeRefreshFlag(currentId);
     // 兜底刷新：部分真机 onSnapshot 监听可能不稳定
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
-    if (this.data.tournamentId && !this.watcher) this.startWatch(this.data.tournamentId);
+    if (this.data.tournamentId && !this.hasActiveWatch()) this.startWatch(this.data.tournamentId);
   },
 
   onUnload() {
@@ -107,9 +107,6 @@ Page({
   },
 
   goHome() {
-    wx.reLaunch({
-      url: '/pages/home/index',
-      fail: () => wx.navigateTo({ url: '/pages/home/index' })
-    });
+    nav.goHome();
   }
 });

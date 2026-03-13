@@ -1,3 +1,4 @@
+const nav = require('../../core/nav');
 const tournamentEntry = require('../../core/tournamentEntry');
 
 function parseTournamentId(options = {}) {
@@ -11,26 +12,30 @@ function normalizeIntent(intent = 'view') {
 }
 
 function buildReturnUrl(tournamentId, intent = 'view') {
-  return `/pages/share-entry/index?tournamentId=${encodeURIComponent(String(tournamentId || '').trim())}&intent=${encodeURIComponent(normalizeIntent(intent))}`;
+  return nav.buildUrl('/pages/share-entry/index', {
+    tournamentId: String(tournamentId || '').trim(),
+    intent: normalizeIntent(intent)
+  });
 }
 
 function buildLobbyUrl(tournamentId, entry = '') {
-  const tid = encodeURIComponent(String(tournamentId || '').trim());
   const normalizedEntry = String(entry || '').trim().toLowerCase();
-  const entryQuery = normalizedEntry ? `&entry=${encodeURIComponent(normalizedEntry)}` : '';
-  return `/pages/lobby/index?tournamentId=${tid}&fromShare=1${entryQuery}`;
+  return nav.buildTournamentUrl('/pages/lobby/index', tournamentId, {
+    fromShare: 1,
+    ...(normalizedEntry ? { entry: normalizedEntry } : {})
+  });
 }
 
 function buildScheduleUrl(tournamentId) {
-  return `/pages/schedule/index?tournamentId=${encodeURIComponent(String(tournamentId || '').trim())}`;
+  return nav.buildTournamentUrl('/pages/schedule/index', tournamentId);
 }
 
 function buildRankingUrl(tournamentId) {
-  return `/pages/ranking/index?tournamentId=${encodeURIComponent(String(tournamentId || '').trim())}`;
+  return nav.buildTournamentUrl('/pages/ranking/index', tournamentId);
 }
 
 function buildAnalyticsUrl(tournamentId) {
-  return `/pages/analytics/index?tournamentId=${encodeURIComponent(String(tournamentId || '').trim())}`;
+  return nav.buildTournamentUrl('/pages/analytics/index', tournamentId);
 }
 
 module.exports = {

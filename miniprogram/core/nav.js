@@ -2,6 +2,26 @@ function trimText(value) {
   return String(value || '').trim();
 }
 
+function buildUrl(path, query = {}) {
+  const target = trimText(path);
+  if (!target) return '';
+  const entries = Object.entries(query && typeof query === 'object' ? query : {})
+    .filter(([, value]) => value !== undefined && value !== null && String(value) !== '');
+  if (!entries.length) return target;
+  const queryString = entries
+    .map(([key, value]) => `${encodeURIComponent(String(key))}=${encodeURIComponent(String(value))}`)
+    .join('&');
+  return `${target}${target.includes('?') ? '&' : '?'}${queryString}`;
+}
+
+function buildTournamentUrl(path, tournamentId, query = {}) {
+  const tid = trimText(tournamentId);
+  return buildUrl(path, {
+    tournamentId: tid,
+    ...(query && typeof query === 'object' ? query : {})
+  });
+}
+
 function readApp() {
   try {
     return getApp();
@@ -120,11 +140,57 @@ function redirectOrBack(url, delay = 0) {
   run();
 }
 
+function redirectOrNavigate(url, delay = 0) {
+  const target = trimText(url);
+  if (!target) return;
+  const run = () => {
+    if (typeof wx.redirectTo === 'function') {
+      wx.redirectTo({
+        url: target,
+        fail: () => {
+          if (typeof wx.navigateTo === 'function') wx.navigateTo({ url: target });
+        }
+      });
+      return;
+    }
+    if (typeof wx.navigateTo === 'function') wx.navigateTo({ url: target });
+  };
+  if (delay > 0) {
+    setTimeout(run, delay);
+    return;
+  }
+  run();
+}
+
+function goHome() {
+  const target = '/pages/home/index';
+  if (typeof wx.switchTab === 'function') {
+    wx.switchTab({
+      url: target,
+      fail: () => {
+        wx.reLaunch({
+          url: target,
+          fail: () => wx.navigateTo({ url: target })
+        });
+      }
+    });
+    return;
+  }
+  wx.reLaunch({
+    url: target,
+    fail: () => wx.navigateTo({ url: target })
+  });
+}
+
 module.exports = {
+  buildUrl,
+  buildTournamentUrl,
   consumeRefreshFlag,
   markRefreshFlag,
   setLobbyIntent,
   consumeLobbyIntent,
   navigateBackOrRedirect,
-  redirectOrBack
+  redirectOrBack,
+  redirectOrNavigate,
+  goHome
 };

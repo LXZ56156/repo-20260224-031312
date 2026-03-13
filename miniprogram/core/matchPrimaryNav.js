@@ -1,9 +1,9 @@
+const nav = require('./nav');
+
 function buildPageUrl(key, tournamentId) {
-  const tid = encodeURIComponent(String(tournamentId || '').trim());
-  const suffix = tid ? `?tournamentId=${tid}` : '';
-  if (key === 'ranking') return `/pages/ranking/index${suffix}`;
-  if (key === 'schedule') return `/pages/schedule/index${suffix}`;
-  return `/pages/lobby/index${suffix}`;
+  if (key === 'ranking') return nav.buildTournamentUrl('/pages/ranking/index', tournamentId);
+  if (key === 'schedule') return nav.buildTournamentUrl('/pages/schedule/index', tournamentId);
+  return nav.buildTournamentUrl('/pages/lobby/index', tournamentId);
 }
 
 function getPrimaryNavItems(currentKey, tournamentId) {
@@ -20,13 +20,11 @@ function navigateToPrimary(targetKey, tournamentId, currentKey = '') {
   if (!target) return;
   if (target === String(currentKey || '').trim()) return;
   const url = buildPageUrl(target, tournamentId);
-  wx.redirectTo({
-    url,
-    fail: () => wx.navigateTo({ url })
-  });
+  nav.redirectOrNavigate(url);
 }
 
 module.exports = {
+  buildPageUrl,
   getPrimaryNavItems,
   navigateToPrimary
 };

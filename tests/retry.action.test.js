@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const cloud = require('../miniprogram/core/cloud');
+const writeErrorUi = require('../miniprogram/core/writeErrorUi');
 
 test('parseCloudError detects conflict errors', () => {
   const parsed = cloud.parseCloudError(new Error('写入冲突 version mismatch'), '失败');
@@ -57,10 +58,11 @@ test('getUnifiedErrorMessage hides internal unknown cloud details in release env
   }
 });
 
-test('cloud.call only shows detailed developer hint outside release env', async () => {
+test('cloud.call only attaches detailed developer hint outside release env', async () => {
   const originalWx = global.wx;
   const originalGetApp = global.getApp;
-  const modalCalls = [];
+  let developErr = null;
+  let releaseErr = null;
 
   global.getApp = () => ({
     globalData: {
@@ -68,9 +70,6 @@ test('cloud.call only shows detailed developer hint outside release env', async 
     }
   });
   global.wx = {
-    showModal(payload) {
-      modalCalls.push(payload);
-    },
     cloud: {
       callFunction() {
         return Promise.reject(new Error('FUNCTION_NOT_FOUND'));
@@ -79,31 +78,40 @@ test('cloud.call only shows detailed developer hint outside release env', async 
   };
 
   try {
-    await assert.rejects(() => cloud.call('deleteTournament', {}), /FUNCTION_NOT_FOUND/);
-    assert.equal(modalCalls.length, 1);
-    assert.match(String(modalCalls[0].content || ''), /cloudfunctions\/deleteTournament/);
+    try {
+      await cloud.call('deleteTournament', {});
+    } catch (err) {
+      developErr = err;
+    }
+    assert.ok(developErr);
+    assert.equal(cloud.getDeveloperHint(developErr).title, '云函数未部署');
+    assert.match(String(cloud.getDeveloperHint(developErr).content || ''), /cloudfunctions\/deleteTournament/);
 
-    modalCalls.length = 0;
     global.getApp = () => ({
       globalData: {
         runtimeEnv: { envVersion: 'release' }
       }
     });
 
-    await assert.rejects(() => cloud.call('deleteTournament', {}), /FUNCTION_NOT_FOUND/);
-    assert.equal(modalCalls.length, 0);
+    try {
+      await cloud.call('deleteTournament', {});
+    } catch (err) {
+      releaseErr = err;
+    }
+    assert.ok(releaseErr);
+    assert.equal(cloud.getDeveloperHint(releaseErr), null);
   } finally {
     global.wx = originalWx;
     global.getApp = originalGetApp;
   }
 });
 
-test('cloud.call does not show user-facing modal for invalid write shape errors', async () => {
+test('cloud.call does not attach developer hint for invalid write shape errors', async () => {
   const originalWx = global.wx;
   const originalGetApp = global.getApp;
   const originalWarn = console.warn;
-  const modalCalls = [];
   const warnCalls = [];
+  let err = null;
 
   global.getApp = () => ({
     globalData: {
@@ -114,9 +122,6 @@ test('cloud.call does not show user-facing modal for invalid write shape errors'
     warnCalls.push(args);
   };
   global.wx = {
-    showModal(payload) {
-      modalCalls.push(payload);
-    },
     cloud: {
       callFunction() {
         return Promise.reject(new Error('document.set:fail -501007 invalid parameters. 不能更新_id的值'));
@@ -125,13 +130,50 @@ test('cloud.call does not show user-facing modal for invalid write shape errors'
   };
 
   try {
-    await assert.rejects(() => cloud.call('scoreLock', {}), /不能更新_id的值/);
-    assert.equal(modalCalls.length, 0);
+    try {
+      await cloud.call('scoreLock', {});
+    } catch (caught) {
+      err = caught;
+    }
+    assert.ok(err);
+    assert.equal(cloud.getDeveloperHint(err), null);
     assert.equal(warnCalls.length, 1);
     assert.match(String(warnCalls[0][0] || ''), /云函数写入参数不合法/);
   } finally {
     global.wx = originalWx;
     global.getApp = originalGetApp;
     console.warn = originalWarn;
+  }
+});
+
+test('writeErrorUi presents developer hint in UI layer when cloud metadata is available', () => {
+  const originalWx = global.wx;
+  const toastCalls = [];
+  const modalCalls = [];
+  const err = new Error('FUNCTION_NOT_FOUND');
+  err.devHint = {
+    title: '云函数未部署',
+    content: '请部署 deleteTournament'
+  };
+
+  global.wx = {
+    showToast(payload) {
+      toastCalls.push(payload);
+    },
+    showModal(payload) {
+      modalCalls.push(payload);
+    }
+  };
+
+  try {
+    writeErrorUi.presentWriteError({
+      err,
+      fallbackMessage: '保存失败'
+    });
+    assert.equal(toastCalls.length, 1);
+    assert.equal(modalCalls.length, 1);
+    assert.equal(modalCalls[0].title, '云函数未部署');
+  } finally {
+    global.wx = originalWx;
   }
 });

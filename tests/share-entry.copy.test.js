@@ -11,4 +11,6 @@ test('share-entry page uses user-facing labels instead of raw internal view mode
   assert.match(wxml, /\{\{preview\.viewModeLabel\}\}/);
   assert.doesNotMatch(wxml, /\{\{preview\.viewMode\}\}/);
   assert.match(wxml, /\{\{preview\.primaryAction\.text\}\}/);
+  assert.match(wxml, /\{\{preview\.availabilityText\}\}/);
+  assert.match(wxml, /\{\{preview\.secondaryAction\.text\}\}/);
 });

@@ -1,3 +1,4 @@
+const nav = require('../../core/nav');
 const profileCore = require('../../core/profile');
 const flow = require('../../core/uxFlow');
 
@@ -19,7 +20,7 @@ Page({
       }
       return;
     }
-    wx.navigateTo({ url: `/pages/create/index?mode=${encodeURIComponent(mode)}` });
+    wx.navigateTo({ url: nav.buildUrl('/pages/create/index', { mode }) });
   },
 
   onShowRules(e) {

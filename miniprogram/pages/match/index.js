@@ -1,24 +1,22 @@
-const cloud = require('../../core/cloud');
 const pageTournamentSync = require('../../core/pageTournamentSync');
 const retryAction = require('../../core/retryAction');
 const storage = require('../../core/storage');
 const nav = require('../../core/nav');
+const writeErrorUi = require('../../core/writeErrorUi');
 const { buildInitialData, clampScore, buildTournamentViewState } = require('./matchViewModel');
-const { createMatchLockController } = require('./matchLockController');
 const { createMatchDraftController } = require('./matchDraftController');
-const { createMatchSubmitService } = require('./matchSubmitService');
+const { createScoreLockManager } = require('./scoreLockManager');
 
 function ensureControllers(ctx) {
   if (!ctx.matchDraft) ctx.matchDraft = createMatchDraftController(ctx);
-  if (!ctx.lockController) ctx.lockController = createMatchLockController(ctx);
-  if (!ctx.submitService) ctx.submitService = createMatchSubmitService(ctx);
+  if (!ctx.scoreLockManager) ctx.scoreLockManager = createScoreLockManager(ctx);
 }
 
 function releaseAndTeardown(ctx) {
   ensureControllers(ctx);
   pageTournamentSync.teardownTournamentSync(ctx);
-  ctx.lockController.releaseLockIfOwned().catch(() => {});
-  ctx.lockController.teardown({ resetState: true });
+  ctx.scoreLockManager.releaseLockIfOwned().catch(() => {});
+  ctx.scoreLockManager.teardown({ resetState: true });
 }
 
 const matchSyncController = pageTournamentSync.createTournamentSyncMethods();
@@ -53,7 +51,7 @@ Page({
     }));
     if (app && typeof app.subscribeNetworkChange === 'function') {
       this._offNetwork = app.subscribeNetworkChange((offline) => {
-        this.setData(pageTournamentSync.composePageSyncPatch(this, { networkOffline: !!offline }));
+        this.handleNetworkChange(offline);
       });
     }
 
@@ -74,7 +72,7 @@ Page({
     const currentId = String(this.data.tournamentId || '').trim();
     nav.consumeRefreshFlag(currentId);
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
-    if (this.data.tournamentId && !this.watcher) this.startWatch(this.data.tournamentId);
+    if (this.data.tournamentId && !this.hasActiveWatch()) this.startWatch(this.data.tournamentId);
   },
 
   onUnload() {
@@ -133,7 +131,7 @@ Page({
 
     this._latestTournament = viewState.tournament;
     if (viewState.lockTransition) {
-      this.lockController.setLockState(viewState.lockTransition, {}, { skipApply: true });
+      this.scoreLockManager.setLockState(viewState.lockTransition, {}, { skipApply: true });
     }
     if (viewState.shouldClearDraft) {
       this.matchDraft.clearScoreDraft();
@@ -143,43 +141,43 @@ Page({
 
     if (viewState.shouldSyncLock && this._lockStatusKey !== viewState.lockSyncKey && options.skipLockSync !== true) {
       this._lockStatusKey = viewState.lockSyncKey;
-      this.lockController.syncLockStatus(true);
+      this.scoreLockManager.syncLockStatus(true);
     }
   },
 
   buildScoreLockPayload(action, force = false) {
     ensureControllers(this);
-    return this.lockController.buildScoreLockPayload(action, force);
+    return this.scoreLockManager.buildScoreLockPayload(action, force);
   },
 
   setLockState(state, payload = {}, options = {}) {
     ensureControllers(this);
-    this.lockController.setLockState(state, payload, options);
+    this.scoreLockManager.setLockState(state, payload, options);
   },
 
   clearLockTimers() {
     ensureControllers(this);
-    this.lockController.teardown();
+    this.scoreLockManager.clearLockTimers();
   },
 
   async syncLockStatus(silent = false) {
     ensureControllers(this);
-    return this.lockController.syncLockStatus(silent);
+    return this.scoreLockManager.syncLockStatus(silent);
   },
 
   async heartbeatLock() {
     ensureControllers(this);
-    return this.lockController.heartbeatLock();
+    return this.scoreLockManager.heartbeatLock();
   },
 
   async releaseLockIfOwned(force = false) {
     ensureControllers(this);
-    return this.lockController.releaseLockIfOwned(force);
+    return this.scoreLockManager.releaseLockIfOwned(force);
   },
 
   applyScoreLockResult(res, options = {}) {
     ensureControllers(this);
-    this.lockController.applyScoreLockResult(res, options);
+    this.scoreLockManager.applyScoreLockResult(res, options);
   },
 
   tryBatchSkipOnOccupied() {
@@ -194,39 +192,19 @@ Page({
   },
 
   async onStartScoring() {
-    if (this.data.lockBusy) return;
-    this.setData({ lockBusy: true });
-    try {
-      const res = await cloud.call('scoreLock', this.buildScoreLockPayload('acquire'));
-      this.applyScoreLockResult(res);
-    } catch (err) {
-      wx.showToast({ title: cloud.getUnifiedErrorMessage(err, '开始录分失败'), icon: 'none' });
-    } finally {
-      this.setData({ lockBusy: false });
-    }
+    ensureControllers(this);
+    return this.scoreLockManager.acquireLock(false);
   },
 
   async onTakeOverScoring() {
-    if (!this.data.isAdmin || this.data.lockBusy) return;
-    this.setData({ lockBusy: true });
-    try {
-      const res = await cloud.call('scoreLock', this.buildScoreLockPayload('acquire', true));
-      this.applyScoreLockResult(res);
-    } catch (err) {
-      wx.showToast({ title: cloud.getUnifiedErrorMessage(err, '接管失败'), icon: 'none' });
-    } finally {
-      this.setData({ lockBusy: false });
-    }
+    if (!this.data.isAdmin) return;
+    ensureControllers(this);
+    return this.scoreLockManager.acquireLock(true);
   },
 
   async onRefreshLock() {
-    if (this.data.lockBusy) return;
-    this.setData({ lockBusy: true });
-    try {
-      await this.syncLockStatus(false);
-    } finally {
-      this.setData({ lockBusy: false });
-    }
+    ensureControllers(this);
+    return this.scoreLockManager.refreshLockStatus();
   },
 
   getScoreDraft() {
@@ -292,7 +270,9 @@ Page({
 
   handleWriteError(err, fallbackMessage, onRefresh) {
     ensureControllers(this);
-    retryAction.presentWriteError(this, err, fallbackMessage, {
+    writeErrorUi.presentWriteError({
+      err,
+      fallbackMessage,
       conflictContent: '数据已被其他人更新，刷新后可继续提交，当前输入会保留。',
       onRefresh,
       onKeepDraft: () => {
@@ -303,36 +283,36 @@ Page({
 
   returnToSchedule(delay = 0) {
     ensureControllers(this);
-    return this.submitService.returnToSchedule(delay);
+    return this.scoreLockManager.returnToSchedule(delay);
   },
 
   async jumpToNextPending(tournamentDoc, noPendingMessage, forceBatch = false) {
     ensureControllers(this);
-    return this.submitService.jumpToNextPending(tournamentDoc, noPendingMessage, forceBatch);
+    return this.scoreLockManager.jumpToNextPending(tournamentDoc, noPendingMessage, forceBatch);
   },
 
   async refreshTournamentDoc() {
     ensureControllers(this);
-    return this.submitService.refreshTournamentDoc();
+    return this.scoreLockManager.refreshTournamentDoc();
   },
 
   async jumpAfterBatch(noPendingMessage) {
     ensureControllers(this);
-    return this.submitService.jumpAfterBatch(noPendingMessage);
+    return this.scoreLockManager.jumpAfterBatch(noPendingMessage);
   },
 
   restoreLockAfterSubmitFail(snapshot) {
     ensureControllers(this);
-    this.submitService.restoreLockAfterSubmitFail(snapshot);
+    this.scoreLockManager.restoreLockAfterSubmitFail(snapshot);
   },
 
   handleSubmitResultCode(res, lockSnapshot) {
     ensureControllers(this);
-    return this.submitService.handleSubmitResultCode(res, lockSnapshot);
+    return this.scoreLockManager.handleSubmitResultCode(res, lockSnapshot);
   },
 
   async submit() {
     ensureControllers(this);
-    return this.submitService.submit();
+    return this.scoreLockManager.submit();
   }
 });

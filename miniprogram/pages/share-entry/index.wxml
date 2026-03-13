@@ -27,6 +27,13 @@
       <view class="section-title">现在可以做什么</view>
       <text class="count-pill">{{preview.viewModeLabel}}</text>
     </view>
+    <view
+      class="share-availability {{identityPending ? 'is-pending' : ''}} {{identityTimedOut ? 'is-timeout' : ''}}"
+      wx:if="{{preview.availabilityText}}"
+    >
+      <view class="share-availability-title">{{identityPending ? '身份识别中' : (identityTimedOut ? '先看比赛' : '操作提示')}}</view>
+      <view class="share-availability-text">{{preview.availabilityText}}</view>
+    </view>
     <view class="card-inline-squad" wx:if="{{tournament && tournament.mode==='squad_doubles' && preview.joinAllowed && !preview.joined}}">
       <view class="chips squad-chooser">
         <view class="chip {{joinSquadChoice==='A' ? 'active' : ''}}" data-squad="A" bindtap="onPickJoinSquad">A队</view>
@@ -42,6 +49,10 @@
       >
         {{preview.primaryAction.text}}
       </button>
+      <view class="btn-row" wx:if="{{tournament}}">
+        <button class="btn btn-subtle" bindtap="goSchedule">查看赛程</button>
+        <button class="btn btn-subtle" bindtap="goRanking">查看排名</button>
+      </view>
       <button
         class="btn btn-subtle"
         wx:if="{{preview.secondaryAction && (preview.viewMode==='invalid-match' || preview.viewMode==='retryable-error')}}"

@@ -104,7 +104,7 @@ Page({
     }));
     if (app && typeof app.subscribeNetworkChange === 'function') {
       this._offNetwork = app.subscribeNetworkChange((offline) => {
-        this.setData(pageTournamentSync.composePageSyncPatch(this, { networkOffline: !!offline }));
+        this.handleNetworkChange(offline);
       });
     }
 
@@ -128,7 +128,7 @@ Page({
     const currentId = String(this.data.tournamentId || '').trim();
     nav.consumeRefreshFlag(currentId);
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
-    if (this.data.tournamentId && !this.watcher) this.startWatch(this.data.tournamentId);
+    if (this.data.tournamentId && !this.hasActiveWatch()) this.startWatch(this.data.tournamentId);
   },
 
   applyTournament(tournament) {

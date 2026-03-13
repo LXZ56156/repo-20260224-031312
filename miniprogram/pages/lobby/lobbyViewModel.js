@@ -231,7 +231,7 @@ function buildChecklistItems({ checkSettingsOk, checkPlayersOk, checkStartReady,
       title: '3. 开始比赛',
       done: !!checkStartReady,
       summary: checkStartReady ? '可立即开赛' : '完成前两项后可开赛',
-      actionText: checkStartReady ? '开始' : '去完成'
+      actionText: checkStartReady ? '见上方' : '去完成'
     }
   ];
 }

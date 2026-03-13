@@ -1,5 +1,6 @@
 const playerUtils = require('../playerUtils');
 const scoreUtils = require('../scoreUtils');
+const tournamentVersion = require('../tournamentVersion');
 const { get, set, del } = require('./base');
 
 const RECENT_TOURNAMENTS_KEY = 'recentTournaments';
@@ -257,6 +258,7 @@ function buildLocalTournamentSnapshot(tournament) {
     _id: tid,
     status: String(t.status || '').trim(),
     mode: String(t.mode || '').trim(),
+    version: Number(t.version) || 0,
     updatedAt: t.updatedAt || null,
     createdAt: t.createdAt || null,
     updatedAtTs: toTs(t.updatedAt) || toTs(t.createdAt) || Date.now(),
@@ -306,17 +308,47 @@ function getLocalCompletedTournamentSnapshots() {
     ? migrateLocalCompletedSnapshotMap(ids)
     : getLocalCompletedTournamentMap();
   const out = [];
+  const nextIds = [];
+  const openid = getCurrentOpenid();
+  let mapChanged = false;
   for (const id of ids) {
     let snapshot = snapshotMap[id];
     if ((!snapshot || typeof snapshot !== 'object') && id) {
       snapshot = readLegacySnapshotById(id);
       if (snapshot && typeof snapshot === 'object') {
         snapshotMap[id] = snapshot;
-        setLocalCompletedTournamentMap(snapshotMap);
-        setLocalCompletedTournamentCompatVersion();
+        mapChanged = true;
       }
     }
-    if (snapshot && typeof snapshot === 'object') out.push(snapshot);
+    const cacheDoc = getLocalTournamentCache(id);
+    const cacheIsObject = cacheDoc && typeof cacheDoc === 'object';
+    const cacheFreshness = cacheIsObject ? tournamentVersion.compareTournamentFreshness(snapshot, cacheDoc) : -1;
+    if (cacheIsObject && cacheFreshness >= 0 && openid) {
+      const cacheEligible = String(cacheDoc.status || '').trim() === 'finished'
+        && playerUtils.isParticipantInTournament(cacheDoc, openid);
+      if (!cacheEligible) {
+        delete snapshotMap[id];
+        del(getLocalTournamentSnapshotKey(id));
+        mapChanged = true;
+        continue;
+      }
+      const cacheSnapshot = buildLocalTournamentSnapshot(cacheDoc);
+      if (cacheSnapshot && tournamentVersion.compareTournamentFreshness(snapshot, cacheSnapshot) > 0) {
+        snapshot = cacheSnapshot;
+        snapshotMap[id] = cacheSnapshot;
+        setLocalTournamentSnapshot(id, cacheSnapshot);
+        mapChanged = true;
+      }
+    }
+    if (snapshot && typeof snapshot === 'object') {
+      nextIds.push(id);
+      out.push(snapshot);
+    }
+  }
+  if (mapChanged) {
+    setLocalCompletedTournamentMap(snapshotMap);
+    setLocalCompletedTournamentIds(nextIds);
+    setLocalCompletedTournamentCompatVersion();
   }
   out.sort((a, b) => (Number(b.updatedAtTs) || 0) - (Number(a.updatedAtTs) || 0));
   return out;

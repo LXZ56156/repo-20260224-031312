@@ -207,7 +207,7 @@ Page({
     this.setData(pageTournamentSync.composePageSyncPatch(this, { networkOffline: initialOffline }));
     if (app && typeof app.subscribeNetworkChange === 'function') {
       this._offNetwork = app.subscribeNetworkChange((offline) => {
-        this.setData(pageTournamentSync.composePageSyncPatch(this, { networkOffline: !!offline }));
+        this.handleNetworkChange(offline);
       });
     }
 
@@ -224,7 +224,7 @@ Page({
     nav.consumeRefreshFlag(currentId);
     // 兜底刷新：从录入比分页返回时，确保状态与比分是最新的
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
-    if (this.data.tournamentId && !this.watcher) this.startWatch(this.data.tournamentId);
+    if (this.data.tournamentId && !this.hasActiveWatch()) this.startWatch(this.data.tournamentId);
   },
 
   onUnload() {
@@ -300,9 +300,13 @@ Page({
       wx.showToast({ title: '该场已取消', icon: 'none' });
       return;
     }
-    const batch = Number(e.currentTarget.dataset.batch) === 1 ? '&batch=1' : '';
+    const batch = Number(e.currentTarget.dataset.batch) === 1;
     wx.navigateTo({
-      url: `/pages/match/index?tournamentId=${this.data.tournamentId}&roundIndex=${roundIndex}&matchIndex=${matchIndex}${batch}`
+      url: nav.buildTournamentUrl('/pages/match/index', this.data.tournamentId, {
+        roundIndex,
+        matchIndex,
+        batch: batch ? 1 : ''
+      })
     });
   },
 

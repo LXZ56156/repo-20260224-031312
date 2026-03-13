@@ -33,7 +33,7 @@ Page({
 
   onGoCompleteProfile() {
     wx.navigateTo({
-      url: '/pages/profile/index?returnUrl=/pages/feedback/index'
+      url: profileCore.buildProfileUrl('/pages/feedback/index')
     });
   },
 

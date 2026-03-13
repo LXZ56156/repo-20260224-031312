@@ -1,3 +1,5 @@
+const tournamentVersion = require('../core/tournamentVersion');
+
 const channels = {};
 
 const POLL_BASE_MS = 1500;
@@ -54,6 +56,10 @@ function decorateWatchError(err, meta = {}) {
 }
 
 function emitData(channel, doc, meta = {}) {
+  if (channel && channel.latestDoc && !tournamentVersion.shouldAcceptTournamentDoc(channel.latestDoc, doc)) {
+    return;
+  }
+  if (channel) channel.latestDoc = doc;
   const listeners = channel && channel.listeners ? Object.values(channel.listeners) : [];
   for (const it of listeners) safeCall(it.onData, doc, meta);
 }
@@ -88,7 +94,7 @@ function createPollingController(options = {}) {
   let closed = false;
   let inflight = false;
   let timer = null;
-  let lastVersion = null;
+  let lastDoc = null;
   let delayMs = baseMs;
 
   const scheduleNext = (immediate = false) => {
@@ -107,9 +113,9 @@ function createPollingController(options = {}) {
     try {
       const doc = await fetchDoc();
       if (doc) {
-        const version = doc.version;
-        if (lastVersion === null || version !== lastVersion) {
-          lastVersion = version;
+        const freshness = tournamentVersion.compareTournamentFreshness(lastDoc, doc);
+        if (lastDoc === null || freshness > 0) {
+          lastDoc = doc;
           if (onData) onData(doc);
         }
       }
@@ -308,7 +314,8 @@ function ensureChannel(tournamentId) {
     fallbackReason: '',
     recoverTimer: null,
     recoverAttempts: 0,
-    recovering: false
+    recovering: false,
+    latestDoc: null
   };
   channels[tournamentId] = c;
   attachSource(c, tournamentId);
@@ -323,6 +330,9 @@ function watchTournament(tournamentId, onData, onError) {
   let closed = false;
 
   return {
+    isActive() {
+      return !closed;
+    },
     close() {
       if (closed) return;
       closed = true;

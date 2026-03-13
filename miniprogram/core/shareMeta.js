@@ -1,4 +1,5 @@
 const normalize = require('./normalize');
+const nav = require('./nav');
 const flow = require('./uxFlow');
 const ranking = require('./ranking');
 const playerUtils = require('./playerUtils');
@@ -110,7 +111,7 @@ function buildShareMessage(tournament) {
     panelTitle: '转发比赛',
     badgeText: '比赛',
     buttonText: '转发',
-    path: `/pages/share-entry/index?tournamentId=${encodeURIComponent(String(t && t._id || '').trim())}`
+    path: nav.buildTournamentUrl('/pages/share-entry/index', String(t && t._id || '').trim())
   };
 }
 

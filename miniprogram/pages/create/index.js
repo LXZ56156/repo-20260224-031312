@@ -1,7 +1,9 @@
 const cloud = require('../../core/cloud');
 const actionGuard = require('../../core/actionGuard');
+const retryAction = require('../../core/retryAction');
 const storage = require('../../core/storage');
 const flow = require('../../core/uxFlow');
+const nav = require('../../core/nav');
 const profileCore = require('../../core/profile');
 
 const POINT_OPTIONS = [11, 15, 21];
@@ -108,6 +110,8 @@ Page({
     canRetryAction: false,
     lastFailedActionText: ''
   },
+
+  ...retryAction.createRetryMethods(),
 
   async onLoad(options = {}) {
     const app = getApp();
@@ -301,23 +305,6 @@ Page({
     });
   },
 
-  setLastFailedAction(text, fn) {
-    this._lastFailedAction = typeof fn === 'function' ? fn : null;
-    this.setData({
-      canRetryAction: !!this._lastFailedAction,
-      lastFailedActionText: String(text || '').trim() || '上次操作失败，可重试'
-    });
-  },
-
-  clearLastFailedAction() {
-    this._lastFailedAction = null;
-    this.setData({ canRetryAction: false, lastFailedActionText: '' });
-  },
-
-  retryLastAction() {
-    if (typeof this._lastFailedAction === 'function') this._lastFailedAction();
-  },
-
   async handleCreate() {
     const name = String(this.data.name || '').trim();
     if (!name) {
@@ -364,10 +351,16 @@ Page({
         });
         wx.hideLoading();
         this.clearLastFailedAction();
-        wx.redirectTo({ url: `/pages/lobby/index?tournamentId=${res.tournamentId}&fromCreate=1&presetApplied=1&shareTip=1` });
+        wx.redirectTo({
+          url: nav.buildTournamentUrl('/pages/lobby/index', res.tournamentId, {
+            fromCreate: 1,
+            presetApplied: 1,
+            shareTip: 1
+          })
+        });
       } catch (e) {
         wx.hideLoading();
-        this.setLastFailedAction('创建比赛', () => this.handleCreate());
+        this.setLastFailedAction('创建比赛', () => this.handleCreate(), { actionKey });
         wx.showToast({ title: cloud.getUnifiedErrorMessage(e, '创建失败'), icon: 'none' });
       }
     });

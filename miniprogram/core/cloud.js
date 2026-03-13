@@ -50,6 +50,28 @@ function normalizeTraceId(err) {
   return String(err && (err.traceId || err.__traceId) || '').trim();
 }
 
+function attachDeveloperHint(err, hint) {
+  if (!err || !hint) return err;
+  try {
+    err.devHint = {
+      title: String(hint.title || '').trim(),
+      content: String(hint.content || '').trim()
+    };
+  } catch (_) {
+    // ignore
+  }
+  return err;
+}
+
+function getDeveloperHint(err) {
+  const hint = err && err.devHint;
+  if (!hint || typeof hint !== 'object') return null;
+  const title = String(hint.title || '').trim();
+  const content = String(hint.content || '').trim();
+  if (!title || !content) return null;
+  return { title, content };
+}
+
 function parseCloudError(err, fallbackMessage = '操作失败') {
   const code = normalizeResultCode(err);
   const state = normalizeResultState(err);
@@ -178,46 +200,57 @@ function assertWriteResult(result, fallbackMessage = '操作失败') {
   return result;
 }
 
-function presentWriteError(options = {}) {
+function describeWriteError(options = {}) {
   const err = options.err;
   const fallbackMessage = options.fallbackMessage || '操作失败';
   const parsed = parseCloudError(err, fallbackMessage);
   const level = classifyCloudError(parsed);
+  const devHint = getDeveloperHint(err);
 
   if (parsed.isConflict) {
-    wx.showModal({
-      title: options.conflictTitle || '写入冲突',
-      content: options.conflictContent || '数据已被他人更新，是否刷新后重试？',
-      confirmText: options.confirmText || '刷新',
-      cancelText: options.cancelText || '保留草稿',
-      success: (res) => {
-        if (res.confirm && typeof options.onRefresh === 'function') options.onRefresh();
-        if (res.cancel && typeof options.onKeepDraft === 'function') options.onKeepDraft();
+    return {
+      ...parsed,
+      level,
+      devHint,
+      ui: {
+        type: 'modal',
+        title: options.conflictTitle || '写入冲突',
+        content: options.conflictContent || '数据已被他人更新，是否刷新后重试？',
+        confirmText: options.confirmText || '刷新',
+        cancelText: options.cancelText || '保留草稿',
+        onConfirm: options.onRefresh,
+        onCancel: options.onKeepDraft
       }
-    });
-    return { ...parsed, level };
+    };
   }
 
-  wx.showToast({
-    title: getUnifiedErrorMessage(err, fallbackMessage),
-    icon: 'none'
-  });
-  return { ...parsed, level };
+  return {
+    ...parsed,
+    level,
+    devHint,
+    ui: {
+      type: 'toast',
+      title: getUnifiedErrorMessage(err, fallbackMessage),
+      icon: 'none'
+    }
+  };
 }
 
-function showDevHint(title, content) {
-  if (String(getRuntimeEnv().envVersion || 'release') === 'release') return false;
-  try {
-    wx.showModal({
-      title,
-      content,
-      showCancel: false
-    });
-    return true;
-  } catch (e) {
-    // ignore
+function buildDeveloperHint(name, msg) {
+  if (String(getRuntimeEnv().envVersion || 'release') === 'release') return null;
+  if (msg.includes('FUNCTION_NOT_FOUND') || msg.includes('FunctionName parameter could not be found') || msg.includes('-501000')) {
+    return {
+      title: '云函数未部署',
+      content: `云函数「${name}」在当前云环境中不存在。\n\n解决：微信开发者工具 → 云开发 → 选择正确环境 → 右键 cloudfunctions/${name} → “上传并部署：云端安装依赖”。`
+    };
   }
-  return false;
+  if (msg.includes('DATABASE_COLLECTION_NOT_EXIST') || msg.includes('collection') && msg.includes('not exists') || msg.includes('-502005')) {
+    return {
+      title: '数据库集合不存在',
+      content: '缺少 tournaments 集合。解决：云开发控制台 → 数据库 → 创建集合 tournaments（读权限允许，写入走云函数）。'
+    };
+  }
+  return null;
 }
 
 function call(name, data = {}) {
@@ -231,17 +264,9 @@ function call(name, data = {}) {
       const msg = normalizeErrMsg(err);
       console.error('云函数调用失败', name, err);
 
-      // 常见“低级错误”做成可读提示
-      if (msg.includes('FUNCTION_NOT_FOUND') || msg.includes('FunctionName parameter could not be found') || msg.includes('-501000')) {
-        showDevHint(
-          '云函数未部署',
-          `云函数「${name}」在当前云环境中不存在。\n\n解决：微信开发者工具 → 云开发 → 选择正确环境 → 右键 cloudfunctions/${name} → “上传并部署：云端安装依赖”。`
-        );
-      } else if (msg.includes('DATABASE_COLLECTION_NOT_EXIST') || msg.includes('collection') && msg.includes('not exists') || msg.includes('-502005')) {
-        showDevHint(
-          '数据库集合不存在',
-          '缺少 tournaments 集合。解决：云开发控制台 → 数据库 → 创建集合 tournaments（读权限允许，写入走云函数）。'
-        );
+      const devHint = buildDeveloperHint(name, msg);
+      if (devHint) {
+        attachDeveloperHint(err, devHint);
       } else if (isInvalidWriteShapeMessage(msg)) {
         console.warn(
           '云函数写入参数不合法',
@@ -259,7 +284,8 @@ module.exports = {
   classifyCloudError,
   getRuntimeEnv,
   getUnifiedErrorMessage,
-  presentWriteError,
+  describeWriteError,
+  getDeveloperHint,
   normalizeWriteFailure,
   assertWriteResult
 };

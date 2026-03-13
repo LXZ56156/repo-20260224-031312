@@ -1,5 +1,6 @@
 const auth = require('./auth');
 const cloud = require('./cloud');
+const nav = require('./nav');
 const storage = require('./storage');
 
 const DEFAULT_AVATAR = '/assets/avatar-default.png';
@@ -102,7 +103,7 @@ async function uploadAvatarFromTemp(tempPath, options = {}) {
 function buildProfileUrl(returnUrl = '') {
   const back = String(returnUrl || '').trim();
   if (!back) return '/pages/profile/index';
-  return `/pages/profile/index?returnUrl=${encodeURIComponent(back)}`;
+  return nav.buildUrl('/pages/profile/index', { returnUrl: back });
 }
 
 async function ensureProfileReady(options = {}) {

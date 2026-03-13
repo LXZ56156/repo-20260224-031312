@@ -1,8 +1,8 @@
-const cloud = require('../../core/cloud');
 const actionGuard = require('../../core/actionGuard');
+const cloneTournamentCore = require('../../core/cloneTournament');
+const cloud = require('../../core/cloud');
 const pageTournamentSync = require('../../core/pageTournamentSync');
 const retryAction = require('../../core/retryAction');
-const storage = require('../../core/storage');
 const nav = require('../../core/nav');
 const adGuard = require('../../core/adGuard');
 const shareMeta = require('../../core/shareMeta');
@@ -67,7 +67,7 @@ Page({
     }));
     if (app && typeof app.subscribeNetworkChange === 'function') {
       this._offNetwork = app.subscribeNetworkChange((offline) => {
-        this.setData(pageTournamentSync.composePageSyncPatch(this, { networkOffline: !!offline }));
+        this.handleNetworkChange(offline);
       });
     }
 
@@ -80,7 +80,7 @@ Page({
     nav.consumeRefreshFlag(currentId);
     this.refreshAnalyticsAdSlot();
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
-    if (this.data.tournamentId && !this.watcher) this.startWatch(this.data.tournamentId);
+    if (this.data.tournamentId && !this.hasActiveWatch()) this.startWatch(this.data.tournamentId);
   },
 
   onHide() {
@@ -173,17 +173,14 @@ Page({
     return actionGuard.run(actionKey, async () => {
       wx.showLoading({ title: '复制中...' });
       try {
-        const res = await cloud.call('cloneTournament', { sourceTournamentId });
-        const nextId = String((res && res.tournamentId) || '').trim();
-        if (!nextId) throw new Error('复制失败');
+        const nextId = await cloneTournamentCore.cloneTournament(sourceTournamentId);
         wx.hideLoading();
         this.clearLastFailedAction();
-        storage.addRecentTournamentId(nextId);
         wx.showToast({ title: '已生成副本', icon: 'success' });
-        wx.navigateTo({ url: `/pages/lobby/index?tournamentId=${nextId}` });
+        wx.navigateTo({ url: nav.buildTournamentUrl('/pages/lobby/index', nextId) });
       } catch (e) {
         wx.hideLoading();
-        this.setLastFailedAction('再办一场', () => this.cloneCurrentTournament());
+        this.setLastFailedAction('再办一场', () => this.cloneCurrentTournament(), { actionKey });
         wx.showToast({ title: cloud.getUnifiedErrorMessage(e, '复制失败'), icon: 'none' });
       }
     });

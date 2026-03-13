@@ -8,9 +8,7 @@ const pageTournamentSync = require('../../core/pageTournamentSync');
 const retryAction = require('../../core/retryAction');
 const tournamentEntry = require('../../core/tournamentEntry');
 const viewModel = require('./lobbyViewModel');
-const profileActions = require('./lobbyProfileActions');
-const draftActions = require('./lobbyDraftActions');
-const pairTeamActions = require('./lobbyPairTeamActions');
+const { createLobbyDelegates } = require('./lobbyDelegates');
 
 const lobbySyncController = pageTournamentSync.createTournamentSyncMethods({
   applyDocMethod: 'setTournament',
@@ -28,6 +26,8 @@ const lobbySyncController = pageTournamentSync.createTournamentSyncMethods({
     };
   }
 });
+
+const lobbyPageDelegates = createLobbyDelegates(lobbySyncController);
 
 Page({
   data: {
@@ -159,11 +159,7 @@ Page({
     showLoadErrorHome: false
   },
 
-  ...profileActions,
-  ...draftActions,
-  ...pairTeamActions,
-  ...lobbySyncController,
-  ...retryAction.createRetryMethods(),
+  ...lobbyPageDelegates,
 
   onLoad(options) {
     const tid = tournamentEntry.parseTournamentIdFromOptions(options || {});
@@ -184,7 +180,7 @@ Page({
     }));
     if (app && typeof app.subscribeNetworkChange === 'function') {
       this._offNetwork = app.subscribeNetworkChange((offline) => {
-        this.setData(pageTournamentSync.composePageSyncPatch(this, { networkOffline: !!offline }));
+        this.handleNetworkChange(offline);
       });
     }
 
@@ -239,7 +235,7 @@ Page({
     }
     nav.consumeRefreshFlag(currentId);
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
-    if (this.data.tournamentId && !this.watcher) this.startWatch(this.data.tournamentId);
+    if (this.data.tournamentId && !this.hasActiveWatch()) this.startWatch(this.data.tournamentId);
   },
 
   onPrimaryNavTap(e) {
@@ -248,10 +244,7 @@ Page({
   },
 
   goHome() {
-    wx.reLaunch({
-      url: '/pages/home/index',
-      fail: () => wx.navigateTo({ url: '/pages/home/index' })
-    });
+    nav.goHome();
   },
 
   enterJoinFromViewOnly() {

@@ -1,32 +1,15 @@
 const auth = require('../../core/auth');
 const actionGuard = require('../../core/actionGuard');
-const cloud = require('../../core/cloud');
 const joinError = require('../../core/joinTournamentError');
+const joinTournamentCore = require('../../core/joinTournament');
 const nav = require('../../core/nav');
 const pageTournamentSync = require('../../core/pageTournamentSync');
 const pageTimers = require('../../core/pageTimers');
-const profileCore = require('../../core/profile');
 const shareMeta = require('../../core/shareMeta');
 const storage = require('../../core/storage');
 const flow = require('./flow');
 
 const IDENTITY_TIMEOUT_MS = 2500;
-
-function buildJoinPayload(page, profile = {}) {
-  const localProfile = storage.getUserProfile() || {};
-  const nickName = storage.getProfileNickName(profile) || storage.getProfileNickName(localProfile);
-  const avatar = String(profile.avatar || profile.avatarUrl || localProfile.avatar || localProfile.avatarUrl || '').trim();
-  const gender = storage.normalizeGender(profile.gender || localProfile.gender || 'unknown');
-  const tournament = page.data.tournament || {};
-  const mode = String(tournament.mode || '').trim();
-  return {
-    tournamentId: page.data.tournamentId,
-    nickname: nickName,
-    avatar,
-    gender,
-    squadChoice: mode === 'squad_doubles' ? String(page.data.joinSquadChoice || 'A').trim().toUpperCase() : ''
-  };
-}
 
 const shareEntrySyncController = pageTournamentSync.createTournamentSyncMethods({
   buildLoadErrorState(result) {
@@ -90,7 +73,7 @@ Page({
     }));
     if (app && typeof app.subscribeNetworkChange === 'function') {
       this._offNetwork = app.subscribeNetworkChange((offline) => {
-        this.setData(pageTournamentSync.composePageSyncPatch(this, { networkOffline: !!offline }));
+        this.handleNetworkChange(offline);
       });
     }
     if (!tournamentId) {
@@ -120,7 +103,7 @@ Page({
       this.startIdentityTimeout(this._identityAttemptSeq);
     }
     this.fetchTournament(currentId);
-    if (!this.watcher) this.startWatch(currentId);
+    if (!this.hasActiveWatch()) this.startWatch(currentId);
   },
 
   onUnload() {
@@ -236,14 +219,19 @@ Page({
   },
 
   goLobby(entryMode = '') {
-    wx.navigateTo({ url: flow.buildLobbyUrl(this.data.tournamentId, entryMode) });
+    nav.redirectOrNavigate(flow.buildLobbyUrl(this.data.tournamentId, entryMode));
+  },
+
+  goSchedule() {
+    wx.navigateTo({ url: flow.buildScheduleUrl(this.data.tournamentId) });
+  },
+
+  goRanking() {
+    wx.navigateTo({ url: flow.buildRankingUrl(this.data.tournamentId) });
   },
 
   goHome() {
-    wx.reLaunch({
-      url: '/pages/home/index',
-      fail: () => wx.navigateTo({ url: '/pages/home/index' })
-    });
+    nav.goHome();
   },
 
   async handleJoin() {
@@ -256,7 +244,10 @@ Page({
 
     const actionKey = `shareEntry:joinTournament:${tournamentId}`;
     return actionGuard.runWithPageBusy(this, 'joinBusy', actionKey, async () => {
-      const gate = await profileCore.ensureProfileForAction('share_join', flow.buildReturnUrl(tournamentId, 'view'));
+      const gate = await joinTournamentCore.ensureJoinProfile({
+        action: 'share_join',
+        redirect: flow.buildReturnUrl(tournamentId, 'view')
+      });
       if (!gate.ok) {
         if (gate.reason === 'login_failed') {
           wx.showToast({ title: '登录失败，请稍后重试', icon: 'none' });
@@ -264,16 +255,18 @@ Page({
         return;
       }
 
-      const payload = buildJoinPayload(this, gate.profile || {});
+      const payload = joinTournamentCore.buildJoinPayload({
+        tournamentId,
+        mode: String((this.data.tournament && this.data.tournament.mode) || '').trim(),
+        squadChoice: this.data.joinSquadChoice,
+        profile: gate.profile || {}
+      });
       wx.showLoading({ title: '加入中...' });
       try {
-        let res = await cloud.call('joinTournament', payload);
-        if (res && res.ok === false && joinError.isConflictResult(res)) {
-          res = await cloud.call('joinTournament', payload);
-        }
-        if (res && res.ok === false) {
-          throw joinError.normalizeJoinFailure(res, '加入失败，请稍后重试');
-        }
+        await joinTournamentCore.callJoinTournament(payload, {
+          action: 'join',
+          fallbackMessage: '加入失败，请稍后重试'
+        });
         wx.hideLoading();
         nav.markRefreshFlag(tournamentId);
         wx.showToast({ title: '已加入比赛', icon: 'success' });

@@ -1,7 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const cloud = require('../miniprogram/core/cloud');
 const retryAction = require('../miniprogram/core/retryAction');
 
 test('retryAction.createRetryMethods manages last failed action state on page contexts', () => {
@@ -29,25 +28,43 @@ test('retryAction.createRetryMethods manages last failed action state on page co
   assert.equal(ctx.data.lastFailedActionText, '');
 });
 
-test('retryAction.presentWriteError forwards normalized options to cloud layer', () => {
-  const originalPresentWriteError = cloud.presentWriteError;
-  let payload = null;
+test('retryAction keeps UI presentation concerns out of the retry module', () => {
+  assert.equal(typeof retryAction.presentWriteError, 'undefined');
+});
 
-  cloud.presentWriteError = (options) => {
-    payload = options;
-    return { level: 'conflict' };
+test('retryAction retryLastAction deduplicates repeated retry taps with the same stored action', async () => {
+  const methods = retryAction.createRetryMethods();
+  let running = 0;
+  let executed = 0;
+  let release = null;
+  const ctx = {
+    route: 'pages/lobby/index',
+    data: { tournamentId: 't_1' },
+    setData() {},
+    ...methods
   };
 
-  try {
-    const result = retryAction.presentWriteError({}, new Error('写入冲突'), '保存失败', {
-      conflictContent: '刷新后重试',
-      onRefresh() {}
+  ctx.setLastFailedAction('重试加入', async () => {
+    executed += 1;
+    running += 1;
+    await new Promise((resolve) => {
+      release = () => {
+        running -= 1;
+        resolve();
+      };
     });
-    assert.deepEqual(result, { level: 'conflict' });
-    assert.equal(payload.fallbackMessage, '保存失败');
-    assert.equal(payload.conflictContent, '刷新后重试');
-    assert.equal(typeof payload.onRefresh, 'function');
-  } finally {
-    cloud.presentWriteError = originalPresentWriteError;
-  }
+  }, {
+    actionKey: 'lobby:joinTournament:t_1'
+  });
+
+  const first = ctx.retryLastAction();
+  const second = ctx.retryLastAction();
+  await Promise.resolve();
+
+  assert.equal(executed, 1);
+  assert.equal(running, 1);
+
+  release();
+  await Promise.all([first, second]);
+  assert.equal(running, 0);
 });

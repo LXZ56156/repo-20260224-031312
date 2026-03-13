@@ -1,5 +1,6 @@
 const watchUtil = require('../sync/watch');
 const storage = require('./storage');
+const tournamentVersion = require('./tournamentVersion');
 
 function classifyFetchError(err) {
   const message = String((err && (err.message || err.errMsg)) || err || '').trim();
@@ -26,6 +27,8 @@ function persistTournamentDoc(doc) {
   if (!doc || typeof doc !== 'object') return;
   const tournamentId = String((doc._id || doc.id) || '').trim();
   if (!tournamentId) return;
+  const cachedDoc = storage.getLocalTournamentCache(tournamentId);
+  if (!tournamentVersion.shouldAcceptTournamentDoc(cachedDoc, doc)) return;
   storage.setLocalTournamentCache(tournamentId, doc);
   storage.upsertLocalCompletedTournamentSnapshot(doc);
 }

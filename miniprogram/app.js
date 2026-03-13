@@ -41,12 +41,16 @@ App({
       }
     });
     wx.onNetworkStatusChange((res) => {
+      const wasOffline = !!this.globalData.networkOffline;
       this.globalData.networkOffline = !res.isConnected;
       const listeners = Array.isArray(this._networkListeners) ? this._networkListeners.slice() : [];
       for (const fn of listeners) {
         if (typeof fn !== 'function') continue;
         try {
-          fn(this.globalData.networkOffline);
+          fn(this.globalData.networkOffline, {
+            wasOffline,
+            reconnected: wasOffline && !this.globalData.networkOffline
+          });
         } catch (err) {
           console.error('network listener failed', err);
         }

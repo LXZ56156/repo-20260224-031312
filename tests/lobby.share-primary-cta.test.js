@@ -14,7 +14,7 @@ test('only the match page keeps an explicit transfer button', () => {
   const scheduleWxml = readPage('miniprogram/pages/schedule/index.wxml');
   const analyticsWxml = readPage('miniprogram/pages/analytics/index.wxml');
   const shareIndex = wxml.indexOf('id="share-invite"');
-  const importIndex = wxml.indexOf('导入名单');
+  const importIndex = wxml.indexOf('id="quick-import"');
   assert.notEqual(shareIndex, -1);
   assert.notEqual(importIndex, -1);
   assert.ok(shareIndex < importIndex);

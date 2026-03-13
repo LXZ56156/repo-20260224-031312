@@ -157,6 +157,11 @@ test('match submit service uses page navigation timers for delayed post-submit r
       },
       nav: {
         markRefreshFlag() {},
+        buildTournamentUrl(path, tournamentId, query = {}) {
+          const entries = Object.entries({ tournamentId, ...(query || {}) })
+            .filter(([, value]) => value !== undefined && value !== null && String(value) !== '');
+          return `${path}?${entries.map(([key, value]) => `${key}=${value}`).join('&')}`;
+        },
         redirectOrBack(url, delay) {
           navCalls.push({ url, delay });
         }

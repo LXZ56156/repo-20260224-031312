@@ -155,3 +155,74 @@ test('pageTournamentSync clears polling fallback after realtime recovery deliver
     tournamentSync.startWatch = originalStartWatch;
   }
 });
+
+test('pageTournamentSync refreshes automatically when network reconnects', () => {
+  const methods = pageTournamentSync.createTournamentSyncMethods();
+  const ctx = createContext(methods);
+  let fetchCalls = 0;
+  let watchCalls = 0;
+
+  ctx.fetchTournament = async () => {
+    fetchCalls += 1;
+    return null;
+  };
+  ctx.startWatch = () => {
+    watchCalls += 1;
+  };
+  ctx.watcher = null;
+  ctx.data.networkOffline = true;
+
+  ctx.handleNetworkChange(false);
+
+  assert.equal(fetchCalls, 1);
+  assert.equal(watchCalls, 1);
+  assert.equal(ctx.data.networkOffline, false);
+});
+
+test('pageTournamentSync restarts watch when stale watcher instance is no longer active', () => {
+  const methods = pageTournamentSync.createTournamentSyncMethods();
+  const ctx = createContext(methods);
+  let fetchCalls = 0;
+  let watchCalls = 0;
+
+  ctx.fetchTournament = async () => {
+    fetchCalls += 1;
+    return null;
+  };
+  ctx.startWatch = () => {
+    watchCalls += 1;
+  };
+  ctx.watcher = {
+    close() {},
+    isActive() {
+      return false;
+    }
+  };
+  ctx.data.networkOffline = true;
+
+  ctx.handleNetworkChange(false);
+
+  assert.equal(fetchCalls, 1);
+  assert.equal(watchCalls, 1);
+});
+
+test('pageTournamentSync rejects older watch data after a newer tournament version is already applied', () => {
+  const originalStartWatch = tournamentSync.startWatch;
+  const methods = pageTournamentSync.createTournamentSyncMethods();
+  const ctx = createContext(methods);
+  let onData = null;
+
+  try {
+    tournamentSync.startWatch = (_page, _tid, nextOnData) => {
+      onData = nextOnData;
+    };
+
+    ctx.setData({ tournament: { _id: 't_1', version: 5, updatedAt: '2026-03-13T12:00:00.000Z' } });
+    ctx.startWatch('t_1');
+    onData({ _id: 't_1', version: 4, updatedAt: '2026-03-13T11:59:00.000Z' }, { source: 'realtime_recovered' });
+
+    assert.deepEqual(ctx._applied, []);
+  } finally {
+    tournamentSync.startWatch = originalStartWatch;
+  }
+});

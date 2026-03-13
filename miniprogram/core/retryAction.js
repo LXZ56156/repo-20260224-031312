@@ -1,8 +1,22 @@
-const cloud = require('./cloud');
+const actionGuard = require('./actionGuard');
 
-function setLastFailedAction(ctx, text, fn) {
+function buildRetryActionKey(ctx, text, options = {}) {
+  const explicit = String(options.actionKey || '').trim();
+  if (explicit) return `retry:${explicit}`;
+  const route = String((ctx && ctx.route) || '').trim() || 'page';
+  const tournamentId = String((ctx && ctx.data && ctx.data.tournamentId) || '').trim();
+  const label = String(text || '').trim() || 'last_action';
+  return `retry:${route}:${tournamentId}:${label}`;
+}
+
+function setLastFailedAction(ctx, text, fn, options = {}) {
   if (!ctx) return;
-  ctx._lastFailedAction = typeof fn === 'function' ? fn : null;
+  ctx._lastFailedAction = typeof fn === 'function'
+    ? {
+        actionKey: buildRetryActionKey(ctx, text, options),
+        run: fn
+      }
+    : null;
   if (typeof ctx.setData !== 'function') return;
   ctx.setData({
     canRetryAction: !!ctx._lastFailedAction,
@@ -18,26 +32,15 @@ function clearLastFailedAction(ctx) {
 }
 
 function retryLastAction(ctx) {
-  if (ctx && typeof ctx._lastFailedAction === 'function') ctx._lastFailedAction();
-}
-
-function presentWriteError(ctx, err, fallbackMessage, options = {}) {
-  return cloud.presentWriteError({
-    err,
-    fallbackMessage,
-    conflictTitle: options.conflictTitle,
-    conflictContent: options.conflictContent,
-    confirmText: options.confirmText,
-    cancelText: options.cancelText,
-    onRefresh: options.onRefresh,
-    onKeepDraft: options.onKeepDraft
-  });
+  const entry = ctx && ctx._lastFailedAction;
+  if (!entry || typeof entry.run !== 'function') return Promise.resolve();
+  return actionGuard.run(entry.actionKey, () => entry.run());
 }
 
 function createRetryMethods() {
   return {
-    setLastFailedAction(text, fn) {
-      setLastFailedAction(this, text, fn);
+    setLastFailedAction(text, fn, options) {
+      setLastFailedAction(this, text, fn, options);
     },
 
     clearLastFailedAction() {
@@ -45,7 +48,7 @@ function createRetryMethods() {
     },
 
     retryLastAction() {
-      retryLastAction(this);
+      return retryLastAction(this);
     }
   };
 }
@@ -54,6 +57,5 @@ module.exports = {
   setLastFailedAction,
   clearLastFailedAction,
   retryLastAction,
-  presentWriteError,
   createRetryMethods
 };
