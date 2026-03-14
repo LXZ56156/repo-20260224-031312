@@ -30,7 +30,9 @@ function createSettingsPageContext(definition) {
   }
   ctx._fetchSeq = 0;
   ctx._watchGen = 0;
+  ctx.data.tournamentId = 't_1';
   ctx.applyTournament = (doc) => {
+    ctx.data.tournament = doc;
     ctx.applied.push(doc);
   };
   return ctx;
@@ -43,11 +45,11 @@ test('settings page handles structured fetchTournament results and clears stale 
   try {
     const definition = loadSettingsPageDefinition();
     const ctx = createSettingsPageContext(definition);
-    const remoteDoc = { _id: 't_remote', name: 'Remote Tournament' };
-    const cachedDoc = { _id: 't_cached', name: 'Cached Tournament' };
+    const remoteDoc = { _id: 't_1', name: 'Remote Tournament' };
+    const cachedDoc = { _id: 't_1', name: 'Cached Tournament' };
 
     tournamentSync.fetchTournament = async () => ({ ok: true, doc: remoteDoc, source: 'remote' });
-    let doc = await ctx.fetchTournament('t_remote');
+    let doc = await ctx.fetchTournament('t_1');
     assert.equal(doc, remoteDoc);
     assert.equal(ctx.data.showStaleSyncHint, false);
     assert.equal(ctx.data.loadError, false);
@@ -59,7 +61,7 @@ test('settings page handles structured fetchTournament results and clears stale 
       errorMessage: 'timeout',
       cachedDoc
     });
-    doc = await ctx.fetchTournament('t_cached');
+    doc = await ctx.fetchTournament('t_1');
     assert.equal(doc, cachedDoc);
     assert.equal(ctx.data.showStaleSyncHint, true);
     assert.equal(ctx.data.loadError, false);
@@ -71,11 +73,10 @@ test('settings page handles structured fetchTournament results and clears stale 
       errorMessage: 'timeout',
       cachedDoc: null
     });
-    doc = await ctx.fetchTournament('t_missing');
-    assert.equal(doc, null);
-    assert.equal(ctx.data.loadError, true);
-    assert.equal(ctx.data.showStaleSyncHint, false);
-    assert.equal(ctx.data.loadErrorTitle, '加载失败');
+    doc = await ctx.fetchTournament('t_1');
+    assert.equal(doc, cachedDoc);
+    assert.equal(ctx.data.loadError, false);
+    assert.equal(ctx.data.showStaleSyncHint, true);
     assert.equal(ctx.data.showLoadErrorHome, false);
 
     tournamentSync.fetchTournament = async () => ({
@@ -84,17 +85,17 @@ test('settings page handles structured fetchTournament results and clears stale 
       errorMessage: 'missing',
       cachedDoc: null
     });
-    doc = await ctx.fetchTournament('t_missing');
+    doc = await ctx.fetchTournament('t_1');
     assert.equal(doc, null);
     assert.equal(ctx.data.loadErrorTitle, '比赛不存在或已关闭');
     assert.equal(ctx.data.showLoadErrorHome, true);
 
     ctx.data.showStaleSyncHint = true;
     tournamentSync.startWatch = (_page, tid, onDoc) => {
-      assert.equal(tid, 't_watch');
+      assert.equal(tid, 't_1');
       onDoc(remoteDoc);
     };
-    ctx.startWatch('t_watch');
+    ctx.startWatch('t_1');
     assert.equal(ctx.data.showStaleSyncHint, false);
     assert.deepEqual(ctx.applied.pop(), remoteDoc);
   } finally {

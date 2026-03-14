@@ -29,6 +29,7 @@ function createLobbyPageContext(definition) {
   }
   ctx._fetchSeq = 0;
   ctx._watchGen = 0;
+  ctx.data.tournamentId = 't_1';
   ctx.setTournament = (doc) => {
     ctx.latestTournament = doc;
   };

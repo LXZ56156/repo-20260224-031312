@@ -28,6 +28,9 @@ function createSchedulePageContext(definition) {
     if (typeof value === 'function') ctx[key] = value;
   }
   ctx.openid = 'user_1';
+  ctx._fetchSeq = 0;
+  ctx._watchGen = 0;
+  ctx.data.tournamentId = 't_1';
   return ctx;
 }
 

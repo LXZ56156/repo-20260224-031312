@@ -19,6 +19,13 @@ function releaseAndTeardown(ctx) {
   ctx.scoreLockManager.teardown({ resetState: true });
 }
 
+function releaseAndPause(ctx) {
+  ensureControllers(ctx);
+  pageTournamentSync.pauseTournamentSync(ctx);
+  ctx.scoreLockManager.releaseLockIfOwned().catch(() => {});
+  ctx.scoreLockManager.teardown({ resetState: true });
+}
+
 const matchSyncController = pageTournamentSync.createTournamentSyncMethods();
 
 Page({
@@ -62,7 +69,7 @@ Page({
   onHide() {
     this._pageActive = false;
     this.clearNavTimers();
-    releaseAndTeardown(this);
+    releaseAndPause(this);
   },
 
   onShow() {
@@ -72,7 +79,7 @@ Page({
     const currentId = String(this.data.tournamentId || '').trim();
     nav.consumeRefreshFlag(currentId);
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
-    if (this.data.tournamentId && !this.hasActiveWatch()) this.startWatch(this.data.tournamentId);
+    if (this.data.tournamentId && !this.hasActiveWatch(this.data.tournamentId)) this.startWatch(this.data.tournamentId);
   },
 
   onUnload() {

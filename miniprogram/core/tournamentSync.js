@@ -43,15 +43,19 @@ function closeWatcher(ctx) {
     ctx.watcher.close();
   }
   ctx.watcher = null;
+  ctx._watchTournamentId = '';
 }
 
 function startWatch(ctx, tournamentId, onDoc, onError) {
   if (!ctx || !tournamentId) return;
   closeWatcher(ctx);
+  ctx._watchTournamentId = String(tournamentId || '').trim();
   ctx.watcher = watchUtil.watchTournament(tournamentId, (doc, meta) => {
     persistTournamentDoc(doc);
-    if (typeof onDoc === 'function') onDoc(doc, meta);
-  }, onError);
+    if (typeof onDoc === 'function') onDoc(doc, { ...(meta || {}), tournamentId: String(tournamentId || '').trim() });
+  }, (err) => {
+    if (typeof onError === 'function') onError(err, { tournamentId: String(tournamentId || '').trim() });
+  });
 }
 
 async function fetchTournament(tournamentId, onDoc) {

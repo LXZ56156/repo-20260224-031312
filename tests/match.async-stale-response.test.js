@@ -35,6 +35,7 @@ function createMatchPageContext(definition) {
   ctx._latestTournament = null;
   ctx._fetchSeq = 0;
   ctx._watchGen = 0;
+  ctx.data.tournamentId = 't_1';
   return ctx;
 }
 
@@ -152,7 +153,7 @@ test('match page ignores stale watch callbacks after restarting watch', () => {
   }
 });
 
-test('match page ignores fetch responses after onHide invalidates the page request', async () => {
+test('match page keeps an in-flight fetch usable across onHide', async () => {
   const originalFetchTournament = tournamentSync.fetchTournament;
 
   try {
@@ -172,16 +173,17 @@ test('match page ignores fetch responses after onHide invalidates the page reque
       source: 'remote',
       doc: {
         _id: 't_1',
-        name: 'Should Be Ignored',
+        name: 'Resolved While Hidden',
         status: 'running',
         players: [],
-        rounds: []
+        rounds: [],
+        updatedAt: '2026-03-14T10:05:00.000Z'
       }
     });
 
     const result = await pending;
-    assert.equal(result, null);
-    assert.equal(ctx._latestTournament, null);
+    assert.equal(result && result.name, 'Resolved While Hidden');
+    assert.equal(ctx._latestTournament && ctx._latestTournament.name, 'Resolved While Hidden');
   } finally {
     tournamentSync.fetchTournament = originalFetchTournament;
     delete require.cache[matchPagePath];

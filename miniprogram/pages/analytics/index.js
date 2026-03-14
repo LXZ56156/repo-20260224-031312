@@ -80,11 +80,11 @@ Page({
     nav.consumeRefreshFlag(currentId);
     this.refreshAnalyticsAdSlot();
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
-    if (this.data.tournamentId && !this.hasActiveWatch()) this.startWatch(this.data.tournamentId);
+    if (this.data.tournamentId && !this.hasActiveWatch(this.data.tournamentId)) this.startWatch(this.data.tournamentId);
   },
 
   onHide() {
-    pageTournamentSync.teardownTournamentSync(this);
+    pageTournamentSync.pauseTournamentSync(this);
   },
 
   onUnload() {

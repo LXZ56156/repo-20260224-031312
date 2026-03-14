@@ -214,7 +214,7 @@ Page({
   },
 
   onHide() {
-    pageTournamentSync.teardownTournamentSync(this);
+    pageTournamentSync.pauseTournamentSync(this);
     pageTimers.clearNamedTimer(this, 'sharePulse');
     if (this.data.sharePulse) this.setData({ sharePulse: false });
   },
@@ -235,7 +235,7 @@ Page({
     }
     nav.consumeRefreshFlag(currentId);
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
-    if (this.data.tournamentId && !this.hasActiveWatch()) this.startWatch(this.data.tournamentId);
+    if (this.data.tournamentId && !this.hasActiveWatch(this.data.tournamentId)) this.startWatch(this.data.tournamentId);
   },
 
   onPrimaryNavTap(e) {

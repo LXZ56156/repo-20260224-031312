@@ -71,7 +71,7 @@ Page({
   },
 
   onHide() {
-    pageTournamentSync.teardownTournamentSync(this);
+    pageTournamentSync.pauseTournamentSync(this);
   },
 
   onShow() {
@@ -79,7 +79,7 @@ Page({
     nav.consumeRefreshFlag(currentId);
     // 兜底刷新：部分真机 onSnapshot 监听可能不稳定
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
-    if (this.data.tournamentId && !this.hasActiveWatch()) this.startWatch(this.data.tournamentId);
+    if (this.data.tournamentId && !this.hasActiveWatch(this.data.tournamentId)) this.startWatch(this.data.tournamentId);
   },
 
   onUnload() {

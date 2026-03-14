@@ -27,6 +27,9 @@ function createShareEntryPageContext(definition) {
   for (const [key, value] of Object.entries(definition || {})) {
     if (typeof value === 'function') ctx[key] = value;
   }
+  ctx._fetchSeq = 0;
+  ctx._watchGen = 0;
+  ctx.data.tournamentId = 't_1';
   return ctx;
 }
 

@@ -216,7 +216,7 @@ Page({
   },
 
   onHide() {
-    pageTournamentSync.teardownTournamentSync(this);
+    pageTournamentSync.pauseTournamentSync(this);
   },
 
   onShow() {
@@ -224,7 +224,7 @@ Page({
     nav.consumeRefreshFlag(currentId);
     // 兜底刷新：从录入比分页返回时，确保状态与比分是最新的
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
-    if (this.data.tournamentId && !this.hasActiveWatch()) this.startWatch(this.data.tournamentId);
+    if (this.data.tournamentId && !this.hasActiveWatch(this.data.tournamentId)) this.startWatch(this.data.tournamentId);
   },
 
   onUnload() {

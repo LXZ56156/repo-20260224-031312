@@ -43,31 +43,31 @@ test('pageTournamentSync handles remote, cached and error fetch states through o
     tournamentSync.fetchTournament = async () => ({
       ok: true,
       source: 'remote',
-      doc: { _id: 't_remote' }
+      doc: { _id: 't_1' }
     });
     let doc = await ctx.fetchTournament('t_1');
-    assert.equal(doc._id, 't_remote');
+    assert.equal(doc._id, 't_1');
     assert.equal(ctx.data.sourceTag, 'remote');
     assert.deepEqual(ctx._applied.pop(), {
-      doc: { _id: 't_remote' },
-      meta: { requestSeq: 1, source: 'remote' }
+      doc: { _id: 't_1' },
+      meta: { requestSeq: 1, source: 'remote', tournamentId: 't_1' }
     });
 
     tournamentSync.fetchTournament = async () => ({
       ok: false,
       errorType: 'network',
-      cachedDoc: { _id: 't_cache', updatedAt: '2026-03-10T10:00:00.000Z' },
+      cachedDoc: { _id: 't_1', updatedAt: '2026-03-10T10:00:00.000Z' },
       cachedAt: Date.parse('2026-03-10T10:05:00.000Z')
     });
     doc = await ctx.fetchTournament('t_1');
-    assert.equal(doc._id, 't_cache');
+    assert.equal(doc._id, 't_1');
     assert.equal(ctx.data.sourceTag, 'cache');
     assert.equal(ctx.data.syncUsingCache, true);
     assert.equal(ctx.data.syncCachedAt, Date.parse('2026-03-10T10:05:00.000Z'));
     assert.equal(ctx.data.syncStatusVisible, true);
     assert.deepEqual(ctx._applied.pop(), {
-      doc: { _id: 't_cache', updatedAt: '2026-03-10T10:00:00.000Z' },
-      meta: { requestSeq: 2, source: 'cache' }
+      doc: { _id: 't_1', updatedAt: '2026-03-10T10:00:00.000Z' },
+      meta: { requestSeq: 2, source: 'cache', tournamentId: 't_1' }
     });
 
     tournamentSync.fetchTournament = async () => ({
@@ -76,9 +76,10 @@ test('pageTournamentSync handles remote, cached and error fetch states through o
       cachedDoc: null
     });
     doc = await ctx.fetchTournament('t_1');
-    assert.equal(doc, null);
-    assert.equal(ctx.data.loadError, true);
-    assert.equal(ctx.data.sourceTag, 'error');
+    assert.equal(doc && doc._id, 't_1');
+    assert.equal(ctx.data.loadError, false);
+    assert.equal(ctx.data.showStaleSyncHint, true);
+    assert.equal(ctx.data.sourceTag, 'cache');
     assert.equal(ctx.data.syncRefreshing, false);
   } finally {
     tournamentSync.fetchTournament = originalFetchTournament;
@@ -99,12 +100,12 @@ test('pageTournamentSync ignores stale watch callbacks after restarting a watch'
     ctx.startWatch('t_1');
     ctx.startWatch('t_1');
 
-    callbacks[0]({ _id: 't_old' });
-    callbacks[1]({ _id: 't_new' });
+    callbacks[0]({ _id: 't_1', updatedAt: '2026-03-14T10:00:00.000Z' });
+    callbacks[1]({ _id: 't_1', updatedAt: '2026-03-14T10:05:00.000Z' });
 
     assert.deepEqual(ctx._applied, [{
-      doc: { _id: 't_new' },
-      meta: { watchGen: 2, source: 'watch' }
+      doc: { _id: 't_1', updatedAt: '2026-03-14T10:05:00.000Z' },
+      meta: { watchGen: 2, source: 'watch', tournamentId: 't_1' }
     }]);
   } finally {
     tournamentSync.startWatch = originalStartWatch;

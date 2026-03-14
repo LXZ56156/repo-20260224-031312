@@ -113,7 +113,7 @@ Page({
   },
 
   onHide() {
-    pageTournamentSync.teardownTournamentSync(this);
+    pageTournamentSync.pauseTournamentSync(this);
   },
 
   onUnload() {
@@ -128,7 +128,7 @@ Page({
     const currentId = String(this.data.tournamentId || '').trim();
     nav.consumeRefreshFlag(currentId);
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
-    if (this.data.tournamentId && !this.hasActiveWatch()) this.startWatch(this.data.tournamentId);
+    if (this.data.tournamentId && !this.hasActiveWatch(this.data.tournamentId)) this.startWatch(this.data.tournamentId);
   },
 
   applyTournament(tournament) {

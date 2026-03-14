@@ -86,7 +86,7 @@ Page({
   },
 
   onHide() {
-    pageTournamentSync.teardownTournamentSync(this);
+    pageTournamentSync.pauseTournamentSync(this);
     pageTimers.clearNamedTimer(this, 'identityPending');
   },
 
@@ -103,7 +103,7 @@ Page({
       this.startIdentityTimeout(this._identityAttemptSeq);
     }
     this.fetchTournament(currentId);
-    if (!this.hasActiveWatch()) this.startWatch(currentId);
+    if (!this.hasActiveWatch(currentId)) this.startWatch(currentId);
   },
 
   onUnload() {

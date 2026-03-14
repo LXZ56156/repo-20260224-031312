@@ -29,6 +29,7 @@ function createShareEntryPageContext(definition) {
   }
   ctx._fetchSeq = 0;
   ctx._watchGen = 0;
+  ctx.data.tournamentId = 't_1';
   ctx.applyTournament = (doc) => {
     ctx.latestTournament = doc;
   };
@@ -97,7 +98,7 @@ test('share-entry page ignores stale watch callbacks after restarting watch', ()
   }
 });
 
-test('share-entry page ignores fetch responses after onHide invalidates the page request', async () => {
+test('share-entry page keeps an in-flight fetch usable across onHide', async () => {
   const originalFetchTournament = tournamentSync.fetchTournament;
 
   try {
@@ -115,12 +116,16 @@ test('share-entry page ignores fetch responses after onHide invalidates the page
     resolvers[0]({
       ok: true,
       source: 'remote',
-      doc: { _id: 't_1', name: 'Should Be Ignored' }
+      doc: {
+        _id: 't_1',
+        name: 'Resolved While Hidden',
+        updatedAt: '2026-03-14T10:05:00.000Z'
+      }
     });
 
     const result = await pending;
-    assert.equal(result, null);
-    assert.equal(ctx.latestTournament, undefined);
+    assert.equal(result && result.name, 'Resolved While Hidden');
+    assert.equal(ctx._latestTournament && ctx._latestTournament.name, 'Resolved While Hidden');
   } finally {
     tournamentSync.fetchTournament = originalFetchTournament;
     delete require.cache[shareEntryPagePath];
