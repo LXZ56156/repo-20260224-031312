@@ -36,7 +36,7 @@ miniprogram/permission/   → Permission checks (isAdmin, isParticipant, canEdit
 miniprogram/config/env.js → Cloud environment config (develop/trial/release)
 cloudfunctions/        → 22 cloud functions, each with index.js entry + lib/ shared code
 scripts/               → Build tooling; *-common.template.js are source-of-truth for cloud shared libs
-tests/                 → ~90 tests using node:test + node:assert/strict
+tests/                 → ~130 tests using node:test + node:assert/strict
 ```
 
 ### Cloud Function Shared Libraries
@@ -52,6 +52,9 @@ Shared modules: `common.js`, `mode.js`, `permission.js`, `player.js`, `rankingCo
 - **Tournament sync** (`core/tournamentSync.js`): Polling-based real-time sync with backoff, cleanup on page hide, restart on page show, stale-response detection with cache fallback.
 - **Page module composition**: Complex pages split logic into separate modules mixed into `Page({})` via spread — e.g. settings page uses `settingsSyncController`, `settingsActions`, `settingsViewModel`.
 - **Normalize on read** (`core/normalize.js`): Tournament data is normalized after fetch to ensure consistent shape regardless of cloud document state.
+- **Navigation & flow** (`core/nav.js`, `core/matchFlow.js`, `core/uxFlow.js`): 状态驱动的页面跳转，根据赛事状态（draft/running/finished）决定导航目标
+- **Retry action** (`core/retryAction.js`): 可混入页面的通用重试方法工厂
+- **Sync status** (`core/syncStatus.js`): 同步状态机（loading/stale/offline），供 UI 展示同步指示器
 
 ### Game Modes
 
@@ -77,6 +80,11 @@ Wins → point differential → points scored → name (alphabetical).
 - Tests mock wx APIs and cloud calls by stubbing globals — look at existing tests for patterns
 - Test categories: unit, integration, resilience (async-stale-response), consistency, smoke (end-to-end flow), UI copy
 - Multi-environment consistency tests verify that client and cloud-side logic (permissions, ranking, player utils) produce identical results
+- File naming conventions:
+  - `*.test.js` — 单元/集成测试
+  - `*.consistency.test.js` — 客户端与云函数逻辑一致性验证
+  - `*.smoke.test.js` — 端到端流程验证
+  - `*.async-stale-response.test.js` — 弱网/过期响应场景
 
 ## Style
 
