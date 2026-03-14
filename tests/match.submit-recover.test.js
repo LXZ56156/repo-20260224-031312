@@ -272,3 +272,82 @@ test('match view state keeps local draft visible after lock expiry so the user c
   assert.equal(viewState.data.displayScoreA, '21');
   assert.equal(viewState.data.displayScoreB, '18');
 });
+
+test('match submit can recover from lock expiry after reacquiring lock and retrying submit', async () => {
+  const originalWx = global.wx;
+  const toastCalls = [];
+  let submitCalls = 0;
+
+  global.wx = {
+    showLoading() {},
+    hideLoading() {},
+    showToast(payload) {
+      toastCalls.push(payload);
+    }
+  };
+
+  try {
+    const ctx = createCtx();
+    const service = createMatchSubmitService(ctx, {
+      cloud: {
+        async call(_name, payload) {
+          submitCalls += 1;
+          assert.match(String(payload.clientRequestId || ''), /^submit_/);
+          if (submitCalls === 1) {
+            return {
+              ok: false,
+              code: 'LOCK_EXPIRED',
+              message: '录分会话已过期，请重新开始录分',
+              state: 'expired'
+            };
+          }
+          return { ok: true, scorerName: '裁判A', version: 2 };
+        },
+        parseCloudError() {
+          return { isNetwork: false };
+        }
+      },
+      storage: {
+        get(key, fallback) {
+          if (key === 'score_auto_next' || key === 'score_auto_return') return false;
+          return fallback;
+        }
+      },
+      nav: {
+        markRefreshFlag() {},
+        buildTournamentUrl(path, tournamentId, query = {}) {
+          return `${path}?tournamentId=${tournamentId}&roundIndex=${query.roundIndex || 0}&matchIndex=${query.matchIndex || 0}`;
+        },
+        redirectOrBack() {},
+        redirectOrNavigate() {}
+      }
+    });
+
+    await service.submit();
+
+    assert.equal(submitCalls, 1);
+    assert.equal(ctx.data.lockState, 'idle');
+    assert.equal(ctx._clearDraftCount, 0);
+    assert.equal(ctx._retryAction, null);
+    assert.deepEqual(ctx._draft, { scoreA: 21, scoreB: 18 });
+
+    ctx.lockController.setLockState('locked_by_me', {
+      ownerId: 'user_1',
+      ownerName: '裁判A',
+      expireAt: Date.now() + 60_000
+    });
+    ctx.applyTournament(ctx._latestTournament);
+
+    await service.submit();
+
+    assert.equal(submitCalls, 2);
+    assert.equal(ctx.data.lockState, 'finished');
+    assert.equal(ctx._clearDraftCount, 1);
+    assert.equal(ctx._clearUndoCount, 1);
+    assert.equal(ctx._retryAction, null);
+    assert.equal(ctx._latestTournament && ctx._latestTournament.status, 'finished');
+    assert.equal(toastCalls.some((item) => item.title === '已提交'), true);
+  } finally {
+    global.wx = originalWx;
+  }
+});
