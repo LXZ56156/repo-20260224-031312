@@ -126,6 +126,12 @@ test('scoreLock index treats missing lock doc as idle for status', async () => {
     message: '当前可开始录分',
     state: 'idle',
     traceId: '',
+    data: {
+      ownerId: '',
+      ownerName: '',
+      expireAt: 0,
+      remainingMs: 0
+    },
     ownerId: '',
     ownerName: '',
     expireAt: 0,

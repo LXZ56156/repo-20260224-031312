@@ -3,6 +3,10 @@ const actionGuard = require('../../core/actionGuard');
 const flow = require('../../core/uxFlow');
 const viewModel = require('./lobbyViewModel');
 
+function buildClientRequestId(prefix = 'pair_team') {
+  return `${String(prefix || 'pair_team').trim() || 'pair_team'}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
 module.exports = {
   onPairTeamNameInput(e) {
     const value = String((e && e.detail && e.detail.value) || '').trim();
@@ -48,7 +52,8 @@ module.exports = {
       try {
         const res = await cloud.call('managePairTeams', {
           tournamentId: this.data.tournamentId,
-          action: 'auto_generate'
+          action: 'auto_generate',
+          clientRequestId: buildClientRequestId('pair_auto')
         });
         if (!res || res.ok === false) {
           wx.hideLoading();
@@ -90,7 +95,8 @@ module.exports = {
           tournamentId: this.data.tournamentId,
           action: 'create',
           name: String(this.data.pairTeamName || '').trim(),
-          playerIds: [first.id, second.id]
+          playerIds: [first.id, second.id],
+          clientRequestId: buildClientRequestId('pair_create')
         });
         if (!res || res.ok === false) {
           wx.hideLoading();
@@ -125,7 +131,8 @@ module.exports = {
             const result = await cloud.call('managePairTeams', {
               tournamentId: this.data.tournamentId,
               action: 'delete',
-              teamId
+              teamId,
+              clientRequestId: buildClientRequestId('pair_delete')
             });
             if (!result || result.ok === false) {
               wx.hideLoading();

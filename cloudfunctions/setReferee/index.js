@@ -34,7 +34,9 @@ exports.main = async (event) => {
         }, ['_id'], '裁判设置写入数据')
       });
       common.assertOptimisticUpdate(updRes, '写入冲突，请重试');
-      return { ok: true };
+      return common.okResult('REFEREE_UPDATED', '已更新裁判', {
+        state: 'updated'
+      });
     });
   } catch (err) {
     throw common.normalizeConflictError(err, '设置失败');

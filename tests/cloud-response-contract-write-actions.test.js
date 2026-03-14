@@ -100,7 +100,8 @@ test('write actions expose structured contract on representative success and fai
     code: 'TOURNAMENT_ID_REQUIRED',
     message: '缺少赛事ID',
     state: 'invalid',
-    traceId: 'trace_join'
+    traceId: 'trace_join',
+    data: {}
   });
 
   const submitMain = loadCloudMain(submitScoreIndexPath, [
@@ -130,7 +131,8 @@ test('write actions expose structured contract on representative success and fai
     code: 'SCORE_OUT_OF_RANGE',
     message: '比分不能超过 60 分',
     state: 'invalid',
-    traceId: 'trace_submit'
+    traceId: 'trace_submit',
+    data: {}
   });
 
   const scoreLockMain = loadCloudMain(scoreLockIndexPath, [
@@ -194,6 +196,12 @@ test('write actions expose structured contract on representative success and fai
     message: '当前可开始录分',
     state: 'idle',
     traceId: 'trace_lock',
+    data: {
+      ownerId: '',
+      ownerName: '',
+      expireAt: 0,
+      remainingMs: 0
+    },
     ownerId: '',
     ownerName: '',
     expireAt: 0,
@@ -248,6 +256,8 @@ test('write actions expose structured contract on representative success and fai
   assert.equal(startResult.message, '已开赛');
   assert.equal(startResult.state, 'started');
   assert.equal(startResult.traceId, 'trace_start');
+  assert.equal(startResult.version, 2);
+  assert.deepEqual(startResult.data, { version: 2 });
 
   const updateMain = loadCloudMain(updateSettingsIndexPath, [
     updateSettingsCommonPath,
@@ -300,6 +310,7 @@ test('write actions expose structured contract on representative success and fai
     message: '已保存比赛参数',
     state: 'updated',
     traceId: 'trace_settings',
-    version: 2
+    version: 2,
+    data: { version: 2 }
   });
 });

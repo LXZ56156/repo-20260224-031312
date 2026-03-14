@@ -5,7 +5,7 @@ const Module = require('node:module');
 const mainPath = require.resolve('../cloudfunctions/removePlayer/index.js');
 const commonPath = require.resolve('../cloudfunctions/removePlayer/lib/common.js');
 
-function buildTournament() {
+function buildTournament(extra = {}) {
   return {
     _id: 't_1',
     creatorId: 'u_admin',
@@ -21,7 +21,8 @@ function buildTournament() {
     pairTeams: [
       { id: 'team_drop', playerIds: ['p_remove', 'p_keep'] },
       { id: 'team_keep', playerIds: ['p_keep', 'p_other'] }
-    ]
+    ],
+    ...extra
   };
 }
 
@@ -98,7 +99,15 @@ test('removePlayer updates player roster, referee and pair teams in one transact
     playerId: 'p_remove'
   });
 
-  assert.deepEqual(result, { ok: true });
+  assert.equal(result.ok, true);
+  assert.equal(result.code, 'PLAYER_REMOVED');
+  assert.equal(result.message, '已移除参赛成员');
+  assert.equal(result.state, 'removed');
+  assert.equal(result.playerId, 'p_remove');
+  assert.deepEqual(result.data, {
+    clientRequestId: '',
+    playerId: 'p_remove'
+  });
   assert.deepEqual(writtenData.playerIds, ['u_admin', 'p_keep', 'p_other']);
   assert.equal(writtenData.refereeId, '');
   assert.equal(writtenData.players.length, 3);
@@ -107,7 +116,7 @@ test('removePlayer updates player roster, referee and pair teams in one transact
   ]);
 });
 
-test('removePlayer surfaces optimistic-lock conflicts', async () => {
+test('removePlayer surfaces optimistic-lock conflicts as structured retryable result', async () => {
   const db = {
     command: {
       inc(value) {
@@ -142,8 +151,72 @@ test('removePlayer surfaces optimistic-lock conflicts', async () => {
   };
   const { main } = loadMain(db);
 
-  await assert.rejects(() => main({
+  const result = await main({
     tournamentId: 't_1',
     playerId: 'p_remove'
-  }), /写入冲突/);
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'VERSION_CONFLICT');
+  assert.equal(result.message, '写入冲突，请刷新赛事后重试');
+  assert.equal(result.state, 'conflict');
+});
+
+test('removePlayer treats retry after server-side success as deduped success', async () => {
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return {
+                    data: buildTournament({
+                      refereeId: '',
+                      players: [
+                        { id: 'u_admin', name: '管理员' },
+                        { id: 'p_keep', name: '保留成员' },
+                        { id: 'p_other', name: '其他成员' }
+                      ],
+                      pairTeams: [{ id: 'team_keep', playerIds: ['p_keep', 'p_other'] }]
+                    })
+                  };
+                }
+              };
+            },
+            where() {
+              throw new Error('should not write when retry is deduped');
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    playerId: 'p_remove',
+    clientRequestId: 'req_remove_1'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.code, 'PLAYER_REMOVED_DEDUPED');
+  assert.equal(result.state, 'deduped');
+  assert.equal(result.deduped, true);
+  assert.equal(result.playerId, 'p_remove');
+  assert.deepEqual(result.data, {
+    clientRequestId: 'req_remove_1',
+    deduped: true,
+    playerId: 'p_remove'
+  });
 });

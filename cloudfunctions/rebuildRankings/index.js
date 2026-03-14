@@ -28,7 +28,10 @@ exports.main = async (event) => {
       });
 
     common.assertOptimisticUpdate(updRes, '写入冲突：请刷新后重试');
-    return { ok: true, rankingsCount: rankings.length };
+    return common.okResult('RANKINGS_REBUILT', '已重算排名', {
+      state: 'updated',
+      rankingsCount: rankings.length
+    });
   } catch (err) {
     throw common.normalizeConflictError(err, '重算排名失败');
   }

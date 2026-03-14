@@ -80,7 +80,15 @@ test('feedbackSubmit writes sanitized feedback when no recent duplicate exists',
     contact: ' wx:test '
   });
 
-  assert.deepEqual(result, { ok: true, feedbackId: 'fb_1' });
+  assert.deepEqual(result, {
+    ok: true,
+    code: 'FEEDBACK_SAVED',
+    message: '反馈已提交',
+    state: 'saved',
+    traceId: '',
+    feedbackId: 'fb_1',
+    data: { feedbackId: 'fb_1' }
+  });
   assert.equal(createCollectionName, 'feedbacks');
   assert.equal(addPayload.openid, 'u_feedback');
   assert.equal(addPayload.category, '功能建议');

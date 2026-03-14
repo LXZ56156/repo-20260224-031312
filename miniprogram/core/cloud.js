@@ -3,6 +3,7 @@ const envConfig = require('../config/env');
 
 const CONFLICT_CODES = new Set(['VERSION_CONFLICT']);
 const NETWORK_CODES = new Set(['NETWORK_ERROR']);
+const TIMEOUT_CODES = new Set(['TIMEOUT', 'REQUEST_TIMEOUT']);
 const PERMISSION_CODES = new Set(['PERMISSION_DENIED', 'LOCK_FORBIDDEN', 'JOIN_DRAFT_ONLY', 'START_DRAFT_ONLY', 'SETTINGS_DRAFT_ONLY']);
 const PARAM_CODES = new Set([
   'ACTION_REQUIRED',
@@ -14,6 +15,95 @@ const PARAM_CODES = new Set([
   'SETTINGS_INVALID',
   'START_VALIDATION_FAILED'
 ]);
+const FINISHED_CODES = new Set(['MATCH_FINISHED']);
+const DEDUPED_CODES = new Set(['SCORE_SUBMIT_DEDUPED', 'PLAYER_REMOVED_DEDUPED', 'PLAYER_SQUAD_DEDUPED', 'PAIR_TEAMS_DEDUPED']);
+
+function normalizeResultCode(err) {
+  return String(err && err.code || '').trim().toUpperCase();
+}
+
+function normalizeResultState(err) {
+  return String(err && err.state || '').trim().toLowerCase();
+}
+
+function normalizeTraceId(err) {
+  return String(err && (err.traceId || err.__traceId) || '').trim();
+}
+
+function extractResultSource(result) {
+  if (!result || typeof result !== 'object') return {};
+  const source = { ...result };
+  [
+    'ok',
+    'code',
+    'message',
+    'errMsg',
+    'userMessage',
+    'state',
+    'traceId',
+    '__traceId',
+    'data',
+    'deduped',
+    'finished'
+  ].forEach((key) => {
+    if (source[key] === undefined && result[key] !== undefined) {
+      source[key] = result[key];
+    }
+  });
+  return source;
+}
+
+function buildDefaultResultCode(name, ok) {
+  const normalizedName = String(name || '').trim().replace(/[^a-z0-9]+/ig, '_').replace(/^_+|_+$/g, '').toUpperCase();
+  if (normalizedName) return `${normalizedName}_${ok ? 'OK' : 'FAILED'}`;
+  return ok ? 'OK' : 'OP_FAILED';
+}
+
+function inferResultState(result, ok) {
+  const source = result && typeof result === 'object' ? result : {};
+  const code = normalizeResultCode(source);
+  if (source.state !== undefined && source.state !== null && String(source.state || '').trim()) {
+    return String(source.state || '').trim();
+  }
+  if (source.deduped === true || DEDUPED_CODES.has(code)) return 'deduped';
+  if (source.finished === true || FINISHED_CODES.has(code)) return 'finished';
+  const message = stripCloudPrefix(normalizeErrMsg(source)).toLowerCase();
+  if (!ok && (TIMEOUT_CODES.has(code) || message.includes('timeout') || message.includes('超时'))) return 'timeout';
+  if (!ok && (NETWORK_CODES.has(code) || message.includes('network') || message.includes('网络'))) return 'network';
+  if (!ok && (CONFLICT_CODES.has(code) || message.includes('conflict') || message.includes('冲突'))) return 'conflict';
+  if (!ok && (PERMISSION_CODES.has(code) || message.includes('permission') || message.includes('权限'))) return 'forbidden';
+  if (!ok && (PARAM_CODES.has(code) || message.includes('invalid') || message.includes('参数'))) return 'invalid';
+  return ok ? 'success' : '';
+}
+
+function normalizeCloudResult(result, name = '') {
+  const source = extractResultSource(result);
+  const implicitError = !Object.prototype.hasOwnProperty.call(source, 'ok') &&
+    !!String(source.message || source.errMsg || '').trim() &&
+    !Object.prototype.hasOwnProperty.call(source, 'data');
+  const ok = source.ok !== false && !implicitError;
+  const reserved = new Set(['ok', 'code', 'message', 'state', 'traceId', 'data']);
+  const extras = {};
+  Object.keys(source).forEach((key) => {
+    if (reserved.has(key)) return;
+    extras[key] = source[key];
+  });
+  const data = {};
+  if (source.data && typeof source.data === 'object' && !Array.isArray(source.data)) {
+    Object.assign(data, source.data);
+  }
+  Object.assign(data, extras);
+
+  return {
+    ...source,
+    ok,
+    code: normalizeResultCode(source) || buildDefaultResultCode(name, ok),
+    message: String(source.message || (ok ? '操作成功' : '操作失败')).trim() || (ok ? '操作成功' : '操作失败'),
+    state: inferResultState(source, ok),
+    traceId: normalizeTraceId(source),
+    data
+  };
+}
 
 function normalizeErrMsg(err) {
   if (!err) return '';
@@ -36,18 +126,6 @@ function isInvalidWriteShapeMessage(msg) {
     normalized.includes('不能更新_id的值') ||
     normalized.includes('包含保留字段 _id')
   );
-}
-
-function normalizeResultCode(err) {
-  return String(err && err.code || '').trim().toUpperCase();
-}
-
-function normalizeResultState(err) {
-  return String(err && err.state || '').trim().toLowerCase();
-}
-
-function normalizeTraceId(err) {
-  return String(err && (err.traceId || err.__traceId) || '').trim();
 }
 
 function attachDeveloperHint(err, hint) {
@@ -73,13 +151,39 @@ function getDeveloperHint(err) {
 }
 
 function parseCloudError(err, fallbackMessage = '操作失败') {
-  const code = normalizeResultCode(err);
-  const state = normalizeResultState(err);
-  const traceId = normalizeTraceId(err);
-  const rawMessage = normalizeErrMsg(err);
+  if (!err) {
+    return {
+      code: '',
+      state: '',
+      traceId: '',
+      hasStructuredContext: false,
+      isTimeout: false,
+      isConflict: false,
+      isNetwork: false,
+      isPermission: false,
+      isParam: false,
+      isInvalidWriteShape: false,
+      isFinished: false,
+      isDeduped: false,
+      rawMessage: '',
+      userMessage: fallbackMessage
+    };
+  }
+  const rawSource = extractResultSource(err);
+  const normalized = normalizeCloudResult(err);
+  const code = normalizeResultCode(normalized);
+  const state = normalizeResultState(normalized);
+  const traceId = normalizeTraceId(normalized);
+  const rawMessage = normalizeErrMsg(normalized);
   const cleaned = stripCloudPrefix(rawMessage);
   const low = cleaned.toLowerCase();
-  const hasStructuredContext = !!(code || state);
+  const hasStructuredContext = !!(normalizeResultCode(rawSource) || normalizeResultState(rawSource));
+  const isTimeout = (
+    TIMEOUT_CODES.has(code) ||
+    state === 'timeout' ||
+    low.includes('timeout') ||
+    cleaned.includes('超时')
+  );
   const isConflict = (
     CONFLICT_CODES.has(code) ||
     state === 'conflict' ||
@@ -92,6 +196,7 @@ function parseCloudError(err, fallbackMessage = '操作失败') {
   const isNetwork = (
     NETWORK_CODES.has(code) ||
     state === 'network' ||
+    (isTimeout && state !== 'timeout') ||
     low.includes('network') ||
     low.includes('timeout') ||
     low.includes('fail to connect') ||
@@ -107,17 +212,29 @@ function parseCloudError(err, fallbackMessage = '操作失败') {
     state === 'invalid' ||
     isInvalidWriteShape
   );
+  const isFinished = (
+    FINISHED_CODES.has(code) ||
+    state === 'finished'
+  );
+  const isDeduped = (
+    DEDUPED_CODES.has(code) ||
+    state === 'deduped' ||
+    err && err.deduped === true
+  );
 
   return {
     code,
     state,
     traceId,
     hasStructuredContext,
+    isTimeout,
     isConflict,
     isNetwork,
     isPermission,
     isParam,
     isInvalidWriteShape,
+    isFinished,
+    isDeduped,
     rawMessage,
     userMessage: cleaned || fallbackMessage
   };
@@ -126,7 +243,10 @@ function parseCloudError(err, fallbackMessage = '操作失败') {
 function classifyCloudError(parsed) {
   const p = parsed || {};
   if (p.isConflict) return 'conflict';
+  if (p.isTimeout) return 'timeout';
   if (p.isNetwork) return 'network';
+  if (p.isFinished) return 'finished';
+  if (p.isDeduped) return 'deduped';
   if (p.isPermission) return 'permission';
   if (p.isParam || p.isInvalidWriteShape) return 'param';
   const low = String(p.userMessage || '').toLowerCase();
@@ -161,11 +281,15 @@ function getRuntimeEnv() {
 function getUnifiedErrorMessage(err, fallbackMessage = '操作失败') {
   const parsed = parseCloudError(err, fallbackMessage);
   const level = classifyCloudError(parsed);
+  if (level === 'timeout') return parsed.hasStructuredContext ? (parsed.userMessage || '请求超时，请重试') : '网络异常，请重试';
   if (level === 'network') return '网络异常，请重试';
   if (level === 'conflict') {
     return parsed.hasStructuredContext
       ? (parsed.userMessage || '数据已被其他人更新，请刷新后重试')
       : '数据已被其他人更新，请刷新后重试';
+  }
+  if (level === 'finished' || level === 'deduped') {
+    return parsed.userMessage || fallbackMessage;
   }
   if (level === 'permission') {
     return parsed.hasStructuredContext
@@ -184,20 +308,22 @@ function getUnifiedErrorMessage(err, fallbackMessage = '操作失败') {
 }
 
 function normalizeWriteFailure(result, fallbackMessage = '操作失败') {
-  const parsed = parseCloudError(result, fallbackMessage);
+  const normalized = normalizeCloudResult(result);
+  const parsed = parseCloudError(normalized, fallbackMessage);
   const err = new Error(parsed.userMessage || fallbackMessage);
   if (parsed.code) err.code = parsed.code;
   if (parsed.state) err.state = parsed.state;
   if (parsed.traceId) err.traceId = parsed.traceId;
-  err.rawResult = result;
+  err.rawResult = normalized;
   return err;
 }
 
 function assertWriteResult(result, fallbackMessage = '操作失败') {
-  if (result && typeof result === 'object' && result.ok === false) {
-    throw normalizeWriteFailure(result, fallbackMessage);
+  const normalized = normalizeCloudResult(result);
+  if (normalized && typeof normalized === 'object' && normalized.ok === false) {
+    throw normalizeWriteFailure(normalized, fallbackMessage);
   }
-  return result;
+  return normalized;
 }
 
 function describeWriteError(options = {}) {
@@ -259,7 +385,7 @@ function call(name, data = {}) {
     payload.__traceId = trace.createTraceId(String(name || 'op').trim() || 'op');
   }
   return wx.cloud.callFunction({ name, data: payload })
-    .then(res => res.result)
+    .then(res => normalizeCloudResult(res && res.result, name))
     .catch(err => {
       const msg = normalizeErrMsg(err);
       console.error('云函数调用失败', name, err);
@@ -280,6 +406,7 @@ function call(name, data = {}) {
 
 module.exports = {
   call,
+  normalizeCloudResult,
   parseCloudError,
   classifyCloudError,
   getRuntimeEnv,

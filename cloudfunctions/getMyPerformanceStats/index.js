@@ -1,5 +1,6 @@
 const cloud = require('wx-server-sdk');
 const logic = require('./logic');
+const common = require('./lib/common');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
@@ -80,8 +81,9 @@ exports.main = async (event) => {
 
   const source = dedupeById(fastRows.concat(legacyRows, fallbackRows));
   const result = logic.computeMyPerformanceStats(source, OPENID, window, Date.now());
-  return {
+  return common.okResult('PERFORMANCE_STATS_READY', '已获取战绩统计', {
+    state: 'updated',
     ...result,
     updatedAt: new Date().toISOString()
-  };
+  });
 };

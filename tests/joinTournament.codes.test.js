@@ -116,7 +116,8 @@ test('joinTournament returns stable codes for missing id and missing tournament'
     code: 'TOURNAMENT_ID_REQUIRED',
     message: '缺少赛事ID',
     state: 'invalid',
-    traceId: ''
+    traceId: '',
+    data: {}
   });
 
   const missingDocMain = loadJoinTournamentMain(createDbHarness({ shouldThrowMissingDoc: true })).main;
@@ -125,7 +126,8 @@ test('joinTournament returns stable codes for missing id and missing tournament'
     code: 'TOURNAMENT_NOT_FOUND',
     message: '赛事不存在',
     state: 'not_found',
-    traceId: ''
+    traceId: '',
+    data: {}
   });
 });
 
@@ -139,7 +141,8 @@ test('joinTournament returns JOIN_DRAFT_ONLY for non-draft tournaments', async (
     code: 'JOIN_DRAFT_ONLY',
     message: '非草稿阶段不可加入/修改',
     state: 'forbidden',
-    traceId: ''
+    traceId: '',
+    data: {}
   });
 });
 
@@ -159,6 +162,7 @@ test('joinTournament returns VERSION_CONFLICT when transaction detects concurren
     code: 'VERSION_CONFLICT',
     message: '并发冲突，请重试',
     state: 'conflict',
-    traceId: ''
+    traceId: '',
+    data: {}
   });
 });

@@ -92,7 +92,14 @@ test('setReferee persists tournament referee with optimistic lock', async () => 
     refereeId: 'p_ref'
   });
 
-  assert.deepEqual(result, { ok: true });
+  assert.deepEqual(result, {
+    ok: true,
+    code: 'REFEREE_UPDATED',
+    message: '已更新裁判',
+    state: 'updated',
+    traceId: '',
+    data: {}
+  });
   assert.equal(writtenData.refereeId, 'p_ref');
 });
 

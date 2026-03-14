@@ -1,4 +1,5 @@
 const storage = require('../../core/storage');
+const actionGuard = require('../../core/actionGuard');
 const profileCore = require('../../core/profile');
 
 Page({
@@ -201,65 +202,67 @@ Page({
 
   async onSave() {
     if (this.data.saving) return;
-    const validated = this.validateProfile();
-    if (!validated.ok) return;
+    const actionKey = 'profile:saveUserProfile';
+    if (actionGuard.isBusy(actionKey)) return;
 
-    if (this.data.pendingAvatarTempPath) {
-      const ok = await this.uploadPendingAvatar({ showLoading: true, silentToast: true });
-      if (!ok) {
-        wx.showToast({ title: '头像上传失败，请重试', icon: 'none' });
-        return;
-      }
-    }
+    return actionGuard.runWithPageBusy(this, 'saving', actionKey, async () => {
+      const validated = this.validateProfile();
+      if (!validated.ok) return;
 
-    const nickname = validated.nickname;
-    const gender = validated.gender;
-    const avatar = String(this.data.avatar || '').trim();
-    if (this.data.avatarUploadFailed || this.data.pendingAvatarTempPath) {
-      this.setFieldError('avatar', '头像上传失败，可重试');
-      wx.showToast({ title: '请先完成头像上传', icon: 'none' });
-      return;
-    }
-    if (avatar) this.clearFieldError('avatar');
-
-    this.setData({ saving: true });
-    wx.showLoading({ title: '保存中...' });
-    try {
-      await profileCore.saveCloudProfile({
-        nickName: nickname,
-        avatar,
-        gender
-      });
-      wx.hideLoading();
-      wx.showToast({ title: '已保存', icon: 'success' });
-      const returnUrl = String(this.data.returnUrl || '').trim();
-      setTimeout(() => {
-        if (returnUrl) {
-          const isTab = (
-            returnUrl === '/pages/home/index' ||
-            returnUrl === '/pages/launch/index' ||
-            returnUrl === '/pages/mine/index'
-          );
-          if (isTab) {
-            wx.switchTab({ url: returnUrl });
-          } else {
-            wx.redirectTo({
-              url: returnUrl,
-              fail: () => wx.navigateTo({ url: returnUrl })
-            });
-          }
+      if (this.data.pendingAvatarTempPath) {
+        const ok = await this.uploadPendingAvatar({ showLoading: true, silentToast: true });
+        if (!ok) {
+          wx.showToast({ title: '头像上传失败，请重试', icon: 'none' });
           return;
         }
-        wx.navigateBack({
-          delta: 1,
-          fail: () => wx.switchTab({ url: '/pages/mine/index' })
+      }
+
+      const nickname = validated.nickname;
+      const gender = validated.gender;
+      const avatar = String(this.data.avatar || '').trim();
+      if (this.data.avatarUploadFailed || this.data.pendingAvatarTempPath) {
+        this.setFieldError('avatar', '头像上传失败，可重试');
+        wx.showToast({ title: '请先完成头像上传', icon: 'none' });
+        return;
+      }
+      if (avatar) this.clearFieldError('avatar');
+
+      wx.showLoading({ title: '保存中...' });
+      try {
+        await profileCore.saveCloudProfile({
+          nickName: nickname,
+          avatar,
+          gender
         });
-      }, 220);
-    } catch (e) {
-      wx.hideLoading();
-      wx.showToast({ title: '保存失败，请重试', icon: 'none' });
-    } finally {
-      this.setData({ saving: false });
-    }
+        wx.hideLoading();
+        wx.showToast({ title: '已保存', icon: 'success' });
+        const returnUrl = String(this.data.returnUrl || '').trim();
+        setTimeout(() => {
+          if (returnUrl) {
+            const isTab = (
+              returnUrl === '/pages/home/index' ||
+              returnUrl === '/pages/launch/index' ||
+              returnUrl === '/pages/mine/index'
+            );
+            if (isTab) {
+              wx.switchTab({ url: returnUrl });
+            } else {
+              wx.redirectTo({
+                url: returnUrl,
+                fail: () => wx.navigateTo({ url: returnUrl })
+              });
+            }
+            return;
+          }
+          wx.navigateBack({
+            delta: 1,
+            fail: () => wx.switchTab({ url: '/pages/mine/index' })
+          });
+        }, 220);
+      } catch (e) {
+        wx.hideLoading();
+        wx.showToast({ title: '保存失败，请重试', icon: 'none' });
+      }
+    });
   }
 });

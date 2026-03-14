@@ -41,11 +41,11 @@ async function syncCloudProfile() {
 async function saveCloudProfile(profile) {
   const merged = mergeProfile(readLocalProfile(), profile);
   storage.setUserProfile(merged);
-  await cloud.call('saveUserProfile', {
+  cloud.assertWriteResult(await cloud.call('saveUserProfile', {
     nickname: merged.nickName,
     avatar: merged.avatar,
     gender: merged.gender
-  });
+  }), '保存失败');
   return merged;
 }
 

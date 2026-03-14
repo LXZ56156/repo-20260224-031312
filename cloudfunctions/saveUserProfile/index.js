@@ -44,7 +44,10 @@ exports.main = async (event) => {
         updatedAt: now
       }, ['_id'], '用户资料新增数据')
     });
-    return { ok: true, profileId: addRes._id };
+    return common.okResult('PROFILE_SAVED', '已保存资料', {
+      state: 'updated',
+      profileId: addRes._id
+    });
   }
   await col.doc(doc._id).update({
     data: common.assertNoReservedRootKeys({
@@ -54,5 +57,8 @@ exports.main = async (event) => {
       updatedAt: now
     }, ['_id'], '用户资料更新数据')
   });
-  return { ok: true, profileId: doc._id };
+  return common.okResult('PROFILE_SAVED', '已保存资料', {
+    state: 'updated',
+    profileId: doc._id
+  });
 };

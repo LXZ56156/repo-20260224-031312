@@ -123,7 +123,8 @@ test('joinTournament rejects join requests that still miss minimum profile field
     code: 'PROFILE_MINIMUM_REQUIRED',
     message: '请先完善昵称、头像、性别后再加入比赛',
     state: 'invalid',
-    traceId: ''
+    traceId: '',
+    data: {}
   });
   assert.equal(calls.updatePayload, null);
 });

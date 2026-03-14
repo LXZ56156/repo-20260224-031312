@@ -63,10 +63,22 @@ test('getUserProfile returns normalized profile fields from collection record', 
   const result = await main();
 
   assert.deepEqual(result, {
+    ok: true,
+    code: 'PROFILE_READY',
+    message: '已读取资料',
+    state: 'ready',
+    traceId: '',
     profile: {
       nickName: '球友A',
       avatar: 'https://avatar/a.png',
       gender: 'female'
+    },
+    data: {
+      profile: {
+        nickName: '球友A',
+        avatar: 'https://avatar/a.png',
+        gender: 'female'
+      }
     }
   });
 });
@@ -92,5 +104,13 @@ test('getUserProfile falls back to null profile when database read fails', async
   const { main } = loadMain(db);
 
   const result = await main();
-  assert.deepEqual(result, { profile: null });
+  assert.deepEqual(result, {
+    ok: true,
+    code: 'PROFILE_READY',
+    message: '已读取资料',
+    state: 'ready',
+    traceId: '',
+    profile: null,
+    data: { profile: null }
+  });
 });

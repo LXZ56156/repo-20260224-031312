@@ -48,5 +48,8 @@ exports.main = async (event) => {
       createdAtMs: now
     }, ['_id'], '反馈提交数据')
   });
-  return { ok: true, feedbackId: addRes._id };
+  return common.okResult('FEEDBACK_SAVED', '反馈已提交', {
+    state: 'saved',
+    feedbackId: addRes._id
+  });
 };

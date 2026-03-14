@@ -94,7 +94,15 @@ test('cloneTournament index creates a new draft copy with remapped pair teams', 
   try {
     const result = await main({ sourceTournamentId: 't_source' });
 
-    assert.deepEqual(result, { ok: true, tournamentId: 't_copy' });
+    assert.deepEqual(result, {
+      ok: true,
+      code: 'TOURNAMENT_CLONED',
+      message: '已复制赛事',
+      state: 'created',
+      traceId: '',
+      tournamentId: 't_copy',
+      data: { tournamentId: 't_copy' }
+    });
     assert.equal(addedData.status, 'draft');
     assert.equal(addedData.name, '周三双打（副本）');
     assert.equal(addedData.players[0].id, 'u_creator');

@@ -53,6 +53,25 @@ function normalizeResultCode(code, fallback = 'OP_FAILED') {
   return normalized || String(fallback || 'OP_FAILED').trim().toUpperCase() || 'OP_FAILED';
 }
 
+function buildResultData(source = {}, preset = {}) {
+  const reserved = new Set(['ok', 'code', 'message', 'state', 'traceId', 'data']);
+  const output = {};
+  const presetData = preset.data && typeof preset.data === 'object' && !Array.isArray(preset.data) ? preset.data : null;
+  const sourceData = source.data && typeof source.data === 'object' && !Array.isArray(source.data) ? source.data : null;
+  if (presetData) Object.assign(output, presetData);
+  if (sourceData) Object.assign(output, sourceData);
+
+  [preset, source].forEach((input) => {
+    if (!input || typeof input !== 'object') return;
+    Object.keys(input).forEach((key) => {
+      if (reserved.has(key)) return;
+      output[key] = input[key];
+    });
+  });
+
+  return output;
+}
+
 function withWriteResult(result = {}, defaults = {}) {
   const source = (result && typeof result === 'object') ? result : {};
   const preset = (defaults && typeof defaults === 'object') ? defaults : {};
@@ -63,6 +82,7 @@ function withWriteResult(result = {}, defaults = {}) {
   output.message = String(source.message || preset.message || (ok ? '操作成功' : '操作失败')).trim() || (ok ? '操作成功' : '操作失败');
   output.state = String(source.state || preset.state || '').trim();
   output.traceId = String(source.traceId || preset.traceId || '').trim();
+  output.data = buildResultData(source, preset);
   return output;
 }
 
@@ -110,5 +130,6 @@ module.exports = {
   cleanupScoreLocks,
   withWriteResult,
   okResult,
-  failResult
+  failResult,
+  buildResultData
 };

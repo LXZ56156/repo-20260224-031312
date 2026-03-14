@@ -6,7 +6,7 @@ const mainPath = require.resolve('../cloudfunctions/setPlayerSquad/index.js');
 const commonPath = require.resolve('../cloudfunctions/setPlayerSquad/lib/common.js');
 const modePath = require.resolve('../cloudfunctions/setPlayerSquad/lib/mode.js');
 
-function buildTournament() {
+function buildTournament(extra = {}) {
   return {
     _id: 't_1',
     creatorId: 'u_admin',
@@ -16,7 +16,8 @@ function buildTournament() {
     players: [
       { id: 'u_admin', name: '管理员', squad: 'A' },
       { id: 'p_1', name: '球友A', squad: 'A' }
-    ]
+    ],
+    ...extra
   };
 }
 
@@ -91,11 +92,19 @@ test('setPlayerSquad updates one player squad with optimistic lock', async () =>
     squad: 'B'
   });
 
-  assert.deepEqual(result, { ok: true });
+  assert.equal(result.ok, true);
+  assert.equal(result.code, 'PLAYER_SQUAD_UPDATED');
+  assert.equal(result.message, '已调整分队');
+  assert.equal(result.state, 'updated');
+  assert.equal(result.squad, 'B');
+  assert.deepEqual(result.data, {
+    clientRequestId: '',
+    squad: 'B'
+  });
   assert.equal(writtenData.players[1].squad, 'B');
 });
 
-test('setPlayerSquad rejects optimistic-lock conflicts', async () => {
+test('setPlayerSquad rejects optimistic-lock conflicts with structured result', async () => {
   const db = {
     command: {
       inc(value) {
@@ -126,9 +135,67 @@ test('setPlayerSquad rejects optimistic-lock conflicts', async () => {
   };
   const { main } = loadMain(db);
 
-  await assert.rejects(() => main({
+  const result = await main({
     tournamentId: 't_1',
     playerId: 'p_1',
     squad: 'B'
-  }), /写入冲突/);
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'VERSION_CONFLICT');
+  assert.equal(result.message, '写入冲突，请刷新后重试');
+  assert.equal(result.state, 'conflict');
+});
+
+test('setPlayerSquad treats retry after applied squad change as deduped success', async () => {
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection() {
+      return {
+        doc() {
+          return {
+            async get() {
+              return {
+                data: buildTournament({
+                  players: [
+                    { id: 'u_admin', name: '管理员', squad: 'A' },
+                    { id: 'p_1', name: '球友A', squad: 'B' }
+                  ]
+                })
+              };
+            }
+          };
+        },
+        where() {
+          throw new Error('should not write when retry is deduped');
+        }
+      };
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    playerId: 'p_1',
+    squad: 'B',
+    clientRequestId: 'req_squad_1'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.code, 'PLAYER_SQUAD_DEDUPED');
+  assert.equal(result.state, 'deduped');
+  assert.equal(result.deduped, true);
+  assert.equal(result.squad, 'B');
+  assert.deepEqual(result.data, {
+    clientRequestId: 'req_squad_1',
+    deduped: true,
+    squad: 'B'
+  });
 });

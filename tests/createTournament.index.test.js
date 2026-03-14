@@ -71,7 +71,15 @@ test('createTournament writes normalized tournament document with default creato
     endConditionTarget: 6
   });
 
-  assert.deepEqual(result, { tournamentId: 't_new' });
+  assert.deepEqual(result, {
+    ok: true,
+    code: 'TOURNAMENT_CREATED',
+    message: '已创建比赛',
+    state: 'created',
+    traceId: '',
+    tournamentId: 't_new',
+    data: { tournamentId: 't_new' }
+  });
   assert.equal(createCollectionName, 'tournaments');
   assert.equal(addedData.name, '周五夜场');
   assert.equal(addedData.creatorId, 'u_creator');

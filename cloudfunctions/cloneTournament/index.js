@@ -72,7 +72,10 @@ exports.main = async (event) => {
       data
     });
 
-    return { ok: true, tournamentId: addRes._id };
+    return common.okResult('TOURNAMENT_CLONED', '已复制赛事', {
+      state: 'created',
+      tournamentId: addRes._id
+    });
   } catch (err) {
     throw common.normalizeConflictError(err, '复制赛事失败');
   }

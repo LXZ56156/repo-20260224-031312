@@ -73,7 +73,15 @@ test('saveUserProfile creates a new profile when none exists', async () => {
     gender: 'male'
   });
 
-  assert.deepEqual(result, { ok: true, profileId: 'profile_1' });
+  assert.deepEqual(result, {
+    ok: true,
+    code: 'PROFILE_SAVED',
+    message: '已保存资料',
+    state: 'updated',
+    traceId: '',
+    profileId: 'profile_1',
+    data: { profileId: 'profile_1' }
+  });
   assert.equal(createCollectionName, 'user_profiles');
   assert.deepEqual(addPayload, {
     openid: 'u_profile',
@@ -124,7 +132,15 @@ test('saveUserProfile updates existing profile in place', async () => {
     gender: 'female'
   });
 
-  assert.deepEqual(result, { ok: true, profileId: 'profile_existing' });
+  assert.deepEqual(result, {
+    ok: true,
+    code: 'PROFILE_SAVED',
+    message: '已保存资料',
+    state: 'updated',
+    traceId: '',
+    profileId: 'profile_existing',
+    data: { profileId: 'profile_existing' }
+  });
   assert.deepEqual(updatePayload, {
     nickname: '球友B',
     avatar: '',

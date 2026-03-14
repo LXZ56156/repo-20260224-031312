@@ -37,8 +37,18 @@ test('login returns openid appid and normalized empty unionid', async () => {
 
   const result = await main();
   assert.deepEqual(result, {
+    ok: true,
+    code: 'LOGIN_OK',
+    message: '登录成功',
+    state: 'ready',
+    traceId: '',
     openid: 'u_login',
     appid: 'wx-app',
-    unionid: ''
+    unionid: '',
+    data: {
+      openid: 'u_login',
+      appid: 'wx-app',
+      unionid: ''
+    }
   });
 });

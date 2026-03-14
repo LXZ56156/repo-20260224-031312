@@ -7,6 +7,10 @@ const nav = require('../../core/nav');
 const writeErrorUi = require('../../core/writeErrorUi');
 const viewModel = require('./lobbyViewModel');
 
+function buildClientRequestId(prefix = 'write') {
+  return `${String(prefix || 'write').trim() || 'write'}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
 module.exports = {
   runFlowAction(rawKey) {
     const key = String(rawKey || '').trim();
@@ -345,11 +349,12 @@ module.exports = {
     if (actionGuard.isBusy(actionKey)) return;
     return actionGuard.run(actionKey, async () => {
       try {
-        await cloud.call('setPlayerSquad', {
+        cloud.assertWriteResult(await cloud.call('setPlayerSquad', {
           tournamentId: this.data.tournamentId,
           playerId,
-          squad: next
-        });
+          squad: next,
+          clientRequestId: buildClientRequestId('set_squad')
+        }), '调整分队失败');
         wx.showToast({ title: `已调整到${next}队`, icon: 'none' });
         this.fetchTournament(this.data.tournamentId);
       } catch (err) {
@@ -448,7 +453,9 @@ module.exports = {
         await actionGuard.run(actionKey, async () => {
           wx.showLoading({ title: '取消中...' });
           try {
-            await cloud.call('deleteTournament', { tournamentId: this.data.tournamentId });
+            cloud.assertWriteResult(await cloud.call('deleteTournament', {
+              tournamentId: this.data.tournamentId
+            }), '取消失败');
             wx.hideLoading();
             this.clearLastFailedAction();
             storage.removeRecentTournamentId(this.data.tournamentId);

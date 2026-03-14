@@ -109,7 +109,14 @@ test('resetTournament index writes reset patch and triggers lock cleanup', async
 
   const result = await main({ tournamentId: 't_1' });
 
-  assert.deepEqual(result, { ok: true });
+  assert.deepEqual(result, {
+    ok: true,
+    code: 'TOURNAMENT_RESET',
+    message: '已重置赛事',
+    state: 'reset',
+    traceId: '',
+    data: {}
+  });
   assert.equal(writtenData.status, 'draft');
   assert.deepEqual(writtenData.fairness, { $remove: true });
   assert.equal(cleanupCalled, true);

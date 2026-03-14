@@ -20,7 +20,10 @@ exports.main = async (event) => {
     common.assertCreator(t, OPENID);
 
     await transaction.collection('tournaments').doc(tournamentId).remove();
-    return { ok: true };
+    return common.okResult('TOURNAMENT_DELETED', '已删除赛事', {
+      traceId,
+      state: 'deleted'
+    });
   });
   await logic.cleanupScoreLocksBestEffort(() => common.cleanupScoreLocks(db, tournamentId), tournamentId, console);
   return result;

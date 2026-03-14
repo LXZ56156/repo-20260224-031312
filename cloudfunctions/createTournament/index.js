@@ -110,7 +110,10 @@ exports.main = async (event) => {
     const res = await db.collection('tournaments').add({
       data
     });
-    return { tournamentId: res._id };
+    return common.okResult('TOURNAMENT_CREATED', '已创建比赛', {
+      state: 'created',
+      tournamentId: res._id
+    });
   } catch (err) {
     if (common.isCollectionNotExists(err)) {
       throw new Error('数据库集合 tournaments 不存在：请在云开发控制台（数据库 -> 创建集合）创建 tournaments 后再试。');

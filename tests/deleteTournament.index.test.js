@@ -93,7 +93,14 @@ test('deleteTournament index removes tournament and triggers lock cleanup', asyn
 
   const result = await main({ tournamentId: 't_1' });
 
-  assert.deepEqual(result, { ok: true });
+  assert.deepEqual(result, {
+    ok: true,
+    code: 'TOURNAMENT_DELETED',
+    message: '已删除赛事',
+    state: 'deleted',
+    traceId: '',
+    data: {}
+  });
   assert.equal(removed, true);
   assert.equal(cleanupCalled, true);
 });

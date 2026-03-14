@@ -29,7 +29,10 @@ exports.main = async (event) => {
     });
     common.assertOptimisticUpdate(updRes, '写入冲突，请刷新赛事后重试');
     await logic.cleanupScoreLocksBestEffort(() => common.cleanupScoreLocks(db, tournamentId), tournamentId, console);
-    return { ok: true };
+    return common.okResult('TOURNAMENT_RESET', '已重置赛事', {
+      traceId,
+      state: 'reset'
+    });
   } catch (err) {
     if (common.isCollectionNotExists(err)) {
       throw new Error('数据库集合 tournaments 不存在：请在云开发控制台（数据库 -> 创建集合）创建 tournaments 后再试。');
