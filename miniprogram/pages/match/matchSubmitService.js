@@ -47,6 +47,110 @@ function createMatchSubmitService(ctx, deps = {}) {
     navApi.redirectOrBack(url, 0);
   }
 
+  function extractMatchScore(match) {
+    const source = match && typeof match === 'object' ? match : {};
+    const score = source.score && typeof source.score === 'object' ? source.score : source;
+    const scoreA = clampScore(score.teamA ?? source.teamAScore ?? source.scoreA ?? source.a);
+    const scoreB = clampScore(score.teamB ?? source.teamBScore ?? source.scoreB ?? source.b);
+    return { scoreA, scoreB };
+  }
+
+  function findCurrentMatch(tournamentDoc) {
+    const rounds = Array.isArray(tournamentDoc && tournamentDoc.rounds) ? tournamentDoc.rounds : [];
+    const round = rounds.find((item) => Number(item && item.roundIndex) === Number(ctx.data.roundIndex));
+    const matches = Array.isArray(round && round.matches) ? round.matches : [];
+    return matches.find((item) => Number(item && item.matchIndex) === Number(ctx.data.matchIndex)) || null;
+  }
+
+  function allMatchesFinished(rounds) {
+    for (const round of (rounds || [])) {
+      for (const match of (round && round.matches) || []) {
+        const status = String((match && match.status) || '').trim();
+        if (status !== 'finished' && status !== 'canceled') return false;
+      }
+    }
+    return true;
+  }
+
+  function buildLocalSubmittedTournament(scoreA, scoreB, lockSnapshot, result = {}) {
+    const currentTournament = ctx._latestTournament || (ctx.data && ctx.data.tournament) || null;
+    if (!currentTournament || typeof currentTournament !== 'object') return null;
+
+    const nextTournament = JSON.parse(JSON.stringify(currentTournament));
+    const rounds = Array.isArray(nextTournament.rounds) ? nextTournament.rounds : [];
+    const round = rounds.find((item) => Number(item && item.roundIndex) === Number(ctx.data.roundIndex));
+    if (!round) return null;
+    const matches = Array.isArray(round.matches) ? round.matches : [];
+    const match = matches.find((item) => Number(item && item.matchIndex) === Number(ctx.data.matchIndex));
+    if (!match) return null;
+
+    delete match.teamAScore;
+    delete match.teamBScore;
+    delete match.scoreA;
+    delete match.scoreB;
+    delete match.a;
+    delete match.b;
+    match.score = { teamA: scoreA, teamB: scoreB };
+    match.status = 'finished';
+    match.scorerId = String(lockSnapshot.ownerId || ctx.data.lockOwnerId || '').trim();
+    match.scorerName = String((result && result.scorerName) || lockSnapshot.ownerName || ctx.data.lockOwnerName || '').trim();
+    match.scoredAt = new Date().toISOString();
+
+    const resultVersion = Number(result && result.version) || 0;
+    const currentVersion = Number(nextTournament.version) || 0;
+    if (resultVersion > 0) nextTournament.version = Math.max(currentVersion, resultVersion);
+    nextTournament.status = allMatchesFinished(rounds) ? 'finished' : 'running';
+    nextTournament.updatedAtTs = Date.now();
+    nextTournament.rounds = rounds;
+    return nextTournament;
+  }
+
+  function applyCommittedTournament(tournamentDoc) {
+    if (!tournamentDoc || typeof tournamentDoc !== 'object') return null;
+    const updatedAt = syncStatus.pickTournamentTimestamp(tournamentDoc) || Date.now();
+    ctx._latestTournament = tournamentDoc;
+    ctx._lastAppliedDocTs = Math.max(Number(ctx._lastAppliedDocTs || 0), updatedAt);
+    ctx.setData(pageTournamentSync.composePageSyncPatch(ctx, {
+      loadError: false,
+      showStaleSyncHint: false,
+      syncRefreshing: false,
+      syncUsingCache: false,
+      syncCachedAt: 0,
+      syncLastUpdatedAt: updatedAt
+    }));
+    ctx.applyTournament(tournamentDoc, { skipLockSync: true });
+    return tournamentDoc;
+  }
+
+  function isSubmittedMatch(tournamentDoc, scoreA, scoreB) {
+    const match = findCurrentMatch(tournamentDoc);
+    if (!match) return false;
+    if (String(match.status || '').trim() !== 'finished') return false;
+    const current = extractMatchScore(match);
+    return Number(current.scoreA) === Number(scoreA) && Number(current.scoreB) === Number(scoreB);
+  }
+
+  async function tryRecoverSubmittedResult(scoreA, scoreB) {
+    const latest = await refreshTournamentDoc();
+    if (isSubmittedMatch(latest, scoreA, scoreB)) return latest;
+    return null;
+  }
+
+  async function finalizeSubmitSuccess(result, lockSnapshot, options = {}) {
+    const scoreA = clampScore(ctx.data.scoreA);
+    const scoreB = clampScore(ctx.data.scoreB);
+    const resolvedTournament = options.tournamentDoc || await refreshTournamentDoc();
+    if (!isSubmittedMatch(resolvedTournament, scoreA, scoreB)) {
+      const localCommitted = buildLocalSubmittedTournament(
+        scoreA,
+        scoreB,
+        lockSnapshot,
+        result
+      );
+      if (localCommitted) applyCommittedTournament(localCommitted);
+    }
+  }
+
   async function jumpToNextPending(tournamentDoc, noPendingMessage, forceBatch = false) {
     const nt = normalizeTournament(tournamentDoc || {});
     const next = matchFlowApi.findNextPending(nt.rounds, Number(ctx.data.roundIndex), Number(ctx.data.matchIndex));
@@ -66,6 +170,9 @@ function createMatchSubmitService(ctx, deps = {}) {
   async function refreshTournamentDoc() {
     const tournamentId = String(ctx.data.tournamentId || '').trim();
     if (!tournamentId) return null;
+    if (typeof ctx.fetchTournament === 'function') {
+      return ctx.fetchTournament(tournamentId);
+    }
     const requestSeq = typeof ctx.nextFetchSeq === 'function' ? ctx.nextFetchSeq() : 0;
     const result = await tournamentSyncApi.fetchTournament(tournamentId);
     if (requestSeq && typeof ctx.isLatestFetchSeq === 'function' && !ctx.isLatestFetchSeq(requestSeq)) {
@@ -108,24 +215,40 @@ function createMatchSubmitService(ctx, deps = {}) {
     return false;
   }
 
-  function restoreLockAfterSubmitFail(snapshot) {
+  function restoreLockAfterSubmitFail(snapshot, options = {}) {
     const snap = snapshot || {};
+    const nowTs = Date.now();
+    const expireAt = Number(snap.expireAt) || 0;
+    const forceExpired = options.forceExpired === true;
+    if (forceExpired || (expireAt > 0 && expireAt <= nowTs)) {
+      ctx.lockController.applyScoreLockResult({
+        ok: false,
+        code: 'LOCK_EXPIRED',
+        message: '录分会话已过期，请重新开始录分',
+        state: 'expired',
+        expireAt
+      }, {
+        silent: options.silent === true
+      });
+      return;
+    }
     ctx.lockController.setLockState('locked_by_me', {
       ownerId: snap.ownerId,
       ownerName: snap.ownerName,
-      expireAt: snap.expireAt,
-      remainingMs: Math.max(0, Number(snap.expireAt) - Date.now())
+      expireAt,
+      remainingMs: Math.max(0, expireAt - nowTs)
     });
   }
 
-  function handleSubmitResultCode(res, lockSnapshot) {
+  function handleSubmitResultCode(res, lockSnapshot, options = {}) {
     const code = String((res && res.code) || '').trim().toUpperCase();
+    const retrySubmit = typeof options.retrySubmit === 'function' ? options.retrySubmit : null;
     if (code === 'LOCK_OCCUPIED') {
       ctx.lockController.applyScoreLockResult({ ...res, state: 'occupied' });
       return true;
     }
     if (code === 'LOCK_EXPIRED') {
-      ctx.lockController.applyScoreLockResult({ ...res, state: 'expired' });
+      restoreLockAfterSubmitFail(lockSnapshot, { forceExpired: true });
       return true;
     }
     if (code === 'MATCH_FINISHED') {
@@ -144,7 +267,10 @@ function createMatchSubmitService(ctx, deps = {}) {
     }
     if (code === 'VERSION_CONFLICT') {
       restoreLockAfterSubmitFail(lockSnapshot);
-      ctx.setLastFailedAction('提交比分', () => submit(), {
+      ctx.setLastFailedAction('提交比分', () => {
+        if (retrySubmit) return retrySubmit();
+        return submit();
+      }, {
         actionKey: `match:submitScore:${ctx.data.tournamentId}:${ctx.data.roundIndex}:${ctx.data.matchIndex}`
       });
       ctx.handleWriteError(res, '提交失败', () => ctx.fetchTournament(ctx.data.tournamentId));
@@ -153,7 +279,7 @@ function createMatchSubmitService(ctx, deps = {}) {
     return false;
   }
 
-  async function submit() {
+  async function submit(options = {}) {
     const scoreA = clampScore(ctx.data.scoreA);
     const scoreB = clampScore(ctx.data.scoreB);
     if (!Number.isFinite(scoreA) || !Number.isFinite(scoreB) || scoreA < 0 || scoreB < 0) {
@@ -185,11 +311,12 @@ function createMatchSubmitService(ctx, deps = {}) {
       ownerName: ctx.data.lockOwnerName,
       expireAt: ctx.data.lockExpireAt
     };
-    const clientRequestId = buildClientRequestId();
+    const clientRequestId = String(options.clientRequestId || '').trim() || buildClientRequestId();
     const actionKey = `match:submitScore:${ctx.data.tournamentId}:${ctx.data.roundIndex}:${ctx.data.matchIndex}`;
     if (actionGuard.isBusy(actionKey)) return;
 
     return actionGuard.runWithPageBusy(ctx, 'submitBusy', actionKey, async () => {
+      const retrySubmit = () => submit({ clientRequestId });
       ctx.lockController.setLockState('submitting', lockSnapshot, { skipApply: true });
       wx.showLoading({ title: '提交中...' });
       try {
@@ -203,14 +330,13 @@ function createMatchSubmitService(ctx, deps = {}) {
         });
 
         if (res && res.ok === false) {
-          if (handleSubmitResultCode(res, lockSnapshot)) return;
+          if (handleSubmitResultCode(res, lockSnapshot, { retrySubmit })) return;
           restoreLockAfterSubmitFail(lockSnapshot);
           wx.showToast({ title: String(res.message || '提交失败'), icon: 'none' });
           return;
         }
 
-        await refreshTournamentDoc();
-
+        await finalizeSubmitSuccess(res, lockSnapshot);
         ctx.clearLastFailedAction();
         ctx.matchDraft.clearScoreDraft();
         ctx.matchDraft.clearUndo();
@@ -243,8 +369,30 @@ function createMatchSubmitService(ctx, deps = {}) {
         }
         if (autoReturn) returnToSchedule(420);
       } catch (err) {
+        const parsed = typeof cloudApi.parseCloudError === 'function'
+          ? cloudApi.parseCloudError(err, '提交失败')
+          : null;
+        if (parsed && parsed.isNetwork) {
+          const recovered = await tryRecoverSubmittedResult(scoreA, scoreB);
+          if (recovered) {
+            await finalizeSubmitSuccess({
+              ok: true,
+              scorerName: lockSnapshot.ownerName
+            }, lockSnapshot, { tournamentDoc: recovered });
+            ctx.clearLastFailedAction();
+            ctx.matchDraft.clearScoreDraft();
+            ctx.matchDraft.clearUndo();
+            ctx.lockController.setLockState('finished', {
+              ownerId: lockSnapshot.ownerId,
+              ownerName: String(lockSnapshot.ownerName || '')
+            });
+            wx.showToast({ title: '已提交', icon: 'success' });
+            navApi.markRefreshFlag(ctx.data.tournamentId);
+            return;
+          }
+        }
         restoreLockAfterSubmitFail(lockSnapshot);
-        ctx.setLastFailedAction('提交比分', () => submit(), { actionKey });
+        ctx.setLastFailedAction('提交比分', retrySubmit, { actionKey });
         ctx.handleWriteError(err, '提交失败', () => ctx.fetchTournament(ctx.data.tournamentId));
       } finally {
         wx.hideLoading();

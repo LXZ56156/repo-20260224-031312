@@ -125,6 +125,7 @@ function buildTournamentViewState(tournament, options = {}) {
   const lockState = normalizeLockState(options.lockState);
   const openid = String(options.openid || '').trim();
   const draft = options.draft || null;
+  const hasDraft = !!(draft && typeof draft === 'object');
   const currentScoreA = clampScore(options.currentScoreA);
   const currentScoreB = clampScore(options.currentScoreB);
   const undoSize = Math.max(0, Number(options.undoSize) || 0);
@@ -190,20 +191,24 @@ function buildTournamentViewState(tournament, options = {}) {
       scoreB = clampScore(scorePair.b);
     }
   } else if (canEdit) {
-    if (draft) {
+    if (hasDraft) {
       scoreA = clampScore(draft.scoreA);
       scoreB = clampScore(draft.scoreB);
     } else if (hasServerScore) {
       scoreA = clampScore(scorePair.a);
       scoreB = clampScore(scorePair.b);
     }
+  } else if (userCanScore && hasDraft) {
+    scoreA = clampScore(draft.scoreA);
+    scoreB = clampScore(draft.scoreB);
   } else if (hasServerScore) {
     scoreA = clampScore(scorePair.a);
     scoreB = clampScore(scorePair.b);
   }
 
-  const displayScoreA = (canEdit || finished || hasServerScore) ? String(scoreA) : '-';
-  const displayScoreB = (canEdit || finished || hasServerScore) ? String(scoreB) : '-';
+  const showDraftPreview = !finished && !canEdit && userCanScore && hasDraft;
+  const displayScoreA = (canEdit || finished || hasServerScore || showDraftPreview) ? String(scoreA) : '-';
+  const displayScoreB = (canEdit || finished || hasServerScore || showDraftPreview) ? String(scoreB) : '-';
 
   return {
     tournament: nt,
