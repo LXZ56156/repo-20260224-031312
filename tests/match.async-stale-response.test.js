@@ -39,7 +39,7 @@ function createMatchPageContext(definition) {
   return ctx;
 }
 
-test('match page ignores stale fetchTournament responses', async () => {
+test('match page reuses an in-flight fetchTournament request for the same tournament', async () => {
   const originalWx = global.wx;
   const originalGetApp = global.getApp;
   const originalFetchTournament = tournamentSync.fetchTournament;
@@ -69,16 +69,20 @@ test('match page ignores stale fetchTournament responses', async () => {
   try {
     const definition = loadMatchPageDefinition();
     const ctx = createMatchPageContext(definition);
-    const resolvers = [];
+    let resolveFetch = null;
+    let fetchCalls = 0;
 
     tournamentSync.fetchTournament = async () => new Promise((resolve) => {
-      resolvers.push(resolve);
+      fetchCalls += 1;
+      resolveFetch = resolve;
     });
 
     const first = ctx.fetchTournament('t_1');
     const second = ctx.fetchTournament('t_1');
 
-    resolvers[1]({
+    assert.equal(fetchCalls, 1);
+
+    resolveFetch({
       ok: true,
       source: 'remote',
       doc: {
@@ -89,22 +93,11 @@ test('match page ignores stale fetchTournament responses', async () => {
         rounds: []
       }
     });
-    await second;
 
-    resolvers[0]({
-      ok: true,
-      source: 'remote',
-      doc: {
-        _id: 't_1',
-        name: 'Stale Tournament',
-        status: 'running',
-        players: [],
-        rounds: []
-      }
-    });
-    const firstResult = await first;
+    const [firstResult, secondResult] = await Promise.all([first, second]);
 
-    assert.equal(firstResult, null);
+    assert.equal(firstResult && firstResult.name, 'Fresh Tournament');
+    assert.equal(secondResult && secondResult.name, 'Fresh Tournament');
     assert.equal(ctx.data.tournamentName, 'Fresh Tournament');
     assert.equal(ctx._latestTournament && ctx._latestTournament.name, 'Fresh Tournament');
   } finally {

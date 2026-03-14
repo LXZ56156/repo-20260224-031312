@@ -36,36 +36,35 @@ function createSchedulePageContext(definition) {
   return ctx;
 }
 
-test('schedule page ignores stale fetchTournament responses', async () => {
+test('schedule page reuses an in-flight fetchTournament request for the same tournament', async () => {
   const originalFetchTournament = tournamentSync.fetchTournament;
 
   try {
     const definition = loadSchedulePageDefinition();
     const ctx = createSchedulePageContext(definition);
-    const resolvers = [];
+    let resolveFetch = null;
+    let fetchCalls = 0;
 
     tournamentSync.fetchTournament = async () => new Promise((resolve) => {
-      resolvers.push(resolve);
+      fetchCalls += 1;
+      resolveFetch = resolve;
     });
 
     const first = ctx.fetchTournament('t_1');
     const second = ctx.fetchTournament('t_1');
 
-    resolvers[1]({
+    assert.equal(fetchCalls, 1);
+
+    resolveFetch({
       ok: true,
       source: 'remote',
       doc: { _id: 't_1', name: 'Fresh Schedule Tournament' }
     });
-    await second;
 
-    resolvers[0]({
-      ok: true,
-      source: 'remote',
-      doc: { _id: 't_1', name: 'Stale Schedule Tournament' }
-    });
-    const firstResult = await first;
+    const [firstResult, secondResult] = await Promise.all([first, second]);
 
-    assert.equal(firstResult, null);
+    assert.equal(firstResult && firstResult.name, 'Fresh Schedule Tournament');
+    assert.equal(secondResult && secondResult.name, 'Fresh Schedule Tournament');
     assert.equal(ctx.latestTournament && ctx.latestTournament.name, 'Fresh Schedule Tournament');
   } finally {
     tournamentSync.fetchTournament = originalFetchTournament;

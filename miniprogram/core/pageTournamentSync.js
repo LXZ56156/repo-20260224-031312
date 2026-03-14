@@ -152,11 +152,16 @@ function createTournamentSyncMethods(options = {}) {
       return typeof watcher.close === 'function';
     },
 
-    startWatch(tournamentId) {
+    startWatch(tournamentId, startOptions = {}) {
       const targetTournamentId = String(tournamentId || '').trim();
       if (!targetTournamentId) return;
+      const forceRestart = !!(startOptions && startOptions.forceRestart);
       const currentWatchTournamentId = String(this._watchTournamentId || '').trim();
       if (currentWatchTournamentId && currentWatchTournamentId !== targetTournamentId) {
+        this.invalidateWatchGen();
+        tournamentSync.closeWatcher(this);
+      }
+      if (forceRestart && this.hasActiveWatch(targetTournamentId)) {
         this.invalidateWatchGen();
         tournamentSync.closeWatcher(this);
       }
@@ -204,88 +209,110 @@ function createTournamentSyncMethods(options = {}) {
 
     async fetchTournament(tournamentId) {
       const requestTournamentId = String(tournamentId || '').trim();
+      if (
+        requestTournamentId &&
+        this._fetchInflightPromise &&
+        String(this._fetchInflightTournamentId || '').trim() === requestTournamentId
+      ) {
+        return this._fetchInflightPromise;
+      }
+
       const requestSeq = this.nextFetchSeq();
       this.setData(composePageSyncPatch(this, {
         loadError: false,
         syncRefreshing: true
       }));
-      const result = await tournamentSync.fetchTournament(requestTournamentId);
-      if (!this.isLatestFetchSeq(requestSeq)) return null;
-      if (requestTournamentId && String((this.data && this.data.tournamentId) || '').trim() !== requestTournamentId) return null;
+      const inflightPromise = (async () => {
+        const result = await tournamentSync.fetchTournament(requestTournamentId);
+        if (!this.isLatestFetchSeq(requestSeq)) return null;
+        if (requestTournamentId && String((this.data && this.data.tournamentId) || '').trim() !== requestTournamentId) return null;
 
-      if (result && result.ok && result.doc) {
-        if (!shouldApplyIncomingDoc(this, result.doc, { tournamentId: requestTournamentId })) {
-          this.setData(composePageSyncPatch(this, { syncRefreshing: false }));
-          return pickPageTournament(this);
+        if (result && result.ok && result.doc) {
+          if (!shouldApplyIncomingDoc(this, result.doc, { tournamentId: requestTournamentId })) {
+            this.setData(composePageSyncPatch(this, { syncRefreshing: false }));
+            return pickPageTournament(this);
+          }
+          const patch = typeof options.buildRemoteState === 'function'
+            ? options.buildRemoteState.call(this, result, { requestSeq, source: result.source || 'remote' })
+            : { showStaleSyncHint: false, loadError: false };
+          this.setData(composePageSyncPatch(this, {
+            ...(patch && typeof patch === 'object' ? patch : {}),
+            loadError: false,
+            showStaleSyncHint: false,
+            syncRefreshing: false,
+            syncUsingCache: false,
+            syncCachedAt: 0,
+            syncLastUpdatedAt: pickDocTimestamp(result.doc) || Number(this.data.syncLastUpdatedAt || 0) || 0
+          }));
+          applyDoc(this, options, result.doc, {
+            requestSeq,
+            source: result.source || 'remote',
+            tournamentId: requestTournamentId
+          });
+          return result.doc;
         }
-        const patch = typeof options.buildRemoteState === 'function'
-          ? options.buildRemoteState.call(this, result, { requestSeq, source: result.source || 'remote' })
-          : { showStaleSyncHint: false, loadError: false };
+
+        if (result && result.cachedDoc) {
+          if (!shouldApplyIncomingDoc(this, result.cachedDoc, { tournamentId: requestTournamentId })) {
+            this.setData(composePageSyncPatch(this, { syncRefreshing: false }));
+            return pickPageTournament(this);
+          }
+          const patch = typeof options.buildCachedState === 'function'
+            ? options.buildCachedState.call(this, result, { requestSeq, source: 'cache' })
+            : { showStaleSyncHint: true, loadError: false };
+          this.setData(composePageSyncPatch(this, {
+            ...(patch && typeof patch === 'object' ? patch : {}),
+            loadError: false,
+            showStaleSyncHint: true,
+            syncRefreshing: false,
+            syncUsingCache: true,
+            syncCachedAt: Number(result.cachedAt || 0) || 0,
+            syncLastUpdatedAt: pickDocTimestamp(result.cachedDoc) || Number(this.data.syncLastUpdatedAt || 0) || 0
+          }));
+          applyDoc(this, options, result.cachedDoc, {
+            requestSeq,
+            source: 'cache',
+            tournamentId: requestTournamentId
+          });
+          return result.cachedDoc;
+        }
+
+        const fallbackTournament = pickPageTournament(this);
+        if (fallbackTournament && result && result.errorType !== 'not_found' && result.errorType !== 'param') {
+          this.setData(composePageSyncPatch(this, {
+            loadError: false,
+            showStaleSyncHint: true,
+            syncRefreshing: false,
+            syncUsingCache: false,
+            syncCachedAt: 0,
+            syncLastUpdatedAt: pickAppliedDocTimestamp(this)
+          }));
+          return fallbackTournament;
+        }
+
+        const patch = typeof options.buildLoadErrorState === 'function'
+          ? options.buildLoadErrorState.call(this, result, { requestSeq, source: 'error' })
+          : buildTournamentLoadErrorState(result, loadErrorMessages);
         this.setData(composePageSyncPatch(this, {
           ...(patch && typeof patch === 'object' ? patch : {}),
-          loadError: false,
-          showStaleSyncHint: false,
           syncRefreshing: false,
           syncUsingCache: false,
-          syncCachedAt: 0,
-          syncLastUpdatedAt: pickDocTimestamp(result.doc) || Number(this.data.syncLastUpdatedAt || 0) || 0
+          syncCachedAt: 0
         }));
-        applyDoc(this, options, result.doc, {
-          requestSeq,
-          source: result.source || 'remote',
-          tournamentId: requestTournamentId
-        });
-        return result.doc;
-      }
+        return null;
+      })();
 
-      if (result && result.cachedDoc) {
-        if (!shouldApplyIncomingDoc(this, result.cachedDoc, { tournamentId: requestTournamentId })) {
-          this.setData(composePageSyncPatch(this, { syncRefreshing: false }));
-          return pickPageTournament(this);
+      this._fetchInflightPromise = inflightPromise;
+      this._fetchInflightTournamentId = requestTournamentId;
+
+      try {
+        return await inflightPromise;
+      } finally {
+        if (this._fetchInflightPromise === inflightPromise) {
+          this._fetchInflightPromise = null;
+          this._fetchInflightTournamentId = '';
         }
-        const patch = typeof options.buildCachedState === 'function'
-          ? options.buildCachedState.call(this, result, { requestSeq, source: 'cache' })
-          : { showStaleSyncHint: true, loadError: false };
-        this.setData(composePageSyncPatch(this, {
-          ...(patch && typeof patch === 'object' ? patch : {}),
-          loadError: false,
-          showStaleSyncHint: true,
-          syncRefreshing: false,
-          syncUsingCache: true,
-          syncCachedAt: Number(result.cachedAt || 0) || 0,
-          syncLastUpdatedAt: pickDocTimestamp(result.cachedDoc) || Number(this.data.syncLastUpdatedAt || 0) || 0
-        }));
-        applyDoc(this, options, result.cachedDoc, {
-          requestSeq,
-          source: 'cache',
-          tournamentId: requestTournamentId
-        });
-        return result.cachedDoc;
       }
-
-      const fallbackTournament = pickPageTournament(this);
-      if (fallbackTournament && result && result.errorType !== 'not_found' && result.errorType !== 'param') {
-        this.setData(composePageSyncPatch(this, {
-          loadError: false,
-          showStaleSyncHint: true,
-          syncRefreshing: false,
-          syncUsingCache: false,
-          syncCachedAt: 0,
-          syncLastUpdatedAt: pickAppliedDocTimestamp(this)
-        }));
-        return fallbackTournament;
-      }
-
-      const patch = typeof options.buildLoadErrorState === 'function'
-        ? options.buildLoadErrorState.call(this, result, { requestSeq, source: 'error' })
-        : buildTournamentLoadErrorState(result, loadErrorMessages);
-      this.setData(composePageSyncPatch(this, {
-        ...(patch && typeof patch === 'object' ? patch : {}),
-        syncRefreshing: false,
-        syncUsingCache: false,
-        syncCachedAt: 0
-      }));
-      return null;
     },
 
     handleNetworkChange(offline, options = {}) {
@@ -295,7 +322,15 @@ function createTournamentSyncMethods(options = {}) {
       this.setData(composePageSyncPatch(this, { networkOffline: nextOffline }));
       if (!nextOffline && wasOffline) {
         if (tournamentId && typeof this.fetchTournament === 'function') this.fetchTournament(tournamentId);
-        if (tournamentId && !this.hasActiveWatch() && typeof this.startWatch === 'function') this.startWatch(tournamentId);
+        const needsWatchRestart = tournamentId && typeof this.startWatch === 'function' && (
+          !this.hasActiveWatch(tournamentId) ||
+          !!(this.data && this.data.syncPollingFallback)
+        );
+        if (needsWatchRestart) {
+          this.startWatch(tournamentId, {
+            forceRestart: !!(this.data && this.data.syncPollingFallback)
+          });
+        }
         if (typeof options.onReconnect === 'function') options.onReconnect.call(this, tournamentId);
       }
     },
@@ -311,6 +346,8 @@ function initTournamentSync(page) {
   page._fetchSeq = 0;
   page._watchGen = 0;
   page._watchTournamentId = '';
+  page._fetchInflightPromise = null;
+  page._fetchInflightTournamentId = '';
   page._lastAppliedDocTs = Math.max(
     Number(page._lastAppliedDocTs || 0),
     Number(page.data && page.data.syncLastUpdatedAt) || 0,

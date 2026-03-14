@@ -105,3 +105,51 @@ test('pageTournamentSync keeps the latest tournament visible when refresh fails 
     tournamentSync.fetchTournament = originalFetchTournament;
   }
 });
+
+test('pageTournamentSync applies cached data first and then replaces it with newer remote data', async () => {
+  const originalFetchTournament = tournamentSync.fetchTournament;
+  const methods = pageTournamentSync.createTournamentSyncMethods();
+  const ctx = createContext(methods);
+  let callCount = 0;
+
+  try {
+    tournamentSync.fetchTournament = async () => {
+      callCount += 1;
+      if (callCount === 1) {
+        return {
+          ok: false,
+          errorType: 'network',
+          errorMessage: 'request:fail timeout',
+          cachedDoc: {
+            _id: 't_1',
+            name: 'Cached Tournament',
+            updatedAt: '2026-03-14T10:00:00.000Z'
+          },
+          cachedAt: 100
+        };
+      }
+      return {
+        ok: true,
+        source: 'remote',
+        doc: {
+          _id: 't_1',
+          name: 'Remote Tournament',
+          updatedAt: '2026-03-14T10:05:00.000Z'
+        }
+      };
+    };
+
+    const cachedDoc = await ctx.fetchTournament('t_1');
+    assert.equal(cachedDoc && cachedDoc.name, 'Cached Tournament');
+    assert.equal(ctx.data.tournament && ctx.data.tournament.name, 'Cached Tournament');
+    assert.equal(ctx.data.syncUsingCache, true);
+
+    const remoteDoc = await ctx.fetchTournament('t_1');
+    assert.equal(remoteDoc && remoteDoc.name, 'Remote Tournament');
+    assert.equal(ctx.data.tournament && ctx.data.tournament.name, 'Remote Tournament');
+    assert.equal(ctx.data.syncUsingCache, false);
+    assert.deepEqual(ctx._applied.map((entry) => entry.doc.name), ['Cached Tournament', 'Remote Tournament']);
+  } finally {
+    tournamentSync.fetchTournament = originalFetchTournament;
+  }
+});
