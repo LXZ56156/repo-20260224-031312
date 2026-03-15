@@ -1,5 +1,6 @@
 const actionGuard = require('../../core/actionGuard');
 const cloud = require('../../core/cloud');
+const writeErrorUi = require('../../core/writeErrorUi');
 const { createMatchLockController } = require('./matchLockController');
 const { createMatchSubmitService } = require('./matchSubmitService');
 
@@ -26,7 +27,7 @@ function createScoreLockManager(ctx, deps = {}) {
         const res = await cloudApi.call('scoreLock', lockController.buildScoreLockPayload('acquire', force));
         lockController.applyScoreLockResult(res);
       } catch (err) {
-        wx.showToast({ title: cloudApi.getUnifiedErrorMessage(err, force ? '接管失败' : '开始录分失败'), icon: 'none' });
+        writeErrorUi.presentWriteError({ err, fallbackMessage: force ? '接管失败' : '开始录分失败' });
       }
     });
   }

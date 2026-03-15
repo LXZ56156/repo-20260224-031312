@@ -6,6 +6,7 @@ const storage = require('../../core/storage');
 const tournamentSync = require('../../core/tournamentSync');
 const matchFlow = require('../../core/matchFlow');
 const nav = require('../../core/nav');
+const writeErrorUi = require('../../core/writeErrorUi');
 const { normalizeTournament } = require('../../core/normalize');
 const { clampScore, buildClientRequestId } = require('./matchViewModel');
 
@@ -332,7 +333,7 @@ function createMatchSubmitService(ctx, deps = {}) {
         if (res && res.ok === false) {
           if (handleSubmitResultCode(res, lockSnapshot, { retrySubmit })) return;
           restoreLockAfterSubmitFail(lockSnapshot);
-          wx.showToast({ title: String(res.message || '提交失败'), icon: 'none' });
+          writeErrorUi.presentWriteError({ err: res, fallbackMessage: '提交失败' });
           return;
         }
 
