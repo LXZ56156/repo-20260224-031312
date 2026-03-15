@@ -1,7 +1,7 @@
 const actionGuard = require('../../core/actionGuard');
 const cloneTournamentCore = require('../../core/cloneTournament');
-const cloud = require('../../core/cloud');
 const pageTournamentSync = require('../../core/pageTournamentSync');
+const writeErrorUi = require('../../core/writeErrorUi');
 const retryAction = require('../../core/retryAction');
 const nav = require('../../core/nav');
 const adGuard = require('../../core/adGuard');
@@ -181,7 +181,7 @@ Page({
       } catch (e) {
         wx.hideLoading();
         this.setLastFailedAction('再办一场', () => this.cloneCurrentTournament(), { actionKey });
-        wx.showToast({ title: cloud.getUnifiedErrorMessage(e, '复制失败'), icon: 'none' });
+        writeErrorUi.presentWriteError({ err: e, fallbackMessage: '复制失败' });
       }
     });
   },

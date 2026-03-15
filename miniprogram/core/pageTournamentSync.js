@@ -168,6 +168,7 @@ function createTournamentSyncMethods(options = {}) {
       if (this.hasActiveWatch(targetTournamentId)) return;
       const watchGen = this.nextWatchGen();
       this._watchTournamentId = targetTournamentId;
+      const currentDoc = pickPageTournament(this);
       tournamentSync.startWatch(this, targetTournamentId, (doc, meta = {}) => {
         if (!this.isActiveWatchGen(watchGen)) return;
         if (!shouldApplyIncomingDoc(this, doc, { tournamentId: targetTournamentId })) return;
@@ -204,7 +205,7 @@ function createTournamentSyncMethods(options = {}) {
           syncPollingFallback: !!(this.data.syncPollingFallback || (err && err.__watchFallback))
         });
         this.setData(nextPatch);
-      });
+      }, { initialDoc: currentDoc || null });
     },
 
     async fetchTournament(tournamentId) {

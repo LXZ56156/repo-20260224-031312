@@ -1,12 +1,12 @@
 const auth = require('../../core/auth');
 const actionGuard = require('../../core/actionGuard');
-const joinError = require('../../core/joinTournamentError');
 const joinTournamentCore = require('../../core/joinTournament');
 const nav = require('../../core/nav');
 const pageTournamentSync = require('../../core/pageTournamentSync');
 const pageTimers = require('../../core/pageTimers');
 const shareMeta = require('../../core/shareMeta');
 const storage = require('../../core/storage');
+const writeErrorUi = require('../../core/writeErrorUi');
 const flow = require('./flow');
 
 const IDENTITY_TIMEOUT_MS = 2500;
@@ -219,7 +219,8 @@ Page({
   },
 
   goLobby(entryMode = '') {
-    nav.redirectOrNavigate(flow.buildLobbyUrl(this.data.tournamentId, entryMode));
+    const url = flow.buildLobbyUrl(this.data.tournamentId, entryMode);
+    wx.redirectTo({ url, fail: () => nav.redirectOrNavigate(url) });
   },
 
   goSchedule() {
@@ -269,12 +270,18 @@ Page({
         });
         wx.hideLoading();
         nav.markRefreshFlag(tournamentId);
+        storage.setUserProfile({ nickName: payload.nickname, avatar: payload.avatar, gender: payload.gender });
         wx.showToast({ title: '已加入比赛', icon: 'success' });
         await this.fetchTournament(tournamentId);
         this.goLobby();
       } catch (err) {
         wx.hideLoading();
-        wx.showToast({ title: joinError.resolveJoinFailureMessage(err, '加入失败，请稍后重试', { action: 'join' }), icon: 'none' });
+        writeErrorUi.presentWriteError({
+          err,
+          fallbackMessage: '加入失败，请稍后重试',
+          conflictContent: '数据已被更新，是否刷新后重试？',
+          onRefresh: () => this.fetchTournament(tournamentId)
+        });
         await this.fetchTournament(tournamentId);
       }
     });

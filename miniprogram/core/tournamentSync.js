@@ -46,7 +46,7 @@ function closeWatcher(ctx) {
   ctx._watchTournamentId = '';
 }
 
-function startWatch(ctx, tournamentId, onDoc, onError) {
+function startWatch(ctx, tournamentId, onDoc, onError, options = {}) {
   if (!ctx || !tournamentId) return;
   closeWatcher(ctx);
   ctx._watchTournamentId = String(tournamentId || '').trim();
@@ -55,7 +55,7 @@ function startWatch(ctx, tournamentId, onDoc, onError) {
     if (typeof onDoc === 'function') onDoc(doc, { ...(meta || {}), tournamentId: String(tournamentId || '').trim() });
   }, (err) => {
     if (typeof onError === 'function') onError(err, { tournamentId: String(tournamentId || '').trim() });
-  });
+  }, { initialDoc: options.initialDoc || null });
 }
 
 async function fetchTournament(tournamentId, onDoc) {

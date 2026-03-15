@@ -1,4 +1,5 @@
 const cloud = require('./cloud');
+const actionGuard = require('./actionGuard');
 const joinError = require('./joinTournamentError');
 const storage = require('./storage');
 const profileCore = require('./profile');
@@ -40,14 +41,19 @@ async function ensureJoinProfile(options = {}) {
 async function callJoinTournament(payload, options = {}) {
   const action = String(options.action || 'join').trim() || 'join';
   const fallbackMessage = options.fallbackMessage || '加入失败，请稍后重试';
-  let res = await cloud.call('joinTournament', payload);
-  if (res && res.ok === false && joinError.isConflictResult(res) && options.retryOnConflict !== false) {
-    res = await cloud.call('joinTournament', payload);
-  }
-  if (res && res.ok === false) {
-    throw joinError.normalizeJoinFailure(res, fallbackMessage, { action });
-  }
-  return res;
+  const tournamentId = String((payload && payload.tournamentId) || '').trim();
+  const guardKey = `core:joinTournament:${tournamentId}`;
+  if (actionGuard.isBusy(guardKey)) return { ok: true, deduped: true };
+  return actionGuard.run(guardKey, async () => {
+    let res = await cloud.call('joinTournament', payload);
+    if (res && res.ok === false && joinError.isConflictResult(res) && options.retryOnConflict !== false) {
+      res = await cloud.call('joinTournament', payload);
+    }
+    if (res && res.ok === false) {
+      throw joinError.normalizeJoinFailure(res, fallbackMessage, { action });
+    }
+    return res;
+  });
 }
 
 module.exports = {

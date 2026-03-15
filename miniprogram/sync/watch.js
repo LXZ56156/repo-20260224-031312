@@ -302,8 +302,14 @@ function attachSource(channel, tournamentId, options = {}) {
   }
 }
 
-function ensureChannel(tournamentId) {
-  if (channels[tournamentId]) return channels[tournamentId];
+function ensureChannel(tournamentId, options = {}) {
+  if (channels[tournamentId]) {
+    const existing = channels[tournamentId];
+    if (options.initialDoc && !existing.latestDoc) {
+      existing.latestDoc = options.initialDoc;
+    }
+    return existing;
+  }
   const c = {
     tournamentId,
     listeners: {},
@@ -315,16 +321,16 @@ function ensureChannel(tournamentId) {
     recoverTimer: null,
     recoverAttempts: 0,
     recovering: false,
-    latestDoc: null
+    latestDoc: options.initialDoc || null
   };
   channels[tournamentId] = c;
   attachSource(c, tournamentId);
   return c;
 }
 
-function watchTournament(tournamentId, onData, onError) {
+function watchTournament(tournamentId, onData, onError, options = {}) {
   if (!tournamentId) return null;
-  const channel = ensureChannel(tournamentId);
+  const channel = ensureChannel(tournamentId, options);
   const listenerId = `l_${Date.now()}_${channel.nextListenerId++}`;
   channel.listeners[listenerId] = { onData, onError };
   let closed = false;
