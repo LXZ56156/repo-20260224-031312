@@ -33,3 +33,11 @@ pnpm-debug.log*
 
 # local private config
 project.private.config.json
+
+# Claude Code
+.claude/settings.local.json
+.claude.json
+.mcp.json
+
+# Codex
+.codex/

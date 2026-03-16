@@ -91,6 +91,12 @@ Wins → point differential → points scored → name (alphabetical).
 - Always respond in Chinese; keep technical terms and code identifiers in their original form
 - Commit messages follow conventional commits format (feat/fix/refactor/chore)
 
+## Tool Usage
+
+- 涉及微信 API、第三方库、Node.js API 的用法或版本问题时，优先用 context7 查文档再写代码
+- 涉及 PR、Issue、CI 状态、分支管理时，优先用 github MCP 操作，不手动拼 URL
+- 改动比赛状态流转（draft/running/finished）、录分、排名、对阵生成、分享进入链路时，先列出受影响的页面和云函数，再动手改
+
 ## Execution Mode
 
 - 默认直接执行代码修改、重构、测试、格式化、脚本运行与常规仓库维护，不为普通编辑与命令执行额外停下来确认。
