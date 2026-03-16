@@ -91,9 +91,9 @@ Wins → point differential → points scored → name (alphabetical).
 - Always respond in Chinese; keep technical terms and code identifiers in their original form
 - Commit messages follow conventional commits format (feat/fix/refactor/chore)
 
-## Approval Requirement
+## Execution Mode
 
-- 所有会影响用户可见行为的改动，都必须先向用户提出方案并获得明确审核，再开始实施。
-- 这条规则覆盖但不限于：页面结构、交互入口、按钮文案、提示文案、跳转路径、用户步骤、默认行为、删除/取消/修改等动作语义。
-- 即使改动很小，只要会改变用户看到的内容或操作方式，也不能跳过审核直接修改。
-- 只有当用户明确指定某个改动时，才能视为该项已经审核通过。
+- 默认直接执行代码修改、重构、测试、格式化、脚本运行与常规仓库维护，不为普通编辑与命令执行额外停下来确认。
+- 仅在以下情况暂停并向用户确认：需求存在歧义、操作可能造成破坏性后果、涉及生产部署/外部凭据/真实数据写入。
+- 涉及功能变更、界面 UI、交互流程、按钮/提示文案、导航路径、默认行为等用户可见改动时，必须先提出方案并获得用户明确审核，再开始实施。
+- 稳定性修复、bug fix、异常恢复、测试补充、日志补强、代码重构、性能优化、工程配置调整等非功能性改动，默认直接实施并在完成后汇报结果。
