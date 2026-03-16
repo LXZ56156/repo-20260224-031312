@@ -231,6 +231,10 @@ Page({
     wx.navigateTo({ url: flow.buildRankingUrl(this.data.tournamentId) });
   },
 
+  goAnalytics() {
+    wx.navigateTo({ url: flow.buildAnalyticsUrl(this.data.tournamentId) });
+  },
+
   goHome() {
     nav.goHome();
   },
@@ -273,7 +277,14 @@ Page({
         storage.setUserProfile({ nickName: payload.nickname, avatar: payload.avatar, gender: payload.gender });
         wx.showToast({ title: '已加入比赛', icon: 'success' });
         await this.fetchTournament(tournamentId);
-        this.goLobby();
+        const lifecycle = String((this.data.tournament && this.data.tournament.status) || '').trim();
+        if (lifecycle === 'running') {
+          wx.redirectTo({ url: flow.buildScheduleUrl(tournamentId), fail: () => this.goLobby() });
+        } else if (lifecycle === 'finished') {
+          wx.redirectTo({ url: flow.buildAnalyticsUrl(tournamentId), fail: () => this.goLobby() });
+        } else {
+          this.goLobby();
+        }
       } catch (err) {
         wx.hideLoading();
         writeErrorUi.presentWriteError({

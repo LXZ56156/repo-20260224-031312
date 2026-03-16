@@ -49,7 +49,9 @@ Page({
     isAdmin: false,
 
     showJoin: false,
+    showJoinSheet: false,
     showViewOnlyJoinPrompt: false,
+    adminPanelExpanded: false,
     entryMode: '',
     viewOnlyJoinExpanded: false,
     showAllPlayers: false,
@@ -172,6 +174,7 @@ Page({
     });
     this._fromCreate = String((options && options.fromCreate) || '') === '1';
     this._showShareHint = this._fromCreate && String((options && options.shareTip) || '') === '1';
+    if (this._fromCreate) this.setData({ adminPanelExpanded: true });
     this._pendingIntentAction = '';
 
     const app = getApp();
@@ -250,8 +253,21 @@ Page({
   enterJoinFromViewOnly() {
     this.setData({
       viewOnlyJoinExpanded: true,
+      showJoinSheet: true,
       profileNicknameFocus: true
     });
+  },
+
+  openJoinSheet() {
+    this.setData({ showJoinSheet: true, profileNicknameFocus: true });
+  },
+
+  closeJoinSheet() {
+    this.setData({ showJoinSheet: false });
+  },
+
+  toggleAdminPanel() {
+    this.setData({ adminPanelExpanded: !this.data.adminPanelExpanded });
   },
 
   pulseShareHint(duration = 1800) {

@@ -50,7 +50,7 @@ Page({
     this._navTimers = new Set();
     this.matchDraft.clearUndo();
 
-    this.setData({ tournamentId: tid, roundIndex, matchIndex, batchMode });
+    this.setData({ tournamentId: tid, roundIndex, matchIndex, batchMode, batchTotal: 0, batchFinished: 0, batchPending: 0, batchProgress: 0 });
 
     const app = getApp();
     this.setData(pageTournamentSync.composePageSyncPatch(this, {
@@ -137,6 +137,25 @@ Page({
     if (!viewState) return;
 
     this._latestTournament = viewState.tournament;
+
+    if (this.data.batchMode && viewState.tournament) {
+      let batchTotal = 0;
+      let batchFinished = 0;
+      const rounds = Array.isArray(viewState.tournament.rounds) ? viewState.tournament.rounds : [];
+      for (const r of rounds) {
+        const matches = Array.isArray(r && r.matches) ? r.matches : [];
+        for (const m of matches) {
+          if (!m) continue;
+          const s = String(m.status || '').trim();
+          if (s !== 'canceled') batchTotal++;
+          if (s === 'finished') batchFinished++;
+        }
+      }
+      const batchPending = batchTotal - batchFinished;
+      const batchProgress = batchTotal > 0 ? Math.round((batchFinished / batchTotal) * 100) : 0;
+      this.setData({ batchTotal, batchFinished, batchPending, batchProgress });
+    }
+
     if (viewState.lockTransition) {
       this.scoreLockManager.setLockState(viewState.lockTransition, {}, { skipApply: true });
     }
@@ -254,6 +273,12 @@ Page({
       canUndo: this.matchDraft.getUndoSize() > 0
     });
     if (options.persist !== false) this.matchDraft.saveScoreDraft(scoreA, scoreB);
+  },
+
+  onQuickScore(e) {
+    const a = Number((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.a) || 0);
+    const b = Number((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.b) || 0);
+    this.setEditableScores(a, b, { recordHistory: true, persist: true });
   },
 
   onPickScoreA(e) {

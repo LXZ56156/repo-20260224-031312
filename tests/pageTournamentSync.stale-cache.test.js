@@ -106,6 +106,128 @@ test('pageTournamentSync keeps the latest tournament visible when refresh fails 
   }
 });
 
+test('pageTournamentSync accepts incoming doc without timestamp when no current doc exists', async () => {
+  const originalFetchTournament = tournamentSync.fetchTournament;
+  const methods = pageTournamentSync.createTournamentSyncMethods();
+  const ctx = createContext(methods);
+
+  try {
+    tournamentSync.fetchTournament = async () => ({
+      ok: true,
+      source: 'remote',
+      doc: { _id: 't_1', name: 'No Timestamp Doc' }
+    });
+
+    const result = await ctx.fetchTournament('t_1');
+    assert.equal(result && result.name, 'No Timestamp Doc');
+    assert.equal(ctx.data.tournament && ctx.data.tournament.name, 'No Timestamp Doc');
+  } finally {
+    tournamentSync.fetchTournament = originalFetchTournament;
+  }
+});
+
+test('pageTournamentSync accepts incoming doc without timestamp when current doc also lacks timestamp', async () => {
+  const originalFetchTournament = tournamentSync.fetchTournament;
+  const originalStartWatch = tournamentSync.startWatch;
+  const methods = pageTournamentSync.createTournamentSyncMethods();
+  const ctx = createContext(methods);
+  let onWatchDoc = null;
+
+  try {
+    tournamentSync.startWatch = (_page, _tid, nextOnDoc) => {
+      onWatchDoc = nextOnDoc;
+    };
+    tournamentSync.fetchTournament = async () => ({
+      ok: true,
+      source: 'remote',
+      doc: { _id: 't_1', name: 'Second No-TS Doc' }
+    });
+
+    ctx.startWatch('t_1');
+    onWatchDoc({ _id: 't_1', name: 'First No-TS Doc' }, { source: 'realtime' });
+    assert.equal(ctx.data.tournament && ctx.data.tournament.name, 'First No-TS Doc');
+
+    const result = await ctx.fetchTournament('t_1');
+    assert.equal(result && result.name, 'Second No-TS Doc');
+  } finally {
+    tournamentSync.fetchTournament = originalFetchTournament;
+    tournamentSync.startWatch = originalStartWatch;
+  }
+});
+
+test('pageTournamentSync accepts incoming doc without timestamp but with higher version when current doc has timestamp', async () => {
+  const originalFetchTournament = tournamentSync.fetchTournament;
+  const originalStartWatch = tournamentSync.startWatch;
+  const methods = pageTournamentSync.createTournamentSyncMethods();
+  const ctx = createContext(methods);
+  let onWatchDoc = null;
+
+  try {
+    tournamentSync.startWatch = (_page, _tid, nextOnDoc) => {
+      onWatchDoc = nextOnDoc;
+    };
+
+    ctx.startWatch('t_1');
+    onWatchDoc({
+      _id: 't_1',
+      name: 'Timestamped Doc',
+      version: 1,
+      updatedAt: '2026-03-14T10:00:00.000Z'
+    }, { source: 'realtime' });
+    assert.equal(ctx.data.tournament && ctx.data.tournament.name, 'Timestamped Doc');
+
+    tournamentSync.fetchTournament = async () => ({
+      ok: true,
+      source: 'remote',
+      doc: { _id: 't_1', name: 'Higher Version No-TS', version: 5 }
+    });
+
+    const result = await ctx.fetchTournament('t_1');
+    assert.equal(result && result.name, 'Higher Version No-TS');
+  } finally {
+    tournamentSync.fetchTournament = originalFetchTournament;
+    tournamentSync.startWatch = originalStartWatch;
+  }
+});
+
+test('pageTournamentSync logs warning but still accepts doc without timestamp or version when current doc has timestamp', async () => {
+  const originalFetchTournament = tournamentSync.fetchTournament;
+  const originalStartWatch = tournamentSync.startWatch;
+  const originalConsoleWarn = console.warn;
+  const methods = pageTournamentSync.createTournamentSyncMethods();
+  const ctx = createContext(methods);
+  let onWatchDoc = null;
+  const warnings = [];
+
+  try {
+    console.warn = (...args) => warnings.push(args.join(' '));
+    tournamentSync.startWatch = (_page, _tid, nextOnDoc) => {
+      onWatchDoc = nextOnDoc;
+    };
+
+    ctx.startWatch('t_1');
+    onWatchDoc({
+      _id: 't_1',
+      name: 'Has Timestamp',
+      updatedAt: '2026-03-14T10:00:00.000Z'
+    }, { source: 'realtime' });
+
+    tournamentSync.fetchTournament = async () => ({
+      ok: true,
+      source: 'remote',
+      doc: { _id: 't_1', name: 'No TS No Version' }
+    });
+
+    const result = await ctx.fetchTournament('t_1');
+    assert.equal(result && result.name, 'No TS No Version');
+    assert.ok(warnings.some((w) => w.includes('shouldApplyIncomingDoc')));
+  } finally {
+    console.warn = originalConsoleWarn;
+    tournamentSync.fetchTournament = originalFetchTournament;
+    tournamentSync.startWatch = originalStartWatch;
+  }
+});
+
 test('pageTournamentSync applies cached data first and then replaces it with newer remote data', async () => {
   const originalFetchTournament = tournamentSync.fetchTournament;
   const methods = pageTournamentSync.createTournamentSyncMethods();

@@ -61,6 +61,16 @@ function shouldApplyIncomingDoc(page, doc, options = {}) {
   const nextTs = pickDocTimestamp(doc);
   if (nextTs && lastAppliedTs && nextTs < lastAppliedTs) return false;
 
+  if (currentTournament && lastAppliedTs && !nextTs) {
+    const nextVersion = tournamentVersion.pickTournamentVersion(doc);
+    if (!nextVersion) {
+      console.warn(
+        'shouldApplyIncomingDoc: incoming doc has no timestamp/version, current doc has ts=%d; accepting but freshness is unverifiable',
+        lastAppliedTs
+      );
+    }
+  }
+
   return true;
 }
 

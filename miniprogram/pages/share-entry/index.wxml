@@ -7,7 +7,7 @@
     <text class="sync-banner-action" bindtap="onRetry">{{syncStatusActionText}}</text>
   </view>
 
-  <view class="card panel share-hero">
+  <view class="card panel share-hero reveal reveal-1">
     <view class="row hero-top">
       <view class="flex-1 minw0">
         <view class="share-title">{{preview.tournamentName}}</view>
@@ -22,7 +22,7 @@
     </view>
   </view>
 
-  <view class="card panel panel-soft share-decision">
+  <view class="card panel panel-soft share-decision reveal reveal-2">
     <view class="section-head">
       <view class="section-title">现在可以做什么</view>
       <text class="count-pill">{{preview.viewModeLabel}}</text>
@@ -49,9 +49,11 @@
       >
         {{preview.primaryAction.text}}
       </button>
-      <view class="btn-row" wx:if="{{tournament}}">
-        <button class="btn btn-subtle" bindtap="goSchedule">查看赛程</button>
-        <button class="btn btn-subtle" bindtap="goRanking">查看排名</button>
+      <view class="btn-row" wx:if="{{tournament && tournament.status !== 'draft'}}">
+        <button class="btn btn-subtle" bindtap="goSchedule" wx:if="{{tournament.status === 'running'}}">查看赛程</button>
+        <button class="btn btn-subtle" bindtap="goRanking" wx:if="{{tournament.status === 'running'}}">查看排名</button>
+        <button class="btn btn-subtle" bindtap="goAnalytics" wx:if="{{tournament.status === 'finished'}}">查看赛事复盘</button>
+        <button class="btn btn-subtle" bindtap="goRanking" wx:if="{{tournament.status === 'finished'}}">查看排名</button>
       </view>
       <button
         class="btn btn-subtle"
@@ -63,7 +65,7 @@
     </view>
   </view>
 
-  <view class="card panel share-info">
+  <view class="card panel share-info reveal reveal-3">
     <view class="section-head">
       <view class="section-title">比赛摘要</view>
       <text class="count-pill">{{preview.viewModeLabel}}</text>

@@ -65,6 +65,86 @@ test('cloud classifies major structured error states consistently', () => {
   });
 });
 
+test('cloud classifies all registered PERMISSION_CODES as permission', () => {
+  const permCodes = ['PERMISSION_DENIED', 'LOCK_FORBIDDEN', 'JOIN_DRAFT_ONLY', 'START_DRAFT_ONLY', 'SETTINGS_DRAFT_ONLY'];
+  permCodes.forEach((code) => {
+    const normalized = cloud.normalizeCloudResult({ ok: false, code, message: `${code} test` }, 'permTest');
+    const parsed = cloud.parseCloudError(normalized, '失败');
+    assert.equal(parsed.isPermission, true, `${code} should be isPermission`);
+    assert.equal(cloud.classifyCloudError(parsed), 'permission', `${code} should classify as permission`);
+  });
+});
+
+test('cloud classifies all registered PARAM_CODES as param', () => {
+  const paramCodes = [
+    'ACTION_REQUIRED', 'TOURNAMENT_ID_REQUIRED', 'TOURNAMENT_NOT_FOUND',
+    'PROFILE_MINIMUM_REQUIRED', 'SCORE_OUT_OF_RANGE', 'SETTINGS_REQUIRED',
+    'SETTINGS_INVALID', 'START_VALIDATION_FAILED'
+  ];
+  paramCodes.forEach((code) => {
+    const normalized = cloud.normalizeCloudResult({ ok: false, code, message: `${code} test` }, 'paramTest');
+    const parsed = cloud.parseCloudError(normalized, '失败');
+    assert.equal(parsed.isParam, true, `${code} should be isParam`);
+    assert.equal(cloud.classifyCloudError(parsed), 'param', `${code} should classify as param`);
+  });
+});
+
+test('cloud classifies all registered DEDUPED_CODES as deduped', () => {
+  const dedupCodes = ['SCORE_SUBMIT_DEDUPED', 'PLAYER_REMOVED_DEDUPED', 'PLAYER_SQUAD_DEDUPED', 'PAIR_TEAMS_DEDUPED'];
+  dedupCodes.forEach((code) => {
+    const normalized = cloud.normalizeCloudResult({ ok: true, code, message: `${code} test`, deduped: true }, 'dedupTest');
+    const parsed = cloud.parseCloudError(normalized, '失败');
+    assert.equal(parsed.isDeduped, true, `${code} should be isDeduped`);
+    assert.equal(cloud.classifyCloudError(parsed), 'deduped', `${code} should classify as deduped`);
+  });
+});
+
+test('cloud classifies TIMEOUT code distinctly from NETWORK_ERROR', () => {
+  const timeoutNorm = cloud.normalizeCloudResult({ ok: false, code: 'TIMEOUT', message: '超时' }, 'test');
+  const networkNorm = cloud.normalizeCloudResult({ ok: false, code: 'NETWORK_ERROR', message: '网络异常' }, 'test');
+  const timeoutParsed = cloud.parseCloudError(timeoutNorm);
+  const networkParsed = cloud.parseCloudError(networkNorm);
+
+  assert.equal(timeoutParsed.isTimeout, true);
+  assert.equal(cloud.classifyCloudError(timeoutParsed), 'timeout');
+
+  assert.equal(networkParsed.isNetwork, true);
+  assert.equal(networkParsed.isTimeout, false);
+  assert.equal(cloud.classifyCloudError(networkParsed), 'network');
+});
+
+test('cloud classifies timeout with English message as both isTimeout and isNetwork', () => {
+  const norm = cloud.normalizeCloudResult({ ok: false, code: 'TIMEOUT', message: 'request timeout' }, 'test');
+  const parsed = cloud.parseCloudError(norm);
+  assert.equal(parsed.isTimeout, true);
+  assert.equal(parsed.isNetwork, true);
+  assert.equal(cloud.classifyCloudError(parsed), 'timeout');
+});
+
+test('cloud classifies unstructured error messages by keyword fallback', () => {
+  const cases = [
+    { msg: '权限不足，无法操作', expected: 'permission' },
+    { msg: '参数缺少必填字段', expected: 'param' },
+    { msg: '完全未知的错误信息', expected: 'unknown' }
+  ];
+  cases.forEach(({ msg, expected }) => {
+    const parsed = cloud.parseCloudError({ message: msg }, '失败');
+    const level = cloud.classifyCloudError(parsed);
+    assert.equal(level, expected, `"${msg}" should classify as ${expected}`);
+  });
+});
+
+test('cloud getUnifiedErrorMessage returns generic message for unknown errors in release env', () => {
+  const originalGetApp = global.getApp;
+  global.getApp = () => ({ globalData: { runtimeEnv: { envVersion: 'release' } } });
+  try {
+    const msg = cloud.getUnifiedErrorMessage({ ok: false, message: '一个罕见的内部错误' }, '操作失败');
+    assert.equal(msg, '操作失败，请稍后重试');
+  } finally {
+    global.getApp = originalGetApp;
+  }
+});
+
 test('cloud normalizeCloudResult preserves legacy extras at root and in data', () => {
   const normalized = cloud.normalizeCloudResult({
     feedbackId: 'fb_1',

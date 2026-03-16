@@ -8,8 +8,8 @@ test('share-entry landing page puts primary CTA ahead of compact summary facts',
     path.join(__dirname, '..', 'miniprogram/pages/share-entry/index.wxml'),
     'utf8'
   );
-  const actionIndex = wxml.indexOf('class="card panel panel-soft share-decision"');
-  const summaryIndex = wxml.indexOf('class="card panel share-info"');
+  const actionIndex = wxml.indexOf('share-decision');
+  const summaryIndex = wxml.indexOf('share-info');
   assert.notEqual(actionIndex, -1);
   assert.notEqual(summaryIndex, -1);
   assert.ok(actionIndex < summaryIndex);

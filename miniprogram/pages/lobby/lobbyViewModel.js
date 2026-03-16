@@ -1,5 +1,6 @@
 const perm = require('../../permission/permission');
 const normalize = require('../../core/normalize');
+const matchPrimaryNav = require('../../core/matchPrimaryNav');
 const shareMeta = require('../../core/shareMeta');
 const flow = require('../../core/uxFlow');
 
@@ -591,6 +592,7 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       tournament: t,
       statusText,
       statusClass,
+      heroGradientClass: status === 'draft' ? 'hero-draft' : (status === 'finished' ? 'hero-finished' : ''),
       isAdmin,
       showJoin,
       showMyProfile,
@@ -655,7 +657,8 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       shareCardTitle: String(shareMessage.panelTitle || '转发比赛'),
       shareCardBadge: String(shareMessage.badgeText || statusText),
       shareButtonText: String(shareMessage.buttonText || '转发'),
-      joinSquadChoice: String((myPlayer && myPlayer.squad) || data.joinSquadChoice || 'A').trim().toUpperCase() === 'B' ? 'B' : 'A'
+      joinSquadChoice: String((myPlayer && myPlayer.squad) || data.joinSquadChoice || 'A').trim().toUpperCase() === 'B' ? 'B' : 'A',
+      primaryNavItems: matchPrimaryNav.getPrimaryNavItems('match', t._id, { showAnalytics: status === 'finished' })
     }
   };
 }

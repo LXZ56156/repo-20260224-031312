@@ -2,6 +2,7 @@ const cloud = require('../../core/cloud');
 const { normalizeLockState, buildLockHint } = require('./matchViewModel');
 
 const LOCK_HEARTBEAT_MS = 15 * 1000;
+const LOCK_AUTOPOLL_MS = 5 * 1000;
 
 function createMatchLockController(ctx, deps = {}) {
   const cloudApi = deps.cloud || cloud;
@@ -9,6 +10,7 @@ function createMatchLockController(ctx, deps = {}) {
   const clearIntervalFn = deps.clearIntervalFn || clearInterval;
   let heartbeatTimer = null;
   let countdownTimer = null;
+  let autoPollTimer = null;
 
   function buildScoreLockPayload(action, force = false) {
     return {
@@ -62,9 +64,24 @@ function createMatchLockController(ctx, deps = {}) {
     }, LOCK_HEARTBEAT_MS);
   }
 
+  function stopAutoPoll() {
+    if (autoPollTimer) clearIntervalFn(autoPollTimer);
+    autoPollTimer = null;
+  }
+
+  function startAutoPoll() {
+    stopAutoPoll();
+    autoPollTimer = setIntervalFn(() => {
+      syncLockStatus(true).catch(() => {});
+    }, LOCK_AUTOPOLL_MS);
+  }
+
   function updateLockTimers(lockState, expireAt) {
     if (lockState === 'locked_by_me') startLockHeartbeat();
     else stopLockHeartbeat();
+
+    if (lockState === 'locked_by_other') startAutoPoll();
+    else stopAutoPoll();
 
     if ((lockState === 'locked_by_me' || lockState === 'locked_by_other') && expireAt > 0) {
       startLockCountdown(expireAt);
@@ -169,6 +186,7 @@ function createMatchLockController(ctx, deps = {}) {
   function teardown(options = {}) {
     stopLockHeartbeat();
     stopLockCountdown();
+    stopAutoPoll();
     ctx._lockStatusKey = '';
     if (options.resetState) {
       setLockState('idle', {}, { skipApply: true });
@@ -192,5 +210,6 @@ function createMatchLockController(ctx, deps = {}) {
 
 module.exports = {
   LOCK_HEARTBEAT_MS,
+  LOCK_AUTOPOLL_MS,
   createMatchLockController
 };

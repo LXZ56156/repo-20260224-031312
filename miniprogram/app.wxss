@@ -476,3 +476,78 @@ button.btn-mini::after {
 .reveal-4 { animation-delay: 140ms; }
 .reveal-5 { animation-delay: 180ms; }
 .reveal-6 { animation-delay: 220ms; }
+
+/* --- skeleton loading --- */
+@keyframes skeletonShimmer {
+  0% { background-position: -400rpx 0; }
+  100% { background-position: 800rpx 0; }
+}
+
+.skeleton {
+  border-radius: 24rpx;
+  overflow: hidden;
+}
+
+.skeleton-bone {
+  background: linear-gradient(90deg, #e8edf3 25%, #f3f6fa 50%, #e8edf3 75%);
+  background-size: 800rpx 100%;
+  animation: skeletonShimmer 1.4s ease-in-out infinite;
+  border-radius: 12rpx;
+}
+
+.skeleton-hero {
+  height: 260rpx;
+  border-radius: 28rpx;
+}
+
+.skeleton-card {
+  margin-top: 16rpx;
+  padding: 24rpx;
+  border-radius: 24rpx;
+  border: 1rpx solid var(--line-soft, #dbe5ef);
+  background: var(--surface-1, #ffffff);
+}
+
+.skeleton-line {
+  height: 28rpx;
+  margin-bottom: 14rpx;
+}
+
+.skeleton-line:last-child {
+  margin-bottom: 0;
+}
+
+.skeleton-line-short {
+  width: 40%;
+}
+
+.skeleton-line-medium {
+  width: 65%;
+}
+
+.skeleton-line-long {
+  width: 88%;
+}
+
+.skeleton-circle {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 999rpx;
+}
+
+.skeleton-row {
+  display: flex;
+  gap: 16rpx;
+  align-items: center;
+}
+
+.skeleton-pill {
+  width: 100rpx;
+  height: 40rpx;
+  border-radius: 999rpx;
+}
+
+/* --- status tone colors --- */
+.tone-text-running { color: #10b981; }
+.tone-text-draft { color: #6b7280; }
+.tone-text-finished { color: #f59e0b; }

@@ -37,9 +37,11 @@ function createHomePageContext(definition) {
 
 test('home falls back to local tournament cache when recents query fails', async () => {
   const originalWx = global.wx;
+  const originalGetApp = global.getApp;
   const originalGetRecentTournamentIds = storage.getRecentTournamentIds;
   const originalGetLocalTournamentCacheInfo = storage.getLocalTournamentCacheInfo;
 
+  global.getApp = () => ({ globalData: { openid: 'test_openid' } });
   global.wx = {
     cloud: {
       database() {
@@ -97,6 +99,7 @@ test('home falls back to local tournament cache when recents query fails', async
     assert.equal(ctx.clearedLastFailedAction, true);
   } finally {
     global.wx = originalWx;
+    global.getApp = originalGetApp;
     storage.getRecentTournamentIds = originalGetRecentTournamentIds;
     storage.getLocalTournamentCacheInfo = originalGetLocalTournamentCacheInfo;
     delete require.cache[homePagePath];
@@ -105,12 +108,14 @@ test('home falls back to local tournament cache when recents query fails', async
 
 test('home keeps missing tournaments as removed when remote query succeeds', async () => {
   const originalWx = global.wx;
+  const originalGetApp = global.getApp;
   const originalGetRecentTournamentIds = storage.getRecentTournamentIds;
   const originalRemoveLocalCompletedTournamentSnapshot = storage.removeLocalCompletedTournamentSnapshot;
   const originalUpsertLocalCompletedTournamentSnapshot = storage.upsertLocalCompletedTournamentSnapshot;
 
   const removed = [];
 
+  global.getApp = () => ({ globalData: { openid: 'test_openid' } });
   global.wx = {
     cloud: {
       database() {
@@ -165,6 +170,7 @@ test('home keeps missing tournaments as removed when remote query succeeds', asy
     assert.deepEqual(removed, ['t_2']);
   } finally {
     global.wx = originalWx;
+    global.getApp = originalGetApp;
     storage.getRecentTournamentIds = originalGetRecentTournamentIds;
     storage.removeLocalCompletedTournamentSnapshot = originalRemoveLocalCompletedTournamentSnapshot;
     storage.upsertLocalCompletedTournamentSnapshot = originalUpsertLocalCompletedTournamentSnapshot;
@@ -174,9 +180,11 @@ test('home keeps missing tournaments as removed when remote query succeeds', asy
 
 test('home keeps loadError when no local cache is available after remote failure', async () => {
   const originalWx = global.wx;
+  const originalGetApp = global.getApp;
   const originalGetRecentTournamentIds = storage.getRecentTournamentIds;
   const originalGetLocalTournamentCacheInfo = storage.getLocalTournamentCacheInfo;
 
+  global.getApp = () => ({ globalData: { openid: 'test_openid' } });
   global.wx = {
     cloud: {
       database() {
@@ -215,6 +223,7 @@ test('home keeps loadError when no local cache is available after remote failure
     assert.equal(ctx.data.showStaleSyncHint, false);
   } finally {
     global.wx = originalWx;
+    global.getApp = originalGetApp;
     storage.getRecentTournamentIds = originalGetRecentTournamentIds;
     storage.getLocalTournamentCacheInfo = originalGetLocalTournamentCacheInfo;
     delete require.cache[homePagePath];

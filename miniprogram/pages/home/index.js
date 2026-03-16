@@ -154,6 +154,7 @@ Page({
     canRetryAction: false,
     lastFailedActionText: '',
     heroCard: buildHomeHeroCardState([]),
+    showHeroCard: true,
     showStaleSyncHint: false,
     syncRefreshing: false,
     syncUsingCache: false,
@@ -312,11 +313,14 @@ Page({
       if (isVisibleByFilter(item, filterStatus)) visibleCount += 1;
     }
 
-    const heroCard = buildHomeHeroCardState(items);
+    const openid = (getApp().globalData && getApp().globalData.openid) || storage.get('openid', '');
+    const heroCard = buildHomeHeroCardState(items, this._rawDocsMap || {}, openid);
+    const showHeroCard = !heroCard.empty || items.length === 0;
 
     this.setData({
       visibleCount,
       heroCard,
+      showHeroCard,
       statusCountRunning: running,
       statusCountDraft: draft,
       statusCountFinished: finished,
@@ -401,6 +405,7 @@ Page({
       map[d._id] = d;
       storage.upsertLocalCompletedTournamentSnapshot(d);
     }
+    this._rawDocsMap = map;
 
     const items = ids.map((id) => {
       const raw = map[id];
@@ -446,9 +451,47 @@ Page({
   onHeroPrimaryTap(e) {
     const dataset = (e && e.currentTarget && e.currentTarget.dataset) || {};
     const action = String(dataset.action || '').trim();
+    const id = String(dataset.id || '').trim();
     if (action === 'create') {
       this.goCreate();
       return;
+    }
+    if (action === 'batch') {
+      const round = Number(dataset.round);
+      const match = Number(dataset.match);
+      if (id && round >= 0 && match >= 0) {
+        wx.navigateTo({
+          url: nav.buildTournamentUrl('/pages/match/index', id, {
+            roundIndex: round, matchIndex: match, batch: 1
+          })
+        });
+        return;
+      }
+    }
+    if (action === 'analytics') {
+      if (id) {
+        wx.navigateTo({ url: nav.buildTournamentUrl('/pages/analytics/index', id) });
+        return;
+      }
+    }
+    if (action === 'settings') {
+      if (id) {
+        wx.navigateTo({ url: nav.buildTournamentUrl('/pages/settings/index', id, { section: 'params' }) });
+        return;
+      }
+    }
+    if (action === 'start') {
+      if (id) {
+        nav.setLobbyIntent(id, 'start');
+        wx.navigateTo({ url: nav.buildTournamentUrl('/pages/lobby/index', id) });
+        return;
+      }
+    }
+    if (action === 'schedule') {
+      if (id) {
+        wx.navigateTo({ url: nav.buildTournamentUrl('/pages/schedule/index', id) });
+        return;
+      }
     }
     if (action === 'ranking') {
       this.goRanking({ currentTarget: { dataset } });
@@ -582,6 +625,31 @@ Page({
       }
     }
 
+    const item = this._getItem(idx) || {};
+    const status = String(item.status || '').trim();
+    if (status === 'finished') {
+      wx.navigateTo({ url: nav.buildTournamentUrl('/pages/analytics/index', id) });
+      return;
+    }
+    if (status === 'running') {
+      wx.navigateTo({ url: nav.buildTournamentUrl('/pages/schedule/index', id) });
+      return;
+    }
+    wx.navigateTo({ url: nav.buildTournamentUrl('/pages/lobby/index', id) });
+  },
+
+  onQuickActionTap(e) {
+    const id = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.id) || '').trim();
+    const status = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.status) || '').trim();
+    if (!id) return;
+    if (status === 'finished') {
+      wx.navigateTo({ url: nav.buildTournamentUrl('/pages/analytics/index', id) });
+      return;
+    }
+    if (status === 'running') {
+      wx.navigateTo({ url: nav.buildTournamentUrl('/pages/schedule/index', id) });
+      return;
+    }
     wx.navigateTo({ url: nav.buildTournamentUrl('/pages/lobby/index', id) });
   },
 

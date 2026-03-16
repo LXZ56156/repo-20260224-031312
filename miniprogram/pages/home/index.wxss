@@ -188,6 +188,42 @@
   color: rgba(255, 255, 255, 0.86);
 }
 
+.hero-task-detail {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.hero-progress-wrap {
+  margin-top: 10rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.hero-progress-bar {
+  flex: 1;
+  height: 10rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.22);
+  overflow: hidden;
+}
+
+.hero-progress-fill {
+  height: 100%;
+  border-radius: 999rpx;
+  background: #ffffff;
+  transition: width 0.4s ease;
+}
+
+.hero-progress-text {
+  font-size: 21rpx;
+  font-weight: 760;
+  color: rgba(255, 255, 255, 0.82);
+  flex-shrink: 0;
+}
+
 .hero-task-btn {
   margin-top: 14rpx;
   width: auto;
@@ -327,9 +363,9 @@
   will-change: transform;
 }
 
-.swipe-content.tone-running { border-left: 8rpx solid #22a664; }
-.swipe-content.tone-draft { border-left: 8rpx solid #8aa0b5; }
-.swipe-content.tone-finished { border-left: 8rpx solid #e07a5f; }
+.swipe-content.tone-running { border-left: 8rpx solid #10b981; }
+.swipe-content.tone-draft { border-left: 8rpx solid #94a3b8; }
+.swipe-content.tone-finished { border-left: 8rpx solid #f59e0b; }
 .swipe-content.tone-missing,
 .swipe-content.tone-unknown { border-left: 8rpx solid #9ca3af; }
 
@@ -375,7 +411,8 @@
   justify-content: flex-end;
 }
 
-.t-copy-link {
+.t-copy-link,
+.t-quick-action {
   padding: 8rpx 14rpx;
   border-radius: 999rpx;
   background: #ecf7f0;
@@ -383,6 +420,12 @@
   color: #0f7a46;
   font-size: 23rpx;
   font-weight: 760;
+}
+
+.t-quick-action {
+  background: #eef4fb;
+  border-color: #c8d8e8;
+  color: #1d4ed8;
 }
 
 .empty {

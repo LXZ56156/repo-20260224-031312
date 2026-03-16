@@ -19,7 +19,7 @@
     <text class="sync-banner-action" bindtap="onRetry">{{syncStatusActionText}}</text>
   </view>
 
-  <view class="hero reveal reveal-1">
+  <view class="hero {{heroGradientClass}} reveal reveal-1">
     <view class="row hero-top">
       <view class="flex-1 minw0">
         <view class="hero-title ellipsis">{{tournament.name}}</view>
@@ -46,6 +46,9 @@
         <view class="kpi-label">每轮最多</view>
         <view class="kpi-value">{{kpiCourts}}</view>
       </view>
+      <view class="kpi-settings" wx:if="{{isAdmin && tournament.status==='draft'}}" bindtap="goEditTournament">
+        <text class="kpi-settings-icon">⚙</text>
+      </view>
     </view>
   </view>
 
@@ -65,8 +68,8 @@
         <text class="prep-jump">{{item.actionText}}</text>
       </view>
     </view>
-    <view class="state-actions" wx:if="{{statePrimaryActionText}}">
-      <button class="btn btn-primary state-primary-btn" bindtap="onNextActionTap">{{statePrimaryActionText}}</button>
+    <view class="state-actions {{nextActionKey==='start' ? 'state-actions-sticky' : ''}}" wx:if="{{statePrimaryActionText}}">
+      <button class="btn btn-primary state-primary-btn {{nextActionKey==='start' ? 'start-pulse' : ''}}" bindtap="onNextActionTap">{{statePrimaryActionText}}</button>
     </view>
   </view>
 
@@ -78,7 +81,14 @@
     <button class="btn btn-primary" bindtap="enterJoinFromViewOnly">我要加入</button>
   </view>
 
-  <view class="card panel panel-soft profile-panel reveal reveal-3" wx:if="{{showJoin || showMyProfile}}">
+  <view class="join-trigger-bar reveal reveal-3" wx:if="{{(showJoin || showMyProfile) && !showJoinSheet}}">
+    <button class="btn btn-primary join-trigger-btn" bindtap="openJoinSheet">{{showJoin ? '立即加入' : '编辑我的资料'}}</button>
+  </view>
+
+  <!-- bottom-sheet: join/profile form -->
+  <view class="sheet-mask" wx:if="{{showJoinSheet}}" bindtap="closeJoinSheet"></view>
+  <view class="join-sheet {{showJoinSheet ? 'sheet-open' : ''}}">
+    <view class="sheet-handle" bindtap="closeJoinSheet"></view>
     <view class="section-head">
       <view class="section-title">{{showJoin ? '加入比赛' : '我的资料'}}</view>
       <text class="count-pill">{{showJoin ? '草稿可加入' : '草稿可修改'}}</text>
@@ -131,11 +141,15 @@
   </view>
 
   <view class="card panel admin-panel reveal reveal-4" wx:if="{{showDraftAdminPanel}}">
-    <view class="section-head">
+    <view class="section-head admin-collapse-head" bindtap="toggleAdminPanel">
       <view class="section-title">管理员主准备区</view>
-      <text class="count-pill">待完成 {{quickChecklistPending}} 项</text>
+      <view class="row-right">
+        <text class="count-pill">待完成 {{quickChecklistPending}} 项</text>
+        <text class="admin-collapse-arrow {{adminPanelExpanded ? 'expanded' : ''}}">▾</text>
+      </view>
     </view>
 
+    <view class="admin-collapse-body" wx:if="{{adminPanelExpanded}}">
     <view class="admin-manage-actions">
       <button class="btn btn-subtle" bindtap="goEditTournament">修改比赛</button>
       <button class="btn btn-danger" bindtap="cancelTournament">取消比赛</button>
@@ -197,6 +211,7 @@
       </view>
       <view class="muted small" wx:else>暂无可组队成员</view>
     </view>
+    </view><!-- /admin-collapse-body -->
   </view>
 
   <view class="card panel reveal reveal-4">
@@ -263,9 +278,23 @@
   </view>
 </view>
 
-<view class="container" wx:else>
-  <view class="card panel reveal reveal-1">
-    <view class="loading-title">加载中...</view>
-    <view class="muted">若一直加载，请确认分享链接有效且数据库允许读取。</view>
+<view class="container lobby-page" wx:else>
+  <view class="skeleton-bone skeleton-hero reveal reveal-1"></view>
+  <view class="skeleton-card reveal reveal-2">
+    <view class="skeleton-bone skeleton-line skeleton-line-medium"></view>
+    <view class="skeleton-bone skeleton-line skeleton-line-long"></view>
+    <view class="skeleton-bone skeleton-line skeleton-line-short"></view>
+  </view>
+  <view class="skeleton-card reveal reveal-3">
+    <view class="skeleton-row" style="margin-bottom: 16rpx;">
+      <view class="skeleton-bone skeleton-line skeleton-line-short" style="margin-bottom: 0;"></view>
+      <view class="skeleton-bone skeleton-pill"></view>
+    </view>
+    <view class="skeleton-row" style="gap: 12rpx;">
+      <view class="skeleton-bone skeleton-circle"></view>
+      <view class="skeleton-bone skeleton-circle"></view>
+      <view class="skeleton-bone skeleton-circle"></view>
+      <view class="skeleton-bone skeleton-circle"></view>
+    </view>
   </view>
 </view>

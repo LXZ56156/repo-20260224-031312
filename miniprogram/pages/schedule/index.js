@@ -199,7 +199,7 @@ Page({
     pageTournamentSync.initTournamentSync(this);
     this.setData({
       tournamentId: tid,
-      primaryNavItems: matchPrimaryNav.getPrimaryNavItems('schedule', tid)
+      primaryNavItems: matchPrimaryNav.getPrimaryNavItems('schedule', tid, { showAnalytics: false })
     });
 
     const app = getApp();
@@ -254,6 +254,9 @@ Page({
     if (status === 'running' && canEditScore && firstPending) {
       nextActionKey = 'batch';
       nextActionText = '继续录分';
+    } else if (status === 'finished') {
+      nextActionKey = 'analytics';
+      nextActionText = '查看赛事复盘';
     }
 
     const heroSummaryText = status === 'draft'
@@ -283,13 +286,19 @@ Page({
       firstPendingRoundIndex: firstPending ? firstPending.roundIndex : -1,
       firstPendingMatchIndex: firstPending ? firstPending.matchIndex : -1,
       nextActionKey,
-      nextActionText
+      nextActionText,
+      primaryNavItems: matchPrimaryNav.getPrimaryNavItems('schedule', this.data.tournamentId, { showAnalytics: status === 'finished' })
     });
   },
 
   onHeroActionTap() {
     const key = String(this.data.nextActionKey || '').trim();
     if (key === 'batch') return this.goBatchScoring();
+    if (key === 'analytics') {
+      wx.navigateTo({
+        url: nav.buildTournamentUrl('/pages/analytics/index', this.data.tournamentId)
+      });
+    }
   },
 
   openMatch(e) {

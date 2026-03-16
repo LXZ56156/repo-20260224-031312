@@ -7,7 +7,7 @@
     <text class="sync-banner-action" bindtap="onRetry">{{syncStatusActionText}}</text>
   </view>
 
-  <view class="hero">
+  <view class="hero reveal reveal-1">
     <view class="row hero-head">
       <view>
         <view class="hero-title">第{{roundIndex + 1}}轮 · 第{{matchIndex + 1}}场</view>
@@ -15,16 +15,24 @@
       </view>
       <view class="tag">{{matchStatusText}}</view>
     </view>
-    <view class="batch-badge" wx:if="{{batchMode}}">批量录分模式</view>
+    <view class="batch-progress" wx:if="{{batchMode}}">
+      <view class="batch-progress-head">
+        <text class="batch-progress-label">批量录分</text>
+        <text class="batch-progress-text">已完成 {{batchFinished}}/{{batchTotal}} 场</text>
+      </view>
+      <view class="batch-progress-bar">
+        <view class="batch-progress-fill" style="width: {{batchProgress}}%;"></view>
+      </view>
+    </view>
   </view>
 
-  <view class="card panel">
+  <view class="card panel reveal reveal-2">
     <view class="section-title">本场对阵</view>
     <view class="match-vs">{{pair1Text}} <text class="vs">vs</text> {{pair2Text}}</view>
     <view class="muted small" wx:if="{{!pair1Text || !pair2Text}}">对阵未就绪</view>
   </view>
 
-  <view class="card panel">
+  <view class="card panel reveal reveal-3">
     <view class="row row-top">
       <view class="section-title">比分录入</view>
       <text class="muted small">{{pointsPerGame}} 分制</text>
@@ -55,6 +63,12 @@
     <view class="muted score-tip" wx:elif="{{!canEdit && match.status==='pending'}}">请先点击“开始录分”。</view>
 
     <view class="score-toolbar" wx:if="{{canEdit}}">
+      <view class="quick-scores">
+        <text class="quick-score-chip" bindtap="onQuickScore" data-a="21" data-b="19">21:19</text>
+        <text class="quick-score-chip" bindtap="onQuickScore" data-a="21" data-b="15">21:15</text>
+        <text class="quick-score-chip" bindtap="onQuickScore" data-a="21" data-b="10">21:10</text>
+        <text class="quick-score-chip" bindtap="onQuickScore" data-a="15" data-b="21">15:21</text>
+      </view>
       <button class="btn-mini mode-undo {{!canUndo ? 'disabled' : ''}}" bindtap="onUndoStep" disabled="{{!canUndo}}">撤销</button>
     </view>
 
@@ -94,8 +108,16 @@
 </view>
 
 <view class="container safe-bottom match-page" wx:else>
-  <view class="card panel">
-    <view class="state-title">加载中...</view>
-    <view class="muted">正在同步比赛数据。</view>
+  <view class="skeleton-bone skeleton-hero reveal reveal-1" style="height: 180rpx;"></view>
+  <view class="skeleton-card reveal reveal-2">
+    <view class="skeleton-bone skeleton-line skeleton-line-short"></view>
+    <view class="skeleton-bone skeleton-line skeleton-line-long"></view>
+  </view>
+  <view class="skeleton-card reveal reveal-3">
+    <view class="skeleton-bone skeleton-line skeleton-line-medium"></view>
+    <view class="score-row" style="margin-top: 14rpx;">
+      <view class="score-col"><view class="skeleton-bone" style="height: 100rpx; border-radius: 18rpx;"></view></view>
+      <view class="score-col"><view class="skeleton-bone" style="height: 100rpx; border-radius: 18rpx;"></view></view>
+    </view>
   </view>
 </view>

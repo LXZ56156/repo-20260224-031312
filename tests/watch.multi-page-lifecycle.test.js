@@ -140,6 +140,88 @@ test('pageTournamentSync does not start duplicate watchers for the same tourname
   }
 });
 
+test('pageTournamentSync preserves _latestTournament across rapid pause→resume cycle', () => {
+  const originalStartWatch = tournamentSync.startWatch;
+  const originalCloseWatcher = tournamentSync.closeWatcher;
+  const originalFetchTournament = tournamentSync.fetchTournament;
+  const ctx = createSyncContext();
+  let onWatchDoc = null;
+  let fetchCount = 0;
+
+  try {
+    tournamentSync.startWatch = (page, tournamentId, nextOnDoc) => {
+      onWatchDoc = nextOnDoc;
+      page.watcher = { isActive() { return true; }, close() { page.watcher = null; } };
+      page._watchTournamentId = tournamentId;
+    };
+    tournamentSync.closeWatcher = (page) => {
+      if (page && page.watcher) { page.watcher.close(); page._watchTournamentId = ''; }
+    };
+    tournamentSync.fetchTournament = async () => {
+      fetchCount += 1;
+      return { ok: true, source: 'remote', doc: { _id: 't_1', name: `Fetch ${fetchCount}`, updatedAt: `2026-03-14T10:0${fetchCount}:00.000Z` } };
+    };
+
+    ctx.startWatch('t_1');
+    onWatchDoc({ _id: 't_1', name: 'Initial', updatedAt: '2026-03-14T10:00:00.000Z' }, { source: 'realtime' });
+    assert.equal(ctx.data.tournament.name, 'Initial');
+    assert.equal(ctx._latestTournament.name, 'Initial');
+
+    // Simulate onHide → pause
+    pageTournamentSync.pauseTournamentSync(ctx);
+    assert.equal(ctx._latestTournament.name, 'Initial');
+
+    // Simulate onShow → resume: _latestTournament is still available
+    assert.equal(ctx._latestTournament.name, 'Initial');
+    assert.equal(ctx.data.tournament.name, 'Initial');
+  } finally {
+    tournamentSync.startWatch = originalStartWatch;
+    tournamentSync.closeWatcher = originalCloseWatcher;
+    tournamentSync.fetchTournament = originalFetchTournament;
+  }
+});
+
+test('pageTournamentSync invalidates old watch gen on pause but allows new watch after resume', () => {
+  const originalStartWatch = tournamentSync.startWatch;
+  const originalCloseWatcher = tournamentSync.closeWatcher;
+  const ctx = createSyncContext();
+  const watchCallbacks = [];
+  let closedCount = 0;
+
+  try {
+    tournamentSync.startWatch = (page, tournamentId, nextOnDoc) => {
+      watchCallbacks.push(nextOnDoc);
+      page.watcher = { isActive() { return true; }, close() { closedCount += 1; page.watcher = null; } };
+      page._watchTournamentId = tournamentId;
+    };
+    tournamentSync.closeWatcher = (page) => {
+      if (page && page.watcher) { page.watcher.close(); page._watchTournamentId = ''; }
+    };
+
+    // Initial watch
+    ctx.startWatch('t_1');
+    watchCallbacks[0]({ _id: 't_1', name: 'Before Pause', updatedAt: '2026-03-14T10:00:00.000Z' }, { source: 'realtime' });
+    assert.equal(ctx.data.tournament.name, 'Before Pause');
+
+    // Pause (onHide)
+    pageTournamentSync.pauseTournamentSync(ctx);
+    assert.equal(closedCount, 1);
+
+    // Old watch callback should be rejected (watchGen invalidated)
+    watchCallbacks[0]({ _id: 't_1', name: 'Stale After Pause', updatedAt: '2026-03-14T10:10:00.000Z' }, { source: 'realtime' });
+    assert.equal(ctx.data.tournament.name, 'Before Pause');
+
+    // Resume (onShow) — new watch
+    ctx.startWatch('t_1');
+    assert.equal(watchCallbacks.length, 2);
+    watchCallbacks[1]({ _id: 't_1', name: 'After Resume', updatedAt: '2026-03-14T10:05:00.000Z' }, { source: 'realtime' });
+    assert.equal(ctx.data.tournament.name, 'After Resume');
+  } finally {
+    tournamentSync.startWatch = originalStartWatch;
+    tournamentSync.closeWatcher = originalCloseWatcher;
+  }
+});
+
 test('pageTournamentSync tears down the old watcher before switching to another tournament id', () => {
   const originalStartWatch = tournamentSync.startWatch;
   const originalCloseWatcher = tournamentSync.closeWatcher;

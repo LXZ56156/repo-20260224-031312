@@ -93,11 +93,13 @@ Page({
     t = normalize.normalizeTournament(t);
     const mode = flow.normalizeMode(t.mode || flow.MODE_MULTI_ROTATE);
     const rankingTypeLabel = (mode === flow.MODE_SQUAD_DOUBLES || mode === flow.MODE_FIXED_PAIR_RR) ? '队伍榜' : '个人榜';
+    const status = String(t.status || '').trim();
     this.setData({
       loadError: false,
       tournament: t,
       rankings: rankingCore.buildRankingWithTrend(t),
-      rankingTypeLabel
+      rankingTypeLabel,
+      primaryNavItems: matchPrimaryNav.getPrimaryNavItems('ranking', this.data.tournamentId, { showAnalytics: status === 'finished' })
     });
   },
 

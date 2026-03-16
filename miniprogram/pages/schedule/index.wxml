@@ -87,8 +87,16 @@
 </view>
 
 <view class="container safe-bottom schedule-page" wx:else>
-  <view class="card panel state-card">
-    <view class="state-title">加载中...</view>
-    <view class="muted">正在同步最新对阵。</view>
+  <view class="skeleton-bone skeleton-hero reveal reveal-1"></view>
+  <view class="skeleton-card reveal reveal-2" style="padding: 20rpx;">
+    <view class="skeleton-bone skeleton-line skeleton-line-short" style="margin-bottom: 18rpx;"></view>
+    <view class="skeleton-card" style="margin-top: 0; background: var(--surface-2, #edf2f8); border: none; box-shadow: none;">
+      <view class="skeleton-bone skeleton-line skeleton-line-medium"></view>
+      <view class="skeleton-bone skeleton-line skeleton-line-long"></view>
+    </view>
+    <view class="skeleton-card" style="margin-top: 12rpx; background: var(--surface-2, #edf2f8); border: none; box-shadow: none;">
+      <view class="skeleton-bone skeleton-line skeleton-line-medium"></view>
+      <view class="skeleton-bone skeleton-line skeleton-line-long"></view>
+    </view>
   </view>
 </view>

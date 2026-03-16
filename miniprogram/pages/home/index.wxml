@@ -7,7 +7,7 @@
     <text class="sync-banner-action" bindtap="onRetry">{{syncStatusActionText}}</text>
   </view>
 
-  <view class="hero-card card panel-strong reveal reveal-1">
+  <view class="hero-card card panel-strong reveal reveal-1" wx:if="{{showHeroCard}}">
     <view class="hero-grid">
       <view class="hero-main">
         <view class="hero-env-badge" wx:if="{{showEnvBadge}}">{{envBadgeLabel}}</view>
@@ -16,10 +16,19 @@
           <view class="hero-task-label">{{heroCard.label}}</view>
           <view class="hero-task-name ellipsis" wx:if="{{heroCard.name}}">{{heroCard.name}}</view>
           <view class="hero-task-meta" wx:if="{{heroCard.meta}}">{{heroCard.meta}}</view>
+          <view class="hero-task-detail" wx:if="{{heroCard.detail}}">{{heroCard.detail}}</view>
+          <view class="hero-progress-wrap" wx:if="{{heroCard.progress >= 0}}">
+            <view class="hero-progress-bar">
+              <view class="hero-progress-fill" style="width: {{heroCard.progress}}%;"></view>
+            </view>
+            <text class="hero-progress-text">{{heroCard.progress}}%</text>
+          </view>
           <button class="btn btn-primary btn-sm hero-task-btn"
             bindtap="onHeroPrimaryTap"
             data-action="{{heroCard.actionTarget}}"
-            data-id="{{heroCard.actionId}}">
+            data-id="{{heroCard.actionId}}"
+            data-round="{{heroCard.actionRound}}"
+            data-match="{{heroCard.actionMatch}}">
             {{heroCard.actionText}}
           </button>
         </view>
@@ -45,7 +54,31 @@
       <text class="filter-chip {{filterStatus==='finished' ? 'active' : ''}}" data-status="finished" bindtap="onChangeFilterStatus">已结束 {{statusCountFinished}}</text>
     </view>
 
-    <view class="empty panel-soft" wx:if="{{loading && !items.length}}">加载中...</view>
+    <view wx:if="{{loading && !items.length}}">
+      <view class="skeleton-card reveal reveal-1">
+        <view class="skeleton-row" style="margin-bottom: 16rpx;">
+          <view class="skeleton-bone skeleton-line skeleton-line-medium" style="margin-bottom: 0;"></view>
+          <view class="skeleton-bone skeleton-pill"></view>
+        </view>
+        <view class="skeleton-row" style="gap: 10rpx;">
+          <view class="skeleton-bone skeleton-pill"></view>
+          <view class="skeleton-bone skeleton-pill"></view>
+          <view class="skeleton-bone skeleton-pill"></view>
+        </view>
+        <view class="skeleton-bone skeleton-line skeleton-line-short" style="margin-top: 14rpx;"></view>
+      </view>
+      <view class="skeleton-card reveal reveal-2">
+        <view class="skeleton-row" style="margin-bottom: 16rpx;">
+          <view class="skeleton-bone skeleton-line skeleton-line-long" style="margin-bottom: 0;"></view>
+          <view class="skeleton-bone skeleton-pill"></view>
+        </view>
+        <view class="skeleton-row" style="gap: 10rpx;">
+          <view class="skeleton-bone skeleton-pill"></view>
+          <view class="skeleton-bone skeleton-pill"></view>
+        </view>
+        <view class="skeleton-bone skeleton-line skeleton-line-short" style="margin-top: 14rpx;"></view>
+      </view>
+    </view>
 
     <block wx:if="{{visibleCount>0}}">
       <block wx:for="{{items}}" wx:key="_id">
@@ -70,7 +103,9 @@
                 </view>
                 <view class="t-time muted small">更新 {{item.updatedAtText}}</view>
                 <view class="t-actions" wx:if="{{item.status!=='missing'}}">
-                  <text class="t-copy-link" catchtap="onCloneTap" data-id="{{item._id}}">再办一场</text>
+                  <text class="t-quick-action" catchtap="onQuickActionTap" data-id="{{item._id}}" data-status="{{item.status}}" wx:if="{{item.status==='finished'}}">查看复盘</text>
+                  <text class="t-copy-link" catchtap="onCloneTap" data-id="{{item._id}}" wx:if="{{item.status==='finished'}}">再办一场</text>
+                  <text class="t-quick-action" catchtap="onQuickActionTap" data-id="{{item._id}}" data-status="{{item.status}}" wx:elif="{{item.status==='running'}}">查看对阵</text>
                 </view>
               </view>
             </view>
