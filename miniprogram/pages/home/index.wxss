@@ -228,6 +228,7 @@
   margin-top: 14rpx;
   width: auto;
   min-width: 220rpx;
+  padding: 0 28rpx;
   background: #ffffff;
   color: #0f7a46;
 }

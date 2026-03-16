@@ -171,7 +171,6 @@
   font-size: 32rpx;
   font-weight: 900;
   color: #111827;
-  max-width: 420rpx;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

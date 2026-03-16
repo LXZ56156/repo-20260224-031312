@@ -196,11 +196,13 @@
 .lock-btn-primary {
   width: auto;
   min-width: 200rpx;
+  padding: 0 24rpx;
 }
 
 .lock-btn {
   width: auto;
   min-width: 160rpx;
+  padding: 0 24rpx;
 }
 
 .score-toolbar {

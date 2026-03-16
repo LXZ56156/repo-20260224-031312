@@ -66,7 +66,7 @@
       <view class="top-item" wx:for="{{top3}}" wx:key="playerId">
         <view class="top-left">
           <text class="top-rank">{{item.rankLabel}}</text>
-          <text class="top-name">{{item.name}}</text>
+          <text class="top-name ellipsis">{{item.name}}</text>
         </view>
         <view class="top-right">
           <text class="top-metric">胜{{item.wins}} 负{{item.losses}}</text>

@@ -83,6 +83,8 @@ page {
   color: var(--text-2, #64748b);
   font-size: 22rpx;
   font-weight: 700;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .row {
@@ -154,6 +156,7 @@ page {
   width: 100%;
   border-radius: 20rpx;
   overflow: hidden;
+  white-space: nowrap;
   font-size: 32rpx;
   font-weight: 760;
   height: 92rpx;
@@ -210,6 +213,8 @@ button.btn:active {
   padding: 8rpx 14rpx;
   border-radius: 999rpx;
   font-size: 22rpx;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .tag-draft {
@@ -407,6 +412,8 @@ button.btn-mini::after {
   font-size: 22rpx;
   background: #e8f7ee;
   color: #166534;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .badge.gray {

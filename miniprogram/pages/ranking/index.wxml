@@ -32,7 +32,7 @@
     <view class="ranking-row">
       <view class="ranking-left">
         <view class="rank-badge">{{idx + 1}}</view>
-        <view class="minw0">
+        <view class="flex-1">
           <view class="player-title ellipsis">{{r.name}}</view>
           <view class="muted small">{{r.entityType==='team' ? '队伍' : '球员'}} · 胜{{r.wins}} 负{{r.losses}} · 出场{{r.played}}</view>
         </view>

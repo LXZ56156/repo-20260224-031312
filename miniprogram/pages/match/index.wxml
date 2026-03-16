@@ -9,9 +9,9 @@
 
   <view class="hero reveal reveal-1">
     <view class="row hero-head">
-      <view>
+      <view class="flex-1 minw0">
         <view class="hero-title">第{{roundIndex + 1}}轮 · 第{{matchIndex + 1}}场</view>
-        <view class="hero-sub">{{tournamentName}}</view>
+        <view class="hero-sub ellipsis">{{tournamentName}}</view>
       </view>
       <view class="tag">{{matchStatusText}}</view>
     </view>
