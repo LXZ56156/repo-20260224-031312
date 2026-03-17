@@ -1,5 +1,6 @@
 <view class="container safe-bottom analytics-page" wx:if="{{tournament}}">
-  <view class="sync-banner sync-{{syncStatusTone}}" wx:if="{{syncStatusVisible}}">
+  <!-- sync-banner: hidden 替代 wx:if，消除 layout shift -->
+  <view class="sync-banner sync-{{syncStatusTone}}" hidden="{{!syncStatusVisible}}">
     <view class="sync-banner-main">
       <view class="sync-banner-text">{{syncStatusText}}</view>
       <view class="sync-banner-meta" wx:if="{{syncStatusMeta}}">{{syncStatusMeta}}</view>
@@ -7,15 +8,16 @@
     <text class="sync-banner-action" bindtap="onRetry">{{syncStatusActionText}}</text>
   </view>
 
+  <!-- Hero: 赛后战报感 -->
   <view class="hero analytics-hero reveal reveal-1">
     <view class="analytics-hero-top">
       <view class="analytics-hero-main">
-        <view class="hero-overline">赛事复盘</view>
+        <view class="hero-overline">赛后战报</view>
         <view class="hero-title">{{tournament.name}}</view>
         <view class="hero-sub">{{modeLabel}} · {{statusLabel}}</view>
       </view>
     </view>
-    <view class="analytics-hero-headline">{{heroHeadline}}</view>
+    <view class="analytics-hero-headline text-display">{{heroHeadline}}</view>
     <view class="analytics-hero-stats">
       <view class="analytics-hero-stat" wx:for="{{heroStats}}" wx:key="label">
         <text class="analytics-hero-stat-label">{{item.label}}</text>
@@ -27,20 +29,8 @@
     </view>
   </view>
 
-  <view class="card panel reveal reveal-2" wx:if="{{summary}}">
-    <view class="section-head">
-      <view class="section-title">关键数据</view>
-      <text class="count-pill">{{summary.finishedMatches}} / {{summary.totalMatches}}</text>
-    </view>
-    <view class="summary-grid">
-      <view class="summary-item" wx:for="{{summaryStats}}" wx:key="label">
-        <text class="summary-label">{{item.label}}</text>
-        <text class="summary-value">{{item.value}}</text>
-      </view>
-    </view>
-  </view>
-
-  <view class="card panel report-card reveal reveal-3" wx:if="{{focusFacts.length}}">
+  <!-- 比赛结论卡: 首屏焦点，提升到关键数据之前 -->
+  <view class="card panel panel-strong report-card reveal reveal-2" wx:if="{{focusFacts.length}}">
     <view class="section-head">
       <view class="section-title">比赛结论</view>
       <text class="count-pill">{{statusLabel}}</text>
@@ -53,19 +43,34 @@
     </view>
   </view>
 
+  <!-- 关键数据: metric-card 风格 -->
+  <view class="card panel reveal reveal-3" wx:if="{{summary}}">
+    <view class="section-head">
+      <view class="section-title">关键数据</view>
+      <text class="count-pill">{{summary.finishedMatches}} / {{summary.totalMatches}}</text>
+    </view>
+    <view class="summary-grid">
+      <view class="summary-item metric-card" wx:for="{{summaryStats}}" wx:key="label">
+        <text class="summary-label metric-card-label">{{item.label}}</text>
+        <text class="summary-value metric-card-value">{{item.value}}</text>
+      </view>
+    </view>
+  </view>
+
   <view class="card panel-soft ad-breakpoint reveal reveal-4" wx:if="{{showAnalyticsAdSlot}}">
     <view class="ad-badge">广告</view>
   </view>
 
+  <!-- TOP 3 强化区: rank-badge 特殊样式 -->
   <view class="card panel reveal reveal-5" wx:if="{{top3.length}}">
     <view class="section-head">
       <view class="section-title">{{topSectionTitle}}</view>
       <text class="count-pill">{{rankingTitle}}</text>
     </view>
     <view class="top-list">
-      <view class="top-item" wx:for="{{top3}}" wx:key="playerId">
+      <view class="top-item top-item-{{index + 1}}" wx:for="{{top3}}" wx:key="playerId">
         <view class="top-left">
-          <text class="top-rank">{{item.rankLabel}}</text>
+          <view class="rank-badge rank-{{index + 1}}">{{item.rankLabel}}</view>
           <text class="top-name ellipsis">{{item.name}}</text>
         </view>
         <view class="top-right">
@@ -76,27 +81,32 @@
     </view>
   </view>
 
+  <!-- 完整排名: 默认折叠，表格更紧凑 -->
   <view class="card panel reveal reveal-6" wx:if="{{fullRankings.length}}">
-    <view class="section-head">
+    <view class="section-head ranking-section-head" bindtap="toggleRankingRows">
       <view class="section-title">完整排名</view>
-      <text class="count-pill">{{playerStats.length}} {{rankingUnit}}</text>
+      <view class="ranking-toggle-group">
+        <text class="count-pill">{{playerStats.length}} {{rankingUnit}}</text>
+        <text class="ranking-toggle-arrow {{showAllRankings ? 'expanded' : ''}}">{{showAllRankings ? '收起' : '展开'}}</text>
+      </view>
     </view>
 
-    <view class="stats-head stats-row">
-      <text class="col-rank">#</text>
-      <text class="col-name">{{rankingUnit==='队' ? '队伍' : '球员'}}</text>
-      <text class="col-num">胜负</text>
-      <text class="col-num">胜率</text>
-      <text class="col-num">净胜</text>
+    <view class="ranking-table-wrap" wx:if="{{showAllRankings}}">
+      <view class="stats-head stats-row">
+        <text class="col-rank">#</text>
+        <text class="col-name">{{rankingUnit==='队' ? '队伍' : '球员'}}</text>
+        <text class="col-num">胜负</text>
+        <text class="col-num">胜率</text>
+        <text class="col-num">净胜</text>
+      </view>
+      <view class="stats-row" wx:for="{{displayRankings}}" wx:key="playerId">
+        <text class="col-rank">{{item.rank}}</text>
+        <text class="col-name ellipsis">{{item.name}}</text>
+        <text class="col-num">{{item.wins}}/{{item.losses}}</text>
+        <text class="col-num">{{item.winRate}}</text>
+        <text class="col-num">{{item.pointDiff}}</text>
+      </view>
     </view>
-    <view class="stats-row" wx:for="{{displayRankings}}" wx:key="playerId">
-      <text class="col-rank">{{item.rank}}</text>
-      <text class="col-name ellipsis">{{item.name}}</text>
-      <text class="col-num">{{item.wins}}/{{item.losses}}</text>
-      <text class="col-num">{{item.winRate}}</text>
-      <text class="col-num">{{item.pointDiff}}</text>
-    </view>
-    <text class="analytics-expand-link" wx:if="{{fullRankings.length > 5}}" bindtap="toggleRankingRows">{{showAllRankings ? '收起完整排名' : '展开完整排名'}}</text>
   </view>
 
   <view class="card panel reveal reveal-7" wx:if="{{summary && summary.finishedMatches>0 && (pairHot.length || duelHot.length)}}">
@@ -122,8 +132,13 @@
     </view>
   </view>
 
+  <!-- 空态: state-empty 结构 -->
   <view class="card panel panel-soft reveal reveal-7" wx:if="{{summary && summary.finishedMatches===0}}">
-    <view class="empty-title">暂无可复盘数据</view>
+    <view class="state-empty">
+      <view class="state-empty-icon">📊</view>
+      <view class="state-empty-title">暂无可复盘数据</view>
+      <view class="state-empty-desc">完成至少一场比赛后，这里将展示赛事战报</view>
+    </view>
   </view>
 
   <view class="retry-box panel-soft" wx:if="{{canRetryAction}}">
@@ -132,17 +147,34 @@
   </view>
 </view>
 
+<!-- 错误态: state-error 结构 -->
 <view class="container safe-bottom" wx:elif="{{loadError}}">
   <view class="card panel reveal reveal-1">
-    <view class="empty-title">加载失败</view>
-    <view class="muted">请检查网络后重试。</view>
-    <button class="btn btn-subtle" bindtap="onRetry">重新加载</button>
+    <view class="state-error">
+      <view class="state-error-icon">⚠️</view>
+      <view class="state-error-title">加载失败</view>
+      <view class="state-error-desc">请检查网络后重试</view>
+      <view class="state-error-actions">
+        <button class="btn btn-subtle" bindtap="onRetry">重新加载</button>
+      </view>
+    </view>
   </view>
 </view>
 
+<!-- Loading 态: skeleton -->
 <view class="container safe-bottom" wx:else>
-  <view class="card panel reveal reveal-1">
-    <view class="empty-title">加载中...</view>
-    <view class="muted">正在同步最新赛事数据。</view>
+  <view class="skeleton skeleton-hero skeleton-bone reveal reveal-1"></view>
+  <view class="skeleton-card reveal reveal-2">
+    <view class="skeleton-bone skeleton-line skeleton-line-medium"></view>
+    <view class="skeleton-bone skeleton-line skeleton-line-long"></view>
+    <view class="skeleton-bone skeleton-line skeleton-line-short"></view>
+  </view>
+  <view class="skeleton-card reveal reveal-3">
+    <view class="skeleton-bone skeleton-line skeleton-line-short"></view>
+    <view class="skeleton-row mt-sm">
+      <view class="skeleton-bone skeleton-pill"></view>
+      <view class="skeleton-bone skeleton-pill"></view>
+      <view class="skeleton-bone skeleton-pill"></view>
+    </view>
   </view>
 </view>

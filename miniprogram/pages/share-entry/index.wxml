@@ -1,5 +1,5 @@
 <view class="container safe-bottom share-entry-page">
-  <view class="sync-banner sync-{{syncStatusTone}}" wx:if="{{syncStatusVisible}}">
+  <view class="sync-banner sync-{{syncStatusTone}}" hidden="{{!syncStatusVisible}}">
     <view class="sync-banner-main">
       <view class="sync-banner-text">{{syncStatusText}}</view>
       <view class="sync-banner-meta" wx:if="{{syncStatusMeta}}">{{syncStatusMeta}}</view>
@@ -7,22 +7,22 @@
     <text class="sync-banner-action" bindtap="onRetry">{{syncStatusActionText}}</text>
   </view>
 
-  <view class="card panel share-hero reveal reveal-1">
+  <view class="share-hero hero reveal reveal-1">
     <view class="row hero-top">
       <view class="flex-1 minw0">
         <view class="share-title">{{preview.tournamentName}}</view>
-      <view class="share-headline">{{preview.headline}}</view>
+        <view class="share-headline">{{preview.headline}}</view>
       </view>
       <view class="tag {{preview.statusClass}}">{{preview.statusText}}</view>
     </view>
     <view class="share-pills">
-      <text class="rule-chip">{{preview.modeLabel}}</text>
-      <text class="rule-chip">{{preview.playersCountText}}</text>
-      <text class="rule-chip">{{preview.joinAllowed ? '可加入' : '当前不可加入'}}</text>
+      <text class="share-pill">{{preview.modeLabel}}</text>
+      <text class="share-pill">{{preview.playersCountText}}</text>
+      <text class="share-pill">{{preview.joinAllowed ? '可加入' : '当前不可加入'}}</text>
     </view>
   </view>
 
-  <view class="card panel panel-soft share-decision reveal reveal-2">
+  <view class="share-decision action-rail reveal reveal-2">
     <view class="section-head">
       <view class="section-title">现在可以做什么</view>
       <text class="count-pill">{{preview.viewModeLabel}}</text>
@@ -31,8 +31,11 @@
       class="share-availability {{identityPending ? 'is-pending' : ''}} {{identityTimedOut ? 'is-timeout' : ''}}"
       wx:if="{{preview.availabilityText}}"
     >
-      <view class="share-availability-title">{{identityPending ? '身份识别中' : (identityTimedOut ? '先看比赛' : '操作提示')}}</view>
-      <view class="share-availability-text">{{preview.availabilityText}}</view>
+      <view class="share-availability-icon">{{identityPending ? '...' : (identityTimedOut ? '!' : 'i')}}</view>
+      <view class="share-availability-body">
+        <view class="share-availability-title">{{identityPending ? '身份识别中' : (identityTimedOut ? '先看比赛' : '操作提示')}}</view>
+        <view class="share-availability-text">{{preview.availabilityText}}</view>
+      </view>
     </view>
     <view class="card-inline-squad" wx:if="{{tournament && tournament.mode==='squad_doubles' && preview.joinAllowed && !preview.joined}}">
       <view class="chips squad-chooser">
@@ -65,10 +68,9 @@
     </view>
   </view>
 
-  <view class="card panel share-info reveal reveal-3">
+  <view class="share-info card reveal reveal-3">
     <view class="section-head">
       <view class="section-title">比赛摘要</view>
-      <text class="count-pill">{{preview.viewModeLabel}}</text>
     </view>
     <view class="share-facts">
       <view class="share-fact">
@@ -98,8 +100,11 @@
     </view>
   </view>
 
-  <view class="card panel panel-soft" wx:if="{{loadError && !tournament}}">
-    <view class="section-title">{{preview.headline}}</view>
-    <view class="muted">{{preview.subtitle}}</view>
+  <view class="share-error-panel card reveal reveal-3" wx:if="{{loadError && !tournament}}">
+    <view class="state-error">
+      <view class="state-error-icon">!</view>
+      <view class="state-error-title">{{preview.headline}}</view>
+      <view class="state-error-desc">{{preview.subtitle}}</view>
+    </view>
   </view>
 </view>

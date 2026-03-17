@@ -1,3 +1,5 @@
+/* matchPrimaryNav — 样式已迁移至 app.wxss 全局 Section X */
+/* 此文件仅作兼容保留，新页面无需 @import */
 .match-primary-nav {
   margin-bottom: 16rpx;
   display: grid;
@@ -8,9 +10,9 @@
 .match-primary-nav-item {
   min-height: 76rpx;
   border-radius: 999rpx;
-  border: 1rpx solid #dce5ef;
-  background: #f8fbff;
-  color: #64748b;
+  border: 1rpx solid var(--neutral-200);
+  background: var(--neutral-50);
+  color: var(--neutral-500);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -19,8 +21,8 @@
 }
 
 .match-primary-nav-item.active {
-  background: #16a34a;
-  border-color: #16a34a;
+  background: var(--brand-500);
+  border-color: var(--brand-500);
   color: #ffffff;
-  box-shadow: 0 10rpx 20rpx rgba(22, 163, 74, 0.16);
+  box-shadow: 0 10rpx 20rpx rgba(24, 179, 104, 0.16);
 }

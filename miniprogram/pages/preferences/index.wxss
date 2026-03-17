@@ -1,46 +1,27 @@
+/* preferences — 系统偏好设置 */
+
 .pref-page {
   padding-bottom: 24rpx;
 }
 
-.form-item {
-  margin-top: 14rpx;
+/* Chips in preferences — use neutral palette */
+.pref-page .chip {
+  border: 1rpx solid var(--neutral-200);
+  background: var(--neutral-100);
+  color: var(--neutral-700);
+  font-weight: 500;
 }
 
-.form-item:first-child {
-  margin-top: 0;
-}
-
-.form-label {
-  font-size: 27rpx;
-  font-weight: 700;
-  margin-bottom: 8rpx;
-}
-
-.picker {
-  background: var(--surface-2, #edf2f8);
-  border: 1rpx solid #dfe8f2;
-  border-radius: 14rpx;
-  padding: 16rpx;
-}
-
-.chip {
-  border: 1rpx solid #d9e4ef;
-  background: #eef4fb;
-  color: #334155;
-  transition: transform 120ms ease, filter 120ms ease, border-color 120ms ease, background 120ms ease;
-}
-
-.chip:active {
+.pref-page .chip:active {
   transform: scale(0.984);
-  filter: brightness(0.97);
+  filter: brightness(0.96);
 }
 
-.chip.active {
-  border-color: #22a763;
-  background: #dff4e8;
-  color: #0f6a40;
+.pref-page .chip.active {
+  border-color: var(--brand-500);
+  background: var(--brand-100);
+  color: var(--brand-700);
   font-weight: 700;
-  box-shadow: inset 0 0 0 2rpx rgba(15, 106, 64, 0.08);
 }
 
 .pref-tip {
@@ -48,10 +29,7 @@
   margin-bottom: 12rpx;
 }
 
-.pref-row {
-  margin-top: 14rpx;
-}
-
+/* Switch items */
 .switch-item {
   display: flex;
   align-items: center;
@@ -60,4 +38,6 @@
 
 .switch-item .form-label {
   margin-bottom: 0;
+  width: auto;
+  flex: 1;
 }

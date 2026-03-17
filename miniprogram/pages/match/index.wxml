@@ -1,5 +1,13 @@
+<!-- ============================================================
+     MATCH PAGE — 裁判录分终端 v2
+     比分舞台是第一视觉中心，状态切换稳定，zero layout shift
+     ============================================================ -->
+
+<!-- ==================== 正常态 ==================== -->
 <view class="container safe-bottom match-page" wx:if="{{match}}">
-  <view class="sync-banner sync-{{syncStatusTone}}" wx:if="{{syncStatusVisible}}">
+
+  <!-- Sync Banner — 固定占位，hidden 切换避免 layout shift -->
+  <view class="sync-banner sync-{{syncStatusTone}}" hidden="{{!syncStatusVisible}}">
     <view class="sync-banner-main">
       <view class="sync-banner-text">{{syncStatusText}}</view>
       <view class="sync-banner-meta" wx:if="{{syncStatusMeta}}">{{syncStatusMeta}}</view>
@@ -7,13 +15,14 @@
     <text class="sync-banner-action" bindtap="onRetry">{{syncStatusActionText}}</text>
   </view>
 
-  <view class="hero reveal reveal-1">
+  <!-- Hero 区：轮次 / 场次 / 赛事名 — 更紧凑 -->
+  <view class="hero hero-compact reveal reveal-1">
     <view class="row hero-head">
       <view class="flex-1 minw0">
-        <view class="hero-title">第{{roundIndex + 1}}轮 · 第{{matchIndex + 1}}场</view>
-        <view class="hero-sub ellipsis">{{tournamentName}}</view>
+        <view class="hero-title-compact">第{{roundIndex + 1}}轮 · 第{{matchIndex + 1}}场</view>
+        <view class="hero-sub-compact ellipsis">{{tournamentName}}</view>
       </view>
-      <view class="tag">{{matchStatusText}}</view>
+      <view class="tag match-status-tag">{{matchStatusText}}</view>
     </view>
     <view class="batch-progress" wx:if="{{batchMode}}">
       <view class="batch-progress-head">
@@ -26,20 +35,26 @@
     </view>
   </view>
 
+  <!-- 对阵卡片 -->
   <view class="card panel reveal reveal-2">
     <view class="section-title">本场对阵</view>
     <view class="match-vs">{{pair1Text}} <text class="vs">vs</text> {{pair2Text}}</view>
     <view class="muted small" wx:if="{{!pair1Text || !pair2Text}}">对阵未就绪</view>
   </view>
 
-  <view class="card panel reveal reveal-3">
+  <!-- ==================== 比分舞台（统一容器） ==================== -->
+  <view class="card panel score-stage reveal reveal-3">
     <view class="row row-top">
       <view class="section-title">比分录入</view>
-      <text class="muted small">{{pointsPerGame}} 分制</text>
+      <text class="score-badge">{{pointsPerGame}} 分制</text>
     </view>
 
+    <!-- 锁态面板 -->
     <view class="lock-panel" wx:if="{{match.status==='pending'}}">
-      <view class="lock-hint">{{lockHintText}}</view>
+      <view class="lock-icon-row">
+        <text class="lock-icon">🔒</text>
+        <view class="lock-hint">{{lockHintText}}</view>
+      </view>
       <view class="lock-actions" wx:if="{{userCanScore && lockState==='idle'}}">
         <button class="btn btn-primary btn-sm lock-btn-primary" bindtap="onStartScoring" loading="{{lockBusy}}" disabled="{{lockBusy}}">开始录分</button>
       </view>
@@ -49,19 +64,7 @@
       </view>
     </view>
 
-    <view class="score-row" wx:if="{{!canEdit}}">
-      <view class="score-col">
-        <view class="tiny" wx:if="{{pair1Text}}">{{pair1Text}}</view>
-        <view class="score-box">{{displayScoreA}}</view>
-      </view>
-      <view class="score-col">
-        <view class="tiny" wx:if="{{pair2Text}}">{{pair2Text}}</view>
-        <view class="score-box">{{displayScoreB}}</view>
-      </view>
-    </view>
-    <view class="muted score-tip" wx:if="{{!userCanScore}}">仅管理员或参赛成员可录分。</view>
-    <view class="muted score-tip" wx:elif="{{!canEdit && match.status==='pending'}}">请先点击“开始录分”。</view>
-
+    <!-- 快捷比分工具栏（编辑态） -->
     <view class="score-toolbar" wx:if="{{canEdit}}">
       <view class="quick-scores">
         <text class="quick-score-chip" bindtap="onQuickScore" data-a="21" data-b="19">21:19</text>
@@ -72,26 +75,47 @@
       <button class="btn-mini mode-undo {{!canUndo ? 'disabled' : ''}}" bindtap="onUndoStep" disabled="{{!canUndo}}">撤销</button>
     </view>
 
+    <!-- 比分展示区 — 只读态 -->
+    <view class="score-row" wx:if="{{!canEdit}}">
+      <view class="score-col">
+        <view class="score-player-name" wx:if="{{pair1Text}}">{{pair1Text}}</view>
+        <view class="score-box score-box-readonly">{{displayScoreA}}</view>
+      </view>
+      <view class="score-divider"></view>
+      <view class="score-col">
+        <view class="score-player-name" wx:if="{{pair2Text}}">{{pair2Text}}</view>
+        <view class="score-box score-box-readonly">{{displayScoreB}}</view>
+      </view>
+    </view>
+
+    <!-- 比分编辑区 — 编辑态 -->
     <view class="score-row" wx:if="{{canEdit}}">
       <view class="score-col">
-        <view class="tiny" wx:if="{{pair1Text}}">{{pair1Text}}</view>
+        <view class="score-player-name" wx:if="{{pair1Text}}">{{pair1Text}}</view>
         <picker mode="selector" range="{{scoreOptions}}" value="{{scoreAIndex}}" bindchange="onPickScoreA">
           <view class="picker score-wheel">{{scoreA}}</view>
         </picker>
       </view>
+      <view class="score-divider"></view>
       <view class="score-col">
-        <view class="tiny" wx:if="{{pair2Text}}">{{pair2Text}}</view>
+        <view class="score-player-name" wx:if="{{pair2Text}}">{{pair2Text}}</view>
         <picker mode="selector" range="{{scoreOptions}}" value="{{scoreBIndex}}" bindchange="onPickScoreB">
           <view class="picker score-wheel">{{scoreB}}</view>
         </picker>
       </view>
     </view>
+
+    <!-- 提示 -->
+    <view class="muted score-tip" wx:if="{{!userCanScore}}">仅管理员或参赛成员可录分。</view>
+    <view class="muted score-tip" wx:elif="{{!canEdit && match.status==='pending'}}">请先点击"开始录分"。</view>
   </view>
 
-  <view class="submit-bar" wx:if="{{canEdit}}">
-    <button class="btn btn-primary submit-btn" bindtap="submit" loading="{{submitBusy}}" disabled="{{submitBusy}}">{{batchMode ? '提交并录下一场' : '提交比分'}}</button>
+  <!-- 底部提交栏 — bottom-tray -->
+  <view class="bottom-tray" wx:if="{{canEdit}}">
+    <button class="btn btn-primary" bindtap="submit" loading="{{submitBusy}}" disabled="{{submitBusy}}">{{batchMode ? '提交并录下一场' : '提交比分'}}</button>
   </view>
 
+  <!-- 重试提交 -->
   <view class="retry-box panel-soft" wx:if="{{canRetryAction}}">
     <view class="muted small">{{lastFailedActionText}}</view>
     <button class="btn btn-subtle btn-sm" bindtap="retryLastAction">重试提交</button>
@@ -99,25 +123,43 @@
 
 </view>
 
+<!-- ==================== 错误态 ==================== -->
 <view class="container safe-bottom match-page" wx:elif="{{loadError}}">
-  <view class="card panel">
-    <view class="state-title">加载失败</view>
-    <view class="muted">请检查网络后重试。</view>
-    <button class="btn btn-subtle" bindtap="onRetry">重新加载</button>
+  <view class="state-error">
+    <view class="state-error-icon">⚠️</view>
+    <view class="state-error-title">加载失败</view>
+    <view class="state-error-desc">请检查网络连接后重试，如问题持续请返回重新进入。</view>
+    <view class="state-error-actions">
+      <button class="btn btn-primary" bindtap="onRetry">重新加载</button>
+    </view>
   </view>
 </view>
 
+<!-- ==================== 骨架屏 ==================== -->
 <view class="container safe-bottom match-page" wx:else>
-  <view class="skeleton-bone skeleton-hero reveal reveal-1" style="height: 180rpx;"></view>
+  <!-- skeleton hero -->
+  <view class="skeleton-bone skeleton-hero reveal reveal-1"></view>
+  <!-- skeleton 对阵卡 -->
   <view class="skeleton-card reveal reveal-2">
     <view class="skeleton-bone skeleton-line skeleton-line-short"></view>
-    <view class="skeleton-bone skeleton-line skeleton-line-long"></view>
+    <view class="skeleton-bone skeleton-line skeleton-line-long" style="margin-top: 12rpx;"></view>
   </view>
+  <!-- skeleton 比分舞台 -->
   <view class="skeleton-card reveal reveal-3">
     <view class="skeleton-bone skeleton-line skeleton-line-medium"></view>
-    <view class="score-row" style="margin-top: 14rpx;">
-      <view class="score-col"><view class="skeleton-bone" style="height: 100rpx; border-radius: 18rpx;"></view></view>
-      <view class="score-col"><view class="skeleton-bone" style="height: 100rpx; border-radius: 18rpx;"></view></view>
+    <view class="skeleton-score-row">
+      <view class="skeleton-score-col">
+        <view class="skeleton-bone skeleton-line-short" style="height: 20rpx; margin-bottom: 12rpx;"></view>
+        <view class="skeleton-bone skeleton-score-box"></view>
+      </view>
+      <view class="skeleton-score-col">
+        <view class="skeleton-bone skeleton-line-short" style="height: 20rpx; margin-bottom: 12rpx;"></view>
+        <view class="skeleton-bone skeleton-score-box"></view>
+      </view>
     </view>
+  </view>
+  <!-- skeleton 底部栏 -->
+  <view class="skeleton-card reveal reveal-4" style="margin-top: 24rpx;">
+    <view class="skeleton-bone" style="height: 80rpx; border-radius: 16rpx;"></view>
   </view>
 </view>

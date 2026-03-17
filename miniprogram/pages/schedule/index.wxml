@@ -11,13 +11,14 @@
     </view>
   </view>
 
-  <view class="sync-banner sync-{{syncStatusTone}}" wx:if="{{syncStatusVisible}}">
+  <view class="sync-banner sync-{{syncStatusTone}}" hidden="{{!syncStatusVisible}}">
     <view class="sync-banner-main">
       <view class="sync-banner-text">{{syncStatusText}}</view>
       <view class="sync-banner-meta" wx:if="{{syncStatusMeta}}">{{syncStatusMeta}}</view>
     </view>
     <text class="sync-banner-action" bindtap="onRetry">{{syncStatusActionText}}</text>
   </view>
+
   <view class="hero">
     <view class="row hero-head">
       <view class="flex-1 minw0">
@@ -46,14 +47,16 @@
     </view>
   </view>
 
-  <view class="card panel panel-soft state-card" wx:if="{{!roundsUi.length}}">
-    <view class="state-title">还没有对阵</view>
+  <view class="card panel panel-soft state-empty mt-md" wx:if="{{!roundsUi.length}}">
+    <view class="state-empty-icon">📋</view>
+    <view class="state-empty-title">还没有对阵</view>
+    <view class="state-empty-desc">赛程生成后将在此展示所有轮次与比赛</view>
   </view>
 
   <view class="round-card panel {{item.isCurrentRound ? 'round-card-current' : ''}}" wx:for="{{roundsUi}}" wx:key="roundIndex">
     <view class="round-header">
       <view class="round-title">第{{item.roundIndex + 1}}轮</view>
-      <text class="count-pill" wx:if="{{item.isCurrentRound}}">当前待录分轮次</text>
+      <text class="count-pill {{item.isCurrentRound ? 'count-pill-active' : ''}}" wx:if="{{item.isCurrentRound}}">当前待录分轮次</text>
       <text class="muted small" wx:else>{{item.matchesUi.length}} 场</text>
     </view>
 
@@ -79,24 +82,57 @@
 </view>
 
 <view class="container safe-bottom schedule-page" wx:elif="{{loadError}}">
-  <view class="card panel state-card">
-    <view class="state-title">加载失败</view>
-    <view class="muted">请检查网络后重试。</view>
-    <button class="btn btn-subtle" bindtap="onRetry">重新加载</button>
+  <view class="card panel state-error">
+    <view class="state-error-icon">⚠️</view>
+    <view class="state-error-title">加载失败</view>
+    <view class="state-error-desc">请检查网络后重试</view>
+    <view class="state-error-actions">
+      <button class="btn btn-primary btn-sm" bindtap="onRetry">重新加载</button>
+      <button class="btn btn-subtle btn-sm" bindtap="goHome">返回首页</button>
+    </view>
   </view>
 </view>
 
 <view class="container safe-bottom schedule-page" wx:else>
   <view class="skeleton-bone skeleton-hero reveal reveal-1"></view>
-  <view class="skeleton-card reveal reveal-2" style="padding: 20rpx;">
-    <view class="skeleton-bone skeleton-line skeleton-line-short" style="margin-bottom: 18rpx;"></view>
-    <view class="skeleton-card" style="margin-top: 0; background: var(--surface-2, #edf2f8); border: none; box-shadow: none;">
-      <view class="skeleton-bone skeleton-line skeleton-line-medium"></view>
-      <view class="skeleton-bone skeleton-line skeleton-line-long"></view>
+  <view class="skeleton-card reveal reveal-2">
+    <view class="skeleton-row">
+      <view class="skeleton-bone skeleton-line skeleton-line-short"></view>
     </view>
-    <view class="skeleton-card" style="margin-top: 12rpx; background: var(--surface-2, #edf2f8); border: none; box-shadow: none;">
-      <view class="skeleton-bone skeleton-line skeleton-line-medium"></view>
-      <view class="skeleton-bone skeleton-line skeleton-line-long"></view>
+    <view class="skeleton-match-block">
+      <view class="skeleton-row" style="gap: 12rpx;">
+        <view class="skeleton-bone skeleton-circle" style="width: 48rpx; height: 48rpx;"></view>
+        <view class="flex-1">
+          <view class="skeleton-bone skeleton-line skeleton-line-medium"></view>
+          <view class="skeleton-bone skeleton-line skeleton-line-long" style="margin-top: 8rpx;"></view>
+        </view>
+        <view class="skeleton-bone skeleton-pill"></view>
+      </view>
+    </view>
+    <view class="skeleton-match-block">
+      <view class="skeleton-row" style="gap: 12rpx;">
+        <view class="skeleton-bone skeleton-circle" style="width: 48rpx; height: 48rpx;"></view>
+        <view class="flex-1">
+          <view class="skeleton-bone skeleton-line skeleton-line-medium"></view>
+          <view class="skeleton-bone skeleton-line skeleton-line-long" style="margin-top: 8rpx;"></view>
+        </view>
+        <view class="skeleton-bone skeleton-pill"></view>
+      </view>
+    </view>
+  </view>
+  <view class="skeleton-card reveal reveal-3">
+    <view class="skeleton-row">
+      <view class="skeleton-bone skeleton-line skeleton-line-short"></view>
+    </view>
+    <view class="skeleton-match-block">
+      <view class="skeleton-row" style="gap: 12rpx;">
+        <view class="skeleton-bone skeleton-circle" style="width: 48rpx; height: 48rpx;"></view>
+        <view class="flex-1">
+          <view class="skeleton-bone skeleton-line skeleton-line-medium"></view>
+          <view class="skeleton-bone skeleton-line skeleton-line-long" style="margin-top: 8rpx;"></view>
+        </view>
+        <view class="skeleton-bone skeleton-pill"></view>
+      </view>
     </view>
   </view>
 </view>

@@ -1,103 +1,48 @@
+/* settings — 比赛设置中心 */
+
 .settings-page {
-  padding-top: 24rpx;
+  padding-top: 20rpx;
 }
 
-.sync-banner {
-  margin-bottom: 12rpx;
-  padding: 12rpx 16rpx;
-  border-radius: 14rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20rpx;
-}
-
-.sync-warning {
-  background: #fef3c7;
-  border: 1rpx solid #fcd34d;
-  color: #92400e;
-}
-
-.sync-info {
-  background: #eff6ff;
-  border: 1rpx solid #bfdbfe;
-  color: #1d4ed8;
-}
-
-.sync-neutral {
-  background: #f8fafc;
-  border: 1rpx solid #dbe5ef;
-  color: #334155;
-}
-
-.sync-banner-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.sync-banner-text {
-  font-size: 23rpx;
-  font-weight: 700;
-}
-
-.sync-banner-meta {
-  margin-top: 4rpx;
-  font-size: 21rpx;
-  line-height: 1.5;
-  opacity: 0.88;
-}
-
-.sync-banner-action {
-  flex-shrink: 0;
-  font-size: 22rpx;
-  font-weight: 760;
-}
-
+/* Panels */
 .settings-panel {
-  padding-top: 22rpx;
+  padding: 20rpx;
 }
 
 .context-panel {
-  padding-top: 22rpx;
+  padding: 20rpx;
 }
 
-.section-title {
-  font-size: 30rpx;
-  font-weight: 760;
-}
-
-.row-top {
-  justify-content: space-between;
-}
-
+/* Status pill */
 .status-pill {
-  padding: 6rpx 12rpx;
+  padding: 5rpx 12rpx;
   border-radius: 999rpx;
-  border: 1rpx solid #dbe5ef;
-  background: #f3f4f6;
-  color: #64748b;
+  border: 1rpx solid var(--neutral-200);
+  background: var(--neutral-100);
+  color: var(--neutral-500);
   font-size: 22rpx;
-  font-weight: 760;
+  font-weight: 600;
 }
 
 .status-pill.ok {
-  background: #dcfce7;
-  border-color: #86efac;
+  background: #DCFCE7;
+  border-color: #86EFAC;
   color: #166534;
 }
 
 .status-pill.pending {
-  background: #fef3c7;
-  border-color: #fcd34d;
-  color: #92400e;
+  background: #FEF3C7;
+  border-color: #FCD34D;
+  color: #92400E;
 }
 
 .status-pill.optional {
-  background: #eef2f7;
-  border-color: #dde6f0;
-  color: #64748b;
+  background: var(--neutral-100);
+  border-color: var(--neutral-200);
+  color: var(--neutral-500);
 }
 
+/* Form items — horizontal layout for settings */
 .form-item {
   margin-top: 16rpx;
   display: flex;
@@ -106,9 +51,11 @@
 }
 
 .form-label {
-  width: 180rpx;
-  font-size: 26rpx;
-  color: var(--text-2, #64748b);
+  width: 170rpx;
+  flex-shrink: 0;
+  font-size: 25rpx;
+  color: var(--neutral-500);
+  font-weight: 500;
 }
 
 .form-field {
@@ -116,19 +63,19 @@
 }
 
 .picker {
-  height: 80rpx;
-  line-height: 80rpx;
-  border-radius: 16rpx;
-  border: 1rpx solid var(--line-soft, #dbe5ef);
-  background: var(--surface-2, #edf2f8);
-  padding: 0 20rpx;
-  font-size: 30rpx;
-  color: var(--text-1, #0f172a);
+  height: 76rpx;
+  line-height: 76rpx;
+  border-radius: 14rpx;
+  border: 1rpx solid var(--neutral-200);
+  background: var(--neutral-100);
+  padding: 0 18rpx;
+  font-size: 28rpx;
+  color: var(--neutral-950);
 }
 
 .picker.disabled {
-  color: #9ca3af;
-  background: #f3f4f6;
+  color: var(--neutral-500);
+  background: var(--neutral-50);
 }
 
 .input-like {
@@ -140,9 +87,22 @@
   margin-top: 20rpx;
 }
 
+/* row-top in settings context */
+.row-top {
+  justify-content: space-between;
+}
+
+/* State title */
+.state-title {
+  font-size: 30rpx;
+  font-weight: 740;
+  margin-bottom: 8rpx;
+}
+
+/* Referee section (if present) */
 .referee-current {
   margin-top: 14rpx;
-  padding: 18rpx 16rpx;
+  padding: 16rpx;
   border-radius: 16rpx;
   display: flex;
   align-items: center;
@@ -150,13 +110,13 @@
 }
 
 .referee-current.set {
-  background: #fef3c7;
-  border: 1rpx solid #fcd34d;
+  background: #FEF3C7;
+  border: 1rpx solid #FCD34D;
 }
 
 .referee-current.unset {
-  background: #f3f4f6;
-  border: 1rpx solid #e5e7eb;
+  background: var(--neutral-100);
+  border: 1rpx solid var(--neutral-200);
 }
 
 .referee-left {
@@ -164,13 +124,13 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6rpx;
+  gap: 4rpx;
 }
 
 .referee-name {
-  font-size: 32rpx;
-  font-weight: 900;
-  color: #111827;
+  font-size: 30rpx;
+  font-weight: 780;
+  color: var(--neutral-950);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -179,23 +139,23 @@
 .referee-actions {
   display: flex;
   align-items: center;
-  gap: 12rpx;
+  gap: 10rpx;
 }
 
 .referee-btn {
-  height: 64rpx;
-  line-height: 64rpx;
-  padding: 0 18rpx;
-  border-radius: 16rpx;
-  font-size: 26rpx;
-  font-weight: 800;
+  height: 60rpx;
+  line-height: 60rpx;
+  padding: 0 16rpx;
+  border-radius: 14rpx;
+  font-size: 25rpx;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .referee-btn.primary {
-  background: #16a34a;
+  background: var(--brand-500);
   color: #fff;
 }
 
@@ -203,6 +163,7 @@ button.referee-btn::after {
   border: none;
 }
 
+/* Players */
 .players {
   margin-top: 14rpx;
 }
@@ -213,7 +174,7 @@ button.referee-btn::after {
   justify-content: space-between;
   gap: 12rpx;
   padding: 12rpx 0;
-  border-bottom: 1rpx solid #eef2f7;
+  border-bottom: 1rpx solid var(--neutral-100);
 }
 
 .player:last-child {
@@ -221,9 +182,9 @@ button.referee-btn::after {
 }
 
 .player-name {
-  font-size: 28rpx;
-  color: #111827;
-  font-weight: 700;
+  font-size: 27rpx;
+  color: var(--neutral-950);
+  font-weight: 600;
 }
 
 .player-main {
@@ -234,28 +195,24 @@ button.referee-btn::after {
 }
 
 .player-gender-chip {
-  min-width: 70rpx;
+  min-width: 64rpx;
   text-align: center;
-  padding: 6rpx 10rpx;
+  padding: 4rpx 10rpx;
   border-radius: 999rpx;
-  background: #eef4fb;
-  border: 1rpx solid #dce5ef;
-  color: #475569;
+  background: var(--neutral-100);
+  border: 1rpx solid var(--neutral-200);
+  color: var(--neutral-700);
   font-size: 22rpx;
-  font-weight: 700;
+  font-weight: 600;
 }
 
-.state-title {
-  font-size: 32rpx;
-  font-weight: 760;
-  margin-bottom: 8rpx;
-}
-
+/* Retry */
 .retry-box {
   margin-top: 16rpx;
-  padding: 14rpx;
-  border-radius: 16rpx;
-  border: 1rpx solid var(--line-soft, #dbe5ef);
+  padding: 12rpx 16rpx;
+  border-radius: 14rpx;
+  border: 1rpx solid var(--neutral-200);
+  background: var(--bg-section);
   display: flex;
   align-items: center;
   justify-content: space-between;

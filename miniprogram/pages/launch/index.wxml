@@ -1,19 +1,25 @@
 <view class="container safe-bottom launch-page">
-  <view class="hero">
-    <view class="hero-title">发起比赛</view>
+  <view class="launch-hero reveal reveal-1">
+    <view class="launch-hero-title">选择赛制</view>
+    <view class="launch-hero-sub">选择适合的赛制，一键发起比赛</view>
   </view>
 
-  <view class="card panel launch-card" wx:for="{{modeCards}}" wx:key="key">
+  <view
+    class="card panel launch-card launch-card-{{item.mode}} {{index === 0 ? 'is-default' : ''}} reveal reveal-{{index + 2}}"
+    wx:for="{{modeCards}}"
+    wx:key="key"
+  >
+    <view class="launch-card-accent"></view>
     <view class="row launch-row">
       <view class="flex-1 minw0">
         <view class="launch-title">{{item.name}}</view>
-        <view class="muted launch-sub">{{item.summary}}</view>
+        <view class="launch-sub text-caption">{{item.summary}}</view>
       </view>
       <text class="count-pill" wx:if="{{item.badge}}">{{item.badge}}</text>
     </view>
     <view class="launch-actions">
       <text class="launch-rule-link" data-mode="{{item.mode}}" bindtap="onShowRules">规则说明</text>
-      <button class="btn btn-primary launch-btn" data-mode="{{item.mode}}" bindtap="onStart">发起</button>
+      <button class="btn btn-primary btn-sm btn-inline launch-btn" data-mode="{{item.mode}}" bindtap="onStart">发起</button>
     </view>
   </view>
 </view>

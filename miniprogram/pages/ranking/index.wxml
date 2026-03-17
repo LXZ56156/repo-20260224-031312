@@ -11,27 +11,30 @@
     </view>
   </view>
 
-  <view class="sync-banner sync-{{syncStatusTone}}" wx:if="{{syncStatusVisible}}">
+  <view class="sync-banner sync-{{syncStatusTone}}" hidden="{{!syncStatusVisible}}">
     <view class="sync-banner-main">
       <view class="sync-banner-text">{{syncStatusText}}</view>
       <view class="sync-banner-meta" wx:if="{{syncStatusMeta}}">{{syncStatusMeta}}</view>
     </view>
     <text class="sync-banner-action" bindtap="onRetry">{{syncStatusActionText}}</text>
   </view>
+
   <view class="hero">
-    <view class="hero-title">排名 · {{rankingTypeLabel}}</view>
+    <view class="hero-kicker">积分榜</view>
+    <view class="hero-title">{{rankingTypeLabel}}</view>
     <view class="hero-sub">{{tournament.name}}</view>
   </view>
 
-  <view class="card panel panel-soft ranking-empty" wx:if="{{rankings.length===0}}">
-    <view class="empty-title">暂无数据</view>
-    <view class="muted">开赛并录入比分后会自动计算胜场与净胜分。</view>
+  <view class="card panel panel-soft state-empty mt-md" wx:if="{{rankings.length===0}}">
+    <view class="state-empty-icon">🏆</view>
+    <view class="state-empty-title">暂无数据</view>
+    <view class="state-empty-desc">开赛并录入比分后会自动计算胜场与净胜分</view>
   </view>
 
-  <view class="card panel ranking-card" wx:for="{{rankings}}" wx:for-item="r" wx:for-index="idx" wx:key="rankKey">
+  <view class="card panel ranking-card {{idx < 3 ? 'ranking-card-top' : ''}} {{idx === 0 ? 'ranking-card-1st' : ''}} {{idx === 1 ? 'ranking-card-2nd' : ''}} {{idx === 2 ? 'ranking-card-3rd' : ''}}" wx:for="{{rankings}}" wx:for-item="r" wx:for-index="idx" wx:key="rankKey">
     <view class="ranking-row">
       <view class="ranking-left">
-        <view class="rank-badge">{{idx + 1}}</view>
+        <view class="rank-badge {{idx === 0 ? 'rank-1' : ''}} {{idx === 1 ? 'rank-2' : ''}} {{idx === 2 ? 'rank-3' : ''}}">{{idx + 1}}</view>
         <view class="flex-1">
           <view class="player-title ellipsis">{{r.name}}</view>
           <view class="muted small">{{r.entityType==='team' ? '队伍' : '球员'}} · 胜{{r.wins}} 负{{r.losses}} · 出场{{r.played}}</view>
@@ -47,27 +50,32 @@
 </view>
 
 <view class="container safe-bottom ranking-page" wx:elif="{{loadError}}">
-  <view class="card panel">
-    <view class="empty-title">{{loadErrorTitle}}</view>
-    <view class="muted">{{loadErrorMessage}}</view>
-    <button class="btn btn-subtle" bindtap="onRetry">重新加载</button>
-    <button class="btn btn-ghost" bindtap="goHome" wx:if="{{showLoadErrorHome}}">返回首页</button>
+  <view class="card panel state-error">
+    <view class="state-error-icon">⚠️</view>
+    <view class="state-error-title">{{loadErrorTitle}}</view>
+    <view class="state-error-desc">{{loadErrorMessage}}</view>
+    <view class="state-error-actions">
+      <button class="btn btn-primary btn-sm" bindtap="onRetry">重新加载</button>
+      <button class="btn btn-subtle btn-sm" bindtap="goHome" wx:if="{{showLoadErrorHome}}">返回首页</button>
+    </view>
   </view>
 </view>
 
 <view class="container safe-bottom ranking-page" wx:else>
-  <view class="card panel ranking-skeleton">
-    <view class="empty-title">加载中...</view>
-    <view class="muted">正在同步排名。</view>
-    <view class="skeleton-row" wx:for="{{loadingSkeletonRows}}" wx:key="*this">
-      <view class="skeleton-rank"></view>
-      <view class="skeleton-main">
-        <view class="skeleton-line skeleton-line-strong"></view>
-        <view class="skeleton-line"></view>
-      </view>
-      <view class="skeleton-side">
-        <view class="skeleton-line skeleton-line-short"></view>
-        <view class="skeleton-line skeleton-line-mini"></view>
+  <view class="skeleton-bone skeleton-hero reveal reveal-1"></view>
+  <view class="ranking-skeleton-list">
+    <view class="skeleton-card reveal reveal-{{idx + 2}}" wx:for="{{loadingSkeletonRows}}" wx:for-index="idx" wx:key="*this">
+      <view class="skeleton-row" style="gap: 12rpx;">
+        <view class="skeleton-bone skeleton-circle" style="width: 44rpx; height: 44rpx;"></view>
+        <view class="flex-1">
+          <view class="skeleton-bone skeleton-line skeleton-line-medium"></view>
+          <view class="skeleton-bone skeleton-line skeleton-line-long" style="margin-top: 8rpx;"></view>
+        </view>
+        <view style="width: 120rpx;">
+          <view class="skeleton-bone skeleton-line skeleton-line-short" style="margin-left: auto;"></view>
+          <view class="skeleton-bone skeleton-line" style="width: 72%; margin-top: 8rpx; margin-left: auto;"></view>
+          <view class="skeleton-bone skeleton-pill" style="width: 88rpx; margin-top: 8rpx; margin-left: auto;"></view>
+        </view>
       </view>
     </view>
   </view>

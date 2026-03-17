@@ -1,80 +1,51 @@
-@import "../../styles/matchPrimaryNav.wxss";
+/* Ranking 页面样式 — 积分榜风 */
 
 .ranking-page {
   padding-top: 24rpx;
 }
 
-.sync-banner {
-  margin-bottom: 12rpx;
-  padding: 12rpx 16rpx;
-  border-radius: 14rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20rpx;
-}
-
-.sync-warning {
-  background: #fef3c7;
-  border: 1rpx solid #fcd34d;
-  color: #92400e;
-}
-
-.sync-info {
-  background: #eff6ff;
-  border: 1rpx solid #bfdbfe;
-  color: #1d4ed8;
-}
-
-.sync-neutral {
-  background: #f8fafc;
-  border: 1rpx solid #dbe5ef;
-  color: #334155;
-}
-
-.sync-banner-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.sync-banner-text {
-  font-size: 23rpx;
-  font-weight: 700;
-}
-
-.sync-banner-meta {
-  margin-top: 4rpx;
-  font-size: 21rpx;
-  line-height: 1.5;
-  opacity: 0.88;
-}
-
-.sync-banner-action {
-  flex-shrink: 0;
+/* --- Hero 积分榜感 --- */
+.hero-kicker {
   font-size: 22rpx;
-  font-weight: 760;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.72);
+  letter-spacing: 0.5rpx;
+  text-transform: uppercase;
 }
 
-.ranking-empty {
-  margin-top: 18rpx;
-}
-
-.ranking-empty-btn {
-  margin-top: 12rpx;
-  width: auto;
-  min-width: 220rpx;
-  padding: 0 24rpx;
-}
-
+/* --- Ranking Card --- */
 .ranking-card {
-  margin-top: 14rpx;
+  margin-top: 12rpx;
+}
+
+.ranking-card-top {
+  border-color: rgba(24, 179, 104, 0.15);
+  background: var(--bg-surface);
+}
+
+.ranking-card-1st {
+  border-color: rgba(245, 158, 11, 0.25);
+  background: linear-gradient(135deg, #FFFBEB 0%, var(--bg-surface) 100%);
+  box-shadow: 0 4rpx 16rpx rgba(245, 158, 11, 0.08);
+}
+
+.ranking-card-2nd {
+  border-color: rgba(148, 163, 184, 0.3);
+  background: linear-gradient(135deg, var(--neutral-50) 0%, var(--bg-surface) 100%);
+  box-shadow: 0 4rpx 16rpx rgba(100, 116, 139, 0.06);
+}
+
+.ranking-card-3rd {
+  border-color: rgba(217, 119, 6, 0.2);
+  background: linear-gradient(135deg, #FFF7ED 0%, var(--bg-surface) 100%);
+  box-shadow: 0 4rpx 16rpx rgba(217, 119, 6, 0.06);
 }
 
 .ranking-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14rpx;
+  gap: 12rpx;
 }
 
 .ranking-left {
@@ -88,6 +59,7 @@
 .player-title {
   font-size: 30rpx;
   font-weight: 760;
+  color: var(--neutral-950);
 }
 
 .ranking-right {
@@ -95,112 +67,49 @@
   text-align: right;
 }
 
+.metric-title {
+  font-size: 28rpx;
+  font-weight: 780;
+  color: var(--neutral-950);
+}
+
+/* --- Trend Pill 紧凑化 --- */
 .trend-pill {
-  margin-top: 6rpx;
+  margin-top: 4rpx;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 96rpx;
-  padding: 2rpx 10rpx;
+  min-width: 88rpx;
+  padding: 2rpx 8rpx;
   border-radius: 999rpx;
-  font-size: 21rpx;
-  border: 1rpx solid #dbe5ef;
-  color: #64748b;
-  background: #f8fbff;
+  font-size: 20rpx;
+  font-weight: 600;
+  border: 1rpx solid var(--neutral-200);
+  color: var(--neutral-500);
+  background: var(--neutral-50);
 }
 
 .trend-pill.up {
-  color: #166534;
-  border-color: #bbf7d0;
-  background: #ecfdf3;
+  color: var(--brand-700);
+  border-color: var(--brand-100);
+  background: var(--brand-50);
 }
 
 .trend-pill.down {
-  color: #9f1239;
-  border-color: #fecdd3;
-  background: #fff1f2;
+  color: #9F1239;
+  border-color: #FECDD3;
+  background: #FFF1F2;
 }
 
-.metric-title {
-  font-size: 28rpx;
-  font-weight: 760;
-}
-
+/* --- Empty Title (兼容) --- */
 .empty-title {
-  font-size: 32rpx;
-  font-weight: 760;
+  font-size: 30rpx;
+  font-weight: 700;
   margin-bottom: 8rpx;
+  color: var(--neutral-700);
 }
 
-.ranking-skeleton {
-  overflow: hidden;
-}
-
-.skeleton-row {
-  margin-top: 18rpx;
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-}
-
-.skeleton-rank,
-.skeleton-line {
-  position: relative;
-  overflow: hidden;
-  background: #e9eef5;
-}
-
-.skeleton-rank::after,
-.skeleton-line::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  transform: translateX(-100%);
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.72) 50%, rgba(255, 255, 255, 0) 100%);
-  animation: skeleton-shimmer 1.4s linear infinite;
-}
-
-.skeleton-rank {
-  width: 68rpx;
-  height: 68rpx;
-  border-radius: 999rpx;
-  flex-shrink: 0;
-}
-
-.skeleton-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.skeleton-side {
-  width: 160rpx;
-}
-
-.skeleton-line {
-  height: 20rpx;
-  border-radius: 999rpx;
-  margin-top: 10rpx;
-}
-
-.skeleton-line-strong {
-  width: 72%;
-  height: 24rpx;
-  margin-top: 0;
-}
-
-.skeleton-line-short {
-  width: 100%;
-}
-
-.skeleton-line-mini {
-  width: 72%;
-}
-
-@keyframes skeleton-shimmer {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(100%);
-  }
+/* --- Ranking Skeleton --- */
+.ranking-skeleton-list {
+  margin-top: 8rpx;
 }

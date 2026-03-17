@@ -1,54 +1,76 @@
+/* ============================================================
+   Profile Page — 个人资料编辑
+   Design Token: app.wxss design system v2
+   ============================================================ */
+
 .profile-page {
-  gap: 20rpx;
+  gap: 16rpx;
 }
 
-.quick-fill-box {
-  margin-top: 18rpx;
-  padding: 14rpx;
-  border-radius: 18rpx;
-  border: 1rpx solid #dfe8f3;
-  background: #f8fbff;
+/* --- Form Card --- */
+.profile-form-card {
+  padding: 24rpx;
 }
 
-.quick-fill-btn {
-  margin: 0;
-}
-
-.profile-avatar-row {
+/* --- Avatar Section (居中) --- */
+.profile-avatar-section {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 20rpx;
-  margin-top: 20rpx;
+  gap: 16rpx;
+  padding-bottom: 24rpx;
+  border-bottom: 1rpx solid var(--neutral-200);
 }
 
 .profile-avatar {
-  width: 120rpx;
-  height: 120rpx;
+  width: 136rpx;
+  height: 136rpx;
   border-radius: 999rpx;
-  background: #e9edf3;
-  border: 2rpx solid #dfe8f2;
+  background: var(--neutral-100);
+  border: 3rpx solid var(--neutral-200);
 }
 
 .avatar-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 12rpx;
+  justify-content: center;
 }
 
 .avatar-tip {
-  margin-top: 10rpx;
+  margin-top: 0;
+}
+
+/* --- Quick Fill (更紧凑) --- */
+.quick-fill-box {
+  margin-top: 24rpx;
+  padding: 12rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid var(--neutral-200);
+  background: var(--bg-section);
+}
+
+.quick-fill-btn {
+  margin: 0;
+}
+
+/* --- Form Group --- */
+.profile-form-group {
+  margin-top: 8rpx;
 }
 
 .form-item {
-  margin-top: 20rpx;
+  margin-top: 24rpx;
 }
 
 .form-label {
   font-size: 26rpx;
-  color: #5b6577;
+  color: var(--neutral-500);
   margin-bottom: 12rpx;
+  font-weight: 500;
 }
 
+/* --- Gender Segment (更清晰) --- */
 .gender-segment {
   display: flex;
   gap: 12rpx;
@@ -56,11 +78,11 @@
 
 .gender-option {
   flex: 1;
-  min-height: 76rpx;
+  min-height: 80rpx;
   border-radius: 16rpx;
-  border: 1rpx solid #d9e5f0;
-  background: #edf3fa;
-  color: #334155;
+  border: 2rpx solid var(--neutral-200);
+  background: var(--neutral-100);
+  color: var(--neutral-700);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -76,10 +98,10 @@
 }
 
 .gender-option.selected {
-  background: #dff5e8;
-  border-color: #21a964;
-  color: #11653f;
-  box-shadow: inset 0 0 0 2rpx rgba(17, 101, 63, 0.08);
+  background: var(--brand-50);
+  border-color: var(--brand-500);
+  color: var(--brand-700);
+  box-shadow: 0 0 0 2rpx rgba(24, 179, 104, 0.1);
 }
 
 .gender-check {
@@ -90,21 +112,25 @@
 .gender-segment-error {
   padding: 6rpx;
   border-radius: 18rpx;
-  border: 1rpx solid #ef5350;
-  background: #fff3f3;
+  border: 1rpx solid var(--danger);
+  background: #FEF2F2;
 }
 
+/* --- Field Errors --- */
 .field-error {
   margin-top: 8rpx;
-  color: #b42318;
+  color: var(--danger);
   font-size: 22rpx;
+  font-weight: 500;
+  text-align: left;
 }
 
 .input-error {
-  border-color: #ef5350 !important;
-  background: #fff2f2 !important;
+  border-color: var(--danger) !important;
+  background: #FEF2F2 !important;
 }
 
+/* --- Save Actions (sticky bottom tray) --- */
 .profile-actions {
-  margin-top: 12rpx;
+  margin-top: 24rpx;
 }

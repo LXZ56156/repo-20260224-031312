@@ -1,56 +1,23 @@
+/* ============================================================
+   MATCH PAGE — 裁判录分终端 v2
+   比分舞台是第一视觉中心，8pt 网格，design token 驱动
+   ============================================================ */
+
+/* --- 页面容器 --- */
 .match-page {
-  padding-top: 24rpx;
+  padding-top: 16rpx;
 }
 
-.sync-banner {
-  margin-bottom: 12rpx;
-  padding: 12rpx 16rpx;
-  border-radius: 14rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20rpx;
+/* --- Sync Banner（固定占位，hidden 切换） --- */
+/* 样式复用全局 app.wxss 中的 .sync-banner / .sync-* tone 类 */
+/* 仅保留 match 页的间距微调 */
+.match-page > .sync-banner {
+  margin-bottom: 8rpx;
 }
 
-.sync-warning {
-  background: #fef3c7;
-  border: 1rpx solid #fcd34d;
-  color: #92400e;
-}
-
-.sync-info {
-  background: #eff6ff;
-  border: 1rpx solid #bfdbfe;
-  color: #1d4ed8;
-}
-
-.sync-neutral {
-  background: #f8fafc;
-  border: 1rpx solid #dbe5ef;
-  color: #334155;
-}
-
-.sync-banner-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.sync-banner-text {
-  font-size: 23rpx;
-  font-weight: 700;
-}
-
-.sync-banner-meta {
-  margin-top: 4rpx;
-  font-size: 21rpx;
-  line-height: 1.5;
-  opacity: 0.88;
-}
-
-.sync-banner-action {
-  flex-shrink: 0;
-  font-size: 22rpx;
-  font-weight: 760;
+/* --- Hero 紧凑化 --- */
+.hero-compact {
+  padding: 20rpx 24rpx;
 }
 
 .hero-head {
@@ -59,12 +26,31 @@
   gap: 12rpx;
 }
 
+.hero-title-compact {
+  font-size: 32rpx;
+  font-weight: 780;
+  line-height: 1.25;
+}
+
+.hero-sub-compact {
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  opacity: 0.82;
+  line-height: 1.4;
+}
+
+.match-status-tag {
+  background: rgba(255, 255, 255, 0.18);
+  border: 1rpx solid rgba(255, 255, 255, 0.24);
+}
+
+/* --- 批量录分进度 --- */
 .batch-progress {
-  margin-top: 14rpx;
-  padding: 14rpx 16rpx;
-  border-radius: 16rpx;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1rpx solid rgba(255, 255, 255, 0.22);
+  margin-top: 12rpx;
+  padding: 12rpx 16rpx;
+  border-radius: 14rpx;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1rpx solid rgba(255, 255, 255, 0.18);
 }
 
 .batch-progress-head {
@@ -76,19 +62,19 @@
 
 .batch-progress-label {
   font-size: 22rpx;
-  font-weight: 760;
+  font-weight: 700;
   color: rgba(255, 255, 255, 0.9);
 }
 
 .batch-progress-text {
   font-size: 21rpx;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.68);
 }
 
 .batch-progress-bar {
-  height: 10rpx;
+  height: 8rpx;
   border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.18);
   overflow: hidden;
 }
 
@@ -99,95 +85,148 @@
   transition: width 0.4s ease;
 }
 
-.quick-scores {
-  display: flex;
-  gap: 10rpx;
-  flex-wrap: wrap;
-  flex: 1;
-  min-width: 0;
-}
-
-.quick-score-chip {
-  padding: 8rpx 16rpx;
-  border-radius: 999rpx;
-  background: #ecf7f0;
-  border: 1rpx solid #cfe6d7;
-  color: #0f7a46;
-  font-size: 23rpx;
-  font-weight: 760;
-}
-
-.quick-score-chip:active {
-  background: #dcfce7;
-}
-
-.section-title {
-  font-size: 30rpx;
-  font-weight: 760;
-}
-
+/* --- 对阵区 --- */
 .match-vs {
-  margin-top: 12rpx;
+  margin-top: 8rpx;
   font-size: 32rpx;
   font-weight: 700;
   line-height: 1.4;
-  color: var(--text-1, #0f172a);
+  color: var(--neutral-950);
 }
 
 .vs {
   margin: 0 10rpx;
-  color: #6b7280;
+  color: var(--neutral-500);
   font-weight: 700;
 }
 
+/* --- 比分舞台（统一容器） --- */
+.score-stage {
+  padding: 24rpx;
+}
+
+.score-badge {
+  padding: 4rpx 12rpx;
+  border-radius: 999rpx;
+  background: var(--neutral-100);
+  color: var(--neutral-500);
+  font-size: 22rpx;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* --- 比分行 --- */
 .score-row {
-  margin-top: 14rpx;
+  margin-top: 16rpx;
   display: flex;
   gap: 16rpx;
+  align-items: stretch;
 }
 
 .score-col {
-  width: calc((100% - 16rpx) / 2);
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-.tiny {
-  margin-top: 6rpx;
-  font-size: 22rpx;
-  color: #6b7280;
+.score-divider {
+  width: 2rpx;
+  align-self: stretch;
+  margin: 8rpx 0;
+  background: var(--neutral-200);
+  border-radius: 999rpx;
+  flex-shrink: 0;
+}
+
+/* --- 选手名称 --- */
+.score-player-name {
+  margin-bottom: 8rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: var(--neutral-700);
+  line-height: 1.4;
   word-break: break-word;
 }
 
+/* --- 比分盒（只读） — 大字号，赛事工具感 --- */
 .score-box {
-  margin-top: 10rpx;
-  padding: 20rpx 24rpx;
+  padding: 24rpx;
   border-radius: 18rpx;
-  background: #f9fafb;
-  border: 1rpx solid var(--line-soft, #dbe5ef);
-  font-size: 40rpx;
-  font-weight: 700;
-  color: var(--text-1, #0f172a);
+  background: var(--neutral-100);
+  border: 2rpx solid var(--neutral-200);
+  font-size: 56rpx;
+  font-weight: 820;
+  letter-spacing: -0.5rpx;
+  color: var(--neutral-950);
+  text-align: center;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.score-box-readonly {
+  background: var(--bg-section);
+  border-color: var(--neutral-200);
+}
+
+/* --- 比分滚轮（编辑态） --- */
+.score-wheel {
+  margin-top: 0;
+  padding: 24rpx;
+  min-height: auto;
+  line-height: 1.15;
+  border-radius: 18rpx;
+  border: 2rpx solid var(--brand-500);
+  background: var(--brand-50);
+  font-size: 56rpx;
+  font-weight: 820;
+  letter-spacing: -0.5rpx;
+  text-align: center;
+  color: var(--brand-700);
+  font-variant-numeric: tabular-nums;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.score-wheel:active {
+  background: var(--brand-100);
+}
+
+/* --- 提示文字 --- */
+.score-tip {
+  margin-top: 16rpx;
   text-align: center;
 }
 
-.score-tip {
-  margin-top: 14rpx;
+/* --- 锁态面板 — 产品化设计 --- */
+.lock-panel {
+  margin-top: 16rpx;
+  padding: 16rpx 20rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid var(--neutral-200);
+  background: var(--neutral-50);
 }
 
-.lock-panel {
-  margin-top: 12rpx;
-  padding: 14rpx;
-  border-radius: 14rpx;
-  border: 1rpx solid #dbe5ef;
-  background: #f8fbff;
+.lock-icon-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8rpx;
+}
+
+.lock-icon {
+  font-size: 28rpx;
+  flex-shrink: 0;
+  line-height: 1.5;
 }
 
 .lock-hint {
-  font-size: 24rpx;
-  color: #334155;
+  font-size: 25rpx;
+  color: var(--neutral-700);
+  line-height: 1.5;
 }
 
 .lock-actions {
-  margin-top: 10rpx;
+  margin-top: 12rpx;
   display: flex;
   flex-wrap: wrap;
   gap: 10rpx;
@@ -205,65 +244,70 @@
   padding: 0 24rpx;
 }
 
+/* --- 快捷比分工具栏 --- */
 .score-toolbar {
-  margin-top: 12rpx;
+  margin-top: 16rpx;
   display: flex;
   align-items: center;
+  gap: 8rpx;
+}
+
+.quick-scores {
+  display: flex;
+  gap: 8rpx;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.quick-score-chip {
+  padding: 6rpx 14rpx;
+  border-radius: 999rpx;
+  background: var(--brand-50);
+  border: 1rpx solid var(--brand-100);
+  color: var(--brand-700);
+  font-size: 22rpx;
+  font-weight: 700;
+  transition: background 100ms ease, transform 100ms ease;
+}
+
+.quick-score-chip:active {
+  background: var(--brand-100);
+  transform: scale(0.96);
 }
 
 .mode-undo {
   margin-left: auto;
+  flex-shrink: 0;
 }
 
 .mode-undo.disabled {
-  opacity: 0.45;
+  opacity: 0.4;
 }
 
-.score-wheel {
-  margin-top: 10rpx;
-  min-height: 72rpx;
-  line-height: 72rpx;
-  border-radius: 16rpx;
-  border: 1rpx solid #dce5ef;
-  background: #f8fbff;
-  font-size: 36rpx;
-  font-weight: 760;
-  text-align: center;
-}
+/* --- 底部提交栏 — 复用全局 bottom-tray --- */
+/* .bottom-tray 样式已在 app.wxss 定义 */
 
-.submit-bar {
-  position: sticky;
-  bottom: calc(env(safe-area-inset-bottom) + 10rpx);
-  margin-top: 14rpx;
-  padding: 10rpx;
-  border-radius: 20rpx;
-  border: 1rpx solid #dbe5ef;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 8rpx 20rpx rgba(15, 23, 42, 0.12);
-  z-index: 9;
-}
+/* --- 重试提交 — 复用全局 retry-box --- */
+/* .retry-box 样式已在 app.wxss 定义 */
 
-.submit-btn {
-  margin-top: 0 !important;
-}
-
-.retry-box {
+/* --- Skeleton 比分舞台 --- */
+.skeleton-score-row {
   margin-top: 16rpx;
-  padding: 14rpx;
-  border-radius: 16rpx;
-  border: 1rpx solid var(--line-soft, #dbe5ef);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12rpx;
+  gap: 16rpx;
 }
 
-.state-title {
-  font-size: 32rpx;
-  font-weight: 760;
-  margin-bottom: 8rpx;
+.skeleton-score-col {
+  flex: 1;
 }
 
+.skeleton-score-box {
+  height: 112rpx;
+  border-radius: 18rpx;
+}
+
+/* --- 响应式：窄屏 --- */
 @media (max-width: 360px) {
   .score-row {
     flex-direction: column;
@@ -272,5 +316,12 @@
 
   .score-col {
     width: 100%;
+  }
+
+  .score-divider {
+    width: 100%;
+    height: 2rpx;
+    margin: 4rpx 0;
+    align-self: auto;
   }
 }

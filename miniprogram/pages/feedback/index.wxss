@@ -1,3 +1,5 @@
+/* feedback — 轻对话式反馈页 */
+
 .feedback-page {
   gap: 20rpx;
 }
@@ -11,20 +13,10 @@
 }
 
 .feedback-block-title {
-  font-size: 32rpx;
-  font-weight: 760;
-  color: #0f172a;
+  font-size: 30rpx;
+  font-weight: 740;
+  color: var(--neutral-950);
   margin-bottom: 10rpx;
-}
-
-.form-item {
-  margin-top: 20rpx;
-}
-
-.form-label {
-  font-size: 26rpx;
-  color: #5b6577;
-  margin-bottom: 12rpx;
 }
 
 .feedback-actions {

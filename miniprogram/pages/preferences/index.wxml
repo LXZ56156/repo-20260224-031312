@@ -57,19 +57,19 @@
     </view>
     <view class="form-item switch-item">
       <view class="form-label">录分后自动返回</view>
-      <switch checked="{{autoReturn}}" color="#1EA65E" bindchange="onAutoReturnChange"></switch>
+      <switch checked="{{autoReturn}}" color="#18B368" bindchange="onAutoReturnChange"></switch>
     </view>
     <view class="form-item switch-item">
       <view class="form-label">录分后自动下一场</view>
-      <switch checked="{{autoNext}}" color="#1EA65E" bindchange="onAutoNextChange"></switch>
+      <switch checked="{{autoNext}}" color="#18B368" bindchange="onAutoNextChange"></switch>
     </view>
     <view class="form-item switch-item">
       <view class="form-label">开赛提醒</view>
-      <switch checked="{{notifyStart}}" color="#1EA65E" bindchange="onNotifyStartChange"></switch>
+      <switch checked="{{notifyStart}}" color="#18B368" bindchange="onNotifyStartChange"></switch>
     </view>
     <view class="form-item switch-item">
       <view class="form-label">结果提醒</view>
-      <switch checked="{{notifyResult}}" color="#1EA65E" bindchange="onNotifyResultChange"></switch>
+      <switch checked="{{notifyResult}}" color="#18B368" bindchange="onNotifyResultChange"></switch>
     </view>
   </view>
 

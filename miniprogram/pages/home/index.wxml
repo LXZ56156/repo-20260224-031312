@@ -1,5 +1,6 @@
 <view class="page home-page" wx:if="{{!loadError}}">
-  <view class="sync-banner sync-{{syncStatusTone}}" wx:if="{{syncStatusVisible}}">
+  <!-- sync-banner: hidden 替代 wx:if，消除 layout shift -->
+  <view class="sync-banner sync-{{syncStatusTone}}" hidden="{{!syncStatusVisible}}">
     <view class="sync-banner-main">
       <view class="sync-banner-text">{{syncStatusText}}</view>
       <view class="sync-banner-meta" wx:if="{{syncStatusMeta}}">{{syncStatusMeta}}</view>
@@ -7,7 +8,8 @@
     <text class="sync-banner-action" bindtap="onRetry">{{syncStatusActionText}}</text>
   </view>
 
-  <view class="hero-card card panel-strong reveal reveal-1" wx:if="{{showHeroCard}}">
+  <!-- Hero: 紧凑工作台卡片 -->
+  <view class="hero-card hero reveal reveal-1" wx:if="{{showHeroCard}}">
     <view class="hero-grid">
       <view class="hero-main">
         <view class="hero-env-badge" wx:if="{{showEnvBadge}}">{{envBadgeLabel}}</view>
@@ -36,50 +38,71 @@
     </view>
   </view>
 
+  <!-- 赛事列表 section -->
   <view class="section reveal reveal-2">
     <view class="section-head">
       <view class="section-title">我的赛事</view>
       <text class="count-pill">{{visibleCount}} 个</text>
     </view>
-    <view class="sort-row" wx:if="{{items.length>1}}">
-      <text class="sort-label">排序</text>
-      <text class="sort-chip {{sortMode==='updated' ? 'active' : ''}}" data-mode="updated" bindtap="onChangeSortMode">最近更新</text>
-      <text class="sort-chip {{sortMode==='players' ? 'active' : ''}}" data-mode="players" bindtap="onChangeSortMode">按人数</text>
-      <text class="sort-chip {{sortMode==='status' ? 'active' : ''}}" data-mode="status" bindtap="onChangeSortMode">按状态</text>
-    </view>
-    <view class="filter-row" wx:if="{{items.length>1}}">
-      <text class="filter-chip {{filterStatus==='all' ? 'active' : ''}}" data-status="all" bindtap="onChangeFilterStatus">全部 {{items.length}}</text>
-      <text class="filter-chip {{filterStatus==='running' ? 'active' : ''}}" data-status="running" bindtap="onChangeFilterStatus">进行中 {{statusCountRunning}}</text>
-      <text class="filter-chip {{filterStatus==='draft' ? 'active' : ''}}" data-status="draft" bindtap="onChangeFilterStatus">草稿 {{statusCountDraft}}</text>
-      <text class="filter-chip {{filterStatus==='finished' ? 'active' : ''}}" data-status="finished" bindtap="onChangeFilterStatus">已结束 {{statusCountFinished}}</text>
-    </view>
-
-    <view wx:if="{{loading && !items.length}}">
-      <view class="skeleton-card reveal reveal-1">
-        <view class="skeleton-row" style="margin-bottom: 16rpx;">
-          <view class="skeleton-bone skeleton-line skeleton-line-medium" style="margin-bottom: 0;"></view>
-          <view class="skeleton-bone skeleton-pill"></view>
-        </view>
-        <view class="skeleton-row" style="gap: 10rpx;">
-          <view class="skeleton-bone skeleton-pill"></view>
-          <view class="skeleton-bone skeleton-pill"></view>
-          <view class="skeleton-bone skeleton-pill"></view>
-        </view>
-        <view class="skeleton-bone skeleton-line skeleton-line-short" style="margin-top: 14rpx;"></view>
+    <view class="toolbar-row" wx:if="{{items.length>1}}">
+      <view class="sort-row">
+        <text class="sort-label">排序</text>
+        <text class="sort-chip {{sortMode==='updated' ? 'active' : ''}}" data-mode="updated" bindtap="onChangeSortMode">最近更新</text>
+        <text class="sort-chip {{sortMode==='players' ? 'active' : ''}}" data-mode="players" bindtap="onChangeSortMode">按人数</text>
+        <text class="sort-chip {{sortMode==='status' ? 'active' : ''}}" data-mode="status" bindtap="onChangeSortMode">按状态</text>
       </view>
-      <view class="skeleton-card reveal reveal-2">
-        <view class="skeleton-row" style="margin-bottom: 16rpx;">
-          <view class="skeleton-bone skeleton-line skeleton-line-long" style="margin-bottom: 0;"></view>
-          <view class="skeleton-bone skeleton-pill"></view>
-        </view>
-        <view class="skeleton-row" style="gap: 10rpx;">
-          <view class="skeleton-bone skeleton-pill"></view>
-          <view class="skeleton-bone skeleton-pill"></view>
-        </view>
-        <view class="skeleton-bone skeleton-line skeleton-line-short" style="margin-top: 14rpx;"></view>
+      <view class="filter-row">
+        <text class="filter-chip {{filterStatus==='all' ? 'active' : ''}}" data-status="all" bindtap="onChangeFilterStatus">全部 {{items.length}}</text>
+        <text class="filter-chip {{filterStatus==='running' ? 'active' : ''}}" data-status="running" bindtap="onChangeFilterStatus">进行中 {{statusCountRunning}}</text>
+        <text class="filter-chip {{filterStatus==='draft' ? 'active' : ''}}" data-status="draft" bindtap="onChangeFilterStatus">草稿 {{statusCountDraft}}</text>
+        <text class="filter-chip {{filterStatus==='finished' ? 'active' : ''}}" data-status="finished" bindtap="onChangeFilterStatus">已结束 {{statusCountFinished}}</text>
       </view>
     </view>
 
+    <!-- skeleton: 更拟真的卡片骨架 -->
+    <view wx:if="{{loading && !items.length}}" class="skeleton-list">
+      <view class="skeleton-card-wrap reveal reveal-1">
+        <view class="skeleton-card">
+          <view class="skeleton-row" style="margin-bottom: 16rpx;">
+            <view class="skeleton-bone skeleton-line skeleton-line-medium" style="margin-bottom: 0;"></view>
+            <view class="skeleton-bone skeleton-badge"></view>
+          </view>
+          <view class="skeleton-row" style="gap: 10rpx;">
+            <view class="skeleton-bone skeleton-pill"></view>
+            <view class="skeleton-bone skeleton-pill"></view>
+            <view class="skeleton-bone skeleton-pill"></view>
+          </view>
+          <view class="skeleton-bone skeleton-line skeleton-line-short" style="margin-top: 14rpx;"></view>
+        </view>
+      </view>
+      <view class="skeleton-card-wrap reveal reveal-2">
+        <view class="skeleton-card">
+          <view class="skeleton-row" style="margin-bottom: 16rpx;">
+            <view class="skeleton-bone skeleton-line skeleton-line-long" style="margin-bottom: 0;"></view>
+            <view class="skeleton-bone skeleton-badge"></view>
+          </view>
+          <view class="skeleton-row" style="gap: 10rpx;">
+            <view class="skeleton-bone skeleton-pill"></view>
+            <view class="skeleton-bone skeleton-pill"></view>
+          </view>
+          <view class="skeleton-bone skeleton-line skeleton-line-short" style="margin-top: 14rpx;"></view>
+        </view>
+      </view>
+      <view class="skeleton-card-wrap reveal reveal-3">
+        <view class="skeleton-card">
+          <view class="skeleton-row" style="margin-bottom: 16rpx;">
+            <view class="skeleton-bone skeleton-line skeleton-line-long" style="margin-bottom: 0;"></view>
+            <view class="skeleton-bone skeleton-badge"></view>
+          </view>
+          <view class="skeleton-row" style="gap: 10rpx;">
+            <view class="skeleton-bone skeleton-pill"></view>
+            <view class="skeleton-bone skeleton-pill"></view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 赛事列表 -->
     <block wx:if="{{visibleCount>0}}">
       <block wx:for="{{items}}" wx:key="_id">
         <block wx:if="{{filterStatus==='all' || item.status===filterStatus}}">
@@ -113,8 +136,12 @@
         </block>
       </block>
     </block>
-    <view wx:else class="empty panel-soft section-empty">
-      <view class="empty-text">当前筛选下还没有比赛</view>
+
+    <!-- 空态: 统一 state-empty 结构 -->
+    <view wx:else class="state-empty">
+      <view class="state-empty-icon">📋</view>
+      <view class="state-empty-title">当前筛选下还没有比赛</view>
+      <view class="state-empty-desc">创建新赛事或切换筛选条件查看更多</view>
     </view>
   </view>
 
@@ -150,10 +177,14 @@
   </view>
 </view>
 
+<!-- 错误态: 统一 state-error 结构 -->
 <view class="container safe-bottom" wx:else>
-  <view class="card panel">
-    <view class="section-title">加载失败</view>
-    <view class="muted">请检查网络后重试。</view>
-    <button class="btn btn-subtle" bindtap="onRetry">重新加载</button>
+  <view class="state-error">
+    <view class="state-error-icon">⚠️</view>
+    <view class="state-error-title">加载失败</view>
+    <view class="state-error-desc">请检查网络后重试</view>
+    <view class="state-error-actions">
+      <button class="btn btn-primary" bindtap="onRetry">重新加载</button>
+    </view>
   </view>
 </view>

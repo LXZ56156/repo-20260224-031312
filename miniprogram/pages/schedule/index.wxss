@@ -1,142 +1,133 @@
-@import "../../styles/matchPrimaryNav.wxss";
+/* Schedule 页面样式 — 赛事中控台风 */
 
 .schedule-page {
   padding-top: 24rpx;
 }
 
+/* --- Hero 紧凑化 --- */
 .hero-kicker {
   font-size: 22rpx;
-  font-weight: 760;
-  color: rgba(255, 255, 255, 0.8);
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.78);
+  letter-spacing: 0.5rpx;
+  text-transform: uppercase;
 }
 
 .hero-head {
-  gap: 14rpx;
+  gap: 12rpx;
 }
 
 .hero-title {
-  margin-top: 8rpx;
-  font-size: 40rpx;
-  font-weight: 840;
+  margin-top: 4rpx;
+  font-size: 36rpx;
+  font-weight: 820;
   color: #ffffff;
 }
 
 .hero-sub {
-  margin-top: 8rpx;
+  margin-top: 4rpx;
   font-size: 24rpx;
   color: rgba(255, 255, 255, 0.88);
 }
 
-.sync-banner {
-  margin-bottom: 12rpx;
-  padding: 12rpx 16rpx;
-  border-radius: 14rpx;
+.hero-stats {
+  margin-top: 16rpx;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8rpx;
+}
+
+.hero-stat {
+  padding: 12rpx 14rpx;
+  border-radius: 16rpx;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1rpx solid rgba(255, 255, 255, 0.18);
+}
+
+.hero-stat-value {
+  color: #ffffff;
+  font-size: 26rpx;
+  font-weight: 780;
+}
+
+.hero-stat-label {
+  display: block;
+  margin-top: 4rpx;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 21rpx;
+}
+
+.hero-actions {
+  margin-top: 12rpx;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 20rpx;
+  gap: 12rpx;
+  flex-wrap: wrap;
 }
 
-.sync-warning {
-  background: #fef3c7;
-  border: 1rpx solid #fcd34d;
-  color: #92400e;
+.hero-btn {
+  width: auto;
+  min-width: 200rpx;
+  padding: 0 24rpx;
 }
 
-.sync-info {
-  background: #eff6ff;
-  border: 1rpx solid #bfdbfe;
-  color: #1d4ed8;
+.hero-primary {
+  min-width: 220rpx;
 }
 
-.sync-neutral {
-  background: #f8fafc;
-  border: 1rpx solid #dbe5ef;
-  color: #334155;
-}
-
-.sync-banner-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.sync-banner-text {
-  font-size: 23rpx;
-  font-weight: 700;
-}
-
-.sync-banner-meta {
-  margin-top: 4rpx;
-  font-size: 21rpx;
-  opacity: 0.88;
-  line-height: 1.5;
-}
-
-.sync-banner-action {
-  flex-shrink: 0;
-  font-size: 22rpx;
-  font-weight: 760;
-}
-
-.state-card {
-  margin-top: 18rpx;
-}
-
-.state-title {
-  font-size: 32rpx;
-  font-weight: 760;
-  margin-bottom: 8rpx;
-}
-
-.state-link {
-  margin-top: 12rpx;
-  display: inline-flex;
-  align-items: center;
-  min-height: 48rpx;
-  padding: 0 12rpx;
-  color: var(--brand-strong, #14804b);
-  font-size: 24rpx;
-  font-weight: 760;
-}
-
+/* --- Round Card --- */
 .round-card {
-  border-radius: 24rpx;
+  border-radius: 20rpx;
   padding: 20rpx;
-  margin-top: 18rpx;
+  margin-top: 16rpx;
 }
 
 .round-card-current {
-  border-color: #86efac;
-  box-shadow: 0 10rpx 22rpx rgba(20, 128, 75, 0.08);
+  border-color: var(--brand-100);
+  border-left: 6rpx solid var(--brand-500);
+  box-shadow: 0 8rpx 24rpx rgba(24, 179, 104, 0.1);
 }
 
 .round-header {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  padding: 6rpx 6rpx 14rpx;
+  padding: 4rpx 4rpx 12rpx;
 }
 
 .round-title {
-  font-size: 34rpx;
+  font-size: 32rpx;
   font-weight: 800;
-  color: var(--text-1, #0f172a);
+  color: var(--neutral-950);
 }
 
+.count-pill-active {
+  background: var(--brand-50);
+  border-color: var(--brand-100);
+  color: var(--brand-600);
+}
+
+/* --- Match Card --- */
 .match-card {
   display: flex;
   justify-content: space-between;
   gap: 16rpx;
-  background: var(--surface-2, #edf2f8);
-  border-radius: 20rpx;
+  background: var(--neutral-100);
+  border-radius: 16rpx;
   padding: 16rpx;
-  margin-bottom: 14rpx;
-  border: 1rpx solid var(--line-soft, #dbe5ef);
+  margin-bottom: 12rpx;
+  border: 1rpx solid var(--neutral-200);
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.match-card:last-child {
+  margin-bottom: 0;
 }
 
 .match-card-focus {
-  border-color: #22c55e;
-  background: linear-gradient(180deg, #f3fbf5 0%, #edf9f0 100%);
+  border-color: var(--brand-500);
+  background: var(--brand-50);
+  box-shadow: inset 0 0 0 1rpx rgba(24, 179, 104, 0.12);
 }
 
 .match-left {
@@ -145,42 +136,43 @@
 }
 
 .match-title {
-  font-weight: 800;
-  color: var(--text-1, #0f172a);
+  font-weight: 780;
+  color: var(--neutral-950);
   font-size: 28rpx;
-  margin-bottom: 8rpx;
+  margin-bottom: 6rpx;
 }
 
 .match-sub {
-  color: #334155;
+  color: var(--neutral-700);
   font-size: 26rpx;
   line-height: 36rpx;
   word-break: break-word;
 }
 
 .vs {
-  color: #94a3b8;
-  margin: 0 10rpx;
+  color: var(--neutral-300);
+  margin: 0 8rpx;
   font-size: 24rpx;
+  font-weight: 600;
 }
 
 .score {
-  margin-top: 8rpx;
+  margin-top: 6rpx;
   font-size: 24rpx;
-  color: #0f766e;
+  color: var(--brand-700);
 }
 
 .focus-pill {
   margin-top: 8rpx;
   display: inline-flex;
   align-items: center;
-  min-height: 42rpx;
+  min-height: 40rpx;
   padding: 0 12rpx;
   border-radius: 999rpx;
-  background: rgba(34, 197, 94, 0.14);
-  color: #166534;
+  background: rgba(24, 179, 104, 0.1);
+  color: var(--brand-700);
   font-size: 21rpx;
-  font-weight: 760;
+  font-weight: 700;
 }
 
 .match-right {
@@ -189,7 +181,7 @@
 }
 
 .pill {
-  padding: 10rpx 14rpx;
+  padding: 8rpx 14rpx;
   border-radius: 999rpx;
   font-size: 22rpx;
   font-weight: 700;
@@ -197,69 +189,56 @@
 }
 
 .pill-pending {
-  background: rgba(16, 185, 129, 0.12);
-  color: #065f46;
+  background: rgba(24, 179, 104, 0.1);
+  color: var(--brand-700);
 }
 
 .pill-finished {
-  background: rgba(59, 130, 246, 0.12);
-  color: #1d4ed8;
+  background: var(--info-100);
+  color: var(--info-500);
 }
 
 .pill-canceled {
-  background: rgba(148, 163, 184, 0.2);
-  color: #475569;
+  background: var(--neutral-100);
+  color: var(--neutral-500);
 }
 
 .team-meta {
-  margin-top: 6rpx;
+  margin-top: 4rpx;
 }
 
 .rest {
   padding: 4rpx 8rpx 0;
 }
 
-.hero-actions {
-  margin-top: 14rpx;
-  display: flex;
+/* --- State Cards --- */
+.state-card {
+  margin-top: 16rpx;
+}
+
+.state-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  margin-bottom: 8rpx;
+  color: var(--neutral-700);
+}
+
+.state-link {
+  margin-top: 12rpx;
+  display: inline-flex;
   align-items: center;
-  gap: 16rpx;
-  flex-wrap: wrap;
+  min-height: 48rpx;
+  padding: 0 12rpx;
+  color: var(--brand-600);
+  font-size: 24rpx;
+  font-weight: 700;
 }
 
-.hero-btn {
-  width: auto;
-  min-width: 220rpx;
-  padding: 0 24rpx;
-}
-
-.hero-primary {
-  min-width: 240rpx;
-}
-
-.hero-stats {
-  margin-top: 18rpx;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12rpx;
-}
-
-.hero-stat {
-  padding: 14rpx 16rpx;
-  border-radius: 18rpx;
-  background: rgba(255, 255, 255, 0.16);
-  border: 1rpx solid rgba(255, 255, 255, 0.22);
-}
-
-.hero-stat-value {
-  color: #ffffff;
-  font-size: 26rpx;
-  font-weight: 760;
-}
-
-.hero-stat-label {
-  display: block;
-  margin-top: 6rpx;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 21rpx;
+/* --- Skeleton 拟真化 --- */
+.skeleton-match-block {
+  margin-top: 16rpx;
+  padding: 14rpx;
+  border-radius: 16rpx;
+  background: var(--neutral-100);
+  border: 1rpx solid var(--neutral-200);
 }

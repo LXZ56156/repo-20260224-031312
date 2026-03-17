@@ -11,7 +11,7 @@
     </view>
   </view>
 
-  <view class="sync-banner sync-{{syncStatusTone}}" wx:if="{{syncStatusVisible}}">
+  <view class="sync-banner sync-{{syncStatusTone}}" hidden="{{!syncStatusVisible}}">
     <view class="sync-banner-main">
       <view class="sync-banner-text">{{syncStatusText}}</view>
       <view class="sync-banner-meta" wx:if="{{syncStatusMeta}}">{{syncStatusMeta}}</view>
@@ -23,28 +23,26 @@
     <view class="row hero-top">
       <view class="flex-1 minw0">
         <view class="hero-title ellipsis">{{tournament.name}}</view>
-        <view class="hero-sub">{{modeLabel}} · 21分制</view>
+        <view class="hero-sub">{{modeLabel}} · {{statusText}}</view>
       </view>
-      <view class="tag {{statusClass}}">{{statusText}}</view>
+      <view class="hero-badges">
+        <view class="hero-role-pill" wx:if="{{isAdmin}}">管理员</view>
+        <view class="hero-role-pill" wx:if="{{myJoined}}">已参赛</view>
+      </view>
     </view>
 
-    <view class="hero-meta">
-      <view class="meta-pill meta-admin" wx:if="{{isAdmin}}">管理员</view>
-      <view class="meta-pill meta-player" wx:if="{{myJoined}}">已参赛</view>
-    </view>
-
-    <view class="kpi">
-      <view class="kpi-item">
-        <view class="kpi-label">人数</view>
-        <view class="kpi-value">{{kpiPlayers}}</view>
+    <view class="kpi-strip">
+      <view class="kpi-chip">
+        <text class="kpi-chip-value">{{kpiPlayers}}</text>
+        <text class="kpi-chip-label">人</text>
       </view>
-      <view class="kpi-item">
-        <view class="kpi-label">总场次</view>
-        <view class="kpi-value">{{kpiMatches}}</view>
+      <view class="kpi-chip">
+        <text class="kpi-chip-value">{{kpiMatches}}</text>
+        <text class="kpi-chip-label">场</text>
       </view>
-      <view class="kpi-item">
-        <view class="kpi-label">每轮最多</view>
-        <view class="kpi-value">{{kpiCourts}}</view>
+      <view class="kpi-chip">
+        <text class="kpi-chip-value">{{kpiCourts}}</text>
+        <text class="kpi-chip-label">场地</text>
       </view>
       <view class="kpi-settings" wx:if="{{isAdmin && tournament.status==='draft'}}" bindtap="goEditTournament">
         <text class="kpi-settings-icon">⚙</text>
@@ -52,13 +50,13 @@
     </view>
   </view>
 
-  <view class="card panel panel-soft state-overview reveal reveal-2" wx:if="{{statePanelSummary}}">
+  <view class="card panel state-overview reveal reveal-2" wx:if="{{statePanelSummary}}">
     <view class="section-head">
       <view class="section-title">{{statePanelTitle}}</view>
       <text class="count-pill">{{stateStageBadge}} · {{statePanelRoleLabel}}</text>
     </view>
     <view class="state-panel-summary">{{statePanelSummary}}</view>
-    <view class="draft-prep panel-soft state-checklist" wx:if="{{showStateChecklist}}">
+    <view class="state-checklist panel-soft" wx:if="{{showStateChecklist}}">
       <view class="prep-tile" wx:for="{{checklistItems}}" wx:key="key" data-key="{{item.key}}" bindtap="onChecklistTap">
         <text class="prep-indicator {{item.done ? 'ok' : ''}}"></text>
         <view class="prep-main">
@@ -73,7 +71,7 @@
     </view>
   </view>
 
-  <view class="card panel panel-soft profile-panel reveal reveal-3" wx:if="{{showViewOnlyJoinPrompt}}">
+  <view class="card panel profile-panel reveal reveal-3" wx:if="{{showViewOnlyJoinPrompt}}">
     <view class="section-head">
       <view class="section-title">先看比赛信息</view>
       <text class="count-pill">不会自动加入</text>
@@ -130,19 +128,49 @@
     <button class="btn btn-primary" bindtap="submitProfile" loading="{{profileSaving}}" disabled="{{profileSaving || profileQuickFillLoading || profileAvatarUploading}}">{{showJoin ? '确认加入' : '保存我的信息'}}</button>
   </view>
 
-  <view class="card panel share-invite reveal reveal-3" id="share-invite" wx:if="{{tournament && tournament.status==='draft'}}">
-    <view class="section-head share-invite-head">
-      <view>
-        <view class="section-title">{{shareCardTitle}}</view>
+  <view class="card panel reveal reveal-4">
+    <view class="section-head">
+      <view class="section-title">参赛名单</view>
+      <view class="row-right">
+        <text class="count-pill">{{tournament.players.length}} 人</text>
+        <text class="link-btn" wx:if="{{tournament.players.length>12}}" bindtap="togglePlayers">{{showAllPlayers?'收起':'展开'}}</text>
       </view>
-      <text class="count-pill">{{shareCardBadge}}</text>
     </view>
-    <button class="btn btn-primary {{sharePulse ? 'share-pulse' : ''}}" open-type="share">{{shareButtonText}}</button>
+    <view class="player-grid" wx:if="{{displayPlayers.length}}">
+      <view class="player-cell" wx:for="{{displayPlayers}}" wx:key="id" data-player="{{item.id}}" bindtap="onTogglePlayerSquad">
+        <view class="player-avatar {{item.colorClass}}">
+          <image class="player-avatar-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill"></image>
+          <text class="player-initial" wx:else>{{item.initial}}</text>
+        </view>
+        <view class="player-name ellipsis">{{item.name}}</view>
+        <view class="player-gender">{{item.genderLabel}}</view>
+        <view class="player-gender" wx:if="{{mode==='squad_doubles'}}">{{item.squad ? item.squad + '队' : '未分队'}}</view>
+      </view>
+    </view>
+    <view class="player-grid-empty" wx:else>
+      <view class="player-grid-empty-text">暂无参赛者，分享邀请好友加入</view>
+    </view>
   </view>
 
-  <view class="card panel admin-panel reveal reveal-4" wx:if="{{showDraftAdminPanel}}">
+  <view id="share-invite" class="share-bar reveal reveal-5" wx:if="{{tournament && tournament.status==='draft'}}">
+    <view class="share-bar-left">
+      <view class="share-bar-title">{{shareCardTitle}}</view>
+      <view class="share-bar-badge">{{shareCardBadge}}</view>
+    </view>
+    <button class="btn btn-secondary btn-inline btn-sm share-bar-btn {{sharePulse ? 'share-pulse' : ''}}" open-type="share">{{shareButtonText}}</button>
+  </view>
+
+  <view class="share-bar reveal reveal-5" wx:if="{{tournament && tournament.status!=='draft'}}">
+    <view class="share-bar-left">
+      <view class="share-bar-title">{{shareCardTitle}}</view>
+      <view class="share-bar-badge">{{shareCardBadge}}</view>
+    </view>
+    <button class="btn btn-secondary btn-inline btn-sm share-bar-btn {{sharePulse ? 'share-pulse' : ''}}" open-type="share">{{shareButtonText}}</button>
+  </view>
+
+  <view class="card panel admin-panel reveal reveal-5" wx:if="{{showDraftAdminPanel}}">
     <view class="section-head admin-collapse-head" bindtap="toggleAdminPanel">
-      <view class="section-title">管理员主准备区</view>
+      <view class="section-title admin-section-title">管理员面板</view>
       <view class="row-right">
         <text class="count-pill">待完成 {{quickChecklistPending}} 项</text>
         <text class="admin-collapse-arrow {{adminPanelExpanded ? 'expanded' : ''}}">▾</text>
@@ -214,10 +242,9 @@
     </view><!-- /admin-collapse-body -->
   </view>
 
-  <view class="card panel reveal reveal-4">
+  <view class="card panel panel-soft info-panel reveal reveal-6">
     <view class="section-head">
       <view class="section-title">比赛信息</view>
-      <text class="count-pill">{{statusText}}</text>
     </view>
     <view class="rule-chips">
       <text class="rule-chip">{{modeLabel}}</text>
@@ -229,52 +256,21 @@
     <view class="muted small" wx:if="{{tournament.createdAt}}">创建 {{createdAtText}}</view>
   </view>
 
-  <view class="card panel reveal reveal-5">
-    <view class="section-head">
-      <view class="section-title">参赛名单</view>
-      <view class="row-right">
-        <text class="count-pill">{{tournament.players.length}} 人</text>
-        <text class="link-btn" wx:if="{{tournament.players.length>12}}" bindtap="togglePlayers">{{showAllPlayers?'收起':'展开'}}</text>
-      </view>
-    </view>
-    <view class="player-grid" wx:if="{{displayPlayers.length}}">
-      <view class="player-cell" wx:for="{{displayPlayers}}" wx:key="id" data-player="{{item.id}}" bindtap="onTogglePlayerSquad">
-        <view class="player-avatar {{item.colorClass}}">
-          <image class="player-avatar-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill"></image>
-          <text class="player-initial" wx:else>{{item.initial}}</text>
-        </view>
-        <view class="player-name ellipsis">{{item.name}}</view>
-        <view class="player-gender">{{item.genderLabel}}</view>
-        <view class="player-gender" wx:if="{{mode==='squad_doubles'}}">{{item.squad ? item.squad + '队' : '未分队'}}</view>
-      </view>
-    </view>
-    <view class="panel-soft list-empty" wx:else>
-      <view class="list-empty-title">先转发比赛</view>
-    </view>
-  </view>
-
-  <view class="card panel share-invite reveal reveal-5" id="share-invite" wx:if="{{tournament && tournament.status!=='draft'}}">
-    <view class="section-head share-invite-head">
-      <view>
-        <view class="section-title">{{shareCardTitle}}</view>
-      </view>
-      <text class="count-pill">{{shareCardBadge}}</text>
-    </view>
-    <button class="btn btn-primary {{sharePulse ? 'share-pulse' : ''}}" open-type="share">{{shareButtonText}}</button>
-  </view>
-
-  <view class="retry-box panel-soft" wx:if="{{canRetryAction}}">
+  <view class="retry-box" wx:if="{{canRetryAction}}">
     <view class="muted small">{{lastFailedActionText}}</view>
     <button class="btn btn-subtle btn-sm" bindtap="retryLastAction">重试上次操作</button>
   </view>
 </view>
 
 <view class="container safe-bottom" wx:elif="{{loadError}}">
-  <view class="card panel reveal reveal-1">
-    <view class="loading-title">{{loadErrorTitle}}</view>
-    <view class="muted">{{loadErrorMessage}}</view>
-    <button class="btn btn-subtle" bindtap="onRetry">重新加载</button>
-    <button class="btn btn-ghost" wx:if="{{showLoadErrorHome}}" bindtap="goHome">返回首页</button>
+  <view class="state-error">
+    <view class="state-error-icon">⚠</view>
+    <view class="state-error-title">{{loadErrorTitle}}</view>
+    <view class="state-error-desc">{{loadErrorMessage}}</view>
+    <view class="state-error-actions">
+      <button class="btn btn-subtle btn-sm" bindtap="onRetry">重新加载</button>
+      <button class="btn btn-ghost btn-sm" wx:if="{{showLoadErrorHome}}" bindtap="goHome">返回首页</button>
+    </view>
   </view>
 </view>
 

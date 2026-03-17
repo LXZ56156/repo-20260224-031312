@@ -1,5 +1,5 @@
 <view class="container safe-bottom settings-page" wx:if="{{tournament}}">
-  <view class="sync-banner sync-{{syncStatusTone}}" wx:if="{{syncStatusVisible}}">
+  <view class="sync-banner sync-{{syncStatusTone}}" hidden="{{!syncStatusVisible}}">
     <view class="sync-banner-main">
       <view class="sync-banner-text">{{syncStatusText}}</view>
       <view class="sync-banner-meta" wx:if="{{syncStatusMeta}}">{{syncStatusMeta}}</view>
@@ -148,17 +148,23 @@
 </view>
 
 <view class="container safe-bottom settings-page" wx:elif="{{loadError}}">
-  <view class="card panel">
-    <view class="state-title">{{loadErrorTitle}}</view>
-    <view class="muted">{{loadErrorMessage}}</view>
-    <button class="btn btn-subtle" bindtap="onRetry">重新加载</button>
-    <button class="btn btn-ghost" bindtap="goHome" wx:if="{{showLoadErrorHome}}">返回首页</button>
+  <view class="card panel state-error">
+    <view class="state-error-icon">⚠️</view>
+    <view class="state-error-title">{{loadErrorTitle}}</view>
+    <view class="state-error-desc">{{loadErrorMessage}}</view>
+    <view class="state-error-actions">
+      <button class="btn btn-subtle" bindtap="onRetry">重新加载</button>
+      <button class="btn btn-ghost" bindtap="goHome" wx:if="{{showLoadErrorHome}}">返回首页</button>
+    </view>
   </view>
 </view>
 
 <view class="container safe-bottom settings-page" wx:else>
   <view class="card panel">
-    <view class="state-title">加载中...</view>
-    <view class="muted">正在同步赛事设置。</view>
+    <view class="state-empty">
+      <view class="state-empty-icon">⏳</view>
+      <view class="state-empty-title">加载中...</view>
+      <view class="state-empty-desc">正在同步赛事设置</view>
+    </view>
   </view>
 </view>

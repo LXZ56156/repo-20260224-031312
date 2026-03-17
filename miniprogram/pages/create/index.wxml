@@ -1,5 +1,9 @@
-<view class="container safe-bottom create-page">
-  <view class="offline-banner" wx:if="{{networkOffline}}">当前网络不可用，写入操作可能失败</view>
+<view class="container create-page">
+  <view class="sync-banner sync-warning" hidden="{{!networkOffline}}">
+    <view class="sync-banner-main">
+      <view class="sync-banner-text">当前网络不可用，写入操作可能失败</view>
+    </view>
+  </view>
 
   <view class="hero create-hero reveal reveal-1">
     <view class="hero-title">创建比赛</view>
@@ -97,7 +101,7 @@
     <button class="btn btn-subtle btn-sm" bindtap="retryLastAction">重试上次操作</button>
   </view>
 
-  <view class="create-actions reveal reveal-4">
+  <view class="bottom-tray create-actions reveal reveal-4">
     <button class="btn btn-primary" bindtap="handleCreate" loading="{{createBusy}}" disabled="{{createBusy}}">创建并进入</button>
   </view>
 </view>
