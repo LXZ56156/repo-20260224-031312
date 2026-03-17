@@ -116,6 +116,12 @@ function buildShareMessage(tournament) {
 }
 
 function buildPrimaryAction({ lifecycle, joined, joinAllowed }) {
+  if (lifecycle === 'finished') {
+    return { key: 'enter', text: '查看结果' };
+  }
+  if (joined && lifecycle === 'running') {
+    return { key: 'enter', text: '查看赛程' };
+  }
   if (joined) return { key: 'enter', text: '进入比赛' };
   if (joinAllowed) return { key: 'join', text: '加入比赛' };
   if (lifecycle === 'draft') return { key: 'retry', text: '重新加载' };
@@ -144,9 +150,12 @@ function buildPreviewMode({ lifecycle, joined, joinAllowed }) {
 }
 
 function buildAvailabilityText({ lifecycle, joined, joinAllowed }) {
+  if (lifecycle === 'finished' && joined) return '比赛已结束，可查看最终结果。';
+  if (lifecycle === 'finished') return '比赛已结束，可查看比赛结果。';
+  if (joined && lifecycle === 'running') return '你已在名单中，可查看赛程和排名。';
   if (joined) return '你已在名单中，可直接进入比赛。';
   if (joinAllowed) return '确认后才会加入比赛名单。';
-  if (lifecycle === 'running' || lifecycle === 'finished') return '当前不可加入，可先查看比赛信息。';
+  if (lifecycle === 'running') return '当前不可加入，可先查看比赛信息。';
   return '当前无法打开这场比赛，请稍后重试。';
 }
 

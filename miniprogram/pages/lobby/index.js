@@ -132,6 +132,8 @@ Page({
     nextActionDetail: '',
     quickChecklistPending: 0,
     checklistItems: [],
+    featuredChecklistItem: null,
+    secondaryChecklistItems: [],
 
     sharePulse: false,
     shareCardTitle: '转发比赛',

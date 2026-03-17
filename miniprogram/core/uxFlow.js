@@ -15,7 +15,7 @@ const ACTION_TEMPLATES = {
   quickImport: { text: '去导入名单' },
   start: { text: '开始比赛' },
   batch: { text: '去批量录分' },
-  analytics: { text: '查看赛事复盘' },
+  analytics: { text: '查看结果' },
   schedule: { text: '查看对阵' },
   ranking: { text: '查看排名' }
 };

@@ -138,6 +138,12 @@ function createLobbyDelegates(syncController) {
     handleStart(...args) {
       return draftActions.handleStart.apply(this, args);
     },
+    scrollToPairTeamSection(...args) {
+      return draftActions.scrollToPairTeamSection.apply(this, args);
+    },
+    saveAndStart(...args) {
+      return draftActions.saveAndStart.apply(this, args);
+    },
     cancelTournament(...args) {
       return draftActions.cancelTournament.apply(this, args);
     },

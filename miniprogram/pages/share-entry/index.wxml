@@ -55,7 +55,7 @@
       <view class="btn-row" wx:if="{{tournament && tournament.status !== 'draft'}}">
         <button class="btn btn-subtle" bindtap="goSchedule" wx:if="{{tournament.status === 'running'}}">查看赛程</button>
         <button class="btn btn-subtle" bindtap="goRanking" wx:if="{{tournament.status === 'running'}}">查看排名</button>
-        <button class="btn btn-subtle" bindtap="goAnalytics" wx:if="{{tournament.status === 'finished'}}">查看赛事复盘</button>
+        <button class="btn btn-subtle" bindtap="goAnalytics" wx:if="{{tournament.status === 'finished'}}">查看结果</button>
         <button class="btn btn-subtle" bindtap="goRanking" wx:if="{{tournament.status === 'finished'}}">查看排名</button>
       </view>
       <button

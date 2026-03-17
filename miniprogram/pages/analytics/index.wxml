@@ -61,22 +61,19 @@
     <view class="ad-badge">广告</view>
   </view>
 
-  <!-- TOP 3 强化区: rank-badge 特殊样式 -->
-  <view class="card panel reveal reveal-5" wx:if="{{top3.length}}">
+  <!-- TOP 3 强化区: 固定三列卡片 -->
+  <view class="card panel reveal reveal-5" wx:if="{{top3Cards.length}}">
     <view class="section-head">
       <view class="section-title">{{topSectionTitle}}</view>
       <text class="count-pill">{{rankingTitle}}</text>
     </view>
-    <view class="top-list">
-      <view class="top-item top-item-{{index + 1}}" wx:for="{{top3}}" wx:key="playerId">
-        <view class="top-left">
-          <view class="rank-badge rank-{{index + 1}}">{{item.rankLabel}}</view>
-          <text class="top-name ellipsis">{{item.name}}</text>
-        </view>
-        <view class="top-right">
-          <text class="top-metric">胜{{item.wins}} 负{{item.losses}}</text>
-          <text class="muted small">净胜 {{item.pointDiff}}</text>
-        </view>
+    <view class="top-cards">
+      <view class="top-card top-card-{{item.tone}}" wx:for="{{top3Cards}}" wx:key="badgeText">
+        <view class="top-card-badge top-card-badge-{{item.tone}}">{{item.badgeText}}</view>
+        <view class="top-card-title ellipsis">{{item.title}}</view>
+        <view class="top-card-subtitle ellipsis" wx:if="{{item.subtitle}}">{{item.subtitle}}</view>
+        <view class="top-card-metric">{{item.metricPrimary}}</view>
+        <view class="top-card-metric-sub muted small">{{item.metricSecondary}}</view>
       </view>
     </view>
   </view>

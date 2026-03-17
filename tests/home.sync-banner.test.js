@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 
 const storage = require('../miniprogram/core/storage');
 const adGuard = require('../miniprogram/core/adGuard');
+const systemInfo = require('../miniprogram/core/systemInfo');
 
 const homePagePath = require.resolve('../miniprogram/pages/home/index.js');
 
@@ -43,6 +44,7 @@ test('home page reuses unified sync banner for offline state changes', () => {
   const originalSetEntryPruneVersion = storage.setEntryPruneVersion;
   const originalShouldShowDailySplash = adGuard.shouldShowDailySplash;
   const originalMarkSplashShown = adGuard.markSplashShown;
+  const originalGetWindowMetrics = systemInfo.getWindowMetrics;
   let onNetworkChange = null;
 
   storage.isOnboardingDone = () => true;
@@ -55,10 +57,25 @@ test('home page reuses unified sync banner for offline state changes', () => {
   adGuard.shouldShowDailySplash = () => false;
   adGuard.markSplashShown = () => {};
 
-  global.wx = {
-    getSystemInfoSync() {
-      return { windowWidth: 375 };
+  systemInfo.getWindowMetrics = () => ({
+    windowWidth: 375,
+    windowHeight: 667,
+    statusBarHeight: 0,
+    pixelRatio: 2,
+    screenWidth: 375,
+    screenHeight: 667,
+    safeArea: {
+      left: 0,
+      right: 375,
+      top: 0,
+      bottom: 667,
+      width: 375,
+      height: 667
     },
+    screenTop: 0
+  });
+
+  global.wx = {
     getStorageSync() {
       return undefined;
     },
@@ -103,6 +120,7 @@ test('home page reuses unified sync banner for offline state changes', () => {
     storage.setEntryPruneVersion = originalSetEntryPruneVersion;
     adGuard.shouldShowDailySplash = originalShouldShowDailySplash;
     adGuard.markSplashShown = originalMarkSplashShown;
+    systemInfo.getWindowMetrics = originalGetWindowMetrics;
     delete require.cache[homePagePath];
   }
 });

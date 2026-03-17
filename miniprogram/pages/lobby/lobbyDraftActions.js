@@ -22,6 +22,10 @@ module.exports = {
       view_only_join: () => this.enterJoinFromViewOnly(),
       settings: () => this.goEditTournament(),
       quickImport: () => this.focusQuickImportArea(),
+      import_players: () => this.focusQuickImportArea(),
+      build_pair_teams: () => this.scrollToPairTeamSection(),
+      assign_squads: () => this.focusShareInviteArea(),
+      sync_settings: () => this.saveAndStart(),
       start: () => this.handleStart(),
       batch: () => this.goBatchScoring(),
       analytics: () => this.goAnalytics(),
@@ -364,6 +368,9 @@ module.exports = {
   },
 
   onNextActionTap() {
+    // primaryTaskKey 优先 (赛制化单主任务流)
+    const taskKey = String(this.data.primaryTaskKey || '').trim();
+    if (taskKey) return this.runFlowAction(taskKey);
     return this.runFlowAction(this.data.nextActionKey);
   },
 
@@ -391,6 +398,38 @@ module.exports = {
       conflictContent: '数据已被其他人更新，刷新后可继续当前操作。',
       onRefresh
     });
+  },
+
+  scrollToPairTeamSection() {
+    try {
+      if (!this.data.adminPanelExpanded) {
+        this.setData({ adminPanelExpanded: true });
+      }
+      setTimeout(() => {
+        wx.pageScrollTo({ selector: '.fixed-team', duration: 220 });
+      }, 100);
+    } catch (_) {
+      // ignore
+    }
+  },
+
+  async saveAndStart() {
+    if (!this.data.isAdmin) return;
+    const tournament = this.data.tournament;
+    if (!tournament || tournament.status !== 'draft') return;
+    if (!this.data.checkPlayersOk) {
+      wx.showToast({ title: '当前名单暂不可排赛', icon: 'none' });
+      return;
+    }
+
+    // 先保存参数，再串行开赛
+    try {
+      await this.saveQuickSettings();
+      // 保存成功后刷新数据，然后开赛
+      await this.handleStart();
+    } catch (_) {
+      // saveQuickSettings 和 handleStart 内部已有错误处理
+    }
   },
 
   async handleStart() {

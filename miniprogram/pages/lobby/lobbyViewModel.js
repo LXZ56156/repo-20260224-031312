@@ -237,6 +237,41 @@ function buildChecklistItems({ checkSettingsOk, checkPlayersOk, checkStartReady,
   ];
 }
 
+function buildChecklistLayout(checklistItems, nextActionKey) {
+  const items = Array.isArray(checklistItems) ? checklistItems : [];
+  const featuredKeyMap = {
+    settings: 'settings',
+    share: 'players',
+    start: 'start'
+  };
+  const featuredKey = featuredKeyMap[String(nextActionKey || '').trim()] || '';
+  const featuredIndex = items.findIndex((item) => item && item.key === featuredKey);
+  const safeFeaturedIndex = featuredIndex >= 0 ? featuredIndex : 0;
+
+  const decoratedItems = items.map((item, index) => {
+    const base = item && typeof item === 'object' ? item : {};
+    let state = 'pending';
+    if (index === safeFeaturedIndex) state = 'active';
+    else if (base.done) state = 'done';
+
+    return {
+      ...base,
+      state,
+      badgeText: state === 'active' ? '当前步骤' : (state === 'done' ? '已完成' : ''),
+      cardClass: `prep-card-${state}`,
+      indicatorClass: state === 'active'
+        ? 'prep-indicator-active'
+        : (base.done ? 'prep-indicator-ok' : '')
+    };
+  });
+
+  return {
+    checklistItems: decoratedItems,
+    featuredChecklistItem: decoratedItems[safeFeaturedIndex] || null,
+    secondaryChecklistItems: decoratedItems.filter((_, index) => index !== safeFeaturedIndex)
+  };
+}
+
 function buildRoleCard(key, label, summary, actionKey, actionText, active) {
   return {
     key,
@@ -292,8 +327,8 @@ function buildRoleCards(ctx) {
     adminSummary = '当前还有待录分比赛，优先完成比分录入。';
   } else if (status === 'finished') {
     adminActionKey = 'analytics';
-    adminActionText = '查看赛事复盘';
-    adminSummary = '比赛已结束，可查看赛事复盘。';
+    adminActionText = '查看结果';
+    adminSummary = '比赛已结束，可查看最终排名和赛事数据。';
   }
 
   let joinedActionKey = '';
@@ -309,8 +344,8 @@ function buildRoleCards(ctx) {
     joinedSummary = '你有录分权限，当前还有待完成比赛。';
   } else if (status === 'finished') {
     joinedActionKey = 'analytics';
-    joinedActionText = '查看赛事复盘';
-    joinedSummary = '比赛已结束，可查看最终结果和赛事复盘。';
+    joinedActionText = '查看结果';
+    joinedSummary = '比赛已结束，可查看最终结果和赛事数据。';
   }
 
   let viewerActionKey = '';
@@ -322,8 +357,8 @@ function buildRoleCards(ctx) {
     viewerSummary = '可以先看比赛信息，确定后再显式加入。';
   } else if (status === 'finished') {
     viewerActionKey = 'analytics';
-    viewerActionText = '查看赛事复盘';
-    viewerSummary = '比赛已结束，可以查看赛事复盘。';
+    viewerActionText = '查看结果';
+    viewerSummary = '比赛已结束，可以查看最终结果和赛事数据。';
   }
 
   const pendingNeedsSquad = status === 'draft' && mode === flow.MODE_SQUAD_DOUBLES;
@@ -470,6 +505,22 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
     Number(data.pairTeamFirstIndex),
     Number(data.pairTeamSecondIndex)
   );
+  // 未成队成员
+  const assignedPlayerIds = new Set();
+  for (const team of pairTeams) {
+    const ids = Array.isArray(team && team.playerIds) ? team.playerIds : [];
+    ids.forEach((id) => assignedPlayerIds.add(String(id || '').trim()));
+  }
+  const unpairedPlayers = mode === flow.MODE_FIXED_PAIR_RR && status === 'draft'
+    ? players.filter((p) => {
+        const pid = String((p && p.id) || '').trim();
+        return pid && !assignedPlayerIds.has(pid);
+      }).map((p) => String((p && p.name) || '').trim() || '球员')
+    : [];
+  const unpairedPlayersText = unpairedPlayers.length
+    ? `待补位成员：${unpairedPlayers.join('、')}`
+    : '';
+
   const genderCount = flow.countGenderPlayers(players);
   let maxMatches = flow.calcMaxMatchesByPlayers(playersCount);
   if (mode === flow.MODE_FIXED_PAIR_RR) {
@@ -528,8 +579,84 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       : `需至少2支队伍（当前${pairTeams.length}）`;
   }
 
+  const isFixedPairMode = mode === flow.MODE_FIXED_PAIR_RR;
+
+  // needsSettingsSync: totalMatches 与实际可排场次不一致时需要先保存
+  const needsSettingsSync = isFixedPairMode && maxMatches > 0 && totalMatches !== maxMatches && pairTeams.length >= 2;
+
   const checkSettingsOk = !!t.settingsConfigured;
   const checkStartReady = checkPlayersOk && checkSettingsOk;
+  // 赛制化主任务派生 (draft only)
+  let primaryTaskKey = '';
+  let primaryTaskTitle = '';
+  let primaryTaskSummary = '';
+  if (status === 'draft' && isAdmin) {
+    if (mode === flow.MODE_FIXED_PAIR_RR) {
+      if (playersCount < 4) {
+        primaryTaskKey = 'import_players';
+        primaryTaskTitle = '导入名单';
+        primaryTaskSummary = '至少需要 4 人才能组队开赛';
+      } else if (pairTeams.length < 2) {
+        primaryTaskKey = 'build_pair_teams';
+        primaryTaskTitle = pairTeams.length === 0 ? '开始组队' : '继续组队';
+        primaryTaskSummary = `需至少 2 支队伍（当前 ${pairTeams.length}）`;
+      } else if (needsSettingsSync) {
+        primaryTaskKey = 'sync_settings';
+        primaryTaskTitle = '保存并开赛';
+        primaryTaskSummary = `已组 ${pairTeams.length} 队，可排 ${maxMatches} 场，需先保存参数`;
+      } else if (checkStartReady) {
+        primaryTaskKey = 'start';
+        primaryTaskTitle = '开始比赛';
+        primaryTaskSummary = '前置项已完成，可以直接开始比赛';
+      } else if (!checkSettingsOk) {
+        primaryTaskKey = 'sync_settings';
+        primaryTaskTitle = '保存并开赛';
+        primaryTaskSummary = '参数待保存';
+      } else {
+        primaryTaskKey = 'start';
+        primaryTaskTitle = '开始比赛';
+        primaryTaskSummary = '可以开始比赛';
+      }
+    } else if (mode === flow.MODE_SQUAD_DOUBLES) {
+      if (playersCount < 4 || aCount < 2 || bCount < 2) {
+        primaryTaskKey = 'assign_squads';
+        primaryTaskTitle = '分配 A/B 队';
+        primaryTaskSummary = checkPlayersOk ? `A队 ${aCount} / B队 ${bCount}` : `A队 ${aCount} / B队 ${bCount}（至少各2人）`;
+      } else if (checkStartReady) {
+        primaryTaskKey = 'start';
+        primaryTaskTitle = '开始比赛';
+        primaryTaskSummary = '前置项已完成';
+      } else if (!checkSettingsOk) {
+        primaryTaskKey = 'settings';
+        primaryTaskTitle = '修改比赛';
+        primaryTaskSummary = '先修改比赛信息';
+      } else {
+        primaryTaskKey = 'start';
+        primaryTaskTitle = '开始比赛';
+        primaryTaskSummary = '可以开始比赛';
+      }
+    } else {
+      // multi_rotate
+      if (playersCount < 4) {
+        primaryTaskKey = 'import_players';
+        primaryTaskTitle = '导入名单';
+        primaryTaskSummary = '至少需要 4 人';
+      } else if (!checkSettingsOk) {
+        primaryTaskKey = 'settings';
+        primaryTaskTitle = '修改比赛';
+        primaryTaskSummary = '先修改比赛信息';
+      } else if (checkStartReady) {
+        primaryTaskKey = 'start';
+        primaryTaskTitle = '开始比赛';
+        primaryTaskSummary = '前置项已完成';
+      } else {
+        primaryTaskKey = 'share';
+        primaryTaskTitle = '转发比赛';
+        primaryTaskSummary = '优先转发比赛';
+      }
+    }
+  }
+
   const quickChecklistPending = (checkPlayersOk ? 0 : 1) + (checkSettingsOk ? 0 : 1);
   const canEditScore = perm.canEditScore(t, openid);
   const hasPending = flow.hasPendingMatch(t.rounds);
@@ -579,6 +706,7 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
     nextActionKey: activeRoleCard.actionKey,
     nextActionText: activeRoleCard.actionText
   });
+  const checklistLayout = buildChecklistLayout(checklistItems, activeRoleCard.actionKey);
   const shareMessage = shareMeta.buildShareMessage(t);
 
   return {
@@ -625,12 +753,21 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       maxMatches,
       allowOpenTeam: false,
       pairTeams,
+      isFixedPairMode,
+      needsSettingsSync,
+      unpairedPlayers,
+      unpairedPlayersText,
+      primaryTaskKey,
+      primaryTaskTitle,
+      primaryTaskSummary,
       pairTeamsUi: pairTeamModel.pairTeamsUi,
       pairTeamCandidates: pairTeamModel.pairTeamCandidates,
       pairTeamFirstIndex: pairTeamModel.pairTeamFirstIndex,
       pairTeamSecondIndex: pairTeamModel.pairTeamSecondIndex,
       quickChecklistPending,
-      checklistItems,
+      checklistItems: checklistLayout.checklistItems,
+      featuredChecklistItem: checklistLayout.featuredChecklistItem,
+      secondaryChecklistItems: checklistLayout.secondaryChecklistItems,
       checkPlayersOk,
       playersChecklistHint,
       checkSettingsOk,

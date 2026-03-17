@@ -52,7 +52,7 @@ test('home hero falls back to analytics for finished tournaments', () => {
   assert.equal(state.title, '你的比赛');
   assert.equal(state.label, '最近完赛');
   assert.equal(state.name, '最新结果');
-  assert.equal(state.actionText, '查看赛事复盘');
+  assert.equal(state.actionText, '查看结果');
   assert.equal(state.actionTarget, 'analytics');
   assert.equal(state.actionId, 'finished_2');
 });

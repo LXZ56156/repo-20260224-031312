@@ -10,6 +10,7 @@ const writeErrorUi = require('../../core/writeErrorUi');
 const { normalizeTournament } = require('../../core/normalize');
 const adGuard = require('../../core/adGuard');
 const flow = require('../../core/uxFlow');
+const systemInfo = require('../../core/systemInfo');
 const envConfig = require('../../config/env');
 const { buildHomeHeroCardState } = require('./heroCardState');
 
@@ -177,8 +178,7 @@ Page({
   ...retryAction.createRetryMethods(),
 
   onLoad() {
-    const sys = wx.getSystemInfoSync();
-    this._winWidth = sys.windowWidth || 375;
+    this._winWidth = systemInfo.getWindowMetrics().windowWidth || 375;
     this._delWidthRpx = 160;
 
     const app = getApp();

@@ -172,6 +172,33 @@ function computeAnalytics(tournament) {
     rankLabel: `TOP ${idx + 1}`
   }));
 
+  const pairTeams = Array.isArray(t.pairTeams) ? t.pairTeams : [];
+  const playerNameMap = {};
+  for (const player of players) {
+    const pid = String((player && player.id) || '').trim();
+    if (pid) playerNameMap[pid] = playerUtils.safePlayerName(player) || pid;
+  }
+  const toneMap = ['gold', 'silver', 'bronze'];
+  const badgeMap = ['1st', '2nd', '3rd'];
+  const top3Cards = top3.map((row, idx) => {
+    let subtitle = '';
+    if (isTeamMode) {
+      const entityId = String(row.entityId || row.playerId || '').trim();
+      const team = pairTeams.find((pt) => String(pt && pt.id || '') === entityId);
+      if (team && Array.isArray(team.playerIds)) {
+        subtitle = '成员：' + team.playerIds.map((id) => playerNameMap[String(id || '')] || String(id || '')).join(' / ');
+      }
+    }
+    return {
+      badgeText: badgeMap[idx] || '',
+      title: String(row.name || '').trim() || '未命名',
+      subtitle,
+      metricPrimary: `胜${row.wins} 负${row.losses}`,
+      metricSecondary: `净胜 ${row.pointDiff}`,
+      tone: toneMap[idx] || ''
+    };
+  });
+
   const pairHot = Object.values(pairCounter).sort((a, b) => b.count - a.count).slice(0, 5);
   const duelHot = Object.values(duelCounter).sort((a, b) => b.count - a.count).slice(0, 5);
 
@@ -185,6 +212,7 @@ function computeAnalytics(tournament) {
       avgDiff: finishedMatches > 0 ? (Math.round((diffSum * 10) / finishedMatches) / 10).toFixed(1) : '0.0'
     },
     top3,
+    top3Cards,
     playerStats: rankedRows,
     pairHot,
     duelHot,
@@ -271,6 +299,8 @@ function buildAnalyticsPageModel(analytics, report) {
   if (pairHot[0]) focusFacts.push(`高频搭档 ${pairHot[0].label} · ${pairHot[0].count} 次`);
   if (duelHot[0]) focusFacts.push(`高频对阵 ${duelHot[0].label} · ${duelHot[0].count} 次`);
 
+  const top3Cards = Array.isArray(data.top3Cards) ? data.top3Cards : [];
+
   return {
     modeLabel,
     statusLabel,
@@ -281,6 +311,7 @@ function buildAnalyticsPageModel(analytics, report) {
     reportHeadline: String((report && report.headline) || '').trim(),
     topSectionTitle: top3.length >= 3 ? 'TOP 3' : '领先榜',
     top3,
+    top3Cards,
     fullRankings: playerStats
   };
 }

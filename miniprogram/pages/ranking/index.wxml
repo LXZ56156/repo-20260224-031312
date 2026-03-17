@@ -37,13 +37,14 @@
         <view class="rank-badge {{idx === 0 ? 'rank-1' : ''}} {{idx === 1 ? 'rank-2' : ''}} {{idx === 2 ? 'rank-3' : ''}}">{{idx + 1}}</view>
         <view class="flex-1">
           <view class="player-title ellipsis">{{r.name}}</view>
+          <view class="ranking-subtitle ellipsis" wx:if="{{r.subtitle}}">{{r.subtitle}}</view>
           <view class="muted small">{{r.entityType==='team' ? '队伍' : '球员'}} · 胜{{r.wins}} 负{{r.losses}} · 出场{{r.played}}</view>
         </view>
       </view>
       <view class="ranking-right">
         <view class="metric-title">净胜 {{r.pointDiff}}</view>
         <view class="muted small">得{{r.pointsFor}} 失{{r.pointsAgainst}}</view>
-        <view class="trend-pill {{r.trendType}}">较上轮 {{r.trendText}}</view>
+        <view class="trend-pill {{r.trendType}} {{r.showTrend ? '' : 'trend-muted'}}" wx:if="{{r.showTrend}}">较上轮 {{r.trendText}}</view>
       </view>
     </view>
   </view>

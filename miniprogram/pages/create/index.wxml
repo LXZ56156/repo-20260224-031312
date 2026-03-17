@@ -96,6 +96,10 @@
     </view>
   </view>
 
+  <view class="card panel-soft capacity-hint reveal reveal-3" wx:if="{{capacityHintDetail}}">
+    <view class="capacity-hint-text muted small">{{capacityHintDetail}}</view>
+  </view>
+
   <view class="retry-box panel-soft" wx:if="{{canRetryAction}}">
     <view class="muted small">{{lastFailedActionText}}</view>
     <button class="btn btn-subtle btn-sm" bindtap="retryLastAction">重试上次操作</button>

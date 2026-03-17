@@ -197,7 +197,7 @@ function buildHomeHeroCardState(items, rawDocsMap, openid) {
       meta: buildMetaText(finished, finished.matchProgressText),
       detail: '比赛已结束',
       progress: 100,
-      actionText: '查看赛事复盘',
+      actionText: '查看结果',
       actionTarget: 'analytics',
       actionId: finished._id || '',
       actionRound: -1,

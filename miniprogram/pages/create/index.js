@@ -104,6 +104,7 @@ Page({
     endConditionTargetHint: '',
     showEndConditionTargetPicker: false,
     showSquadEndCondition: false,
+    capacityHintDetail: '',
 
     networkOffline: false,
     createBusy: false,
@@ -145,6 +146,7 @@ Page({
       slotMinuteIndex: Math.max(0, flow.SLOT_MINUTE_OPTIONS.indexOf(slotMinutes))
     });
     this.syncEndConditionUi();
+    this.syncCapacityHint();
     this.refreshRecommendations({ adoptSuggested: true });
   },
 
@@ -289,6 +291,15 @@ Page({
       this.syncEndConditionUi();
       this.refreshRecommendations();
     });
+  },
+
+  syncCapacityHint() {
+    if (this.data.mode !== flow.MODE_FIXED_PAIR_RR) {
+      if (this.data.capacityHintDetail) this.setData({ capacityHintDetail: '' });
+      return;
+    }
+    const hint = '固搭循环赛的实际场次取决于已组队数量：N 支队伍最多排 N×(N-1)/2 场。创建后在大厅组队时，总场次会按实际队伍数重新收敛。';
+    this.setData({ capacityHintDetail: hint });
   },
 
   syncEndConditionUi() {

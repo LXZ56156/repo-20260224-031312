@@ -73,6 +73,14 @@
   color: var(--neutral-950);
 }
 
+/* --- Ranking subtitle (team members) --- */
+.ranking-subtitle {
+  font-size: 22rpx;
+  color: var(--neutral-500);
+  line-height: 1.35;
+  margin-top: 2rpx;
+}
+
 /* --- Trend Pill 紧凑化 --- */
 .trend-pill {
   margin-top: 4rpx;

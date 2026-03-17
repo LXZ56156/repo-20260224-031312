@@ -57,17 +57,41 @@
     </view>
     <view class="state-panel-summary">{{statePanelSummary}}</view>
     <view class="state-checklist panel-soft" wx:if="{{showStateChecklist}}">
-      <view class="prep-tile" wx:for="{{checklistItems}}" wx:key="key" data-key="{{item.key}}" bindtap="onChecklistTap">
-        <text class="prep-indicator {{item.done ? 'ok' : ''}}"></text>
-        <view class="prep-main">
-          <view class="prep-title">{{item.title}}</view>
-          <view class="prep-sub">{{item.summary}}</view>
+      <view
+        class="prep-featured {{featuredChecklistItem.cardClass}}"
+        wx:if="{{featuredChecklistItem && featuredChecklistItem.key}}"
+        data-key="{{featuredChecklistItem.key}}"
+        bindtap="onChecklistTap"
+      >
+        <view class="prep-featured-top">
+          <view class="prep-badge">{{featuredChecklistItem.badgeText}}</view>
+          <text class="prep-jump prep-jump-featured">{{featuredChecklistItem.actionText}}</text>
         </view>
-        <text class="prep-jump">{{item.actionText}}</text>
+        <view class="prep-featured-main">
+          <text class="prep-indicator prep-indicator-lg {{featuredChecklistItem.indicatorClass}}"></text>
+          <view class="prep-main">
+            <view class="prep-title prep-title-featured">{{featuredChecklistItem.title}}</view>
+            <view class="prep-sub prep-sub-featured">{{featuredChecklistItem.summary}}</view>
+          </view>
+        </view>
+      </view>
+      <view class="prep-secondary-grid" wx:if="{{secondaryChecklistItems.length}}">
+        <view class="prep-tile {{item.cardClass}}" wx:for="{{secondaryChecklistItems}}" wx:key="key" data-key="{{item.key}}" bindtap="onChecklistTap">
+          <view class="prep-secondary-head">
+            <text class="prep-indicator {{item.indicatorClass}}"></text>
+            <view class="prep-badge prep-badge-subtle" wx:if="{{item.badgeText}}">{{item.badgeText}}</view>
+          </view>
+          <view class="prep-main prep-main-secondary">
+            <view class="prep-title">{{item.title}}</view>
+            <view class="prep-sub">{{item.summary}}</view>
+          </view>
+          <text class="prep-jump">{{item.actionText}}</text>
+        </view>
       </view>
     </view>
-    <view class="state-actions {{nextActionKey==='start' ? 'state-actions-sticky' : ''}}" wx:if="{{statePrimaryActionText}}">
-      <button class="btn btn-primary state-primary-btn {{nextActionKey==='start' ? 'start-pulse' : ''}}" bindtap="onNextActionTap">{{statePrimaryActionText}}</button>
+    <view class="state-actions {{(nextActionKey==='start' || primaryTaskKey==='start') ? 'state-actions-sticky' : ''}}" wx:if="{{primaryTaskTitle || statePrimaryActionText}}">
+      <view class="primary-task-summary muted small" wx:if="{{primaryTaskSummary}}">{{primaryTaskSummary}}</view>
+      <button class="btn btn-primary state-primary-btn {{(nextActionKey==='start' || primaryTaskKey==='start' || primaryTaskKey==='sync_settings') ? 'start-pulse' : ''}}" bindtap="onNextActionTap">{{primaryTaskTitle || statePrimaryActionText}}</button>
     </view>
   </view>
 
@@ -238,6 +262,11 @@
         <button class="btn btn-primary fixed-team-create-btn" bindtap="createPairTeam" loading="{{pairTeamBusy}}" disabled="{{pairTeamBusy}}">添加队伍</button>
       </view>
       <view class="muted small" wx:else>暂无可组队成员</view>
+
+      <view class="unpaired-hint panel-soft" wx:if="{{unpairedPlayersText}}">
+        <view class="unpaired-hint-title">待补位成员</view>
+        <view class="unpaired-hint-text">{{unpairedPlayersText}}</view>
+      </view>
     </view>
     </view><!-- /admin-collapse-body -->
   </view>

@@ -40,6 +40,11 @@ test('lobby admin view model separates role lanes and keeps admin lane active', 
   assert.equal(result.patch.statePrimaryActionKey, 'settings');
   assert.equal(result.patch.showDraftAdminPanel, true);
   assert.equal(result.patch.showStateChecklist, true);
+  assert.equal(result.patch.featuredChecklistItem.key, 'settings');
+  assert.deepEqual(
+    result.patch.secondaryChecklistItems.map((item) => item.title),
+    ['2. 转发比赛', '3. 开始比赛']
+  );
 });
 
 test('lobby admin draft view keeps state-driven CTA ahead of generic info actions', () => {

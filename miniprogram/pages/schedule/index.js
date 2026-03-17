@@ -256,7 +256,7 @@ Page({
       nextActionText = '继续录分';
     } else if (status === 'finished') {
       nextActionKey = 'analytics';
-      nextActionText = '查看赛事复盘';
+      nextActionText = '查看结果';
     }
 
     const heroSummaryText = status === 'draft'

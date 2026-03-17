@@ -92,12 +92,44 @@ Page({
     if (!t) return;
     t = normalize.normalizeTournament(t);
     const mode = flow.normalizeMode(t.mode || flow.MODE_MULTI_ROTATE);
-    const rankingTypeLabel = (mode === flow.MODE_SQUAD_DOUBLES || mode === flow.MODE_FIXED_PAIR_RR) ? '队伍榜' : '个人榜';
+    const isTeamMode = mode === flow.MODE_SQUAD_DOUBLES || mode === flow.MODE_FIXED_PAIR_RR;
+    const rankingTypeLabel = isTeamMode ? '队伍榜' : '个人榜';
     const status = String(t.status || '').trim();
+    const rawRankings = rankingCore.buildRankingWithTrend(t);
+
+    // decorate: 队伍模式增加成员副标题, played < 2 弱化 trend
+    const players = Array.isArray(t.players) ? t.players : [];
+    const pairTeams = Array.isArray(t.pairTeams) ? t.pairTeams : [];
+    const playerNameMap = {};
+    for (const p of players) {
+      const pid = String((p && p.id) || '').trim();
+      if (pid) playerNameMap[pid] = String((p && (p.nickName || p.nickname || p.name)) || '').trim() || pid;
+    }
+    const decoratedRankings = rawRankings.map((row) => {
+      let subtitle = '';
+      if (isTeamMode) {
+        const eid = String(row.entityId || row.playerId || '').trim();
+        // fixed_pair_rr: 从 pairTeams 查成员
+        const pair = pairTeams.find((pt) => String(pt && pt.id || '') === eid);
+        if (pair && Array.isArray(pair.playerIds)) {
+          subtitle = pair.playerIds.map((id) => playerNameMap[String(id || '')] || String(id || '')).join(' / ');
+        }
+        // squad_doubles: 对于 A/B 队, 从 players 按 squad 汇聚
+        if (!subtitle && (eid === 'A' || eid === 'B')) {
+          const members = players
+            .filter((p) => String((p && p.squad) || '').toUpperCase() === eid)
+            .map((p) => String((p && (p.nickName || p.nickname || p.name)) || '').trim() || '球员');
+          if (members.length) subtitle = members.join(' / ');
+        }
+      }
+      const showTrend = Number(row.played) >= 2;
+      return { ...row, subtitle, showTrend };
+    });
+
     this.setData({
       loadError: false,
       tournament: t,
-      rankings: rankingCore.buildRankingWithTrend(t),
+      rankings: decoratedRankings,
       rankingTypeLabel,
       primaryNavItems: matchPrimaryNav.getPrimaryNavItems('ranking', this.data.tournamentId, { showAnalytics: status === 'finished' })
     });

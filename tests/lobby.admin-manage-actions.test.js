@@ -27,6 +27,11 @@ test('lobby admin draft view exposes modify flow and keeps destructive reset ent
 
   assert.equal(result.patch.nextActionKey, 'settings');
   assert.equal(result.patch.nextActionText, '修改比赛');
+  assert.equal(result.patch.featuredChecklistItem.key, 'settings');
+  assert.deepEqual(
+    result.patch.secondaryChecklistItems.map((item) => item.key),
+    ['players', 'start']
+  );
   assert.equal(checklistTitles.includes('1. 修改比赛'), true);
   assert.equal(checklistTitles.includes('2. 转发比赛'), true);
   assert.equal(checklistTitles.includes('重置回草稿'), false);
