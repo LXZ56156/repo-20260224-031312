@@ -41,3 +41,7 @@ project.private.config.json
 
 # Codex
 .codex/
+.codex-skill-staging/
+
+# Temp / tool artifacts
+.ui-audit-tmp/
