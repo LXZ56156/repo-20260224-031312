@@ -52,6 +52,8 @@ function makeId(i) {
 
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
+  const traceId = String((event && event.__traceId) || '').trim();
+  const clientRequestId = String((event && event.clientRequestId) || '').trim();
   const tournamentId = String((event && event.tournamentId) || '').trim();
   const normalized = normalizeInputPlayers(event && event.players, event && event.names);
   const entries = normalized.validUnique;
@@ -80,6 +82,22 @@ exports.main = async (event) => {
       const t = common.assertTournamentExists(docRes.data);
       common.assertCreator(t, OPENID);
       common.assertDraft(t, '非草稿阶段不可导入');
+      if (clientRequestId && String(t.lastClientRequestId || '').trim() === clientRequestId) {
+        return {
+          ok: true,
+          deduped: true,
+          ...(clientRequestId ? { clientRequestId } : {}),
+          added: 0,
+          addedCount: 0,
+          maleCount: 0,
+          femaleCount: 0,
+          unknownCount: 0,
+          duplicateCount: 0,
+          invalidCount: 0,
+          duplicateNames: [],
+          invalidNames: []
+        };
+      }
       const oldVersion = Number(t.version) || 1;
 
       const players = Array.isArray(t.players) ? t.players.slice() : [];
@@ -116,13 +134,16 @@ exports.main = async (event) => {
       const nextPlayers = players.concat(toAdd);
       const nextPlayerIds = Array.from(new Set(nextPlayers.map((item) => String(item && item.id || '').trim()).filter(Boolean)));
 
+      const updateData = {
+        players: nextPlayers,
+        playerIds: nextPlayerIds,
+        updatedAt: db.serverDate(),
+        version: _.inc(1)
+      };
+      if (clientRequestId) updateData.lastClientRequestId = clientRequestId;
+
       const updRes = await transaction.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({
-        data: common.assertNoReservedRootKeys({
-          players: nextPlayers,
-          playerIds: nextPlayerIds,
-          updatedAt: db.serverDate(),
-          version: _.inc(1)
-        }, ['_id'], '赛事导入名单写入数据')
+        data: common.assertNoReservedRootKeys(updateData, ['_id'], '赛事导入名单写入数据')
       });
       common.assertOptimisticUpdate(updRes, '写入冲突，请重试');
       const maleCount = toAdd.filter((p) => p.gender === 'male').length;
@@ -130,6 +151,7 @@ exports.main = async (event) => {
       const unknownCount = toAdd.length - maleCount - femaleCount;
       return {
         ok: true,
+        ...(clientRequestId ? { clientRequestId } : {}),
         added: toAdd.length,
         addedCount: toAdd.length,
         maleCount,

@@ -1,4 +1,5 @@
 const actionGuard = require('../../core/actionGuard');
+const clientRequest = require('../../core/clientRequest');
 const cloneTournamentCore = require('../../core/cloneTournament');
 const pageTournamentSync = require('../../core/pageTournamentSync');
 const writeErrorUi = require('../../core/writeErrorUi');
@@ -167,22 +168,23 @@ Page({
     });
   },
 
-  async cloneCurrentTournament() {
+  async cloneCurrentTournament(options = {}) {
     const sourceTournamentId = String(this.data.tournamentId || '').trim();
     if (!sourceTournamentId) return;
     const actionKey = `analytics:cloneTournament:${sourceTournamentId}`;
+    const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'clone');
     if (actionGuard.isBusy(actionKey)) return;
-    return actionGuard.run(actionKey, async () => {
+    return actionGuard.runCriticalWrite(actionKey, async () => {
       wx.showLoading({ title: '复制中...' });
       try {
-        const nextId = await cloneTournamentCore.cloneTournament(sourceTournamentId);
+        const nextId = await cloneTournamentCore.cloneTournament(sourceTournamentId, { clientRequestId });
         wx.hideLoading();
         this.clearLastFailedAction();
         wx.showToast({ title: '已生成副本', icon: 'success' });
         wx.navigateTo({ url: nav.buildTournamentUrl('/pages/lobby/index', nextId) });
       } catch (e) {
         wx.hideLoading();
-        this.setLastFailedAction('再办一场', () => this.cloneCurrentTournament(), { actionKey });
+        this.setLastFailedAction('再办一场', () => this.cloneCurrentTournament({ clientRequestId }), { actionKey });
         writeErrorUi.presentWriteError({ err: e, fallbackMessage: '复制失败' });
       }
     });

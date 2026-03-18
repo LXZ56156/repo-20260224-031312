@@ -1,5 +1,6 @@
 const cloud = require('../../core/cloud');
 const actionGuard = require('../../core/actionGuard');
+const clientRequest = require('../../core/clientRequest');
 const storage = require('../../core/storage');
 const nav = require('../../core/nav');
 const flow = require('../../core/uxFlow');
@@ -165,7 +166,7 @@ module.exports = {
     });
   },
 
-  async saveSettings() {
+  async saveSettings(options = {}) {
     if (!this.data.isAdmin) return;
     if (!this.data.tournament || this.data.tournament.status !== 'draft') {
       wx.showToast({ title: '非草稿阶段不可修改', icon: 'none' });
@@ -194,8 +195,9 @@ module.exports = {
       : viewModel.clampTarget(this.data.endConditionTarget, this.data.endConditionTargetOptions);
 
     const actionKey = `settings:updateSettings:${this.data.tournamentId}`;
+    const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'update_settings');
     if (actionGuard.isBusy(actionKey)) return;
-    return actionGuard.runWithPageBusy(this, 'settingsBusy', actionKey, async () => {
+    return actionGuard.runWithCriticalPageBusy(this, 'settingsBusy', actionKey, async () => {
       wx.showLoading({ title: '保存中...' });
       try {
         cloud.assertWriteResult(await cloud.call('updateSettings', {
@@ -206,7 +208,8 @@ module.exports = {
           allowOpenTeam: false,
           pointsPerGame: Number(this.data.pointsPerGame) || 21,
           endConditionType,
-          endConditionTarget
+          endConditionTarget,
+          clientRequestId
         }), '保存失败');
         wx.hideLoading();
         this.clearLastFailedAction();
@@ -220,7 +223,7 @@ module.exports = {
       } catch (e) {
         wx.hideLoading();
         await this.fetchTournament(this.data.tournamentId);
-        this.setLastFailedAction('修改比赛', () => this.saveSettings(), { actionKey });
+        this.setLastFailedAction('修改比赛', () => this.saveSettings({ clientRequestId }), { actionKey });
         this.handleWriteError(e, '保存失败', () => this.fetchTournament(this.data.tournamentId));
       }
     });

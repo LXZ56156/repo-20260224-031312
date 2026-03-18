@@ -15,11 +15,31 @@ function toPosInt(value, fallback = 0) {
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
   const sourceTournamentId = String((event && event.sourceTournamentId) || '').trim();
+  const traceId = String((event && event.__traceId) || '').trim();
+  const clientRequestId = String((event && event.clientRequestId) || '').trim();
   const renamed = logic.normalizeName(event && event.name);
 
   if (!sourceTournamentId) throw new Error('缺少 sourceTournamentId');
 
   try {
+    if (clientRequestId) {
+      const existing = await db.collection('tournaments').where({
+        creatorId: OPENID,
+        cloneSourceTournamentId: sourceTournamentId,
+        clientRequestId
+      }).limit(1).get();
+      const existingDoc = Array.isArray(existing && existing.data) ? existing.data[0] : null;
+      if (existingDoc && existingDoc._id) {
+        return common.okResult('TOURNAMENT_CLONED', '已复制赛事', {
+          traceId,
+          state: 'deduped',
+          deduped: true,
+          ...(clientRequestId ? { clientRequestId } : {}),
+          tournamentId: existingDoc._id
+        });
+      }
+    }
+
     const docRes = await db.collection('tournaments').doc(sourceTournamentId).get();
     const source = common.assertTournamentExists(docRes && docRes.data);
     common.assertCreator(source, OPENID, '仅创建者可复制自己的赛事');
@@ -56,6 +76,8 @@ exports.main = async (event) => {
       players,
       playerIds,
       pairTeams,
+      cloneSourceTournamentId: sourceTournamentId,
+      clientRequestId,
       rounds: [],
       rankings: [],
       scheduleSeed: null,
@@ -74,6 +96,8 @@ exports.main = async (event) => {
 
     return common.okResult('TOURNAMENT_CLONED', '已复制赛事', {
       state: 'created',
+      traceId,
+      ...(clientRequestId ? { clientRequestId } : {}),
       tournamentId: addRes._id
     });
   } catch (err) {

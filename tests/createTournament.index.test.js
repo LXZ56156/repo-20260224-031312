@@ -114,3 +114,51 @@ test('createTournament rejects empty tournament name', async () => {
 
   await assert.rejects(() => main({ name: '   ' }), /赛事名称不能为空/);
 });
+
+test('createTournament treats repeated clientRequestId as deduped success', async () => {
+  let addCalled = false;
+  const db = {
+    async createCollection() {},
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      assert.equal(name, 'tournaments');
+      return {
+        where(query) {
+          assert.deepEqual(query, {
+            creatorId: 'u_creator',
+            clientRequestId: 'req_create_1'
+          });
+          return {
+            limit(value) {
+              assert.equal(value, 1);
+              return {
+                async get() {
+                  return { data: [{ _id: 't_existing' }] };
+                }
+              };
+            }
+          };
+        },
+        async add() {
+          addCalled = true;
+          return { _id: 't_should_not_write' };
+        }
+      };
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    name: '周五夜场',
+    clientRequestId: 'req_create_1'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.state, 'deduped');
+  assert.equal(result.deduped, true);
+  assert.equal(result.tournamentId, 't_existing');
+  assert.equal(result.clientRequestId, 'req_create_1');
+  assert.equal(addCalled, false);
+});

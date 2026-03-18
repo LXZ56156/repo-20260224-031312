@@ -148,3 +148,49 @@ test('saveUserProfile updates existing profile in place', async () => {
     updatedAt: { $serverDate: true }
   });
 });
+
+test('saveUserProfile treats repeated clientRequestId as deduped success', async () => {
+  let updateCalled = false;
+  const db = {
+    async createCollection() {},
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection() {
+      return {
+        where() {
+          return {
+            limit() {
+              return {
+                async get() {
+                  return { data: [{ _id: 'profile_existing', lastClientRequestId: 'req_profile_1' }] };
+                }
+              };
+            }
+          };
+        },
+        doc() {
+          updateCalled = true;
+          return {
+            async update() {}
+          };
+        }
+      };
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    nickname: '球友B',
+    avatar: '',
+    gender: 'female',
+    clientRequestId: 'req_profile_1'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.state, 'deduped');
+  assert.equal(result.deduped, true);
+  assert.equal(result.clientRequestId, 'req_profile_1');
+  assert.equal(result.profileId, 'profile_existing');
+  assert.equal(updateCalled, false);
+});

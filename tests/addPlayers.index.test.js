@@ -163,3 +163,53 @@ test('addPlayers throws conflict error when optimistic update loses the race', a
     players: [{ name: '球友A', gender: 'male' }]
   }), /写入冲突/);
 });
+
+test('addPlayers treats repeated clientRequestId as deduped success', async () => {
+  let updateCalled = false;
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return { data: { ...buildTournament(), lastClientRequestId: 'req_add_1' } };
+                }
+              };
+            },
+            where() {
+              updateCalled = true;
+              return {
+                async update() {
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    players: [{ name: '球友A', gender: 'male' }],
+    clientRequestId: 'req_add_1'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.deduped, true);
+  assert.equal(result.clientRequestId, 'req_add_1');
+  assert.equal(result.addedCount, 0);
+  assert.equal(updateCalled, false);
+});

@@ -1,5 +1,6 @@
 const cloud = require('../../core/cloud');
 const actionGuard = require('../../core/actionGuard');
+const clientRequest = require('../../core/clientRequest');
 const profileCore = require('../../core/profile');
 const { resolveFeedbackGate } = require('./gate');
 
@@ -57,7 +58,7 @@ Page({
     this.setData({ contact: String(e.detail.value || '').trim() });
   },
 
-  async onSubmit() {
+  async onSubmit(options = {}) {
     if (this.data.blocked) return;
     const content = String(this.data.content || '').trim();
     if (content.length < 10) {
@@ -65,15 +66,17 @@ Page({
       return;
     }
     const actionKey = 'feedback:submit';
+    const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'feedback');
     if (actionGuard.isBusy(actionKey)) return;
 
-    return actionGuard.runWithPageBusy(this, 'submitting', actionKey, async () => {
+    return actionGuard.runWithCriticalPageBusy(this, 'submitting', actionKey, async () => {
       wx.showLoading({ title: '提交中...' });
       try {
         const res = await cloud.call('feedbackSubmit', {
           category: this.data.categoryOptions[this.data.categoryIndex] || '其他',
           content,
-          contact: String(this.data.contact || '').trim()
+          contact: String(this.data.contact || '').trim(),
+          clientRequestId
         });
         wx.hideLoading();
         wx.showModal({

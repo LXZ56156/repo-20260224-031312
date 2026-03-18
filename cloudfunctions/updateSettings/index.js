@@ -16,6 +16,7 @@ const {
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
   const traceId = String((event && event.__traceId) || '').trim();
+  const clientRequestId = String((event && event.clientRequestId) || '').trim();
   const tournamentId = String((event && event.tournamentId) || '').trim();
   const nameProvided = !!(event && Object.prototype.hasOwnProperty.call(event, 'name'));
   const normalizedName = normalizeTournamentName(event && event.name);
@@ -50,6 +51,15 @@ exports.main = async (event) => {
       const t = common.assertTournamentExists(docRes.data);
       common.assertCreator(t, OPENID);
       common.assertDraft(t, '非草稿阶段不可修改');
+      if (clientRequestId && String(t.lastClientRequestId || '').trim() === clientRequestId) {
+        return common.okResult('SETTINGS_UPDATED', '已保存比赛参数', {
+          traceId,
+          state: 'deduped',
+          deduped: true,
+          clientRequestId,
+          version: Number(t.version) || 1
+        });
+      }
 
       const players = Array.isArray(t.players) ? t.players : [];
       const mode = String(t.mode || 'multi_rotate').trim().toLowerCase();
@@ -83,6 +93,7 @@ exports.main = async (event) => {
 
       const data = { updatedAt: db.serverDate(), version: _.inc(1) };
       Object.assign(data, checked.patch);
+      if (clientRequestId) data.lastClientRequestId = clientRequestId;
       if (nameProvided) data.name = normalizedName;
       if (allowOpenTeamInput !== null) {
         data.allowOpenTeam = allowOpenTeamInput;
@@ -106,6 +117,7 @@ exports.main = async (event) => {
       return common.okResult('SETTINGS_UPDATED', '已保存比赛参数', {
         traceId,
         state: 'updated',
+        clientRequestId,
         version: oldVersion + 1
       });
     });

@@ -1,5 +1,6 @@
 const cloud = require('../../core/cloud');
 const actionGuard = require('../../core/actionGuard');
+const clientRequest = require('../../core/clientRequest');
 const retryAction = require('../../core/retryAction');
 const storage = require('../../core/storage');
 const flow = require('../../core/uxFlow');
@@ -316,16 +317,17 @@ Page({
     });
   },
 
-  async handleCreate() {
+  async handleCreate(options = {}) {
     const name = String(this.data.name || '').trim();
     if (!name) {
       wx.showToast({ title: '请输入赛事名称', icon: 'none' });
       return;
     }
     const actionKey = 'create:createTournament';
+    const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'create');
     if (actionGuard.isBusy(actionKey)) return;
 
-    return actionGuard.runWithPageBusy(this, 'createBusy', actionKey, async () => {
+    return actionGuard.runWithCriticalPageBusy(this, 'createBusy', actionKey, async () => {
       const gate = await profileCore.ensureProfileForAction('create', '/pages/create/index');
       if (!gate.ok) {
         if (gate.reason === 'login_failed') {
@@ -358,7 +360,8 @@ Page({
           presetKey: settings.presetKey,
           pointsPerGame: Number(this.data.pointsPerGame) || 21,
           endConditionType: settings.mode === flow.MODE_SQUAD_DOUBLES ? endConditionType : 'total_matches',
-          endConditionTarget: settings.mode === flow.MODE_SQUAD_DOUBLES ? endConditionTarget : settings.totalMatches
+          endConditionTarget: settings.mode === flow.MODE_SQUAD_DOUBLES ? endConditionTarget : settings.totalMatches,
+          clientRequestId
         });
         wx.hideLoading();
         this.clearLastFailedAction();
@@ -371,7 +374,7 @@ Page({
         });
       } catch (e) {
         wx.hideLoading();
-        this.setLastFailedAction('创建比赛', () => this.handleCreate(), { actionKey });
+        this.setLastFailedAction('创建比赛', () => this.handleCreate({ clientRequestId }), { actionKey });
         wx.showToast({ title: cloud.getUnifiedErrorMessage(e, '创建失败'), icon: 'none' });
       }
     });

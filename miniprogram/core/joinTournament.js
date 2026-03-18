@@ -1,5 +1,6 @@
 const cloud = require('./cloud');
 const actionGuard = require('./actionGuard');
+const clientRequest = require('./clientRequest');
 const joinError = require('./joinTournamentError');
 const storage = require('./storage');
 const profileCore = require('./profile');
@@ -43,11 +44,19 @@ async function callJoinTournament(payload, options = {}) {
   const fallbackMessage = options.fallbackMessage || '加入失败，请稍后重试';
   const tournamentId = String((payload && payload.tournamentId) || '').trim();
   const guardKey = `core:joinTournament:${tournamentId}`;
-  if (actionGuard.isBusy(guardKey)) return { ok: true, deduped: true };
-  return actionGuard.run(guardKey, async () => {
-    let res = await cloud.call('joinTournament', payload);
+  const clientRequestId = clientRequest.resolveClientRequestId(
+    options.clientRequestId || (payload && payload.clientRequestId),
+    action === 'profile_update' ? 'join_profile' : 'join'
+  );
+  const requestPayload = {
+    ...(payload && typeof payload === 'object' ? payload : {}),
+    clientRequestId
+  };
+  if (actionGuard.isBusy(guardKey)) return { ok: true, deduped: true, clientRequestId };
+  return actionGuard.runCriticalWrite(guardKey, async () => {
+    let res = await cloud.call('joinTournament', requestPayload);
     if (res && res.ok === false && joinError.isConflictResult(res) && options.retryOnConflict !== false) {
-      res = await cloud.call('joinTournament', payload);
+      res = await cloud.call('joinTournament', requestPayload);
     }
     if (res && res.ok === false) {
       throw joinError.normalizeJoinFailure(res, fallbackMessage, { action });

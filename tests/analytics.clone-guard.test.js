@@ -72,10 +72,9 @@ test('analytics clone action is guarded against repeated taps', async () => {
     const second = ctx.cloneCurrentTournament();
 
     assert.equal(calls.length, 1);
-    assert.deepEqual(calls[0], {
-      name: 'cloneTournament',
-      payload: { sourceTournamentId: 't_1' }
-    });
+    assert.equal(calls[0].name, 'cloneTournament');
+    assert.equal(calls[0].payload.sourceTournamentId, 't_1');
+    assert.match(String(calls[0].payload.clientRequestId || ''), /^clone_/);
 
     releaseCall();
     await Promise.all([first, second]);

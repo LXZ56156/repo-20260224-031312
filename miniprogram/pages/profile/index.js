@@ -1,5 +1,6 @@
 const storage = require('../../core/storage');
 const actionGuard = require('../../core/actionGuard');
+const clientRequest = require('../../core/clientRequest');
 const profileCore = require('../../core/profile');
 
 Page({
@@ -200,12 +201,13 @@ Page({
     return { ok, nickname, gender };
   },
 
-  async onSave() {
+  async onSave(options = {}) {
     if (this.data.saving) return;
     const actionKey = 'profile:saveUserProfile';
+    const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'profile');
     if (actionGuard.isBusy(actionKey)) return;
 
-    return actionGuard.runWithPageBusy(this, 'saving', actionKey, async () => {
+    return actionGuard.runWithCriticalPageBusy(this, 'saving', actionKey, async () => {
       const validated = this.validateProfile();
       if (!validated.ok) return;
 
@@ -233,7 +235,7 @@ Page({
           nickName: nickname,
           avatar,
           gender
-        });
+        }, { clientRequestId });
         wx.hideLoading();
         wx.showToast({ title: '已保存', icon: 'success' });
         const returnUrl = String(this.data.returnUrl || '').trim();

@@ -210,3 +210,59 @@ test('startTournament returns TOURNAMENT_ID_REQUIRED before reading the database
   assert.equal(result.state, 'invalid');
   assert.equal(readCalled, false);
 });
+
+test('startTournament treats repeated clientRequestId as deduped success', async () => {
+  let updateCalled = false;
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      },
+      remove() {
+        return { $remove: true };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection() {
+      return {
+        doc() {
+          return {
+            async get() {
+              return {
+                data: {
+                  ...buildTournament(),
+                  status: 'running',
+                  version: 3,
+                  lastClientRequestId: 'req_start_1'
+                }
+              };
+            }
+          };
+        },
+        where() {
+          updateCalled = true;
+          return {
+            async update() {
+              return { stats: { updated: 1 } };
+            }
+          };
+        }
+      };
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    clientRequestId: 'req_start_1'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.state, 'deduped');
+  assert.equal(result.deduped, true);
+  assert.equal(result.clientRequestId, 'req_start_1');
+  assert.equal(result.version, 3);
+  assert.equal(updateCalled, false);
+});

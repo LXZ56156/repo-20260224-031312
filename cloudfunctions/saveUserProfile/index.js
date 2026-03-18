@@ -22,6 +22,8 @@ async function ensureCollection(name) {
 
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
+  const traceId = String((event && event.__traceId) || '').trim();
+  const clientRequestId = String((event && event.clientRequestId) || '').trim();
   const nickname = String(event && event.nickname || '').trim();
   const avatar = String(event && event.avatar || '').trim();
   const gender = normalizeGender(event && event.gender);
@@ -33,32 +35,49 @@ exports.main = async (event) => {
   const now = db.serverDate();
   const findRes = await col.where({ openid: OPENID }).limit(1).get();
   const doc = Array.isArray(findRes.data) && findRes.data[0] ? findRes.data[0] : null;
-  if (!doc) {
-    const addRes = await col.add({
-      data: common.assertNoReservedRootKeys({
-        openid: OPENID,
-        nickname,
-        avatar,
-        gender,
-        createdAt: now,
-        updatedAt: now
-      }, ['_id'], '用户资料新增数据')
-    });
+  if (doc && clientRequestId && String(doc.lastClientRequestId || '').trim() === clientRequestId) {
     return common.okResult('PROFILE_SAVED', '已保存资料', {
-      state: 'updated',
-      profileId: addRes._id
+      traceId,
+      state: 'deduped',
+      deduped: true,
+      ...(clientRequestId ? { clientRequestId } : {}),
+      profileId: doc._id
     });
   }
-  await col.doc(doc._id).update({
-    data: common.assertNoReservedRootKeys({
+  if (!doc) {
+    const addData = {
+      openid: OPENID,
       nickname,
       avatar,
       gender,
+      createdAt: now,
       updatedAt: now
-    }, ['_id'], '用户资料更新数据')
+    };
+    if (clientRequestId) addData.lastClientRequestId = clientRequestId;
+    const addRes = await col.add({
+      data: common.assertNoReservedRootKeys(addData, ['_id'], '用户资料新增数据')
+    });
+    return common.okResult('PROFILE_SAVED', '已保存资料', {
+      traceId,
+      state: 'updated',
+      ...(clientRequestId ? { clientRequestId } : {}),
+      profileId: addRes._id
+    });
+  }
+  const updateData = {
+    nickname,
+    avatar,
+    gender,
+    updatedAt: now
+  };
+  if (clientRequestId) updateData.lastClientRequestId = clientRequestId;
+  await col.doc(doc._id).update({
+    data: common.assertNoReservedRootKeys(updateData, ['_id'], '用户资料更新数据')
   });
   return common.okResult('PROFILE_SAVED', '已保存资料', {
+    traceId,
     state: 'updated',
+    ...(clientRequestId ? { clientRequestId } : {}),
     profileId: doc._id
   });
 };

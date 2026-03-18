@@ -47,7 +47,7 @@ module.exports = {
     const actionKey = `lobby:managePairTeams:${this.data.tournamentId}`;
     if (actionGuard.isBusy(actionKey)) return;
 
-    return actionGuard.runWithPageBusy(this, 'pairTeamBusy', actionKey, async () => {
+    return actionGuard.runWithCriticalPageBusy(this, 'pairTeamBusy', actionKey, async () => {
       wx.showLoading({ title: '自动组队中...' });
       try {
         const res = await cloud.call('managePairTeams', {
@@ -88,7 +88,7 @@ module.exports = {
     const actionKey = `lobby:managePairTeams:${this.data.tournamentId}`;
     if (actionGuard.isBusy(actionKey)) return;
 
-    return actionGuard.runWithPageBusy(this, 'pairTeamBusy', actionKey, async () => {
+    return actionGuard.runWithCriticalPageBusy(this, 'pairTeamBusy', actionKey, async () => {
       wx.showLoading({ title: '创建队伍...' });
       try {
         const res = await cloud.call('managePairTeams', {
@@ -125,7 +125,7 @@ module.exports = {
         if (!res.confirm) return;
         const actionKey = `lobby:managePairTeams:${this.data.tournamentId}`;
         if (actionGuard.isBusy(actionKey)) return;
-        await actionGuard.runWithPageBusy(this, 'pairTeamBusy', actionKey, async () => {
+        await actionGuard.runWithCriticalPageBusy(this, 'pairTeamBusy', actionKey, async () => {
           wx.showLoading({ title: '删除中...' });
           try {
             const result = await cloud.call('managePairTeams', {

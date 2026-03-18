@@ -117,10 +117,26 @@ function runWithPageBusy(ctx, dataField, key, fn, options = {}) {
   return Promise.resolve(task);
 }
 
+function runCriticalWrite(key, fn, options = {}) {
+  return run(key, fn, {
+    ...options,
+    releaseOnTimeout: false
+  });
+}
+
+function runWithCriticalPageBusy(ctx, dataField, key, fn, options = {}) {
+  return runWithPageBusy(ctx, dataField, key, fn, {
+    ...options,
+    releaseOnTimeout: false
+  });
+}
+
 module.exports = {
   run,
+  runCriticalWrite,
   isBusy,
   clear,
   runWithPageBusy,
+  runWithCriticalPageBusy,
   DEFAULT_TIMEOUT_MS
 };

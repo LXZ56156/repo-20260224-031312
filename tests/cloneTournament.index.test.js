@@ -118,3 +118,58 @@ test('cloneTournament index creates a new draft copy with remapped pair teams', 
     Math.random = originalRandom;
   }
 });
+
+test('cloneTournament treats repeated clientRequestId as deduped success', async () => {
+  let sourceRead = false;
+  const db = {
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      assert.equal(name, 'tournaments');
+      return {
+        where(query) {
+          assert.deepEqual(query, {
+            creatorId: 'u_creator',
+            cloneSourceTournamentId: 't_source',
+            clientRequestId: 'req_clone_1'
+          });
+          return {
+            limit(value) {
+              assert.equal(value, 1);
+              return {
+                async get() {
+                  return { data: [{ _id: 't_copy_existing' }] };
+                }
+              };
+            }
+          };
+        },
+        doc() {
+          sourceRead = true;
+          return {
+            async get() {
+              return { data: buildSourceTournament() };
+            }
+          };
+        },
+        async add() {
+          throw new Error('should not create clone on deduped retry');
+        }
+      };
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    sourceTournamentId: 't_source',
+    clientRequestId: 'req_clone_1'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.state, 'deduped');
+  assert.equal(result.deduped, true);
+  assert.equal(result.clientRequestId, 'req_clone_1');
+  assert.equal(result.tournamentId, 't_copy_existing');
+  assert.equal(sourceRead, false);
+});

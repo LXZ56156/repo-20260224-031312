@@ -152,3 +152,55 @@ test('updateSettings returns SETTINGS_INVALID when provided name is blank', asyn
   assert.equal(result.state, 'invalid');
   assert.equal(result.message, '赛事名称不能为空');
 });
+
+test('updateSettings treats repeated clientRequestId as deduped success', async () => {
+  let updateCalled = false;
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return { data: { ...buildTournament(), lastClientRequestId: 'req_settings_1' } };
+                }
+              };
+            },
+            where() {
+              updateCalled = true;
+              return {
+                async update() {
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    totalMatches: 3,
+    courts: 2,
+    clientRequestId: 'req_settings_1'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.state, 'deduped');
+  assert.equal(result.deduped, true);
+  assert.equal(result.clientRequestId, 'req_settings_1');
+  assert.equal(result.version, 4);
+  assert.equal(updateCalled, false);
+});

@@ -40,6 +40,8 @@ function normalizeEndConditionType(type) {
 
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
+  const traceId = String((event && event.__traceId) || '').trim();
+  const clientRequestId = String((event && event.clientRequestId) || '').trim();
   const name = String((event && event.name) || '').trim();
   const nickname = String((event && event.nickname) || '').trim();
   const avatar = String((event && (event.avatar || event.avatarUrl)) || '').trim();
@@ -58,6 +60,23 @@ exports.main = async (event) => {
   if (!name) throw new Error('赛事名称不能为空');
 
   await ensureTournamentsCollection();
+
+  if (clientRequestId) {
+    const existing = await db.collection('tournaments').where({
+      creatorId: OPENID,
+      clientRequestId
+    }).limit(1).get();
+    const existingDoc = Array.isArray(existing && existing.data) ? existing.data[0] : null;
+    if (existingDoc && existingDoc._id) {
+      return common.okResult('TOURNAMENT_CREATED', '已创建比赛', {
+        traceId,
+        state: 'deduped',
+        deduped: true,
+        ...(clientRequestId ? { clientRequestId } : {}),
+        tournamentId: existingDoc._id
+      });
+    }
+  }
 
   const rules = {
     gamesPerMatch: 1,
@@ -80,7 +99,7 @@ exports.main = async (event) => {
   };
 
   try {
-    const data = common.assertNoReservedRootKeys({
+    const data = {
       name,
       status: 'draft',
       creatorId: OPENID,
@@ -106,12 +125,16 @@ exports.main = async (event) => {
       createdAt: db.serverDate(),
       updatedAt: db.serverDate(),
       version: 1
-    }, ['_id'], '赛事创建数据');
+    };
+    if (clientRequestId) data.clientRequestId = clientRequestId;
+    common.assertNoReservedRootKeys(data, ['_id'], '赛事创建数据');
     const res = await db.collection('tournaments').add({
       data
     });
     return common.okResult('TOURNAMENT_CREATED', '已创建比赛', {
       state: 'created',
+      traceId,
+      ...(clientRequestId ? { clientRequestId } : {}),
       tournamentId: res._id
     });
   } catch (err) {

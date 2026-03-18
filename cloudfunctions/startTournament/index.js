@@ -40,6 +40,7 @@ function idToPlayerMap(players) {
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
   const traceId = String((event && event.__traceId) || '').trim();
+  const clientRequestId = String((event && event.clientRequestId) || '').trim();
   const tournamentId = String((event && event.tournamentId) || '').trim();
   console.info('[startTournament]', traceId || '-', tournamentId || '-', OPENID || '-');
   if (!tournamentId) {
@@ -50,6 +51,15 @@ exports.main = async (event) => {
     const docRes = await db.collection('tournaments').doc(tournamentId).get();
     const t = common.assertTournamentExists(docRes.data);
     common.assertCreator(t, OPENID);
+    if (clientRequestId && String(t.lastClientRequestId || '').trim() === clientRequestId) {
+      return common.okResult('TOURNAMENT_STARTED', '已开赛', {
+        traceId,
+        state: 'deduped',
+        deduped: true,
+        clientRequestId,
+        version: Number(t.version) || 1
+      });
+    }
     common.assertDraft(t, '赛事已开赛/已结束');
     if (t.settingsConfigured === false) throw new Error('请先在“赛事设置”中保存比赛参数');
 
@@ -126,32 +136,36 @@ exports.main = async (event) => {
 
     const rankings = modeHelper.buildInitialRankings(mode, players, pairTeams);
 
+    const updateData = {
+      status: 'running',
+      rounds,
+      rankings,
+      scheduleSeed: schedule.seed,
+      mode,
+      allowOpenTeam,
+      pairTeams,
+      fairnessScore: schedule.fairnessScore,
+      // Store diagnostic details as JSON strings to avoid dot-path conflicts when existing fields are null.
+      fairnessJson: JSON.stringify(schedule.fairness || {}),
+      playerStatsJson: JSON.stringify(schedule.playerStats || {}),
+      schedulerMetaJson: JSON.stringify(schedule.schedulerMeta || {}),
+      // Clean legacy fields if they exist.
+      fairness: _.remove(),
+      playerStats: _.remove(),
+      updatedAt: db.serverDate(),
+      version: _.inc(1)
+    };
+    if (clientRequestId) updateData.lastClientRequestId = clientRequestId;
+
     const updRes = await db.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({
-      data: common.assertNoReservedRootKeys({
-        status: 'running',
-        rounds,
-        rankings,
-        scheduleSeed: schedule.seed,
-        mode,
-        allowOpenTeam,
-        pairTeams,
-        fairnessScore: schedule.fairnessScore,
-        // Store diagnostic details as JSON strings to avoid dot-path conflicts when existing fields are null.
-        fairnessJson: JSON.stringify(schedule.fairness || {}),
-        playerStatsJson: JSON.stringify(schedule.playerStats || {}),
-        schedulerMetaJson: JSON.stringify(schedule.schedulerMeta || {}),
-        // Clean legacy fields if they exist.
-        fairness: _.remove(),
-        playerStats: _.remove(),
-        updatedAt: db.serverDate(),
-        version: _.inc(1)
-      }, ['_id'], '赛事开赛写入数据')
+      data: common.assertNoReservedRootKeys(updateData, ['_id'], '赛事开赛写入数据')
     });
 
     common.assertOptimisticUpdate(updRes, '写入冲突，请刷新赛事后重试');
     return common.okResult('TOURNAMENT_STARTED', '已开赛', {
       traceId,
       state: 'started',
+      clientRequestId,
       version: oldVersion + 1
     });
   } catch (err) {

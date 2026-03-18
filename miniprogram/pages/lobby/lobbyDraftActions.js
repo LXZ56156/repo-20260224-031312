@@ -1,15 +1,12 @@
 const cloud = require('../../core/cloud');
 const actionGuard = require('../../core/actionGuard');
+const clientRequest = require('../../core/clientRequest');
 const cloneTournamentCore = require('../../core/cloneTournament');
 const storage = require('../../core/storage');
 const flow = require('../../core/uxFlow');
 const nav = require('../../core/nav');
 const writeErrorUi = require('../../core/writeErrorUi');
 const viewModel = require('./lobbyViewModel');
-
-function buildClientRequestId(prefix = 'write') {
-  return `${String(prefix || 'write').trim() || 'write'}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-}
 
 module.exports = {
   runFlowAction(rawKey) {
@@ -188,7 +185,7 @@ module.exports = {
     this.setData({ quickImportText: e.detail.value, importResultText: '', importResultDetail: '' });
   },
 
-  async saveQuickSettings() {
+  async saveQuickSettings(options = {}) {
     if (!this.data.isAdmin) {
       wx.showToast({ title: '仅管理员可保存参数', icon: 'none' });
       return;
@@ -208,15 +205,17 @@ module.exports = {
     }
 
     const actionKey = `lobby:updateSettings:${this.data.tournamentId}`;
+    const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'update_settings');
     if (actionGuard.isBusy(actionKey)) return;
-    return actionGuard.run(actionKey, async () => {
+    return actionGuard.runCriticalWrite(actionKey, async () => {
       wx.showLoading({ title: '保存中...' });
       try {
         cloud.assertWriteResult(await cloud.call('updateSettings', {
           tournamentId: this.data.tournamentId,
           totalMatches: matchCount,
           courts,
-          allowOpenTeam: this.data.allowOpenTeam
+          allowOpenTeam: this.data.allowOpenTeam,
+          clientRequestId
         }), '保存失败');
         wx.hideLoading();
         this.clearLastFailedAction();
@@ -225,13 +224,13 @@ module.exports = {
         await this.fetchTournament(this.data.tournamentId);
       } catch (err) {
         wx.hideLoading();
-        this.setLastFailedAction('保存比赛参数', () => this.saveQuickSettings(), { actionKey });
+        this.setLastFailedAction('保存比赛参数', () => this.saveQuickSettings({ clientRequestId }), { actionKey });
         this.handleWriteError(err, '保存失败', () => this.fetchTournament(this.data.tournamentId));
       }
     });
   },
 
-  async quickImportPlayers() {
+  async quickImportPlayers(options = {}) {
     if (!this.data.isAdmin) {
       wx.showToast({ title: '仅管理员可导入', icon: 'none' });
       return;
@@ -252,13 +251,15 @@ module.exports = {
     }
 
     const actionKey = `lobby:addPlayers:${this.data.tournamentId}`;
+    const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'add_players');
     if (actionGuard.isBusy(actionKey)) return;
-    return actionGuard.run(actionKey, async () => {
+    return actionGuard.runCriticalWrite(actionKey, async () => {
       wx.showLoading({ title: '导入中...' });
       try {
         const res = await cloud.call('addPlayers', {
           tournamentId: this.data.tournamentId,
-          players
+          players,
+          clientRequestId
         });
         wx.hideLoading();
         this.clearLastFailedAction();
@@ -292,26 +293,27 @@ module.exports = {
         wx.showToast({ title: importResultText, icon: 'none' });
       } catch (err) {
         wx.hideLoading();
-        this.setLastFailedAction('快速导入参赛者', () => this.quickImportPlayers(), { actionKey });
+        this.setLastFailedAction('快速导入参赛者', () => this.quickImportPlayers({ clientRequestId }), { actionKey });
         this.handleWriteError(err, '导入失败', () => this.fetchTournament(this.data.tournamentId));
       }
     });
   },
 
-  async cloneCurrentTournament() {
+  async cloneCurrentTournament(options = {}) {
     const actionKey = `lobby:cloneTournament:${this.data.tournamentId}`;
+    const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'clone');
     if (actionGuard.isBusy(actionKey)) return;
-    return actionGuard.run(actionKey, async () => {
+    return actionGuard.runCriticalWrite(actionKey, async () => {
       wx.showLoading({ title: '复制中...' });
       try {
-        const nextId = await cloneTournamentCore.cloneTournament(this.data.tournamentId);
+        const nextId = await cloneTournamentCore.cloneTournament(this.data.tournamentId, { clientRequestId });
         wx.hideLoading();
         this.clearLastFailedAction();
         wx.showToast({ title: '已生成副本', icon: 'success' });
         wx.navigateTo({ url: nav.buildTournamentUrl('/pages/lobby/index', nextId) });
       } catch (err) {
         wx.hideLoading();
-        this.setLastFailedAction('再办一场', () => this.cloneCurrentTournament(), { actionKey });
+        this.setLastFailedAction('再办一场', () => this.cloneCurrentTournament({ clientRequestId }), { actionKey });
         this.handleWriteError(err, '复制失败', () => this.fetchTournament(this.data.tournamentId));
       }
     });
@@ -340,7 +342,7 @@ module.exports = {
     this.setData({ joinSquadChoice: squad });
   },
 
-  async onTogglePlayerSquad(e) {
+  async onTogglePlayerSquad(e, options = {}) {
     if (!this.data.isAdmin) return;
     if (String((this.data.tournament && this.data.tournament.status) || '') !== 'draft') return;
     if (this.data.mode !== flow.MODE_SQUAD_DOUBLES) return;
@@ -350,14 +352,15 @@ module.exports = {
     const current = String(item && item.squad || '').toUpperCase();
     const next = current === 'A' ? 'B' : 'A';
     const actionKey = `lobby:setPlayerSquad:${this.data.tournamentId}:${playerId}`;
+    const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'set_squad');
     if (actionGuard.isBusy(actionKey)) return;
-    return actionGuard.run(actionKey, async () => {
+    return actionGuard.runCriticalWrite(actionKey, async () => {
       try {
         cloud.assertWriteResult(await cloud.call('setPlayerSquad', {
           tournamentId: this.data.tournamentId,
           playerId,
           squad: next,
-          clientRequestId: buildClientRequestId('set_squad')
+          clientRequestId
         }), '调整分队失败');
         wx.showToast({ title: `已调整到${next}队`, icon: 'none' });
         this.fetchTournament(this.data.tournamentId);
@@ -432,7 +435,7 @@ module.exports = {
     }
   },
 
-  async handleStart() {
+  async handleStart(options = {}) {
     const tournament = this.data.tournament;
     if (!tournament || !this.data.isAdmin) return;
     if (tournament.status !== 'draft') {
@@ -449,14 +452,16 @@ module.exports = {
     }
 
     const actionKey = `lobby:startTournament:${this.data.tournamentId}`;
+    const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'start');
     if (actionGuard.isBusy(actionKey)) return;
-    return actionGuard.run(actionKey, async () => {
+    return actionGuard.runCriticalWrite(actionKey, async () => {
       wx.showLoading({ title: '生成对阵...' });
       try {
         const schedulerProfile = storage.getSchedulerProfile();
         cloud.assertWriteResult(await cloud.call('startTournament', {
           tournamentId: this.data.tournamentId,
-          schedulerProfile
+          schedulerProfile,
+          clientRequestId
         }), '开赛失败');
         wx.hideLoading();
         this.clearLastFailedAction();
@@ -467,19 +472,20 @@ module.exports = {
         }, 280);
       } catch (err) {
         wx.hideLoading();
-        this.setLastFailedAction('开始比赛', () => this.handleStart(), { actionKey });
+        this.setLastFailedAction('开始比赛', () => this.handleStart({ clientRequestId }), { actionKey });
         this.handleWriteError(err, '开赛失败', () => this.fetchTournament(this.data.tournamentId));
       }
     });
   },
 
-  async cancelTournament() {
+  async cancelTournament(options = {}) {
     const tournament = this.data.tournament;
     if (!tournament || !this.data.isAdmin) return;
     if (String(tournament.status || '').trim() !== 'draft') {
       wx.showToast({ title: '仅草稿阶段可取消', icon: 'none' });
       return;
     }
+    const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'delete');
     wx.showModal({
       title: '确认取消比赛？',
       content: '删除后转发失效、不可恢复。',
@@ -489,11 +495,12 @@ module.exports = {
         if (!res.confirm) return;
         const actionKey = `lobby:cancelTournament:${this.data.tournamentId}`;
         if (actionGuard.isBusy(actionKey)) return;
-        await actionGuard.run(actionKey, async () => {
+        await actionGuard.runCriticalWrite(actionKey, async () => {
           wx.showLoading({ title: '取消中...' });
           try {
             cloud.assertWriteResult(await cloud.call('deleteTournament', {
-              tournamentId: this.data.tournamentId
+              tournamentId: this.data.tournamentId,
+              clientRequestId
             }), '取消失败');
             wx.hideLoading();
             this.clearLastFailedAction();
@@ -505,7 +512,7 @@ module.exports = {
             nav.goHome();
           } catch (err) {
             wx.hideLoading();
-            this.setLastFailedAction('取消比赛', () => this.cancelTournament(), { actionKey });
+            this.setLastFailedAction('取消比赛', () => this.cancelTournament({ clientRequestId }), { actionKey });
             this.handleWriteError(err, '取消失败', () => this.fetchTournament(this.data.tournamentId));
           }
         });

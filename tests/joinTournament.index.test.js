@@ -182,3 +182,77 @@ test('joinTournament returns PROFILE_MINIMUM_REQUIRED when neither payload nor p
   assert.match(String(result.message || ''), /请先完善/);
   assert.equal(writeCalled, false);
 });
+
+test('joinTournament treats retry after applied join as deduped success', async () => {
+  let writeCalled = false;
+  const db = {
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      assert.equal(name, 'user_profiles');
+      return {
+        where() {
+          return {
+            limit() {
+              return {
+                async get() {
+                  return { data: [] };
+                }
+              };
+            }
+          };
+        }
+      };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return {
+                    data: {
+                      _id: 't_1',
+                      creatorId: 'u_admin',
+                      status: 'draft',
+                      mode: 'squad_doubles',
+                      version: 5,
+                      players: [
+                        { id: 'u_admin', name: '管理员', avatar: 'cloud://avatar/admin', gender: 'male', squad: 'A' },
+                        { id: 'u_join', name: '球友A', avatar: 'cloud://avatar/a.png', gender: 'female', squad: 'B' }
+                      ],
+                      playerIds: ['u_admin', 'u_join']
+                    }
+                  };
+                },
+                async update() {
+                  writeCalled = true;
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    nickname: '球友A',
+    avatar: 'cloud://avatar/a.png',
+    gender: 'female',
+    squadChoice: 'b',
+    clientRequestId: 'req_join_1'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.state, 'deduped');
+  assert.equal(result.deduped, true);
+  assert.equal(result.clientRequestId, 'req_join_1');
+  assert.equal(result.version, 5);
+  assert.equal(writeCalled, false);
+});

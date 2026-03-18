@@ -1,5 +1,6 @@
 const storage = require('../../core/storage');
 const actionGuard = require('../../core/actionGuard');
+const clientRequest = require('../../core/clientRequest');
 const cloneTournamentCore = require('../../core/cloneTournament');
 const cloud = require('../../core/cloud');
 const profileCore = require('../../core/profile');
@@ -500,22 +501,23 @@ Page({
     this.goLobby({ currentTarget: { dataset } });
   },
 
-  async onCloneTap(e) {
+  async onCloneTap(e, options = {}) {
     const sourceTournamentId = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.id) || '').trim();
     if (!sourceTournamentId) return;
     const actionKey = `home:cloneTournament:${sourceTournamentId}`;
+    const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'clone');
     if (actionGuard.isBusy(actionKey)) return;
-    return actionGuard.run(actionKey, async () => {
+    return actionGuard.runCriticalWrite(actionKey, async () => {
       wx.showLoading({ title: '复制中...' });
       try {
-        const nextId = await cloneTournamentCore.cloneTournament(sourceTournamentId);
+        const nextId = await cloneTournamentCore.cloneTournament(sourceTournamentId, { clientRequestId });
         wx.hideLoading();
         this.clearLastFailedAction();
         wx.showToast({ title: '已复制', icon: 'success' });
         wx.navigateTo({ url: nav.buildTournamentUrl('/pages/lobby/index', nextId) });
       } catch (err) {
         wx.hideLoading();
-        this.setLastFailedAction('再办一场', () => this.onCloneTap({ currentTarget: { dataset: { id: sourceTournamentId } } }), { actionKey });
+        this.setLastFailedAction('再办一场', () => this.onCloneTap({ currentTarget: { dataset: { id: sourceTournamentId } } }, { clientRequestId }), { actionKey });
         this.handleWriteError(err, '复制失败', () => this.loadRecents());
       }
     });

@@ -130,3 +130,66 @@ test('feedbackSubmit rejects rapid duplicate submission within one minute', asyn
     content: '这是一条足够长的反馈内容，用于测试限流逻辑'
   }), /提交太频繁/);
 });
+
+test('feedbackSubmit treats repeated clientRequestId as deduped success', async () => {
+  let addCalled = false;
+  const db = {
+    command: {
+      gte(value) {
+        return { $gte: value };
+      }
+    },
+    async createCollection() {},
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection() {
+      return {
+        where(query) {
+          if (query.clientRequestId) {
+            assert.deepEqual(query, {
+              openid: 'u_feedback',
+              clientRequestId: 'req_feedback_1'
+            });
+            return {
+              limit() {
+                return {
+                  async get() {
+                    return { data: [{ _id: 'fb_existing' }] };
+                  }
+                };
+              }
+            };
+          }
+          return {
+            limit() {
+              return {
+                async get() {
+                  return { data: [] };
+                }
+              };
+            }
+          };
+        },
+        async add() {
+          addCalled = true;
+          return { _id: 'fb_should_not_write' };
+        }
+      };
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    category: '其他',
+    content: '这是一条足够长的反馈内容，用于测试 request id 去重逻辑',
+    clientRequestId: 'req_feedback_1'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.state, 'deduped');
+  assert.equal(result.deduped, true);
+  assert.equal(result.clientRequestId, 'req_feedback_1');
+  assert.equal(result.feedbackId, 'fb_existing');
+  assert.equal(addCalled, false);
+});

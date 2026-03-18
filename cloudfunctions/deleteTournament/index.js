@@ -7,6 +7,7 @@ const logic = require('./logic');
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
   const traceId = String((event && event.__traceId) || '').trim();
+  const clientRequestId = String((event && event.clientRequestId) || '').trim();
   const tournamentId = String((event && event.tournamentId) || '').trim();
   console.info('[deleteTournament]', traceId || '-', tournamentId || '-', OPENID || '-');
   if (!tournamentId) throw new Error('缺少 tournamentId');
@@ -22,7 +23,8 @@ exports.main = async (event) => {
     await transaction.collection('tournaments').doc(tournamentId).remove();
     return common.okResult('TOURNAMENT_DELETED', '已删除赛事', {
       traceId,
-      state: 'deleted'
+      state: 'deleted',
+      ...(clientRequestId ? { clientRequestId } : {})
     });
   });
   await logic.cleanupScoreLocksBestEffort(() => common.cleanupScoreLocks(db, tournamentId), tournamentId, console);

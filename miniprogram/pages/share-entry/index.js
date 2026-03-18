@@ -1,5 +1,6 @@
 const auth = require('../../core/auth');
 const actionGuard = require('../../core/actionGuard');
+const clientRequest = require('../../core/clientRequest');
 const joinTournamentCore = require('../../core/joinTournament');
 const nav = require('../../core/nav');
 const pageTournamentSync = require('../../core/pageTournamentSync');
@@ -239,7 +240,7 @@ Page({
     nav.goHome();
   },
 
-  async handleJoin() {
+  async handleJoin(options = {}) {
     if (this.data.joinBusy) return;
     const tournamentId = String(this.data.tournamentId || '').trim();
     if (!tournamentId) {
@@ -248,7 +249,8 @@ Page({
     }
 
     const actionKey = `shareEntry:joinTournament:${tournamentId}`;
-    return actionGuard.runWithPageBusy(this, 'joinBusy', actionKey, async () => {
+    const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'join');
+    return actionGuard.runWithCriticalPageBusy(this, 'joinBusy', actionKey, async () => {
       const gate = await joinTournamentCore.ensureJoinProfile({
         action: 'share_join',
         redirect: flow.buildReturnUrl(tournamentId, 'view')
@@ -270,7 +272,8 @@ Page({
       try {
         await joinTournamentCore.callJoinTournament(payload, {
           action: 'join',
-          fallbackMessage: '加入失败，请稍后重试'
+          fallbackMessage: '加入失败，请稍后重试',
+          clientRequestId
         });
         wx.hideLoading();
         nav.markRefreshFlag(tournamentId);

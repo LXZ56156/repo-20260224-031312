@@ -1,6 +1,7 @@
 const joinError = require('../../core/joinTournamentError');
 const joinTournamentCore = require('../../core/joinTournament');
 const actionGuard = require('../../core/actionGuard');
+const clientRequest = require('../../core/clientRequest');
 const storage = require('../../core/storage');
 const profileCore = require('../../core/profile');
 const nav = require('../../core/nav');
@@ -216,12 +217,13 @@ module.exports = {
     }
   },
 
-  async handleJoin() {
+  async handleJoin(options = {}) {
     if (this.data.profileSaving || this.data.profileAvatarUploading || this.data.profileQuickFillLoading) return;
     const actionKey = `lobby:joinTournament:${this.data.tournamentId}`;
+    const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'join');
     if (actionGuard.isBusy(actionKey)) return;
 
-    return actionGuard.runWithPageBusy(this, 'profileSaving', actionKey, async () => {
+    return actionGuard.runWithCriticalPageBusy(this, 'profileSaving', actionKey, async () => {
       this.setData({ profileFieldError: '' });
       const gate = await joinTournamentCore.ensureJoinProfile({
         action: 'join',
@@ -267,7 +269,8 @@ module.exports = {
         });
         await joinTournamentCore.callJoinTournament(joinPayload, {
           action: 'join',
-          fallbackMessage: '加入失败，请稍后重试'
+          fallbackMessage: '加入失败，请稍后重试',
+          clientRequestId
         });
         wx.hideLoading();
         this.clearLastFailedAction();
@@ -276,14 +279,14 @@ module.exports = {
         this.fetchTournament(tid);
       } catch (err) {
         wx.hideLoading();
-        this.setLastFailedAction('加入参赛', () => this.handleJoin(), { actionKey });
+        this.setLastFailedAction('加入参赛', () => this.handleJoin({ clientRequestId }), { actionKey });
         const normalizedError = joinError.normalizeJoinFailure(err, '加入失败，请稍后重试', { action: 'join' });
         this.handleWriteError(normalizedError, joinError.resolveJoinFailureMessage(normalizedError, '加入失败，请稍后重试', { action: 'join' }), () => this.fetchTournament(tid));
       }
     });
   },
 
-  async saveMyProfile() {
+  async saveMyProfile(options = {}) {
     if (this.data.profileSaving || this.data.profileAvatarUploading || this.data.profileQuickFillLoading) return;
     const tournament = this.data.tournament;
     if (!tournament || tournament.status !== 'draft') {
@@ -297,9 +300,10 @@ module.exports = {
       return;
     }
     const actionKey = `lobby:joinTournament:${this.data.tournamentId}`;
+    const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'join_profile');
     if (actionGuard.isBusy(actionKey)) return;
 
-    return actionGuard.runWithPageBusy(this, 'profileSaving', actionKey, async () => {
+    return actionGuard.runWithCriticalPageBusy(this, 'profileSaving', actionKey, async () => {
       this.setData({ profileFieldError: '' });
       wx.showLoading({ title: '保存中...' });
       try {
@@ -313,7 +317,8 @@ module.exports = {
         });
         await joinTournamentCore.callJoinTournament(savePayload, {
           action: 'profile_update',
-          fallbackMessage: '保存失败，请稍后重试'
+          fallbackMessage: '保存失败，请稍后重试',
+          clientRequestId
         });
         wx.hideLoading();
         this.clearLastFailedAction();
@@ -331,7 +336,7 @@ module.exports = {
         this.fetchTournament(this.data.tournamentId);
       } catch (err) {
         wx.hideLoading();
-        this.setLastFailedAction('保存我的信息', () => this.saveMyProfile(), { actionKey });
+        this.setLastFailedAction('保存我的信息', () => this.saveMyProfile({ clientRequestId }), { actionKey });
         const normalizedError = joinError.normalizeJoinFailure(err, '保存失败，请稍后重试', { action: 'profile_update' });
         this.handleWriteError(normalizedError, joinError.resolveJoinFailureMessage(normalizedError, '保存失败，请稍后重试', { action: 'profile_update' }), () => this.fetchTournament(this.data.tournamentId));
       }
