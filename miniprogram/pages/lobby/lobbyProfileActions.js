@@ -2,6 +2,7 @@ const joinError = require('../../core/joinTournamentError');
 const joinTournamentCore = require('../../core/joinTournament');
 const actionGuard = require('../../core/actionGuard');
 const clientRequest = require('../../core/clientRequest');
+const loading = require('../../core/loading');
 const storage = require('../../core/storage');
 const profileCore = require('../../core/profile');
 const nav = require('../../core/nav');
@@ -257,7 +258,6 @@ module.exports = {
         storage.setUserProfile({ ...old, nickName: nickname, avatar });
       }
 
-      wx.showLoading({ title: '加入中...' });
       try {
         const joinPayload = joinTournamentCore.buildJoinPayload({
           tournamentId: tid,
@@ -267,18 +267,16 @@ module.exports = {
           mode: this.data.mode,
           squadChoice: this.data.joinSquadChoice
         });
-        await joinTournamentCore.callJoinTournament(joinPayload, {
+        await loading.withLoading('加入中...', () => joinTournamentCore.callJoinTournament(joinPayload, {
           action: 'join',
           fallbackMessage: '加入失败，请稍后重试',
           clientRequestId
-        });
-        wx.hideLoading();
+        }));
         this.clearLastFailedAction();
         wx.showToast({ title: '已加入', icon: 'success' });
         nav.markRefreshFlag(tid);
         this.fetchTournament(tid);
       } catch (err) {
-        wx.hideLoading();
         this.setLastFailedAction('加入参赛', () => this.handleJoin({ clientRequestId }), { actionKey });
         const normalizedError = joinError.normalizeJoinFailure(err, '加入失败，请稍后重试', { action: 'join' });
         this.handleWriteError(normalizedError, joinError.resolveJoinFailureMessage(normalizedError, '加入失败，请稍后重试', { action: 'join' }), () => this.fetchTournament(tid));
@@ -305,7 +303,6 @@ module.exports = {
 
     return actionGuard.runWithCriticalPageBusy(this, 'profileSaving', actionKey, async () => {
       this.setData({ profileFieldError: '' });
-      wx.showLoading({ title: '保存中...' });
       try {
         const savePayload = joinTournamentCore.buildJoinPayload({
           tournamentId: this.data.tournamentId,
@@ -315,12 +312,11 @@ module.exports = {
           mode: this.data.mode,
           squadChoice: this.data.joinSquadChoice
         });
-        await joinTournamentCore.callJoinTournament(savePayload, {
+        await loading.withLoading('保存中...', () => joinTournamentCore.callJoinTournament(savePayload, {
           action: 'profile_update',
           fallbackMessage: '保存失败，请稍后重试',
           clientRequestId
-        });
-        wx.hideLoading();
+        }));
         this.clearLastFailedAction();
         wx.showToast({ title: '已更新', icon: 'success' });
         nav.markRefreshFlag(this.data.tournamentId);
@@ -335,7 +331,6 @@ module.exports = {
 
         this.fetchTournament(this.data.tournamentId);
       } catch (err) {
-        wx.hideLoading();
         this.setLastFailedAction('保存我的信息', () => this.saveMyProfile({ clientRequestId }), { actionKey });
         const normalizedError = joinError.normalizeJoinFailure(err, '保存失败，请稍后重试', { action: 'profile_update' });
         this.handleWriteError(normalizedError, joinError.resolveJoinFailureMessage(normalizedError, '保存失败，请稍后重试', { action: 'profile_update' }), () => this.fetchTournament(this.data.tournamentId));

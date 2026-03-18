@@ -1,5 +1,6 @@
 const cloud = require('../../core/cloud');
 const actionGuard = require('../../core/actionGuard');
+const loading = require('../../core/loading');
 const flow = require('../../core/uxFlow');
 const viewModel = require('./lobbyViewModel');
 
@@ -48,24 +49,20 @@ module.exports = {
     if (actionGuard.isBusy(actionKey)) return;
 
     return actionGuard.runWithCriticalPageBusy(this, 'pairTeamBusy', actionKey, async () => {
-      wx.showLoading({ title: '自动组队中...' });
       try {
-        const res = await cloud.call('managePairTeams', {
+        const res = await loading.withLoading('自动组队中...', () => cloud.call('managePairTeams', {
           tournamentId: this.data.tournamentId,
           action: 'auto_generate',
           clientRequestId: buildClientRequestId('pair_auto')
-        });
+        }));
         if (!res || res.ok === false) {
-          wx.hideLoading();
           wx.showToast({ title: viewModel.getPairTeamErrorMessage(res && res.code, res && res.message), icon: 'none' });
           return;
         }
-        wx.hideLoading();
         const warnings = Array.isArray(res && res.warnings) ? res.warnings : [];
         wx.showToast({ title: String(warnings[0] || '已自动组队'), icon: warnings.length ? 'none' : 'success' });
         await this.fetchTournament(this.data.tournamentId);
       } catch (err) {
-        wx.hideLoading();
         this.handleWriteError(err, '自动组队失败', () => this.fetchTournament(this.data.tournamentId));
       }
     });
@@ -89,26 +86,22 @@ module.exports = {
     if (actionGuard.isBusy(actionKey)) return;
 
     return actionGuard.runWithCriticalPageBusy(this, 'pairTeamBusy', actionKey, async () => {
-      wx.showLoading({ title: '创建队伍...' });
       try {
-        const res = await cloud.call('managePairTeams', {
+        const res = await loading.withLoading('创建队伍...', () => cloud.call('managePairTeams', {
           tournamentId: this.data.tournamentId,
           action: 'create',
           name: String(this.data.pairTeamName || '').trim(),
           playerIds: [first.id, second.id],
           clientRequestId: buildClientRequestId('pair_create')
-        });
+        }));
         if (!res || res.ok === false) {
-          wx.hideLoading();
           wx.showToast({ title: viewModel.getPairTeamErrorMessage(res && res.code, res && res.message), icon: 'none' });
           return;
         }
-        wx.hideLoading();
         wx.showToast({ title: '队伍已创建', icon: 'success' });
         this.setData({ pairTeamName: '' });
         await this.fetchTournament(this.data.tournamentId);
       } catch (err) {
-        wx.hideLoading();
         this.handleWriteError(err, '创建队伍失败', () => this.fetchTournament(this.data.tournamentId));
       }
     });
@@ -126,24 +119,20 @@ module.exports = {
         const actionKey = `lobby:managePairTeams:${this.data.tournamentId}`;
         if (actionGuard.isBusy(actionKey)) return;
         await actionGuard.runWithCriticalPageBusy(this, 'pairTeamBusy', actionKey, async () => {
-          wx.showLoading({ title: '删除中...' });
           try {
-            const result = await cloud.call('managePairTeams', {
+            const result = await loading.withLoading('删除中...', () => cloud.call('managePairTeams', {
               tournamentId: this.data.tournamentId,
               action: 'delete',
               teamId,
               clientRequestId: buildClientRequestId('pair_delete')
-            });
+            }));
             if (!result || result.ok === false) {
-              wx.hideLoading();
               wx.showToast({ title: viewModel.getPairTeamErrorMessage(result && result.code, result && result.message), icon: 'none' });
               return;
             }
-            wx.hideLoading();
             wx.showToast({ title: '已删除', icon: 'success' });
             await this.fetchTournament(this.data.tournamentId);
           } catch (err) {
-            wx.hideLoading();
             this.handleWriteError(err, '删除队伍失败', () => this.fetchTournament(this.data.tournamentId));
           }
         });

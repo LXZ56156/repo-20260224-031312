@@ -2,6 +2,7 @@ const auth = require('../../core/auth');
 const actionGuard = require('../../core/actionGuard');
 const clientRequest = require('../../core/clientRequest');
 const joinTournamentCore = require('../../core/joinTournament');
+const loading = require('../../core/loading');
 const nav = require('../../core/nav');
 const pageTournamentSync = require('../../core/pageTournamentSync');
 const pageTimers = require('../../core/pageTimers');
@@ -268,14 +269,12 @@ Page({
         squadChoice: this.data.joinSquadChoice,
         profile: gate.profile || {}
       });
-      wx.showLoading({ title: '加入中...' });
       try {
-        await joinTournamentCore.callJoinTournament(payload, {
+        await loading.withLoading('加入中...', () => joinTournamentCore.callJoinTournament(payload, {
           action: 'join',
           fallbackMessage: '加入失败，请稍后重试',
           clientRequestId
-        });
-        wx.hideLoading();
+        }));
         nav.markRefreshFlag(tournamentId);
         storage.setUserProfile({ nickName: payload.nickname, avatar: payload.avatar, gender: payload.gender });
         wx.showToast({ title: '已加入比赛', icon: 'success' });
@@ -289,7 +288,6 @@ Page({
           this.goLobby();
         }
       } catch (err) {
-        wx.hideLoading();
         writeErrorUi.presentWriteError({
           err,
           fallbackMessage: '加入失败，请稍后重试',
