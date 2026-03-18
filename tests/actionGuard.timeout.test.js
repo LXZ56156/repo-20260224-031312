@@ -79,3 +79,40 @@ test('actionGuard.run allows retrying the same key after timeout release', async
     timers.restore();
   }
 });
+
+test('actionGuard.run keeps action busy until settle when timeout release is disabled', async () => {
+  const timers = installFakeTimers();
+  const states = [];
+  let resolveTask = null;
+  const ctx = {
+    setData(patch) {
+      states.push(patch.busy);
+    }
+  };
+
+  try {
+    const task = actionGuard.runWithPageBusy(ctx, 'busy', 'test:no-timeout-release', () => new Promise((resolve) => {
+      resolveTask = resolve;
+    }), {
+      timeoutMs: 20,
+      releaseOnTimeout: false
+    });
+
+    assert.equal(actionGuard.isBusy('test:no-timeout-release'), true);
+
+    await timers.flushAll();
+
+    assert.equal(actionGuard.isBusy('test:no-timeout-release'), true);
+    assert.deepEqual(states, [true]);
+
+    resolveTask('done');
+    const result = await task;
+
+    assert.equal(result, 'done');
+    assert.equal(actionGuard.isBusy('test:no-timeout-release'), false);
+    assert.deepEqual(states, [true, false]);
+  } finally {
+    actionGuard.clear('test:no-timeout-release');
+    timers.restore();
+  }
+});

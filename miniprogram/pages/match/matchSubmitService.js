@@ -398,6 +398,8 @@ function createMatchSubmitService(ctx, deps = {}) {
       } finally {
         wx.hideLoading();
       }
+    }, {
+      releaseOnTimeout: false
     });
   }
 

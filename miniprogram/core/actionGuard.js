@@ -85,13 +85,15 @@ function run(key, fn, options = {}) {
   });
 
   entry.task = task;
-  const timeoutMs = normalizeTimeoutMs(options.timeoutMs);
-  entry.timer = setTimeout(() => {
-    const current = runningActions.get(normalized);
-    if (current !== entry) return;
-    console.warn('actionGuard timeout release', normalized, timeoutMs);
-    release(normalized, 'timeout');
-  }, timeoutMs);
+  if (options.releaseOnTimeout !== false) {
+    const timeoutMs = normalizeTimeoutMs(options.timeoutMs);
+    entry.timer = setTimeout(() => {
+      const current = runningActions.get(normalized);
+      if (current !== entry) return;
+      console.warn('actionGuard timeout release', normalized, timeoutMs);
+      release(normalized, 'timeout');
+    }, timeoutMs);
+  }
 
   runningActions.set(normalized, entry);
   try {
