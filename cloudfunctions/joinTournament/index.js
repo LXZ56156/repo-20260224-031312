@@ -57,10 +57,27 @@ function listMissingProfileFields(profile) {
   return missing;
 }
 
-function fail(traceId, code, message, extra = {}) {
-  return common.failResult(code || 'JOIN_FAILED', message || '加入失败', {
+function buildResultExtra(traceId, clientRequestId, extra = {}) {
+  const output = {
     traceId,
-    ...extra
+    ...((extra && typeof extra === 'object' && !Array.isArray(extra)) ? extra : {})
+  };
+  const requestId = String(clientRequestId || output.clientRequestId || '').trim();
+  if (requestId) {
+    output.clientRequestId = requestId;
+  } else if (Object.prototype.hasOwnProperty.call(output, 'clientRequestId')) {
+    delete output.clientRequestId;
+  }
+  return output;
+}
+
+function ok(traceId, clientRequestId, code, message, extra = {}) {
+  return common.okResult(code || 'OK', message || '操作成功', buildResultExtra(traceId, clientRequestId, extra));
+}
+
+function fail(traceId, clientRequestId, code, message, extra = {}) {
+  return common.failResult(code || 'JOIN_FAILED', message || '加入失败', {
+    ...buildResultExtra(traceId, clientRequestId, extra)
   });
 }
 
@@ -76,9 +93,8 @@ exports.main = async (event, context) => {
   let gender = normalizeGender(event.gender);
   const squadChoice = normalizeSquadChoice(event && event.squadChoice);
 
-  if (!tournamentId) return fail(traceId, 'TOURNAMENT_ID_REQUIRED', '缺少赛事ID', {
-    state: 'invalid',
-    clientRequestId
+  if (!tournamentId) return fail(traceId, clientRequestId, 'TOURNAMENT_ID_REQUIRED', '缺少赛事ID', {
+    state: 'invalid'
   });
 
   // 在事务外预读 profile，减少事务内锁范围
@@ -98,21 +114,18 @@ exports.main = async (event, context) => {
         t = docRes.data;
       } catch (getErr) {
         if (common.isDocNotExists(getErr)) {
-          return fail(traceId, 'TOURNAMENT_NOT_FOUND', '赛事不存在', {
-            state: 'not_found',
-            clientRequestId
+          return fail(traceId, clientRequestId, 'TOURNAMENT_NOT_FOUND', '赛事不存在', {
+            state: 'not_found'
           });
         }
         throw getErr;
       }
-      if (!t) return fail(traceId, 'TOURNAMENT_NOT_FOUND', '赛事不存在', {
-        state: 'not_found',
-        clientRequestId
+      if (!t) return fail(traceId, clientRequestId, 'TOURNAMENT_NOT_FOUND', '赛事不存在', {
+        state: 'not_found'
       });
       if (String(t.status || '') !== 'draft') {
-        return fail(traceId, 'JOIN_DRAFT_ONLY', '非草稿阶段不可加入/修改', {
-          state: 'forbidden',
-          clientRequestId
+        return fail(traceId, clientRequestId, 'JOIN_DRAFT_ONLY', '非草稿阶段不可加入/修改', {
+          state: 'forbidden'
         });
       }
 
@@ -133,9 +146,8 @@ exports.main = async (event, context) => {
 
       const missingFields = listMissingProfileFields({ nickname, avatar, gender });
       if (missingFields.length) {
-        return fail(traceId, 'PROFILE_MINIMUM_REQUIRED', `请先完善${missingFields.join('、')}后再加入比赛`, {
-          state: 'invalid',
-          clientRequestId
+        return fail(traceId, clientRequestId, 'PROFILE_MINIMUM_REQUIRED', `请先完善${missingFields.join('、')}后再加入比赛`, {
+          state: 'invalid'
         });
       }
 
@@ -159,11 +171,9 @@ exports.main = async (event, context) => {
           normalizeGender(cur.gender) === nextGender &&
           (mode !== 'squad_doubles' || normalizeSquadChoice(cur.squad) === nextSquad)
         ) {
-          return common.okResult('JOIN_DEDUPED', '参赛信息已同步', {
-            traceId,
+          return ok(traceId, clientRequestId, 'JOIN_DEDUPED', '参赛信息已同步', {
             state: 'deduped',
             deduped: true,
-            clientRequestId,
             version: Number(t.version) || 1,
             player: {
               ...cur,
@@ -192,11 +202,9 @@ exports.main = async (event, context) => {
           }, ['_id'], '赛事加入更新数据')
         });
 
-        return common.okResult('JOIN_UPDATED', '已更新参赛信息', {
-          traceId,
+        return ok(traceId, clientRequestId, 'JOIN_UPDATED', '已更新参赛信息', {
           state: 'updated',
           updated: true,
-          clientRequestId,
           version: nextVersion,
           player: cur
         });
@@ -221,11 +229,9 @@ exports.main = async (event, context) => {
         }, ['_id'], '赛事加入写入数据')
       });
 
-      return common.okResult('JOINED', '已加入比赛', {
-        traceId,
+      return ok(traceId, clientRequestId, 'JOINED', '已加入比赛', {
         state: 'joined',
         added: true,
-        clientRequestId,
         version: nextVersion,
         player
       });
@@ -235,15 +241,13 @@ exports.main = async (event, context) => {
       throw new Error('数据库集合 tournaments 不存在：请在云开发控制台创建 tournaments 后再试。');
     }
     if (common.isDocNotExists(err)) {
-      return fail(traceId, 'TOURNAMENT_NOT_FOUND', '赛事不存在', {
-        state: 'not_found',
-        clientRequestId
+      return fail(traceId, clientRequestId, 'TOURNAMENT_NOT_FOUND', '赛事不存在', {
+        state: 'not_found'
       });
     }
     if (common.isConflictError(err)) {
-      return fail(traceId, 'VERSION_CONFLICT', '并发冲突，请重试', {
-        state: 'conflict',
-        clientRequestId
+      return fail(traceId, clientRequestId, 'VERSION_CONFLICT', '并发冲突，请重试', {
+        state: 'conflict'
       });
     }
     throw common.normalizeConflictError(err, '加入比赛失败');

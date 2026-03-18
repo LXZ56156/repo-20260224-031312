@@ -125,6 +125,64 @@ test('joinTournament adds player with normalized profile fallback and squad choi
   assert.deepEqual(writtenData.players[1], result.player);
 });
 
+test('joinTournament omits empty clientRequestId on successful join', async () => {
+  const db = {
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      assert.equal(name, 'user_profiles');
+      return {
+        where() {
+          return {
+            limit() {
+              return {
+                async get() {
+                  return {
+                    data: [{
+                      nickName: '球友A',
+                      avatar: 'cloud://avatar/a.png',
+                      gender: 'female'
+                    }]
+                  };
+                }
+              };
+            }
+          };
+        }
+      };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return { data: buildTournament() };
+                },
+                async update() {
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    squadChoice: 'b'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(Object.prototype.hasOwnProperty.call(result, 'clientRequestId'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(result.data || {}, 'clientRequestId'), false);
+});
+
 test('joinTournament returns PROFILE_MINIMUM_REQUIRED when neither payload nor profile is complete', async () => {
   let writeCalled = false;
   const db = {

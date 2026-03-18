@@ -266,3 +266,48 @@ test('startTournament treats repeated clientRequestId as deduped success', async
   assert.equal(result.version, 3);
   assert.equal(updateCalled, false);
 });
+
+test('startTournament omits empty clientRequestId when not provided', async () => {
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      },
+      remove() {
+        return { $remove: true };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      assert.equal(name, 'tournaments');
+      return {
+        doc(id) {
+          assert.equal(id, 't_1');
+          return {
+            async get() {
+              return { data: buildTournament() };
+            }
+          };
+        },
+        where(query) {
+          assert.deepEqual(query, { _id: 't_1', version: 2 });
+          return {
+            async update() {
+              return { stats: { updated: 1 } };
+            }
+          };
+        }
+      };
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({ tournamentId: 't_1' });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.code, 'TOURNAMENT_STARTED');
+  assert.equal(Object.prototype.hasOwnProperty.call(result, 'clientRequestId'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(result.data || {}, 'clientRequestId'), false);
+});

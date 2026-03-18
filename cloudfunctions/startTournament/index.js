@@ -165,7 +165,7 @@ exports.main = async (event) => {
     return common.okResult('TOURNAMENT_STARTED', '已开赛', {
       traceId,
       state: 'started',
-      clientRequestId,
+      ...(clientRequestId ? { clientRequestId } : {}),
       version: oldVersion + 1
     });
   } catch (err) {

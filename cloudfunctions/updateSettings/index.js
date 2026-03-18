@@ -117,7 +117,7 @@ exports.main = async (event) => {
       return common.okResult('SETTINGS_UPDATED', '已保存比赛参数', {
         traceId,
         state: 'updated',
-        clientRequestId,
+        ...(clientRequestId ? { clientRequestId } : {}),
         version: oldVersion + 1
       });
     });
