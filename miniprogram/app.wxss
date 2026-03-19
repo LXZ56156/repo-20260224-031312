@@ -38,6 +38,16 @@ page {
   --bg-app: #F3F6F8;
   --bg-section: #F7FAFC;
   --bg-surface: #FFFFFF;
+  --surface-hero: rgba(255, 255, 255, 0.98);
+  --surface-card: rgba(255, 255, 255, 0.98);
+  --surface-soft: #F7FBF8;
+  --surface-soft-strong: #EFF9F2;
+  --surface-inset: rgba(248, 251, 249, 0.94);
+  --surface-accent: rgba(24, 179, 104, 0.08);
+  --surface-accent-strong: rgba(24, 179, 104, 0.14);
+  --card-border: rgba(15, 23, 42, 0.08);
+  --card-border-strong: rgba(24, 179, 104, 0.14);
+  --card-border-muted: rgba(148, 163, 184, 0.18);
 
   /* 兼容旧 token */
   --bg-page: #F3F6F8;
@@ -48,8 +58,9 @@ page {
   --brand: #18B368;
   --brand-strong: #0E8F55;
   --line-soft: #E2E8F0;
-  --shadow-soft: 0 2rpx 8rpx rgba(15, 23, 42, 0.04), 0 4rpx 16rpx rgba(15, 23, 42, 0.04);
-  --shadow-strong: 0 8rpx 24rpx rgba(24, 179, 104, 0.16);
+  --shadow-soft: 0 8rpx 24rpx rgba(15, 23, 42, 0.05), 0 2rpx 8rpx rgba(15, 23, 42, 0.03);
+  --shadow-card: 0 10rpx 30rpx rgba(15, 23, 42, 0.06);
+  --shadow-strong: 0 10rpx 28rpx rgba(24, 179, 104, 0.14);
 
   background: var(--bg-app);
   color: var(--text-1);
@@ -124,53 +135,58 @@ page {
 
 /* --- E. Hero 全局基类 --- */
 .hero {
+  position: relative;
+  overflow: hidden;
   background:
-    radial-gradient(ellipse at 85% 15%, rgba(255,255,255,0.18) 0%, transparent 50%),
-    linear-gradient(135deg, var(--brand-700) 0%, var(--brand-500) 55%, #2DD47A 100%);
+    radial-gradient(circle at 88% 12%, rgba(24, 179, 104, 0.14) 0%, rgba(24, 179, 104, 0.04) 30%, transparent 56%),
+    linear-gradient(180deg, rgba(244, 253, 247, 0.98) 0%, rgba(255, 255, 255, 0.98) 52%, #ffffff 100%);
+  border: 1rpx solid var(--card-border-strong);
   border-radius: 24rpx;
   padding: 28rpx 24rpx;
-  color: #ffffff;
-  box-shadow: 0 6rpx 20rpx rgba(24, 179, 104, 0.14);
+  color: var(--neutral-950);
+  box-shadow: var(--shadow-card);
 }
 
 .hero-title {
   font-size: 36rpx;
   font-weight: 780;
   line-height: 1.25;
+  color: var(--neutral-950);
 }
 
 .hero-sub {
   margin-top: 8rpx;
   font-size: 24rpx;
-  opacity: 0.88;
   line-height: 1.45;
+  color: var(--neutral-500);
 }
 
 /* --- F. Card / Panel --- */
 .card {
-  background: var(--bg-surface);
+  background: linear-gradient(180deg, var(--surface-card) 0%, rgba(251, 253, 252, 0.98) 100%);
   border-radius: 20rpx;
-  border: 1rpx solid var(--neutral-200);
+  border: 1rpx solid var(--card-border);
   padding: 20rpx;
   margin-top: 16rpx;
   box-shadow: var(--shadow-soft);
 }
 
 .panel {
-  background: var(--bg-surface);
-  border: 1rpx solid var(--neutral-200);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(248, 251, 249, 0.98) 100%);
+  border: 1rpx solid var(--card-border);
   border-radius: 20rpx;
   box-shadow: var(--shadow-soft);
 }
 
 .panel-soft {
-  background: var(--bg-section);
-  border-color: var(--neutral-200);
+  background: linear-gradient(180deg, rgba(247, 252, 249, 0.98) 0%, rgba(242, 248, 245, 0.98) 100%);
+  border-color: var(--card-border-muted);
 }
 
 .panel-strong {
-  border-color: rgba(24, 179, 104, 0.2);
-  box-shadow: 0 6rpx 20rpx rgba(24, 179, 104, 0.12);
+  background: linear-gradient(180deg, rgba(246, 253, 248, 0.99) 0%, rgba(255, 255, 255, 0.99) 100%);
+  border-color: var(--card-border-strong);
+  box-shadow: 0 10rpx 28rpx rgba(24, 179, 104, 0.12);
 }
 
 /* --- G. Section Head --- */
@@ -194,9 +210,9 @@ page {
   min-width: 0;
   padding: 6rpx 14rpx;
   border-radius: 999rpx;
-  border: 1rpx solid var(--neutral-200);
-  background: var(--neutral-100);
-  color: var(--neutral-500);
+  border: 1rpx solid var(--card-border-muted);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--neutral-700);
   font-size: 22rpx;
   font-weight: 600;
   flex-shrink: 0;
@@ -227,22 +243,22 @@ button.btn:active {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--brand-500) 0%, var(--brand-600) 100%);
+  background: linear-gradient(135deg, #21B96F 0%, var(--brand-600) 100%);
   color: #ffffff;
-  box-shadow: 0 4rpx 12rpx rgba(24, 179, 104, 0.2);
+  box-shadow: 0 8rpx 20rpx rgba(24, 179, 104, 0.22);
 }
 
 .btn-secondary {
-  background: var(--brand-100);
+  background: rgba(255, 255, 255, 0.94);
   color: var(--brand-700);
-  border: 1rpx solid rgba(24, 179, 104, 0.15);
+  border: 1rpx solid rgba(24, 179, 104, 0.18);
 }
 
 .btn-subtle,
 .btn-ghost {
-  background: var(--neutral-100);
+  background: rgba(255, 255, 255, 0.94);
   color: var(--neutral-700);
-  border: 1rpx solid var(--neutral-200);
+  border: 1rpx solid var(--card-border);
 }
 
 .btn-text {
@@ -303,7 +319,7 @@ button.btn:active {
   line-height: 64rpx;
   padding: 0 18rpx;
   border-radius: 14rpx;
-  background: var(--neutral-100);
+  background: rgba(255, 255, 255, 0.94);
   color: var(--neutral-700);
   font-size: 25rpx;
   font-weight: 600;
@@ -311,7 +327,7 @@ button.btn:active {
   align-items: center;
   justify-content: center;
   transition: transform 100ms ease, filter 100ms ease;
-  border: 1rpx solid var(--neutral-200);
+  border: 1rpx solid var(--card-border);
 }
 
 button.btn-mini:active {
@@ -474,15 +490,16 @@ button.btn-mini::after {
 /* --- J. Input / Form --- */
 .input {
   width: 100%;
-  background: var(--neutral-100);
-  border: 1rpx solid var(--neutral-200);
+  background: rgba(255, 255, 255, 0.98);
+  border: 1rpx solid var(--card-border);
   border-radius: 14rpx;
   padding: 18rpx 20rpx;
   box-sizing: border-box;
   font-size: 28rpx;
   min-height: 84rpx;
   line-height: 1.3;
-  transition: border-color 140ms ease;
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.92);
+  transition: border-color 140ms ease, box-shadow 140ms ease;
 }
 
 .input-error {
@@ -492,14 +509,15 @@ button.btn-mini::after {
 
 .textarea {
   width: 100%;
-  background: var(--neutral-100);
-  border: 1rpx solid var(--neutral-200);
+  background: rgba(255, 255, 255, 0.98);
+  border: 1rpx solid var(--card-border);
   border-radius: 14rpx;
   padding: 18rpx 20rpx;
   box-sizing: border-box;
   font-size: 28rpx;
   min-height: 160rpx;
   line-height: 1.4;
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.92);
 }
 
 .field-error {
@@ -529,27 +547,37 @@ button.btn-mini::after {
 
 /* --- K. Tag / Chip / Badge --- */
 .tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52rpx;
   padding: 6rpx 14rpx;
   border-radius: 999rpx;
   font-size: 22rpx;
-  font-weight: 600;
+  font-weight: 700;
   flex-shrink: 0;
   white-space: nowrap;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1rpx solid var(--card-border);
+  color: var(--neutral-700);
 }
 
 .tag-draft {
-  background: rgba(255, 255, 255, 0.18);
-  border: 1rpx solid rgba(255, 255, 255, 0.24);
+  background: var(--neutral-100);
+  border-color: var(--card-border-muted);
+  color: var(--neutral-700);
 }
 
 .tag-running {
-  background: rgba(255, 255, 255, 0.22);
-  border: 1rpx solid rgba(255, 255, 255, 0.28);
+  background: rgba(24, 179, 104, 0.10);
+  border-color: rgba(24, 179, 104, 0.18);
+  color: var(--brand-700);
 }
 
 .tag-finished {
-  background: rgba(255, 255, 255, 0.22);
-  border: 1rpx solid rgba(255, 255, 255, 0.28);
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.2);
+  color: #B45309;
 }
 
 .chips {
@@ -643,8 +671,9 @@ button.btn-mini::after {
 .metric-card {
   padding: 16rpx;
   border-radius: 16rpx;
-  border: 1rpx solid var(--neutral-200);
-  background: var(--bg-section);
+  border: 1rpx solid var(--card-border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(245, 250, 247, 0.94) 100%);
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.9);
 }
 
 .metric-card-label {
@@ -670,8 +699,16 @@ button.btn-mini::after {
 }
 
 .state-empty-icon {
-  font-size: 64rpx;
-  opacity: 0.4;
+  width: 84rpx;
+  height: 84rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid var(--card-border);
+  background: var(--surface-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  opacity: 1;
 }
 
 .state-empty-title {
@@ -697,8 +734,17 @@ button.btn-mini::after {
 }
 
 .state-error-icon {
-  font-size: 64rpx;
-  opacity: 0.5;
+  width: 84rpx;
+  height: 84rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid #FECACA;
+  background: #FEF2F2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  color: var(--danger);
+  opacity: 1;
 }
 
 .state-error-title {
@@ -724,10 +770,10 @@ button.btn-mini::after {
 
 .retry-box {
   margin-top: 16rpx;
-  padding: 12rpx 16rpx;
-  border-radius: 14rpx;
-  border: 1rpx solid var(--neutral-200);
-  background: var(--bg-section);
+  padding: 14rpx 16rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid var(--card-border);
+  background: linear-gradient(180deg, rgba(248, 251, 249, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -935,18 +981,18 @@ button.btn-mini::after {
 }
 
 .rank-badge.rank-1 {
-  background: linear-gradient(135deg, #F59E0B, #EAB308);
-  box-shadow: 0 4rpx 12rpx rgba(245, 158, 11, 0.3);
+  background: linear-gradient(135deg, #F7D974, #EAB308);
+  box-shadow: 0 4rpx 12rpx rgba(245, 158, 11, 0.2);
 }
 
 .rank-badge.rank-2 {
-  background: linear-gradient(135deg, #94A3B8, #64748B);
-  box-shadow: 0 4rpx 12rpx rgba(100, 116, 139, 0.25);
+  background: linear-gradient(135deg, #C7D2E1, #94A3B8);
+  box-shadow: 0 4rpx 12rpx rgba(100, 116, 139, 0.16);
 }
 
 .rank-badge.rank-3 {
-  background: linear-gradient(135deg, #D97706, #B45309);
-  box-shadow: 0 4rpx 12rpx rgba(217, 119, 6, 0.25);
+  background: linear-gradient(135deg, #F0B171, #D97706);
+  box-shadow: 0 4rpx 12rpx rgba(217, 119, 6, 0.18);
 }
 
 /* --- T. Tone / Status Colors --- */
@@ -977,10 +1023,10 @@ button.btn-mini::after {
 /* --- V. Action Rail --- */
 .action-rail {
   margin-top: 16rpx;
-  padding: 16rpx;
+  padding: 18rpx;
   border-radius: 20rpx;
-  background: var(--bg-surface);
-  border: 1rpx solid var(--neutral-200);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(247, 251, 248, 0.98) 100%);
+  border: 1rpx solid var(--card-border);
   box-shadow: var(--shadow-soft);
 }
 
@@ -996,11 +1042,11 @@ button.btn-mini::after {
   position: sticky;
   bottom: calc(env(safe-area-inset-bottom) + 8rpx);
   margin-top: 16rpx;
-  padding: 10rpx;
-  border-radius: 18rpx;
-  border: 1rpx solid var(--neutral-200);
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 -2rpx 12rpx rgba(15, 23, 42, 0.06), 0 4rpx 16rpx rgba(15, 23, 42, 0.08);
+  padding: 12rpx;
+  border-radius: 20rpx;
+  border: 1rpx solid var(--card-border);
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 -2rpx 12rpx rgba(15, 23, 42, 0.04), 0 8rpx 22rpx rgba(15, 23, 42, 0.08);
   z-index: 9;
 }
 

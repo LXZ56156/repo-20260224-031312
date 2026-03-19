@@ -4,75 +4,151 @@
   padding-top: 24rpx;
 }
 
-/* --- Hero 紧凑化 --- */
-.hero-kicker {
-  font-size: 22rpx;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.78);
-  letter-spacing: 0.5rpx;
-  text-transform: uppercase;
+/* --- Hero 重构：表面优先的赛事状态卡 --- */
+.schedule-page .hero {
+  padding: 24rpx;
+  border-radius: 24rpx;
+  border: 1rpx solid rgba(24, 179, 104, 0.12);
+  background:
+    radial-gradient(circle at 88% 12%, rgba(24, 179, 104, 0.14) 0%, rgba(24, 179, 104, 0.03) 30%, transparent 54%),
+    linear-gradient(180deg, rgba(241, 252, 245, 0.98) 0%, rgba(255, 255, 255, 0.98) 52%, #ffffff 100%);
+  box-shadow: 0 10rpx 30rpx rgba(15, 23, 42, 0.06);
+  color: var(--neutral-950);
 }
 
 .hero-head {
-  gap: 12rpx;
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+}
+
+.hero-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.hero-kicker {
+  font-size: 23rpx;
+  font-weight: 700;
+  color: var(--neutral-500);
+  letter-spacing: 0.3rpx;
 }
 
 .hero-title {
-  margin-top: 4rpx;
-  font-size: 36rpx;
-  font-weight: 820;
-  color: #ffffff;
+  margin-top: 10rpx;
+  font-size: 40rpx;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.3rpx;
+  color: var(--neutral-950);
 }
 
 .hero-sub {
-  margin-top: 4rpx;
+  margin-top: 8rpx;
   font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.88);
+  line-height: 1.45;
+  color: var(--neutral-500);
 }
 
-.hero-stats {
-  margin-top: 16rpx;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8rpx;
-}
-
-.hero-stat {
-  padding: 12rpx 14rpx;
-  border-radius: 16rpx;
-  background: rgba(255, 255, 255, 0.14);
-  border: 1rpx solid rgba(255, 255, 255, 0.18);
-}
-
-.hero-stat-value {
-  color: #ffffff;
-  font-size: 26rpx;
-  font-weight: 780;
-}
-
-.hero-stat-label {
-  display: block;
-  margin-top: 4rpx;
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 21rpx;
-}
-
-.hero-actions {
-  margin-top: 12rpx;
-  display: flex;
+.hero-status {
+  display: inline-flex;
   align-items: center;
-  gap: 12rpx;
-  flex-wrap: wrap;
+  gap: 8rpx;
+  min-height: 52rpx;
+  padding: 0 16rpx;
+  border-radius: 999rpx;
+  font-size: 23rpx;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.hero-status-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 999rpx;
+  background: currentColor;
+  flex: none;
+}
+
+.hero-status-running {
+  background: rgba(24, 179, 104, 0.12);
+  border: 1rpx solid rgba(24, 179, 104, 0.18);
+  color: var(--brand-700);
+}
+
+.hero-status-draft {
+  background: var(--neutral-100);
+  border: 1rpx solid var(--neutral-200);
+  color: var(--neutral-700);
+}
+
+.hero-status-finished {
+  background: var(--brand-50);
+  border: 1rpx solid var(--brand-100);
+  color: var(--brand-700);
+}
+
+.hero-progress-card {
+  margin-top: 20rpx;
+  padding: 22rpx 20rpx 18rpx;
+  border-radius: 20rpx;
+  background: rgba(255, 255, 255, 0.84);
+  border: 1rpx solid rgba(24, 179, 104, 0.1);
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.88);
+}
+
+.hero-progress-value {
+  font-size: 48rpx;
+  font-weight: 820;
+  line-height: 1.08;
+  letter-spacing: -0.6rpx;
+  color: var(--neutral-950);
+}
+
+.hero-progress-note {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  line-height: 1.5;
+  color: var(--neutral-700);
+}
+
+.hero-progress-track {
+  margin-top: 14rpx;
+  height: 8rpx;
+  border-radius: 999rpx;
+  background: var(--neutral-100);
+  overflow: hidden;
+}
+
+.hero-progress-fill {
+  height: 100%;
+  border-radius: 999rpx;
+  background: linear-gradient(90deg, var(--brand-500) 0%, #29c77a 100%);
+  transition: width 200ms ease;
+}
+
+.hero-actions-panel {
+  margin-top: 18rpx;
+  padding: 14rpx;
+  border-radius: 18rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 8rpx 22rpx rgba(15, 23, 42, 0.05);
 }
 
 .hero-btn {
-  width: auto;
-  min-width: 200rpx;
-  padding: 0 24rpx;
+  width: 100%;
+  min-width: 0;
 }
 
 .hero-primary {
-  min-width: 220rpx;
+  margin-top: 0 !important;
+}
+
+.hero-primary-hover {
+  transform: scale(0.992);
+  filter: brightness(0.98);
 }
 
 /* --- Round Card --- */

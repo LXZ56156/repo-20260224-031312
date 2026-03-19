@@ -134,6 +134,38 @@ function summarizeRounds(roundsUi) {
   };
 }
 
+function formatRoundOrdinal(roundNumber) {
+  const round = Number(roundNumber) || 0;
+  return round > 0 ? `第${round}轮` : '';
+}
+
+function buildHeroSummaryText(status, modeLabel, roundsSummary, firstPending) {
+  if (status === 'draft') return `${modeLabel} · 尚未开始`;
+  if (status === 'finished') {
+    return roundsSummary.totalRounds
+      ? `${modeLabel} · 共 ${roundsSummary.totalRounds} 轮`
+      : `${modeLabel} · 已完成`;
+  }
+  const pendingRoundText = firstPending ? formatRoundOrdinal(Number(firstPending.roundIndex) + 1) : '';
+  if (pendingRoundText) return `${modeLabel} · ${pendingRoundText}`;
+  if (roundsSummary.totalRounds) return `${modeLabel} · ${formatRoundOrdinal(roundsSummary.totalRounds)}`;
+  return `${modeLabel} · 进行中`;
+}
+
+function buildHeroPendingText(status, roundsSummary) {
+  if (status === 'draft') return '开赛后将显示轮次与进度';
+  if (!roundsSummary.totalMatches) return '暂无场次';
+  if (status === 'finished') return `全部 ${roundsSummary.totalMatches} 场已录完`;
+  if (roundsSummary.pendingMatches > 0) return `仍有 ${roundsSummary.pendingMatches} 场待录分`;
+  return '当前轮次已全部录分';
+}
+
+function buildHeroProgressPercent(status, roundsSummary) {
+  if (status === 'draft' || !roundsSummary.totalMatches) return -1;
+  const ratio = roundsSummary.finishedMatches / roundsSummary.totalMatches;
+  return Math.max(0, Math.min(100, Math.round(ratio * 100)));
+}
+
 function markPendingFocus(roundsUi, firstPending) {
   if (!firstPending) return roundsUi;
   return (roundsUi || []).map((round) => {
@@ -161,13 +193,14 @@ Page({
     tournamentId: '',
     tournament: null,
     statusText: '',
-    statusClass: 'tag-draft',
+    statusClass: 'hero-status-draft',
     modeLabel: '',
     roundsUi: [],
     heroSummaryText: '',
-    heroRoundText: '',
     heroMatchText: '',
     heroPendingText: '',
+    heroProgressPercent: -1,
+    heroActionBusy: false,
     canEditScore: false,
     hasPending: false,
     firstPendingRoundIndex: -1,
@@ -221,6 +254,7 @@ Page({
 
   onShow() {
     const currentId = String(this.data.tournamentId || '').trim();
+    if (this.data.heroActionBusy) this.setData({ heroActionBusy: false });
     nav.consumeRefreshFlag(currentId);
     // 兜底刷新：从录入比分页返回时，确保状态与比分是最新的
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
@@ -239,10 +273,10 @@ Page({
 
     const status = t.status || 'draft';
     const modeLabel = flow.getModeLabel(t.mode || flow.MODE_MULTI_ROTATE);
-    let statusText = '草稿';
-    let statusClass = 'tag-draft';
-    if (status === 'running') { statusText = '进行中'; statusClass = 'tag-running'; }
-    if (status === 'finished') { statusText = '已结束'; statusClass = 'tag-finished'; }
+    let statusText = '尚未开始';
+    let statusClass = 'hero-status-draft';
+    if (status === 'running') { statusText = '进行中'; statusClass = 'hero-status-running'; }
+    if (status === 'finished') { statusText = '已完成'; statusClass = 'hero-status-finished'; }
 
     const rawRoundsUi = decorateRounds(t);
     const firstPending = findFirstPending(rawRoundsUi);
@@ -259,16 +293,12 @@ Page({
       nextActionText = '查看结果';
     }
 
-    const heroSummaryText = status === 'draft'
-      ? `${modeLabel} · 开赛后生成对阵`
-      : `${modeLabel} · ${roundsSummary.totalRounds || 0} 轮`;
-    const heroRoundText = roundsSummary.totalRounds ? `${roundsSummary.totalRounds} 轮` : '未排赛';
+    const heroSummaryText = buildHeroSummaryText(status, modeLabel, roundsSummary, firstPending);
     const heroMatchText = roundsSummary.totalMatches
-      ? `${roundsSummary.finishedMatches}/${roundsSummary.totalMatches} 场`
+      ? `${roundsSummary.finishedMatches} / ${roundsSummary.totalMatches} 场`
       : '暂无场次';
-    const heroPendingText = status === 'draft'
-      ? '待开赛'
-      : (roundsSummary.pendingMatches ? `待录分 ${roundsSummary.pendingMatches}` : '已录完');
+    const heroPendingText = buildHeroPendingText(status, roundsSummary);
+    const heroProgressPercent = buildHeroProgressPercent(status, roundsSummary);
 
     this.setData({
       loadError: false,
@@ -278,9 +308,9 @@ Page({
       modeLabel,
       roundsUi,
       heroSummaryText,
-      heroRoundText,
       heroMatchText,
       heroPendingText,
+      heroProgressPercent,
       canEditScore,
       hasPending: !!firstPending,
       firstPendingRoundIndex: firstPending ? firstPending.roundIndex : -1,
@@ -292,13 +322,26 @@ Page({
   },
 
   onHeroActionTap() {
+    if (this.data.heroActionBusy) return false;
     const key = String(this.data.nextActionKey || '').trim();
-    if (key === 'batch') return this.goBatchScoring();
+    if (!key) return false;
+    this.setData({ heroActionBusy: true });
+    if (key === 'batch') {
+      const handled = this.goBatchScoring();
+      if (!handled) this.setData({ heroActionBusy: false });
+      return handled;
+    }
     if (key === 'analytics') {
       wx.navigateTo({
-        url: nav.buildTournamentUrl('/pages/analytics/index', this.data.tournamentId)
+        url: nav.buildTournamentUrl('/pages/analytics/index', this.data.tournamentId),
+        fail: () => {
+          if (this.data.heroActionBusy) this.setData({ heroActionBusy: false });
+        }
       });
+      return true;
     }
+    this.setData({ heroActionBusy: false });
+    return false;
   },
 
   openMatch(e) {
@@ -307,7 +350,7 @@ Page({
     const status = String((e.currentTarget.dataset.status || '')).trim();
     if (status === 'canceled') {
       wx.showToast({ title: '该场已取消', icon: 'none' });
-      return;
+      return false;
     }
     const batch = Number(e.currentTarget.dataset.batch) === 1;
     wx.navigateTo({
@@ -315,17 +358,21 @@ Page({
         roundIndex,
         matchIndex,
         batch: batch ? 1 : ''
-      })
+      }),
+      fail: () => {
+        if (this.data.heroActionBusy) this.setData({ heroActionBusy: false });
+      }
     });
+    return true;
   },
 
   goBatchScoring() {
-    if (!this.data.canEditScore) return;
+    if (!this.data.canEditScore) return false;
     if (!this.data.hasPending) {
       wx.showToast({ title: '当前没有待录分比赛', icon: 'none' });
-      return;
+      return false;
     }
-    this.openMatch({
+    return this.openMatch({
       currentTarget: {
         dataset: {
           round: this.data.firstPendingRoundIndex,

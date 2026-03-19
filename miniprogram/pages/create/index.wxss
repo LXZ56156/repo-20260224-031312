@@ -9,8 +9,7 @@
 
 /* --- Hero (更紧凑) --- */
 .create-hero {
-  padding: 24rpx 24rpx 20rpx;
-  border-radius: 24rpx;
+  padding: 24rpx 24rpx 22rpx;
 }
 
 /* --- Panel --- */
@@ -45,8 +44,8 @@
 .preset-chip {
   padding: 10rpx 20rpx;
   border-radius: 999rpx;
-  border: 1rpx solid var(--neutral-200);
-  background: var(--neutral-100);
+  border: 1rpx solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.92);
   color: var(--neutral-700);
   font-size: 24rpx;
   font-weight: 600;
@@ -54,8 +53,8 @@
 }
 
 .preset-chip.active {
-  background: var(--brand-50);
-  border-color: var(--brand-500);
+  background: rgba(24, 179, 104, 0.08);
+  border-color: rgba(24, 179, 104, 0.18);
   color: var(--brand-700);
   font-weight: 700;
 }
@@ -76,15 +75,16 @@
   min-height: 80rpx;
   line-height: 80rpx;
   border-radius: 16rpx;
-  border: 1rpx solid var(--neutral-200);
-  background: var(--neutral-100);
+  border: 1rpx solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.98);
   padding: 0 20rpx;
   font-size: 28rpx;
   color: var(--neutral-950);
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.88);
 }
 
 .param-picker.disabled {
-  background: var(--neutral-50);
+  background: rgba(248, 250, 252, 0.96);
   color: var(--neutral-500);
 }
 

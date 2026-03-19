@@ -11,10 +11,11 @@
   padding: 32rpx 24rpx 24rpx;
   border-radius: 24rpx;
   background:
-    radial-gradient(ellipse at 85% 15%, rgba(255,255,255,0.18) 0%, transparent 50%),
-    linear-gradient(135deg, var(--brand-700) 0%, var(--brand-500) 55%, #2DD47A 100%);
-  color: #ffffff;
-  box-shadow: 0 6rpx 20rpx rgba(24, 179, 104, 0.14);
+    radial-gradient(circle at 88% 12%, rgba(24, 179, 104, 0.16) 0%, rgba(24, 179, 104, 0.04) 30%, transparent 56%),
+    linear-gradient(180deg, rgba(243, 252, 246, 0.99) 0%, rgba(255, 255, 255, 0.99) 58%, #ffffff 100%);
+  color: var(--neutral-950);
+  border: 1rpx solid rgba(24, 179, 104, 0.12);
+  box-shadow: var(--shadow-card);
 }
 
 .launch-hero-title {
@@ -27,7 +28,7 @@
 .launch-hero-sub {
   margin-top: 8rpx;
   font-size: 24rpx;
-  opacity: 0.85;
+  color: var(--neutral-500);
   line-height: 1.45;
 }
 
@@ -36,6 +37,7 @@
   margin-top: 16rpx;
   position: relative;
   overflow: hidden;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(248, 251, 249, 0.98) 100%);
 }
 
 /* 左侧色彩暗示条 */
@@ -65,8 +67,8 @@
 
 /* 默认推荐模式 — 轻微强调 */
 .launch-card.is-default {
-  border-color: rgba(24, 179, 104, 0.3);
-  box-shadow: 0 4rpx 16rpx rgba(24, 179, 104, 0.12);
+  border-color: rgba(24, 179, 104, 0.18);
+  box-shadow: 0 10rpx 24rpx rgba(24, 179, 104, 0.12);
 }
 
 .launch-card.is-default .launch-card-accent {

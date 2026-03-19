@@ -6,6 +6,7 @@
 
 .feedback-block {
   margin-top: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(248, 251, 249, 0.98) 100%);
 }
 
 .feedback-block .btn + .btn {

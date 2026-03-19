@@ -20,30 +20,34 @@
   </view>
 
   <view class="hero">
-    <view class="row hero-head">
-      <view class="flex-1 minw0">
+    <view class="hero-head">
+      <view class="hero-main">
         <view class="hero-kicker">当前对阵</view>
         <view class="hero-title ellipsis">{{tournament.name}}</view>
-        <view class="hero-sub">{{heroSummaryText}}</view>
+        <view class="hero-sub ellipsis">{{heroSummaryText}}</view>
       </view>
-      <view class="tag {{statusClass}}">{{statusText}}</view>
-    </view>
-    <view class="hero-stats">
-      <view class="hero-stat">
-        <view class="hero-stat-value">{{heroRoundText}}</view>
-        <view class="hero-stat-label">轮次</view>
-      </view>
-      <view class="hero-stat">
-        <view class="hero-stat-value">{{heroMatchText}}</view>
-        <view class="hero-stat-label">进度</view>
-      </view>
-      <view class="hero-stat">
-        <view class="hero-stat-value">{{heroPendingText}}</view>
-        <view class="hero-stat-label">状态</view>
+      <view class="hero-status {{statusClass}}">
+        <text class="hero-status-dot" wx:if="{{statusClass === 'hero-status-running'}}"></text>
+        <text>{{statusText}}</text>
       </view>
     </view>
-    <view class="hero-actions" wx:if="{{nextActionText}}">
-      <button class="btn btn-primary btn-sm hero-btn hero-primary" wx:if="{{nextActionText}}" bindtap="onHeroActionTap">{{nextActionText}}</button>
+    <view class="hero-progress-card">
+      <view class="hero-progress-value">{{heroMatchText}}</view>
+      <view class="hero-progress-note">{{heroPendingText}}</view>
+      <view class="hero-progress-track" wx:if="{{heroProgressPercent >= 0}}">
+        <view class="hero-progress-fill" style="width: {{heroProgressPercent}}%;"></view>
+      </view>
+    </view>
+    <view class="hero-actions-panel" wx:if="{{nextActionText}}">
+      <button
+        class="btn btn-primary btn-sm hero-btn hero-primary"
+        bindtap="onHeroActionTap"
+        hover-class="hero-primary-hover"
+        loading="{{heroActionBusy}}"
+        disabled="{{heroActionBusy}}"
+      >
+        {{nextActionText}}
+      </button>
     </view>
   </view>
 

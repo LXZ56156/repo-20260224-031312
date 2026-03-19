@@ -6,8 +6,8 @@
 
 /* Chips in preferences — use neutral palette */
 .pref-page .chip {
-  border: 1rpx solid var(--neutral-200);
-  background: var(--neutral-100);
+  border: 1rpx solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.94);
   color: var(--neutral-700);
   font-weight: 500;
 }
@@ -18,8 +18,8 @@
 }
 
 .pref-page .chip.active {
-  border-color: var(--brand-500);
-  background: var(--brand-100);
+  border-color: rgba(24, 179, 104, 0.18);
+  background: rgba(24, 179, 104, 0.10);
   color: var(--brand-700);
   font-weight: 700;
 }

@@ -10,6 +10,7 @@
 /* --- Form Card --- */
 .profile-form-card {
   padding: 24rpx;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(248, 251, 249, 0.98) 100%);
 }
 
 /* --- Avatar Section (居中) --- */
@@ -26,8 +27,8 @@
   width: 136rpx;
   height: 136rpx;
   border-radius: 999rpx;
-  background: var(--neutral-100);
-  border: 3rpx solid var(--neutral-200);
+  background: rgba(255, 255, 255, 0.96);
+  border: 3rpx solid rgba(15, 23, 42, 0.08);
 }
 
 .avatar-actions {
@@ -46,8 +47,8 @@
   margin-top: 24rpx;
   padding: 12rpx;
   border-radius: 16rpx;
-  border: 1rpx solid var(--neutral-200);
-  background: var(--bg-section);
+  border: 1rpx solid rgba(15, 23, 42, 0.08);
+  background: linear-gradient(180deg, rgba(248, 252, 249, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
 }
 
 .quick-fill-btn {
@@ -80,8 +81,8 @@
   flex: 1;
   min-height: 80rpx;
   border-radius: 16rpx;
-  border: 2rpx solid var(--neutral-200);
-  background: var(--neutral-100);
+  border: 2rpx solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.96);
   color: var(--neutral-700);
   display: flex;
   align-items: center;
@@ -98,8 +99,8 @@
 }
 
 .gender-option.selected {
-  background: var(--brand-50);
-  border-color: var(--brand-500);
+  background: linear-gradient(180deg, rgba(241, 252, 245, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
+  border-color: rgba(24, 179, 104, 0.22);
   color: var(--brand-700);
   box-shadow: 0 0 0 2rpx rgba(24, 179, 104, 0.1);
 }
