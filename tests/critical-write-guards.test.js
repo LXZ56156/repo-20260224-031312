@@ -101,7 +101,15 @@ test('settings saveSettings deduplicates repeated taps', async () => {
     const ctx = createContext(settingsActions, {
       tournamentId: 't_settings',
       isAdmin: true,
-      tournament: { status: 'draft', players: [] },
+      tournament: {
+        status: 'draft',
+        players: [
+          { id: 'u1', name: 'A' },
+          { id: 'u2', name: 'B' },
+          { id: 'u3', name: 'C' },
+          { id: 'u4', name: 'D' }
+        ]
+      },
       name: '周二场',
       maxMatches: 0,
       editM: 1,
@@ -113,7 +121,8 @@ test('settings saveSettings deduplicates repeated taps', async () => {
       showSquadEndCondition: false,
       settingsBusy: false,
       mode: 'multi_rotate',
-      allowOpenTeam: false
+      allowOpenTeam: false,
+      canConfigureSettings: true
     });
     ctx.fetchTournament = async () => {};
     ctx.clearLastFailedAction = () => {};

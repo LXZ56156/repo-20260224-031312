@@ -3,6 +3,7 @@ const normalize = require('../../core/normalize');
 const matchPrimaryNav = require('../../core/matchPrimaryNav');
 const shareMeta = require('../../core/shareMeta');
 const flow = require('../../core/uxFlow');
+const settingsViewModel = require('../settings/settingsViewModel');
 
 function findFirstPendingPosition(rounds) {
   const list = Array.isArray(rounds) ? rounds : [];
@@ -215,8 +216,8 @@ function buildChecklistItems({ checkSettingsOk, checkPlayersOk, checkStartReady,
       label: '参数',
       title: '1. 修改比赛',
       done: !!checkSettingsOk,
-      summary: checkSettingsOk ? '已保存' : '待保存',
-      actionText: checkSettingsOk ? '查看' : '去修改'
+      summary: checkSettingsOk ? '已保存' : (checkPlayersOk ? '待保存' : '满 4 人后可设置'),
+      actionText: checkSettingsOk ? '查看' : (checkPlayersOk ? '去修改' : '等待')
     },
     {
       key: 'players',
@@ -309,14 +310,14 @@ function buildRoleCards(ctx) {
   let adminActionKey = '';
   let adminActionText = '';
   let adminSummary = '管理员可修改比赛、转发比赛并开始比赛。';
-  if (status === 'draft' && !checkSettingsOk) {
-    adminActionKey = 'settings';
-    adminActionText = '修改比赛';
-    adminSummary = '先修改比赛信息，再继续转发和开始比赛。';
-  } else if (status === 'draft' && !checkPlayersOk) {
+  if (status === 'draft' && !checkPlayersOk) {
     adminActionKey = 'share';
     adminActionText = '转发';
     adminSummary = `当前名单未就绪，${playersChecklistHint || '请先补全参赛信息'}。`;
+  } else if (status === 'draft' && !checkSettingsOk) {
+    adminActionKey = 'settings';
+    adminActionText = '修改比赛';
+    adminSummary = '成员已达门槛，先补全比赛参数再开始比赛。';
   } else if (status === 'draft' && checkStartReady) {
     adminActionKey = 'start';
     adminActionText = '开始比赛';
@@ -409,10 +410,10 @@ function buildStatePanel(ctx) {
   if (status === 'draft') {
     if (isAdmin) {
       title = '开赛前准备';
-      summary = !checkSettingsOk
-        ? '先修改比赛信息，再继续转发和开始比赛。'
-        : (!checkPlayersOk
-          ? '先转发比赛，让名单先准备好。'
+      summary = !checkPlayersOk
+        ? '先转发比赛，让名单先准备好。'
+        : (!checkSettingsOk
+          ? '成员已达门槛，先修改比赛信息。'
           : '前置项已完成，可以直接开始比赛。');
     } else if (showJoin) {
       title = '加入前确认';
@@ -497,7 +498,8 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
   const modeRules = flow.getModeRuleLines(mode);
   const totalMatches = Number(t.totalMatches) || 0;
   const courts = Number(t.courts) || 0;
-  const pointsPerGame = Math.max(1, Number(t.rules && t.rules.pointsPerGame) || 21);
+  const settingsFormState = settingsViewModel.buildSettingsFormState(t, { openid });
+  const pointsPerGame = Math.max(1, Number(settingsFormState.pointsPerGame) || 21);
   const pairTeams = Array.isArray(t.pairTeams) ? t.pairTeams : [];
   const pairTeamModel = buildPairTeamModel(
     pairTeams,
@@ -522,35 +524,16 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
     : '';
 
   const genderCount = flow.countGenderPlayers(players);
-  let maxMatches = flow.calcMaxMatchesByPlayers(playersCount);
-  if (mode === flow.MODE_FIXED_PAIR_RR) {
-    const teamCount = pairTeams.length;
-    maxMatches = teamCount >= 2 ? Math.floor((teamCount * (teamCount - 1)) / 2) : 0;
-  }
-
-  let quickConfigC = courts >= 1 ? courts : 2;
-  if (quickConfigC < 1) quickConfigC = 1;
-  if (quickConfigC > 10) quickConfigC = 10;
-  const recommendation = flow.buildMatchCountRecommendations({
-    mode,
-    maleCount: genderCount.maleCount,
-    femaleCount: genderCount.femaleCount,
-    unknownCount: genderCount.unknownCount,
-    allowOpenTeam: false,
-    playersCount,
-    courts: quickConfigC,
-    sessionMinutes: data.sessionMinutes,
-    slotMinutes: data.slotMinutes
-  });
-  let quickConfigM = totalMatches >= 1 ? totalMatches : Number(recommendation.suggestedMatches || 8);
-  if (maxMatches > 0 && quickConfigM > maxMatches) quickConfigM = maxMatches;
-  const useSimpleQuickMPicker = maxMatches > 0 && maxMatches <= 200;
-  const quickConfigMOptions = useSimpleQuickMPicker ? Array.from({ length: maxMatches }, (_, i) => i + 1) : [];
-  const quickConfigMIndex = useSimpleQuickMPicker ? Math.max(0, quickConfigM - 1) : 0;
-  const digitLen = Math.max(2, String(maxMatches > 0 ? maxMatches : 999).length);
-  const quickConfigMDigitRange = buildDigitRange(digitLen);
-  const quickConfigMDigitValue = valueToDigitValue(quickConfigM, digitLen);
-  const quickConfigCIndex = Math.max(0, Math.min(9, quickConfigC - 1));
+  const maxMatches = settingsFormState.maxMatches;
+  const quickConfigName = String(settingsFormState.name || '').trim();
+  const quickConfigM = settingsFormState.editM;
+  const quickConfigC = settingsFormState.editC;
+  const useSimpleQuickMPicker = settingsFormState.useSimpleMPicker;
+  const quickConfigMOptions = settingsFormState.mOptions;
+  const quickConfigMIndex = settingsFormState.mIndex;
+  const quickConfigMDigitRange = settingsFormState.mDigitRange;
+  const quickConfigMDigitValue = settingsFormState.mDigitValue;
+  const quickConfigCIndex = settingsFormState.courtIndex;
 
   let kpiReady;
   if (status !== 'draft') {
@@ -600,6 +583,10 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
         primaryTaskKey = 'build_pair_teams';
         primaryTaskTitle = pairTeams.length === 0 ? '开始组队' : '继续组队';
         primaryTaskSummary = `需至少 2 支队伍（当前 ${pairTeams.length}）`;
+      } else if (!checkSettingsOk) {
+        primaryTaskKey = 'settings';
+        primaryTaskTitle = '修改比赛';
+        primaryTaskSummary = '成员已达门槛，先修改比赛信息';
       } else if (needsSettingsSync) {
         primaryTaskKey = 'sync_settings';
         primaryTaskTitle = '保存并开赛';
@@ -608,28 +595,28 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
         primaryTaskKey = 'start';
         primaryTaskTitle = '开始比赛';
         primaryTaskSummary = '前置项已完成，可以直接开始比赛';
-      } else if (!checkSettingsOk) {
-        primaryTaskKey = 'sync_settings';
-        primaryTaskTitle = '保存并开赛';
-        primaryTaskSummary = '参数待保存';
       } else {
         primaryTaskKey = 'start';
         primaryTaskTitle = '开始比赛';
         primaryTaskSummary = '可以开始比赛';
       }
     } else if (mode === flow.MODE_SQUAD_DOUBLES) {
-      if (playersCount < 4 || aCount < 2 || bCount < 2) {
+      if (playersCount < 4) {
+        primaryTaskKey = 'share';
+        primaryTaskTitle = '转发比赛';
+        primaryTaskSummary = '先邀请成员，满 4 人后再设置参数';
+      } else if (aCount < 2 || bCount < 2) {
         primaryTaskKey = 'assign_squads';
         primaryTaskTitle = '分配 A/B 队';
         primaryTaskSummary = checkPlayersOk ? `A队 ${aCount} / B队 ${bCount}` : `A队 ${aCount} / B队 ${bCount}（至少各2人）`;
+      } else if (!checkSettingsOk) {
+        primaryTaskKey = 'settings';
+        primaryTaskTitle = '修改比赛';
+        primaryTaskSummary = '成员已达门槛，先修改比赛信息';
       } else if (checkStartReady) {
         primaryTaskKey = 'start';
         primaryTaskTitle = '开始比赛';
         primaryTaskSummary = '前置项已完成';
-      } else if (!checkSettingsOk) {
-        primaryTaskKey = 'settings';
-        primaryTaskTitle = '修改比赛';
-        primaryTaskSummary = '先修改比赛信息';
       } else {
         primaryTaskKey = 'start';
         primaryTaskTitle = '开始比赛';
@@ -638,13 +625,13 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
     } else {
       // multi_rotate
       if (playersCount < 4) {
-        primaryTaskKey = 'import_players';
-        primaryTaskTitle = '导入名单';
-        primaryTaskSummary = '至少需要 4 人';
+        primaryTaskKey = 'share';
+        primaryTaskTitle = '转发比赛';
+        primaryTaskSummary = '先邀请成员，满 4 人后再设置参数';
       } else if (!checkSettingsOk) {
         primaryTaskKey = 'settings';
         primaryTaskTitle = '修改比赛';
-        primaryTaskSummary = '先修改比赛信息';
+        primaryTaskSummary = '成员已达门槛，先修改比赛信息';
       } else if (checkStartReady) {
         primaryTaskKey = 'start';
         primaryTaskTitle = '开始比赛';
@@ -737,6 +724,9 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       pointsPerGame,
       genderSummaryText: `男 ${genderCount.maleCount} · 女 ${genderCount.femaleCount} · 未设 ${genderCount.unknownCount}`,
       matchInfoText: kpiReady ? `${modeLabel} · ${pointsPerGame}分制 · 总 ${totalMatches} 场 · 每轮最多 ${courts} 场` : '未设置',
+      quickConfigName,
+      quickConfigGateHint: String(settingsFormState.settingsGateHint || ''),
+      quickSettingsBusy: !!data.quickSettingsBusy,
       quickConfigM,
       quickConfigC,
       useSimpleQuickMPicker,
@@ -745,12 +735,27 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       quickConfigMDigitRange,
       quickConfigMDigitValue,
       quickConfigCIndex,
-      quickSuggestedMatches: Number(recommendation.suggestedMatches) || 1,
-      quickCapacityMax: Number(recommendation.capacityMax) || 1,
-      quickCapacityHintShort: String(recommendation.capacityHintShort || ''),
-      quickCapacityReason: String(recommendation.capacityReason || 'time'),
-      quickRosterHint: String(recommendation.rosterHint || ''),
+      quickPointsOptions: settingsFormState.pointsOptions,
+      quickPointsPerGame: settingsFormState.pointsPerGame,
+      quickPointsIndex: settingsFormState.pointsIndex,
+      quickEndConditionOptions: settingsFormState.endConditionOptions,
+      quickEndConditionType: settingsFormState.endConditionType,
+      quickEndConditionIndex: settingsFormState.endConditionIndex,
+      quickEndConditionTargetOptions: settingsFormState.endConditionTargetOptions,
+      quickEndConditionTarget: settingsFormState.endConditionTarget,
+      quickEndConditionTargetIndex: settingsFormState.endConditionTargetIndex,
+      quickEndConditionTargetLabel: settingsFormState.endConditionTargetLabel,
+      quickEndConditionTargetUnit: settingsFormState.endConditionTargetUnit,
+      quickEndConditionTargetHint: settingsFormState.endConditionTargetHint,
+      quickShowEndConditionTargetPicker: settingsFormState.showEndConditionTargetPicker,
+      quickShowSquadEndCondition: settingsFormState.showSquadEndCondition,
+      quickSuggestedMatches: Number(settingsFormState.suggestedMatches) || 1,
+      quickCapacityMax: Number(settingsFormState.capacityMax) || 1,
+      quickCapacityHintShort: String(settingsFormState.capacityHintShort || ''),
+      quickCapacityReason: String(settingsFormState.capacityReason || 'roster'),
+      quickRosterHint: String(settingsFormState.rosterHint || ''),
       maxMatches,
+      canConfigureSettings: settingsFormState.canConfigureSettings,
       allowOpenTeam: false,
       pairTeams,
       isFixedPairMode,

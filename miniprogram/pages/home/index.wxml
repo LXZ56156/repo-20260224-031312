@@ -161,9 +161,9 @@
       <view class="section-title">三步开赛</view>
       <text class="count-pill">新手引导</text>
     </view>
-    <view class="guide-step"><text class="guide-index">1</text><text class="guide-text">创建并设参数</text></view>
-    <view class="guide-step"><text class="guide-index">2</text><text class="guide-text">分享邀请或导入名单</text></view>
-    <view class="guide-step"><text class="guide-index">3</text><text class="guide-text">开赛后录分</text></view>
+    <view class="guide-step"><text class="guide-index">1</text><text class="guide-text">创建比赛</text></view>
+    <view class="guide-step"><text class="guide-index">2</text><text class="guide-text">分享邀请或导入名单，先满 4 人</text></view>
+    <view class="guide-step"><text class="guide-index">3</text><text class="guide-text">在大厅设置参数后开赛录分</text></view>
     <text class="onboarding-later" bindtap="dismissOnboarding">稍后再看</text>
   </view>
 

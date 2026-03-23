@@ -24,15 +24,17 @@
       <text class="status-pill {{settingsReady ? 'ok' : 'pending'}}">{{settingsReady ? '已完成' : '待完成'}}</text>
     </view>
 
+    <view class="muted small" wx:if="{{settingsGateHint}}">{{settingsGateHint}}</view>
+
     <view class="form-item">
       <view class="form-label">赛事名称</view>
       <view class="form-field">
         <input
-          class="picker input-like {{isAdmin && tournament.status==='draft' ? '' : 'disabled'}}"
+          class="picker input-like {{isAdmin && tournament.status==='draft' && canConfigureSettings ? '' : 'disabled'}}"
           placeholder="请输入赛事名称"
           value="{{name}}"
           bindinput="onNameInput"
-          disabled="{{!(isAdmin && tournament.status==='draft')}}"
+          disabled="{{!(isAdmin && tournament.status==='draft' && canConfigureSettings)}}"
         />
       </view>
     </view>
@@ -40,7 +42,7 @@
     <view class="form-item">
       <view class="form-label">总场次</view>
       <view class="form-field">
-        <block wx:if="{{isAdmin && tournament.status==='draft'}}">
+        <block wx:if="{{isAdmin && tournament.status==='draft' && canConfigureSettings}}">
           <picker wx:if="{{useSimpleMPicker}}" mode="selector" range="{{mOptions}}" value="{{mIndex}}" bindchange="onPickTotalMatchesSimple">
             <view class="picker">{{editM}}</view>
           </picker>
@@ -57,7 +59,7 @@
     <view class="form-item">
       <view class="form-label">每轮最多场数</view>
       <view class="form-field">
-        <block wx:if="{{isAdmin && tournament.status==='draft'}}">
+        <block wx:if="{{isAdmin && tournament.status==='draft' && canConfigureSettings}}">
           <picker mode="selector" range="{{courtOptions}}" value="{{courtIndex}}" bindchange="onPickCourts">
             <view class="picker">{{editC}}</view>
           </picker>
@@ -69,37 +71,9 @@
     </view>
 
     <view class="form-item">
-      <view class="form-label">活动时长</view>
-      <view class="form-field">
-        <block wx:if="{{isAdmin && tournament.status==='draft'}}">
-          <picker mode="selector" range="{{sessionMinuteOptions}}" value="{{sessionMinuteIndex}}" bindchange="onPickSessionMinutes">
-            <view class="picker">{{sessionMinutes}} 分钟</view>
-          </picker>
-        </block>
-        <block wx:else>
-          <view class="picker disabled">{{sessionMinutes}} 分钟</view>
-        </block>
-      </view>
-    </view>
-
-    <view class="form-item">
-      <view class="form-label">单场占用时间</view>
-      <view class="form-field">
-        <block wx:if="{{isAdmin && tournament.status==='draft'}}">
-          <picker mode="selector" range="{{slotMinuteOptions}}" value="{{slotMinuteIndex}}" bindchange="onPickSlotMinutes">
-            <view class="picker">{{slotMinutes}} 分钟</view>
-          </picker>
-        </block>
-        <block wx:else>
-          <view class="picker disabled">{{slotMinutes}} 分钟</view>
-        </block>
-      </view>
-    </view>
-
-    <view class="form-item">
       <view class="form-label">每局分制</view>
       <view class="form-field">
-        <block wx:if="{{isAdmin && tournament.status==='draft'}}">
+        <block wx:if="{{isAdmin && tournament.status==='draft' && canConfigureSettings}}">
           <picker mode="selector" range="{{pointsOptions}}" value="{{pointsIndex}}" bindchange="onPickPointsPerGame">
             <view class="picker">{{pointsPerGame}} 分</view>
           </picker>
@@ -113,7 +87,7 @@
     <view class="form-item" wx:if="{{showSquadEndCondition}}">
       <view class="form-label">结束条件</view>
       <view class="form-field">
-        <block wx:if="{{isAdmin && tournament.status==='draft'}}">
+        <block wx:if="{{isAdmin && tournament.status==='draft' && canConfigureSettings}}">
           <picker mode="selector" range="{{endConditionOptions}}" range-key="label" value="{{endConditionIndex}}" bindchange="onPickEndConditionType">
             <view class="picker">{{endConditionOptions[endConditionIndex].label}}</view>
           </picker>
@@ -127,7 +101,7 @@
     <view class="form-item" wx:if="{{showSquadEndCondition}}">
       <view class="form-label">{{endConditionTargetLabel}}</view>
       <view class="form-field">
-        <block wx:if="{{isAdmin && tournament.status==='draft' && showEndConditionTargetPicker}}">
+        <block wx:if="{{isAdmin && tournament.status==='draft' && canConfigureSettings && showEndConditionTargetPicker}}">
           <picker mode="selector" range="{{endConditionTargetOptions}}" value="{{endConditionTargetIndex}}" bindchange="onPickEndConditionTarget">
             <view class="picker">{{endConditionTarget}} {{endConditionTargetUnit}}</view>
           </picker>
@@ -138,7 +112,7 @@
       </view>
     </view>
 
-    <button class="btn btn-primary settings-save" bindtap="saveSettings" loading="{{settingsBusy}}" disabled="{{settingsBusy}}" wx:if="{{isAdmin && tournament.status==='draft'}}">保存修改</button>
+    <button class="btn btn-primary settings-save" bindtap="saveSettings" loading="{{settingsBusy}}" disabled="{{settingsBusy}}" wx:if="{{isAdmin && tournament.status==='draft' && canConfigureSettings}}">保存修改</button>
   </view>
 
   <view class="retry-box panel-soft" wx:if="{{canRetryAction}}">

@@ -1,9 +1,7 @@
 const cloud = require('../../core/cloud');
 const actionGuard = require('../../core/actionGuard');
 const clientRequest = require('../../core/clientRequest');
-const storage = require('../../core/storage');
 const nav = require('../../core/nav');
-const flow = require('../../core/uxFlow');
 const writeErrorUi = require('../../core/writeErrorUi');
 const viewModel = require('./settingsViewModel');
 
@@ -72,22 +70,6 @@ module.exports = {
     });
   },
 
-  onPickSessionMinutes(e) {
-    const idx = Number(e.detail.value);
-    const options = this.data.sessionMinuteOptions || flow.SESSION_MINUTE_OPTIONS;
-    const sessionMinutes = Number(options[idx] || flow.DEFAULT_SESSION_MINUTES);
-    storage.setSessionMinutesPref(sessionMinutes);
-    this.setData({ sessionMinutes, sessionMinuteIndex: idx }, () => this.refreshRecommendations());
-  },
-
-  onPickSlotMinutes(e) {
-    const idx = Number(e.detail.value);
-    const options = this.data.slotMinuteOptions || flow.SLOT_MINUTE_OPTIONS;
-    const slotMinutes = Number(options[idx] || flow.DEFAULT_SLOT_MINUTES);
-    storage.setSlotMinutesPref(slotMinutes);
-    this.setData({ slotMinutes, slotMinuteIndex: idx }, () => this.refreshRecommendations());
-  },
-
   onPickPointsPerGame(e) {
     const idx = Number(e.detail.value);
     const options = this.data.pointsOptions || viewModel.POINT_OPTIONS;
@@ -153,8 +135,6 @@ module.exports = {
       players,
       playersCount: players.length,
       courts: this.data.editC,
-      sessionMinutes: this.data.sessionMinutes,
-      slotMinutes: this.data.slotMinutes,
       allowOpenTeam: this.data.allowOpenTeam
     });
     this.setData({
@@ -170,6 +150,10 @@ module.exports = {
     if (!this.data.isAdmin) return;
     if (!this.data.tournament || this.data.tournament.status !== 'draft') {
       wx.showToast({ title: '非草稿阶段不可修改', icon: 'none' });
+      return;
+    }
+    if (!this.data.canConfigureSettings) {
+      wx.showToast({ title: '满 4 人后才可设置参数', icon: 'none' });
       return;
     }
 

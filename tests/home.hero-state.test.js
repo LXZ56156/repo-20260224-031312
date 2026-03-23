@@ -118,7 +118,7 @@ test('home hero with rawDocsMap: draft + admin + ready => start action', () => {
   assert.ok(state.detail.includes('就绪'));
 });
 
-test('home hero with rawDocsMap: draft + admin + no settings => settings action', () => {
+test('home hero with rawDocsMap: draft + admin + no settings but not enough players => lobby action', () => {
   const rawDocsMap = {
     draft_1: {
       _id: 'draft_1',
@@ -134,6 +134,6 @@ test('home hero with rawDocsMap: draft + admin + no settings => settings action'
     'user_1'
   );
 
-  assert.equal(state.actionTarget, 'settings');
-  assert.ok(state.actionText.includes('修改'));
+  assert.equal(state.actionTarget, 'lobby');
+  assert.ok(state.actionText.includes('大厅'));
 });

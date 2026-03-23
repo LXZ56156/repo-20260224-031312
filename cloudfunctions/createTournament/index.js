@@ -45,18 +45,11 @@ exports.main = async (event) => {
   const name = String((event && event.name) || '').trim();
   const nickname = String((event && event.nickname) || '').trim();
   const avatar = String((event && (event.avatar || event.avatarUrl)) || '').trim();
-  const presetKey = String((event && event.presetKey) || 'standard').trim().toLowerCase();
   const mode = modeHelper.normalizeMode(event && event.mode);
   const creatorGender = normalizeGender(event && event.creatorGender);
   const allowOpenTeam = event && Object.prototype.hasOwnProperty.call(event, 'allowOpenTeam')
     ? event.allowOpenTeam === true
     : false;
-  const totalMatches = intOr(event && event.totalMatches, 0);
-  const courts = intOr(event && event.courts, 0, 10);
-  const pointsPerGame = normalizePoints(event && event.pointsPerGame);
-  const endConditionType = normalizeEndConditionType(event && event.endConditionType);
-  const endConditionTarget = intOr(event && event.endConditionTarget, Math.max(1, totalMatches || 1));
-  const settingsConfigured = totalMatches >= 1 && courts >= 1;
   if (!name) throw new Error('赛事名称不能为空');
 
   await ensureTournamentsCollection();
@@ -80,10 +73,10 @@ exports.main = async (event) => {
 
   const rules = {
     gamesPerMatch: 1,
-    pointsPerGame,
+    pointsPerGame: normalizePoints(21),
     endCondition: {
-      type: mode === 'squad_doubles' ? endConditionType : 'total_matches',
-      target: mode === 'squad_doubles' ? endConditionTarget : Math.max(1, totalMatches || 1)
+      type: normalizeEndConditionType('total_matches'),
+      target: 1
     },
     unfinishedPolicy: 'admin_decide'
   };
@@ -106,11 +99,10 @@ exports.main = async (event) => {
       mode,
       allowOpenTeam,
       refereeId: '',
-      // 创建页可直接预配置参数；未配置时仍保持草稿态并可后续设置
-      presetKey: ['relax', 'standard', 'intense', 'custom'].includes(presetKey) ? presetKey : 'standard',
-      settingsConfigured,
-      totalMatches: settingsConfigured ? totalMatches : 0,
-      courts: settingsConfigured ? courts : 0,
+      presetKey: 'custom',
+      settingsConfigured: false,
+      totalMatches: 0,
+      courts: 0,
       rules,
       players: [creatorPlayer],
       playerIds: [OPENID],

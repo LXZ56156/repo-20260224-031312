@@ -13,6 +13,7 @@ test('pickNextAction selects settings for draft admin without settings', () => {
     status: 'draft',
     isAdmin: true,
     myJoined: true,
+    checkPlayersOk: true,
     checkSettingsOk: false
   });
   assert.equal(out.key, 'settings');

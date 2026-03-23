@@ -124,32 +124,32 @@ function buildHomeHeroCardState(items, rawDocsMap, openid) {
       : null;
 
     if (ctx && ctx.isAdmin) {
-      if (!ctx.checkSettingsOk) {
-        return {
-          title: '你的比赛',
-          label: '最近草稿',
-          name: draft.name || '未命名赛事',
-          meta: buildMetaText(draft, draft.modeLabel),
-          detail: '请先完成赛事参数配置',
-          progress: -1,
-          actionText: '去修改比赛参数',
-          actionTarget: 'settings',
-          actionId: draft._id || '',
-          actionRound: -1,
-          actionMatch: -1,
-          empty: false
-        };
-      }
       if (!ctx.checkPlayersOk) {
         return {
           title: '你的比赛',
           label: '最近草稿',
           name: draft.name || '未命名赛事',
           meta: buildMetaText(draft, draft.modeLabel),
-          detail: '参数已配置，等待名单就绪',
+          detail: '先邀请至少 4 人，再设置比赛参数',
           progress: -1,
-          actionText: '去导入名单',
+          actionText: '去比赛大厅',
           actionTarget: 'lobby',
+          actionId: draft._id || '',
+          actionRound: -1,
+          actionMatch: -1,
+          empty: false
+        };
+      }
+      if (!ctx.checkSettingsOk) {
+        return {
+          title: '你的比赛',
+          label: '最近草稿',
+          name: draft.name || '未命名赛事',
+          meta: buildMetaText(draft, draft.modeLabel),
+          detail: '成员已达门槛，请先完成赛事参数配置',
+          progress: -1,
+          actionText: '去修改比赛',
+          actionTarget: 'settings',
           actionId: draft._id || '',
           actionRound: -1,
           actionMatch: -1,

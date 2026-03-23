@@ -48,5 +48,8 @@ node --test tests/ranking-core.consistency.test.js
 ## Codebase Notes
 
 - 云函数共享代码以 `scripts/*-common.template.js` 为准，不直接修改 `cloudfunctions/*/lib/*`
+- 新增或修改小程序端代码时，不引入已废弃 API：不要使用 `wx.saveFile`、`wx.removeSavedFile`、`wx.getSystemInfoSync`。分别改用 `wx.getFileSystemManager().saveFile`、`wx.getFileSystemManager().removeSavedFile`，以及 `wx.getSystemSetting` / `wx.getAppAuthorizeSetting` / `wx.getDeviceInfo` / `wx.getWindowInfo` / `wx.getAppBaseInfo` 或现有封装 `miniprogram/core/systemInfo.js`
+- 涉及系统信息能力时，优先复用 `miniprogram/core/systemInfo.js`；不要回退到 `wx.getSystemInfo` / `wx.getSystemInfoSync`
+- 提交前如改动涉及微信端基础能力，顺手检查是否引入废弃 API；现有检查脚本为 `scripts/check-deprecated-wx-api.sh`
 - 所有回复默认使用中文，技术名词和代码标识保持原文
 - 提交信息使用 `feat/fix/refactor/chore` 风格

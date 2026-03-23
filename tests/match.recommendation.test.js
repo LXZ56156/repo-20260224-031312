@@ -7,7 +7,7 @@ function pickMatches(out) {
   return out.recommendedMatches.map((item) => item.m);
 }
 
-test('buildMatchCountRecommendations returns v2 metadata and ordered tiers', () => {
+test('buildMatchCountRecommendations returns v3 metadata and ordered tiers', () => {
   const out = flow.buildMatchCountRecommendations({
     playersCount: 8,
     courts: 2,
@@ -17,10 +17,11 @@ test('buildMatchCountRecommendations returns v2 metadata and ordered tiers', () 
 
   const [relax, balanced, intense] = pickMatches(out);
   assert.equal(out.recommendedModelVersion, flow.RECOMMEND_MODEL_VERSION);
-  assert.equal(out.recommendedModelVersion, 'v2');
-  assert.equal(out.capReason, 'time');
+  assert.equal(out.recommendedModelVersion, 'v3');
+  assert.equal(out.capReason, 'roster');
   assert.equal(out.estimatedMode, false);
-  assert.equal(out.recommendedCap, 22);
+  assert.equal(out.recommendedCap, out.maxByCombinatorics);
+  assert.equal(out.balancedRaw, 6);
   assert.ok(relax < balanced);
   assert.ok(balanced < intense);
   assert.ok(intense <= out.recommendedCap);
@@ -35,8 +36,7 @@ test('buildMatchCountRecommendations is bounded by combinatorics when needed', (
   });
 
   assert.equal(out.maxByCombinatorics, 3);
-  assert.ok(out.maxByTime > out.maxByCombinatorics);
-  assert.equal(out.capReason, 'combinatorics');
+  assert.equal(out.capReason, 'roster');
   assert.equal(out.recommendedCap, 3);
   assert.deepEqual(pickMatches(out), [1, 2, 3]);
 });
@@ -58,7 +58,7 @@ test('buildMatchCountRecommendations applies estimated-mode discount when player
   assert.equal(estimated.estimatedMode, true);
   assert.equal(estimated.capReason, 'estimated');
   assert.equal(estimated.maxByCombinatorics, 0);
-  assert.ok(estimated.balancedRaw < known.balancedRaw);
+  assert.ok(estimated.recommendedCap < known.recommendedCap);
   assert.ok(estimated.recommendedMatches[1].m < known.recommendedMatches[1].m);
 });
 
@@ -69,18 +69,17 @@ test('buildMatchCountRecommendations keeps every tier within hard cap', () => {
     sessionMinutes: 90,
     slotMinutes: 18
   });
-  const cap = Math.min(out.maxByTime, out.maxByCombinatorics > 0 ? out.maxByCombinatorics : Number.POSITIVE_INFINITY);
   for (const item of out.recommendedMatches) {
     assert.ok(item.m >= 1);
-    assert.ok(item.m <= cap);
+    assert.ok(item.m <= out.recommendedCap);
   }
 });
 
 test('buildMatchCountRecommendations snapshots core scenarios', () => {
   const cases = [
-    { playersCount: 6, courts: 1, sessionMinutes: 90, slotMinutes: 15, tiers: [2, 3, 4], capReason: 'time' },
-    { playersCount: 8, courts: 1, sessionMinutes: 120, slotMinutes: 15, tiers: [4, 6, 7], capReason: 'time' },
-    { playersCount: 12, courts: 2, sessionMinutes: 180, slotMinutes: 15, tiers: [11, 14, 17], capReason: 'time' }
+    { playersCount: 6, courts: 1, sessionMinutes: 90, slotMinutes: 15, tiers: [3, 4, 5], capReason: 'roster' },
+    { playersCount: 8, courts: 1, sessionMinutes: 120, slotMinutes: 15, tiers: [4, 5, 6], capReason: 'roster' },
+    { playersCount: 12, courts: 2, sessionMinutes: 180, slotMinutes: 15, tiers: [7, 9, 11], capReason: 'roster' }
   ];
 
   for (const item of cases) {

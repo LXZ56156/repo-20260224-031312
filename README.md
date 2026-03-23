@@ -67,6 +67,32 @@
 - `project.config.json`：微信开发者工具项目配置（应纳入版本控制）
 - `project.private.config.json`：本地私有配置（不纳入版本控制）
 
+## 5.1 开发检查命令
+在项目根目录可直接执行：
+
+```bash
+# 全量单测
+npm test
+
+# 单个核心测试
+npm run test:ranking
+
+# 检查云函数共享库是否同步
+npm run check:cloud-common
+
+# 检查是否引入已废弃微信 API
+npm run check:deprecated-wx-api
+
+# 执行常用本地检查
+npm run check
+```
+
+其中 `npm run check:deprecated-wx-api` 会拦截以下废弃 API：
+- `wx.getSystemInfo`
+- `wx.getSystemInfoSync`
+- `wx.saveFile`
+- `wx.removeSavedFile`
+
 ## 6. 运行 & 典型流程
 ### 6.1 创建赛事（管理员）
 1. 首页 → **去创建**

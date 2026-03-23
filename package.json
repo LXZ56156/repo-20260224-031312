@@ -1,0 +1,11 @@
+{
+  "name": "badminton-miniapp",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "test:ranking": "node --test tests/ranking-core.consistency.test.js",
+    "check:cloud-common": "bash scripts/check-cloud-common.sh",
+    "check:deprecated-wx-api": "bash scripts/check-deprecated-wx-api.sh",
+    "check": "npm run check:deprecated-wx-api && npm run check:cloud-common"
+  }
+}

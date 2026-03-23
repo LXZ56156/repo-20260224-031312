@@ -7,6 +7,7 @@
 
   <view class="hero create-hero reveal reveal-1">
     <view class="hero-title">创建比赛</view>
+    <view class="hero-sub create-hero-sub">先创建草稿，再邀请成员与设置比赛参数。</view>
   </view>
 
   <view class="card panel create-panel reveal reveal-2">
@@ -19,85 +20,20 @@
       <view class="field-label">赛事名称</view>
       <input class="input" placeholder="赛事名称（例如：周末比赛）" bindinput="onName" value="{{name}}" />
     </view>
+
+    <view class="form-block">
+      <view class="field-label">已选赛制</view>
+      <view class="picker input-like disabled">{{modeLabel}}</view>
+    </view>
   </view>
 
-  <view class="card panel create-panel reveal reveal-3">
+  <view class="card panel-soft create-flow reveal reveal-3">
     <view class="section-head">
-      <view class="section-title">快速参数</view>
-      <text class="count-pill">创建时可预设</text>
+      <view class="section-title">创建后流程</view>
+      <text class="count-pill">2 步</text>
     </view>
-
-    <view class="preset-row">
-      <view
-        class="preset-chip {{quickPresetKey===item.key ? 'active' : ''}}"
-        wx:for="{{presetOptions}}"
-        wx:key="key"
-        data-key="{{item.key}}"
-        bindtap="applyPreset"
-      >
-        {{item.label}}
-      </view>
-    </view>
-
-    <view class="param-row">
-      <view class="param-col">
-        <view class="field-label">总场次</view>
-        <picker mode="selector" range="{{totalMatchOptions}}" value="{{totalMatchIndex}}" bindchange="onPickTotalMatches">
-          <view class="picker param-picker">{{totalMatches}}</view>
-        </picker>
-      </view>
-      <view class="param-col">
-        <view class="field-label">每轮最多场数</view>
-        <picker mode="selector" range="{{courtOptions}}" value="{{courtIndex}}" bindchange="onPickCourts">
-          <view class="picker param-picker">{{courts}}</view>
-        </picker>
-      </view>
-    </view>
-
-    <view class="param-row">
-      <view class="param-col">
-        <view class="field-label">活动时长</view>
-        <picker mode="selector" range="{{sessionMinuteOptions}}" value="{{sessionMinuteIndex}}" bindchange="onPickSessionMinutes">
-          <view class="picker param-picker">{{sessionMinutes}} 分钟</view>
-        </picker>
-      </view>
-      <view class="param-col">
-        <view class="field-label">单场占用时间</view>
-        <picker mode="selector" range="{{slotMinuteOptions}}" value="{{slotMinuteIndex}}" bindchange="onPickSlotMinutes">
-          <view class="picker param-picker">{{slotMinutes}} 分钟</view>
-        </picker>
-      </view>
-    </view>
-
-    <view class="param-row">
-      <view class="param-col">
-        <view class="field-label">每局分制</view>
-        <picker mode="selector" range="{{pointsOptions}}" value="{{pointsIndex}}" bindchange="onPickPointsPerGame">
-          <view class="picker param-picker">{{pointsPerGame}} 分</view>
-        </picker>
-      </view>
-      <view class="param-col" wx:if="{{showSquadEndCondition}}">
-        <view class="field-label">结束条件</view>
-        <picker mode="selector" range="{{endConditionOptions}}" range-key="label" value="{{endConditionIndex}}" bindchange="onPickEndConditionType">
-          <view class="picker param-picker">{{endConditionOptions[endConditionIndex].label}}</view>
-        </picker>
-      </view>
-    </view>
-
-    <view class="param-row" wx:if="{{showSquadEndCondition}}">
-      <view class="param-col">
-        <view class="field-label">{{endConditionTargetLabel}}</view>
-        <picker wx:if="{{showEndConditionTargetPicker}}" mode="selector" range="{{endConditionTargetOptions}}" value="{{endConditionTargetIndex}}" bindchange="onPickEndConditionTarget">
-          <view class="picker param-picker">{{endConditionTarget}} {{endConditionTargetUnit}}</view>
-        </picker>
-        <view wx:else class="picker param-picker disabled">{{endConditionTarget}} {{endConditionTargetUnit}}</view>
-      </view>
-      <view class="param-col"></view>
-    </view>
-  </view>
-
-  <view class="card panel-soft capacity-hint reveal reveal-3" wx:if="{{capacityHintDetail}}">
-    <view class="capacity-hint-text muted small">{{capacityHintDetail}}</view>
+    <view class="create-flow-item">1. 先邀请成员或导入名单</view>
+    <view class="create-flow-item">2. 满 4 人后在比赛大厅设置参数并开赛</view>
   </view>
 
   <view class="retry-box panel-soft" wx:if="{{canRetryAction}}">

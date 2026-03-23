@@ -91,13 +91,7 @@ test('create retry reuses the same clientRequestId', async () => {
   try {
     const definition = loadPageDefinition(createPagePath);
     const ctx = createPageContext(definition, {
-      name: '周末比赛',
-      totalMatches: 8,
-      courts: 2,
-      quickPresetKey: 'standard',
-      pointsPerGame: 21,
-      endConditionType: 'total_matches',
-      endConditionTarget: 8
+      name: '周末比赛'
     });
 
     profileCore.ensureProfileForAction = async () => ({
@@ -160,7 +154,15 @@ test('settings saveSettings retry reuses the same clientRequestId', async () => 
     const ctx = createContext(settingsActions, {
       tournamentId: 't_settings',
       isAdmin: true,
-      tournament: { status: 'draft', players: [] },
+      tournament: {
+        status: 'draft',
+        players: [
+          { id: 'u1', name: 'A' },
+          { id: 'u2', name: 'B' },
+          { id: 'u3', name: 'C' },
+          { id: 'u4', name: 'D' }
+        ]
+      },
       name: '周二场',
       maxMatches: 0,
       editM: 1,
@@ -171,7 +173,8 @@ test('settings saveSettings retry reuses the same clientRequestId', async () => 
       endConditionTargetOptions: [1],
       showSquadEndCondition: false,
       mode: 'multi_rotate',
-      allowOpenTeam: false
+      allowOpenTeam: false,
+      canConfigureSettings: true
     });
     ctx.fetchTournament = async () => {};
     ctx.clearLastFailedAction = () => {};
@@ -222,11 +225,26 @@ test('lobby saveQuickSettings retry reuses the same clientRequestId', async () =
     const ctx = createContext(lobbyDraftActions, {
       tournamentId: 't_lobby_settings',
       isAdmin: true,
-      tournament: { status: 'draft' },
+      tournament: {
+        status: 'draft',
+        players: [
+          { id: 'u1', name: 'A' },
+          { id: 'u2', name: 'B' },
+          { id: 'u3', name: 'C' },
+          { id: 'u4', name: 'D' }
+        ]
+      },
+      quickConfigName: '大厅比赛',
       quickConfigM: 4,
       quickConfigC: 2,
+      quickPointsPerGame: 21,
+      quickShowSquadEndCondition: false,
+      quickEndConditionType: 'total_matches',
+      quickEndConditionTarget: 4,
+      quickEndConditionTargetOptions: [1, 2, 3, 4],
       maxMatches: 0,
-      allowOpenTeam: false
+      allowOpenTeam: false,
+      canConfigureSettings: true
     });
     ctx.fetchTournament = async () => {};
     ctx.clearLastFailedAction = () => {};

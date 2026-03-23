@@ -478,7 +478,8 @@ Page({
     }
     if (action === 'settings') {
       if (id) {
-        wx.navigateTo({ url: nav.buildTournamentUrl('/pages/settings/index', id, { section: 'params' }) });
+        nav.setLobbyIntent(id, 'settings');
+        wx.navigateTo({ url: nav.buildTournamentUrl('/pages/lobby/index', id) });
         return;
       }
     }

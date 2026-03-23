@@ -8,6 +8,7 @@ const pageTournamentSync = require('../../core/pageTournamentSync');
 const retryAction = require('../../core/retryAction');
 const tournamentEntry = require('../../core/tournamentEntry');
 const viewModel = require('./lobbyViewModel');
+const settingsViewModel = require('../settings/settingsViewModel');
 const { createLobbyDelegates } = require('./lobbyDelegates');
 
 const lobbySyncController = pageTournamentSync.createTournamentSyncMethods({
@@ -104,6 +105,9 @@ Page({
     importResultText: '',
     importResultDetail: '',
     focusQuickImport: false,
+    quickConfigName: '',
+    quickConfigGateHint: '',
+    quickSettingsBusy: false,
     quickConfigM: 8,
     quickConfigC: 2,
     useSimpleQuickMPicker: true,
@@ -113,18 +117,27 @@ Page({
     quickConfigMDigitValue: [],
     quickConfigCOptions: Array.from({ length: 10 }, (_, i) => i + 1),
     quickConfigCIndex: 1,
-    sessionMinuteOptions: flow.SESSION_MINUTE_OPTIONS,
-    slotMinuteOptions: flow.SLOT_MINUTE_OPTIONS,
-    sessionMinutes: flow.DEFAULT_SESSION_MINUTES,
-    slotMinutes: flow.DEFAULT_SLOT_MINUTES,
-    sessionMinuteIndex: 2,
-    slotMinuteIndex: Math.max(0, flow.SLOT_MINUTE_OPTIONS.indexOf(flow.DEFAULT_SLOT_MINUTES)),
+    quickPointsOptions: settingsViewModel.POINT_OPTIONS,
+    quickPointsPerGame: 21,
+    quickPointsIndex: 2,
+    quickEndConditionOptions: settingsViewModel.END_CONDITION_OPTIONS,
+    quickEndConditionType: 'total_matches',
+    quickEndConditionIndex: 0,
+    quickEndConditionTargetOptions: Array.from({ length: 200 }, (_, i) => i + 1),
+    quickEndConditionTarget: 8,
+    quickEndConditionTargetIndex: 7,
+    quickEndConditionTargetLabel: '总场数（自动）',
+    quickEndConditionTargetUnit: '场',
+    quickEndConditionTargetHint: '',
+    quickShowEndConditionTargetPicker: false,
+    quickShowSquadEndCondition: false,
     quickSuggestedMatches: 1,
     quickCapacityMax: 1,
     quickCapacityHintShort: '',
-    quickCapacityReason: 'time',
+    quickCapacityReason: 'roster',
     quickRosterHint: '',
     maxMatches: 0,
+    canConfigureSettings: false,
     allowOpenTeam: false,
 
     nextActionKey: '',
@@ -191,14 +204,6 @@ Page({
 
     this.openid = getApp().globalData.openid || storage.get('openid', '');
     pageTournamentSync.initTournamentSync(this);
-    const sessionMinutes = flow.normalizeSessionMinutes(storage.getSessionMinutesPref(), flow.DEFAULT_SESSION_MINUTES);
-    const slotMinutes = flow.normalizeSlotMinutes(storage.getSlotMinutesPref(), flow.DEFAULT_SLOT_MINUTES);
-    this.setData({
-      sessionMinutes,
-      slotMinutes,
-      sessionMinuteIndex: Math.max(0, flow.SESSION_MINUTE_OPTIONS.indexOf(sessionMinutes)),
-      slotMinuteIndex: Math.max(0, flow.SLOT_MINUTE_OPTIONS.indexOf(slotMinutes))
-    });
 
     this.avatarCache = {};
 

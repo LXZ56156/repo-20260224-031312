@@ -3,13 +3,7 @@ const {
   MODE_FIXED_PAIR_RR
 } = require('../mode');
 
-const SESSION_MINUTE_OPTIONS = [60, 90, 120, 150, 180];
-const SLOT_MINUTE_OPTIONS = [10, 12, 15, 18, 20, 25];
-const DEFAULT_SESSION_MINUTES = 120;
-const DEFAULT_SLOT_MINUTES = 15;
-const DEFAULT_WARMUP_BUFFER = 10;
-const DEFAULT_ESTIMATED_PLAYERS = 8;
-const RECOMMEND_MODEL_VERSION = 'v2';
+const RECOMMEND_MODEL_VERSION = 'v3';
 
 function parsePositiveInt(value, fallback = 0, maxValue = null) {
   const n = Number(value);
@@ -17,18 +11,6 @@ function parsePositiveInt(value, fallback = 0, maxValue = null) {
   const nn = Math.floor(n);
   if (Number.isFinite(maxValue)) return Math.min(nn, maxValue);
   return nn;
-}
-
-function normalizeSessionMinutes(value, fallback = DEFAULT_SESSION_MINUTES) {
-  const v = parsePositiveInt(value, fallback);
-  if (SESSION_MINUTE_OPTIONS.includes(v)) return v;
-  return DEFAULT_SESSION_MINUTES;
-}
-
-function normalizeSlotMinutes(value, fallback = DEFAULT_SLOT_MINUTES) {
-  const v = parsePositiveInt(value, fallback);
-  if (SLOT_MINUTE_OPTIONS.includes(v)) return v;
-  return DEFAULT_SLOT_MINUTES;
 }
 
 function calcMaxMatchesByPlayers(playersCount) {
@@ -68,25 +50,11 @@ function calcMaxMatchesByMixedGender(maleCount, femaleCount, unknownCount, allow
   return Math.floor(totalMatches * 3);
 }
 
-function calcTimeBasedCapacity(courts, sessionMinutes, slotMinutes, warmupBuffer = DEFAULT_WARMUP_BUFFER) {
+function pickTargetGamesPerPlayer(courts) {
   const c = Math.max(1, parsePositiveInt(courts, 1, 10));
-  const session = Math.max(30, parsePositiveInt(sessionMinutes, DEFAULT_SESSION_MINUTES));
-  const slot = Math.max(8, parsePositiveInt(slotMinutes, DEFAULT_SLOT_MINUTES));
-  const effectiveMinutes = Math.max(15, session - Math.max(0, Number(warmupBuffer) || 0));
-  const cap = Math.floor((c * effectiveMinutes) / slot);
-  return {
-    effectiveMinutes,
-    maxByTime: Math.max(1, cap)
-  };
-}
-
-function pickTargetGamesPerPlayer(sessionMinutes) {
-  const m = Math.max(30, parsePositiveInt(sessionMinutes, DEFAULT_SESSION_MINUTES));
-  if (m <= 90) return 2.2;
-  if (m <= 120) return 3.0;
-  if (m <= 150) return 3.8;
-  if (m <= 180) return 4.6;
-  return 5.2;
+  if (c === 1) return 2.5;
+  if (c === 2) return 3.0;
+  return 3.5;
 }
 
 function buildTierMatches(cap, balancedRaw) {
@@ -123,56 +91,46 @@ function buildMatchCountRecommendations(input) {
   const femaleCount = Math.max(0, Number(raw.femaleCount) || 0);
   const unknownCount = Math.max(0, Number(raw.unknownCount) || 0);
   const courts = Math.max(1, parsePositiveInt(raw.courts, 2, 10));
-  const sessionMinutes = normalizeSessionMinutes(raw.sessionMinutes, DEFAULT_SESSION_MINUTES);
-  const slotMinutes = normalizeSlotMinutes(raw.slotMinutes, DEFAULT_SLOT_MINUTES);
-  const warmupBuffer = Math.max(0, Number(raw.warmupBuffer) || DEFAULT_WARMUP_BUFFER);
-
-  const { effectiveMinutes, maxByTime: maxByTimeRaw } = calcTimeBasedCapacity(courts, sessionMinutes, slotMinutes, warmupBuffer);
-  const maxByTime = maxByTimeRaw;
 
   let maxByCombinatoricsRaw = calcMaxMatchesByPlayers(playersCount);
   if (mode === MODE_FIXED_PAIR_RR) {
     const teamCount = Math.floor(playersCount / 2);
     maxByCombinatoricsRaw = teamCount >= 2 ? comb(teamCount, 2) : 0;
   }
-  const maxByCombinatorics = maxByCombinatoricsRaw > 0 ? maxByCombinatoricsRaw : Number.POSITIVE_INFINITY;
-  const cap = Math.max(1, Math.min(maxByTime, maxByCombinatorics));
+
   const estimatedMode = playersCount < 4;
-  const estimatedPlayers = estimatedMode ? Math.max(6, Math.min(10, courts * 4)) : playersCount;
-  const targetGamesPerPlayer = pickTargetGamesPerPlayer(sessionMinutes);
-  let balancedRaw = Math.round((estimatedPlayers * targetGamesPerPlayer) / 4);
-  if (estimatedMode) balancedRaw = Math.floor(balancedRaw * 0.82);
-  balancedRaw = Math.max(1, balancedRaw);
+  const estimatedPlayers = estimatedMode
+    ? Math.max(6, Math.min(10, courts * 4))
+    : playersCount;
+  const targetGamesPerPlayer = pickTargetGamesPerPlayer(courts);
+  const balancedRaw = Math.max(1, Math.round((estimatedPlayers * targetGamesPerPlayer) / 4));
+  const cap = maxByCombinatoricsRaw > 0 ? maxByCombinatoricsRaw : balancedRaw;
   const recommendedMatches = buildTierMatches(cap, balancedRaw);
   const suggestedMatches = Number((recommendedMatches[1] && recommendedMatches[1].m) || (recommendedMatches[0] && recommendedMatches[0].m) || 1);
 
-  let capReason = 'time';
+  let capReason = 'roster';
   if (mode === MODE_FIXED_PAIR_RR) {
     capReason = 'round_robin';
   } else if (estimatedMode) {
     capReason = 'estimated';
-  } else if (maxByCombinatoricsRaw > 0 && maxByCombinatoricsRaw < maxByTime) {
-    capReason = 'combinatorics';
   }
 
   let recommendationHint = '';
   if (capReason === 'round_robin') {
     recommendationHint = `最多可安排：${cap} 场（按已组队伍单循环计算）`;
-  } else if (capReason === 'combinatorics') {
-    recommendationHint = `受参赛信息限制，当前最多 ${maxByCombinatoricsRaw} 场。`;
   } else if (capReason === 'estimated') {
-    recommendationHint = `按人数与时长自动安排场次（上限 ${maxByTime} 场），导入完整名单后会自动调整。`;
+    recommendationHint = `建议先按 ${suggestedMatches} 场配置，满 4 人后会自动重算。`;
   } else {
-    recommendationHint = `按人数与时长自动安排场次（上限 ${maxByTime} 场）。`;
+    recommendationHint = `建议按当前人数和场地配置 ${suggestedMatches} 场。`;
   }
 
-  let capacityHintShort = `最多可安排：${cap} 场（按场地与时长估算）`;
-  if (capReason === 'combinatorics') {
-    capacityHintShort = `最多可安排：${cap} 场（受参赛规模限制）`;
-  } else if (capReason === 'round_robin') {
+  let capacityHintShort = `建议配置 ${suggestedMatches} 场`;
+  if (capReason === 'round_robin') {
     capacityHintShort = `最多可安排：${cap} 场（按已组队伍单循环计算）`;
+  } else if (capReason === 'estimated') {
+    capacityHintShort = `建议先配置 ${suggestedMatches} 场`;
   }
-  const rosterHint = estimatedMode ? '导入完整名单后会自动重算' : '';
+  const rosterHint = estimatedMode ? '满 4 人后会自动重算' : '';
 
   return {
     recommendedModelVersion: RECOMMEND_MODEL_VERSION,
@@ -183,14 +141,9 @@ function buildMatchCountRecommendations(input) {
     femaleCount,
     unknownCount,
     courts,
-    sessionMinutes,
-    slotMinutes,
-    warmupBuffer,
-    effectiveMinutes,
     estimatedPlayers,
     estimatedMode,
     targetGamesPerPlayer,
-    maxByTime,
     maxByCombinatorics: maxByCombinatoricsRaw,
     balancedRaw,
     capReason,
@@ -206,18 +159,9 @@ function buildMatchCountRecommendations(input) {
 }
 
 module.exports = {
-  SESSION_MINUTE_OPTIONS,
-  SLOT_MINUTE_OPTIONS,
-  DEFAULT_SESSION_MINUTES,
-  DEFAULT_SLOT_MINUTES,
-  DEFAULT_WARMUP_BUFFER,
-  DEFAULT_ESTIMATED_PLAYERS,
   RECOMMEND_MODEL_VERSION,
   parsePositiveInt,
-  normalizeSessionMinutes,
-  normalizeSlotMinutes,
   calcMaxMatchesByPlayers,
   calcMaxMatchesByMixedGender,
-  calcTimeBasedCapacity,
   buildMatchCountRecommendations
 };

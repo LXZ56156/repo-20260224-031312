@@ -47,12 +47,8 @@ Page({
     endConditionTargetHint: '',
     showEndConditionTargetPicker: false,
     showSquadEndCondition: false,
-    sessionMinuteOptions: flow.SESSION_MINUTE_OPTIONS,
-    slotMinuteOptions: flow.SLOT_MINUTE_OPTIONS,
-    sessionMinutes: flow.DEFAULT_SESSION_MINUTES,
-    slotMinutes: flow.DEFAULT_SLOT_MINUTES,
-    sessionMinuteIndex: 2,
-    slotMinuteIndex: Math.max(0, flow.SLOT_MINUTE_OPTIONS.indexOf(flow.DEFAULT_SLOT_MINUTES)),
+    canConfigureSettings: false,
+    settingsGateHint: '',
     isDraft: false,
     settingsReady: false,
     mandatoryDone: 0,
@@ -88,15 +84,7 @@ Page({
     this._initialSection = section;
     this.openid = (getApp().globalData.openid || storage.get('openid', ''));
     pageTournamentSync.initTournamentSync(this);
-    const sessionMinutes = flow.normalizeSessionMinutes(storage.getSessionMinutesPref(), flow.DEFAULT_SESSION_MINUTES);
-    const slotMinutes = flow.normalizeSlotMinutes(storage.getSlotMinutesPref(), flow.DEFAULT_SLOT_MINUTES);
     this.setData({ tournamentId: tid });
-    this.setData({
-      sessionMinutes,
-      slotMinutes,
-      sessionMinuteIndex: Math.max(0, flow.SESSION_MINUTE_OPTIONS.indexOf(sessionMinutes)),
-      slotMinuteIndex: Math.max(0, flow.SLOT_MINUTE_OPTIONS.indexOf(slotMinutes))
-    });
 
     const app = getApp();
     this.setData(pageTournamentSync.composePageSyncPatch(this, {
@@ -134,9 +122,7 @@ Page({
   applyTournament(tournament) {
     if (!tournament) return;
     const viewState = settingsViewModel.buildSettingsViewState(tournament, {
-      openid: this.openid,
-      sessionMinutes: this.data.sessionMinutes,
-      slotMinutes: this.data.slotMinutes
+      openid: this.openid
     });
     this.setData(viewState);
 

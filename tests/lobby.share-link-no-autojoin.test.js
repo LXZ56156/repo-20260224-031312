@@ -37,8 +37,6 @@ function createLobbyPageContext(definition) {
 
 test('lobby no longer auto-runs join intent from share url params', () => {
   const originalGetApp = global.getApp;
-  const originalGetSessionMinutesPref = storage.getSessionMinutesPref;
-  const originalGetSlotMinutesPref = storage.getSlotMinutesPref;
   const originalGetUserProfile = storage.getUserProfile;
   const originalGet = storage.get;
   const originalFetchTournament = tournamentSync.fetchTournament;
@@ -50,8 +48,6 @@ test('lobby no longer auto-runs join intent from share url params', () => {
       return () => {};
     }
   });
-  storage.getSessionMinutesPref = () => 120;
-  storage.getSlotMinutesPref = () => 15;
   storage.getUserProfile = () => null;
   storage.get = (key, fallback) => fallback;
   tournamentSync.fetchTournament = async () => null;
@@ -67,8 +63,6 @@ test('lobby no longer auto-runs join intent from share url params', () => {
     assert.equal(ctx._pendingIntentAction, '');
   } finally {
     global.getApp = originalGetApp;
-    storage.getSessionMinutesPref = originalGetSessionMinutesPref;
-    storage.getSlotMinutesPref = originalGetSlotMinutesPref;
     storage.getUserProfile = originalGetUserProfile;
     storage.get = originalGet;
     tournamentSync.fetchTournament = originalFetchTournament;

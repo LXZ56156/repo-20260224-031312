@@ -24,9 +24,7 @@ test('settings view model turns the page into draft-only tournament editing', ()
       endCondition: { type: 'total_matches', target: 6 }
     }
   }, {
-    openid: 'u_1',
-    sessionMinutes: flow.DEFAULT_SESSION_MINUTES,
-    slotMinutes: flow.DEFAULT_SLOT_MINUTES
+    openid: 'u_1'
   });
 
   assert.equal(state.pageTitle, '修改比赛');
@@ -57,9 +55,7 @@ test('settings view model exposes squad end condition editing when mode is squad
       endCondition: { type: 'target_wins', target: 5 }
     }
   }, {
-    openid: 'u_1',
-    sessionMinutes: flow.DEFAULT_SESSION_MINUTES,
-    slotMinutes: flow.DEFAULT_SLOT_MINUTES
+    openid: 'u_1'
   });
 
   assert.equal(state.showSquadEndCondition, true);
@@ -88,9 +84,7 @@ test('settings view model clamps fixed pair total matches to valid round-robin c
     totalMatches: 99,
     courts: 2
   }, {
-    openid: 'u_1',
-    sessionMinutes: flow.DEFAULT_SESSION_MINUTES,
-    slotMinutes: flow.DEFAULT_SLOT_MINUTES
+    openid: 'u_1'
   });
 
   assert.equal(state.maxMatches, 1);

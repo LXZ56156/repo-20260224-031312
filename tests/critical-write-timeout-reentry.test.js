@@ -167,12 +167,6 @@ test('create handleCreate stays guarded after timeout while request is pending',
     const definition = loadPageDefinition(createPagePath);
     const ctx = createPageContext(definition, {
       name: '周末比赛',
-      totalMatches: 8,
-      courts: 2,
-      quickPresetKey: 'standard',
-      pointsPerGame: 21,
-      endConditionType: 'total_matches',
-      endConditionTarget: 8,
       createBusy: false
     });
 
@@ -380,7 +374,15 @@ test('settings saveSettings keeps settingsBusy until request settles after timeo
     const ctx = createContext(settingsActions, {
       tournamentId: 't_settings',
       isAdmin: true,
-      tournament: { status: 'draft', players: [] },
+      tournament: {
+        status: 'draft',
+        players: [
+          { id: 'u1', name: 'A' },
+          { id: 'u2', name: 'B' },
+          { id: 'u3', name: 'C' },
+          { id: 'u4', name: 'D' }
+        ]
+      },
       name: '周二场',
       maxMatches: 0,
       editM: 1,
@@ -392,7 +394,8 @@ test('settings saveSettings keeps settingsBusy until request settles after timeo
       showSquadEndCondition: false,
       settingsBusy: false,
       mode: 'multi_rotate',
-      allowOpenTeam: false
+      allowOpenTeam: false,
+      canConfigureSettings: true
     });
     ctx.fetchTournament = async () => {};
     ctx.clearLastFailedAction = () => {};
@@ -456,11 +459,27 @@ test('lobby saveQuickSettings stays guarded after timeout while request is pendi
     const ctx = createContext(lobbyDraftActions, {
       tournamentId: 't_lobby_settings',
       isAdmin: true,
-      tournament: { status: 'draft' },
+      tournament: {
+        status: 'draft',
+        players: [
+          { id: 'u1', name: 'A' },
+          { id: 'u2', name: 'B' },
+          { id: 'u3', name: 'C' },
+          { id: 'u4', name: 'D' }
+        ]
+      },
+      quickConfigName: '大厅比赛',
       quickConfigM: 4,
       quickConfigC: 2,
+      quickPointsPerGame: 21,
+      quickShowSquadEndCondition: false,
+      quickEndConditionType: 'total_matches',
+      quickEndConditionTarget: 4,
+      quickEndConditionTargetOptions: [1, 2, 3, 4],
       maxMatches: 0,
-      allowOpenTeam: false
+      allowOpenTeam: false,
+      canConfigureSettings: true,
+      quickSettingsBusy: false
     });
     ctx.fetchTournament = async () => {};
     ctx.clearLastFailedAction = () => {};

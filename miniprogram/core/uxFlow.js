@@ -1,7 +1,6 @@
 const modeHelper = require('./mode');
 const capacity = require('./ux/capacity');
 const gender = require('./ux/gender');
-const presets = require('./ux/presets');
 
 const MODE_MULTI_ROTATE = modeHelper.MODE_MULTI_ROTATE;
 const MODE_SQUAD_DOUBLES = modeHelper.MODE_SQUAD_DOUBLES;
@@ -11,7 +10,7 @@ const MODE_MIXED_FALLBACK = modeHelper.MODE_MIXED_FALLBACK;
 
 const ACTION_TEMPLATES = {
   join: { text: '加入参赛' },
-  settings: { text: '去保存参数' },
+  settings: { text: '去修改比赛' },
   quickImport: { text: '去导入名单' },
   start: { text: '开始比赛' },
   batch: { text: '去批量录分' },
@@ -69,7 +68,7 @@ function getModeRuleLines(mode) {
     '系统轮换搭档进行双打',
     '同轮同人最多上场 1 次',
     '按胜场、净胜分、总得分排名',
-    '人数不足时可先配置参数，导入后自动刷新建议'
+    '先邀请成员，满 4 人后再配置参数并开赛'
   ];
 }
 
@@ -99,25 +98,6 @@ function getLaunchModes() {
   ];
 }
 
-function resolveCreateSettings(input) {
-  const raw = input || {};
-  const presetKey = presets.normalizePresetKey(raw.presetKey);
-  const mode = normalizeMode(raw.mode);
-  const preset = presets.getPresetOption(presetKey);
-
-  let totalMatches = capacity.parsePositiveInt(raw.totalMatches, preset.totalMatches);
-  let courts = capacity.parsePositiveInt(raw.courts, preset.courts, 10);
-  if (courts < 1) courts = 1;
-
-  return {
-    mode,
-    presetKey,
-    totalMatches,
-    courts,
-    settingsConfigured: totalMatches >= 1 && courts >= 1
-  };
-}
-
 function hasPendingMatch(rounds) {
   const list = Array.isArray(rounds) ? rounds : [];
   for (const round of list) {
@@ -142,8 +122,8 @@ function pickNextAction(ctx) {
   const hasPending = !!state.hasPending;
 
   if (status === 'draft' && !myJoined) return buildAction('join');
-  if (status === 'draft' && isAdmin && !checkSettingsOk) return buildAction('settings');
   if (status === 'draft' && isAdmin && !checkPlayersOk) return buildAction('quickImport');
+  if (status === 'draft' && isAdmin && !checkSettingsOk) return buildAction('settings');
   if (status === 'draft' && isAdmin && checkPlayersOk && checkSettingsOk) return buildAction('start');
   if (status === 'running' && canEditScore && hasPending) return buildAction('batch');
   if (status === 'finished') return buildAction('analytics');
@@ -154,7 +134,6 @@ function pickNextAction(ctx) {
 module.exports = {
   ...capacity,
   ...gender,
-  ...presets,
   normalizeMode,
   getModeLabel,
   getModeIntro,
@@ -165,7 +144,6 @@ module.exports = {
   MODE_FIXED_PAIR_RR,
   MODE_DOUBLES,
   MODE_MIXED_FALLBACK,
-  resolveCreateSettings,
   hasPendingMatch,
   pickNextAction
 };

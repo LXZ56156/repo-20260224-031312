@@ -84,11 +84,11 @@ test('createTournament writes normalized tournament document with default creato
   assert.equal(addedData.name, '周五夜场');
   assert.equal(addedData.creatorId, 'u_creator');
   assert.equal(addedData.mode, 'squad_doubles');
-  assert.equal(addedData.settingsConfigured, true);
-  assert.equal(addedData.courts, 2);
-  assert.equal(addedData.totalMatches, 12);
-  assert.equal(addedData.rules.pointsPerGame, 15);
-  assert.deepEqual(addedData.rules.endCondition, { type: 'target_wins', target: 6 });
+  assert.equal(addedData.settingsConfigured, false);
+  assert.equal(addedData.courts, 0);
+  assert.equal(addedData.totalMatches, 0);
+  assert.equal(addedData.rules.pointsPerGame, 21);
+  assert.deepEqual(addedData.rules.endCondition, { type: 'total_matches', target: 1 });
   assert.equal(addedData.players.length, 1);
   assert.deepEqual(addedData.players[0], {
     id: 'u_creator',

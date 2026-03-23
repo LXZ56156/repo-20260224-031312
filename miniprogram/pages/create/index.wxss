@@ -1,28 +1,20 @@
-/* ============================================================
-   Create 页面 — 创建比赛表单
-   ============================================================ */
-
 .create-page {
   padding-top: 24rpx;
   padding-bottom: calc(env(safe-area-inset-bottom) + 120rpx);
 }
 
-/* --- Hero (更紧凑) --- */
 .create-hero {
   padding: 24rpx 24rpx 22rpx;
 }
 
-/* --- Panel --- */
+.create-hero-sub {
+  max-width: 540rpx;
+}
+
 .create-panel {
   padding-top: 20rpx;
 }
 
-.section-title {
-  font-size: 30rpx;
-  font-weight: 740;
-}
-
-/* --- Form --- */
 .form-block {
   margin-top: 16rpx;
 }
@@ -33,94 +25,21 @@
   font-size: 24rpx;
 }
 
-/* --- Preset Chip (更清晰) --- */
-.preset-row {
-  margin-top: 16rpx;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12rpx;
+.create-flow {
+  padding-top: 18rpx;
 }
 
-.preset-chip {
-  padding: 10rpx 20rpx;
-  border-radius: 999rpx;
-  border: 1rpx solid rgba(15, 23, 42, 0.08);
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--neutral-700);
-  font-size: 24rpx;
-  font-weight: 600;
-  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
-}
-
-.preset-chip.active {
-  background: rgba(24, 179, 104, 0.08);
-  border-color: rgba(24, 179, 104, 0.18);
-  color: var(--brand-700);
-  font-weight: 700;
-}
-
-/* --- Param Grid --- */
-.param-row {
-  margin-top: 16rpx;
-  display: flex;
-  gap: 12rpx;
-}
-
-.param-col {
-  width: calc((100% - 12rpx) / 2);
-}
-
-/* Picker (更紧凑 88→80) */
-.param-picker {
-  min-height: 80rpx;
-  line-height: 80rpx;
+.create-flow-item {
+  margin-top: 14rpx;
+  padding: 16rpx 18rpx;
   border-radius: 16rpx;
-  border: 1rpx solid rgba(15, 23, 42, 0.08);
-  background: rgba(255, 255, 255, 0.98);
-  padding: 0 20rpx;
-  font-size: 28rpx;
-  color: var(--neutral-950);
-  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.88);
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 26rpx;
+  line-height: 1.5;
+  color: var(--neutral-700);
 }
 
-.param-picker.disabled {
-  background: rgba(248, 250, 252, 0.96);
-  color: var(--neutral-500);
-}
-
-/* --- Create Actions (sticky bottom tray) --- */
 .create-actions {
   margin-top: 0;
-}
-
-/* --- Mode Chip (兼容旧引用) --- */
-.mode-chip {
-  border: 1rpx solid var(--neutral-200);
-  background: var(--neutral-100);
-  color: var(--neutral-950);
-}
-
-.mode-chip.active {
-  background: var(--brand-50);
-  border-color: var(--brand-500);
-  color: var(--brand-700);
-}
-
-/* --- Profile (兼容旧引用) --- */
-.profile-editor {
-  margin-top: 16rpx;
-  align-items: flex-start;
-}
-
-.profile-main {
-  margin-left: 16rpx;
-}
-
-.profile-tip {
-  margin-top: 8rpx;
-}
-
-/* --- Recommend Chips --- */
-.create-recommend-chips {
-  margin-top: 12rpx;
 }

@@ -93,11 +93,20 @@ function createLobbyDelegates(syncController) {
     onPickQuickConfigC(...args) {
       return draftActions.onPickQuickConfigC.apply(this, args);
     },
-    onPickSessionMinutes(...args) {
-      return draftActions.onPickSessionMinutes.apply(this, args);
+    onQuickConfigNameInput(...args) {
+      return draftActions.onQuickConfigNameInput.apply(this, args);
     },
-    onPickSlotMinutes(...args) {
-      return draftActions.onPickSlotMinutes.apply(this, args);
+    onPickQuickPointsPerGame(...args) {
+      return draftActions.onPickQuickPointsPerGame.apply(this, args);
+    },
+    onPickQuickEndConditionType(...args) {
+      return draftActions.onPickQuickEndConditionType.apply(this, args);
+    },
+    onPickQuickEndConditionTarget(...args) {
+      return draftActions.onPickQuickEndConditionTarget.apply(this, args);
+    },
+    syncQuickEndConditionUi(...args) {
+      return draftActions.syncQuickEndConditionUi.apply(this, args);
     },
     refreshQuickRecommendations(...args) {
       return draftActions.refreshQuickRecommendations.apply(this, args);

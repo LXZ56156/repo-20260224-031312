@@ -8,7 +8,7 @@ test('storage facade re-exports domain APIs with backward-compatible surface', (
   assert.equal(typeof storage.getUserProfile, 'function');
   assert.equal(typeof storage.getProfileNickName, 'function');
   assert.equal(typeof storage.getRecentTournamentIds, 'function');
-  assert.equal(typeof storage.getSessionMinutesPref, 'function');
+  assert.equal(typeof storage.getDefaultMode, 'function');
   assert.equal(typeof storage.buildScoreDraftKey, 'function');
   assert.equal(typeof storage.getAdLastExposure, 'function');
 });

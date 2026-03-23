@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const viewModel = require('../miniprogram/pages/lobby/lobbyViewModel');
 
-test('lobby admin draft view exposes modify flow and keeps destructive reset entry removed', () => {
+test('lobby admin draft view prioritizes拉人流程并 keeps destructive reset entry removed', () => {
   const result = viewModel.buildLobbyViewModel({
     tournament: {
       _id: 't_admin_actions',
@@ -25,12 +25,12 @@ test('lobby admin draft view exposes modify flow and keeps destructive reset ent
   });
   const checklistTitles = (result.patch.checklistItems || []).map((item) => item.title);
 
-  assert.equal(result.patch.nextActionKey, 'settings');
-  assert.equal(result.patch.nextActionText, '修改比赛');
-  assert.equal(result.patch.featuredChecklistItem.key, 'settings');
+  assert.equal(result.patch.nextActionKey, 'share');
+  assert.equal(result.patch.nextActionText, '转发');
+  assert.equal(result.patch.featuredChecklistItem.key, 'players');
   assert.deepEqual(
     result.patch.secondaryChecklistItems.map((item) => item.key),
-    ['players', 'start']
+    ['settings', 'start']
   );
   assert.equal(checklistTitles.includes('1. 修改比赛'), true);
   assert.equal(checklistTitles.includes('2. 转发比赛'), true);

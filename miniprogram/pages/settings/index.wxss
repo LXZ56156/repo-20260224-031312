@@ -46,26 +46,6 @@
   color: var(--neutral-500);
 }
 
-/* Form items — horizontal layout for settings */
-.form-item {
-  margin-top: 16rpx;
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-}
-
-.form-label {
-  width: 170rpx;
-  flex-shrink: 0;
-  font-size: 25rpx;
-  color: var(--neutral-500);
-  font-weight: 500;
-}
-
-.form-field {
-  flex: 1;
-}
-
 .picker {
   height: 76rpx;
   line-height: 76rpx;
@@ -86,6 +66,10 @@
 .input-like {
   width: 100%;
   box-sizing: border-box;
+}
+
+.form-field {
+  width: 100%;
 }
 
 .settings-save {

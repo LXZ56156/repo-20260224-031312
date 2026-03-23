@@ -80,8 +80,6 @@ function buildRecommendationState({
   players,
   playersCount,
   courts,
-  sessionMinutes,
-  slotMinutes,
   allowOpenTeam = false
 }) {
   const genderCount = flow.countGenderPlayers(players);
@@ -92,9 +90,7 @@ function buildRecommendationState({
     unknownCount: genderCount.unknownCount,
     allowOpenTeam,
     playersCount,
-    courts,
-    sessionMinutes,
-    slotMinutes
+    courts
   });
   return {
     recommendation,
@@ -102,33 +98,33 @@ function buildRecommendationState({
   };
 }
 
-function buildSettingsViewState(tournament, options = {}) {
+function buildSettingsFormState(tournament, options = {}) {
   const t = tournament && typeof tournament === 'object' ? tournament : {};
   const openid = String(options.openid || '').trim();
-  const sessionMinutes = flow.normalizeSessionMinutes(options.sessionMinutes, flow.DEFAULT_SESSION_MINUTES);
-  const slotMinutes = flow.normalizeSlotMinutes(options.slotMinutes, flow.DEFAULT_SLOT_MINUTES);
   const isAdmin = perm.isAdmin(t, openid);
   const isDraft = String(t.status || 'draft') === 'draft';
 
   const players = Array.isArray(t.players) ? t.players : [];
   const playersCount = players.length;
+  const canConfigureSettings = playersCount >= 4;
   const mode = flow.normalizeMode(t.mode || flow.MODE_MULTI_ROTATE);
   const modeLabel = flow.getModeLabel(mode);
   const allowOpenTeam = false;
 
   let maxMatches = flow.calcMaxMatchesByPlayers(playersCount);
   if (mode === flow.MODE_FIXED_PAIR_RR) {
-    const pairTeams = Array.isArray(t.pairTeams) ? t.pairTeams.filter((item) => Array.isArray(item && item.playerIds) && item.playerIds.length === 2) : [];
+    const pairTeams = Array.isArray(t.pairTeams)
+      ? t.pairTeams.filter((item) => Array.isArray(item && item.playerIds) && item.playerIds.length === 2)
+      : [];
     maxMatches = pairTeams.length >= 2 ? Math.floor((pairTeams.length * (pairTeams.length - 1)) / 2) : 0;
   }
 
+  const courtsForRecommendation = Math.max(1, Math.min(10, Number(t.courts) || 1));
   const { recommendation } = buildRecommendationState({
     mode,
     players,
     playersCount,
-    courts: Number(t.courts) || 1,
-    sessionMinutes,
-    slotMinutes,
+    courts: courtsForRecommendation,
     allowOpenTeam
   });
 
@@ -137,8 +133,8 @@ function buildSettingsViewState(tournament, options = {}) {
   if (editM < 1) editM = 1;
   if (maxMatches > 0 && editM > maxMatches) editM = maxMatches;
 
-  const editC = Math.max(1, Math.min(10, Number(t.courts) || 1));
-  const settingsReady = t.settingsConfigured === true || (editM >= 1 && editC >= 1);
+  const editC = courtsForRecommendation;
+  const settingsReady = t.settingsConfigured === true;
   const useSimpleMPicker = maxMatches > 0 && maxMatches <= 200;
   const mOptions = useSimpleMPicker ? Array.from({ length: maxMatches }, (_, i) => i + 1) : [];
   const mIndex = useSimpleMPicker && editM >= 1 ? (editM - 1) : 0;
@@ -161,21 +157,20 @@ function buildSettingsViewState(tournament, options = {}) {
   const safeName = String(t.name || '').trim() || modeLabel;
 
   return {
-    loadError: false,
-    tournament: t,
-    pageTitle: isDraft ? '修改比赛' : '比赛信息',
-    contextTitle: isDraft ? '仅草稿阶段可修改比赛信息' : '当前仅查看比赛信息',
     mode,
     modeLabel,
     allowOpenTeam,
     isAdmin,
     isDraft,
+    playersCount,
+    canConfigureSettings,
+    settingsGateHint: canConfigureSettings ? '' : `满 4 人后可设置参数（当前 ${playersCount} 人）`,
     name: safeName,
     maxMatches,
     suggestedMatches: Number(recommendation.suggestedMatches) || 1,
     capacityMax: Number(recommendation.capacityMax) || 1,
     capacityHintShort: String(recommendation.capacityHintShort || ''),
-    capacityReason: String(recommendation.capacityReason || 'time'),
+    capacityReason: String(recommendation.capacityReason || 'roster'),
     rosterHint: String(recommendation.rosterHint || ''),
     settingsReady,
     mandatoryDone: settingsReady ? 1 : 0,
@@ -205,6 +200,18 @@ function buildSettingsViewState(tournament, options = {}) {
   };
 }
 
+function buildSettingsViewState(tournament, options = {}) {
+  const t = tournament && typeof tournament === 'object' ? tournament : {};
+  const formState = buildSettingsFormState(t, options);
+  return {
+    loadError: false,
+    tournament: t,
+    pageTitle: formState.isDraft ? '修改比赛' : '比赛信息',
+    contextTitle: formState.isDraft ? '仅草稿阶段可修改比赛信息' : '当前仅查看比赛信息',
+    ...formState
+  };
+}
+
 module.exports = {
   POINT_OPTIONS,
   END_CONDITION_OPTIONS,
@@ -216,5 +223,6 @@ module.exports = {
   suggestEndConditionTarget,
   buildEndConditionUi,
   buildRecommendationState,
+  buildSettingsFormState,
   buildSettingsViewState
 };

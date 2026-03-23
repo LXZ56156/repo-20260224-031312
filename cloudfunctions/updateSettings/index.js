@@ -62,6 +62,14 @@ exports.main = async (event) => {
       }
 
       const players = Array.isArray(t.players) ? t.players : [];
+      const wantsParamConfig = totalMatches !== null
+        || courts !== null
+        || pointsPerGame !== null
+        || endConditionTypeInput !== null
+        || endConditionTargetInput !== null;
+      if (wantsParamConfig && players.length < 4) {
+        throw new Error('满 4 人后才可设置比赛参数');
+      }
       const mode = String(t.mode || 'multi_rotate').trim().toLowerCase();
       const allowOpenTeam = allowOpenTeamInput === null ? (t.allowOpenTeam === true) : allowOpenTeamInput;
       const checked = validateSettings(players, totalMatches, courts, mode, allowOpenTeam, t.pairTeams || []);
@@ -148,6 +156,7 @@ function mapUpdateSettingsFailure(err, traceId = '') {
     message.includes('总场次') ||
     message.includes('场地') ||
     message.includes('参数') ||
+    message.includes('满 4 人') ||
     message.includes('人数') ||
     message.includes('队伍') ||
     message.includes('结束条件')

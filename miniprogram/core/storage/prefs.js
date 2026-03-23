@@ -6,8 +6,6 @@ const PROFILE_NUDGE_DISMISSED_KEY = 'profile_nudge_dismissed_v1';
 const ENTRY_PRUNE_VERSION_KEY = 'entry_prune_version';
 const HOME_SORT_MODE_KEY = 'home_sort_mode';
 const HOME_FILTER_STATUS_KEY = 'home_filter_status';
-const SESSION_MINUTES_PREF_KEY = 'session_minutes_pref';
-const SLOT_MINUTES_PREF_KEY = 'slot_minutes_pref';
 const DEFAULT_MODE_KEY = 'default_mode';
 const ALLOW_OPEN_TEAM_KEY = 'allow_open_team';
 const SCHEDULER_PROFILE_KEY = 'scheduler_profile';
@@ -62,28 +60,6 @@ function setHomeFilterStatus(status) {
   set(HOME_FILTER_STATUS_KEY, value);
 }
 
-function getSessionMinutesPref() {
-  const value = Number(get(SESSION_MINUTES_PREF_KEY, 120));
-  return Number.isFinite(value) && value > 0 ? value : 120;
-}
-
-function setSessionMinutesPref(minutes) {
-  const value = Number(minutes);
-  if (!Number.isFinite(value) || value <= 0) return;
-  set(SESSION_MINUTES_PREF_KEY, Math.floor(value));
-}
-
-function getSlotMinutesPref() {
-  const value = Number(get(SLOT_MINUTES_PREF_KEY, 15));
-  return Number.isFinite(value) && value > 0 ? value : 15;
-}
-
-function setSlotMinutesPref(minutes) {
-  const value = Number(minutes);
-  if (!Number.isFinite(value) || value <= 0) return;
-  set(SLOT_MINUTES_PREF_KEY, Math.floor(value));
-}
-
 function normalizeMode(mode) {
   return modeHelper.normalizeMode(mode);
 }
@@ -129,10 +105,6 @@ module.exports = {
   setHomeSortMode,
   getHomeFilterStatus,
   setHomeFilterStatus,
-  getSessionMinutesPref,
-  setSessionMinutesPref,
-  getSlotMinutesPref,
-  setSlotMinutesPref,
   getDefaultMode,
   setDefaultMode,
   getAllowOpenTeam,
