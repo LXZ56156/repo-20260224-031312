@@ -148,7 +148,7 @@ test('submitScore returns LOCK_EXPIRED when score lock document is missing', asy
     ok: false,
     code: 'LOCK_EXPIRED',
     message: '录分会话已过期，请重新开始录分',
-    state: 'expired',
+    state: 'conflict',
     traceId: '',
     data: {}
   });

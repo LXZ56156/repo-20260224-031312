@@ -48,14 +48,14 @@ test('match lock messaging differentiates occupied finished and forbidden states
     controller.applyScoreLockResult({
       ok: false,
       code: 'LOCK_OCCUPIED',
-      state: 'occupied',
+      state: 'conflict',
       ownerName: '裁判A',
       message: '当前有人正在录入比分'
     });
     controller.applyScoreLockResult({
       ok: false,
       code: 'MATCH_FINISHED',
-      state: 'finished',
+      state: 'conflict',
       message: '该场已结束'
     });
     controller.applyScoreLockResult({

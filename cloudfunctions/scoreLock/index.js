@@ -62,40 +62,9 @@ exports.main = async (event) => {
       const tRes = await transaction.collection('tournaments').doc(tournamentId).get();
       const tournament = common.assertTournamentExists(tRes.data);
       const admin = permission.isAdmin(tournament, OPENID);
-      if (!permission.canEditScore(tournament, OPENID)) {
-        return {
-          ok: false,
-          state: 'forbidden',
-          ownerId: '',
-          ownerName: '',
-          expireAt: 0,
-          remainingMs: 0
-        };
-      }
       const status = String(tournament.status || '').trim();
-      if (status !== 'running' && status !== 'finished') {
-        return {
-          ok: false,
-          state: 'forbidden',
-          ownerId: '',
-          ownerName: '',
-          expireAt: 0,
-          remainingMs: 0
-        };
-      }
-
       const match = findMatch(tournament, roundIndex, matchIndex);
       if (!match) throw new Error('比赛不存在');
-      if (String(match.status || '') === 'finished' || String(match.status || '') === 'canceled') {
-        return {
-          ok: false,
-          state: 'finished',
-          ownerId: '',
-          ownerName: '',
-          expireAt: 0,
-          remainingMs: 0
-        };
-      }
 
       let lockDoc = null;
       try {
@@ -136,8 +105,12 @@ exports.main = async (event) => {
       if (resolved.removeLock) {
         await transaction.collection('score_locks').doc(lockId).remove();
       }
-      return common.withWriteResult(resolved.response, {
-        ...describeScoreLockState(resolved.response),
+      const described = describeScoreLockState(resolved.response);
+      return common.withWriteResult({
+        ...resolved.response,
+        state: described.state
+      }, {
+        ...described,
         traceId
       });
     });
@@ -158,16 +131,16 @@ function describeScoreLockState(result = {}) {
     return { code: 'LOCK_ACQUIRED', message: '已进入录分状态', state: 'acquired' };
   }
   if (state === 'occupied') {
-    return { code: 'LOCK_OCCUPIED', message: '当前有人正在录入比分', state: 'occupied' };
+    return { code: 'LOCK_OCCUPIED', message: '当前有人正在录入比分', state: 'conflict' };
   }
   if (state === 'forbidden') {
     return { code: 'LOCK_FORBIDDEN', message: '仅管理员或参赛成员可录分', state: 'forbidden' };
   }
   if (state === 'finished') {
-    return { code: 'MATCH_FINISHED', message: '该场已结束', state: 'finished' };
+    return { code: 'MATCH_FINISHED', message: '该场已结束', state: 'conflict' };
   }
   if (state === 'expired') {
-    return { code: 'LOCK_EXPIRED', message: '录分会话已过期，请重新开始录分', state: 'expired' };
+    return { code: 'LOCK_EXPIRED', message: '录分会话已过期，请重新开始录分', state: 'conflict' };
   }
   if (state === 'released') {
     return { code: 'LOCK_RELEASED', message: '已结束录分会话', state: 'released' };
@@ -175,6 +148,6 @@ function describeScoreLockState(result = {}) {
   return {
     code: result && result.ok === false ? 'LOCK_FAILED' : 'LOCK_OK',
     message: result && result.ok === false ? '录分锁操作失败' : '录分锁状态已同步',
-    state
+    state: result && result.ok === false ? 'invalid' : state
   };
 }

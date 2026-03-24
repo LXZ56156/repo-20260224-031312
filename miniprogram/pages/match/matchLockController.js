@@ -4,6 +4,17 @@ const { normalizeLockState, buildLockHint } = require('./matchViewModel');
 const LOCK_HEARTBEAT_MS = 15 * 1000;
 const LOCK_AUTOPOLL_MS = 5 * 1000;
 
+function resolveLockResultKind(result = {}) {
+  const code = String(result.code || '').trim().toUpperCase();
+  if (code === 'LOCK_ACQUIRED') return 'acquired';
+  if (code === 'LOCK_OCCUPIED') return 'occupied';
+  if (code === 'MATCH_FINISHED') return 'finished';
+  if (code === 'LOCK_FORBIDDEN') return 'forbidden';
+  if (code === 'LOCK_EXPIRED') return 'expired';
+  if (code === 'LOCK_RELEASED') return 'released';
+  return String(result.state || '').trim().toLowerCase();
+}
+
 function createMatchLockController(ctx, deps = {}) {
   const cloudApi = deps.cloud || cloud;
   const setIntervalFn = deps.setIntervalFn || setInterval;
@@ -144,12 +155,12 @@ function createMatchLockController(ctx, deps = {}) {
 
   function applyScoreLockResult(res, options = {}) {
     const result = res && typeof res === 'object' ? res : {};
-    const state = String(result.state || '').trim();
-    if (result.ok === true && state === 'acquired') {
+    const kind = resolveLockResultKind(result);
+    if (result.ok === true && kind === 'acquired') {
       setLockState('locked_by_me', result);
       return;
     }
-    if (state === 'occupied') {
+    if (kind === 'occupied') {
       setLockState('locked_by_other', result);
       if (!options.silent && !ctx.data.batchMode) {
         const ownerName = String(result.ownerName || '').trim();
@@ -161,22 +172,22 @@ function createMatchLockController(ctx, deps = {}) {
       if (typeof ctx.tryBatchSkipOnOccupied === 'function') ctx.tryBatchSkipOnOccupied();
       return;
     }
-    if (state === 'finished') {
+    if (kind === 'finished') {
       setLockState('finished', result);
       if (!options.silent) wx.showToast({ title: String(result.message || '该场已结束'), icon: 'none' });
       return;
     }
-    if (state === 'forbidden') {
+    if (kind === 'forbidden') {
       setLockState('forbidden', result);
       if (!options.silent) wx.showToast({ title: String(result.message || '仅管理员或参赛成员可录分'), icon: 'none' });
       return;
     }
-    if (state === 'expired') {
+    if (kind === 'expired') {
       setLockState('idle', result);
       if (!options.silent) wx.showToast({ title: '录分会话已过期，请重新开始录分', icon: 'none' });
       return;
     }
-    if (state === 'released') {
+    if (kind === 'released') {
       setLockState('idle', result);
       return;
     }

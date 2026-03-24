@@ -107,6 +107,63 @@ function createDbHarness(lockGetImpl) {
   return { db, calls };
 }
 
+function createDbHarnessWithTournament(lockGetImpl, tournamentFactory) {
+  const calls = {
+    set: [],
+    remove: [],
+    createCollection: 0
+  };
+  const db = {
+    createCollection: async () => {
+      calls.createCollection += 1;
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    async runTransaction(handler) {
+      const transaction = {
+        collection(name) {
+          if (name === 'tournaments') {
+            return {
+              doc(id) {
+                assert.equal(id, 't_1');
+                return {
+                  async get() {
+                    return { data: tournamentFactory() };
+                  }
+                };
+              }
+            };
+          }
+          if (name === 'score_locks') {
+            return {
+              doc(id) {
+                return {
+                  async get() {
+                    return lockGetImpl(id);
+                  },
+                  async set(payload) {
+                    if (payload && payload.data && Object.prototype.hasOwnProperty.call(payload.data, '_id')) {
+                      throw new Error('score_locks set payload must not include _id');
+                    }
+                    calls.set.push({ id, payload });
+                  },
+                  async remove() {
+                    calls.remove.push(id);
+                  }
+                };
+              }
+            };
+          }
+          throw new Error(`unexpected collection ${name}`);
+        }
+      };
+      return handler(transaction);
+    }
+  };
+  return { db, calls };
+}
+
 test('scoreLock index treats missing lock doc as idle for status', async () => {
   const { db, calls } = createDbHarness(async () => {
     throw new Error('document.get:fail document does not exist');
@@ -191,4 +248,81 @@ test('scoreLock index strips stored _id before heartbeat writeback', async () =>
   assert.equal(calls.set.length, 1);
   assert.equal(Object.prototype.hasOwnProperty.call(calls.set[0].payload.data, '_id'), false);
   assert.equal(calls.set[0].payload.data.ownerId, 'u_admin');
+});
+
+test('scoreLock index normalizes occupied lock errors to conflict state', async () => {
+  const expireAt = Date.now() + 30_000;
+  const { db, calls } = createDbHarness(async () => ({
+    data: {
+      ownerId: 'u_other',
+      ownerName: '裁判A',
+      expireAt
+    }
+  }));
+  const { main } = loadScoreLockMain(db);
+
+  const result = await main({
+    action: 'status',
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'LOCK_OCCUPIED');
+  assert.equal(result.state, 'conflict');
+  assert.equal(result.ownerId, 'u_other');
+  assert.equal(result.ownerName, '裁判A');
+  assert.equal(result.expireAt, expireAt);
+  assert.equal(calls.set.length, 0);
+  assert.equal(calls.remove.length, 0);
+});
+
+test('scoreLock index normalizes finished match errors to conflict state', async () => {
+  const { db } = createDbHarnessWithTournament(
+    async () => {
+      throw new Error('document.get:fail document does not exist');
+    },
+    () => ({
+      ...buildTournament(),
+      rounds: [{
+        roundIndex: 0,
+        matches: [{ matchIndex: 0, status: 'finished' }]
+      }]
+    })
+  );
+  const { main } = loadScoreLockMain(db);
+
+  const result = await main({
+    action: 'status',
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'MATCH_FINISHED');
+  assert.equal(result.state, 'conflict');
+});
+
+test('scoreLock index normalizes expired heartbeat errors to conflict state', async () => {
+  const { db } = createDbHarness(async () => ({
+    data: {
+      ownerId: 'u_admin',
+      ownerName: '管理员',
+      expireAt: Date.now() - 1
+    }
+  }));
+  const { main } = loadScoreLockMain(db);
+
+  const result = await main({
+    action: 'heartbeat',
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'LOCK_EXPIRED');
+  assert.equal(result.state, 'conflict');
 });

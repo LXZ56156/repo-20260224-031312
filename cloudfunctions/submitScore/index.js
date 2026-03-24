@@ -166,10 +166,13 @@ exports.main = async (event) => {
 
 function resolveFailureState(code, fallbackState = '') {
   const normalized = String(code || '').trim().toUpperCase();
-  if (fallbackState) return String(fallbackState || '').trim();
-  if (normalized === 'LOCK_OCCUPIED') return 'occupied';
-  if (normalized === 'LOCK_EXPIRED') return 'expired';
-  if (normalized === 'MATCH_FINISHED') return 'finished';
+  const fallback = String(fallbackState || '').trim().toLowerCase();
+  if (fallback === 'conflict' || fallback === 'forbidden' || fallback === 'invalid' || fallback === 'not_found' || fallback === 'deduped') {
+    return fallback;
+  }
+  if (normalized === 'LOCK_OCCUPIED') return 'conflict';
+  if (normalized === 'LOCK_EXPIRED') return 'conflict';
+  if (normalized === 'MATCH_FINISHED') return 'conflict';
   if (normalized === 'PERMISSION_DENIED') return 'forbidden';
   if (normalized === 'MATCH_NOT_FOUND') return 'invalid';
   if (normalized === 'TOURNAMENT_ID_REQUIRED') return 'invalid';
@@ -179,5 +182,9 @@ function resolveFailureState(code, fallbackState = '') {
   if (normalized === 'TOURNAMENT_NOT_FOUND') return 'not_found';
   if (normalized === 'VERSION_CONFLICT') return 'conflict';
   if (normalized === 'SCORE_OUT_OF_RANGE') return 'invalid';
-  return '';
+  if (normalized.includes('PERMISSION') || normalized.includes('FORBIDDEN')) return 'forbidden';
+  if (normalized.includes('CONFLICT')) return 'conflict';
+  if (normalized.includes('DEDUPED')) return 'deduped';
+  if (normalized.endsWith('_NOT_FOUND')) return 'not_found';
+  return 'invalid';
 }
