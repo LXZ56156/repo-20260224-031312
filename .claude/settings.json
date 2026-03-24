@@ -6,5 +6,18 @@
     "allow": [],
     "ask": [],
     "deny": []
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npm test --silent 2>&1 | tail -5"
+          }
+        ]
+      }
+    ]
   }
 }

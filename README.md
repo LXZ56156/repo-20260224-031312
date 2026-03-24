@@ -47,18 +47,26 @@
 4. 部署完成后再运行项目，否则会出现 `FUNCTION_NOT_FOUND`。
 
 当前云函数列表：
-- login
-- createTournament
-- cloneTournament
-- joinTournament
-- updateSettings
-- startTournament
 - addPlayers
-- removePlayer
-- setReferee
-- submitScore
-- resetTournament
+- cloneTournament
+- createTournament
+- deleteTournament
+- feedbackSubmit
+- getMyPerformanceStats
+- getUserProfile
+- joinTournament
+- login
+- managePairTeams
 - rebuildRankings
+- removePlayer
+- resetTournament
+- saveUserProfile
+- scoreLock
+- setPlayerSquad
+- setReferee
+- startTournament
+- submitScore
+- updateSettings
 
 ## 5. 目录结构说明
 - `miniprogram/`：小程序前端运行时代码（页面、核心模块、样式、静态资源）
