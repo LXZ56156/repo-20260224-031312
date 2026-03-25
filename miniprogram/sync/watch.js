@@ -1,4 +1,5 @@
 const tournamentVersion = require('../core/tournamentVersion');
+const systemInfo = require('../core/systemInfo');
 
 const channels = {};
 
@@ -36,6 +37,11 @@ function withJitter(ms) {
   const span = Math.max(80, Math.floor(n * 0.15));
   const delta = Math.floor((Math.random() * (span * 2 + 1)) - span);
   return Math.max(280, n + delta);
+}
+
+function shouldUseSilentPollingInDevtools() {
+  const device = systemInfo.getDeviceBaseInfo();
+  return String(device && device.platform || '').toLowerCase() === 'devtools';
 }
 
 function safeCall(fn, ...args) {
@@ -162,19 +168,21 @@ function startPolling(tournamentId, onData, onError) {
   });
 }
 
-function createPollingSource(channel, tournamentId) {
+function createPollingSource(channel, tournamentId, options = {}) {
+  const source = String(options.source || 'polling').trim() || 'polling';
+  const allowRecovery = options.allowRecovery !== false;
   return startPolling(
     tournamentId,
     (doc) => {
       if (!channel || channel.disposed) return;
-      emitData(channel, doc, { source: 'polling' });
+      emitData(channel, doc, { source });
     },
     (err) => {
       if (!channel || channel.disposed) return;
       const type = classifyWatchError(err);
       console.warn(`[watch:poll:${type}]`, err);
-      emitError(channel, err, { type, source: 'polling', pollingFallback: true });
-      if (shouldAttemptRealtimeRecovery(channel.fallbackReason)) scheduleRealtimeRecovery(channel, tournamentId);
+      emitError(channel, err, { type, source, pollingFallback: allowRecovery });
+      if (allowRecovery && shouldAttemptRealtimeRecovery(channel.fallbackReason)) scheduleRealtimeRecovery(channel, tournamentId);
     }
   );
 }
@@ -261,6 +269,20 @@ function attachSource(channel, tournamentId, options = {}) {
   );
 
   // Prefer realtime watch; if runtime does not support it, fallback to polling.
+  if (shouldUseSilentPollingInDevtools()) {
+    closeSource(channel);
+    channel.mode = 'polling';
+    channel.recovering = false;
+    channel.fallbackReason = 'devtools';
+    channel.recoverAttempts = 0;
+    clearRecoverTimer(channel);
+    channel.source = createPollingSource(channel, tournamentId, {
+      source: 'devtools_polling',
+      allowRecovery: false
+    });
+    return;
+  }
+
   try {
     let fallback = false;
     closeSource(channel);

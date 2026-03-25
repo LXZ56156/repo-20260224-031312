@@ -24,6 +24,7 @@
 - 微信 MCP 启动器：`D:\weapp-mcp-launcher\weapp-mcp.cmd`
 - 同步日志：`tmp/weapp-preview/weapp-sync-preview.log`
 - 同步 PID 文件：`tmp/weapp-preview/weapp-sync-preview.pid`
+- 同步清单：`D:\projects\badminton-miniapp-preview\.weapp-preview-sync.json`
 
 ## 同步范围
 
@@ -88,6 +89,12 @@ D:\Soft\微信web开发者工具\cli.bat auto --project D:\projects\badminton-mi
 ./scripts/dev/weapp-dev.sh status
 ```
 
+`status` 现在会同时输出：
+
+- `开发链路`：只有在 `MCP ready`、镜像已同步、自动同步正在运行时才会显示 `ready`
+- `镜像状态`：区分 `已同步`、`已过期`、`未知`
+- `同步清单`：预览目录中最后一次成功同步的签名与时间
+
 如果只想停止后台同步：
 
 ```bash
@@ -116,7 +123,8 @@ D:\Soft\微信web开发者工具\cli.bat auto --project D:\projects\badminton-mi
 2. 在 WSL 中修改任意一个会被同步的文件，例如 `miniprogram/` 或 `cloudfunctions/` 下已有文件
 3. 观察 `D:\projects\badminton-miniapp-preview` 中对应文件的修改时间是否在约 0.4 秒防抖后更新
 4. 运行 `./scripts/dev/weapp-dev.sh status`，确认 `MCP 状态：ready`
-5. 如微信开发者工具已打开，确认它加载的是 `D:\projects\badminton-miniapp-preview` 中的最新内容
+5. 确认 `开发链路：ready` 且 `镜像状态：已同步`
+6. 如微信开发者工具已打开，确认它加载的是 `D:\projects\badminton-miniapp-preview` 中的最新内容
 
 查看同步日志：
 
@@ -161,6 +169,11 @@ kill "$(cat tmp/weapp-preview/weapp-sync-preview.pid)"
 tail -n 50 tmp/weapp-preview/weapp-sync-preview.log
 ```
 
+优先看两行：
+
+- `开发链路：degraded (自动同步未运行)`：说明当前镜像可能还是新的，但后续修改不会继续同步
+- `镜像状态：已过期 (...)`：说明源码已经变了，微信开发者工具仍在跑旧镜像，先执行 `./scripts/dev/weapp-dev.sh start`
+
 ### 3. Windows CLI 路径不对
 
 检查 `scripts/dev/start-weapp-preview.ps1` 顶部变量：
@@ -177,6 +190,8 @@ tail -n 50 tmp/weapp-preview/weapp-sync-preview.log
 ./scripts/dev/weapp-dev.sh status
 tail -n 50 tmp/weapp-preview/weapp-sync-preview.log
 ```
+
+如果 `MCP 状态：ready` 但 `开发链路` 仍是 `degraded`，优先按镜像问题处理，不要把它当成代码运行时错误。
 
 再确认：
 
