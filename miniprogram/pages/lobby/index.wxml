@@ -21,31 +21,37 @@
 
   <view class="hero {{heroGradientClass}} reveal reveal-1">
     <view class="row hero-top">
-      <view class="flex-1 minw0">
+      <view class="flex-1 minw0 hero-main">
         <view class="hero-title ellipsis">{{tournament.name}}</view>
-        <view class="hero-sub">{{modeLabel}} · {{statusText}}</view>
+        <view class="hero-sub">{{modeLabel}}</view>
+        <view class="hero-meta" wx:if="{{isAdmin || myJoined}}">
+          <text class="count-pill hero-meta-pill" wx:if="{{isAdmin}}">管理员</text>
+          <text class="count-pill hero-meta-pill" wx:if="{{myJoined}}">已参赛</text>
+        </view>
       </view>
-      <view class="hero-badges">
-        <view class="hero-role-pill" wx:if="{{isAdmin}}">管理员</view>
-        <view class="hero-role-pill" wx:if="{{myJoined}}">已参赛</view>
+      <view class="tag {{statusClass}} hero-status-tag">{{statusText}}</view>
+    </view>
+
+    <view class="hero-context">
+      <view class="hero-context-summary">{{matchInfoText}}</view>
+      <view class="hero-context-meta">
+        <text class="hero-context-text">{{genderSummaryText}}</text>
+        <text class="hero-context-text" wx:if="{{tournament.createdAt}}">创建 {{createdAtText}}</text>
       </view>
     </view>
 
-    <view class="kpi-strip">
-      <view class="kpi-chip">
-        <text class="kpi-chip-value">{{kpiPlayers}}</text>
-        <text class="kpi-chip-label">人</text>
+    <view class="hero-stats">
+      <view class="hero-stat">
+        <text class="hero-stat-label">人数</text>
+        <text class="hero-stat-value">{{kpiPlayers}}</text>
       </view>
-      <view class="kpi-chip">
-        <text class="kpi-chip-value">{{kpiMatches}}</text>
-        <text class="kpi-chip-label">场</text>
+      <view class="hero-stat">
+        <text class="hero-stat-label">场次</text>
+        <text class="hero-stat-value">{{kpiMatches}}</text>
       </view>
-      <view class="kpi-chip">
-        <text class="kpi-chip-value">{{kpiCourts}}</text>
-        <text class="kpi-chip-label">场地</text>
-      </view>
-      <view class="kpi-settings" wx:if="{{isAdmin && tournament.status==='draft'}}" bindtap="goEditTournament">
-        <text class="kpi-settings-icon">⚙</text>
+      <view class="hero-stat">
+        <text class="hero-stat-label">场地</text>
+        <text class="hero-stat-value">{{kpiCourts}}</text>
       </view>
     </view>
   </view>
@@ -89,7 +95,7 @@
         </view>
       </view>
     </view>
-    <view class="state-actions {{(nextActionKey==='start' || primaryTaskKey==='start') ? 'state-actions-sticky' : ''}}" wx:if="{{primaryTaskTitle || statePrimaryActionText}}">
+    <view id="state-primary-action" class="state-actions {{(nextActionKey==='start' || primaryTaskKey==='start') ? 'state-actions-sticky' : ''}}" wx:if="{{primaryTaskTitle || statePrimaryActionText}}">
       <view class="primary-task-summary muted small" wx:if="{{primaryTaskSummary}}">{{primaryTaskSummary}}</view>
       <button class="btn btn-primary state-primary-btn {{(nextActionKey==='start' || primaryTaskKey==='start' || primaryTaskKey==='sync_settings') ? 'start-pulse' : ''}}" bindtap="onNextActionTap">{{primaryTaskTitle || statePrimaryActionText}}</button>
     </view>
@@ -284,10 +290,17 @@
           <view class="quick-config-col"></view>
         </view>
 
-        <view class="quick-settings-summary panel-soft">
-          <view class="muted small quick-settings-meta">建议总场次 {{quickSuggestedMatches}} 场</view>
-          <view class="muted small" wx:if="{{quickCapacityHintShort}}">{{quickCapacityHintShort}}</view>
-          <view class="muted small" wx:if="{{quickRosterHint}}">{{quickRosterHint}}</view>
+        <view class="quick-settings-summary panel-soft" wx:if="{{canConfigureSettings && quickMatchShortcutOptions.length}}">
+          <view class="quick-match-shortcuts">
+            <view
+              wx:for="{{quickMatchShortcutOptions}}"
+              wx:key="key"
+              class="chip quick-match-shortcut {{quickConfigM===item.value ? 'active' : ''}} {{item.disabled ? 'disabled' : ''}}"
+              data-value="{{item.value}}"
+              data-disabled="{{item.disabled ? 1 : 0}}"
+              bindtap="onTapQuickMatchShortcut"
+            >{{item.label}}</view>
+          </view>
         </view>
 
         <button class="btn btn-primary quick-settings-save" bindtap="saveQuickSettings" loading="{{quickSettingsBusy}}" disabled="{{quickSettingsBusy || !canConfigureSettings}}">保存比赛参数</button>

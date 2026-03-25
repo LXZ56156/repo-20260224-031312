@@ -7,11 +7,28 @@ const pageTournamentSync = require('../../core/pageTournamentSync');
 const matchPrimaryNav = require('../../core/matchPrimaryNav');
 const shareMeta = require('../../core/shareMeta');
 const flow = require('../../core/uxFlow');
+const avatarDisplay = require('../../core/avatarDisplay');
+
+const PLAYER_FILTER_OPTIONS = [
+  { value: 'contains', label: '含有' },
+  { value: 'not_contains', label: '不含' }
+];
+
+const STATUS_FILTER_OPTIONS = [
+  { value: 'all', label: '全部对阵' },
+  { value: 'pending', label: '待完成' },
+  { value: 'current', label: '比赛中' },
+  { value: 'finished', label: '已结束' }
+];
 
 function asName(p) {
   if (!p) return '未知';
   if (typeof p === 'string') return p;
   return playerUtils.safePlayerName(p) || '未知';
+}
+
+function buildFallbackPlayer(name) {
+  return { id: '', name: String(name || '').trim() || '待定' };
 }
 
 function pickScoreVal(v) {
@@ -32,7 +49,40 @@ function extractScore(m) {
   return { a, b };
 }
 
-function decorateRounds(t) {
+function buildTeamUi(players, fallbackName, avatarCache = {}) {
+  const list = Array.isArray(players) ? players : [];
+  const roster = list.length ? list : (fallbackName ? [buildFallbackPlayer(fallbackName)] : []);
+  const names = roster.map(asName).filter(Boolean);
+  const actualPlayerIds = list.map((player) => playerUtils.extractPlayerId(player)).filter(Boolean);
+  return {
+    avatarItems: roster.slice(0, 2).map((player) => avatarDisplay.buildAvatarDisplay(player, avatarCache)),
+    primaryName: names[0] || String(fallbackName || '').trim() || '待定',
+    secondaryName: names.length > 1 ? `/ ${names.slice(1).join(' / ')}` : '',
+    text: names.length ? names.join(' / ') : (String(fallbackName || '').trim() || '待定'),
+    playerIds: actualPlayerIds
+  };
+}
+
+function buildScoreUi(score, finished) {
+  if (!finished || score.a === null || score.b === null) {
+    return {
+      showScore: false,
+      leftScoreText: '',
+      rightScoreText: '',
+      leftScoreClass: '',
+      rightScoreClass: ''
+    };
+  }
+  return {
+    showScore: true,
+    leftScoreText: String(score.a),
+    rightScoreText: String(score.b),
+    leftScoreClass: score.a > score.b ? 'score-win' : '',
+    rightScoreClass: score.b > score.a ? 'score-win' : ''
+  };
+}
+
+function decorateRounds(t, options = {}) {
   const rounds = Array.isArray(t.rounds) ? t.rounds : [];
   const players = Array.isArray(t.players) ? t.players : [];
   const playerNameMap = {};
@@ -41,28 +91,26 @@ function decorateRounds(t) {
     if (!id) continue;
     playerNameMap[id] = asName(player);
   }
-  return rounds.map((r) => {
-    const matches = Array.isArray(r.matches) ? r.matches : [];
-    const rest = Array.isArray(r.restPlayers) ? r.restPlayers : [];
+  const avatarCache = options.avatarCache || {};
 
-    const matchesUi = matches.map((m, idx) => {
-      const teamA = Array.isArray(m.teamA) ? m.teamA : [];
-      const teamB = Array.isArray(m.teamB) ? m.teamB : [];
-      const leftMembers = teamA.map(asName).join(' / ');
-      const rightMembers = teamB.map(asName).join(' / ');
-      const unitAName = String((m && m.unitAName) || '').trim();
-      const unitBName = String((m && m.unitBName) || '').trim();
-      const isTeamMatch = !!(unitAName && unitBName);
-      const left = isTeamMatch ? unitAName : (leftMembers || '待定');
-      const right = isTeamMatch ? unitBName : (rightMembers || '待定');
+  return rounds.map((round) => {
+    const matches = Array.isArray(round && round.matches) ? round.matches : [];
+    const rest = Array.isArray(round && round.restPlayers) ? round.restPlayers : [];
 
-      const status = m.status || 'pending';
+    const matchesUi = matches.map((match, idx) => {
+      const teamA = Array.isArray(match && match.teamA) ? match.teamA : [];
+      const teamB = Array.isArray(match && match.teamB) ? match.teamB : [];
+      const unitAName = String((match && match.unitAName) || '').trim();
+      const unitBName = String((match && match.unitBName) || '').trim();
+      const leftTeam = buildTeamUi(teamA, unitAName, avatarCache);
+      const rightTeam = buildTeamUi(teamB, unitBName, avatarCache);
+
+      const status = String((match && match.status) || 'pending').trim() || 'pending';
       const finished = status === 'finished';
       const canceled = status === 'canceled';
-      const score = extractScore(m);
-      const scoreText = (score.a !== null && score.b !== null) ? `${score.a} - ${score.b}` : '';
-      const scorerId = String((m && m.scorerId) || '').trim();
-      const scorerName = String((m && m.scorerName) || '').trim() || playerNameMap[scorerId] || '';
+      const score = extractScore(match);
+      const scorerId = String((match && match.scorerId) || '').trim();
+      const scorerName = String((match && match.scorerName) || '').trim() || playerNameMap[scorerId] || '';
       let statusText = '待录分';
       let statusClass = 'pill-pending';
       if (finished) {
@@ -74,26 +122,28 @@ function decorateRounds(t) {
       }
 
       return {
-        key: `${r.roundIndex || 0}-${m.matchIndex ?? idx}`,
-        roundIndex: r.roundIndex || 0,
-        matchIndex: (m.matchIndex ?? idx),
+        key: `${round.roundIndex || 0}-${match.matchIndex ?? idx}`,
+        roundIndex: round.roundIndex || 0,
+        matchIndex: (match.matchIndex ?? idx),
         status,
-        title: `第 ${(m.matchIndex ?? idx) + 1} 场`,
-        left,
-        right,
-        leftMeta: isTeamMatch ? (leftMembers ? `成员：${leftMembers}` : '') : '',
-        rightMeta: isTeamMatch ? (rightMembers ? `成员：${rightMembers}` : '') : '',
+        title: `第 ${(match.matchIndex ?? idx) + 1} 场`,
+        leftTeam,
+        rightTeam,
+        left: leftTeam.text,
+        right: rightTeam.text,
         statusText,
         statusClass,
         focusBadgeText: '',
         isFirstPending: false,
-        scoreText: finished ? (scoreText || '--') : '',
-        scorerText: (finished && scorerName) ? `本场裁判：${scorerName}` : ''
+        filterStage: 'pending',
+        scorerText: (finished && scorerName) ? `本场裁判：${scorerName}` : '',
+        playerIds: Array.from(new Set([].concat(leftTeam.playerIds, rightTeam.playerIds))),
+        ...buildScoreUi(score, finished)
       };
     });
 
     return {
-      roundIndex: r.roundIndex || 0,
+      roundIndex: round.roundIndex || 0,
       isCurrentRound: false,
       matchesUi,
       restText: rest.length ? `轮空：${rest.map(asName).join(' / ')}` : ''
@@ -104,7 +154,8 @@ function decorateRounds(t) {
 function findFirstPending(roundsUi) {
   for (const r of (roundsUi || [])) {
     for (const m of (r.matchesUi || [])) {
-      if (m && m.statusText === '待录分') {
+      const status = String((m && m.status) || '').trim();
+      if (m && status !== 'finished' && status !== 'canceled') {
         return { roundIndex: m.roundIndex, matchIndex: m.matchIndex };
       }
     }
@@ -167,23 +218,86 @@ function buildHeroProgressPercent(status, roundsSummary) {
 }
 
 function markPendingFocus(roundsUi, firstPending) {
-  if (!firstPending) return roundsUi;
   return (roundsUi || []).map((round) => {
-    const isCurrentRound = Number(round && round.roundIndex) === Number(firstPending.roundIndex);
+    const isCurrentRound = !!firstPending && Number(round && round.roundIndex) === Number(firstPending.roundIndex);
     return {
       ...round,
       isCurrentRound,
       matchesUi: (round && Array.isArray(round.matchesUi) ? round.matchesUi : []).map((match) => {
-        const isFirstPending = Number(match && match.roundIndex) === Number(firstPending.roundIndex) &&
+        const status = String((match && match.status) || '').trim();
+        const isTerminal = status === 'finished' || status === 'canceled';
+        const isFirstPending = !!firstPending &&
+          Number(match && match.roundIndex) === Number(firstPending.roundIndex) &&
           Number(match && match.matchIndex) === Number(firstPending.matchIndex);
         return {
           ...match,
           isFirstPending,
-          focusBadgeText: isFirstPending ? '优先录分' : ''
+          focusBadgeText: isFirstPending ? '优先录分' : '',
+          filterStage: isTerminal ? 'finished' : (isCurrentRound ? 'current' : 'pending')
         };
       })
     };
   });
+}
+
+function getPlayerFilterLabel(mode) {
+  const value = String(mode || 'contains').trim();
+  const option = PLAYER_FILTER_OPTIONS.find((item) => item.value === value);
+  return option ? option.label : PLAYER_FILTER_OPTIONS[0].label;
+}
+
+function getStatusFilterLabel(value) {
+  const key = String(value || 'all').trim();
+  const option = STATUS_FILTER_OPTIONS.find((item) => item.value === key);
+  return option ? option.label : STATUS_FILTER_OPTIONS[0].label;
+}
+
+function buildSelectedPlayersUi(players, selectedPlayerIds, avatarCache = {}) {
+  const ids = Array.isArray(selectedPlayerIds) ? selectedPlayerIds.map((id) => String(id || '').trim()).filter(Boolean) : [];
+  if (!ids.length) return [];
+  const playerMap = {};
+  (Array.isArray(players) ? players : []).forEach((player) => {
+    const id = playerUtils.extractPlayerId(player);
+    if (!id) return;
+    playerMap[id] = player;
+  });
+  return ids.map((id) => avatarDisplay.buildAvatarDisplay(playerMap[id] || { id, name: id }, avatarCache));
+}
+
+function matchPassesPlayerFilter(match, selectedPlayerIds, avatarFilterMode) {
+  const selectedIds = Array.isArray(selectedPlayerIds) ? selectedPlayerIds.map((id) => String(id || '').trim()).filter(Boolean) : [];
+  if (!selectedIds.length) return true;
+  const playerIds = new Set(Array.isArray(match && match.playerIds) ? match.playerIds.map((id) => String(id || '').trim()).filter(Boolean) : []);
+  if (String(avatarFilterMode || 'contains').trim() === 'not_contains') {
+    return selectedIds.every((id) => !playerIds.has(id));
+  }
+  return selectedIds.every((id) => playerIds.has(id));
+}
+
+function matchPassesStatusFilter(match, statusFilter) {
+  const value = String(statusFilter || 'all').trim();
+  if (value === 'all') return true;
+  return String((match && match.filterStage) || '').trim() === value;
+}
+
+function filterRoundsUi(roundsUi, selectedPlayerIds, avatarFilterMode, statusFilter) {
+  return (roundsUi || []).map((round) => {
+    const matchesUi = (Array.isArray(round && round.matchesUi) ? round.matchesUi : []).filter((match) => {
+      return matchPassesPlayerFilter(match, selectedPlayerIds, avatarFilterMode) && matchPassesStatusFilter(match, statusFilter);
+    });
+    return {
+      ...round,
+      matchesUi
+    };
+  }).filter((round) => Array.isArray(round.matchesUi) && round.matchesUi.length);
+}
+
+function toggleSelectedPlayerId(currentIds, playerId) {
+  const targetId = String(playerId || '').trim();
+  const ids = Array.isArray(currentIds) ? currentIds.map((id) => String(id || '').trim()).filter(Boolean) : [];
+  if (!targetId) return ids;
+  if (ids.includes(targetId)) return ids.filter((id) => id !== targetId);
+  return ids.concat(targetId);
 }
 
 const scheduleSyncController = pageTournamentSync.createTournamentSyncMethods();
@@ -209,6 +323,20 @@ Page({
     nextActionText: '',
     primaryNavCurrent: 'schedule',
     primaryNavItems: [],
+    selectedPlayerIds: [],
+    selectedPlayersUi: [],
+    avatarFilterMode: 'contains',
+    avatarFilterLabel: getPlayerFilterLabel('contains'),
+    statusFilter: 'all',
+    statusFilterLabel: getStatusFilterLabel('all'),
+    showPlayerFilterSheet: false,
+    playerFilterDraftMode: 'contains',
+    showStatusFilterSheet: false,
+    statusFilterDraftValue: 'all',
+    playerFilterOptions: PLAYER_FILTER_OPTIONS,
+    statusFilterOptions: STATUS_FILTER_OPTIONS,
+    showFilterBar: false,
+    filterEmptyText: '',
     networkOffline: false,
     showStaleSyncHint: false,
     loadError: false,
@@ -229,10 +357,11 @@ Page({
   onLoad(options) {
     const tid = options.tournamentId;
     this.openid = (getApp().globalData.openid || storage.get('openid', ''));
+    this.ensureAvatarRuntime();
     pageTournamentSync.initTournamentSync(this);
     this.setData({
       tournamentId: tid,
-      primaryNavItems: matchPrimaryNav.getPrimaryNavItems('schedule', tid, { showAnalytics: false })
+      primaryNavItems: matchPrimaryNav.getPrimaryNavItems('schedule', tid)
     });
 
     const app = getApp();
@@ -250,6 +379,14 @@ Page({
 
   onHide() {
     pageTournamentSync.pauseTournamentSync(this);
+    if (this.data.showPlayerFilterSheet || this.data.showStatusFilterSheet) {
+      this.setData({
+        showPlayerFilterSheet: false,
+        showStatusFilterSheet: false,
+        playerFilterDraftMode: this.data.avatarFilterMode,
+        statusFilterDraftValue: this.data.statusFilter
+      });
+    }
   },
 
   onShow() {
@@ -265,10 +402,12 @@ Page({
     pageTournamentSync.teardownTournamentSync(this);
     if (typeof this._offNetwork === 'function') this._offNetwork();
     this._offNetwork = null;
+    this._avatarResolveGen = Number(this._avatarResolveGen || 0) + 1;
   },
 
   applyTournament(t) {
     if (!t) return;
+    this.ensureAvatarRuntime();
     t = normalize.normalizeTournament(t);
 
     const status = t.status || 'draft';
@@ -278,19 +417,16 @@ Page({
     if (status === 'running') { statusText = '进行中'; statusClass = 'hero-status-running'; }
     if (status === 'finished') { statusText = '已完成'; statusClass = 'hero-status-finished'; }
 
-    const rawRoundsUi = decorateRounds(t);
+    const rawRoundsUi = decorateRounds(t, { avatarCache: this.avatarCache || {} });
     const firstPending = findFirstPending(rawRoundsUi);
-    const roundsUi = markPendingFocus(rawRoundsUi, firstPending);
-    const roundsSummary = summarizeRounds(roundsUi);
+    const focusedRoundsUi = markPendingFocus(rawRoundsUi, firstPending);
+    const roundsSummary = summarizeRounds(focusedRoundsUi);
     const canEditScore = perm.canEditScore(t, this.openid);
     let nextActionKey = '';
     let nextActionText = '';
     if (status === 'running' && canEditScore && firstPending) {
       nextActionKey = 'batch';
       nextActionText = '继续录分';
-    } else if (status === 'finished') {
-      nextActionKey = 'analytics';
-      nextActionText = '查看结果';
     }
 
     const heroSummaryText = buildHeroSummaryText(status, modeLabel, roundsSummary, firstPending);
@@ -299,6 +435,14 @@ Page({
       : '暂无场次';
     const heroPendingText = buildHeroPendingText(status, roundsSummary);
     const heroProgressPercent = buildHeroProgressPercent(status, roundsSummary);
+    const selectedPlayerIds = Array.isArray(this.data.selectedPlayerIds) ? this.data.selectedPlayerIds : [];
+    const avatarFilterMode = String(this.data.avatarFilterMode || 'contains').trim() || 'contains';
+    const statusFilter = String(this.data.statusFilter || 'all').trim() || 'all';
+    const roundsUi = filterRoundsUi(focusedRoundsUi, selectedPlayerIds, avatarFilterMode, statusFilter);
+    const selectedPlayersUi = buildSelectedPlayersUi(t.players, selectedPlayerIds, this.avatarCache || {});
+    const showFilterBar = roundsSummary.totalMatches > 0;
+    const hasActiveFilter = selectedPlayerIds.length > 0 || statusFilter !== 'all';
+    const filterEmptyText = showFilterBar && hasActiveFilter && !roundsUi.length ? '暂无符合条件的对阵' : '';
 
     this.setData({
       loadError: false,
@@ -317,8 +461,39 @@ Page({
       firstPendingMatchIndex: firstPending ? firstPending.matchIndex : -1,
       nextActionKey,
       nextActionText,
-      primaryNavItems: matchPrimaryNav.getPrimaryNavItems('schedule', this.data.tournamentId, { showAnalytics: status === 'finished' })
+      selectedPlayersUi,
+      avatarFilterLabel: getPlayerFilterLabel(avatarFilterMode),
+      statusFilterLabel: getStatusFilterLabel(statusFilter),
+      showFilterBar,
+      filterEmptyText,
+      primaryNavItems: matchPrimaryNav.getPrimaryNavItems('schedule', this.data.tournamentId)
     });
+    this.refreshAvatarDisplays();
+  },
+
+  ensureAvatarRuntime() {
+    if (!this.avatarCache || typeof this.avatarCache !== 'object') this.avatarCache = {};
+    if (!Number.isFinite(this._avatarResolveGen)) this._avatarResolveGen = 0;
+  },
+
+  async refreshAvatarDisplays() {
+    this.ensureAvatarRuntime();
+    const sourceTournament = this._latestTournament || this.data.tournament;
+    const pending = avatarDisplay.collectCloudAvatarFileIds({
+      roundsUi: this.data.roundsUi,
+      selectedPlayersUi: this.data.selectedPlayersUi
+    }, this.avatarCache);
+    if (!pending.length) return;
+    const generation = Number(this._avatarResolveGen || 0) + 1;
+    this._avatarResolveGen = generation;
+    const result = await avatarDisplay.resolveCloudAvatarFileIds(pending, this.avatarCache);
+    if (!result.updated || this._avatarResolveGen !== generation) return;
+    if (sourceTournament) this.applyTournament(sourceTournament);
+  },
+
+  reapplyTournament() {
+    const tournament = this._latestTournament || this.data.tournament;
+    if (tournament) this.applyTournament(tournament);
   },
 
   onHeroActionTap() {
@@ -332,12 +507,7 @@ Page({
       return handled;
     }
     if (key === 'analytics') {
-      wx.navigateTo({
-        url: nav.buildTournamentUrl('/pages/analytics/index', this.data.tournamentId),
-        fail: () => {
-          if (this.data.heroActionBusy) this.setData({ heroActionBusy: false });
-        }
-      });
+      nav.redirectOrNavigate(nav.buildTournamentUrl('/pages/analytics/index', this.data.tournamentId));
       return true;
     }
     this.setData({ heroActionBusy: false });
@@ -364,6 +534,87 @@ Page({
       }
     });
     return true;
+  },
+
+  onMatchPlayerAvatarTap(e) {
+    const playerId = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.playerId) || '').trim();
+    if (!playerId) return false;
+    this.setData({
+      selectedPlayerIds: toggleSelectedPlayerId(this.data.selectedPlayerIds, playerId)
+    });
+    this.reapplyTournament();
+    return false;
+  },
+
+  onSelectedPlayerTap(e) {
+    return this.onMatchPlayerAvatarTap(e);
+  },
+
+  onClearSelectedPlayers() {
+    if (!Array.isArray(this.data.selectedPlayerIds) || !this.data.selectedPlayerIds.length) return false;
+    this.setData({ selectedPlayerIds: [] });
+    this.reapplyTournament();
+    return false;
+  },
+
+  openPlayerFilterSheet() {
+    this.setData({
+      showPlayerFilterSheet: true,
+      playerFilterDraftMode: this.data.avatarFilterMode || 'contains'
+    });
+  },
+
+  closePlayerFilterSheet() {
+    this.setData({
+      showPlayerFilterSheet: false,
+      playerFilterDraftMode: this.data.avatarFilterMode || 'contains'
+    });
+  },
+
+  onPickPlayerFilterMode(e) {
+    const value = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.value) || '').trim();
+    if (!value) return;
+    this.setData({ playerFilterDraftMode: value });
+  },
+
+  confirmPlayerFilterSheet() {
+    const nextMode = String(this.data.playerFilterDraftMode || 'contains').trim() || 'contains';
+    this.setData({
+      showPlayerFilterSheet: false,
+      avatarFilterMode: nextMode,
+      avatarFilterLabel: getPlayerFilterLabel(nextMode)
+    });
+    this.reapplyTournament();
+  },
+
+  openStatusFilterSheet() {
+    this.setData({
+      showStatusFilterSheet: true,
+      statusFilterDraftValue: this.data.statusFilter || 'all'
+    });
+  },
+
+  closeStatusFilterSheet() {
+    this.setData({
+      showStatusFilterSheet: false,
+      statusFilterDraftValue: this.data.statusFilter || 'all'
+    });
+  },
+
+  onPickStatusFilter(e) {
+    const value = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.value) || '').trim();
+    if (!value) return;
+    this.setData({ statusFilterDraftValue: value });
+  },
+
+  confirmStatusFilterSheet() {
+    const nextValue = String(this.data.statusFilterDraftValue || 'all').trim() || 'all';
+    this.setData({
+      showStatusFilterSheet: false,
+      statusFilter: nextValue,
+      statusFilterLabel: getStatusFilterLabel(nextValue)
+    });
+    this.reapplyTournament();
   },
 
   goBatchScoring() {

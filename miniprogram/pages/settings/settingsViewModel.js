@@ -1,4 +1,5 @@
 const perm = require('../../permission/permission');
+const draftStartReadiness = require('../../core/draftStartReadiness');
 const flow = require('../../core/uxFlow');
 
 const POINT_OPTIONS = [11, 15, 21];
@@ -103,11 +104,12 @@ function buildSettingsFormState(tournament, options = {}) {
   const openid = String(options.openid || '').trim();
   const isAdmin = perm.isAdmin(t, openid);
   const isDraft = String(t.status || 'draft') === 'draft';
+  const readiness = draftStartReadiness.buildDraftStartReadiness(t);
 
   const players = Array.isArray(t.players) ? t.players : [];
-  const playersCount = players.length;
+  const playersCount = readiness.playersCount;
   const canConfigureSettings = playersCount >= 4;
-  const mode = flow.normalizeMode(t.mode || flow.MODE_MULTI_ROTATE);
+  const mode = readiness.mode;
   const modeLabel = flow.getModeLabel(mode);
   const allowOpenTeam = false;
 
@@ -173,6 +175,9 @@ function buildSettingsFormState(tournament, options = {}) {
     capacityReason: String(recommendation.capacityReason || 'roster'),
     rosterHint: String(recommendation.rosterHint || ''),
     settingsReady,
+    checkPlayersOk: readiness.checkPlayersOk,
+    checkSettingsOk: readiness.checkSettingsOk,
+    checkStartReady: readiness.checkStartReady,
     mandatoryDone: settingsReady ? 1 : 0,
     mandatoryTotal: 1,
     editM,

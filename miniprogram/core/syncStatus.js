@@ -69,6 +69,7 @@ function buildSyncBannerState(state = {}) {
   const syncRefreshing = !!state.syncRefreshing;
   const cachedAt = toTs(state.syncCachedAt);
   const lastUpdatedAt = toTs(state.syncLastUpdatedAt) || pickTournamentTimestamp(state.tournament);
+  const hasDegradedState = networkOffline || syncUsingCache || showStaleSyncHint || syncPollingFallback;
 
   let syncStatusTone = 'info';
   let syncStatusText = '';
@@ -89,23 +90,23 @@ function buildSyncBannerState(state = {}) {
   } else if (syncPollingFallback) {
     syncStatusTone = 'info';
     syncStatusText = '已降级为轮询同步';
-  } else if (syncRefreshing) {
-    syncStatusTone = 'neutral';
-    syncStatusText = '正在同步最新数据';
   }
 
   if (syncPollingFallback) metaParts.push('实时监听不可用，已切换为轮询');
   if (syncUsingCache && cachedAt) metaParts.push(`缓存于 ${formatSyncTime(cachedAt)}`);
   if (!syncUsingCache && lastUpdatedAt) metaParts.push(`最近更新 ${formatSyncTime(lastUpdatedAt)}`);
   if (showStaleSyncHint && !syncUsingCache) metaParts.push('请手动刷新确认是否有新结果');
-  if (syncRefreshing && !networkOffline) metaParts.push('正在重连或拉取最新数据');
+  // Healthy refreshes stay silent to avoid shifting page content.
+  if (syncRefreshing && !networkOffline && hasDegradedState) metaParts.push('正在重连或拉取最新数据');
+
+  const syncStatusVisible = !!syncStatusText;
 
   return {
-    syncStatusVisible: !!syncStatusText,
+    syncStatusVisible,
     syncStatusTone,
     syncStatusText,
-    syncStatusMeta: metaParts.join(' · '),
-    syncStatusActionText: syncRefreshing && !networkOffline ? '同步中' : '刷新'
+    syncStatusMeta: syncStatusVisible ? metaParts.join(' · ') : '',
+    syncStatusActionText: syncStatusVisible && syncRefreshing && !networkOffline ? '同步中' : '刷新'
   };
 }
 

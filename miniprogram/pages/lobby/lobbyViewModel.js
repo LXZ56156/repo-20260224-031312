@@ -3,6 +3,7 @@ const normalize = require('../../core/normalize');
 const matchPrimaryNav = require('../../core/matchPrimaryNav');
 const shareMeta = require('../../core/shareMeta');
 const flow = require('../../core/uxFlow');
+const draftStartReadiness = require('../../core/draftStartReadiness');
 const settingsViewModel = require('../settings/settingsViewModel');
 
 function findFirstPendingPosition(rounds) {
@@ -44,6 +45,30 @@ function digitValueToNumber(digitValue) {
   const s = (digitValue || []).map((i) => String(i)).join('');
   const n = Number(s);
   return Number.isFinite(n) ? n : 0;
+}
+
+function buildQuickMatchShortcutOptions(playersCount, maxMatches) {
+  const totalPlayers = Math.max(0, Math.floor(Number(playersCount) || 0));
+  if (totalPlayers < 4) return [];
+
+  const cap = Math.max(0, Math.floor(Number(maxMatches) || 0));
+  const seen = new Set();
+  const candidates = [totalPlayers - 1, 6, 9, 12];
+  const out = [];
+
+  candidates.forEach((rawValue, index) => {
+    const value = Math.max(1, Math.floor(Number(rawValue) || 0));
+    if (seen.has(value)) return;
+    seen.add(value);
+    out.push({
+      key: index === 0 ? 'players_minus_1' : `fixed_${value}`,
+      value,
+      label: `${value}场`,
+      disabled: cap > 0 && value > cap
+    });
+  });
+
+  return out;
 }
 
 function getInitial(name) {
@@ -327,9 +352,7 @@ function buildRoleCards(ctx) {
     adminActionText = '继续录分';
     adminSummary = '当前还有待录分比赛，优先完成比分录入。';
   } else if (status === 'finished') {
-    adminActionKey = 'analytics';
-    adminActionText = '查看结果';
-    adminSummary = '比赛已结束，可查看最终排名和赛事数据。';
+    adminSummary = '比赛已结束，可通过顶部切换查看比赛、排名或对阵。';
   }
 
   let joinedActionKey = '';
@@ -344,9 +367,7 @@ function buildRoleCards(ctx) {
     joinedActionText = '继续录分';
     joinedSummary = '你有录分权限，当前还有待完成比赛。';
   } else if (status === 'finished') {
-    joinedActionKey = 'analytics';
-    joinedActionText = '查看结果';
-    joinedSummary = '比赛已结束，可查看最终结果和赛事数据。';
+    joinedSummary = '比赛已结束，可通过顶部切换查看比赛、排名或对阵。';
   }
 
   let viewerActionKey = '';
@@ -357,9 +378,7 @@ function buildRoleCards(ctx) {
     viewerActionText = showViewOnlyJoinPrompt ? '我要加入' : '继续观赛';
     viewerSummary = '可以先看比赛信息，确定后再显式加入。';
   } else if (status === 'finished') {
-    viewerActionKey = 'analytics';
-    viewerActionText = '查看结果';
-    viewerSummary = '比赛已结束，可以查看最终结果和赛事数据。';
+    viewerSummary = '比赛已结束，可通过顶部切换查看比赛、排名或对阵。';
   }
 
   const pendingNeedsSquad = status === 'draft' && mode === flow.MODE_SQUAD_DOUBLES;
@@ -437,9 +456,7 @@ function buildStatePanel(ctx) {
     }
   } else if (status === 'finished') {
     title = '比赛结果';
-    summary = isAdmin
-      ? '比赛已结束，可查看排名与赛事复盘。'
-      : '比赛已结束，可查看排名与赛事复盘。';
+    summary = '比赛已结束，可通过顶部切换查看比赛、排名或对阵。';
   }
 
   return {
@@ -534,6 +551,8 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
   const quickConfigMDigitRange = settingsFormState.mDigitRange;
   const quickConfigMDigitValue = settingsFormState.mDigitValue;
   const quickConfigCIndex = settingsFormState.courtIndex;
+  const quickMatchShortcutOptions = buildQuickMatchShortcutOptions(playersCount, maxMatches);
+  const readiness = draftStartReadiness.buildDraftStartReadiness(t);
 
   let kpiReady;
   if (status !== 'draft') {
@@ -546,29 +565,19 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
     kpiReady = playersCount >= 4 && totalMatches >= 1 && courts >= 1;
   }
 
-  const aCount = players.filter((item) => String(item && item.squad || '').toUpperCase() === 'A').length;
-  const bCount = players.filter((item) => String(item && item.squad || '').toUpperCase() === 'B').length;
-  let checkPlayersOk = playersCount >= 4;
-  let playersChecklistHint = checkPlayersOk ? '人数已达标' : '至少 4 人';
-  if (mode === flow.MODE_SQUAD_DOUBLES) {
-    checkPlayersOk = playersCount >= 4 && aCount >= 2 && bCount >= 2;
-    playersChecklistHint = checkPlayersOk
-      ? `A队 ${aCount} / B队 ${bCount}`
-      : `A队 ${aCount} / B队 ${bCount}（至少各2人）`;
-  } else if (mode === flow.MODE_FIXED_PAIR_RR) {
-    checkPlayersOk = playersCount >= 4 && pairTeams.length >= 2;
-    playersChecklistHint = checkPlayersOk
-      ? `已组 ${pairTeams.length} 支队伍`
-      : `需至少2支队伍（当前${pairTeams.length}）`;
-  }
+  const aCount = readiness.aCount;
+  const bCount = readiness.bCount;
+  const validPairTeamsCount = readiness.validPairTeamsCount;
+  const checkPlayersOk = readiness.checkPlayersOk;
+  const playersChecklistHint = readiness.playersChecklistHint;
 
   const isFixedPairMode = mode === flow.MODE_FIXED_PAIR_RR;
 
   // needsSettingsSync: totalMatches 与实际可排场次不一致时需要先保存
-  const needsSettingsSync = isFixedPairMode && maxMatches > 0 && totalMatches !== maxMatches && pairTeams.length >= 2;
+  const needsSettingsSync = isFixedPairMode && maxMatches > 0 && totalMatches !== maxMatches && validPairTeamsCount >= 2;
 
-  const checkSettingsOk = !!t.settingsConfigured;
-  const checkStartReady = checkPlayersOk && checkSettingsOk;
+  const checkSettingsOk = readiness.checkSettingsOk;
+  const checkStartReady = readiness.checkStartReady;
   // 赛制化主任务派生 (draft only)
   let primaryTaskKey = '';
   let primaryTaskTitle = '';
@@ -579,10 +588,10 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
         primaryTaskKey = 'import_players';
         primaryTaskTitle = '导入名单';
         primaryTaskSummary = '至少需要 4 人才能组队开赛';
-      } else if (pairTeams.length < 2) {
+      } else if (validPairTeamsCount < 2) {
         primaryTaskKey = 'build_pair_teams';
-        primaryTaskTitle = pairTeams.length === 0 ? '开始组队' : '继续组队';
-        primaryTaskSummary = `需至少 2 支队伍（当前 ${pairTeams.length}）`;
+        primaryTaskTitle = validPairTeamsCount === 0 ? '开始组队' : '继续组队';
+        primaryTaskSummary = `需至少 2 支队伍（当前 ${validPairTeamsCount}）`;
       } else if (!checkSettingsOk) {
         primaryTaskKey = 'settings';
         primaryTaskTitle = '修改比赛';
@@ -590,7 +599,7 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       } else if (needsSettingsSync) {
         primaryTaskKey = 'sync_settings';
         primaryTaskTitle = '保存并开赛';
-        primaryTaskSummary = `已组 ${pairTeams.length} 队，可排 ${maxMatches} 场，需先保存参数`;
+        primaryTaskSummary = `已组 ${validPairTeamsCount} 队，可排 ${maxMatches} 场，需先保存参数`;
       } else if (checkStartReady) {
         primaryTaskKey = 'start';
         primaryTaskTitle = '开始比赛';
@@ -734,6 +743,7 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       quickConfigMIndex,
       quickConfigMDigitRange,
       quickConfigMDigitValue,
+      quickMatchShortcutOptions,
       quickConfigCIndex,
       quickPointsOptions: settingsFormState.pointsOptions,
       quickPointsPerGame: settingsFormState.pointsPerGame,
@@ -800,7 +810,7 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       shareCardBadge: String(shareMessage.badgeText || statusText),
       shareButtonText: String(shareMessage.buttonText || '转发'),
       joinSquadChoice: String((myPlayer && myPlayer.squad) || data.joinSquadChoice || 'A').trim().toUpperCase() === 'B' ? 'B' : 'A',
-      primaryNavItems: matchPrimaryNav.getPrimaryNavItems('match', t._id, { showAnalytics: status === 'finished' })
+      primaryNavItems: matchPrimaryNav.getPrimaryNavItems('match', t._id)
     }
   };
 }
@@ -811,6 +821,7 @@ module.exports = {
   buildDigitRange,
   valueToDigitValue,
   digitValueToNumber,
+  buildQuickMatchShortcutOptions,
   buildTournamentDiffKey,
   diffLobbyPatch,
   buildDisplayPlayers,

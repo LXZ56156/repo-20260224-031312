@@ -56,3 +56,35 @@ test('share-entry goLobby prefers redirectTo to avoid leaving an intermediate pa
     delete require.cache[shareEntryPagePath];
   }
 });
+
+test('share-entry secondary entry links prefer redirectTo to avoid leaving an intermediate page in the stack', () => {
+  const originalWx = global.wx;
+  const definition = loadShareEntryPageDefinition();
+  const ctx = createContext(definition);
+  const calls = [];
+
+  global.wx = {
+    redirectTo(payload) {
+      calls.push({ type: 'redirectTo', url: payload.url });
+    },
+    navigateTo(payload) {
+      calls.push({ type: 'navigateTo', url: payload.url });
+    }
+  };
+
+  try {
+    ctx.setData({ tournamentId: 't_2' });
+    ctx.goSchedule();
+    ctx.goRanking();
+    ctx.goAnalytics();
+
+    assert.deepEqual(calls, [
+      { type: 'redirectTo', url: '/pages/schedule/index?tournamentId=t_2' },
+      { type: 'redirectTo', url: '/pages/ranking/index?tournamentId=t_2' },
+      { type: 'redirectTo', url: '/pages/analytics/index?tournamentId=t_2' }
+    ]);
+  } finally {
+    global.wx = originalWx;
+    delete require.cache[shareEntryPagePath];
+  }
+});

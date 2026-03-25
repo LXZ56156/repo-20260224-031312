@@ -67,13 +67,13 @@ test('shareMeta keeps unjoined running viewers on the same not-joined surface', 
   assert.match(preview.progressText, /已完成/);
 });
 
-test('shareMeta shows result-oriented action for joined finished viewers', () => {
+test('shareMeta shows match-oriented action for joined finished viewers', () => {
   const preview = shareMeta.buildShareEntryViewModel({
     tournament: buildTournament('finished'),
     openid: 'u_joined'
   });
   assert.equal(preview.viewMode, 'joined-entry');
-  assert.equal(preview.primaryAction.text, '查看结果');
+  assert.equal(preview.primaryAction.text, '查看比赛');
   assert.match(preview.availabilityText, /已结束/);
 });
 
@@ -93,7 +93,7 @@ test('shareMeta keeps unjoined finished viewers on the same not-joined surface',
     openid: 'u_new'
   });
   assert.equal(preview.viewMode, 'join-closed');
-  assert.equal(preview.primaryAction.text, '查看结果');
+  assert.equal(preview.primaryAction.text, '查看比赛');
   assert.equal(preview.secondaryAction, null);
   assert.match(preview.progressText, /已完成 1\/1 场/);
 });

@@ -43,7 +43,7 @@ test('home hero falls back to latest draft when nothing is running', () => {
   assert.equal(state.actionId, 'draft_2');
 });
 
-test('home hero falls back to analytics for finished tournaments', () => {
+test('home hero falls back to lobby for finished tournaments', () => {
   const state = buildHomeHeroCardState([
     item({ _id: 'finished_1', status: 'finished', updatedAtTs: 10, name: '较早结果' }),
     item({ _id: 'finished_2', status: 'finished', updatedAtTs: 40, name: '最新结果', matchProgressText: '6/6场' })
@@ -52,8 +52,8 @@ test('home hero falls back to analytics for finished tournaments', () => {
   assert.equal(state.title, '你的比赛');
   assert.equal(state.label, '最近完赛');
   assert.equal(state.name, '最新结果');
-  assert.equal(state.actionText, '查看结果');
-  assert.equal(state.actionTarget, 'analytics');
+  assert.equal(state.actionText, '查看比赛');
+  assert.equal(state.actionTarget, 'lobby');
   assert.equal(state.actionId, 'finished_2');
 });
 

@@ -157,6 +157,27 @@ test('pageTournamentSync clears polling fallback after realtime recovery deliver
   }
 });
 
+test('pageTournamentSync keeps fallback banner hidden for devtools silent polling events', () => {
+  const originalStartWatch = tournamentSync.startWatch;
+  const methods = pageTournamentSync.createTournamentSyncMethods();
+  const ctx = createContext(methods);
+  let onData = null;
+
+  try {
+    tournamentSync.startWatch = (_page, _tid, nextOnData) => {
+      onData = nextOnData;
+    };
+
+    ctx.startWatch('t_1');
+    onData({ _id: 't_1', updatedAt: '2026-03-11T09:00:00.000Z' }, { source: 'devtools_polling' });
+
+    assert.equal(ctx.data.syncPollingFallback, false);
+    assert.equal(ctx.data.syncStatusVisible, false);
+  } finally {
+    tournamentSync.startWatch = originalStartWatch;
+  }
+});
+
 test('pageTournamentSync refreshes automatically when network reconnects', () => {
   const methods = pageTournamentSync.createTournamentSyncMethods();
   const ctx = createContext(methods);
@@ -178,6 +199,40 @@ test('pageTournamentSync refreshes automatically when network reconnects', () =>
   assert.equal(fetchCalls, 1);
   assert.equal(watchCalls, 1);
   assert.equal(ctx.data.networkOffline, false);
+});
+
+test('pageTournamentSync keeps healthy refresh banner silent while fetch is in flight', async () => {
+  const originalFetchTournament = tournamentSync.fetchTournament;
+  const methods = pageTournamentSync.createTournamentSyncMethods();
+  const ctx = createContext(methods);
+  let resolveFetch = null;
+
+  try {
+    tournamentSync.fetchTournament = async () => new Promise((resolve) => {
+      resolveFetch = resolve;
+    });
+
+    const pending = ctx.fetchTournament('t_1');
+
+    assert.equal(ctx.data.syncRefreshing, true);
+    assert.equal(ctx.data.syncStatusVisible, false);
+    assert.equal(ctx.data.syncStatusText, '');
+
+    resolveFetch({
+      ok: true,
+      source: 'remote',
+      doc: {
+        _id: 't_1',
+        updatedAt: '2026-03-16T10:00:00.000Z'
+      }
+    });
+
+    await pending;
+    assert.equal(ctx.data.syncRefreshing, false);
+    assert.equal(ctx.data.syncStatusVisible, false);
+  } finally {
+    tournamentSync.fetchTournament = originalFetchTournament;
+  }
 });
 
 test('pageTournamentSync restarts watch when stale watcher instance is no longer active', () => {

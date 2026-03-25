@@ -226,15 +226,15 @@ Page({
   },
 
   goSchedule() {
-    wx.navigateTo({ url: flow.buildScheduleUrl(this.data.tournamentId) });
+    nav.redirectOrNavigate(flow.buildScheduleUrl(this.data.tournamentId));
   },
 
   goRanking() {
-    wx.navigateTo({ url: flow.buildRankingUrl(this.data.tournamentId) });
+    nav.redirectOrNavigate(flow.buildRankingUrl(this.data.tournamentId));
   },
 
   goAnalytics() {
-    wx.navigateTo({ url: flow.buildAnalyticsUrl(this.data.tournamentId) });
+    nav.redirectOrNavigate(flow.buildAnalyticsUrl(this.data.tournamentId));
   },
 
   goHome() {

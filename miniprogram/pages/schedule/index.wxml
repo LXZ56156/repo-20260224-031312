@@ -1,89 +1,165 @@
-<view class="container safe-bottom schedule-page" wx:if="{{tournament}}">
-  <view class="match-primary-nav">
-    <view
-      class="match-primary-nav-item {{item.active ? 'active' : ''}}"
-      wx:for="{{primaryNavItems}}"
-      wx:key="key"
-      data-key="{{item.key}}"
-      bindtap="onPrimaryNavTap"
-    >
-      {{item.text}}
-    </view>
-  </view>
-
-  <view class="sync-banner sync-{{syncStatusTone}}" hidden="{{!syncStatusVisible}}">
-    <view class="sync-banner-main">
-      <view class="sync-banner-text">{{syncStatusText}}</view>
-      <view class="sync-banner-meta" wx:if="{{syncStatusMeta}}">{{syncStatusMeta}}</view>
-    </view>
-    <text class="sync-banner-action" bindtap="onRetry">{{syncStatusActionText}}</text>
-  </view>
-
-  <view class="hero">
-    <view class="hero-head">
-      <view class="hero-main">
-        <view class="hero-kicker">当前对阵</view>
-        <view class="hero-title ellipsis">{{tournament.name}}</view>
-        <view class="hero-sub ellipsis">{{heroSummaryText}}</view>
-      </view>
-      <view class="hero-status {{statusClass}}">
-        <text class="hero-status-dot" wx:if="{{statusClass === 'hero-status-running'}}"></text>
-        <text>{{statusText}}</text>
-      </view>
-    </view>
-    <view class="hero-progress-card">
-      <view class="hero-progress-value">{{heroMatchText}}</view>
-      <view class="hero-progress-note">{{heroPendingText}}</view>
-      <view class="hero-progress-track" wx:if="{{heroProgressPercent >= 0}}">
-        <view class="hero-progress-fill" style="width: {{heroProgressPercent}}%;"></view>
-      </view>
-    </view>
-    <view class="hero-actions-panel" wx:if="{{nextActionText}}">
-      <button
-        class="btn btn-primary btn-sm hero-btn hero-primary"
-        bindtap="onHeroActionTap"
-        hover-class="hero-primary-hover"
-        loading="{{heroActionBusy}}"
-        disabled="{{heroActionBusy}}"
+<block wx:if="{{tournament}}">
+  <view class="container safe-bottom schedule-page {{showFilterBar ? 'with-filter-bar' : ''}}">
+    <view class="match-primary-nav">
+      <view
+        class="match-primary-nav-item {{item.active ? 'active' : ''}}"
+        wx:for="{{primaryNavItems}}"
+        wx:key="key"
+        data-key="{{item.key}}"
+        bindtap="onPrimaryNavTap"
       >
-        {{nextActionText}}
-      </button>
-    </view>
-  </view>
-
-  <view class="card panel panel-soft state-empty mt-md" wx:if="{{!roundsUi.length}}">
-    <view class="state-empty-icon">📋</view>
-    <view class="state-empty-title">还没有对阵</view>
-    <view class="state-empty-desc">赛程生成后将在此展示所有轮次与比赛</view>
-  </view>
-
-  <view class="round-card panel {{item.isCurrentRound ? 'round-card-current' : ''}}" wx:for="{{roundsUi}}" wx:key="roundIndex">
-    <view class="round-header">
-      <view class="round-title">第{{item.roundIndex + 1}}轮</view>
-      <text class="count-pill {{item.isCurrentRound ? 'count-pill-active' : ''}}" wx:if="{{item.isCurrentRound}}">当前待录分轮次</text>
-      <text class="muted small" wx:else>{{item.matchesUi.length}} 场</text>
-    </view>
-
-    <view class="match-card {{m.isFirstPending ? 'match-card-focus' : ''}}" wx:for="{{item.matchesUi}}" wx:for-item="m" wx:key="key" data-round="{{m.roundIndex}}" data-match="{{m.matchIndex}}" data-status="{{m.status}}" bindtap="openMatch">
-      <view class="match-left">
-        <view class="match-title">{{m.title}}</view>
-        <view class="match-sub">{{m.left}} <text class="vs">vs</text> {{m.right}}</view>
-        <view class="muted tiny team-meta" wx:if="{{m.leftMeta}}">{{m.leftMeta}}</view>
-        <view class="muted tiny team-meta" wx:if="{{m.rightMeta}}">{{m.rightMeta}}</view>
-        <view class="focus-pill" wx:if="{{m.focusBadgeText}}">{{m.focusBadgeText}}</view>
-        <view class="score" wx:if="{{m.scoreText}}">比分：{{m.scoreText}}</view>
-        <view class="score" wx:if="{{m.scorerText}}">{{m.scorerText}}</view>
-      </view>
-      <view class="match-right">
-        <view class="pill {{m.statusClass}}">{{m.statusText}}</view>
+        {{item.text}}
       </view>
     </view>
 
-    <view class="rest" wx:if="{{item.restText}}">
-      <text class="muted small">{{item.restText}}</text>
+    <view class="sync-banner sync-{{syncStatusTone}}" hidden="{{!syncStatusVisible}}">
+      <view class="sync-banner-main">
+        <view class="sync-banner-text">{{syncStatusText}}</view>
+        <view class="sync-banner-meta" wx:if="{{syncStatusMeta}}">{{syncStatusMeta}}</view>
+      </view>
+      <text class="sync-banner-action" bindtap="onRetry">{{syncStatusActionText}}</text>
+    </view>
+
+    <view class="hero">
+      <view class="hero-head">
+        <view class="hero-main">
+          <view class="hero-kicker">当前对阵</view>
+          <view class="hero-title ellipsis">{{tournament.name}}</view>
+          <view class="hero-sub ellipsis">{{heroSummaryText}}</view>
+        </view>
+        <view class="hero-status {{statusClass}}">
+          <text class="hero-status-dot" wx:if="{{statusClass === 'hero-status-running'}}"></text>
+          <text>{{statusText}}</text>
+        </view>
+      </view>
+      <view class="hero-progress-card">
+        <view class="hero-progress-value">{{heroMatchText}}</view>
+        <view class="hero-progress-note">{{heroPendingText}}</view>
+        <view class="hero-progress-track" wx:if="{{heroProgressPercent >= 0}}">
+          <view class="hero-progress-fill" style="width: {{heroProgressPercent}}%;"></view>
+        </view>
+      </view>
+      <view class="hero-actions-panel" wx:if="{{nextActionText}}">
+        <button
+          class="btn btn-primary btn-sm hero-btn hero-primary"
+          bindtap="onHeroActionTap"
+          hover-class="hero-primary-hover"
+          loading="{{heroActionBusy}}"
+          disabled="{{heroActionBusy}}"
+        >
+          {{nextActionText}}
+        </button>
+      </view>
+    </view>
+
+    <view class="card panel panel-soft state-empty mt-md" wx:if="{{!roundsUi.length}}">
+      <view class="state-empty-icon">{{filterEmptyText ? '🔎' : '📋'}}</view>
+      <view class="state-empty-title">{{filterEmptyText || '还没有对阵'}}</view>
+      <view class="state-empty-desc">{{filterEmptyText ? '调整底部筛选条件后可恢复显示' : '赛程生成后将在此展示所有轮次与比赛'}}</view>
+    </view>
+
+    <view class="round-card panel {{item.isCurrentRound ? 'round-card-current' : ''}}" wx:for="{{roundsUi}}" wx:key="roundIndex">
+      <view class="round-header">
+        <view class="round-title">第{{item.roundIndex + 1}}轮</view>
+        <text class="count-pill {{item.isCurrentRound ? 'count-pill-active' : ''}}" wx:if="{{item.isCurrentRound}}">当前待录分轮次</text>
+        <text class="muted small" wx:else>{{item.matchesUi.length}} 场</text>
+      </view>
+
+      <view class="match-card {{m.isFirstPending ? 'match-card-focus' : ''}}" wx:for="{{item.matchesUi}}" wx:for-item="m" wx:key="key" data-round="{{m.roundIndex}}" data-match="{{m.matchIndex}}" data-status="{{m.status}}" bindtap="openMatch">
+        <view class="match-card-main">
+          <view class="match-team">
+            <view class="match-team-avatars">
+              <view class="match-avatar {{item.colorClass}}" wx:for="{{m.leftTeam.avatarItems}}" wx:key="id" data-player-id="{{item.id}}" catchtap="onMatchPlayerAvatarTap">
+                <image class="match-avatar-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill"></image>
+                <text class="match-avatar-initial" wx:else>{{item.initial}}</text>
+              </view>
+            </view>
+            <view class="match-team-name-line ellipsis">{{m.leftTeam.text}}</view>
+          </view>
+
+          <view class="match-center">
+            <view class="vs">VS</view>
+          </view>
+
+          <view class="match-team">
+            <view class="match-team-avatars">
+              <view class="match-avatar {{item.colorClass}}" wx:for="{{m.rightTeam.avatarItems}}" wx:key="id" data-player-id="{{item.id}}" catchtap="onMatchPlayerAvatarTap">
+                <image class="match-avatar-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill"></image>
+                <text class="match-avatar-initial" wx:else>{{item.initial}}</text>
+              </view>
+            </view>
+            <view class="match-team-name-line ellipsis">{{m.rightTeam.text}}</view>
+          </view>
+
+          <view class="match-side-rail">
+            <view class="match-title">{{m.title}}</view>
+            <view class="match-score-row" wx:if="{{m.showScore}}">
+              <text class="match-score {{m.leftScoreClass}}">{{m.leftScoreText}}</text>
+              <text class="match-score-sep">:</text>
+              <text class="match-score {{m.rightScoreClass}}">{{m.rightScoreText}}</text>
+            </view>
+            <view class="pill {{m.statusClass}}" wx:else>{{m.statusText}}</view>
+          </view>
+        </view>
+
+        <view class="match-card-foot" wx:if="{{m.focusBadgeText || m.scorerText}}">
+          <view class="focus-pill" wx:if="{{m.focusBadgeText}}">{{m.focusBadgeText}}</view>
+          <view class="match-note" wx:if="{{m.scorerText}}">{{m.scorerText}}</view>
+        </view>
+      </view>
+
+      <view class="rest" wx:if="{{item.restText}}">
+        <text class="muted small">{{item.restText}}</text>
+      </view>
+    </view>
+
+    <view class="schedule-filter-bar" wx:if="{{showFilterBar}}">
+      <view class="schedule-filter-left">
+        <view class="filter-trigger" bindtap="openPlayerFilterSheet">{{avatarFilterLabel}}<text class="filter-arrow">▼</text></view>
+        <scroll-view class="selected-player-scroll" scroll-x="true">
+          <view class="selected-player-list">
+            <view class="selected-player-chip" wx:for="{{selectedPlayersUi}}" wx:key="id" data-player-id="{{item.id}}" catchtap="onSelectedPlayerTap">
+              <view class="selected-player-avatar {{item.colorClass}}">
+                <image class="selected-player-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill"></image>
+                <text class="selected-player-initial" wx:else>{{item.initial}}</text>
+                <text class="selected-player-remove">×</text>
+              </view>
+            </view>
+          </view>
+        </scroll-view>
+        <text class="filter-clear {{selectedPlayersUi.length ? '' : 'disabled'}}" bindtap="onClearSelectedPlayers">清空</text>
+      </view>
+      <view class="filter-divider"></view>
+      <view class="filter-trigger filter-trigger-right" bindtap="openStatusFilterSheet">{{statusFilterLabel}}<text class="filter-arrow">▼</text></view>
     </view>
   </view>
-</view>
+
+  <view class="sheet-mask" wx:if="{{showPlayerFilterSheet}}" bindtap="closePlayerFilterSheet"></view>
+  <view class="schedule-filter-sheet sheet-open" wx:if="{{showPlayerFilterSheet}}">
+    <view class="sheet-handle" bindtap="closePlayerFilterSheet"></view>
+    <view class="filter-sheet-title">头像条件</view>
+    <view class="filter-sheet-option {{playerFilterDraftMode===item.value ? 'active' : ''}}" wx:for="{{playerFilterOptions}}" wx:key="value" data-value="{{item.value}}" bindtap="onPickPlayerFilterMode">
+      {{item.label}}
+    </view>
+    <view class="filter-sheet-actions">
+      <button class="btn btn-subtle" bindtap="closePlayerFilterSheet">取消</button>
+      <button class="btn btn-primary" bindtap="confirmPlayerFilterSheet">确定</button>
+    </view>
+  </view>
+
+  <view class="sheet-mask" wx:if="{{showStatusFilterSheet}}" bindtap="closeStatusFilterSheet"></view>
+  <view class="schedule-filter-sheet sheet-open" wx:if="{{showStatusFilterSheet}}">
+    <view class="sheet-handle" bindtap="closeStatusFilterSheet"></view>
+    <view class="filter-sheet-title">状态筛选</view>
+    <view class="filter-sheet-option {{statusFilterDraftValue===item.value ? 'active' : ''}}" wx:for="{{statusFilterOptions}}" wx:key="value" data-value="{{item.value}}" bindtap="onPickStatusFilter">
+      {{item.label}}
+    </view>
+    <view class="filter-sheet-actions">
+      <button class="btn btn-subtle" bindtap="closeStatusFilterSheet">取消</button>
+      <button class="btn btn-primary" bindtap="confirmStatusFilterSheet">确定</button>
+    </view>
+  </view>
+</block>
 
 <view class="container safe-bottom schedule-page" wx:elif="{{loadError}}">
   <view class="card panel state-error">

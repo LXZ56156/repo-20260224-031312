@@ -7,17 +7,13 @@ function buildPageUrl(key, tournamentId) {
   return nav.buildTournamentUrl('/pages/lobby/index', tournamentId);
 }
 
-function getPrimaryNavItems(currentKey, tournamentId, options) {
+function getPrimaryNavItems(currentKey, tournamentId) {
   const current = String(currentKey || '').trim() || 'match';
-  const showAnalytics = !!(options && options.showAnalytics);
   const items = [
     { key: 'match', text: '比赛', url: buildPageUrl('match', tournamentId), active: current === 'match' },
     { key: 'ranking', text: '排名', url: buildPageUrl('ranking', tournamentId), active: current === 'ranking' },
     { key: 'schedule', text: '对阵', url: buildPageUrl('schedule', tournamentId), active: current === 'schedule' }
   ];
-  if (showAnalytics) {
-    items.push({ key: 'analytics', text: '复盘', url: buildPageUrl('analytics', tournamentId), active: current === 'analytics' });
-  }
   return items;
 }
 

@@ -19,6 +19,8 @@ test('share-entry landing page puts primary CTA ahead of compact summary facts',
   assert.match(wxml, /\{\{preview\.availabilityText\}\}/);
   assert.match(wxml, /bindtap="goSchedule"/);
   assert.match(wxml, /bindtap="goRanking"/);
+  assert.match(wxml, /bindtap="goAnalytics"/);
+  assert.match(wxml, />查看复盘</);
   assert.match(wxml, /preview\.viewMode==='invalid-match'/);
   assert.match(wxml, /preview\.viewMode==='retryable-error'/);
 });

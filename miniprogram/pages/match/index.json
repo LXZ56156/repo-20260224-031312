@@ -1,3 +1,4 @@
 {
-  "navigationBarTitleText": "录入比分"
+  "navigationBarTitleText": "录入比分",
+  "homeButton": true
 }

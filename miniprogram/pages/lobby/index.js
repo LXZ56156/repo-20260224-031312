@@ -115,6 +115,7 @@ Page({
     quickConfigMIndex: 0,
     quickConfigMDigitRange: [],
     quickConfigMDigitValue: [],
+    quickMatchShortcutOptions: [],
     quickConfigCOptions: Array.from({ length: 10 }, (_, i) => i + 1),
     quickConfigCIndex: 1,
     quickPointsOptions: settingsViewModel.POINT_OPTIONS,
@@ -251,6 +252,10 @@ Page({
   onPrimaryNavTap(e) {
     const key = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.key) || '').trim();
     matchPrimaryNav.navigateToPrimary(key, this.data.tournamentId, 'match');
+  },
+
+  onTapQuickMatchShortcut(e) {
+    return lobbyPageDelegates.onTapQuickMatchShortcut.call(this, e);
   },
 
   goHome() {

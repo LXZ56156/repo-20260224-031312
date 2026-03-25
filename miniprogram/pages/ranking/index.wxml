@@ -35,8 +35,14 @@
     <view class="ranking-row">
       <view class="ranking-left">
         <view class="rank-badge {{idx === 0 ? 'rank-1' : ''}} {{idx === 1 ? 'rank-2' : ''}} {{idx === 2 ? 'rank-3' : ''}}">{{idx + 1}}</view>
+        <view class="ranking-avatar-group {{r.avatarItems.length > 1 ? 'pair' : ''}}" wx:if="{{r.avatarItems.length}}">
+          <view class="ranking-avatar {{item.colorClass}}" wx:for="{{r.avatarItems}}" wx:key="id">
+            <image class="ranking-avatar-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill"></image>
+            <text class="ranking-avatar-initial" wx:else>{{item.initial}}</text>
+          </view>
+        </view>
         <view class="flex-1">
-          <view class="player-title ellipsis">{{r.name}}</view>
+          <view class="player-title ellipsis">{{r.displayName || r.name}}</view>
           <view class="ranking-subtitle ellipsis" wx:if="{{r.subtitle}}">{{r.subtitle}}</view>
           <view class="muted small">{{r.entityType==='team' ? '队伍' : '球员'}} · 胜{{r.wins}} 负{{r.losses}} · 出场{{r.played}}</view>
         </view>

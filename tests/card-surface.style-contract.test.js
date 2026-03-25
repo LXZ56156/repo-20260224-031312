@@ -26,7 +26,10 @@ test('representative page cards align to the fresh surface card language', () =>
   assert.match(homeWxss, /\.hero-card\s*\{[\s\S]*linear-gradient\(180deg,/);
   assert.match(homeWxss, /\.hero-task-strip\s*\{[\s\S]*background:\s*rgba\(255, 255, 255, 0\.88\);/);
 
-  assert.match(lobbyWxss, /\.kpi-chip\s*\{[\s\S]*background:\s*rgba\(255, 255, 255, 0\.92\);/);
+  assert.match(lobbyWxss, /\.hero-context\s*\{[\s\S]*linear-gradient\(180deg,\s*rgba\(249, 255, 252, 0\.94\)/);
+  assert.match(lobbyWxss, /\.hero-stat\s*\{[\s\S]*linear-gradient\(180deg,\s*rgba\(255, 255, 255, 0\.96\)/);
+  assert.match(lobbyWxss, /\.state-overview\s*\{[\s\S]*rgba\(240, 252, 245, 0\.99\)/);
+  assert.doesNotMatch(lobbyWxss, /\.kpi-chip\s*\{/);
   assert.doesNotMatch(lobbyWxss, /linear-gradient\(135deg, #475569 0%, #64748b 55%, #7d8fa3 100%\)/);
 
   assert.match(analyticsWxss, /\.analytics-hero-headline\s*\{[\s\S]*color:\s*var\(--neutral-950\);/);

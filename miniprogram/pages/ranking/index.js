@@ -4,6 +4,7 @@ const pageTournamentSync = require('../../core/pageTournamentSync');
 const rankingCore = require('../../core/ranking');
 const flow = require('../../core/uxFlow');
 const matchPrimaryNav = require('../../core/matchPrimaryNav');
+const avatarDisplay = require('../../core/avatarDisplay');
 
 const rankingSyncController = pageTournamentSync.createTournamentSyncMethods({
   loadErrorMessages: {
@@ -19,6 +20,38 @@ const rankingSyncController = pageTournamentSync.createTournamentSyncMethods({
     };
   }
 });
+
+function buildFallbackPlayer(id, name) {
+  return {
+    id: String(id || name || '').trim(),
+    name: String(name || id || '').trim() || '球员'
+  };
+}
+
+function buildPlayerMap(players) {
+  const map = {};
+  for (const player of (Array.isArray(players) ? players : [])) {
+    const id = String((player && player.id) || '').trim();
+    if (!id) continue;
+    map[id] = player;
+  }
+  return map;
+}
+
+function buildRankingAvatarItems(row, mode, pairTeams, playerMap, avatarCache = {}) {
+  const entityType = String((row && row.entityType) || '').trim().toLowerCase();
+  const entityId = String((row && (row.entityId || row.playerId)) || '').trim();
+  if (!entityId) return [];
+  if (entityType !== 'team') {
+    return [avatarDisplay.buildAvatarDisplay(playerMap[entityId] || buildFallbackPlayer(entityId, row && row.name), avatarCache)];
+  }
+  if (mode !== flow.MODE_FIXED_PAIR_RR) return [];
+  const pair = (Array.isArray(pairTeams) ? pairTeams : []).find((item) => String(item && item.id || '').trim() === entityId);
+  const pairIds = Array.isArray(pair && pair.playerIds) ? pair.playerIds.map((id) => String(id || '').trim()).filter(Boolean) : [];
+  return pairIds
+    .slice(0, 2)
+    .map((playerId) => avatarDisplay.buildAvatarDisplay(playerMap[playerId] || buildFallbackPlayer(playerId, playerId), avatarCache));
+}
 
 Page({
   data: {
@@ -51,6 +84,7 @@ Page({
 
   onLoad(options) {
     const tid = options.tournamentId;
+    this.ensureAvatarRuntime();
     pageTournamentSync.initTournamentSync(this);
     this.setData({
       tournamentId: tid,
@@ -86,26 +120,29 @@ Page({
     pageTournamentSync.teardownTournamentSync(this);
     if (typeof this._offNetwork === 'function') this._offNetwork();
     this._offNetwork = null;
+    this._avatarResolveGen = Number(this._avatarResolveGen || 0) + 1;
   },
 
   applyTournament(t) {
     if (!t) return;
+    this.ensureAvatarRuntime();
     t = normalize.normalizeTournament(t);
     const mode = flow.normalizeMode(t.mode || flow.MODE_MULTI_ROTATE);
     const isTeamMode = mode === flow.MODE_SQUAD_DOUBLES || mode === flow.MODE_FIXED_PAIR_RR;
     const rankingTypeLabel = isTeamMode ? '队伍榜' : '个人榜';
-    const status = String(t.status || '').trim();
     const rawRankings = rankingCore.buildRankingWithTrend(t);
 
     // decorate: 队伍模式增加成员副标题, played < 2 弱化 trend
     const players = Array.isArray(t.players) ? t.players : [];
     const pairTeams = Array.isArray(t.pairTeams) ? t.pairTeams : [];
+    const playerMap = buildPlayerMap(players);
     const playerNameMap = {};
     for (const p of players) {
       const pid = String((p && p.id) || '').trim();
       if (pid) playerNameMap[pid] = String((p && (p.nickName || p.nickname || p.name)) || '').trim() || pid;
     }
     const decoratedRankings = rawRankings.map((row) => {
+      let displayName = String(row && row.name || '').trim();
       let subtitle = '';
       if (isTeamMode) {
         const eid = String(row.entityId || row.playerId || '').trim();
@@ -121,9 +158,21 @@ Page({
             .map((p) => String((p && (p.nickName || p.nickname || p.name)) || '').trim() || '球员');
           if (members.length) subtitle = members.join(' / ');
         }
+        if (mode === flow.MODE_FIXED_PAIR_RR && subtitle) {
+          displayName = subtitle;
+          subtitle = displayName !== String(row && row.name || '').trim()
+            ? String(row && row.name || '').trim()
+            : '';
+        }
       }
       const showTrend = Number(row.played) >= 2;
-      return { ...row, subtitle, showTrend };
+      return {
+        ...row,
+        displayName: displayName || String(row && row.name || '').trim() || '队伍',
+        subtitle,
+        showTrend,
+        avatarItems: buildRankingAvatarItems(row, mode, pairTeams, playerMap, this.avatarCache || {})
+      };
     });
 
     this.setData({
@@ -131,8 +180,26 @@ Page({
       tournament: t,
       rankings: decoratedRankings,
       rankingTypeLabel,
-      primaryNavItems: matchPrimaryNav.getPrimaryNavItems('ranking', this.data.tournamentId, { showAnalytics: status === 'finished' })
+      primaryNavItems: matchPrimaryNav.getPrimaryNavItems('ranking', this.data.tournamentId)
     });
+    this.refreshAvatarDisplays();
+  },
+
+  ensureAvatarRuntime() {
+    if (!this.avatarCache || typeof this.avatarCache !== 'object') this.avatarCache = {};
+    if (!Number.isFinite(this._avatarResolveGen)) this._avatarResolveGen = 0;
+  },
+
+  async refreshAvatarDisplays() {
+    this.ensureAvatarRuntime();
+    const sourceTournament = this._latestTournament || this.data.tournament;
+    const pending = avatarDisplay.collectCloudAvatarFileIds(this.data.rankings, this.avatarCache);
+    if (!pending.length) return;
+    const generation = Number(this._avatarResolveGen || 0) + 1;
+    this._avatarResolveGen = generation;
+    const result = await avatarDisplay.resolveCloudAvatarFileIds(pending, this.avatarCache);
+    if (!result.updated || this._avatarResolveGen !== generation) return;
+    if (sourceTournament) this.applyTournament(sourceTournament);
   },
 
   onPrimaryNavTap(e) {

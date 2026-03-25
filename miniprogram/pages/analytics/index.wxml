@@ -1,5 +1,5 @@
 <view class="container safe-bottom analytics-page" wx:if="{{tournament}}">
-  <!-- sync-banner: hidden 替代 wx:if，消除 layout shift -->
+  <!-- sync-banner: 仅在离线/缓存/降级等异常态展示，健康态刷新静默处理 -->
   <view class="sync-banner sync-{{syncStatusTone}}" hidden="{{!syncStatusVisible}}">
     <view class="sync-banner-main">
       <view class="sync-banner-text">{{syncStatusText}}</view>
@@ -24,9 +24,12 @@
         <text class="analytics-hero-stat-value">{{item.value}}</text>
       </view>
     </view>
-    <view class="analytics-hero-links">
+  <view class="analytics-hero-links">
+      <text class="analytics-hero-link" bindtap="goMatch">比赛</text>
+      <text class="analytics-hero-link" bindtap="goRanking">排名</text>
+      <text class="analytics-hero-link" bindtap="goSchedule">对阵</text>
       <text class="analytics-hero-link" bindtap="cloneCurrentTournament">再办一场</text>
-    </view>
+  </view>
   </view>
 
   <!-- 比赛结论卡: 首屏焦点，提升到关键数据之前 -->

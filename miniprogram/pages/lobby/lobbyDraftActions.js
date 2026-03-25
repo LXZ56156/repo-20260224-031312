@@ -5,6 +5,7 @@ const cloneTournamentCore = require('../../core/cloneTournament');
 const storage = require('../../core/storage');
 const flow = require('../../core/uxFlow');
 const nav = require('../../core/nav');
+const pageTimers = require('../../core/pageTimers');
 const writeErrorUi = require('../../core/writeErrorUi');
 const viewModel = require('./lobbyViewModel');
 const settingsViewModel = require('../settings/settingsViewModel');
@@ -23,6 +24,7 @@ module.exports = {
       import_players: () => this.focusQuickImportArea(),
       build_pair_teams: () => this.scrollToPairTeamSection(),
       assign_squads: () => this.focusShareInviteArea(),
+      focus_start: () => this.focusStartAction(),
       sync_settings: () => this.saveAndStart(),
       start: () => this.handleStart(),
       batch: () => this.goBatchScoring(),
@@ -100,7 +102,7 @@ module.exports = {
   },
 
   goAnalytics() {
-    wx.navigateTo({ url: nav.buildTournamentUrl('/pages/analytics/index', this.data.tournamentId) });
+    nav.redirectOrNavigate(nav.buildTournamentUrl('/pages/analytics/index', this.data.tournamentId));
   },
 
   focusShareInviteArea() {
@@ -112,15 +114,50 @@ module.exports = {
     this.pulseShareHint(2200);
   },
 
+  focusStartAction() {
+    if (!this.data.checkStartReady) return;
+    pageTimers.setNamedTimer(this, 'focusStartAction', () => {
+      try {
+        wx.pageScrollTo({ selector: '#state-primary-action', duration: 220 });
+      } catch (_) {
+        // ignore
+      }
+    }, 90);
+  },
+
+  setQuickMatchCount(rawMatchCount) {
+    let matchCount = flow.parsePositiveInt(rawMatchCount, 1);
+    const maxMatches = Number(this.data.maxMatches) || 0;
+    if (maxMatches > 0 && matchCount > maxMatches) {
+      matchCount = maxMatches;
+    }
+
+    const next = { quickConfigM: matchCount };
+    const options = Array.isArray(this.data.quickConfigMOptions) ? this.data.quickConfigMOptions : [];
+    const optionIndex = options.indexOf(matchCount);
+    if (optionIndex >= 0) {
+      next.quickConfigMIndex = optionIndex;
+    }
+
+    const digitLen = Array.isArray(this.data.quickConfigMDigitRange)
+      ? this.data.quickConfigMDigitRange.length
+      : 0;
+    if (digitLen > 0) {
+      next.quickConfigMDigitValue = viewModel.valueToDigitValue(matchCount, digitLen);
+    }
+
+    if (this.data.quickEndConditionType === 'total_matches') {
+      next.quickEndConditionTarget = matchCount;
+      next.quickEndConditionTargetIndex = Math.max(0, matchCount - 1);
+    }
+
+    this.setData(next, () => this.syncQuickEndConditionUi());
+  },
+
   onPickQuickConfigMSimple(e) {
     const idx = Number(e.detail.value);
     const value = (this.data.quickConfigMOptions || [])[idx] || 1;
-    const next = { quickConfigM: value, quickConfigMIndex: idx };
-    if (this.data.quickEndConditionType === 'total_matches') {
-      next.quickEndConditionTarget = value;
-      next.quickEndConditionTargetIndex = Math.max(0, value - 1);
-    }
-    this.setData(next, () => this.syncQuickEndConditionUi());
+    this.setQuickMatchCount(value);
   },
 
   onPickQuickConfigMDigit(e) {
@@ -132,16 +169,19 @@ module.exports = {
       matchCount = maxMatches;
       wx.showToast({ title: `已限制为最大可选 ${maxMatches} 场`, icon: 'none' });
     }
-    const len = (this.data.quickConfigMDigitRange || []).length || digitValue.length;
-    const next = {
-      quickConfigM: matchCount,
-      quickConfigMDigitValue: viewModel.valueToDigitValue(matchCount, len)
-    };
-    if (this.data.quickEndConditionType === 'total_matches') {
-      next.quickEndConditionTarget = matchCount;
-      next.quickEndConditionTargetIndex = Math.max(0, matchCount - 1);
-    }
-    this.setData(next, () => this.syncQuickEndConditionUi());
+    this.setQuickMatchCount(matchCount);
+  },
+
+  onTapQuickMatchShortcut(e) {
+    const dataset = (e && e.currentTarget && e.currentTarget.dataset) || {};
+    const disabled = dataset.disabled === true
+      || dataset.disabled === 'true'
+      || Number(dataset.disabled) === 1;
+    if (disabled || !this.data.canConfigureSettings) return;
+
+    const value = flow.parsePositiveInt(dataset.value, 0);
+    if (value < 1) return;
+    this.setQuickMatchCount(value);
   },
 
   onPickQuickConfigC(e) {
@@ -307,11 +347,13 @@ module.exports = {
           endConditionTarget,
           clientRequestId
         }), '保存失败');
+        await this.fetchTournament(this.data.tournamentId);
+        const readyToStart = !!this.data.checkStartReady;
         wx.hideLoading();
         this.clearLastFailedAction();
-        wx.showToast({ title: '参数已保存', icon: 'success' });
+        wx.showToast({ title: readyToStart ? '已保存，可开赛' : '参数已保存', icon: 'success' });
         nav.markRefreshFlag(this.data.tournamentId);
-        await this.fetchTournament(this.data.tournamentId);
+        if (readyToStart) this.focusStartAction();
       } catch (err) {
         wx.hideLoading();
         this.setLastFailedAction('保存比赛参数', () => this.saveQuickSettings({ clientRequestId }), { actionKey });

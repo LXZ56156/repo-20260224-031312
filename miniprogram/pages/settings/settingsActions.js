@@ -195,11 +195,15 @@ module.exports = {
           endConditionTarget,
           clientRequestId
         }), '保存失败');
+        await this.fetchTournament(this.data.tournamentId);
+        const readyToStart = !!this.data.checkStartReady;
         wx.hideLoading();
         this.clearLastFailedAction();
-        wx.showToast({ title: '已保存', icon: 'success' });
-        await this.fetchTournament(this.data.tournamentId);
+        wx.showToast({ title: readyToStart ? '已保存，可开赛' : '已保存', icon: 'success' });
         nav.markRefreshFlag(this.data.tournamentId);
+        if (readyToStart) {
+          nav.setLobbyIntent(this.data.tournamentId, 'focus_start');
+        }
         if (this._autoBackTimer) clearTimeout(this._autoBackTimer);
         this._autoBackTimer = setTimeout(() => {
           nav.navigateBackOrRedirect(nav.buildTournamentUrl('/pages/lobby/index', this.data.tournamentId));

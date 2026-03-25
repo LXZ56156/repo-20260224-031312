@@ -149,16 +149,32 @@ test('buildSyncBannerState: polling fallback → info', () => {
   assert.match(result.syncStatusText, /轮询/);
 });
 
-test('buildSyncBannerState: refreshing → neutral with sync action text', () => {
+test('buildSyncBannerState: refreshing alone stays silent', () => {
   const result = syncStatus.buildSyncBannerState({ syncRefreshing: true });
-  assert.equal(result.syncStatusTone, 'neutral');
-  assert.match(result.syncStatusText, /同步/);
-  assert.equal(result.syncStatusActionText, '同步中');
+  assert.equal(result.syncStatusVisible, false);
+  assert.equal(result.syncStatusText, '');
+  assert.equal(result.syncStatusMeta, '');
+  assert.equal(result.syncStatusActionText, '刷新');
 });
 
 test('buildSyncBannerState: not refreshing → action text is 刷新', () => {
   const result = syncStatus.buildSyncBannerState({ syncUsingCache: true });
   assert.equal(result.syncStatusActionText, '刷新');
+});
+
+test('buildSyncBannerState: degraded banner keeps sync action text while refreshing', () => {
+  const result = syncStatus.buildSyncBannerState({
+    showStaleSyncHint: true,
+    syncRefreshing: true,
+    syncLastUpdatedAt: new Date('2026-03-16T08:30:00.000Z').getTime()
+  });
+  assert.equal(result.syncStatusVisible, true);
+  assert.equal(result.syncStatusTone, 'info');
+  assert.match(result.syncStatusText, /过期/);
+  assert.equal(result.syncStatusActionText, '同步中');
+  assert.match(result.syncStatusMeta, /最近更新/);
+  assert.match(result.syncStatusMeta, /手动刷新/);
+  assert.match(result.syncStatusMeta, /拉取最新数据/);
 });
 
 test('buildSyncBannerState: cache with cachedAt includes time in meta', () => {

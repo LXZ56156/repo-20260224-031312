@@ -102,7 +102,7 @@ test('lobby view model keeps unjoined draft visitors in pending-profile role onc
   assert.equal(result.patch.showDraftAdminPanel, false);
 });
 
-test('lobby view model turns finished state into result-first actions', () => {
+test('lobby view model turns finished state into summary-only actions and keeps three-item nav', () => {
   const result = viewModel.buildLobbyViewModel({
     tournament: buildTournament({
       status: 'finished',
@@ -118,10 +118,12 @@ test('lobby view model turns finished state into result-first actions', () => {
   });
 
   assert.equal(result.patch.statePanelTitle, '比赛结果');
-  assert.equal(result.patch.statePrimaryActionKey, 'analytics');
+  assert.equal(result.patch.statePrimaryActionKey, '');
+  assert.equal(result.patch.nextActionKey, '');
   assert.equal(result.patch.stateSecondaryActions, undefined);
   assert.equal(result.patch.showDraftRules, false);
   assert.equal(result.patch.showDraftAdminPanel, false);
+  assert.deepEqual(result.patch.primaryNavItems.map((item) => item.key), ['match', 'ranking', 'schedule']);
 });
 
 test('lobby view model promotes start card when admin draft is ready to begin', () => {
@@ -146,5 +148,67 @@ test('lobby view model promotes start card when admin draft is ready to begin', 
   assert.deepEqual(
     result.patch.secondaryChecklistItems.map((item) => [item.key, item.state]),
     [['settings', 'done'], ['players', 'done']]
+  );
+});
+
+test('lobby view model hides quick match shortcuts before 4 players', () => {
+  const result = viewModel.buildLobbyViewModel({
+    tournament: buildTournament(),
+    openid: 'u_admin',
+    data: {}
+  });
+
+  assert.deepEqual(result.patch.quickMatchShortcutOptions, []);
+});
+
+test('lobby view model de-duplicates quick match shortcuts when players minus one overlaps fixed values', () => {
+  const players = Array.from({ length: 7 }, (_, index) => ({
+    id: `u_${index}`,
+    name: `球友${index}`,
+    gender: index % 2 === 0 ? 'male' : 'female'
+  }));
+  const result = viewModel.buildLobbyViewModel({
+    tournament: buildTournament({
+      players
+    }),
+    openid: 'u_admin',
+    data: {}
+  });
+
+  assert.deepEqual(
+    result.patch.quickMatchShortcutOptions.map((item) => item.value),
+    [6, 9, 12]
+  );
+  assert.deepEqual(
+    result.patch.quickMatchShortcutOptions.map((item) => item.disabled),
+    [false, false, false]
+  );
+});
+
+test('lobby view model disables shortcut values above max matches', () => {
+  const result = viewModel.buildLobbyViewModel({
+    tournament: buildTournament({
+      players: [
+        { id: 'u_admin', name: '组织者', gender: 'male' },
+        { id: 'u_1', name: '球友1', gender: 'male' },
+        { id: 'u_2', name: '球友2', gender: 'female' },
+        { id: 'u_3', name: '球友3', gender: 'female' }
+      ]
+    }),
+    openid: 'u_admin',
+    data: {}
+  });
+
+  assert.deepEqual(
+    result.patch.quickMatchShortcutOptions.map((item) => ({
+      value: item.value,
+      disabled: item.disabled
+    })),
+    [
+      { value: 3, disabled: false },
+      { value: 6, disabled: true },
+      { value: 9, disabled: true },
+      { value: 12, disabled: true }
+    ]
   );
 });

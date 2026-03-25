@@ -102,7 +102,7 @@ test('schedule page derives finished hero copy from completed rounds', () => {
     assert.equal(ctx.data.heroMatchText, '1 / 1 场');
     assert.equal(ctx.data.heroPendingText, '全部 1 场已录完');
     assert.equal(ctx.data.heroProgressPercent, 100);
-    assert.equal(ctx.data.nextActionText, '查看结果');
+    assert.equal(ctx.data.nextActionText, '');
   } finally {
     delete require.cache[schedulePagePath];
   }

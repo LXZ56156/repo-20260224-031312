@@ -23,6 +23,11 @@ test('match primary nav model exposes the three stable first-level pages', () =>
   assert.equal(items[2].url, '/pages/schedule/index?tournamentId=t_1');
 });
 
+test('match primary nav ignores finished-state analytics toggles and remains three items', () => {
+  const items = navModel.getPrimaryNavItems('schedule', 't_1', { showAnalytics: true });
+  assert.deepEqual(items.map((item) => item.key), ['match', 'ranking', 'schedule']);
+});
+
 test('match, ranking, and schedule pages all render the shared first-level nav', () => {
   const lobby = readPage('miniprogram/pages/lobby/index.wxml');
   const ranking = readPage('miniprogram/pages/ranking/index.wxml');

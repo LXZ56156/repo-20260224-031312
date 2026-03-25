@@ -117,7 +117,7 @@ function buildShareMessage(tournament) {
 
 function buildPrimaryAction({ lifecycle, joined, joinAllowed }) {
   if (lifecycle === 'finished') {
-    return { key: 'enter', text: '查看结果' };
+    return { key: 'enter', text: '查看比赛' };
   }
   if (joined && lifecycle === 'running') {
     return { key: 'enter', text: '查看赛程' };

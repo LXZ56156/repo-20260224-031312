@@ -229,3 +229,78 @@ test('home keeps loadError when no local cache is available after remote failure
     delete require.cache[homePagePath];
   }
 });
+
+test('home keeps healthy refresh banner silent while recents query is loading', async () => {
+  const originalWx = global.wx;
+  const originalGetApp = global.getApp;
+  const originalGetRecentTournamentIds = storage.getRecentTournamentIds;
+  const originalUpsertLocalCompletedTournamentSnapshot = storage.upsertLocalCompletedTournamentSnapshot;
+  let resolveRemote = null;
+
+  global.getApp = () => ({ globalData: { openid: 'test_openid' } });
+  global.wx = {
+    cloud: {
+      database() {
+        return {
+          command: {
+            in(value) {
+              return value;
+            }
+          },
+          collection() {
+            return {
+              where() {
+                return {
+                  async get() {
+                    return new Promise((resolve) => {
+                      resolveRemote = resolve;
+                    });
+                  }
+                };
+              }
+            };
+          }
+        };
+      }
+    },
+    showToast() {}
+  };
+
+  try {
+    const definition = loadHomePageDefinition();
+    const ctx = createHomePageContext(definition);
+    storage.getRecentTournamentIds = () => ['t_1'];
+    storage.upsertLocalCompletedTournamentSnapshot = () => {};
+
+    const pending = ctx.loadRecents();
+
+    assert.equal(ctx.data.syncRefreshing, true);
+    assert.equal(ctx.data.syncStatusVisible, false);
+    assert.equal(ctx.data.syncStatusText, '');
+
+    resolveRemote({
+      data: [{
+        _id: 't_1',
+        name: 'Remote Tournament',
+        status: 'running',
+        mode: 'multi_rotate',
+        players: [],
+        rounds: [],
+        updatedAt: '2026-03-10T10:00:00.000Z'
+      }]
+    });
+
+    await pending;
+
+    assert.equal(ctx.data.syncRefreshing, false);
+    assert.equal(ctx.data.syncStatusVisible, false);
+    assert.equal(ctx.data.items.length, 1);
+    assert.equal(ctx.data.items[0].name, 'Remote Tournament');
+  } finally {
+    global.wx = originalWx;
+    global.getApp = originalGetApp;
+    storage.getRecentTournamentIds = originalGetRecentTournamentIds;
+    storage.upsertLocalCompletedTournamentSnapshot = originalUpsertLocalCompletedTournamentSnapshot;
+    delete require.cache[homePagePath];
+  }
+});

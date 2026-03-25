@@ -1,5 +1,5 @@
 <view class="page home-page" wx:if="{{!loadError}}">
-  <!-- sync-banner: hidden 替代 wx:if，消除 layout shift -->
+  <!-- sync-banner: 仅在离线/缓存/降级等异常态展示，健康态刷新静默处理 -->
   <view class="sync-banner sync-{{syncStatusTone}}" hidden="{{!syncStatusVisible}}">
     <view class="sync-banner-main">
       <view class="sync-banner-text">{{syncStatusText}}</view>
