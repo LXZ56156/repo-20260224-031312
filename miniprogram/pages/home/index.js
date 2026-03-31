@@ -4,7 +4,6 @@ const clientRequest = require('../../core/clientRequest');
 const cloneTournamentCore = require('../../core/cloneTournament');
 const cloud = require('../../core/cloud');
 const loading = require('../../core/loading');
-const profileCore = require('../../core/profile');
 const retryAction = require('../../core/retryAction');
 const syncStatus = require('../../core/syncStatus');
 const nav = require('../../core/nav');
@@ -248,9 +247,7 @@ Page({
   goProfileFromNudge() {
     storage.setProfileNudgeDismissed(true);
     this.setData({ showProfileNudge: false });
-    wx.navigateTo({
-      url: profileCore.buildProfileUrl('/pages/home/index')
-    });
+    nav.goProfile({ returnUrl: '/pages/home/index' });
   },
 
   refreshHomeAdSlot() {
@@ -435,19 +432,19 @@ Page({
 
   goCreate() {
     if (this.data.showOnboarding) this.dismissOnboarding();
-    wx.switchTab({ url: '/pages/launch/index' });
+    nav.goLaunch();
   },
 
   goRanking(e) {
     const id = e.currentTarget.dataset.id;
     if (!id) return;
-    wx.navigateTo({ url: nav.buildTournamentUrl('/pages/ranking/index', id) });
+    nav.goRanking(id);
   },
 
   goLobby(e) {
     const id = e.currentTarget.dataset.id;
     if (!id) return;
-    wx.navigateTo({ url: nav.buildTournamentUrl('/pages/lobby/index', id) });
+    nav.goLobby(id);
   },
 
   onHeroPrimaryTap(e) {
@@ -462,37 +459,37 @@ Page({
       const round = Number(dataset.round);
       const match = Number(dataset.match);
       if (id && round >= 0 && match >= 0) {
-        wx.navigateTo({
-          url: nav.buildTournamentUrl('/pages/match/index', id, {
-            roundIndex: round, matchIndex: match, batch: 1
-          })
+        nav.goMatch(id, {
+          roundIndex: round,
+          matchIndex: match,
+          batch: 1
         });
         return;
       }
     }
     if (action === 'analytics') {
       if (id) {
-        wx.navigateTo({ url: nav.buildTournamentUrl('/pages/analytics/index', id) });
+        nav.goAnalytics(id);
         return;
       }
     }
     if (action === 'settings') {
       if (id) {
         nav.setLobbyIntent(id, 'settings');
-        wx.navigateTo({ url: nav.buildTournamentUrl('/pages/lobby/index', id) });
+        nav.goLobby(id);
         return;
       }
     }
     if (action === 'start') {
       if (id) {
         nav.setLobbyIntent(id, 'start');
-        wx.navigateTo({ url: nav.buildTournamentUrl('/pages/lobby/index', id) });
+        nav.goLobby(id);
         return;
       }
     }
     if (action === 'schedule') {
       if (id) {
-        wx.navigateTo({ url: nav.buildTournamentUrl('/pages/schedule/index', id) });
+        nav.goSchedule(id);
         return;
       }
     }
@@ -514,7 +511,7 @@ Page({
         const nextId = await loading.withLoading('复制中...', () => cloneTournamentCore.cloneTournament(sourceTournamentId, { clientRequestId }));
         this.clearLastFailedAction();
         wx.showToast({ title: '已复制', icon: 'success' });
-        wx.navigateTo({ url: nav.buildTournamentUrl('/pages/lobby/index', nextId) });
+        nav.goLobby(nextId);
       } catch (err) {
         this.setLastFailedAction('再办一场', () => this.onCloneTap({ currentTarget: { dataset: { id: sourceTournamentId } } }, { clientRequestId }), { actionKey });
         this.handleWriteError(err, '复制失败', () => this.loadRecents());
@@ -629,14 +626,14 @@ Page({
     const item = this._getItem(idx) || {};
     const status = String(item.status || '').trim();
     if (status === 'finished') {
-      wx.navigateTo({ url: nav.buildTournamentUrl('/pages/analytics/index', id) });
+      nav.goLobby(id);
       return;
     }
     if (status === 'running') {
-      wx.navigateTo({ url: nav.buildTournamentUrl('/pages/schedule/index', id) });
+      nav.goSchedule(id);
       return;
     }
-    wx.navigateTo({ url: nav.buildTournamentUrl('/pages/lobby/index', id) });
+    nav.goLobby(id);
   },
 
   onQuickActionTap(e) {
@@ -644,14 +641,14 @@ Page({
     const status = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.status) || '').trim();
     if (!id) return;
     if (status === 'finished') {
-      wx.navigateTo({ url: nav.buildTournamentUrl('/pages/analytics/index', id) });
+      nav.goAnalytics(id);
       return;
     }
     if (status === 'running') {
-      wx.navigateTo({ url: nav.buildTournamentUrl('/pages/schedule/index', id) });
+      nav.goSchedule(id);
       return;
     }
-    wx.navigateTo({ url: nav.buildTournamentUrl('/pages/lobby/index', id) });
+    nav.goLobby(id);
   },
 
   async onDeleteTap(e) {

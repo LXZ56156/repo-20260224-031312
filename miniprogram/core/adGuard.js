@@ -2,6 +2,10 @@ const storage = require('./storage');
 
 const DEFAULT_PAGE_COOLDOWN_MS = 30 * 60 * 1000;
 const DEFAULT_SESSION_LIMIT = 2;
+const PAGE_SLOT_ENABLED = {
+  home: false,
+  analytics: false
+};
 
 function readApp() {
   try {
@@ -30,6 +34,10 @@ function setSessionCounter(count) {
 function shouldExposePageSlot(page, options = {}) {
   const p = String(page || '').trim();
   if (!p) return false;
+  const enabled = typeof options.enabled === 'boolean'
+    ? options.enabled
+    : PAGE_SLOT_ENABLED[p] === true;
+  if (!enabled) return false;
 
   const now = Date.now();
   const cooldownMs = Number(options.cooldownMs) > 0 ? Number(options.cooldownMs) : DEFAULT_PAGE_COOLDOWN_MS;

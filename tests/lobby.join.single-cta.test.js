@@ -5,7 +5,7 @@ const path = require('node:path');
 
 test('lobby showJoin path keeps only one join CTA trigger', () => {
   const wxml = fs.readFileSync(
-    path.join(__dirname, '..', 'miniprogram/pages/lobby/index.wxml'),
+    path.join(__dirname, '..', 'miniprogram/pages/lobby/lobby-join-sheet.wxml'),
     'utf8'
   );
   const legacyMatches = wxml.match(/bindtap="handleJoin"/g) || [];

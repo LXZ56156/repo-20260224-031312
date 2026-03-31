@@ -43,7 +43,7 @@ function loadLobbyPageDefinition() {
 }
 
 test('lobby quick settings replace recommendation hints with match shortcut taps', () => {
-  const wxml = readPage('miniprogram/pages/lobby/index.wxml');
+  const wxml = readPage('miniprogram/pages/lobby/lobby-admin-panel.wxml');
 
   assert.match(wxml, /quickMatchShortcutOptions/);
   assert.match(wxml, /bindtap="onTapQuickMatchShortcut"/);

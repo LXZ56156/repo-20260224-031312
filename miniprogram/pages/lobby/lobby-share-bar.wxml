@@ -1,0 +1,7 @@
+<view id="share-invite" class="share-bar reveal reveal-5">
+    <view class="share-bar-left">
+      <view class="share-bar-title">{{shareCardTitle}}</view>
+      <view class="share-bar-badge">{{shareCardBadge}}</view>
+    </view>
+    <button class="btn btn-secondary btn-inline btn-sm share-bar-btn {{sharePulse ? 'share-pulse' : ''}}" open-type="share">{{shareButtonText}}</button>
+  </view>

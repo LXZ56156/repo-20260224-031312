@@ -169,24 +169,6 @@ Page({
     });
   },
 
-  goMatch() {
-    const tournamentId = String(this.data.tournamentId || '').trim();
-    if (!tournamentId) return;
-    nav.redirectOrNavigate(nav.buildTournamentUrl('/pages/lobby/index', tournamentId));
-  },
-
-  goRanking() {
-    const tournamentId = String(this.data.tournamentId || '').trim();
-    if (!tournamentId) return;
-    nav.redirectOrNavigate(nav.buildTournamentUrl('/pages/ranking/index', tournamentId));
-  },
-
-  goSchedule() {
-    const tournamentId = String(this.data.tournamentId || '').trim();
-    if (!tournamentId) return;
-    nav.redirectOrNavigate(nav.buildTournamentUrl('/pages/schedule/index', tournamentId));
-  },
-
   async cloneCurrentTournament(options = {}) {
     const sourceTournamentId = String(this.data.tournamentId || '').trim();
     if (!sourceTournamentId) return;

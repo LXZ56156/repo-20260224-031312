@@ -76,13 +76,12 @@ test('share-entry secondary entry links prefer redirectTo to avoid leaving an in
     ctx.setData({ tournamentId: 't_2' });
     ctx.goSchedule();
     ctx.goRanking();
-    ctx.goAnalytics();
 
     assert.deepEqual(calls, [
       { type: 'redirectTo', url: '/pages/schedule/index?tournamentId=t_2' },
-      { type: 'redirectTo', url: '/pages/ranking/index?tournamentId=t_2' },
-      { type: 'redirectTo', url: '/pages/analytics/index?tournamentId=t_2' }
+      { type: 'redirectTo', url: '/pages/ranking/index?tournamentId=t_2' }
     ]);
+    assert.equal(typeof ctx.goAnalytics, 'undefined');
   } finally {
     global.wx = originalWx;
     delete require.cache[shareEntryPagePath];

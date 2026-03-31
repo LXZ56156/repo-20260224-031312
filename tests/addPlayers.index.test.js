@@ -5,7 +5,7 @@ const Module = require('node:module');
 const mainPath = require.resolve('../cloudfunctions/addPlayers/index.js');
 const commonPath = require.resolve('../cloudfunctions/addPlayers/lib/common.js');
 
-function loadMain(db) {
+function loadMain(db, stubs = {}) {
   const originalLoad = Module._load;
   const mockSdk = {
     init() {},
@@ -23,6 +23,7 @@ function loadMain(db) {
 
   Module._load = function patchedLoad(request, parent, isMain) {
     if (request === 'wx-server-sdk') return mockSdk;
+    if (request === 'crypto' && stubs.crypto) return stubs.crypto;
     return originalLoad.call(this, request, parent, isMain);
   };
 
@@ -47,11 +48,9 @@ function buildTournament() {
 
 test('addPlayers imports unique valid players and returns detailed counts', async () => {
   const originalNow = Date.now;
-  const originalRandom = Math.random;
   let writtenData = null;
 
   Date.now = () => 1700000000000;
-  Math.random = () => 0.123456;
 
   const db = {
     command: {
@@ -90,7 +89,13 @@ test('addPlayers imports unique valid players and returns detailed counts', asyn
       return handler(transaction);
     }
   };
-  const { main } = loadMain(db);
+  const { main } = loadMain(db, {
+    crypto: {
+      randomBytes() {
+        return Buffer.from('1234567890abcdef', 'hex');
+      }
+    }
+  });
 
   try {
     const result = await main({
@@ -116,10 +121,13 @@ test('addPlayers imports unique valid players and returns detailed counts', asyn
       invalidNames: ['']
     });
     assert.equal(writtenData.players.length, 3);
-    assert.deepEqual(writtenData.playerIds, ['u_admin', 'guest_1700000000000_0_123456', 'guest_1700000000000_1_123456']);
+    assert.deepEqual(writtenData.playerIds, [
+      'u_admin',
+      'guest_1700000000000_0_1234567890abcdef',
+      'guest_1700000000000_1_1234567890abcdef'
+    ]);
   } finally {
     Date.now = originalNow;
-    Math.random = originalRandom;
   }
 });
 

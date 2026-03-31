@@ -154,11 +154,6 @@ emit_content_signature_entry() {
     return 0
   fi
 
-  if [[ -d "$relative_path" ]]; then
-    printf 'd\t%s\n' "$relative_path"
-    return 0
-  fi
-
   if [[ -f "$relative_path" ]]; then
     printf 'f\t%s\t%s\n' "$relative_path" "$(sha1sum "$relative_path" | awk '{print $1}')"
   fi
@@ -179,7 +174,7 @@ build_tree_signature() {
       if [[ -e "$relative_dir" ]]; then
         find "$relative_dir" \
           \( -type d \( -name .git -o -name node_modules -o -name .idea -o -name .vscode -o -name dist -o -name coverage -o -name tmp \) -prune \) -o \
-          \( -type d -o -type f -o -type l \) \
+          \( -type f -o -type l \) \
           ! -name '*.tmp' \
           ! -name '*.swp' \
           ! -name '*.swo' \
@@ -209,7 +204,7 @@ build_fast_tree_signature() {
       if [[ -e "$relative_dir" ]]; then
         find "$relative_dir" \
           \( -type d \( -name .git -o -name node_modules -o -name .idea -o -name .vscode -o -name dist -o -name coverage -o -name tmp \) -prune \) -o \
-          \( -type d -o -type f -o -type l \) \
+          \( -type f -o -type l \) \
           ! -name '*.tmp' \
           ! -name '*.swp' \
           ! -name '*.swo' \

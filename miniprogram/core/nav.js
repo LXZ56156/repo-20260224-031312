@@ -182,6 +182,77 @@ function goHome() {
   });
 }
 
+function navigateToUrl(url) {
+  const target = trimText(url);
+  if (!target || typeof wx.navigateTo !== 'function') return;
+  wx.navigateTo({ url: target });
+}
+
+function switchTabUrl(url) {
+  const target = trimText(url);
+  if (!target) return;
+  if (typeof wx.switchTab === 'function') {
+    wx.switchTab({
+      url: target,
+      fail: () => {
+        if (typeof wx.reLaunch === 'function') {
+          wx.reLaunch({
+            url: target,
+            fail: () => navigateToUrl(target)
+          });
+          return;
+        }
+        navigateToUrl(target);
+      }
+    });
+    return;
+  }
+  if (typeof wx.reLaunch === 'function') {
+    wx.reLaunch({
+      url: target,
+      fail: () => navigateToUrl(target)
+    });
+    return;
+  }
+  navigateToUrl(target);
+}
+
+function goLobby(tournamentId, query = {}) {
+  navigateToUrl(buildTournamentUrl('/pages/lobby/index', tournamentId, query));
+}
+
+function goSchedule(tournamentId, query = {}) {
+  navigateToUrl(buildTournamentUrl('/pages/schedule/index', tournamentId, query));
+}
+
+function goMatch(tournamentId, query = {}) {
+  navigateToUrl(buildTournamentUrl('/pages/match/index', tournamentId, query));
+}
+
+function goRanking(tournamentId, query = {}) {
+  navigateToUrl(buildTournamentUrl('/pages/ranking/index', tournamentId, query));
+}
+
+function goAnalytics(tournamentId, query = {}) {
+  navigateToUrl(buildTournamentUrl('/pages/analytics/index', tournamentId, query));
+}
+
+function goLaunch() {
+  switchTabUrl('/pages/launch/index');
+}
+
+function goProfile(query = {}) {
+  navigateToUrl(buildUrl('/pages/profile/index', query));
+}
+
+function goPreferences(query = {}) {
+  navigateToUrl(buildUrl('/pages/preferences/index', query));
+}
+
+function goFeedback(query = {}) {
+  navigateToUrl(buildUrl('/pages/feedback/index', query));
+}
+
 module.exports = {
   buildUrl,
   buildTournamentUrl,
@@ -192,5 +263,14 @@ module.exports = {
   navigateBackOrRedirect,
   redirectOrBack,
   redirectOrNavigate,
-  goHome
+  goHome,
+  goLobby,
+  goSchedule,
+  goMatch,
+  goRanking,
+  goAnalytics,
+  goLaunch,
+  goProfile,
+  goPreferences,
+  goFeedback
 };

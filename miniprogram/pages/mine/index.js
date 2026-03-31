@@ -1,4 +1,5 @@
 const storage = require('../../core/storage');
+const nav = require('../../core/nav');
 const profileCore = require('../../core/profile');
 const { buildLocalPerformancePayload } = require('../../core/performanceStats');
 
@@ -85,26 +86,18 @@ Page({
   },
 
   goLaunch() {
-    wx.switchTab({ url: '/pages/launch/index' });
-  },
-
-  goHome() {
-    wx.switchTab({ url: '/pages/home/index' });
+    nav.goLaunch();
   },
 
   goSettings() {
-    wx.navigateTo({ url: '/pages/preferences/index' });
+    nav.goPreferences();
   },
 
   goProfile() {
-    wx.navigateTo({ url: '/pages/profile/index' });
-  },
-
-  goMyTournaments() {
-    wx.switchTab({ url: '/pages/home/index' });
+    nav.goProfile();
   },
 
   onFeedback() {
-    wx.navigateTo({ url: '/pages/feedback/index' });
+    nav.goFeedback();
   }
 });

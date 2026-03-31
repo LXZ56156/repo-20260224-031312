@@ -29,7 +29,7 @@ function buildSourceTournament() {
   };
 }
 
-function loadMain(db) {
+function loadMain(db, stubs = {}) {
   const originalLoad = Module._load;
   const mockSdk = {
     init() {},
@@ -49,6 +49,7 @@ function loadMain(db) {
 
   Module._load = function patchedLoad(request, parent, isMain) {
     if (request === 'wx-server-sdk') return mockSdk;
+    if (request === 'crypto' && stubs.crypto) return stubs.crypto;
     return originalLoad.call(this, request, parent, isMain);
   };
 
@@ -61,11 +62,9 @@ function loadMain(db) {
 
 test('cloneTournament index creates a new draft copy with remapped pair teams', async () => {
   const originalNow = Date.now;
-  const originalRandom = Math.random;
   let addedData = null;
 
   Date.now = () => 1700000000000;
-  Math.random = () => 0.123456;
 
   const db = {
     serverDate() {
@@ -89,7 +88,13 @@ test('cloneTournament index creates a new draft copy with remapped pair teams', 
       };
     }
   };
-  const { main } = loadMain(db);
+  const { main } = loadMain(db, {
+    crypto: {
+      randomBytes() {
+        return Buffer.from('1234567890abcdef', 'hex');
+      }
+    }
+  });
 
   try {
     const result = await main({ sourceTournamentId: 't_source' });
@@ -106,16 +111,15 @@ test('cloneTournament index creates a new draft copy with remapped pair teams', 
     assert.equal(addedData.status, 'draft');
     assert.equal(addedData.name, '周三双打（副本）');
     assert.equal(addedData.players[0].id, 'u_creator');
-    assert.equal(addedData.players[1].id, 'guest_1700000000000_1_123456');
+    assert.equal(addedData.players[1].id, 'guest_1700000000000_1_1234567890abcdef');
     assert.deepEqual(addedData.pairTeams, [{
       id: 'team_1',
       name: '一队',
-      playerIds: ['u_creator', 'guest_1700000000000_1_123456'],
+      playerIds: ['u_creator', 'guest_1700000000000_1_1234567890abcdef'],
       locked: true
     }]);
   } finally {
     Date.now = originalNow;
-    Math.random = originalRandom;
   }
 });
 

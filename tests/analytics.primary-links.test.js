@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const analyticsPagePath = require.resolve('../miniprogram/pages/analytics/index.js');
 
@@ -25,34 +27,56 @@ function createAnalyticsContext(definition) {
   for (const [key, value] of Object.entries(definition || {})) {
     if (typeof value === 'function') ctx[key] = value;
   }
-  ctx.data.tournamentId = 't_analytics_links';
   return ctx;
 }
 
-test('analytics page exposes lightweight links back to match, ranking, and schedule', () => {
+test('analytics page prunes cross-page hero links and keeps clone as the primary CTA', () => {
+  const wxml = fs.readFileSync(
+    path.join(__dirname, '..', 'miniprogram/pages/analytics/index.wxml'),
+    'utf8'
+  );
+
+  assert.doesNotMatch(wxml, /bindtap="goMatch"/);
+  assert.doesNotMatch(wxml, /bindtap="goRanking"/);
+  assert.doesNotMatch(wxml, /bindtap="goSchedule"/);
+  assert.doesNotMatch(wxml, /analytics-hero-link/);
+  assert.match(wxml, /class="btn btn-primary btn-sm analytics-hero-primary" bindtap="cloneCurrentTournament"/);
+  assert.match(wxml, /bindtap="copyBriefReport"/);
+  assert.match(wxml, /bindtap="copyBattleReport"/);
+  assert.match(wxml, /analytics-copy-actions/);
+});
+
+test('analytics copy actions keep using clipboard handlers', () => {
   const definition = loadAnalyticsPageDefinition();
   const ctx = createAnalyticsContext(definition);
   const originalWx = global.wx;
-  const calls = [];
+  const clipboardCalls = [];
+  const toastCalls = [];
+
+  global.wx = {
+    setClipboardData(options) {
+      clipboardCalls.push(String(options && options.data || ''));
+      if (options && typeof options.success === 'function') options.success();
+    },
+    showToast(options) {
+      toastCalls.push({
+        title: String(options && options.title || ''),
+        icon: String(options && options.icon || '')
+      });
+    }
+  };
 
   try {
-    global.wx = {
-      redirectTo(options) {
-        calls.push({ type: 'redirectTo', url: String(options && options.url || '') });
-      },
-      navigateTo(options) {
-        calls.push({ type: 'navigateTo', url: String(options && options.url || '') });
-      }
-    };
+    ctx.data.reportBriefText = '摘要文本';
+    ctx.data.reportShareText = '完整战报';
 
-    ctx.goMatch();
-    ctx.goRanking();
-    ctx.goSchedule();
+    ctx.copyBriefReport();
+    ctx.copyBattleReport();
 
-    assert.deepEqual(calls, [
-      { type: 'redirectTo', url: '/pages/lobby/index?tournamentId=t_analytics_links' },
-      { type: 'redirectTo', url: '/pages/ranking/index?tournamentId=t_analytics_links' },
-      { type: 'redirectTo', url: '/pages/schedule/index?tournamentId=t_analytics_links' }
+    assert.deepEqual(clipboardCalls, ['摘要文本', '完整战报']);
+    assert.deepEqual(toastCalls, [
+      { title: '摘要已复制', icon: 'success' },
+      { title: '战报已复制', icon: 'success' }
     ]);
   } finally {
     global.wx = originalWx;

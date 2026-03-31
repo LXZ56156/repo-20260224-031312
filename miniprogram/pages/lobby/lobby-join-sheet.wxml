@@ -1,0 +1,42 @@
+<view class="join-sheet {{showJoinSheet ? 'sheet-open' : ''}}">
+    <view class="sheet-handle" bindtap="closeJoinSheet"></view>
+    <view class="section-head">
+      <view class="section-title">{{showJoin ? '加入比赛' : '我的资料'}}</view>
+      <text class="count-pill">{{showJoin ? '草稿可加入' : '草稿可修改'}}</text>
+    </view>
+    <view class="profile-col">
+      <image class="avatar-img profile-avatar" src="{{showJoin ? joinAvatarDisplay : myAvatarDisplay}}" mode="aspectFill"></image>
+      <input
+        class="input profile-input {{profileFieldError ? 'input-error' : ''}}"
+        type="nickname"
+        focus="{{profileNicknameFocus}}"
+        placeholder="{{showJoin ? '昵称（可选）' : '我的昵称'}}"
+        value="{{showJoin ? nickname : myNickname}}"
+        bindfocus="onProfileNickFocus"
+        bindblur="onProfileNickBlur"
+        bindinput="onProfileNickInput"
+      />
+      <view class="profile-actions profile-actions-center">
+        <button
+          class="btn-mini primary profile-quick-btn"
+          open-type="chooseAvatar"
+          bindchooseavatar="onQuickFillProfile"
+          loading="{{profileQuickFillLoading}}"
+          disabled="{{profileQuickFillLoading || profileSaving || profileAvatarUploading}}"
+        >
+          一键填写微信资料
+        </button>
+        <button class="btn-mini" open-type="chooseAvatar" bindchooseavatar="onChooseAvatarForProfile" disabled="{{profileSaving || profileAvatarUploading}}">仅选头像</button>
+      </view>
+      <view class="muted small profile-inline-tip" wx:if="{{profileAvatarUploading}}">头像上传中，请稍候…</view>
+      <view class="field-error" wx:if="{{profileFieldError}}">{{profileFieldError}}</view>
+    </view>
+    <view class="squad-chooser" wx:if="{{showJoin && mode==='squad_doubles'}}">
+      <view class="field-label">参赛队伍（必选）</view>
+      <view class="chips">
+        <view class="chip {{joinSquadChoice==='A' ? 'active' : ''}}" data-squad="A" bindtap="onPickJoinSquad">A队</view>
+        <view class="chip {{joinSquadChoice==='B' ? 'active' : ''}}" data-squad="B" bindtap="onPickJoinSquad">B队</view>
+      </view>
+    </view>
+    <button class="btn btn-primary" bindtap="submitProfile" loading="{{profileSaving}}" disabled="{{profileSaving || profileQuickFillLoading || profileAvatarUploading}}">{{showJoin ? '确认加入' : '保存我的信息'}}</button>
+  </view>

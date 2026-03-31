@@ -1,10 +1,12 @@
+const crypto = require('crypto');
+
 function normalizeName(name, fallback = '') {
   const value = String(name || '').replace(/[\r\n\t]+/g, ' ').trim();
   return value || fallback;
 }
 
 function makeGuestId(index) {
-  return `guest_${Date.now()}_${index}_${Math.floor(Math.random() * 1000000)}`;
+  return `guest_${Date.now()}_${index}_${crypto.randomBytes(8).toString('hex')}`;
 }
 
 function normalizeSquad(value) {

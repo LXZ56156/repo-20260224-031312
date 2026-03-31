@@ -8,6 +8,19 @@
     "deny": []
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__weapp_dev__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=/tmp/.weapp-dev-hook-ok; [ -f $f ] && [ $(($(date +%s) - $(stat -c %Y $f))) -lt 3600 ] && exit 0; ./scripts/dev/weapp-dev.sh && touch $f",
+            "timeout": 120,
+            "statusMessage": "确保微信开发环境就绪..."
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|MultiEdit",
@@ -15,6 +28,19 @@
           {
             "type": "command",
             "command": "npm test --silent 2>&1 | tail -5"
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "mcp__weapp_dev__mp_ensureConnection",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "rm -f /tmp/.weapp-dev-hook-ok; ./scripts/dev/weapp-dev.sh && touch /tmp/.weapp-dev-hook-ok",
+            "timeout": 120,
+            "statusMessage": "MCP 连接失败，正在自动恢复..."
           }
         ]
       }

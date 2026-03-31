@@ -233,10 +233,6 @@ Page({
     nav.redirectOrNavigate(flow.buildRankingUrl(this.data.tournamentId));
   },
 
-  goAnalytics() {
-    nav.redirectOrNavigate(flow.buildAnalyticsUrl(this.data.tournamentId));
-  },
-
   goHome() {
     nav.goHome();
   },

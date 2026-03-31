@@ -14,6 +14,32 @@ function Write-Log {
     Write-Host "[$timestamp] $Message"
 }
 
+function Resolve-CliPath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$FallbackPath
+    )
+
+    if (Test-Path -LiteralPath $FallbackPath -PathType Leaf) {
+        return $FallbackPath
+    }
+
+    $candidate = Get-ChildItem -LiteralPath 'D:\Soft' -Directory -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -like '*web*' } |
+        Select-Object -First 1
+
+    if ($candidate) {
+        $resolvedPath = Join-Path $candidate.FullName 'cli.bat'
+        if (Test-Path -LiteralPath $resolvedPath -PathType Leaf) {
+            return $resolvedPath
+        }
+    }
+
+    return $FallbackPath
+}
+
+$CliPath = Resolve-CliPath -FallbackPath $CliPath
+
 if (-not (Test-Path -LiteralPath $CliPath -PathType Leaf)) {
     throw "微信开发者工具 CLI 不存在：$CliPath"
 }

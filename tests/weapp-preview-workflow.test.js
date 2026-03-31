@@ -95,3 +95,15 @@ test('status reports stale mirror after source changes beyond the last synced ma
   assert.match(statusOutput, /镜像状态：已过期/);
   assert.match(statusOutput, /源码已变化/);
 });
+
+test('status keeps mirror synced when source only has empty directories pruned by rsync', () => {
+  const fixture = createFixture();
+
+  fs.mkdirSync(path.join(fixture.sourceDir, 'miniprogram/styles'), { recursive: true });
+  runScript(SYNC_SCRIPT, ['sync-once'], fixture.env);
+
+  const statusOutput = runScript(DEV_SCRIPT, ['status'], fixture.env);
+
+  assert.match(statusOutput, /镜像状态：已同步/);
+  assert.doesNotMatch(statusOutput, /镜像状态：已过期/);
+});

@@ -945,14 +945,6 @@
   margin-bottom: 8rpx;
 }
 
-/* --- Player color palette --- */
-.pcolor-0 { background: var(--brand-500); }
-.pcolor-1 { background: #0ea5e9; }
-.pcolor-2 { background: #f59e0b; }
-.pcolor-3 { background: #8b5cf6; }
-.pcolor-4 { background: #ef4444; }
-.pcolor-5 { background: #14b8a6; }
-
 /* --- Responsive --- */
 @media (max-width: 360px) {
   .prep-secondary-grid {

@@ -18,6 +18,13 @@
 }
 
 .mine-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.mine-profile-row {
+  align-items: center;
   gap: 16rpx;
 }
 
@@ -43,48 +50,6 @@
   font-weight: 780;
   line-height: 1.25;
   color: var(--neutral-950);
-}
-
-.mine-quick-links {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-}
-
-.mine-quick-link {
-  font-size: 24rpx;
-  color: var(--neutral-500);
-  line-height: 1.3;
-}
-
-.mine-quick-link:active {
-  opacity: 0.7;
-}
-
-.mine-quick-divider {
-  font-size: 20rpx;
-  color: rgba(100, 116, 139, 0.42);
-}
-
-.mine-action-primary {
-  flex-shrink: 0;
-  height: 64rpx;
-  padding: 0 24rpx;
-  border-radius: 999rpx;
-  background: linear-gradient(135deg, #21B96F 0%, var(--brand-600) 100%);
-  color: #ffffff;
-  font-size: 25rpx;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 8rpx 20rpx rgba(24, 179, 104, 0.22);
-  transition: transform 120ms ease, filter 120ms ease;
-}
-
-.mine-action-primary:active {
-  transform: scale(0.985);
-  filter: brightness(0.97);
 }
 
 /* --- Section Card --- */
@@ -135,7 +100,7 @@
 .service-grid {
   margin-top: 16rpx;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12rpx;
 }
 

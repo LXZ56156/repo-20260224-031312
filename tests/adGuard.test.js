@@ -4,6 +4,11 @@ const assert = require('node:assert/strict');
 const storage = require('../miniprogram/core/storage');
 const adGuard = require('../miniprogram/core/adGuard');
 
+test('adGuard keeps page slots hidden until ads are explicitly enabled', () => {
+  assert.equal(adGuard.shouldExposePageSlot('home'), false);
+  assert.equal(adGuard.shouldExposePageSlot('analytics'), false);
+});
+
 test('adGuard blocks page exposure during cooldown or after session limit', () => {
   const originalGetApp = global.getApp;
   const originalNow = Date.now;
@@ -18,9 +23,9 @@ test('adGuard blocks page exposure during cooldown or after session limit', () =
   });
 
   try {
-    assert.equal(adGuard.shouldExposePageSlot('home'), false);
-    assert.equal(adGuard.shouldExposePageSlot('analytics', { sessionLimit: 2 }), false);
-    assert.equal(adGuard.shouldExposePageSlot('analytics', { sessionLimit: 3 }), true);
+    assert.equal(adGuard.shouldExposePageSlot('home', { enabled: true }), false);
+    assert.equal(adGuard.shouldExposePageSlot('analytics', { enabled: true, sessionLimit: 2 }), false);
+    assert.equal(adGuard.shouldExposePageSlot('analytics', { enabled: true, sessionLimit: 3 }), true);
   } finally {
     global.getApp = originalGetApp;
     Date.now = originalNow;

@@ -1,16 +1,12 @@
 <view class="container safe-bottom mine-page">
   <view class="hero mine-hero">
-    <view class="row mine-dashboard">
-      <image class="profile-avatar" src="{{avatar}}" mode="aspectFill"></image>
-      <view class="flex-1 minw0 profile-main">
-        <view class="mine-nickname ellipsis">{{nickname}}</view>
-        <view class="mine-quick-links">
-          <text class="mine-quick-link" bindtap="goProfile">编辑资料</text>
-          <text class="mine-quick-divider">·</text>
-          <text class="mine-quick-link" bindtap="goSettings">设置</text>
+    <view class="mine-dashboard">
+      <view class="row mine-profile-row">
+        <image class="profile-avatar" src="{{avatar}}" mode="aspectFill"></image>
+        <view class="flex-1 minw0 profile-main">
+          <view class="mine-nickname ellipsis">{{nickname}}</view>
         </view>
       </view>
-      <view class="mine-action-primary" bindtap="goHome">查看比赛</view>
     </view>
   </view>
 
@@ -54,9 +50,13 @@
       <view class="section-title">我的服务</view>
     </view>
     <view class="service-grid">
-      <view class="service-btn" bindtap="goMyTournaments">
-        <view class="service-title">我的比赛</view>
-        <view class="service-desc">查看赛事</view>
+      <view class="service-btn" bindtap="goProfile">
+        <view class="service-title">编辑资料</view>
+        <view class="service-desc">更新昵称头像</view>
+      </view>
+      <view class="service-btn" bindtap="goSettings">
+        <view class="service-title">设置</view>
+        <view class="service-desc">偏好与缓存</view>
       </view>
       <view class="service-btn" bindtap="onFeedback">
         <view class="service-title">意见反馈</view>

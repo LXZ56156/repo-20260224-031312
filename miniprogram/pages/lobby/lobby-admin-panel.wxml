@@ -1,0 +1,172 @@
+<view class="card panel admin-panel reveal reveal-5" wx:if="{{showDraftAdminPanel}}">
+    <view class="section-head admin-collapse-head" bindtap="toggleAdminPanel">
+      <view class="section-title admin-section-title">管理员面板</view>
+      <view class="row-right">
+        <text class="count-pill">待完成 {{quickChecklistPending}} 项</text>
+        <text class="admin-collapse-arrow {{adminPanelExpanded ? 'expanded' : ''}}">▾</text>
+      </view>
+    </view>
+
+    <view class="admin-collapse-body" wx:if="{{adminPanelExpanded}}">
+      <view class="admin-manage-actions">
+        <button class="btn btn-subtle" bindtap="goEditTournament">修改比赛</button>
+        <button class="btn btn-danger" bindtap="cancelTournament">取消比赛</button>
+      </view>
+
+      <view id="quick-settings" class="quick-settings panel-soft">
+        <view class="section-head quick-settings-head">
+          <view class="section-title quick-settings-title">比赛参数</view>
+          <text class="count-pill quick-settings-pill">{{canConfigureSettings ? '可编辑' : '待满员'}}</text>
+        </view>
+        <view class="muted small quick-settings-hint" wx:if="{{quickConfigGateHint}}">{{quickConfigGateHint}}</view>
+
+        <view class="quick-settings-form {{canConfigureSettings ? '' : 'quick-settings-disabled'}}">
+          <view class="quick-settings-field">
+            <view class="quick-config-label">赛事名称</view>
+            <input
+              class="input quick-settings-input {{canConfigureSettings ? '' : 'disabled'}}"
+              placeholder="请输入赛事名称"
+              value="{{quickConfigName}}"
+              bindinput="onQuickConfigNameInput"
+              disabled="{{!canConfigureSettings}}"
+            />
+          </view>
+
+          <view class="quick-config-row">
+            <view class="quick-config-col">
+              <view class="quick-config-label">总场次</view>
+              <block wx:if="{{canConfigureSettings}}">
+                <picker wx:if="{{useSimpleQuickMPicker}}" mode="selector" range="{{quickConfigMOptions}}" value="{{quickConfigMIndex}}" bindchange="onPickQuickConfigMSimple">
+                  <view class="picker quick-config-picker">{{quickConfigM}}</view>
+                </picker>
+                <picker wx:else mode="multiSelector" range="{{quickConfigMDigitRange}}" value="{{quickConfigMDigitValue}}" bindchange="onPickQuickConfigMDigit">
+                  <view class="picker quick-config-picker">{{quickConfigM}}</view>
+                </picker>
+              </block>
+              <view wx:else class="picker quick-config-picker disabled">{{quickConfigM}}</view>
+            </view>
+            <view class="quick-config-col">
+              <view class="quick-config-label">每轮最多场数</view>
+              <block wx:if="{{canConfigureSettings}}">
+                <picker mode="selector" range="{{quickConfigCOptions}}" value="{{quickConfigCIndex}}" bindchange="onPickQuickConfigC">
+                  <view class="picker quick-config-picker">{{quickConfigC}}</view>
+                </picker>
+              </block>
+              <view wx:else class="picker quick-config-picker disabled">{{quickConfigC}}</view>
+            </view>
+          </view>
+
+          <view class="quick-config-row">
+            <view class="quick-config-col">
+              <view class="quick-config-label">每局分制</view>
+              <block wx:if="{{canConfigureSettings}}">
+                <picker mode="selector" range="{{quickPointsOptions}}" value="{{quickPointsIndex}}" bindchange="onPickQuickPointsPerGame">
+                  <view class="picker quick-config-picker">{{quickPointsPerGame}} 分</view>
+                </picker>
+              </block>
+              <view wx:else class="picker quick-config-picker disabled">{{quickPointsPerGame}} 分</view>
+            </view>
+            <view class="quick-config-col" wx:if="{{quickShowSquadEndCondition}}">
+              <view class="quick-config-label">结束条件</view>
+              <block wx:if="{{canConfigureSettings}}">
+                <picker mode="selector" range="{{quickEndConditionOptions}}" range-key="label" value="{{quickEndConditionIndex}}" bindchange="onPickQuickEndConditionType">
+                  <view class="picker quick-config-picker">{{quickEndConditionOptions[quickEndConditionIndex].label}}</view>
+                </picker>
+              </block>
+              <view wx:else class="picker quick-config-picker disabled">{{quickEndConditionOptions[quickEndConditionIndex].label}}</view>
+            </view>
+          </view>
+
+          <view class="quick-config-row" wx:if="{{quickShowSquadEndCondition}}">
+            <view class="quick-config-col">
+              <view class="quick-config-label">{{quickEndConditionTargetLabel}}</view>
+              <block wx:if="{{canConfigureSettings && quickShowEndConditionTargetPicker}}">
+                <picker mode="selector" range="{{quickEndConditionTargetOptions}}" value="{{quickEndConditionTargetIndex}}" bindchange="onPickQuickEndConditionTarget">
+                  <view class="picker quick-config-picker">{{quickEndConditionTarget}} {{quickEndConditionTargetUnit}}</view>
+                </picker>
+              </block>
+              <view wx:else class="picker quick-config-picker disabled">{{quickEndConditionTarget}} {{quickEndConditionTargetUnit}}</view>
+            </view>
+            <view class="quick-config-col"></view>
+          </view>
+
+          <view class="quick-settings-summary panel-soft" wx:if="{{canConfigureSettings && quickMatchShortcutOptions.length}}">
+            <view class="quick-match-shortcuts">
+              <view
+                wx:for="{{quickMatchShortcutOptions}}"
+                wx:key="key"
+                class="chip quick-match-shortcut {{quickConfigM===item.value ? 'active' : ''}} {{item.disabled ? 'disabled' : ''}}"
+                data-value="{{item.value}}"
+                data-disabled="{{item.disabled ? 1 : 0}}"
+                bindtap="onTapQuickMatchShortcut"
+              >{{item.label}}</view>
+            </view>
+          </view>
+
+          <button class="btn btn-primary quick-settings-save" bindtap="saveQuickSettings" loading="{{quickSettingsBusy}}" disabled="{{quickSettingsBusy || !canConfigureSettings}}">保存比赛参数</button>
+        </view>
+      </view>
+
+      <view class="quick-import panel-soft">
+        <view class="quick-import-head">导入名单</view>
+        <textarea
+          id="quick-import"
+          class="textarea quick-import-input"
+          placeholder="张三/男 李四/女,王五"
+          value="{{quickImportText}}"
+          focus="{{focusQuickImport}}"
+          bindinput="onQuickImportInput"
+        ></textarea>
+        <view class="btn-row quick-import-actions">
+          <button class="btn btn-primary" bindtap="quickImportPlayers">一键导入</button>
+        </view>
+        <view class="quick-import-result" wx:if="{{importResultText}}">
+          <view class="quick-import-result-title">{{importResultText}}</view>
+          <view class="muted small" wx:if="{{importResultDetail}}">{{importResultDetail}}</view>
+        </view>
+      </view>
+
+      <view class="fixed-team panel-soft" wx:if="{{mode==='fixed_pair_rr'}}">
+        <view class="fixed-team-head row row-top">
+          <view class="quick-import-head">固搭队伍</view>
+          <button class="btn-mini" bindtap="autoGeneratePairTeams" loading="{{pairTeamBusy}}" disabled="{{pairTeamBusy}}">自动组队</button>
+        </view>
+
+        <view class="fixed-team-list" wx:if="{{pairTeamsUi.length}}">
+          <view class="fixed-team-item" wx:for="{{pairTeamsUi}}" wx:key="id">
+            <view class="fixed-team-main">
+              <view class="fixed-team-name">{{item.name}}</view>
+              <view class="muted small">{{item.memberText}}</view>
+            </view>
+            <button class="btn-mini danger" data-team="{{item.id}}" bindtap="deletePairTeam" disabled="{{pairTeamBusy}}">删除</button>
+          </view>
+        </view>
+        <view class="muted small" wx:else>暂无队伍</view>
+
+        <view class="fixed-team-create" wx:if="{{pairTeamCandidates.length >= 2}}">
+          <input class="input fixed-team-name-input" placeholder="队伍名称（可选）" value="{{pairTeamName}}" bindinput="onPairTeamNameInput" />
+          <view class="quick-config-row">
+            <view class="quick-config-col">
+              <view class="quick-config-label">队员1</view>
+              <picker mode="selector" range="{{pairTeamCandidates}}" range-key="name" value="{{pairTeamFirstIndex}}" bindchange="onPickPairFirst">
+                <view class="picker quick-config-picker">{{pairTeamCandidates[pairTeamFirstIndex].name}}</view>
+              </picker>
+            </view>
+            <view class="quick-config-col">
+              <view class="quick-config-label">队员2</view>
+              <picker mode="selector" range="{{pairTeamCandidates}}" range-key="name" value="{{pairTeamSecondIndex}}" bindchange="onPickPairSecond">
+                <view class="picker quick-config-picker">{{pairTeamCandidates[pairTeamSecondIndex].name}}</view>
+              </picker>
+            </view>
+          </view>
+          <button class="btn btn-primary fixed-team-create-btn" bindtap="createPairTeam" loading="{{pairTeamBusy}}" disabled="{{pairTeamBusy}}">添加队伍</button>
+        </view>
+        <view class="muted small" wx:else>暂无可组队成员</view>
+
+        <view class="unpaired-hint panel-soft" wx:if="{{unpairedPlayersText}}">
+          <view class="unpaired-hint-title">待补位成员</view>
+          <view class="unpaired-hint-text">{{unpairedPlayersText}}</view>
+        </view>
+      </view>
+    </view>
+  </view>

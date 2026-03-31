@@ -10,15 +10,18 @@ function readPage(relativePath) {
 }
 
 test('only the match page keeps an explicit transfer button', () => {
-  const wxml = readPage('miniprogram/pages/lobby/index.wxml');
+  const indexWxml = readPage('miniprogram/pages/lobby/index.wxml');
+  const shareWxml = readPage('miniprogram/pages/lobby/lobby-share-bar.wxml');
+  const adminWxml = readPage('miniprogram/pages/lobby/lobby-admin-panel.wxml');
   const scheduleWxml = readPage('miniprogram/pages/schedule/index.wxml');
   const analyticsWxml = readPage('miniprogram/pages/analytics/index.wxml');
-  const shareIndex = wxml.indexOf('id="share-invite"');
-  const importIndex = wxml.indexOf('id="quick-import"');
+  const shareIndex = indexWxml.indexOf('<include src="./lobby-share-bar.wxml"');
+  const importIndex = indexWxml.indexOf('<include src="./lobby-admin-panel.wxml"');
   assert.notEqual(shareIndex, -1);
   assert.notEqual(importIndex, -1);
   assert.ok(shareIndex < importIndex);
-  assert.match(wxml, /open-type="share">\{\{shareButtonText\}\}<\/button>/);
+  assert.match(shareWxml, /open-type="share">\{\{shareButtonText\}\}<\/button>/);
+  assert.match(adminWxml, /id="quick-import"/);
   assert.doesNotMatch(scheduleWxml, /open-type="share"/);
   assert.doesNotMatch(analyticsWxml, /open-type="share"/);
 });

@@ -1,4 +1,5 @@
 const cloud = require('wx-server-sdk');
+const crypto = require('crypto');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
@@ -47,7 +48,7 @@ function normalizeInputPlayers(payloadPlayers, payloadNames) {
 }
 
 function makeId(i) {
-  return `guest_${Date.now()}_${i}_${Math.floor(Math.random()*1e6)}`;
+  return `guest_${Date.now()}_${i}_${crypto.randomBytes(8).toString('hex')}`;
 }
 
 exports.main = async (event) => {

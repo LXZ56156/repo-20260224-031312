@@ -4,7 +4,6 @@ const SCORE_AUTO_RETURN_KEY = 'score_auto_return';
 const SCORE_AUTO_NEXT_KEY = 'score_auto_next';
 const MOTION_LEVEL_KEY = 'motion_level';
 const LIST_DENSITY_KEY = 'list_density';
-const THEME_MODE_KEY = 'theme_mode';
 const NOTIFY_START_KEY = 'notify_start';
 const NOTIFY_RESULT_KEY = 'notify_result';
 
@@ -18,7 +17,6 @@ Page({
     autoNext: true,
     motionLevel: 'standard',
     listDensity: 'comfortable',
-    themeMode: 'system',
     notifyStart: true,
     notifyResult: true,
     version: ''
@@ -39,7 +37,6 @@ Page({
       autoNext: storage.get(SCORE_AUTO_NEXT_KEY, true) !== false,
       motionLevel: String(storage.get(MOTION_LEVEL_KEY, 'standard') || 'standard'),
       listDensity: String(storage.get(LIST_DENSITY_KEY, 'comfortable') || 'comfortable'),
-      themeMode: String(storage.get(THEME_MODE_KEY, 'system') || 'system'),
       notifyStart: storage.get(NOTIFY_START_KEY, true) !== false,
       notifyResult: storage.get(NOTIFY_RESULT_KEY, true) !== false
     });
@@ -89,13 +86,6 @@ Page({
     if (!density) return;
     storage.set(LIST_DENSITY_KEY, density);
     this.setData({ listDensity: density });
-  },
-
-  setThemeMode(e) {
-    const mode = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.mode) || '').trim();
-    if (!mode) return;
-    storage.set(THEME_MODE_KEY, mode);
-    this.setData({ themeMode: mode });
   },
 
   onNotifyStartChange(e) {

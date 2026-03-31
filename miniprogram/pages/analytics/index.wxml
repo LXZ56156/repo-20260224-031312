@@ -24,12 +24,9 @@
         <text class="analytics-hero-stat-value">{{item.value}}</text>
       </view>
     </view>
-  <view class="analytics-hero-links">
-      <text class="analytics-hero-link" bindtap="goMatch">比赛</text>
-      <text class="analytics-hero-link" bindtap="goRanking">排名</text>
-      <text class="analytics-hero-link" bindtap="goSchedule">对阵</text>
-      <text class="analytics-hero-link" bindtap="cloneCurrentTournament">再办一场</text>
-  </view>
+    <view class="analytics-hero-actions">
+      <button class="btn btn-primary btn-sm analytics-hero-primary" bindtap="cloneCurrentTournament">再办一场</button>
+    </view>
   </view>
 
   <!-- 比赛结论卡: 首屏焦点，提升到关键数据之前 -->
@@ -41,8 +38,10 @@
     <view class="report-headline" wx:if="{{reportHeadline}}">{{reportHeadline}}</view>
     <view class="report-line" wx:for="{{focusFacts}}" wx:key="index">{{item}}</view>
     <view class="analytics-text-actions">
-      <text class="analytics-text-link" bindtap="copyBriefReport">复制摘要</text>
-      <text class="analytics-text-link" bindtap="copyBattleReport">复制完整战报</text>
+      <view class="btn-row analytics-copy-actions">
+        <button class="btn btn-subtle btn-sm" bindtap="copyBriefReport">复制摘要</button>
+        <button class="btn btn-subtle btn-sm" bindtap="copyBattleReport">复制完整战报</button>
+      </view>
     </view>
   </view>
 

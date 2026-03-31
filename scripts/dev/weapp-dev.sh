@@ -311,6 +311,35 @@ ensure_mcp_ready() {
   fail "执行 weapp-mcp.cmd 后仍无法连接 ws://${MCP_HOST}:${MCP_PORT}"
 }
 
+patch_weapp_mcp_screenshot_timeout() {
+  # mp_screenshot 工具默认使用 globalTimeoutMs=15000，截图容易超时。
+  # 找到 npx 缓存的 application.js 并将 screenshot 工具的 timeoutMs 设为 60000。
+  local app_js
+  app_js=$(find "$HOME/.npm/_npx" -name "application.js" \
+    -path "*weapp-dev-mcp*" 2>/dev/null | head -1)
+  if [[ -z "$app_js" ]]; then
+    return 0
+  fi
+  if grep -q 'timeoutMs: 60000' "$app_js" 2>/dev/null; then
+    return 0
+  fi
+  # 在 createScreenshotTool 返回对象的末尾（closing }; 前）插入 timeoutMs
+  sed -i 's/throw new UserError("截图未产生图片数据。");\n.*});\n.*},\n.*};\n}\nfunction createCallWxMethodTool//' "$app_js" 2>/dev/null || true
+  node -e "
+const fs = require('fs');
+const src = fs.readFileSync('$app_js', 'utf8');
+const marker = 'throw new UserError(\"截图未产生图片数据。\");';
+const insert = '        timeoutMs: 60000,';
+const after = '    };\n}\nfunction createCallWxMethodTool';
+const patched = src.replace(
+  marker + '\n            });\n        },\n    };\n}\nfunction createCallWxMethodTool',
+  marker + '\n            });\n        },\n        ' + 'timeoutMs: 60000,\n    };\n}\nfunction createCallWxMethodTool'
+);
+if (patched === src) { process.exit(1); }
+fs.writeFileSync('$app_js', patched);
+" 2>/dev/null && log "mp_screenshot timeoutMs 已修补为 60000ms" || true
+}
+
 main() {
   require_command "$POWERSHELL_EXE"
   require_command "$SYNC_SCRIPT"
@@ -320,6 +349,7 @@ main() {
     mcp|start)
       require_command nohup
       log "项目目录：$PROJECT_DIR"
+      patch_weapp_mcp_screenshot_timeout
       start_sync
       ensure_mirror_current
       ensure_mcp_ready

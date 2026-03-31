@@ -40,14 +40,6 @@
         <view class="chip {{listDensity==='compact'?'active':''}}" data-density="compact" bindtap="setListDensity">紧凑</view>
       </view>
     </view>
-
-    <view class="form-item">
-      <view class="form-label">主题模式</view>
-      <view class="chips">
-        <view class="chip {{themeMode==='system'?'active':''}}" data-mode="system" bindtap="setThemeMode">跟随系统</view>
-        <view class="chip {{themeMode==='light'?'active':''}}" data-mode="light" bindtap="setThemeMode">浅色</view>
-      </view>
-    </view>
   </view>
 
   <view class="card panel">

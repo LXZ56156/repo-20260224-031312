@@ -68,21 +68,12 @@
   color: var(--neutral-950);
 }
 
-.analytics-hero-links {
+.analytics-hero-actions {
   margin-top: 18rpx;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20rpx;
 }
 
-.analytics-hero-link {
-  font-size: 25rpx;
-  font-weight: 700;
-  color: var(--brand-700);
-}
-
-.analytics-hero-link-muted {
-  opacity: 0.86;
+.analytics-hero-primary {
+  margin-top: 0;
 }
 
 /* --- Report Card: 首屏焦点 --- */
@@ -118,15 +109,10 @@
   margin-top: 16rpx;
   padding-top: 14rpx;
   border-top: 1rpx solid var(--neutral-200);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 24rpx;
 }
 
-.analytics-text-link {
-  font-size: 24rpx;
-  font-weight: 700;
-  color: var(--brand-600);
+.analytics-copy-actions {
+  width: 100%;
 }
 
 /* --- Summary: metric-card 风格 --- */
@@ -157,28 +143,6 @@
   font-weight: 800;
   letter-spacing: -0.3rpx;
   color: var(--neutral-950);
-}
-
-/* --- Ad slot --- */
-.ad-breakpoint {
-  margin-top: 14rpx;
-  padding: 16rpx;
-  border-radius: 18rpx;
-  border: 1rpx dashed rgba(148, 163, 184, 0.26);
-  background: linear-gradient(180deg, rgba(248, 252, 249, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
-}
-
-.ad-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3rpx 12rpx;
-  border-radius: 999rpx;
-  border: 1rpx solid var(--neutral-200);
-  background: #ffffff;
-  color: var(--neutral-500);
-  font-size: 21rpx;
-  margin-bottom: 8rpx;
 }
 
 /* --- TOP 3: 自适应列数卡片（2 或 3 人/队时自动伸缩） --- */

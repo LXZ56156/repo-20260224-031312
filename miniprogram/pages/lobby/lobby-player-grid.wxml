@@ -1,0 +1,23 @@
+<view class="card panel reveal reveal-4">
+    <view class="section-head">
+      <view class="section-title">参赛名单</view>
+      <view class="row-right">
+        <text class="count-pill">{{tournament.players.length}} 人</text>
+        <text class="link-btn" wx:if="{{tournament.players.length>12}}" bindtap="togglePlayers">{{showAllPlayers?'收起':'展开'}}</text>
+      </view>
+    </view>
+    <view class="player-grid" wx:if="{{displayPlayers.length}}">
+      <view class="player-cell" wx:for="{{displayPlayers}}" wx:key="id" data-player="{{item.id}}" bindtap="onTogglePlayerSquad">
+        <view class="player-avatar {{item.colorClass}}">
+          <image class="player-avatar-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill"></image>
+          <text class="player-initial" wx:else>{{item.initial}}</text>
+        </view>
+        <view class="player-name ellipsis">{{item.name}}</view>
+        <view class="player-gender">{{item.genderLabel}}</view>
+        <view class="player-gender" wx:if="{{mode==='squad_doubles'}}">{{item.squad ? item.squad + '队' : '未分队'}}</view>
+      </view>
+    </view>
+    <view class="player-grid-empty" wx:else>
+      <view class="player-grid-empty-text">暂无参赛者，分享邀请好友加入</view>
+    </view>
+  </view>

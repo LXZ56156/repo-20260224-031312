@@ -13,6 +13,9 @@ function loadCreateLobbyDelegates(stubs) {
       if (request === '../../core/retryAction') return stubs.retryAction;
       if (request === './lobbyProfileActions') return stubs.profileActions;
       if (request === './lobbyDraftActions') return stubs.draftActions;
+      if (request === './lobbyQuickSettingsActions') return stubs.quickSettingsActions;
+      if (request === './lobbyImportActions') return stubs.importActions;
+      if (request === './lobbyLifecycleActions') return stubs.lifecycleActions;
       if (request === './lobbyPairTeamActions') return stubs.pairActions;
     }
     return originalLoad.call(this, request, parent, isMain);
@@ -31,6 +34,15 @@ test('createLobbyDelegates mixes source methods directly into the page delegates
     submitProfile() {}
   };
   const draftActions = {
+    goBatchScoring() {}
+  };
+  const quickSettingsActions = {
+    saveQuickSettings() {}
+  };
+  const importActions = {
+    quickImportPlayers() {}
+  };
+  const lifecycleActions = {
     handleStart() {},
     saveAndStart() {}
   };
@@ -51,6 +63,9 @@ test('createLobbyDelegates mixes source methods directly into the page delegates
     retryAction,
     profileActions,
     draftActions,
+    quickSettingsActions,
+    importActions,
+    lifecycleActions,
     pairActions
   });
 
@@ -62,8 +77,11 @@ test('createLobbyDelegates mixes source methods directly into the page delegates
 
   assert.equal(delegates.onProfileNickInput, profileActions.onProfileNickInput);
   assert.equal(delegates.submitProfile, profileActions.submitProfile);
-  assert.equal(delegates.handleStart, draftActions.handleStart);
-  assert.equal(delegates.saveAndStart, draftActions.saveAndStart);
+  assert.equal(delegates.goBatchScoring, draftActions.goBatchScoring);
+  assert.equal(delegates.saveQuickSettings, quickSettingsActions.saveQuickSettings);
+  assert.equal(delegates.quickImportPlayers, importActions.quickImportPlayers);
+  assert.equal(delegates.handleStart, lifecycleActions.handleStart);
+  assert.equal(delegates.saveAndStart, lifecycleActions.saveAndStart);
   assert.equal(delegates.createPairTeam, pairActions.createPairTeam);
   assert.equal(delegates.deletePairTeam, pairActions.deletePairTeam);
   assert.equal(delegates.fetchTournament, syncController.fetchTournament);

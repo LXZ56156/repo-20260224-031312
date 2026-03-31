@@ -1,16 +1,15 @@
 const cloud = require('../../core/cloud');
 const actionGuard = require('../../core/actionGuard');
 const clientRequest = require('../../core/clientRequest');
-const cloneTournamentCore = require('../../core/cloneTournament');
-const storage = require('../../core/storage');
 const flow = require('../../core/uxFlow');
 const nav = require('../../core/nav');
 const pageTimers = require('../../core/pageTimers');
-const writeErrorUi = require('../../core/writeErrorUi');
 const viewModel = require('./lobbyViewModel');
-const settingsViewModel = require('../settings/settingsViewModel');
+const quickSettingsActions = require('./lobbyQuickSettingsActions');
+const importActions = require('./lobbyImportActions');
+const lifecycleActions = require('./lobbyLifecycleActions');
 
-module.exports = {
+const draftActions = {
   runFlowAction(rawKey) {
     const key = String(rawKey || '').trim();
     if (!key) return;
@@ -50,37 +49,11 @@ module.exports = {
     return this.runFlowAction(key);
   },
 
-  parseImportPlayers(text) {
-    const raw = String(text || '').trim();
-    if (!raw) return [];
-    const tokens = raw
-      .split(/[\n,，;；\t ]+/)
-      .map((s) => String(s || '').trim())
-      .filter(Boolean);
-    const out = [];
-    for (const token of tokens) {
-      const matched = /^(.+?)[\/|](男|女|m|f)$/i.exec(token)
-        || /^(.+?)[\(（](男|女|m|f)[\)）]$/i.exec(token)
-        || /^(.+?)-(男|女|m|f)$/i.exec(token);
-      if (!matched) {
-        out.push({ name: token, gender: 'unknown' });
-        continue;
-      }
-      const name = String(matched[1] || '').trim();
-      const mark = String(matched[2] || '').trim().toLowerCase();
-      let gender = 'unknown';
-      if (mark === '男' || mark === 'm') gender = 'male';
-      if (mark === '女' || mark === 'f') gender = 'female';
-      out.push({ name, gender });
-    }
-    return out;
-  },
-
   goSettings(section = '') {
     const tid = String(this.data.tournamentId || '').trim();
     if (!tid) return;
     nav.setLobbyIntent(tid, String(section || '').trim() === 'params' ? 'settings' : 'settings');
-    wx.navigateTo({ url: nav.buildTournamentUrl('/pages/lobby/index', tid) });
+    nav.goLobby(tid);
   },
 
   goEditTournament() {
@@ -123,332 +96,6 @@ module.exports = {
         // ignore
       }
     }, 90);
-  },
-
-  setQuickMatchCount(rawMatchCount) {
-    let matchCount = flow.parsePositiveInt(rawMatchCount, 1);
-    const maxMatches = Number(this.data.maxMatches) || 0;
-    if (maxMatches > 0 && matchCount > maxMatches) {
-      matchCount = maxMatches;
-    }
-
-    const next = { quickConfigM: matchCount };
-    const options = Array.isArray(this.data.quickConfigMOptions) ? this.data.quickConfigMOptions : [];
-    const optionIndex = options.indexOf(matchCount);
-    if (optionIndex >= 0) {
-      next.quickConfigMIndex = optionIndex;
-    }
-
-    const digitLen = Array.isArray(this.data.quickConfigMDigitRange)
-      ? this.data.quickConfigMDigitRange.length
-      : 0;
-    if (digitLen > 0) {
-      next.quickConfigMDigitValue = viewModel.valueToDigitValue(matchCount, digitLen);
-    }
-
-    if (this.data.quickEndConditionType === 'total_matches') {
-      next.quickEndConditionTarget = matchCount;
-      next.quickEndConditionTargetIndex = Math.max(0, matchCount - 1);
-    }
-
-    this.setData(next, () => this.syncQuickEndConditionUi());
-  },
-
-  onPickQuickConfigMSimple(e) {
-    const idx = Number(e.detail.value);
-    const value = (this.data.quickConfigMOptions || [])[idx] || 1;
-    this.setQuickMatchCount(value);
-  },
-
-  onPickQuickConfigMDigit(e) {
-    const digitValue = e.detail.value || [];
-    let matchCount = viewModel.digitValueToNumber(digitValue);
-    if (matchCount < 1) matchCount = 1;
-    const maxMatches = Number(this.data.maxMatches) || 0;
-    if (maxMatches > 0 && matchCount > maxMatches) {
-      matchCount = maxMatches;
-      wx.showToast({ title: `已限制为最大可选 ${maxMatches} 场`, icon: 'none' });
-    }
-    this.setQuickMatchCount(matchCount);
-  },
-
-  onTapQuickMatchShortcut(e) {
-    const dataset = (e && e.currentTarget && e.currentTarget.dataset) || {};
-    const disabled = dataset.disabled === true
-      || dataset.disabled === 'true'
-      || Number(dataset.disabled) === 1;
-    if (disabled || !this.data.canConfigureSettings) return;
-
-    const value = flow.parsePositiveInt(dataset.value, 0);
-    if (value < 1) return;
-    this.setQuickMatchCount(value);
-  },
-
-  onPickQuickConfigC(e) {
-    const idx = Number(e.detail.value);
-    const courts = (this.data.quickConfigCOptions || [])[idx] || 1;
-    this.setData({ quickConfigC: courts, quickConfigCIndex: idx }, () => {
-      this.syncQuickEndConditionUi();
-      this.refreshQuickRecommendations();
-    });
-  },
-
-  onQuickConfigNameInput(e) {
-    this.setData({ quickConfigName: String((e && e.detail && e.detail.value) || '') });
-  },
-
-  onPickQuickPointsPerGame(e) {
-    const idx = Number(e.detail.value);
-    const options = this.data.quickPointsOptions || settingsViewModel.POINT_OPTIONS;
-    const quickPointsPerGame = Number(options[idx] || 21);
-    this.setData({ quickPointsPerGame, quickPointsIndex: idx });
-  },
-
-  onPickQuickEndConditionType(e) {
-    const idx = Number(e.detail.value);
-    const options = this.data.quickEndConditionOptions || settingsViewModel.END_CONDITION_OPTIONS;
-    const item = options[idx] || options[0] || { key: 'total_matches' };
-    const quickEndConditionType = settingsViewModel.normalizeEndConditionType(item.key);
-    const suggestedTarget = settingsViewModel.suggestEndConditionTarget(
-      quickEndConditionType,
-      this.data.quickConfigM,
-      this.data.quickConfigC
-    );
-    const quickEndConditionTarget = settingsViewModel.clampTarget(
-      suggestedTarget,
-      this.data.quickEndConditionTargetOptions
-    );
-    this.setData({
-      quickEndConditionType,
-      quickEndConditionIndex: idx,
-      quickEndConditionTarget,
-      quickEndConditionTargetIndex: Math.max(0, quickEndConditionTarget - 1)
-    }, () => this.syncQuickEndConditionUi());
-  },
-
-  onPickQuickEndConditionTarget(e) {
-    const idx = Number(e.detail.value);
-    const options = this.data.quickEndConditionTargetOptions || [];
-    const quickEndConditionTarget = Number(options[idx] || 1);
-    this.setData({
-      quickEndConditionTarget,
-      quickEndConditionTargetIndex: idx
-    }, () => this.syncQuickEndConditionUi());
-  },
-
-  syncQuickEndConditionUi() {
-    const type = settingsViewModel.normalizeEndConditionType(this.data.quickEndConditionType);
-    const target = settingsViewModel.clampTarget(
-      this.data.quickEndConditionTarget,
-      this.data.quickEndConditionTargetOptions
-    );
-    const ui = settingsViewModel.buildEndConditionUi(type, target);
-    const patch = {
-      quickEndConditionType: type,
-      quickEndConditionTarget: target,
-      quickEndConditionTargetIndex: Math.max(0, target - 1),
-      quickEndConditionTargetLabel: ui.targetLabel,
-      quickEndConditionTargetUnit: ui.targetUnit,
-      quickEndConditionTargetHint: ui.targetHint,
-      quickShowEndConditionTargetPicker: ui.showTargetPicker
-    };
-    if (type === 'total_matches') {
-      patch.quickEndConditionTarget = Math.max(1, Number(this.data.quickConfigM) || 1);
-      patch.quickEndConditionTargetIndex = Math.max(0, patch.quickEndConditionTarget - 1);
-      patch.quickEndConditionTargetHint = settingsViewModel.buildEndConditionUi(type, patch.quickEndConditionTarget).targetHint;
-    }
-    this.setData(patch);
-  },
-
-  refreshQuickRecommendations() {
-    const tournament = this.data.tournament || {};
-    const players = Array.isArray(tournament.players) ? tournament.players : [];
-    const playersCount = players.length;
-    const mode = flow.normalizeMode(tournament.mode || flow.MODE_MULTI_ROTATE);
-    const { recommendation } = settingsViewModel.buildRecommendationState({
-      mode,
-      players,
-      playersCount,
-      courts: this.data.quickConfigC,
-      allowOpenTeam: false
-    });
-    this.setData({
-      quickSuggestedMatches: Number(recommendation.suggestedMatches) || 1,
-      quickCapacityMax: Number(recommendation.capacityMax) || 1,
-      quickCapacityHintShort: String(recommendation.capacityHintShort || ''),
-      quickCapacityReason: String(recommendation.capacityReason || 'roster'),
-      quickRosterHint: String(recommendation.rosterHint || '')
-    });
-  },
-
-  focusQuickImportArea() {
-    try {
-      wx.pageScrollTo({ selector: '#quick-import', duration: 220 });
-    } catch (_) {
-      // ignore
-    }
-    this.setData({ focusQuickImport: true });
-    setTimeout(() => this.setData({ focusQuickImport: false }), 220);
-  },
-
-  onQuickImportInput(e) {
-    this.setData({ quickImportText: e.detail.value, importResultText: '', importResultDetail: '' });
-  },
-
-  async saveQuickSettings(options = {}) {
-    if (!this.data.isAdmin) {
-      wx.showToast({ title: '仅管理员可保存参数', icon: 'none' });
-      return;
-    }
-    const tournament = this.data.tournament;
-    if (!tournament || tournament.status !== 'draft') {
-      wx.showToast({ title: '仅草稿阶段可修改', icon: 'none' });
-      return;
-    }
-    if (!this.data.canConfigureSettings) {
-      wx.showToast({ title: '满 4 人后才可设置参数', icon: 'none' });
-      return;
-    }
-
-    const name = String(this.data.quickConfigName || '').trim();
-    if (!name) {
-      wx.showToast({ title: '请输入赛事名称', icon: 'none' });
-      return;
-    }
-
-    const matchCount = flow.parsePositiveInt(this.data.quickConfigM, 1);
-    const courts = flow.parsePositiveInt(this.data.quickConfigC, 1, 10);
-    const maxMatches = Number(this.data.maxMatches) || 0;
-    if (maxMatches > 0 && matchCount > maxMatches) {
-      wx.showToast({ title: `总场次最多 ${maxMatches} 场`, icon: 'none' });
-      return;
-    }
-
-    const actionKey = `lobby:updateSettings:${this.data.tournamentId}`;
-    const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'update_settings');
-    if (actionGuard.isBusy(actionKey)) return;
-    const endConditionType = this.data.quickShowSquadEndCondition
-      ? settingsViewModel.normalizeEndConditionType(this.data.quickEndConditionType)
-      : 'total_matches';
-    const endConditionTarget = endConditionType === 'total_matches'
-      ? matchCount
-      : settingsViewModel.clampTarget(this.data.quickEndConditionTarget, this.data.quickEndConditionTargetOptions);
-    return actionGuard.runWithCriticalPageBusy(this, 'quickSettingsBusy', actionKey, async () => {
-      wx.showLoading({ title: '保存中...' });
-      try {
-        cloud.assertWriteResult(await cloud.call('updateSettings', {
-          tournamentId: this.data.tournamentId,
-          name,
-          totalMatches: matchCount,
-          courts,
-          allowOpenTeam: this.data.allowOpenTeam,
-          pointsPerGame: Number(this.data.quickPointsPerGame) || 21,
-          endConditionType,
-          endConditionTarget,
-          clientRequestId
-        }), '保存失败');
-        await this.fetchTournament(this.data.tournamentId);
-        const readyToStart = !!this.data.checkStartReady;
-        wx.hideLoading();
-        this.clearLastFailedAction();
-        wx.showToast({ title: readyToStart ? '已保存，可开赛' : '参数已保存', icon: 'success' });
-        nav.markRefreshFlag(this.data.tournamentId);
-        if (readyToStart) this.focusStartAction();
-      } catch (err) {
-        wx.hideLoading();
-        this.setLastFailedAction('保存比赛参数', () => this.saveQuickSettings({ clientRequestId }), { actionKey });
-        this.handleWriteError(err, '保存失败', () => this.fetchTournament(this.data.tournamentId));
-      }
-    });
-  },
-
-  async quickImportPlayers(options = {}) {
-    if (!this.data.isAdmin) {
-      wx.showToast({ title: '仅管理员可导入', icon: 'none' });
-      return;
-    }
-    const tournament = this.data.tournament;
-    if (!tournament || tournament.status !== 'draft') {
-      wx.showToast({ title: '仅草稿阶段可导入', icon: 'none' });
-      return;
-    }
-    const players = this.parseImportPlayers(this.data.quickImportText);
-    if (players.length === 0) {
-      wx.showToast({ title: '请输入参赛者名字', icon: 'none' });
-      return;
-    }
-    if (players.length > 60) {
-      wx.showToast({ title: '一次最多添加 60 人', icon: 'none' });
-      return;
-    }
-
-    const actionKey = `lobby:addPlayers:${this.data.tournamentId}`;
-    const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'add_players');
-    if (actionGuard.isBusy(actionKey)) return;
-    return actionGuard.runCriticalWrite(actionKey, async () => {
-      wx.showLoading({ title: '导入中...' });
-      try {
-        const res = await cloud.call('addPlayers', {
-          tournamentId: this.data.tournamentId,
-          players,
-          clientRequestId
-        });
-        wx.hideLoading();
-        this.clearLastFailedAction();
-        await this.fetchTournament(this.data.tournamentId);
-        this.setData({ quickImportText: '' });
-        nav.markRefreshFlag(this.data.tournamentId);
-        const added = Number((res && (res.addedCount ?? res.added)) || 0);
-        const duplicateCount = Number((res && res.duplicateCount) || 0);
-        const invalidCount = Number((res && res.invalidCount) || 0);
-        const maleCount = Number((res && res.maleCount) || 0);
-        const femaleCount = Number((res && res.femaleCount) || 0);
-        const unknownCount = Number((res && res.unknownCount) || 0);
-        const parts = [];
-        if (added > 0) parts.push(`新增 ${added}`);
-        if (duplicateCount > 0) parts.push(`重复 ${duplicateCount}`);
-        if (invalidCount > 0) parts.push(`无效 ${invalidCount}`);
-        if (added > 0) parts.push(`男 ${maleCount}/女 ${femaleCount}/未设 ${unknownCount}`);
-        const importResultText = parts.length ? parts.join(' · ') : '未发生变更';
-        const duplicateNames = Array.isArray(res && res.duplicateNames) ? res.duplicateNames : [];
-        const invalidNames = Array.isArray(res && res.invalidNames) ? res.invalidNames : [];
-        const detailParts = [];
-        if (duplicateNames.length) detailParts.push(`重复：${duplicateNames.slice(0, 4).join('、')}${duplicateNames.length > 4 ? '…' : ''}`);
-        if (invalidNames.length) {
-          const validDisplay = invalidNames.filter(Boolean);
-          if (validDisplay.length) detailParts.push(`无效：${validDisplay.slice(0, 4).join('、')}${validDisplay.length > 4 ? '…' : ''}`);
-        }
-        this.setData({
-          importResultText,
-          importResultDetail: detailParts.join('；')
-        });
-        wx.showToast({ title: importResultText, icon: 'none' });
-      } catch (err) {
-        wx.hideLoading();
-        this.setLastFailedAction('快速导入参赛者', () => this.quickImportPlayers({ clientRequestId }), { actionKey });
-        this.handleWriteError(err, '导入失败', () => this.fetchTournament(this.data.tournamentId));
-      }
-    });
-  },
-
-  async cloneCurrentTournament(options = {}) {
-    const actionKey = `lobby:cloneTournament:${this.data.tournamentId}`;
-    const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'clone');
-    if (actionGuard.isBusy(actionKey)) return;
-    return actionGuard.runCriticalWrite(actionKey, async () => {
-      wx.showLoading({ title: '复制中...' });
-      try {
-        const nextId = await cloneTournamentCore.cloneTournament(this.data.tournamentId, { clientRequestId });
-        wx.hideLoading();
-        this.clearLastFailedAction();
-        wx.showToast({ title: '已生成副本', icon: 'success' });
-        wx.navigateTo({ url: nav.buildTournamentUrl('/pages/lobby/index', nextId) });
-      } catch (err) {
-        wx.hideLoading();
-        this.setLastFailedAction('再办一场', () => this.cloneCurrentTournament({ clientRequestId }), { actionKey });
-        this.handleWriteError(err, '复制失败', () => this.fetchTournament(this.data.tournamentId));
-      }
-    });
   },
 
   onChecklistTap(e) {
@@ -517,21 +164,10 @@ module.exports = {
       wx.showToast({ title: '当前没有待录分比赛', icon: 'none' });
       return;
     }
-    wx.navigateTo({
-      url: nav.buildTournamentUrl('/pages/match/index', this.data.tournamentId, {
-        roundIndex: next.roundIndex,
-        matchIndex: next.matchIndex,
-        batch: 1
-      })
-    });
-  },
-
-  handleWriteError(err, fallbackMessage, onRefresh) {
-    writeErrorUi.presentWriteError({
-      err,
-      fallbackMessage,
-      conflictContent: '数据已被其他人更新，刷新后可继续当前操作。',
-      onRefresh
+    nav.goMatch(this.data.tournamentId, {
+      roundIndex: next.roundIndex,
+      matchIndex: next.matchIndex,
+      batch: 1
     });
   },
 
@@ -546,109 +182,13 @@ module.exports = {
     } catch (_) {
       // ignore
     }
-  },
-
-  async saveAndStart() {
-    if (!this.data.isAdmin) return;
-    const tournament = this.data.tournament;
-    if (!tournament || tournament.status !== 'draft') return;
-    if (!this.data.checkPlayersOk) {
-      wx.showToast({ title: '当前名单暂不可排赛', icon: 'none' });
-      return;
-    }
-
-    // 先保存参数，再串行开赛
-    try {
-      await this.saveQuickSettings();
-      // 保存成功后刷新数据，然后开赛
-      await this.handleStart();
-    } catch (_) {
-      // saveQuickSettings 和 handleStart 内部已有错误处理
-    }
-  },
-
-  async handleStart(options = {}) {
-    const tournament = this.data.tournament;
-    if (!tournament || !this.data.isAdmin) return;
-    if (tournament.status !== 'draft') {
-      wx.showToast({ title: '赛事已开赛', icon: 'none' });
-      return;
-    }
-    if (!this.data.checkPlayersOk) {
-      wx.showToast({ title: '当前名单暂不可排赛，请补全参赛信息', icon: 'none' });
-      return;
-    }
-    if (!this.data.checkSettingsOk) {
-      wx.showToast({ title: '请先修改比赛信息', icon: 'none' });
-      return;
-    }
-
-    const actionKey = `lobby:startTournament:${this.data.tournamentId}`;
-    const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'start');
-    if (actionGuard.isBusy(actionKey)) return;
-    return actionGuard.runCriticalWrite(actionKey, async () => {
-      wx.showLoading({ title: '生成对阵...' });
-      try {
-        const schedulerProfile = storage.getSchedulerProfile();
-        cloud.assertWriteResult(await cloud.call('startTournament', {
-          tournamentId: this.data.tournamentId,
-          schedulerProfile,
-          clientRequestId
-        }), '开赛失败');
-        wx.hideLoading();
-        this.clearLastFailedAction();
-        wx.showToast({ title: '已开赛', icon: 'success' });
-        nav.markRefreshFlag(this.data.tournamentId);
-        setTimeout(() => {
-          wx.navigateTo({ url: nav.buildTournamentUrl('/pages/schedule/index', this.data.tournamentId) });
-        }, 280);
-      } catch (err) {
-        wx.hideLoading();
-        this.setLastFailedAction('开始比赛', () => this.handleStart({ clientRequestId }), { actionKey });
-        this.handleWriteError(err, '开赛失败', () => this.fetchTournament(this.data.tournamentId));
-      }
-    });
-  },
-
-  async cancelTournament(options = {}) {
-    const tournament = this.data.tournament;
-    if (!tournament || !this.data.isAdmin) return;
-    if (String(tournament.status || '').trim() !== 'draft') {
-      wx.showToast({ title: '仅草稿阶段可取消', icon: 'none' });
-      return;
-    }
-    const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'delete');
-    wx.showModal({
-      title: '确认取消比赛？',
-      content: '删除后转发失效、不可恢复。',
-      confirmText: '取消比赛',
-      confirmColor: '#ef4444',
-      success: async (res) => {
-        if (!res.confirm) return;
-        const actionKey = `lobby:cancelTournament:${this.data.tournamentId}`;
-        if (actionGuard.isBusy(actionKey)) return;
-        await actionGuard.runCriticalWrite(actionKey, async () => {
-          wx.showLoading({ title: '取消中...' });
-          try {
-            cloud.assertWriteResult(await cloud.call('deleteTournament', {
-              tournamentId: this.data.tournamentId,
-              clientRequestId
-            }), '取消失败');
-            wx.hideLoading();
-            this.clearLastFailedAction();
-            storage.removeRecentTournamentId(this.data.tournamentId);
-            storage.removeLocalCompletedTournamentSnapshot(this.data.tournamentId);
-            storage.removeLocalTournamentCache(this.data.tournamentId);
-            wx.showToast({ title: '已取消', icon: 'success' });
-            nav.markRefreshFlag(this.data.tournamentId);
-            nav.goHome();
-          } catch (err) {
-            wx.hideLoading();
-            this.setLastFailedAction('取消比赛', () => this.cancelTournament({ clientRequestId }), { actionKey });
-            this.handleWriteError(err, '取消失败', () => this.fetchTournament(this.data.tournamentId));
-          }
-        });
-      }
-    });
   }
 };
+
+module.exports = Object.assign(
+  {},
+  quickSettingsActions,
+  importActions,
+  lifecycleActions,
+  draftActions
+);

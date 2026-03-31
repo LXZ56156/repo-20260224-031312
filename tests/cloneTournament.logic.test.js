@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 
 const logic = require('../cloudfunctions/cloneTournament/logic');
 
@@ -64,4 +65,19 @@ test('copyPairTeams drops incomplete teams after player remap', () => {
   assert.deepEqual(out, [
     { id: 'pair_a', name: '晨风', playerIds: ['n1', 'n2'], locked: true }
   ]);
+});
+
+test('makeGuestId uses crypto-strength random bytes for guest ids', () => {
+  const originalNow = Date.now;
+  const originalRandomBytes = crypto.randomBytes;
+
+  Date.now = () => 1700000000000;
+  crypto.randomBytes = () => Buffer.from('0102030405060708', 'hex');
+
+  try {
+    assert.equal(logic.makeGuestId(3), 'guest_1700000000000_3_0102030405060708');
+  } finally {
+    Date.now = originalNow;
+    crypto.randomBytes = originalRandomBytes;
+  }
 });
