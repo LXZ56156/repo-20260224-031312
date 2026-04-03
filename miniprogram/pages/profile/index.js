@@ -182,6 +182,7 @@ Page({
   validateProfile() {
     const nickname = String(this.data.nickname || '').trim();
     const gender = storage.normalizeGender(this.data.gender);
+    const avatar = String(this.data.avatar || '').trim();
     let ok = true;
     if (!nickname) {
       this.setFieldError('nickname', '请填写昵称');
@@ -195,10 +196,16 @@ Page({
     } else {
       this.clearFieldError('gender');
     }
+    if (!avatar) {
+      this.setFieldError('avatar', '请上传头像');
+      ok = false;
+    } else {
+      this.clearFieldError('avatar');
+    }
     if (!ok) {
       wx.showToast({ title: '请完善必填信息', icon: 'none' });
     }
-    return { ok, nickname, gender };
+    return { ok, nickname, gender, avatar };
   },
 
   async onSave(options = {}) {
@@ -221,7 +228,7 @@ Page({
 
       const nickname = validated.nickname;
       const gender = validated.gender;
-      const avatar = String(this.data.avatar || '').trim();
+      const avatar = String(validated.avatar || '').trim();
       if (this.data.avatarUploadFailed || this.data.pendingAvatarTempPath) {
         this.setFieldError('avatar', '头像上传失败，可重试');
         wx.showToast({ title: '请先完成头像上传', icon: 'none' });

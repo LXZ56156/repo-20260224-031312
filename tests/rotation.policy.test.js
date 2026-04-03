@@ -13,7 +13,7 @@ test('selectSchedulerPolicy picks expected searchSeeds and epsilon', () => {
   assert.equal(a.selectedEpsilon, 1.6);
 
   const b = selectSchedulerPolicy(10, 2, 18);
-  assert.equal(b.selectedSearchSeeds, 12);
+  assert.equal(b.selectedSearchSeeds, 10);
   assert.equal(b.selectedEpsilon, 1.6);
 
   const c = selectSchedulerPolicy(12, 1, 18);
@@ -23,10 +23,25 @@ test('selectSchedulerPolicy picks expected searchSeeds and epsilon', () => {
 });
 
 test('generateSchedule exposes policy metadata in schedulerMeta', () => {
-  const out = generateSchedule(makePlayers(10), 18, 2, { seed: 42 });
+  const out = generateSchedule(makePlayers(12), 12, 2, { seed: 42, searchSeeds: 1 });
   const meta = out.schedulerMeta || {};
-  assert.equal(meta.searchSeeds, 12);
-  assert.equal(meta.selectedSearchSeeds, 12);
+  assert.equal(meta.engineVersion, 'rotation-v3');
+  assert.equal(meta.engine, 'beam');
+  assert.equal(meta.searchSeeds, 1);
+  assert.equal(meta.selectedSearchSeeds, 1);
   assert.equal(meta.selectedEpsilon, 1.6);
   assert.equal(meta.policy && meta.policy.policyVersion, 'v3');
+  assert.equal(meta.playSpread, 0);
+  assert.equal(meta.uniqueExactMatchupCount, 12);
+});
+
+test('generateSchedule exposes template metadata for templated doubles cases', () => {
+  const out = generateSchedule(makePlayers(10), 18, 2, { seed: 42 });
+  const meta = out.schedulerMeta || {};
+  assert.equal(meta.engineVersion, 'rotation-v3');
+  assert.equal(meta.engine, 'template');
+  assert.equal(meta.templateKey, '10p-2c');
+  assert.equal(meta.templateHorizon, 22);
+  assert.equal(meta.playSpread, 1);
+  assert.equal(meta.uniqueExactMatchupCount, 18);
 });

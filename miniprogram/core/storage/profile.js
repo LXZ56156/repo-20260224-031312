@@ -35,8 +35,9 @@ function sanitizeUserProfile(profile) {
 function isProfileComplete(profile) {
   if (!profile || typeof profile !== 'object') return false;
   const nickname = getProfileNickName(profile);
+  const avatar = String(profile.avatar || profile.avatarUrl || '').trim();
   const gender = normalizeGender(profile.gender);
-  return !!nickname && gender !== 'unknown';
+  return !!nickname && !!avatar && gender !== 'unknown';
 }
 
 function getUserProfile() {

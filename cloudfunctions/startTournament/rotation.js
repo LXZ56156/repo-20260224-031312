@@ -1,3 +1,5 @@
+const doublesEngine = require('./rotationDoublesEngine');
+
 function pairKey(a, b) {
   return a < b ? `${a}_${b}` : `${b}_${a}`;
 }
@@ -194,12 +196,12 @@ function selectSchedulerPolicy(playersCount, courts, totalMatches) {
   const m = Math.max(1, Number(totalMatches) || 1);
 
   let selectedSearchSeeds = 16;
-  if (c >= 2 && n >= 10) selectedSearchSeeds = 12;
+  if (c >= 2 && n >= 10) selectedSearchSeeds = 10;
   const selectedEpsilon = c === 1 ? 1.8 : 1.6;
 
   return {
     policyVersion: POLICY_VERSION,
-    searchSeedsPolicy: 'if courts===1 -> 16; if courts>=2 and players<=9 -> 16; if courts>=2 and players>=10 -> 12',
+    searchSeedsPolicy: 'if courts===1 -> 16; if courts>=2 and players<=9 -> 16; if courts>=2 and players>=10 -> 10',
     epsilonPolicy: 'if courts===1 -> 1.8; if courts>=2 -> 1.6',
     selectedSearchSeeds,
     selectedEpsilon,
@@ -575,7 +577,7 @@ function compareObjective(a, b) {
   return 0;
 }
 
-function generateScheduleOnce(ids, totalMatches, courts, weights, seed, options = {}) {
+function generateLegacyScheduleOnce(ids, totalMatches, courts, weights, seed, options = {}) {
   const mode = resolveSchedulerMode(options.mode);
   const allowOpen = options.allowOpen === true;
   const genderById = options.genderById || {};
@@ -752,6 +754,430 @@ function generateScheduleOnce(ids, totalMatches, courts, weights, seed, options 
   };
 }
 
+function normalizeTeamKey(team) {
+  return team.slice().sort().join('&');
+}
+
+function buildMatchupKey(teamA, teamB) {
+  return [normalizeTeamKey(teamA), normalizeTeamKey(teamB)].sort().join(' vs ');
+}
+
+function buildAllDoublesMatches(ids) {
+  const ordered = ids.slice().sort((a, b) => String(a).localeCompare(String(b)));
+  const matches = [];
+  for (const group of enumerateComb4(ordered)) {
+    const splits = [
+      [[group[0], group[1]], [group[2], group[3]]],
+      [[group[0], group[2]], [group[1], group[3]]],
+      [[group[0], group[3]], [group[1], group[2]]]
+    ];
+    for (const [teamA, teamB] of splits) {
+      const left = teamA.slice().sort();
+      const right = teamB.slice().sort();
+      matches.push({
+        players: group.slice(),
+        teamA: left,
+        teamB: right,
+        matchupKey: buildMatchupKey(left, right),
+        stableKey: `${groupKey(group)}::${buildMatchupKey(left, right)}`
+      });
+    }
+  }
+  return matches;
+}
+
+function compareFairnessTuple(left, right) {
+  if (left.playSpread !== right.playSpread) return left.playSpread - right.playSpread;
+  if (left.maxConsecutivePlay !== right.maxConsecutivePlay) return left.maxConsecutivePlay - right.maxConsecutivePlay;
+  if (left.restRoundScore !== right.restRoundScore) return right.restRoundScore - left.restRoundScore;
+  return 0;
+}
+
+function compareRoundCandidate(left, right) {
+  const fairnessCmp = compareFairnessTuple(left.roundFairness, right.roundFairness);
+  if (fairnessCmp !== 0) return fairnessCmp;
+  if (left.newUniqueCount !== right.newUniqueCount) return right.newUniqueCount - left.newUniqueCount;
+  if (left.partnerPenaltyDelta !== right.partnerPenaltyDelta) return left.partnerPenaltyDelta - right.partnerPenaltyDelta;
+  if (left.opponentPenaltyDelta !== right.opponentPenaltyDelta) return left.opponentPenaltyDelta - right.opponentPenaltyDelta;
+  return String(left.packageKey || '').localeCompare(String(right.packageKey || ''));
+}
+
+function compareDoublesObjective(left, right) {
+  if (left.playSpread !== right.playSpread) return left.playSpread - right.playSpread;
+  if (left.maxConsecutivePlay !== right.maxConsecutivePlay) return left.maxConsecutivePlay - right.maxConsecutivePlay;
+  if (left.restScoreTotal !== right.restScoreTotal) return right.restScoreTotal - left.restScoreTotal;
+  if (left.uniqueMatchupCount !== right.uniqueMatchupCount) return right.uniqueMatchupCount - left.uniqueMatchupCount;
+  if (left.partnerPenalty !== right.partnerPenalty) return left.partnerPenalty - right.partnerPenalty;
+  if (left.opponentPenalty !== right.opponentPenalty) return left.opponentPenalty - right.opponentPenalty;
+  return 0;
+}
+
+function compareSearchState(left, right) {
+  const objectiveCmp = compareDoublesObjective(left.objective, right.objective);
+  if (objectiveCmp !== 0) return objectiveCmp;
+  return String(left.historyKey || '').localeCompare(String(right.historyKey || ''));
+}
+
+function buildRoundPackageKey(matches) {
+  return matches.map((match) => match.matchupKey).sort().join(' || ');
+}
+
+function buildInitialDoublesState(ids) {
+  return {
+    rounds: [],
+    matchCount: 0,
+    playCount: Object.fromEntries(ids.map((id) => [id, 0])),
+    playStreak: Object.fromEntries(ids.map((id) => [id, 0])),
+    restStreak: Object.fromEntries(ids.map((id) => [id, 0])),
+    maxRestStreak: Object.fromEntries(ids.map((id) => [id, 0])),
+    partnerCount: {},
+    opponentCount: {},
+    usedMatchupKeys: new Set(),
+    uniqueMatchupCount: 0,
+    partnerPenalty: 0,
+    opponentPenalty: 0,
+    maxConsecutivePlay: 0,
+    restScoreTotal: 0,
+    playSpread: 0,
+    historyKey: '',
+    objective: {
+      playSpread: 0,
+      maxConsecutivePlay: 0,
+      restScoreTotal: 0,
+      uniqueMatchupCount: 0,
+      partnerPenalty: 0,
+      opponentPenalty: 0
+    }
+  };
+}
+
+function rankSingleMatchCandidate(match, state, ids, seedOffset = 0) {
+  const played = new Set(match.players);
+  let minPlay = Number.POSITIVE_INFINITY;
+  let maxPlay = Number.NEGATIVE_INFINITY;
+  let nextMaxConsecutivePlay = state.maxConsecutivePlay || 0;
+  let restRoundScore = 0;
+  for (const id of ids) {
+    const playedNow = played.has(id);
+    const nextPlayCount = (state.playCount[id] || 0) + (playedNow ? 1 : 0);
+    if (nextPlayCount < minPlay) minPlay = nextPlayCount;
+    if (nextPlayCount > maxPlay) maxPlay = nextPlayCount;
+    if (playedNow) {
+      const nextStreak = (state.playStreak[id] || 0) + 1;
+      if (nextStreak > nextMaxConsecutivePlay) nextMaxConsecutivePlay = nextStreak;
+    } else {
+      restRoundScore += squareCost((state.playStreak[id] || 0) + 1);
+    }
+  }
+  const p1 = state.partnerCount[pairKey(match.teamA[0], match.teamA[1])] || 0;
+  const p2 = state.partnerCount[pairKey(match.teamB[0], match.teamB[1])] || 0;
+  let opponentPenaltyDelta = 0;
+  for (const a of match.teamA) {
+    for (const b of match.teamB) {
+      opponentPenaltyDelta += incrementalSquareCost(state.opponentCount[pairKey(a, b)] || 0);
+    }
+  }
+  return {
+    match,
+    roundFairness: {
+      playSpread: maxPlay - minPlay,
+      maxConsecutivePlay: nextMaxConsecutivePlay,
+      restRoundScore
+    },
+    newUniqueCount: state.usedMatchupKeys.has(match.matchupKey) ? 0 : 1,
+    partnerPenaltyDelta: incrementalSquareCost(p1) + incrementalSquareCost(p2),
+    opponentPenaltyDelta,
+    stableKey: `${match.stableKey}#${seedOffset}`
+  };
+}
+
+function compareSingleMatchCandidate(left, right) {
+  const fairnessCmp = compareFairnessTuple(left.roundFairness, right.roundFairness);
+  if (fairnessCmp !== 0) return fairnessCmp;
+  if (left.newUniqueCount !== right.newUniqueCount) return right.newUniqueCount - left.newUniqueCount;
+  if (left.partnerPenaltyDelta !== right.partnerPenaltyDelta) return left.partnerPenaltyDelta - right.partnerPenaltyDelta;
+  if (left.opponentPenaltyDelta !== right.opponentPenaltyDelta) return left.opponentPenaltyDelta - right.opponentPenaltyDelta;
+  return String(left.stableKey || '').localeCompare(String(right.stableKey || ''));
+}
+
+function buildDoublesObjectiveFromState(state) {
+  return {
+    playSpread: state.playSpread,
+    maxConsecutivePlay: state.maxConsecutivePlay,
+    restScoreTotal: state.restScoreTotal,
+    uniqueMatchupCount: state.uniqueMatchupCount,
+    partnerPenalty: state.partnerPenalty,
+    opponentPenalty: state.opponentPenalty
+  };
+}
+
+function applyRoundCandidate(state, matches, ids) {
+  const next = {
+    rounds: state.rounds.slice(),
+    matchCount: state.matchCount + matches.length,
+    playCount: { ...state.playCount },
+    playStreak: { ...state.playStreak },
+    restStreak: { ...state.restStreak },
+    maxRestStreak: { ...state.maxRestStreak },
+    partnerCount: { ...state.partnerCount },
+    opponentCount: { ...state.opponentCount },
+    usedMatchupKeys: new Set(state.usedMatchupKeys),
+    uniqueMatchupCount: state.uniqueMatchupCount,
+    partnerPenalty: state.partnerPenalty,
+    opponentPenalty: state.opponentPenalty,
+    maxConsecutivePlay: state.maxConsecutivePlay,
+    restScoreTotal: state.restScoreTotal,
+    playSpread: state.playSpread,
+    historyKey: state.historyKey
+  };
+
+  const played = new Set();
+  let newUniqueCount = 0;
+  let partnerPenaltyDelta = 0;
+  let opponentPenaltyDelta = 0;
+
+  const roundMatches = matches.map((match, idx) => {
+    const teamA = match.teamA.slice();
+    const teamB = match.teamB.slice();
+    teamA.forEach((id) => played.add(id));
+    teamB.forEach((id) => played.add(id));
+
+    const pk1 = pairKey(teamA[0], teamA[1]);
+    const pk2 = pairKey(teamB[0], teamB[1]);
+    const p1 = next.partnerCount[pk1] || 0;
+    const p2 = next.partnerCount[pk2] || 0;
+    const inc1 = incrementalSquareCost(p1);
+    const inc2 = incrementalSquareCost(p2);
+    partnerPenaltyDelta += inc1 + inc2;
+    next.partnerPenalty += inc1 + inc2;
+    next.partnerCount[pk1] = p1 + 1;
+    next.partnerCount[pk2] = p2 + 1;
+
+    for (const a of teamA) {
+      for (const b of teamB) {
+        const key = pairKey(a, b);
+        const current = next.opponentCount[key] || 0;
+        const inc = incrementalSquareCost(current);
+        opponentPenaltyDelta += inc;
+        next.opponentPenalty += inc;
+        next.opponentCount[key] = current + 1;
+      }
+    }
+
+    if (!next.usedMatchupKeys.has(match.matchupKey)) {
+      next.usedMatchupKeys.add(match.matchupKey);
+      newUniqueCount += 1;
+      next.uniqueMatchupCount += 1;
+    }
+
+    return {
+      matchIndex: state.matchCount + idx,
+      matchType: '',
+      teamA,
+      teamB,
+      status: 'pending',
+      score: null
+    };
+  });
+
+  const restPlayers = ids.filter((id) => !played.has(id));
+  const restRoundScore = restPlayers.reduce((sum, id) => sum + squareCost((state.playStreak[id] || 0) + 1), 0);
+  next.restScoreTotal += restRoundScore;
+
+  let minPlay = Number.POSITIVE_INFINITY;
+  let maxPlay = Number.NEGATIVE_INFINITY;
+  for (const id of ids) {
+    if (played.has(id)) {
+      next.playCount[id] = (next.playCount[id] || 0) + 1;
+      next.playStreak[id] = (state.playStreak[id] || 0) + 1;
+      next.restStreak[id] = 0;
+      if (next.playStreak[id] > next.maxConsecutivePlay) next.maxConsecutivePlay = next.playStreak[id];
+    } else {
+      next.playStreak[id] = 0;
+      next.restStreak[id] = (state.restStreak[id] || 0) + 1;
+      if (next.restStreak[id] > (next.maxRestStreak[id] || 0)) {
+        next.maxRestStreak[id] = next.restStreak[id];
+      }
+    }
+    const currentPlayCount = next.playCount[id] || 0;
+    if (currentPlayCount < minPlay) minPlay = currentPlayCount;
+    if (currentPlayCount > maxPlay) maxPlay = currentPlayCount;
+  }
+
+  next.playSpread = maxPlay - minPlay;
+  const packageKey = buildRoundPackageKey(matches);
+  next.historyKey = next.historyKey ? `${next.historyKey}>>${packageKey}` : packageKey;
+  next.rounds.push({
+    roundIndex: state.rounds.length,
+    matches: roundMatches,
+    restPlayers
+  });
+  next.roundFairness = {
+    playSpread: next.playSpread,
+    maxConsecutivePlay: next.maxConsecutivePlay,
+    restRoundScore
+  };
+  next.newUniqueCount = newUniqueCount;
+  next.partnerPenaltyDelta = partnerPenaltyDelta;
+  next.opponentPenaltyDelta = opponentPenaltyDelta;
+  next.packageKey = packageKey;
+  next.objective = buildDoublesObjectiveFromState(next);
+  return next;
+}
+
+function buildRoundCandidates(state, context) {
+  const remainingMatches = context.totalMatches - state.matchCount;
+  const packageSize = Math.min(context.courts, remainingMatches, Math.floor(context.ids.length / 4));
+  if (packageSize <= 0) return [];
+
+  const forceUniqueAll = context.forceUniqueAll === true;
+  const exactSpace = context.totalUniqueMatchups <= 120;
+  const rawMatches = context.allMatches
+    .filter((match) => !forceUniqueAll || !state.usedMatchupKeys.has(match.matchupKey));
+
+  if (!rawMatches.length) return [];
+
+  const scoredMatches = rawMatches
+    .map((match, idx) => rankSingleMatchCandidate(match, state, context.ids, context.seed + idx))
+    .sort(compareSingleMatchCandidate);
+  const limitedMatches = (exactSpace ? scoredMatches : scoredMatches.slice(0, context.matchLimit))
+    .map((item) => item.match);
+
+  const generated = [];
+  const usedPlayers = new Set();
+  const chosen = [];
+
+  const walk = (startIndex) => {
+    if (chosen.length === packageSize) {
+      generated.push(applyRoundCandidate(state, chosen, context.ids));
+      return;
+    }
+    for (let i = startIndex; i < limitedMatches.length; i += 1) {
+      const match = limitedMatches[i];
+      if (match.players.some((id) => usedPlayers.has(id))) continue;
+      match.players.forEach((id) => usedPlayers.add(id));
+      chosen.push(match);
+      walk(i + 1);
+      chosen.pop();
+      match.players.forEach((id) => usedPlayers.delete(id));
+    }
+  };
+
+  walk(0);
+  if (!generated.length) return [];
+
+  const allNewCandidates = generated.filter((candidate) => candidate.newUniqueCount === packageSize);
+  let allowed = generated;
+  if (forceUniqueAll) {
+    allowed = allNewCandidates;
+  } else if (allNewCandidates.length) {
+    const bestAllNew = allNewCandidates.slice().sort(compareRoundCandidate)[0];
+    allowed = generated.filter((candidate) => (
+      candidate.newUniqueCount === packageSize ||
+      compareFairnessTuple(candidate.roundFairness, bestAllNew.roundFairness) < 0
+    ));
+  }
+
+  return allowed
+    .sort(compareRoundCandidate)
+    .slice(0, exactSpace ? context.perStateLimitExact : context.perStateLimitBeam);
+}
+
+function finalizeDoublesSchedule(bestState, ids, weights, seed, options = {}) {
+  const stats = computeStats(bestState.rounds, ids);
+  const totalUniqueMatchups = Number(options.totalUniqueMatchups) || 0;
+  const uniqueGap = Math.max(0, totalUniqueMatchups - bestState.uniqueMatchupCount);
+  const fairnessPenalty =
+    (bestState.playSpread * 50000) +
+    (bestState.maxConsecutivePlay * 20000) +
+    (uniqueGap * 12000) +
+    (bestState.partnerPenalty * 120) +
+    (bestState.opponentPenalty * 10);
+  const fairnessScore = Math.max(1, Math.round(1000000 / (1 + fairnessPenalty)));
+
+  return {
+    rounds: bestState.rounds,
+    playerStats: {
+      playCount: stats.playCount,
+      partnerRepeats: stats.partnerRepeats,
+      opponentRepeats: stats.opponentRepeats,
+      maxRestStreak: bestState.maxRestStreak,
+      matchTypeCount: { MX: 0, MM: 0, FF: 0, OPEN: 0 },
+      uniqueMatchupCount: bestState.uniqueMatchupCount
+    },
+    fairness: {
+      mode: MODE_DOUBLES,
+      alpha: weights.alpha,
+      beta: weights.beta,
+      gamma: weights.gamma,
+      delta: weights.delta,
+      epsilon: weights.epsilon,
+      theta: weights.theta,
+      zeta: weights.zeta,
+      omega: weights.omega,
+      playSpread: bestState.playSpread,
+      maxConsecutivePlay: bestState.maxConsecutivePlay,
+      restScoreTotal: bestState.restScoreTotal,
+      uniqueMatchupCount: bestState.uniqueMatchupCount,
+      totalUniqueMatchups,
+      partnerRepeats: stats.partnerRepeats,
+      opponentRepeats: stats.opponentRepeats,
+      partnerPenalty: bestState.partnerPenalty,
+      opponentPenalty: bestState.opponentPenalty
+    },
+    objective: {
+      ...bestState.objective,
+      totalUniqueMatchups
+    },
+    fairnessScore,
+    seed
+  };
+}
+
+function generateDoublesSchedule(ids, totalMatches, courts, weights, seed, options = {}) {
+  const context = {
+    ids: ids.slice(),
+    totalMatches,
+    courts,
+    seed,
+    allMatches: buildAllDoublesMatches(ids),
+    matchLimit: Math.max(48, courts * 24),
+    perStateLimitExact: 192,
+    perStateLimitBeam: 24
+  };
+  context.totalUniqueMatchups = context.allMatches.length;
+  context.forceUniqueAll = totalMatches === context.totalUniqueMatchups;
+
+  const exactSpace = context.totalUniqueMatchups <= 120;
+  const beamWidth = exactSpace ? 384 : 64;
+
+  let beam = [buildInitialDoublesState(ids)];
+  while (beam.length) {
+    if (beam.every((state) => state.matchCount >= totalMatches)) break;
+    const expanded = [];
+    for (const state of beam) {
+      if (state.matchCount >= totalMatches) {
+        expanded.push(state);
+        continue;
+      }
+      const nextStates = buildRoundCandidates(state, context);
+      expanded.push(...nextStates);
+    }
+    if (!expanded.length) break;
+    expanded.sort(compareSearchState);
+    beam = expanded.slice(0, beamWidth);
+  }
+
+  const completed = beam.filter((state) => state.matchCount >= totalMatches);
+  const bestState = (completed.length ? completed : beam).slice().sort(compareSearchState)[0];
+  if (!bestState || bestState.matchCount < totalMatches) {
+    return generateLegacyScheduleOnce(ids, totalMatches, courts, weights, seed, options);
+  }
+  return finalizeDoublesSchedule(bestState, ids, weights, seed, {
+    totalUniqueMatchups: context.totalUniqueMatchups
+  });
+}
+
 function generateSchedule(players, totalMatches, courts = 1, options = {}) {
   if (!Array.isArray(players) || players.length < 4) {
     throw new Error('参赛人数必须不少于4人');
@@ -780,27 +1206,95 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
   };
 
   const baseSeed = normalizeSeed(options.seed ?? (Date.now() % 2147483647));
+  const coverageFallbackEligible = mode === MODE_DOUBLES && ids.length <= 5 && C === 1;
 
-  const triedSeeds = [];
   let best = null;
-  for (let i = 0; i < selectedSearchSeeds; i++) {
-    const seed = normalizeSeed(baseSeed + i * selectedSeedStep);
-    triedSeeds.push(seed);
-    const out = generateScheduleOnce(ids, M, C, weights, seed, {
-      mode,
-      allowOpen,
-      genderById,
-      typeTargets
+  let triedSeeds = [];
+  let actualSearchSeeds = selectedSearchSeeds;
+
+  if (mode === MODE_DOUBLES) {
+    best = doublesEngine.resolveRuntimeSchedule(ids, M, C, {
+      seed: baseSeed,
+      searchSeeds: selectedSearchSeeds,
+      seedStep: selectedSeedStep
     });
-    if (!best) {
-      best = out;
-      continue;
+    if (best) {
+      triedSeeds = Array.isArray(best.triedSeeds) ? best.triedSeeds.slice() : [];
+      actualSearchSeeds = Number(best.searchSeedsUsed) || 0;
     }
-    const cmp = compareObjective(out.objective, best.objective);
-    if (cmp < 0 || (cmp === 0 && out.seed < best.seed)) {
-      best = out;
+
+    const bestMatchCount = best
+      ? (best.rounds || []).reduce((sum, round) => sum + ((round && round.matches) ? round.matches.length : 0), 0)
+      : 0;
+    if ((!best || bestMatchCount < M) && coverageFallbackEligible) {
+      const coverageSeeds = 4;
+      const coverageTriedSeeds = [];
+      let coverageBest = null;
+      for (let i = 0; i < coverageSeeds; i += 1) {
+        const seed = normalizeSeed(baseSeed + i * selectedSeedStep);
+        coverageTriedSeeds.push(seed);
+        const out = generateDoublesSchedule(ids, M, C, weights, seed, {
+          mode,
+          allowOpen,
+          genderById,
+          typeTargets
+        });
+        out.engine = 'coverage';
+        out.searchSeedsUsed = coverageSeeds;
+        out.triedSeeds = coverageTriedSeeds.slice();
+        if (!coverageBest) {
+          coverageBest = out;
+          continue;
+        }
+        const cmp = compareDoublesObjective(out.objective, coverageBest.objective);
+        if (cmp < 0 || (cmp === 0 && out.seed < coverageBest.seed)) {
+          coverageBest = out;
+        }
+      }
+      best = coverageBest;
+      triedSeeds = coverageTriedSeeds.slice();
+      actualSearchSeeds = coverageSeeds;
     }
   }
+
+  if (!best) {
+    const legacyTriedSeeds = [];
+    for (let i = 0; i < selectedSearchSeeds; i++) {
+      const seed = normalizeSeed(baseSeed + i * selectedSeedStep);
+      legacyTriedSeeds.push(seed);
+      const out = generateLegacyScheduleOnce(ids, M, C, weights, seed, {
+        mode,
+        allowOpen,
+        genderById,
+        typeTargets
+      });
+      out.engine = 'legacy';
+      out.searchSeedsUsed = selectedSearchSeeds;
+      out.triedSeeds = legacyTriedSeeds.slice();
+      if (!best) {
+        best = out;
+        continue;
+      }
+      const cmp = compareObjective(out.objective, best.objective);
+      if (cmp < 0 || (cmp === 0 && out.seed < best.seed)) {
+        best = out;
+      }
+    }
+    triedSeeds = legacyTriedSeeds.slice();
+    actualSearchSeeds = selectedSearchSeeds;
+  }
+
+  const engine = String(best.engine || (mode === MODE_DOUBLES ? 'beam' : 'legacy')).trim();
+  const totalUniqueMatchups = Number(best.objective && best.objective.totalUniqueMatchups) || 0;
+  const uniqueExactMatchupCount = Number(best.playerStats && best.playerStats.uniqueMatchupCount)
+    || Number(best.fairness && best.fairness.uniqueMatchupCount)
+    || 0;
+  const playSpread = Number(best.fairness && best.fairness.playSpread)
+    || Number(best.objective && best.objective.playSpread)
+    || 0;
+  const maxConsecutivePlay = Number(best.fairness && best.fairness.maxConsecutivePlay)
+    || Number(best.objective && best.objective.maxConsecutivePlay)
+    || 0;
 
   return {
     rounds: best.rounds,
@@ -809,21 +1303,29 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
     fairnessScore: best.fairnessScore,
     seed: best.seed,
     schedulerMeta: {
-      engineVersion: 'rotation-v2',
+      engineVersion: 'rotation-v3',
+      engine,
       baseSeed,
       triedSeeds,
       selectedSeed: best.seed,
-      searchSeeds: selectedSearchSeeds,
+      searchSeeds: actualSearchSeeds,
       seedStep: selectedSeedStep,
-      selectedSearchSeeds,
+      selectedSearchSeeds: actualSearchSeeds,
       selectedEpsilon,
       mode,
       allowOpen,
+      templateKey: String(best.templateKey || ''),
+      templateVariantId: String(best.templateVariantId || ''),
+      templateHorizon: Number(best.templateHorizon) || 0,
+      uniqueExactMatchupCount,
+      totalUniqueMatchups,
+      playSpread,
+      maxConsecutivePlay,
       typeTargets,
       policy: {
         ...policy,
         policyVersion: policy.policyVersion || POLICY_VERSION,
-        selectedSearchSeeds,
+        selectedSearchSeeds: actualSearchSeeds,
         selectedEpsilon
       },
       matchTypeCounts: (best.playerStats && best.playerStats.matchTypeCount) || {},
@@ -837,5 +1339,6 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
 
 module.exports = {
   generateSchedule,
-  selectSchedulerPolicy
+  selectSchedulerPolicy,
+  __buildTemplateLibrary: doublesEngine.buildTemplateLibrary
 };

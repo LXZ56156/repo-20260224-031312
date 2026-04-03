@@ -20,7 +20,7 @@ test('buildAvatarDisplay prefers cached cloud avatar url and keeps initial fallb
   assert.match(item.colorClass, /^pcolor-[0-5]$/);
 });
 
-test('collectCloudAvatarFileIds skips already-cached entries even when cache value is empty', () => {
+test('collectCloudAvatarFileIds retries cloud avatars when cached value is empty', () => {
   const pending = avatarDisplay.collectCloudAvatarFileIds({
     rows: [
       { avatarRaw: 'cloud://avatar/a' },
@@ -31,10 +31,10 @@ test('collectCloudAvatarFileIds skips already-cached entries even when cache val
     'cloud://avatar/b': 'https://temp/avatar/b.png'
   });
 
-  assert.deepEqual(pending, []);
+  assert.deepEqual(pending, ['cloud://avatar/a']);
 });
 
-test('resolveCloudAvatarFileIds caches returned temp urls and records empty results', async () => {
+test('resolveCloudAvatarFileIds caches returned temp urls but does not persist empty results', async () => {
   const originalWx = global.wx;
   const cache = {};
 
@@ -56,7 +56,7 @@ test('resolveCloudAvatarFileIds caches returned temp urls and records empty resu
 
     assert.equal(result.updated, true);
     assert.equal(cache['cloud://avatar/a'], 'https://temp/avatar/a.png');
-    assert.equal(cache['cloud://avatar/b'], '');
+    assert.equal(Object.prototype.hasOwnProperty.call(cache, 'cloud://avatar/b'), false);
   } finally {
     global.wx = originalWx;
   }

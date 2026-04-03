@@ -64,7 +64,8 @@ function collectCloudAvatarFileIds(value, avatarCache = {}, output = [], seen = 
     if (typeof node !== 'object') return;
 
     const avatarRaw = String(node.avatarRaw || '').trim();
-    if (avatarRaw.startsWith('cloud://') && !hasOwn(avatarCache, avatarRaw) && !seen.has(avatarRaw)) {
+    const cached = hasOwn(avatarCache, avatarRaw) ? String(avatarCache[avatarRaw] || '').trim() : '';
+    if (avatarRaw.startsWith('cloud://') && (!cached || !hasOwn(avatarCache, avatarRaw)) && !seen.has(avatarRaw)) {
       seen.add(avatarRaw);
       output.push(avatarRaw);
     }
@@ -98,12 +99,13 @@ async function resolveCloudAvatarFileIds(fileIds, avatarCache = {}) {
       if (!fileID) continue;
       resolved.add(fileID);
       const url = String(item && item.tempFileURL || '').trim();
-      avatarCache[fileID] = url;
-      if (url) updated = true;
+      if (url) {
+        avatarCache[fileID] = url;
+        updated = true;
+      } else if (hasOwn(avatarCache, fileID) && !avatarCache[fileID]) {
+        delete avatarCache[fileID];
+      }
     }
-    need.forEach((fileId) => {
-      if (!resolved.has(fileId)) avatarCache[fileId] = '';
-    });
     return { updated, requested: need };
   } catch (_) {
     return { updated: false, requested: need };

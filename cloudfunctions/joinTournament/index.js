@@ -43,6 +43,14 @@ function normalizeAvatar(avatar) {
   return String(avatar || '').trim();
 }
 
+function isGuestPlayer(player) {
+  if (!player || typeof player !== 'object') return false;
+  const type = String(player.type || '').trim().toLowerCase();
+  if (type === 'guest') return true;
+  const id = String(player.id || '').trim().toLowerCase();
+  return id.startsWith('guest_');
+}
+
 function resolveProfileNickName(profile) {
   return normalizeName(
     (profile && (profile.nickName || profile.nickname || profile.name || profile.displayName)) || ''
@@ -55,6 +63,75 @@ function listMissingProfileFields(profile) {
   if (!String(profile && profile.avatar || '').trim()) missing.push('头像');
   if (normalizeGender(profile && profile.gender) === 'unknown') missing.push('性别');
   return missing;
+}
+
+function rewritePlayerReference(value, oldId, nextPlayer) {
+  if (typeof value === 'string') {
+    return value === oldId ? nextPlayer.id : value;
+  }
+  if (!value || typeof value !== 'object') return value;
+  const currentId = String((value.id || value.playerId || value._id) || '').trim();
+  if (currentId !== oldId) return value;
+  const rewritten = { ...value, id: nextPlayer.id };
+  if (Object.prototype.hasOwnProperty.call(rewritten, 'playerId')) rewritten.playerId = nextPlayer.id;
+  rewritten.name = nextPlayer.name;
+  rewritten.avatar = nextPlayer.avatar;
+  rewritten.gender = nextPlayer.gender;
+  rewritten.type = 'user';
+  if (Object.prototype.hasOwnProperty.call(rewritten, 'squad') || nextPlayer.squad) {
+    rewritten.squad = nextPlayer.squad || '';
+  }
+  return rewritten;
+}
+
+function replaceIdList(ids, oldId, nextId) {
+  return Array.from(new Set((Array.isArray(ids) ? ids : []).map((id) => (String(id || '').trim() === oldId ? nextId : String(id || '').trim())).filter(Boolean)));
+}
+
+function buildPairTeamName(team, players) {
+  if (!team || typeof team !== 'object') return '';
+  const playerMap = Object.fromEntries((Array.isArray(players) ? players : []).map((player) => [String(player && player.id || '').trim(), player]));
+  const ids = Array.isArray(team.playerIds) ? team.playerIds.map((id) => String(id || '').trim()).filter(Boolean) : [];
+  const names = ids.map((id) => modeHelper.safePlayerName(playerMap[id] || { id })).filter(Boolean);
+  return names.length ? names.join(' / ') : String(team.name || '').trim();
+}
+
+function rewriteClaimedGuestTournament(tournament, oldId, nextPlayer) {
+  const players = (Array.isArray(tournament && tournament.players) ? tournament.players : []).map((player) => {
+    if (!player || typeof player !== 'object') return player;
+    if (String(player.id || '').trim() !== oldId) return player;
+    return {
+      ...player,
+      id: nextPlayer.id,
+      name: nextPlayer.name,
+      avatar: nextPlayer.avatar,
+      gender: nextPlayer.gender,
+      type: 'user',
+      squad: nextPlayer.squad || ''
+    };
+  });
+
+  const playerIds = replaceIdList(tournament && tournament.playerIds, oldId, nextPlayer.id);
+  const pairTeams = (Array.isArray(tournament && tournament.pairTeams) ? tournament.pairTeams : []).map((team) => {
+    if (!team || typeof team !== 'object') return team;
+    const nextPlayerIds = replaceIdList(team.playerIds, oldId, nextPlayer.id);
+    const nextTeam = { ...team, playerIds: nextPlayerIds };
+    const nextName = buildPairTeamName(nextTeam, players);
+    if (nextName) nextTeam.name = nextName;
+    return nextTeam;
+  });
+  const rounds = (Array.isArray(tournament && tournament.rounds) ? tournament.rounds : []).map((round) => ({
+    ...round,
+    matches: (Array.isArray(round && round.matches) ? round.matches : []).map((match) => ({
+      ...match,
+      teamA: (Array.isArray(match && match.teamA) ? match.teamA : []).map((player) => rewritePlayerReference(player, oldId, nextPlayer)),
+      teamB: (Array.isArray(match && match.teamB) ? match.teamB : []).map((player) => rewritePlayerReference(player, oldId, nextPlayer))
+    })),
+    restPlayers: (Array.isArray(round && round.restPlayers) ? round.restPlayers : []).map((player) => rewritePlayerReference(player, oldId, nextPlayer))
+  }));
+  const rankings = modeHelper.buildInitialRankings(tournament && tournament.mode, players, pairTeams);
+
+  return { players, playerIds, pairTeams, rounds, rankings };
 }
 
 function buildResultExtra(traceId, clientRequestId, extra = {}) {
@@ -133,6 +210,11 @@ exports.main = async (event, context) => {
       const mode = modeHelper.normalizeMode(t.mode);
       const idx = players.findIndex(p => p && p.id === openid);
       const currentPlayer = idx >= 0 ? (players[idx] || {}) : null;
+      const matchedGuests = idx >= 0
+        ? []
+        : players.filter((player) => isGuestPlayer(player) && normalizeName(player && player.name) === normalizeName(rawNickname || resolveProfileNickName(profileData)));
+      const claimableGuest = matchedGuests.length === 1 ? matchedGuests[0] : null;
+      const claimedGuestId = claimableGuest ? String(claimableGuest.id || '').trim() : '';
 
       let nickname = normalizeName(rawNickname) || normalizeName(currentPlayer && currentPlayer.name);
       if (!avatar && currentPlayer) avatar = normalizeAvatar(currentPlayer.avatar || currentPlayer.avatarUrl);
@@ -152,7 +234,7 @@ exports.main = async (event, context) => {
       }
 
       // 去重
-      nickname = uniqueName(nickname, players, openid) || (idx >= 0 ? String(players[idx].name || '') : '');
+      nickname = uniqueName(nickname, players, claimedGuestId || openid) || (idx >= 0 ? String(players[idx].name || '') : '');
       const nextVersion = (Number(t.version) || 1) + 1;
 
       if (idx >= 0) {
@@ -217,6 +299,31 @@ exports.main = async (event, context) => {
         gender,
         squad: mode === 'squad_doubles' ? (squadChoice || 'A') : ''
       };
+
+      if (claimableGuest && claimedGuestId) {
+        const rewritten = rewriteClaimedGuestTournament(t, claimedGuestId, { ...player, type: 'user' });
+        await transaction.collection('tournaments').doc(tournamentId).update({
+          data: common.assertNoReservedRootKeys({
+            players: rewritten.players,
+            playerIds: rewritten.playerIds,
+            pairTeams: rewritten.pairTeams,
+            rounds: rewritten.rounds,
+            rankings: rewritten.rankings,
+            version: nextVersion,
+            updatedAt: db.serverDate()
+          }, ['_id'], '赛事认领 guest 写入数据')
+        });
+
+        return ok(traceId, clientRequestId, 'JOINED', '已加入比赛', {
+          state: 'joined',
+          added: true,
+          claimed: true,
+          claimedGuestId,
+          version: nextVersion,
+          player
+        });
+      }
+
       const nextPlayers = players.concat(player);
       const nextPlayerIds = Array.from(new Set(nextPlayers.map((item) => String(item && item.id || '').trim()).filter(Boolean)));
 

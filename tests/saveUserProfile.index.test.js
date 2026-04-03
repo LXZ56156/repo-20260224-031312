@@ -80,7 +80,8 @@ test('saveUserProfile creates a new profile when none exists', async () => {
     state: 'updated',
     traceId: '',
     profileId: 'profile_1',
-    data: { profileId: 'profile_1' }
+    syncedTournamentCount: 0,
+    data: { profileId: 'profile_1', syncedTournamentCount: 0 }
   });
   assert.equal(createCollectionName, 'user_profiles');
   assert.deepEqual(addPayload, {
@@ -139,7 +140,8 @@ test('saveUserProfile updates existing profile in place', async () => {
     state: 'updated',
     traceId: '',
     profileId: 'profile_existing',
-    data: { profileId: 'profile_existing' }
+    syncedTournamentCount: 0,
+    data: { profileId: 'profile_existing', syncedTournamentCount: 0 }
   });
   assert.deepEqual(updatePayload, {
     nickname: '球友B',
@@ -151,19 +153,77 @@ test('saveUserProfile updates existing profile in place', async () => {
 
 test('saveUserProfile treats repeated clientRequestId as deduped success', async () => {
   let updateCalled = false;
+  const tournamentUpdates = [];
   const db = {
+    command: {
+      in(values) {
+        return { $in: values };
+      },
+      inc(value) {
+        return { $inc: value };
+      }
+    },
     async createCollection() {},
     serverDate() {
       return { $serverDate: true };
     },
-    collection() {
+    collection(name) {
+      if (name === 'tournaments') {
+        return {
+          where(query) {
+            if (query && query.status) {
+              return {
+                async get() {
+                  return {
+                    data: [{
+                      _id: 't_running',
+                      status: 'running',
+                      version: 3,
+                      playerIds: ['u_profile'],
+                      players: [{ id: 'u_profile', type: 'user', name: '球友B', avatar: '', gender: 'female' }],
+                      rounds: [{
+                        roundIndex: 0,
+                        matches: [{
+                          matchIndex: 0,
+                          teamA: [{ id: 'u_profile', name: '球友B', avatar: '' }],
+                          teamB: [{ id: 'u_other', name: '球友C', avatar: 'cloud://avatar/other' }]
+                        }],
+                        restPlayers: [{ id: 'u_profile', name: '球友B', avatar: '' }]
+                      }]
+                    }]
+                  };
+                }
+              };
+            }
+            return {
+              async update(payload) {
+                tournamentUpdates.push({ query, data: payload.data });
+                return { stats: { updated: 1 } };
+              }
+            };
+          },
+          doc() {
+            return {
+              async get() {
+                throw new Error('unexpected refetch');
+              }
+            };
+          }
+        };
+      }
       return {
         where() {
           return {
             limit() {
               return {
                 async get() {
-                  return { data: [{ _id: 'profile_existing', lastClientRequestId: 'req_profile_1' }] };
+                  return {
+                    data: [{
+                      _id: 'profile_existing',
+                      lastClientRequestId: 'req_profile_1',
+                      avatar: 'cloud://avatar/b.png'
+                    }]
+                  };
                 }
               };
             }
@@ -192,5 +252,9 @@ test('saveUserProfile treats repeated clientRequestId as deduped success', async
   assert.equal(result.deduped, true);
   assert.equal(result.clientRequestId, 'req_profile_1');
   assert.equal(result.profileId, 'profile_existing');
+  assert.equal(result.syncedTournamentCount, 1);
   assert.equal(updateCalled, false);
+  assert.equal(tournamentUpdates.length, 1);
+  assert.deepEqual(tournamentUpdates[0].query, { _id: 't_running', version: 3 });
+  assert.equal(tournamentUpdates[0].data.players[0].avatar, 'cloud://avatar/b.png');
 });
