@@ -23,14 +23,16 @@ test('selectSchedulerPolicy picks expected searchSeeds and epsilon', () => {
 });
 
 test('generateSchedule exposes policy metadata in schedulerMeta', () => {
-  const out = generateSchedule(makePlayers(12), 12, 2, { seed: 42, searchSeeds: 1 });
+  const out = generateSchedule(makePlayers(12), 12, 3, { seed: 42, searchSeeds: 1 });
   const meta = out.schedulerMeta || {};
   assert.equal(meta.engineVersion, 'rotation-v3');
-  assert.equal(meta.engine, 'beam');
+  assert.ok(['beam', 'legacy'].includes(meta.engine));
   assert.equal(meta.searchSeeds, 1);
   assert.equal(meta.selectedSearchSeeds, 1);
   assert.equal(meta.selectedEpsilon, 1.6);
   assert.equal(meta.policy && meta.policy.policyVersion, 'v3');
+  assert.equal(typeof meta.executionProfile, 'string');
+  assert.equal(typeof meta.timeoutGuardTriggered, 'boolean');
   assert.equal(meta.playSpread, 0);
   assert.equal(meta.uniqueExactMatchupCount, 12);
 });

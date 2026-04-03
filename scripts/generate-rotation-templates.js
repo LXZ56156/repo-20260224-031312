@@ -17,7 +17,11 @@ const DEFAULT_CASES = [
   { players: 13, courts: 1, horizonMatches: 12, seed: 61, searchSeeds: 6, beamWidth: 192, restSetLimit: 16, packageLimit: 32, perStateLimit: 10, timeBudgetMs: 4000 },
   { players: 8, courts: 2, horizonMatches: 16, seed: 43, searchSeeds: 4, beamWidth: 160, restSetLimit: 16, packageLimit: 32, perStateLimit: 10, timeBudgetMs: 2200 },
   { players: 9, courts: 2, horizonMatches: 18, seed: 47, searchSeeds: 4, beamWidth: 160, restSetLimit: 16, packageLimit: 32, perStateLimit: 10, timeBudgetMs: 2200 },
-  { players: 10, courts: 2, horizonMatches: 22, seed: 53, searchSeeds: 2, beamWidth: 128, restSetLimit: 16, packageLimit: 32, perStateLimit: 10, timeBudgetMs: 2200 }
+  { players: 10, courts: 2, horizonMatches: 22, seed: 53, searchSeeds: 2, beamWidth: 128, restSetLimit: 16, packageLimit: 32, perStateLimit: 10, timeBudgetMs: 2200 },
+  { players: 11, courts: 2, horizonMatches: 12, seed: 67, searchSeeds: 8, beamWidth: 256, restSetLimit: 16, packageLimit: 32, perStateLimit: 12, timeBudgetMs: 4500 },
+  { players: 12, courts: 2, horizonMatches: 12, seed: 71, searchSeeds: 8, beamWidth: 256, restSetLimit: 16, packageLimit: 32, perStateLimit: 12, timeBudgetMs: 4500 },
+  { players: 13, courts: 2, horizonMatches: 12, seed: 73, searchSeeds: 8, beamWidth: 256, restSetLimit: 16, packageLimit: 32, perStateLimit: 12, timeBudgetMs: 4500 },
+  { players: 14, courts: 2, horizonMatches: 12, seed: 79, searchSeeds: 8, beamWidth: 256, restSetLimit: 16, packageLimit: 32, perStateLimit: 12, timeBudgetMs: 4500 }
 ];
 
 function parseArgs(argv) {

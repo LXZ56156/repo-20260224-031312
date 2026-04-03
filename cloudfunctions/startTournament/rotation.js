@@ -1205,6 +1205,15 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
     omega: Number(options.omega ?? 5.0)
   };
 
+  const scheduleStartedAtMs = Date.now();
+  const runtimeBudgetMs = Math.max(600, Number(options.runtimeBudgetMs) || 2500);
+  const hardReturnBudgetMs = runtimeBudgetMs;
+  const guardBudgetMs = Math.min(2200, Math.max(450, hardReturnBudgetMs - 300));
+  const softBudgetMs = Math.min(1700, Math.max(200, guardBudgetMs - 500));
+  const hardReturnDeadlineAtMs = scheduleStartedAtMs + hardReturnBudgetMs;
+  const guardDeadlineAtMs = scheduleStartedAtMs + guardBudgetMs;
+  const softDeadlineAtMs = scheduleStartedAtMs + softBudgetMs;
+
   const baseSeed = normalizeSeed(options.seed ?? (Date.now() % 2147483647));
   const coverageFallbackEligible = mode === MODE_DOUBLES && ids.length <= 5 && C === 1;
 
@@ -1216,7 +1225,10 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
     best = doublesEngine.resolveRuntimeSchedule(ids, M, C, {
       seed: baseSeed,
       searchSeeds: selectedSearchSeeds,
-      seedStep: selectedSeedStep
+      seedStep: selectedSeedStep,
+      softDeadlineAtMs,
+      guardDeadlineAtMs,
+      hardReturnDeadlineAtMs
     });
     if (best) {
       triedSeeds = Array.isArray(best.triedSeeds) ? best.triedSeeds.slice() : [];
@@ -1258,8 +1270,13 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
   }
 
   if (!best) {
+    const legacyFallbackAllowed = mode !== MODE_DOUBLES || ((Date.now() + 250) <= hardReturnDeadlineAtMs);
+    const legacySearchSeeds = mode === MODE_DOUBLES ? 1 : selectedSearchSeeds;
+    if (!legacyFallbackAllowed) {
+      throw new Error('排阵超时，请减少场次或补充模板');
+    }
     const legacyTriedSeeds = [];
-    for (let i = 0; i < selectedSearchSeeds; i++) {
+    for (let i = 0; i < legacySearchSeeds; i++) {
       const seed = normalizeSeed(baseSeed + i * selectedSeedStep);
       legacyTriedSeeds.push(seed);
       const out = generateLegacyScheduleOnce(ids, M, C, weights, seed, {
@@ -1269,8 +1286,10 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
         typeTargets
       });
       out.engine = 'legacy';
-      out.searchSeedsUsed = selectedSearchSeeds;
+      out.searchSeedsUsed = legacySearchSeeds;
       out.triedSeeds = legacyTriedSeeds.slice();
+      out.executionProfile = mode === MODE_DOUBLES ? 'legacy-guarded' : 'legacy';
+      out.timeoutGuardTriggered = mode === MODE_DOUBLES;
       if (!best) {
         best = out;
         continue;
@@ -1281,7 +1300,7 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
       }
     }
     triedSeeds = legacyTriedSeeds.slice();
-    actualSearchSeeds = selectedSearchSeeds;
+    actualSearchSeeds = legacySearchSeeds;
   }
 
   const engine = String(best.engine || (mode === MODE_DOUBLES ? 'beam' : 'legacy')).trim();
@@ -1312,6 +1331,8 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
       seedStep: selectedSeedStep,
       selectedSearchSeeds: actualSearchSeeds,
       selectedEpsilon,
+      executionProfile: String(best.executionProfile || engine),
+      timeoutGuardTriggered: best.timeoutGuardTriggered === true,
       mode,
       allowOpen,
       templateKey: String(best.templateKey || ''),

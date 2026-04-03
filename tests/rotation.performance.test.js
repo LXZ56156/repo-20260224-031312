@@ -26,14 +26,40 @@ test('newly templated single-court cases return within a tight bound', () => {
   assert.ok(elapsed < 100, `elapsed=${elapsed}`);
 });
 
-test('beam fallback still returns a full schedule for non-templated cases', () => {
+test('newly templated dual-court cases return within a tight bound', () => {
   const started = Date.now();
-  const out = generateSchedule(makePlayers(12), 12, 2, { seed: 42, searchSeeds: 1 });
+  const out = generateSchedule(makePlayers(12), 12, 2, { seed: 71 });
   const elapsed = Date.now() - started;
 
-  assert.equal(out.schedulerMeta.engine, 'beam');
-  assert.equal(out.schedulerMeta.searchSeeds, 1);
+  assert.equal(out.schedulerMeta.engine, 'template');
+  assert.equal(out.schedulerMeta.templateKey, '12p-2c');
   assert.equal(out.schedulerMeta.uniqueExactMatchupCount, 12);
   assert.equal(out.schedulerMeta.playSpread, 0);
-  assert.ok(elapsed < 6000, `elapsed=${elapsed}`);
+  assert.ok(elapsed < 100, `elapsed=${elapsed}`);
+});
+
+test('beam fallback still returns a full schedule for non-templated cases', () => {
+  const started = Date.now();
+  const out = generateSchedule(makePlayers(12), 12, 3, { seed: 42, searchSeeds: 1 });
+  const elapsed = Date.now() - started;
+
+  assert.ok(['beam', 'legacy'].includes(out.schedulerMeta.engine));
+  assert.equal(out.rounds.flatMap((round) => round.matches || []).length, 12);
+  assert.equal(out.schedulerMeta.uniqueExactMatchupCount, 12);
+  assert.equal(out.schedulerMeta.playSpread, 0);
+  assert.ok(elapsed < 4000, `elapsed=${elapsed}`);
+});
+
+test('runtime budget can force guarded completion while still returning a full schedule', () => {
+  const out = generateSchedule(makePlayers(12), 12, 3, {
+    seed: 42,
+    searchSeeds: 8,
+    runtimeBudgetMs: 700
+  });
+  const matches = out.rounds.flatMap((round) => round.matches || []);
+
+  assert.equal(matches.length, 12);
+  assert.equal(out.schedulerMeta.engine, 'beam');
+  assert.equal(out.schedulerMeta.executionProfile, 'beam-guarded');
+  assert.equal(out.schedulerMeta.timeoutGuardTriggered, true);
 });

@@ -25,6 +25,10 @@ function countComb(n, k) {
   return acc;
 }
 
+function nowMs() {
+  return Date.now();
+}
+
 function normalizeSeed(seed) {
   const n = Number(seed);
   if (!Number.isFinite(n)) return 1;
@@ -230,6 +234,28 @@ function buildInitialState(ids) {
       partnerPenalty: 0,
       opponentPenalty: 0
     }
+  };
+}
+
+function buildBeamContext(ids, totalMatches, courts, config = {}) {
+  return {
+    ids: stableSortIds(ids),
+    totalMatches,
+    courts,
+    lowTargetPlay: Math.floor((totalMatches * 4) / Math.max(1, ids.length)),
+    highTargetPlay: Math.ceil((totalMatches * 4) / Math.max(1, ids.length)),
+    allMatches: buildAllMatches(ids),
+    activeMatchCache: new Map(),
+    beamWidth: Number(config.beamWidth) || 64,
+    restSetLimit: Number(config.restSetLimit) || 12,
+    packageLimit: Number(config.packageLimit) || 24,
+    perStateLimit: Number(config.perStateLimit) || 8,
+    forceUniqueAll: config.forceUniqueAll === true,
+    preferFreshExact: config.preferFreshExact !== false,
+    enforceTargetBounds: config.enforceTargetBounds === true,
+    timeBudgetMs: Number(config.timeBudgetMs) || 150,
+    deadlineAtMs: Number(config.deadlineAtMs) || 0,
+    templateKey: buildTemplateKey(ids.length, courts)
   };
 }
 
@@ -581,7 +607,7 @@ function buildRoundCandidates(state, context, seed) {
   }
   if (!roundCandidates.length) return [];
 
-  if (!context.forceUniqueAll) {
+  if (!context.forceUniqueAll && context.preferFreshExact !== false) {
     const allNew = roundCandidates.filter((item) => item.packageCandidate.newExactMatchups === item.packageCandidate.matches.length);
     if (allNew.length) {
       const bestAllNew = allNew.slice().sort(compareRoundCandidate)[0];
@@ -601,6 +627,7 @@ function buildRoundCandidates(state, context, seed) {
 function greedilyCompleteState(state, context, seed) {
   let current = state;
   while (current && current.matchCount < context.totalMatches) {
+    if (context.deadlineAtMs > 0 && nowMs() >= context.deadlineAtMs) break;
     const nextRounds = buildRoundCandidates(current, context, seed);
     if (!nextRounds.length) break;
     current = applyRoundCandidate(current, {
@@ -615,30 +642,14 @@ function greedilyCompleteState(state, context, seed) {
 }
 
 function runSingleBeam(ids, totalMatches, courts, seed, config = {}) {
-  const context = {
-    ids: stableSortIds(ids),
-    totalMatches,
-    courts,
-    lowTargetPlay: Math.floor((totalMatches * 4) / Math.max(1, ids.length)),
-    highTargetPlay: Math.ceil((totalMatches * 4) / Math.max(1, ids.length)),
-    allMatches: buildAllMatches(ids),
-    activeMatchCache: new Map(),
-    beamWidth: Number(config.beamWidth) || 64,
-    restSetLimit: Number(config.restSetLimit) || 12,
-    packageLimit: Number(config.packageLimit) || 24,
-    perStateLimit: Number(config.perStateLimit) || 8,
-    forceUniqueAll: config.forceUniqueAll === true,
-    enforceTargetBounds: config.enforceTargetBounds === true,
-    timeBudgetMs: Number(config.timeBudgetMs) || 150,
-    templateKey: buildTemplateKey(ids.length, courts)
-  };
+  const context = buildBeamContext(ids, totalMatches, courts, config);
   let beam = [buildInitialState(context.ids)];
-  const startedAt = Date.now();
+  const startedAt = nowMs();
   let timedOut = false;
 
   while (beam.length) {
     if (beam.every((state) => state.matchCount >= totalMatches)) break;
-    if ((Date.now() - startedAt) >= context.timeBudgetMs) {
+    if ((nowMs() - startedAt) >= context.timeBudgetMs) {
       timedOut = true;
       break;
     }
@@ -784,7 +795,9 @@ function finalizeSchedule(state, ids, seed, meta = {}) {
     templateHorizon: Number(meta.templateHorizon) || 0,
     searchSeedsUsed: Number(meta.searchSeedsUsed) || 0,
     triedSeeds: Array.isArray(meta.triedSeeds) ? meta.triedSeeds.slice() : [],
-    timedOut: meta.timedOut === true
+    timedOut: meta.timedOut === true,
+    executionProfile: String(meta.executionProfile || meta.engine || 'beam'),
+    timeoutGuardTriggered: meta.timeoutGuardTriggered === true
   };
 }
 
@@ -920,10 +933,48 @@ function generateBeamSchedules(ids, totalMatches, courts, options = {}) {
       totalUniqueMatchups: buildAllMatches(ids).length,
       searchSeedsUsed: searchSeeds,
       triedSeeds: [seed],
-      timedOut
+      timedOut,
+      executionProfile: 'beam-quality',
+      timeoutGuardTriggered: false
     }));
   }
   return outputs;
+}
+
+function pickBestStateCandidate(left, right) {
+  if (!left) return right || null;
+  if (!right) return left;
+  const cmp = compareState(left.state, right.state);
+  if (cmp !== 0) return cmp <= 0 ? left : right;
+  return Number(left.seed || 0) <= Number(right.seed || 0) ? left : right;
+}
+
+function createRuntimeQualityConfig(courts) {
+  return courts === 1
+    ? { beamWidth: 64, restSetLimit: 12, packageLimit: 24, perStateLimit: 10, timeBudgetMs: 150, preferFreshExact: true }
+    : { beamWidth: 96, restSetLimit: 16, packageLimit: 32, perStateLimit: 12, timeBudgetMs: 220, preferFreshExact: true };
+}
+
+function createGuardedConfig(courts, deadlineAtMs) {
+  return courts === 1
+    ? {
+      beamWidth: 24,
+      restSetLimit: 6,
+      packageLimit: 12,
+      perStateLimit: 3,
+      preferFreshExact: false,
+      enforceTargetBounds: false,
+      deadlineAtMs
+    }
+    : {
+      beamWidth: 32,
+      restSetLimit: 8,
+      packageLimit: 12,
+      perStateLimit: 4,
+      preferFreshExact: false,
+      enforceTargetBounds: false,
+      deadlineAtMs
+    };
 }
 
 function resolveRuntimeSchedule(ids, totalMatches, courts, options = {}) {
@@ -935,6 +986,8 @@ function resolveRuntimeSchedule(ids, totalMatches, courts, options = {}) {
     if (out && countScheduledMatches(out.rounds) >= totalMatches) {
       out.engine = 'template';
       out.templateKey = templateKey;
+      out.executionProfile = 'template';
+      out.timeoutGuardTriggered = false;
       return out;
     }
   }
@@ -944,32 +997,71 @@ function resolveRuntimeSchedule(ids, totalMatches, courts, options = {}) {
   const seedStep = Math.max(1, Number(options.seedStep) || 7919);
   const baseSeed = normalizeSeed(options.seed);
   const outputs = [];
-  const runtimeConfig = courts === 1
-    ? { beamWidth: 64, restSetLimit: 12, packageLimit: 24, perStateLimit: 10, timeBudgetMs: 150 }
-    : { beamWidth: 96, restSetLimit: 16, packageLimit: 32, perStateLimit: 12, timeBudgetMs: 220 };
+  const runtimeConfig = createRuntimeQualityConfig(courts);
+  const totalUniqueMatchups = buildAllMatches(ids).length;
+  const softDeadlineAtMs = Number(options.softDeadlineAtMs) || 0;
+  const guardDeadlineAtMs = Number(options.guardDeadlineAtMs) || 0;
+  let timeoutGuardTriggered = false;
+  let bestPartial = null;
   for (let i = 0; i < beamSearchSeeds; i += 1) {
+    const now = nowMs();
+    if (softDeadlineAtMs > 0 && now >= softDeadlineAtMs) {
+      timeoutGuardTriggered = true;
+      break;
+    }
     const seed = normalizeSeed(baseSeed + (i * seedStep));
     triedSeeds.push(seed);
+    const remainingToSoft = softDeadlineAtMs > 0 ? Math.max(0, softDeadlineAtMs - now) : runtimeConfig.timeBudgetMs;
     const { state, timedOut } = runSingleBeam(ids, totalMatches, courts, seed, {
       ...runtimeConfig,
+      timeBudgetMs: Math.max(25, Math.min(runtimeConfig.timeBudgetMs, remainingToSoft || runtimeConfig.timeBudgetMs)),
       forceUniqueAll: false
     });
+    bestPartial = pickBestStateCandidate(bestPartial, { state, seed });
     outputs.push(finalizeSchedule(state, stableSortIds(ids), seed, {
       engine: 'beam',
-      totalUniqueMatchups: buildAllMatches(ids).length,
-      searchSeedsUsed: beamSearchSeeds,
+      totalUniqueMatchups,
+      searchSeedsUsed: triedSeeds.length,
       triedSeeds,
-      timedOut
+      timedOut,
+      executionProfile: 'beam-quality',
+      timeoutGuardTriggered: false
     }));
   }
-  const best = pickBestOutput(outputs);
-  if (best) {
-    if (countScheduledMatches(best.rounds) < totalMatches) return null;
-    best.triedSeeds = triedSeeds.slice();
-    best.searchSeedsUsed = beamSearchSeeds;
-    return best;
+  const completedOutputs = outputs.filter((item) => countScheduledMatches(item.rounds) >= totalMatches);
+  const bestCompleted = pickBestOutput(completedOutputs);
+  const searchedAllSeeds = triedSeeds.length >= beamSearchSeeds;
+  if (!timeoutGuardTriggered && searchedAllSeeds && bestCompleted) {
+    bestCompleted.triedSeeds = triedSeeds.slice();
+    bestCompleted.searchSeedsUsed = triedSeeds.length;
+    bestCompleted.executionProfile = 'beam-quality';
+    bestCompleted.timeoutGuardTriggered = false;
+    return bestCompleted;
   }
-  return null;
+
+  timeoutGuardTriggered = timeoutGuardTriggered || !bestCompleted;
+  if (bestCompleted) {
+    bestCompleted.triedSeeds = triedSeeds.slice();
+    bestCompleted.searchSeedsUsed = triedSeeds.length;
+    bestCompleted.executionProfile = 'beam-guarded';
+    bestCompleted.timeoutGuardTriggered = timeoutGuardTriggered;
+    return bestCompleted;
+  }
+
+  if (!bestPartial) return null;
+  if (guardDeadlineAtMs > 0 && nowMs() >= guardDeadlineAtMs) return null;
+  const guardContext = buildBeamContext(ids, totalMatches, courts, createGuardedConfig(courts, guardDeadlineAtMs));
+  const guardedState = greedilyCompleteState(bestPartial.state, guardContext, bestPartial.seed + 100003);
+  if (!guardedState || guardedState.matchCount < totalMatches) return null;
+  return finalizeSchedule(guardedState, stableSortIds(ids), bestPartial.seed, {
+    engine: 'beam',
+    totalUniqueMatchups,
+    searchSeedsUsed: triedSeeds.length,
+    triedSeeds,
+    timedOut: false,
+    executionProfile: 'beam-guarded',
+    timeoutGuardTriggered: true
+  });
 }
 
 function buildTemplateCase(caseSpec) {
@@ -1029,7 +1121,7 @@ function buildTemplateCase(caseSpec) {
     variants,
     bestPrefixByMatchCount: {}
   };
-  const allowPrefixRepairs = (courts === 1 && players <= 8) || (courts === 2 && players <= 10);
+  const allowPrefixRepairs = (courts === 1 && players <= 8) || (courts === 2 && players <= 14);
 
   for (let m = 1; m <= horizonMatches; m += 1) {
     primaryCaseData.bestPrefixByMatchCount[String(m)] = primaryVariantId;

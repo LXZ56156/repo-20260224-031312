@@ -24,7 +24,11 @@ const REQUIRED_CASES = [
   ['13p-1c', 13, 1, 12],
   ['8p-2c', 8, 2, 16],
   ['9p-2c', 9, 2, 18],
-  ['10p-2c', 10, 2, 22]
+  ['10p-2c', 10, 2, 22],
+  ['11p-2c', 11, 2, 12],
+  ['12p-2c', 12, 2, 12],
+  ['13p-2c', 13, 2, 12],
+  ['14p-2c', 14, 2, 12]
 ];
 
 test('rotation template library contains every approved template case', () => {
