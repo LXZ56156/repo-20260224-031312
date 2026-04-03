@@ -3,8 +3,21 @@ const actionGuard = require('../../core/actionGuard');
 const clientRequest = require('../../core/clientRequest');
 const cloneTournamentCore = require('../../core/cloneTournament');
 const storage = require('../../core/storage');
+const tournamentSync = require('../../core/tournamentSync');
 const nav = require('../../core/nav');
 const writeErrorUi = require('../../core/writeErrorUi');
+
+function isStartedTournament(doc) {
+  if (!doc || typeof doc !== 'object') return false;
+  if (String(doc.status || '').trim() !== 'running') return false;
+  return Array.isArray(doc.rounds) && doc.rounds.length > 0;
+}
+
+async function wait(ms) {
+  await new Promise((resolve) => {
+    setTimeout(resolve, Math.max(0, Number(ms) || 0));
+  });
+}
 
 module.exports = {
   handleWriteError(err, fallbackMessage, onRefresh) {
@@ -53,6 +66,43 @@ module.exports = {
     }
   },
 
+  async recoverStartedTournament() {
+    const localDoc = this._latestTournament || (this.data && this.data.tournament) || null;
+    if (isStartedTournament(localDoc)) return localDoc;
+
+    const tournamentId = String(this.data && this.data.tournamentId || '').trim();
+    if (!tournamentId) return null;
+
+    const first = await tournamentSync.fetchTournament(tournamentId);
+    if (first && first.ok && isStartedTournament(first.doc)) return first.doc;
+
+    await wait(800);
+    const second = await tournamentSync.fetchTournament(tournamentId);
+    if (second && second.ok && isStartedTournament(second.doc)) return second.doc;
+
+    return null;
+  },
+
+  applyRecoveredTournament(tournament) {
+    if (!tournament || typeof tournament !== 'object') return;
+    this._latestTournament = tournament;
+    if (typeof this.setTournament === 'function') {
+      this.setTournament(tournament);
+      return;
+    }
+    this.setData({ tournament });
+  },
+
+  finalizeStartSuccess(tournament) {
+    if (tournament) this.applyRecoveredTournament(tournament);
+    this.clearLastFailedAction();
+    wx.showToast({ title: '已开赛', icon: 'success' });
+    nav.markRefreshFlag(this.data.tournamentId);
+    setTimeout(() => {
+      nav.goSchedule(this.data.tournamentId);
+    }, 280);
+  },
+
   async handleStart(options = {}) {
     const tournament = this.data.tournament;
     if (!tournament || !this.data.isAdmin) return;
@@ -82,14 +132,17 @@ module.exports = {
           clientRequestId
         }), '开赛失败');
         wx.hideLoading();
-        this.clearLastFailedAction();
-        wx.showToast({ title: '已开赛', icon: 'success' });
-        nav.markRefreshFlag(this.data.tournamentId);
-        setTimeout(() => {
-          nav.goSchedule(this.data.tournamentId);
-        }, 280);
+        this.finalizeStartSuccess();
       } catch (err) {
         wx.hideLoading();
+        const parsed = cloud.parseCloudError(err, '开赛失败');
+        if (parsed.isTimeout || parsed.isNetwork) {
+          const recoveredTournament = await this.recoverStartedTournament();
+          if (isStartedTournament(recoveredTournament)) {
+            this.finalizeStartSuccess(recoveredTournament);
+            return;
+          }
+        }
         this.setLastFailedAction('开始比赛', () => this.handleStart({ clientRequestId }), { actionKey });
         this.handleWriteError(err, '开赛失败', () => this.fetchTournament(this.data.tournamentId));
       }

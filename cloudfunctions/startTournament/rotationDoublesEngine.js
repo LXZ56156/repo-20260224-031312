@@ -193,8 +193,17 @@ function compareState(left, right) {
   return String(left.historyKey || '').localeCompare(String(right.historyKey || ''));
 }
 
+function computeEffectiveCourts(playersCount, requestedCourts) {
+  const players = Math.max(0, Number(playersCount) || 0);
+  const requested = Math.max(1, Number(requestedCourts) || 1);
+  const maxConcurrent = Math.max(1, Math.floor(players / 4));
+  return Math.max(1, Math.min(requested, maxConcurrent));
+}
+
 function buildTemplateKey(playersCount, courts) {
-  return `${Math.max(0, Number(playersCount) || 0)}p-${Math.max(1, Number(courts) || 1)}c`;
+  const players = Math.max(0, Number(playersCount) || 0);
+  const effectiveCourts = computeEffectiveCourts(players, courts);
+  return `${players}p-${effectiveCourts}c`;
 }
 
 function theoreticalPlaySpread(playersCount, totalMatches) {
@@ -793,6 +802,7 @@ function finalizeSchedule(state, ids, seed, meta = {}) {
     templateKey: meta.templateKey || '',
     templateVariantId: meta.templateVariantId || '',
     templateHorizon: Number(meta.templateHorizon) || 0,
+    effectiveCourts: Math.max(1, Number(meta.effectiveCourts) || computeEffectiveCourts(ids.length, 1)),
     searchSeedsUsed: Number(meta.searchSeedsUsed) || 0,
     triedSeeds: Array.isArray(meta.triedSeeds) ? meta.triedSeeds.slice() : [],
     timedOut: meta.timedOut === true,
@@ -817,6 +827,19 @@ function loadTemplateLibrary() {
     // ignore
   }
   return { version: 'missing', cases: {} };
+}
+
+function findTemplateCase(playersCount, courts, totalMatches, library = null) {
+  const templateLibrary = library || loadTemplateLibrary();
+  const templateKey = buildTemplateKey(playersCount, courts);
+  const templateCase = templateLibrary && templateLibrary.cases ? templateLibrary.cases[templateKey] : null;
+  if (!templateCase) return null;
+  if (Math.max(1, Number(totalMatches) || 1) > Number(templateCase.horizonMatches || 0)) return null;
+  return {
+    templateKey,
+    templateCase,
+    effectiveCourts: computeEffectiveCourts(playersCount, courts)
+  };
 }
 
 function mapTemplateValue(value, orderedIds) {
@@ -903,6 +926,7 @@ function instantiateTemplate(caseData, ids, totalMatches) {
     templateKey: buildTemplateKey(caseData.players, caseData.courts),
     templateVariantId: variantId,
     templateHorizon: caseData.horizonMatches,
+    effectiveCourts: computeEffectiveCourts(caseData.players, caseData.courts),
     totalUniqueMatchups: Number(caseData.totalUniqueMatchups) || buildAllMatches(orderedIds).length,
     searchSeedsUsed: 0,
     triedSeeds: []
@@ -979,15 +1003,16 @@ function createGuardedConfig(courts, deadlineAtMs) {
 
 function resolveRuntimeSchedule(ids, totalMatches, courts, options = {}) {
   const templateLibrary = loadTemplateLibrary();
-  const templateKey = buildTemplateKey(ids.length, courts);
-  const templateCase = templateLibrary && templateLibrary.cases ? templateLibrary.cases[templateKey] : null;
-  if (templateCase && totalMatches <= Number(templateCase.horizonMatches || 0)) {
-    const out = instantiateTemplate(templateCase, ids, totalMatches);
+  const effectiveCourts = computeEffectiveCourts(ids.length, courts);
+  const templateMatch = findTemplateCase(ids.length, effectiveCourts, totalMatches, templateLibrary);
+  if (templateMatch && templateMatch.templateCase) {
+    const out = instantiateTemplate(templateMatch.templateCase, ids, totalMatches);
     if (out && countScheduledMatches(out.rounds) >= totalMatches) {
       out.engine = 'template';
-      out.templateKey = templateKey;
+      out.templateKey = templateMatch.templateKey;
       out.executionProfile = 'template';
       out.timeoutGuardTriggered = false;
+      out.effectiveCourts = effectiveCourts;
       return out;
     }
   }
@@ -997,7 +1022,7 @@ function resolveRuntimeSchedule(ids, totalMatches, courts, options = {}) {
   const seedStep = Math.max(1, Number(options.seedStep) || 7919);
   const baseSeed = normalizeSeed(options.seed);
   const outputs = [];
-  const runtimeConfig = createRuntimeQualityConfig(courts);
+  const runtimeConfig = createRuntimeQualityConfig(effectiveCourts);
   const totalUniqueMatchups = buildAllMatches(ids).length;
   const softDeadlineAtMs = Number(options.softDeadlineAtMs) || 0;
   const guardDeadlineAtMs = Number(options.guardDeadlineAtMs) || 0;
@@ -1012,7 +1037,7 @@ function resolveRuntimeSchedule(ids, totalMatches, courts, options = {}) {
     const seed = normalizeSeed(baseSeed + (i * seedStep));
     triedSeeds.push(seed);
     const remainingToSoft = softDeadlineAtMs > 0 ? Math.max(0, softDeadlineAtMs - now) : runtimeConfig.timeBudgetMs;
-    const { state, timedOut } = runSingleBeam(ids, totalMatches, courts, seed, {
+    const { state, timedOut } = runSingleBeam(ids, totalMatches, effectiveCourts, seed, {
       ...runtimeConfig,
       timeBudgetMs: Math.max(25, Math.min(runtimeConfig.timeBudgetMs, remainingToSoft || runtimeConfig.timeBudgetMs)),
       forceUniqueAll: false
@@ -1024,6 +1049,7 @@ function resolveRuntimeSchedule(ids, totalMatches, courts, options = {}) {
       searchSeedsUsed: triedSeeds.length,
       triedSeeds,
       timedOut,
+      effectiveCourts,
       executionProfile: 'beam-quality',
       timeoutGuardTriggered: false
     }));
@@ -1034,6 +1060,7 @@ function resolveRuntimeSchedule(ids, totalMatches, courts, options = {}) {
   if (!timeoutGuardTriggered && searchedAllSeeds && bestCompleted) {
     bestCompleted.triedSeeds = triedSeeds.slice();
     bestCompleted.searchSeedsUsed = triedSeeds.length;
+    bestCompleted.effectiveCourts = effectiveCourts;
     bestCompleted.executionProfile = 'beam-quality';
     bestCompleted.timeoutGuardTriggered = false;
     return bestCompleted;
@@ -1043,6 +1070,7 @@ function resolveRuntimeSchedule(ids, totalMatches, courts, options = {}) {
   if (bestCompleted) {
     bestCompleted.triedSeeds = triedSeeds.slice();
     bestCompleted.searchSeedsUsed = triedSeeds.length;
+    bestCompleted.effectiveCourts = effectiveCourts;
     bestCompleted.executionProfile = 'beam-guarded';
     bestCompleted.timeoutGuardTriggered = timeoutGuardTriggered;
     return bestCompleted;
@@ -1050,7 +1078,7 @@ function resolveRuntimeSchedule(ids, totalMatches, courts, options = {}) {
 
   if (!bestPartial) return null;
   if (guardDeadlineAtMs > 0 && nowMs() >= guardDeadlineAtMs) return null;
-  const guardContext = buildBeamContext(ids, totalMatches, courts, createGuardedConfig(courts, guardDeadlineAtMs));
+  const guardContext = buildBeamContext(ids, totalMatches, effectiveCourts, createGuardedConfig(effectiveCourts, guardDeadlineAtMs));
   const guardedState = greedilyCompleteState(bestPartial.state, guardContext, bestPartial.seed + 100003);
   if (!guardedState || guardedState.matchCount < totalMatches) return null;
   return finalizeSchedule(guardedState, stableSortIds(ids), bestPartial.seed, {
@@ -1059,6 +1087,7 @@ function resolveRuntimeSchedule(ids, totalMatches, courts, options = {}) {
     searchSeedsUsed: triedSeeds.length,
     triedSeeds,
     timedOut: false,
+    effectiveCourts,
     executionProfile: 'beam-guarded',
     timeoutGuardTriggered: true
   });
@@ -1121,7 +1150,9 @@ function buildTemplateCase(caseSpec) {
     variants,
     bestPrefixByMatchCount: {}
   };
-  const allowPrefixRepairs = (courts === 1 && players <= 8) || (courts === 2 && players <= 14);
+  const allowPrefixRepairs = (courts === 1 && players <= 8)
+    || (courts === 2 && players <= 14)
+    || (courts === 3 && players <= 14);
 
   for (let m = 1; m <= horizonMatches; m += 1) {
     primaryCaseData.bestPrefixByMatchCount[String(m)] = primaryVariantId;
@@ -1250,6 +1281,8 @@ function buildHandcraftedTemplateCase(players, courts, horizonMatches) {
 
 module.exports = {
   buildTemplateKey,
+  computeEffectiveCourts,
+  findTemplateCase,
   theoreticalPlaySpread,
   resolveRuntimeSchedule,
   buildTemplateLibrary

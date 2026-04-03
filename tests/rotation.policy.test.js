@@ -3,8 +3,12 @@ const assert = require('node:assert/strict');
 
 const { generateSchedule, selectSchedulerPolicy } = require('../cloudfunctions/startTournament/rotation');
 
-function makePlayers(n) {
-  return Array.from({ length: n }, (_, i) => ({ id: `p${i + 1}`, name: `P${i + 1}` }));
+function makePlayers(n, femaleCount = 0) {
+  return Array.from({ length: n }, (_, i) => ({
+    id: `p${i + 1}`,
+    name: `P${i + 1}`,
+    gender: i < femaleCount ? 'female' : 'male'
+  }));
 }
 
 test('selectSchedulerPolicy picks expected searchSeeds and epsilon', () => {
@@ -23,18 +27,20 @@ test('selectSchedulerPolicy picks expected searchSeeds and epsilon', () => {
 });
 
 test('generateSchedule exposes policy metadata in schedulerMeta', () => {
-  const out = generateSchedule(makePlayers(12), 12, 3, { seed: 42, searchSeeds: 1 });
+  const out = generateSchedule(makePlayers(17, 8), 12, 1, { seed: 42, searchSeeds: 1 });
   const meta = out.schedulerMeta || {};
   assert.equal(meta.engineVersion, 'rotation-v3');
   assert.ok(['beam', 'legacy'].includes(meta.engine));
   assert.equal(meta.searchSeeds, 1);
   assert.equal(meta.selectedSearchSeeds, 1);
-  assert.equal(meta.selectedEpsilon, 1.6);
+  assert.equal(meta.selectedEpsilon, 1.8);
   assert.equal(meta.policy && meta.policy.policyVersion, 'v3');
   assert.equal(typeof meta.executionProfile, 'string');
   assert.equal(typeof meta.timeoutGuardTriggered, 'boolean');
-  assert.equal(meta.playSpread, 0);
+  assert.equal(meta.playSpread, 1);
   assert.equal(meta.uniqueExactMatchupCount, 12);
+  assert.equal(meta.effectiveCourts, 1);
+  assert.equal(meta.policy && meta.policy.courts, 1);
 });
 
 test('generateSchedule exposes template metadata for templated doubles cases', () => {
@@ -46,4 +52,13 @@ test('generateSchedule exposes template metadata for templated doubles cases', (
   assert.equal(meta.templateHorizon, 22);
   assert.equal(meta.playSpread, 1);
   assert.equal(meta.uniqueExactMatchupCount, 18);
+});
+
+test('templated schedules expose requested and effective courts separately', () => {
+  const out = generateSchedule(makePlayers(14, 6), 12, 4, { seed: 42 });
+  const meta = out.schedulerMeta || {};
+  assert.equal(meta.engine, 'template');
+  assert.equal(meta.templateKey, '14p-3c');
+  assert.equal(meta.effectiveCourts, 3);
+  assert.equal(meta.policy && meta.policy.courts, 4);
 });

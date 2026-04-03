@@ -6,7 +6,6 @@ function pairKey(a, b) {
 
 const POLICY_VERSION = 'v3';
 const DEFAULT_SEED_STEP = 7919;
-const COMMON_TEMPLATE_MATCH_COUNTS = new Set([12, 16, 18, 22]);
 const MODE_DOUBLES = 'doubles';
 const MODE_MIXED_FALLBACK = 'mixed_fallback';
 const TEAM_TYPES = ['MX', 'MM', 'FF', 'OPEN'];
@@ -104,6 +103,10 @@ function normalizeGender(gender) {
   const v = String(gender || '').trim().toLowerCase();
   if (v === 'male' || v === 'female') return v;
   return 'unknown';
+}
+
+function computeEffectiveCourts(playersCount, courts) {
+  return doublesEngine.computeEffectiveCourts(playersCount, courts);
 }
 
 function buildGenderMap(players = []) {
@@ -387,10 +390,7 @@ function sortEligibleIds(ids, state, used) {
 }
 
 function isWarmStartScenario(playersCount, courts, totalMatches) {
-  const n = Math.max(0, Number(playersCount) || 0);
-  const c = Math.max(1, Number(courts) || 1);
-  const m = Math.max(1, Number(totalMatches) || 1);
-  return n >= 8 && n <= 14 && c >= 1 && c <= 2 && COMMON_TEMPLATE_MATCH_COUNTS.has(m);
+  return !!doublesEngine.findTemplateCase(playersCount, courts, totalMatches);
 }
 
 function buildWarmStartGroups(ids, eligible, roundIndex, slotIndex, courts, totalMatches) {
@@ -1185,11 +1185,12 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
   const M = Math.max(1, Number(totalMatches || 1));
   const C = Math.max(1, Number(courts || 1));
   const ids = players.map((p) => p.id);
+  const effectiveCourts = computeEffectiveCourts(ids.length, C);
   const mode = resolveSchedulerMode(options.mode);
   const allowOpen = options.allowOpen === true;
   const genderById = buildGenderMap(players);
   const typeTargets = buildTypeTargets(players, allowOpen, options.typeWeights);
-  const policy = options.policy || selectSchedulerPolicy(ids.length, C, M);
+  const policy = options.policy || selectSchedulerPolicy(ids.length, effectiveCourts, M);
   const selectedEpsilon = Number(options.epsilon ?? policy.selectedEpsilon ?? 1.6);
   const selectedSearchSeeds = clampInt(options.searchSeeds ?? policy.selectedSearchSeeds ?? 16, 1, 64, 16);
   const selectedSeedStep = clampInt(options.seedStep ?? DEFAULT_SEED_STEP, 1, 2147483646, DEFAULT_SEED_STEP);
@@ -1215,14 +1216,14 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
   const softDeadlineAtMs = scheduleStartedAtMs + softBudgetMs;
 
   const baseSeed = normalizeSeed(options.seed ?? (Date.now() % 2147483647));
-  const coverageFallbackEligible = mode === MODE_DOUBLES && ids.length <= 5 && C === 1;
+  const coverageFallbackEligible = mode === MODE_DOUBLES && ids.length <= 5 && effectiveCourts === 1;
 
   let best = null;
   let triedSeeds = [];
   let actualSearchSeeds = selectedSearchSeeds;
 
   if (mode === MODE_DOUBLES) {
-    best = doublesEngine.resolveRuntimeSchedule(ids, M, C, {
+    best = doublesEngine.resolveRuntimeSchedule(ids, M, effectiveCourts, {
       seed: baseSeed,
       searchSeeds: selectedSearchSeeds,
       seedStep: selectedSeedStep,
@@ -1245,7 +1246,7 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
       for (let i = 0; i < coverageSeeds; i += 1) {
         const seed = normalizeSeed(baseSeed + i * selectedSeedStep);
         coverageTriedSeeds.push(seed);
-        const out = generateDoublesSchedule(ids, M, C, weights, seed, {
+        const out = generateDoublesSchedule(ids, M, effectiveCourts, weights, seed, {
           mode,
           allowOpen,
           genderById,
@@ -1279,7 +1280,7 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
     for (let i = 0; i < legacySearchSeeds; i++) {
       const seed = normalizeSeed(baseSeed + i * selectedSeedStep);
       legacyTriedSeeds.push(seed);
-      const out = generateLegacyScheduleOnce(ids, M, C, weights, seed, {
+      const out = generateLegacyScheduleOnce(ids, M, effectiveCourts, weights, seed, {
         mode,
         allowOpen,
         genderById,
@@ -1333,6 +1334,7 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
       selectedEpsilon,
       executionProfile: String(best.executionProfile || engine),
       timeoutGuardTriggered: best.timeoutGuardTriggered === true,
+      effectiveCourts: Number(best.effectiveCourts) || effectiveCourts,
       mode,
       allowOpen,
       templateKey: String(best.templateKey || ''),
@@ -1346,6 +1348,7 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
       policy: {
         ...policy,
         policyVersion: policy.policyVersion || POLICY_VERSION,
+        courts: C,
         selectedSearchSeeds: actualSearchSeeds,
         selectedEpsilon
       },
@@ -1361,5 +1364,6 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
 module.exports = {
   generateSchedule,
   selectSchedulerPolicy,
+  computeEffectiveCourts,
   __buildTemplateLibrary: doublesEngine.buildTemplateLibrary
 };

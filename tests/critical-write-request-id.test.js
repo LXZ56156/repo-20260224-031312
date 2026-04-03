@@ -6,6 +6,7 @@ const nav = require('../miniprogram/core/nav');
 const profileCore = require('../miniprogram/core/profile');
 const storage = require('../miniprogram/core/storage');
 const joinTournamentCore = require('../miniprogram/core/joinTournament');
+const tournamentSync = require('../miniprogram/core/tournamentSync');
 const settingsActions = require('../miniprogram/pages/settings/settingsActions');
 const lobbyDraftActions = require('../miniprogram/pages/lobby/lobbyDraftActions');
 const lobbyProfileActions = require('../miniprogram/pages/lobby/lobbyProfileActions');
@@ -137,7 +138,10 @@ test('settings saveSettings retry reuses the same clientRequestId', async () => 
   let retryFn = null;
 
   global.wx = wxBox.api;
-  global.setTimeout = () => 1;
+  global.setTimeout = (fn) => {
+    if (typeof fn === 'function') fn();
+    return 1;
+  };
   global.clearTimeout = () => {};
 
   try {
@@ -322,6 +326,7 @@ test('lobby handleStart retry reuses the same clientRequestId', async () => {
   const originalMarkRefreshFlag = nav.markRefreshFlag;
   const originalBuildTournamentUrl = nav.buildTournamentUrl;
   const originalGetSchedulerProfile = storage.getSchedulerProfile;
+  const originalFetchTournament = tournamentSync.fetchTournament;
 
   const wxBox = createWxStub();
   const requestIds = [];
@@ -329,7 +334,10 @@ test('lobby handleStart retry reuses the same clientRequestId', async () => {
   let retryFn = null;
 
   global.wx = wxBox.api;
-  global.setTimeout = () => 1;
+  global.setTimeout = (fn) => {
+    if (typeof fn === 'function') fn();
+    return 1;
+  };
 
   try {
     cloud.call = async (_name, payload) => {
@@ -341,6 +349,7 @@ test('lobby handleStart retry reuses the same clientRequestId', async () => {
     nav.markRefreshFlag = () => {};
     nav.buildTournamentUrl = (path, tournamentId) => `${path}?tournamentId=${tournamentId}`;
     storage.getSchedulerProfile = () => 'balanced';
+    tournamentSync.fetchTournament = async () => ({ ok: false, cachedDoc: null });
 
     const ctx = createContext(lobbyDraftActions, {
       tournamentId: 't_start',
@@ -370,6 +379,7 @@ test('lobby handleStart retry reuses the same clientRequestId', async () => {
     nav.markRefreshFlag = originalMarkRefreshFlag;
     nav.buildTournamentUrl = originalBuildTournamentUrl;
     storage.getSchedulerProfile = originalGetSchedulerProfile;
+    tournamentSync.fetchTournament = originalFetchTournament;
   }
 });
 

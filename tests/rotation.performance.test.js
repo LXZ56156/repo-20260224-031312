@@ -3,8 +3,12 @@ const assert = require('node:assert/strict');
 
 const { generateSchedule } = require('../cloudfunctions/startTournament/rotation');
 
-function makePlayers(n) {
-  return Array.from({ length: n }, (_, i) => ({ id: `p${i + 1}`, name: `P${i + 1}` }));
+function makePlayers(n, femaleCount = 0) {
+  return Array.from({ length: n }, (_, i) => ({
+    id: `p${i + 1}`,
+    name: `P${i + 1}`,
+    gender: i < femaleCount ? 'female' : 'male'
+  }));
 }
 
 test('templated schedules return within a tight bound', () => {
@@ -38,20 +42,45 @@ test('newly templated dual-court cases return within a tight bound', () => {
   assert.ok(elapsed < 100, `elapsed=${elapsed}`);
 });
 
-test('beam fallback still returns a full schedule for non-templated cases', () => {
+test('newly templated triple-court cases return within a tight bound', () => {
   const started = Date.now();
-  const out = generateSchedule(makePlayers(12), 12, 3, { seed: 42, searchSeeds: 1 });
+  const out = generateSchedule(makePlayers(12), 12, 3, { seed: 83 });
+  const elapsed = Date.now() - started;
+
+  assert.equal(out.schedulerMeta.engine, 'template');
+  assert.equal(out.schedulerMeta.templateKey, '12p-3c');
+  assert.equal(out.schedulerMeta.uniqueExactMatchupCount, 12);
+  assert.equal(out.schedulerMeta.playSpread, 0);
+  assert.ok(elapsed < 100, `elapsed=${elapsed}`);
+});
+
+test('effective-court normalization can route higher requested courts into templates', () => {
+  const started = Date.now();
+  const out = generateSchedule(makePlayers(14, 6), 12, 4, { seed: 89 });
+  const elapsed = Date.now() - started;
+
+  assert.equal(out.schedulerMeta.engine, 'template');
+  assert.equal(out.schedulerMeta.templateKey, '14p-3c');
+  assert.equal(out.schedulerMeta.effectiveCourts, 3);
+  assert.equal(out.schedulerMeta.uniqueExactMatchupCount, 12);
+  assert.equal(out.schedulerMeta.playSpread, 1);
+  assert.ok(elapsed < 100, `elapsed=${elapsed}`);
+});
+
+test('non-templated fallback still returns a full schedule for long-tail cases', () => {
+  const started = Date.now();
+  const out = generateSchedule(makePlayers(17, 8), 12, 1, { seed: 42, searchSeeds: 1 });
   const elapsed = Date.now() - started;
 
   assert.ok(['beam', 'legacy'].includes(out.schedulerMeta.engine));
   assert.equal(out.rounds.flatMap((round) => round.matches || []).length, 12);
   assert.equal(out.schedulerMeta.uniqueExactMatchupCount, 12);
-  assert.equal(out.schedulerMeta.playSpread, 0);
-  assert.ok(elapsed < 4000, `elapsed=${elapsed}`);
+  assert.equal(out.schedulerMeta.playSpread, 1);
+  assert.ok(elapsed < 12000, `elapsed=${elapsed}`);
 });
 
 test('runtime budget can force guarded completion while still returning a full schedule', () => {
-  const out = generateSchedule(makePlayers(12), 12, 3, {
+  const out = generateSchedule(makePlayers(17, 8), 12, 1, {
     seed: 42,
     searchSeeds: 8,
     runtimeBudgetMs: 700

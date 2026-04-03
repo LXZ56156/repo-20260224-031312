@@ -5,7 +5,7 @@ const _ = db.command;
 const common = require('./lib/common');
 const modeHelper = require('./lib/mode');
 
-const { generateSchedule, selectSchedulerPolicy } = require('./rotation');
+const { generateSchedule, selectSchedulerPolicy, computeEffectiveCourts } = require('./rotation');
 const { validateBeforeGenerate } = require('./logic');
 const { buildSquadSchedule, buildFixedPairSchedule } = require('./scheduleModes');
 
@@ -42,6 +42,7 @@ exports.main = async (event) => {
   const traceId = String((event && event.__traceId) || '').trim();
   const clientRequestId = String((event && event.clientRequestId) || '').trim();
   const tournamentId = String((event && event.tournamentId) || '').trim();
+  const startedAtMs = Date.now();
   console.info('[startTournament]', traceId || '-', tournamentId || '-', OPENID || '-');
   if (!tournamentId) {
     return common.failResult('TOURNAMENT_ID_REQUIRED', '缺少 tournamentId', { traceId, state: 'invalid' });
@@ -72,9 +73,10 @@ exports.main = async (event) => {
     const rules = checked.rules || {};
     const endCondition = rules.endCondition || { type: 'total_matches', target: M };
     const pairTeams = Array.isArray(checked.pairTeams) ? checked.pairTeams : [];
+    const effectiveCourts = computeEffectiveCourts(players.length, C);
 
     const oldVersion = Number(t.version) || 1;
-    const policy = selectSchedulerPolicy(players.length, C, M);
+    const policy = selectSchedulerPolicy(players.length, effectiveCourts, M);
     const schedulerProfileRaw = String((event && event.schedulerProfile) || '').trim().toLowerCase();
     const schedulerProfile = ['rest', 'balanced', 'repeat'].includes(schedulerProfileRaw) ? schedulerProfileRaw : 'rest';
     const profileWeights = {
@@ -82,6 +84,7 @@ exports.main = async (event) => {
       balanced: { delta: 2.0, epsilon: policy.selectedEpsilon, beta: 3.0, gamma: 1.5 },
       repeat: { delta: 1.8, epsilon: Math.max(1.0, policy.selectedEpsilon - 0.1), beta: 3.4, gamma: 1.9 }
     }[schedulerProfile];
+    const scheduleStartedAtMs = Date.now();
     let schedule;
     if (mode === 'squad_doubles') {
       schedule = buildSquadSchedule(players, M, C, { endCondition });
@@ -110,8 +113,27 @@ exports.main = async (event) => {
         schedule.schedulerMeta.schedulerProfile = schedulerProfile;
       }
     }
+    const scheduleMs = Date.now() - scheduleStartedAtMs;
+    const scheduleMeta = schedule && schedule.schedulerMeta && typeof schedule.schedulerMeta === 'object'
+      ? schedule.schedulerMeta
+      : {};
+    console.info('[startTournament:timing]', JSON.stringify({
+      traceId,
+      tournamentId,
+      phase: 'schedule',
+      scheduleMs,
+      engine: String(scheduleMeta.engine || ''),
+      executionProfile: String(scheduleMeta.executionProfile || ''),
+      templateKey: String(scheduleMeta.templateKey || ''),
+      requestedCourts: C,
+      effectiveCourts: Number(scheduleMeta.effectiveCourts) || effectiveCourts,
+      playersCount: players.length,
+      courts: C,
+      totalMatches: M
+    }));
     const map = idToPlayerMap(players);
 
+    const materializeStartedAtMs = Date.now();
     const rounds = (schedule.rounds || []).map(r => ({
       roundIndex: r.roundIndex,
       matches: (r.matches || []).map(m => ({
@@ -156,12 +178,48 @@ exports.main = async (event) => {
       version: _.inc(1)
     };
     if (clientRequestId) updateData.lastClientRequestId = clientRequestId;
+    const materializeMs = Date.now() - materializeStartedAtMs;
+    console.info('[startTournament:timing]', JSON.stringify({
+      traceId,
+      tournamentId,
+      phase: 'materialize',
+      scheduleMs,
+      materializeMs,
+      engine: String(scheduleMeta.engine || ''),
+      executionProfile: String(scheduleMeta.executionProfile || ''),
+      templateKey: String(scheduleMeta.templateKey || ''),
+      requestedCourts: C,
+      effectiveCourts: Number(scheduleMeta.effectiveCourts) || effectiveCourts,
+      playersCount: players.length,
+      courts: C,
+      totalMatches: M
+    }));
 
+    const writeStartedAtMs = Date.now();
     const updRes = await db.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({
       data: common.assertNoReservedRootKeys(updateData, ['_id'], '赛事开赛写入数据')
     });
 
     common.assertOptimisticUpdate(updRes, '写入冲突，请刷新赛事后重试');
+    const writeMs = Date.now() - writeStartedAtMs;
+    const totalMs = Date.now() - startedAtMs;
+    console.info('[startTournament:timing]', JSON.stringify({
+      traceId,
+      tournamentId,
+      phase: 'done',
+      scheduleMs,
+      materializeMs,
+      writeMs,
+      totalMs,
+      engine: String(scheduleMeta.engine || ''),
+      executionProfile: String(scheduleMeta.executionProfile || ''),
+      templateKey: String(scheduleMeta.templateKey || ''),
+      requestedCourts: C,
+      effectiveCourts: Number(scheduleMeta.effectiveCourts) || effectiveCourts,
+      playersCount: players.length,
+      courts: C,
+      totalMatches: M
+    }));
     return common.okResult('TOURNAMENT_STARTED', '已开赛', {
       traceId,
       state: 'started',

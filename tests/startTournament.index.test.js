@@ -48,6 +48,11 @@ function loadMain(db, overrides = {}) {
         selectedEpsilon: 1.2,
         selectedSearchSeeds: 4
       };
+    },
+    computeEffectiveCourts(playersCount, courts) {
+      const players = Math.max(0, Number(playersCount) || 0);
+      const requested = Math.max(1, Number(courts) || 1);
+      return Math.max(1, Math.min(requested, Math.floor(players / 4) || 1));
     }
   };
   const mockLogic = overrides.logic || {
