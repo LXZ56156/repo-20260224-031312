@@ -8,30 +8,66 @@ function normalizeEndConditionType(type) {
   return 'total_matches';
 }
 
-function sortByPlayCount(ids, playCount, usedSet = null) {
+function sortForRotation(ids, playCount, playStreak, usedSet, opponentCount, rivals) {
   const used = usedSet || new Set();
+  const rivalList = Array.isArray(rivals) ? rivals : [];
+  const opponentExposure = (id) => {
+    if (!rivalList.length || !opponentCount) return 0;
+    let total = 0;
+    for (const rival of rivalList) {
+      total += Number(opponentCount[pairKey(id, rival)] || 0);
+    }
+    return total;
+  };
   return ids
     .filter((id) => !used.has(id))
     .sort((a, b) => {
       const pa = Number(playCount[a] || 0);
       const pb = Number(playCount[b] || 0);
       if (pa !== pb) return pa - pb;
+      const oa = opponentExposure(a);
+      const ob = opponentExposure(b);
+      if (oa !== ob) return oa - ob;
+      const sa = Number((playStreak && playStreak[a]) || 0);
+      const sb = Number((playStreak && playStreak[b]) || 0);
+      if (sa !== sb) return sa - sb;
       return String(a).localeCompare(String(b));
     });
 }
 
-function pickPair(ids, playCount, partnerCount, usedSet = null) {
-  const sorted = sortByPlayCount(ids, playCount, usedSet);
+function pickPair(
+  ownIds,
+  playCount,
+  partnerCount,
+  opponentCount,
+  playStreak,
+  usedSet = null,
+  opponentIds = null
+) {
+  const sorted = sortForRotation(ownIds, playCount, playStreak, usedSet, opponentCount, opponentIds);
   if (sorted.length < 2) return null;
   const first = sorted[0];
   let second = sorted[1];
   let bestCost = Number.MAX_SAFE_INTEGER;
+  const rivals = Array.isArray(opponentIds) ? opponentIds : [];
   for (let i = 1; i < sorted.length; i += 1) {
     const candidate = sorted[i];
     const pk = pairKey(first, candidate);
-    const repeat = Number(partnerCount[pk] || 0);
-    const loadGap = Math.abs((playCount[first] || 0) - (playCount[candidate] || 0));
-    const cost = repeat * 10 + loadGap;
+    const partnerRepeat = Number((partnerCount && partnerCount[pk]) || 0);
+    const loadGap = Math.abs(
+      Number(playCount[first] || 0) - Number(playCount[candidate] || 0)
+    );
+    const firstStreak = Number((playStreak && playStreak[first]) || 0);
+    const candStreak = Number((playStreak && playStreak[candidate]) || 0);
+    const streakPenalty = Math.max(0, firstStreak - 1) + Math.max(0, candStreak - 1);
+    let opponentRepeat = 0;
+    if (rivals.length && opponentCount) {
+      for (const rival of rivals) {
+        opponentRepeat += Number(opponentCount[pairKey(first, rival)] || 0);
+        opponentRepeat += Number(opponentCount[pairKey(candidate, rival)] || 0);
+      }
+    }
+    const cost = partnerRepeat * 10 + opponentRepeat * 6 + loadGap * 2 + streakPenalty * 5;
     if (cost < bestCost) {
       bestCost = cost;
       second = candidate;
@@ -63,12 +99,19 @@ function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
     targetMatches = Math.max(targetMatches, endConditionTarget * 2 - 1);
   }
 
+  const allIds = idsA.concat(idsB);
   const playCount = {};
   const partnerCount = {};
-  for (const id of idsA.concat(idsB)) playCount[id] = 0;
+  const opponentCount = {};
+  const playStreak = {};
+  for (const id of allIds) {
+    playCount[id] = 0;
+    playStreak[id] = 0;
+  }
   const rounds = [];
   let matchIndex = 0;
   let roundIndex = 0;
+  let maxConsecutivePlay = 0;
 
   while (
     (endConditionType === 'total_rounds' ? roundIndex < targetRounds : matchIndex < targetMatches)
@@ -86,13 +129,20 @@ function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
       slot < roundCapacity && (endConditionType === 'total_rounds' ? true : matchIndex < targetMatches);
       slot += 1
     ) {
-      const pairA = pickPair(idsA, playCount, partnerCount, usedA);
-      const pairB = pickPair(idsB, playCount, partnerCount, usedB);
-      if (!pairA || !pairB) break;
+      const pairA = pickPair(idsA, playCount, partnerCount, opponentCount, playStreak, usedA, null);
+      if (!pairA) break;
+      const pairB = pickPair(idsB, playCount, partnerCount, opponentCount, playStreak, usedB, pairA);
+      if (!pairB) break;
       const pkA = pairKey(pairA[0], pairA[1]);
       const pkB = pairKey(pairB[0], pairB[1]);
       partnerCount[pkA] = (partnerCount[pkA] || 0) + 1;
       partnerCount[pkB] = (partnerCount[pkB] || 0) + 1;
+      pairA.forEach((a) => {
+        pairB.forEach((b) => {
+          const ok = pairKey(a, b);
+          opponentCount[ok] = (opponentCount[ok] || 0) + 1;
+        });
+      });
       for (const id of pairA.concat(pairB)) {
         playCount[id] = (playCount[id] || 0) + 1;
       }
@@ -114,9 +164,17 @@ function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
     }
     if (!matches.length) break;
 
-    const used = new Set();
-    matches.forEach((m) => m.teamA.concat(m.teamB).forEach((id) => used.add(id)));
-    const restPlayers = idsA.concat(idsB).filter((id) => !used.has(id));
+    const active = new Set();
+    matches.forEach((m) => m.teamA.concat(m.teamB).forEach((id) => active.add(id)));
+    for (const id of allIds) {
+      if (active.has(id)) {
+        playStreak[id] = (playStreak[id] || 0) + 1;
+        if (playStreak[id] > maxConsecutivePlay) maxConsecutivePlay = playStreak[id];
+      } else {
+        playStreak[id] = 0;
+      }
+    }
+    const restPlayers = allIds.filter((id) => !active.has(id));
     rounds.push({
       roundIndex,
       matches,
@@ -125,14 +183,35 @@ function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
     roundIndex += 1;
   }
 
+  const playValues = Object.values(playCount);
+  const playSpread = playValues.length
+    ? Math.max(...playValues) - Math.min(...playValues)
+    : 0;
+  const partnerRepeats = Object.values(partnerCount)
+    .reduce((sum, c) => sum + Math.max(0, Number(c) - 1), 0);
+  const opponentRepeats = Object.values(opponentCount)
+    .reduce((sum, c) => sum + Math.max(0, Number(c) - 1), 0);
+  const penalty =
+      playSpread * 5000
+    + maxConsecutivePlay * 2000
+    + partnerRepeats * 120
+    + opponentRepeats * 60;
+  const fairnessScore = Math.max(1, Math.round(100000 / (1 + penalty)));
+
   return {
     rounds,
-    fairnessScore: 0,
-    fairness: { engine: 'squad-v1' },
+    fairnessScore,
+    fairness: {
+      engine: 'squad-v2',
+      playSpread,
+      maxConsecutivePlay,
+      partnerRepeats,
+      opponentRepeats
+    },
     playerStats: { playCount },
     seed: 0,
     schedulerMeta: {
-      engineVersion: 'squad-v1',
+      engineVersion: 'squad-v2',
       mode: 'squad_doubles',
       endConditionType,
       endConditionTarget
