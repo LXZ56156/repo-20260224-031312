@@ -144,7 +144,7 @@ test('squad v2 limits max consecutive play rounds when bench exists', () => {
   );
 });
 
-test('squad v2 reports non-zero fairnessScore and full fairness object', () => {
+test('squad reports non-zero fairnessScore and full fairness object', () => {
   const out = buildSquadSchedule(
     makePlayers(4, 4),
     12,
@@ -157,8 +157,13 @@ test('squad v2 reports non-zero fairnessScore and full fairness object', () => {
   assert.equal(typeof out.fairness.maxConsecutivePlay, 'number');
   assert.equal(typeof out.fairness.partnerRepeats, 'number');
   assert.equal(typeof out.fairness.opponentRepeats, 'number');
-  assert.equal(out.fairness.engine, 'squad-v2');
-  assert.equal(out.schedulerMeta && out.schedulerMeta.engineVersion, 'squad-v2');
+  // 默认走 beam 路径（squad-v3-beam）；fallback 为 squad-v2-greedy
+  const version = out.fairness.engine;
+  assert.ok(
+    version === 'squad-v3-beam' || version === 'squad-v2-greedy',
+    `engine should be squad-v3-beam or squad-v2-greedy, got ${version}`
+  );
+  assert.equal(out.schedulerMeta && out.schedulerMeta.engineVersion, version);
 });
 
 test('squad v2 handles uneven squad sizes without crash and completes scheduling', () => {

@@ -76,29 +76,11 @@ function pickPair(
   return [first, second];
 }
 
-function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
-  const idsA = [];
-  const idsB = [];
-  for (const player of (players || [])) {
-    const id = String(player && player.id || '').trim();
-    if (!id) continue;
-    const squad = String(player && player.squad || '').trim().toUpperCase();
-    if (squad === 'A') idsA.push(id);
-    if (squad === 'B') idsB.push(id);
-  }
-  if (idsA.length < 2 || idsB.length < 2) {
-    throw new Error('小队转需要 A/B 队至少各 2 人');
-  }
-
-  const endConditionType = normalizeEndConditionType(rules.endCondition && rules.endCondition.type);
-  const endConditionTarget = Math.max(1, Number(rules.endCondition && rules.endCondition.target) || totalMatches);
-  const targetRounds = endConditionType === 'total_rounds' ? Math.max(1, endConditionTarget) : 0;
-  let targetMatches = Math.max(1, Number(totalMatches) || 1);
-  if (endConditionType === 'target_wins') {
-    // Best-of style lower bound: reaching N wins needs at most (2N-1) matches.
-    targetMatches = Math.max(targetMatches, endConditionTarget * 2 - 1);
-  }
-
+// squad_doubles 贪心 fallback（v2 实现），用于：
+// 1. beam search 超时或失败时
+// 2. total_rounds 结束条件（beam 仅处理 target matches）
+// 3. 测试强制降级路径
+function runSquadGreedyFallback(idsA, idsB, targetMatches, courts, endConditionType, targetRounds) {
   const allIds = idsA.concat(idsB);
   const playCount = {};
   const partnerCount = {};
@@ -175,11 +157,7 @@ function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
       }
     }
     const restPlayers = allIds.filter((id) => !active.has(id));
-    rounds.push({
-      roundIndex,
-      matches,
-      restPlayers
-    });
+    rounds.push({ roundIndex, matches, restPlayers });
     roundIndex += 1;
   }
 
@@ -202,7 +180,7 @@ function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
     rounds,
     fairnessScore,
     fairness: {
-      engine: 'squad-v2',
+      engine: 'squad-v2-greedy',
       playSpread,
       maxConsecutivePlay,
       partnerRepeats,
@@ -210,8 +188,94 @@ function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
     },
     playerStats: { playCount },
     seed: 0,
+    engineVersion: 'squad-v2-greedy'
+  };
+}
+
+function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
+  const idsA = [];
+  const idsB = [];
+  for (const player of (players || [])) {
+    const id = String(player && player.id || '').trim();
+    if (!id) continue;
+    const squad = String(player && player.squad || '').trim().toUpperCase();
+    if (squad === 'A') idsA.push(id);
+    if (squad === 'B') idsB.push(id);
+  }
+  if (idsA.length < 2 || idsB.length < 2) {
+    throw new Error('小队转需要 A/B 队至少各 2 人');
+  }
+
+  const endConditionType = normalizeEndConditionType(rules.endCondition && rules.endCondition.type);
+  const endConditionTarget = Math.max(1, Number(rules.endCondition && rules.endCondition.target) || totalMatches);
+  const targetRounds = endConditionType === 'total_rounds' ? Math.max(1, endConditionTarget) : 0;
+  let targetMatches = Math.max(1, Number(totalMatches) || 1);
+  if (endConditionType === 'target_wins') {
+    // Best-of style lower bound: reaching N wins needs at most (2N-1) matches.
+    targetMatches = Math.max(targetMatches, endConditionTarget * 2 - 1);
+  }
+
+  // Beam search 仅处理 target matches 场景，total_rounds 直接走贪心
+  const forceFallback = rules._debugForceFallback === true;
+  const canUseBeam = !forceFallback && endConditionType !== 'total_rounds';
+
+  if (canUseBeam) {
+    try {
+      const squadEngine = require('./squadDoublesEngine');
+      const beamResult = squadEngine.resolveSquadSchedule(idsA, idsB, targetMatches, courts, {
+        hardDeadlineMs: Number(rules._hardDeadlineMs) || 2500
+      });
+      if (beamResult && Array.isArray(beamResult.rounds)) {
+        // 标准化 matches 字段：补 matchType/unitAId/unitBId/logicalRound
+        const normalizedRounds = beamResult.rounds.map((round, rIdx) => ({
+          roundIndex: rIdx,
+          matches: (round.matches || []).map((m, mIdx) => ({
+            matchIndex: (round.matches || []).slice(0, mIdx)
+              .reduce((sum, _, i) => sum + 1, 0)
+              + (beamResult.rounds.slice(0, rIdx)
+                .reduce((sum, r) => sum + ((r.matches || []).length), 0)),
+            matchType: 'SQUAD',
+            unitAId: 'A',
+            unitBId: 'B',
+            unitAName: 'A队',
+            unitBName: 'B队',
+            teamA: m.teamA.slice(),
+            teamB: m.teamB.slice(),
+            status: 'pending',
+            logicalRound: rIdx
+          })),
+          restPlayers: round.restPlayers || []
+        }));
+        return {
+          rounds: normalizedRounds,
+          fairnessScore: beamResult.fairnessScore,
+          fairness: beamResult.fairness,
+          playerStats: beamResult.playerStats,
+          seed: beamResult.seed || 0,
+          schedulerMeta: {
+            engineVersion: 'squad-v3-beam',
+            mode: 'squad_doubles',
+            endConditionType,
+            endConditionTarget
+          }
+        };
+      }
+    } catch (err) {
+      // beam 失败 → 静默降级到贪心
+      // 生产环境下云函数日志仍可捕获 err
+    }
+  }
+
+  // Greedy fallback 路径
+  const greedy = runSquadGreedyFallback(idsA, idsB, targetMatches, courts, endConditionType, targetRounds);
+  return {
+    rounds: greedy.rounds,
+    fairnessScore: greedy.fairnessScore,
+    fairness: greedy.fairness,
+    playerStats: greedy.playerStats,
+    seed: greedy.seed,
     schedulerMeta: {
-      engineVersion: 'squad-v2',
+      engineVersion: greedy.engineVersion,
       mode: 'squad_doubles',
       endConditionType,
       endConditionTarget

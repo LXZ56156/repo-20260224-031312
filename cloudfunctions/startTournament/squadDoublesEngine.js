@@ -1,0 +1,777 @@
+// squad_doubles 专用 beam search 引擎
+// 设计目标：保证 A 队两人 + B 队两人的对阵结构下的全局公平性
+// 不依赖 rotationDoublesEngine，避免污染 multi_rotate 稳定路径
+
+function pairKey(a, b) {
+  return a < b ? `${a}_${b}` : `${b}_${a}`;
+}
+
+function incrementalSquareCost(count) {
+  const value = Number(count) || 0;
+  return (2 * value) + 1;
+}
+
+function nowMs() {
+  return Date.now();
+}
+
+function normalizeSeed(seed) {
+  const n = Number(seed);
+  if (!Number.isFinite(n)) return 1;
+  const mod = 2147483647;
+  const value = Math.floor(Math.abs(n)) % mod;
+  return value === 0 ? 1 : value;
+}
+
+function hashString(value) {
+  const str = String(value || '');
+  let hash = 0;
+  for (let i = 0; i < str.length; i += 1) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+function stableSortIds(ids) {
+  return (Array.isArray(ids) ? ids : [])
+    .map((id) => String(id || '').trim())
+    .filter(Boolean)
+    .sort((left, right) => left.localeCompare(right));
+}
+
+function countComb(n, k) {
+  const total = Math.max(0, Number(n) || 0);
+  const choose = Math.max(0, Number(k) || 0);
+  if (choose < 0 || choose > total) return 0;
+  if (choose === 0 || choose === total) return 1;
+  const upper = Math.min(choose, total - choose);
+  let acc = 1;
+  for (let i = 1; i <= upper; i += 1) {
+    acc = Math.floor((acc * (total - upper + i)) / i);
+  }
+  return acc;
+}
+
+function enumerateCombinations(ids, choose, visitor) {
+  const list = ids.slice();
+  const target = Math.max(0, Number(choose) || 0);
+  if (target === 0) {
+    visitor([]);
+    return;
+  }
+  const picked = [];
+  const walk = (start) => {
+    if (picked.length === target) {
+      visitor(picked.slice());
+      return;
+    }
+    const remaining = target - picked.length;
+    for (let i = start; i <= list.length - remaining; i += 1) {
+      picked.push(list[i]);
+      walk(i + 1);
+      picked.pop();
+    }
+  };
+  walk(0);
+}
+
+// 把一组 active 选手（偶数个）穷举拆分成 k 个不相交的 2 人对
+// 返回：Array<Array<[id, id]>>，每个子数组是一种"全部分完"的方案
+function enumeratePairPartitions(active) {
+  const results = [];
+  if (!active.length || active.length % 2 !== 0) return results;
+  const sorted = stableSortIds(active);
+  const n = sorted.length;
+  const used = new Array(n).fill(false);
+  const current = [];
+
+  const walk = () => {
+    // 找第一个未用的元素作 pair 的 left
+    let left = -1;
+    for (let i = 0; i < n; i += 1) {
+      if (!used[i]) { left = i; break; }
+    }
+    if (left === -1) {
+      results.push(current.slice());
+      return;
+    }
+    used[left] = true;
+    for (let right = left + 1; right < n; right += 1) {
+      if (used[right]) continue;
+      used[right] = true;
+      current.push([sorted[left], sorted[right]]);
+      walk();
+      current.pop();
+      used[right] = false;
+    }
+    used[left] = false;
+  };
+  walk();
+  return results;
+}
+
+function buildMatchupKey(teamA, teamB) {
+  // squad 有 A/B 方向性，key 保留方向
+  const a = stableSortIds(teamA).join('&');
+  const b = stableSortIds(teamB).join('&');
+  return `A[${a}]vsB[${b}]`;
+}
+
+function pairStableKey(pair) {
+  return stableSortIds(pair).join('&');
+}
+
+function compareRestPriorityEntry(left, right) {
+  if (left.roundsSinceRest !== right.roundsSinceRest) return right.roundsSinceRest - left.roundsSinceRest;
+  if (left.playStreak !== right.playStreak) return right.playStreak - left.playStreak;
+  return String(left.id).localeCompare(String(right.id));
+}
+
+function compareRestPriorityVector(left, right) {
+  const size = Math.max(left.length, right.length);
+  for (let i = 0; i < size; i += 1) {
+    const a = left[i];
+    const b = right[i];
+    if (!a && !b) break;
+    if (!a) return 1;
+    if (!b) return -1;
+    const cmp = compareRestPriorityEntry(a, b);
+    if (cmp !== 0) return cmp;
+  }
+  return 0;
+}
+
+function computeCountSpread(countMap, ids) {
+  let min = Number.POSITIVE_INFINITY;
+  let max = Number.NEGATIVE_INFINITY;
+  for (const id of ids) {
+    const value = Number(countMap[id]) || 0;
+    if (value < min) min = value;
+    if (value > max) max = value;
+  }
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return 0;
+  return max - min;
+}
+
+function computeRoundsSinceRest(state, roundIndex, id) {
+  const last = Number(state.lastRestRound[id]);
+  if (!Number.isFinite(last) || last < 0) return roundIndex + 1;
+  return roundIndex - last;
+}
+
+// squad 的评分函数：
+// 对 squad 而言，对手遭遇均衡的重要性 >= 搭档均衡（因为 A/B 队伍天然分隔，搭档空间更小）
+function compareObjective(left, right) {
+  if (left.playSpread !== right.playSpread) return left.playSpread - right.playSpread;
+  if (left.maxConsecutivePlay !== right.maxConsecutivePlay) return left.maxConsecutivePlay - right.maxConsecutivePlay;
+  if (left.opponentPenalty !== right.opponentPenalty) return left.opponentPenalty - right.opponentPenalty;
+  if (left.partnerPenalty !== right.partnerPenalty) return left.partnerPenalty - right.partnerPenalty;
+  if (left.uniqueMatchupCount !== right.uniqueMatchupCount) return right.uniqueMatchupCount - left.uniqueMatchupCount;
+  if (left.restPriorityTotal !== right.restPriorityTotal) return right.restPriorityTotal - left.restPriorityTotal;
+  return 0;
+}
+
+function compareState(left, right) {
+  const cmp = compareObjective(left.objective, right.objective);
+  if (cmp !== 0) return cmp;
+  return String(left.historyKey || '').localeCompare(String(right.historyKey || ''));
+}
+
+function buildInitialState(idsA, idsB) {
+  const all = idsA.concat(idsB);
+  return {
+    rounds: [],
+    matchCount: 0,
+    playCount: Object.fromEntries(all.map((id) => [id, 0])),
+    byeCount: Object.fromEntries(all.map((id) => [id, 0])),
+    playStreak: Object.fromEntries(all.map((id) => [id, 0])),
+    restStreak: Object.fromEntries(all.map((id) => [id, 0])),
+    lastRestRound: Object.fromEntries(all.map((id) => [id, -1])),
+    partnerCount: {},
+    opponentCount: {},
+    usedMatchupKeys: new Set(),
+    uniqueMatchupCount: 0,
+    partnerPenalty: 0,
+    opponentPenalty: 0,
+    playSpread: 0,
+    maxConsecutivePlay: 0,
+    restPriorityTotal: 0,
+    historyKey: '',
+    objective: {
+      playSpread: 0,
+      maxConsecutivePlay: 0,
+      opponentPenalty: 0,
+      partnerPenalty: 0,
+      uniqueMatchupCount: 0,
+      restPriorityTotal: 0
+    }
+  };
+}
+
+function buildBeamContext(idsA, idsB, totalMatches, courts, config = {}) {
+  const sortedA = stableSortIds(idsA);
+  const sortedB = stableSortIds(idsB);
+  const packageSize = Math.max(1, Math.min(
+    Number(courts) || 1,
+    Math.floor(sortedA.length / 2),
+    Math.floor(sortedB.length / 2)
+  ));
+  return {
+    idsA: sortedA,
+    idsB: sortedB,
+    allIds: sortedA.concat(sortedB),
+    totalMatches,
+    courts,
+    packageSize,
+    activeASize: packageSize * 2,
+    activeBSize: packageSize * 2,
+    beamWidth: Number(config.beamWidth) || 48,
+    restSetLimit: Number(config.restSetLimit) || 10,
+    packageLimit: Number(config.packageLimit) || 24,
+    perStateLimit: Number(config.perStateLimit) || 8,
+    timeBudgetMs: Number(config.timeBudgetMs) || 180,
+    deadlineAtMs: Number(config.deadlineAtMs) || 0
+  };
+}
+
+// 为某队枚举"谁坐下"的候选
+function enumerateRestForSquad(teamIds, restCount, state, seedRank, limit) {
+  if (restCount <= 0) return [[]];
+  const n = teamIds.length;
+  const totalComb = countComb(n, restCount);
+  const rankedPool = teamIds.slice().sort((left, right) => {
+    const lb = Number(state.byeCount[left]) || 0;
+    const rb = Number(state.byeCount[right]) || 0;
+    if (lb !== rb) return lb - rb;
+    const lr = computeRoundsSinceRest(state, state.rounds.length, left);
+    const rr = computeRoundsSinceRest(state, state.rounds.length, right);
+    if (lr !== rr) return rr - lr;
+    const ls = Number(state.playStreak[left]) || 0;
+    const rs = Number(state.playStreak[right]) || 0;
+    if (ls !== rs) return rs - ls;
+    return left.localeCompare(right);
+  });
+  const pool = totalComb <= 256
+    ? rankedPool
+    : rankedPool.slice(0, Math.max(restCount + 3, Math.min(n, limit + 3)));
+  const result = [];
+  enumerateCombinations(pool, restCount, (combo) => {
+    result.push(combo.slice());
+  });
+  return result;
+}
+
+// 评分：把一个 (pairA, pairB) 配对的增量成本计算出来
+function scoreMatchup(pairA, pairB, state) {
+  const pkA = pairKey(pairA[0], pairA[1]);
+  const pkB = pairKey(pairB[0], pairB[1]);
+  const partnerDelta = incrementalSquareCost(state.partnerCount[pkA] || 0)
+    + incrementalSquareCost(state.partnerCount[pkB] || 0);
+  let opponentDelta = 0;
+  for (const a of pairA) {
+    for (const b of pairB) {
+      opponentDelta += incrementalSquareCost(state.opponentCount[pairKey(a, b)] || 0);
+    }
+  }
+  const matchupKey = buildMatchupKey(pairA, pairB);
+  const isNew = state.usedMatchupKeys.has(matchupKey) ? 0 : 1;
+  return { partnerDelta, opponentDelta, isNew, matchupKey };
+}
+
+// 生成本轮对阵组合候选（packageSize 场比赛）
+// 枚举 A 的 pair 分割 × B 的 pair 分割，然后贪心匹配 A-B
+function buildPackageCandidates(activeA, activeB, state, context, seed) {
+  const packageSize = activeA.length / 2;
+  if (packageSize <= 0) return [];
+  if (activeA.length !== activeB.length) return [];
+
+  const pairPartitionsA = enumeratePairPartitions(activeA);
+  const pairPartitionsB = enumeratePairPartitions(activeB);
+
+  // 限制组合爆炸：partition 数量过大时截断
+  const maxPartitionsPerSide = context.packageLimit * 2;
+  const pa = pairPartitionsA.slice(0, maxPartitionsPerSide);
+  const pb = pairPartitionsB.slice(0, maxPartitionsPerSide);
+
+  const packages = [];
+  const seen = new Set();
+
+  for (const partitionA of pa) {
+    for (const partitionB of pb) {
+      // A 的第 i 个 pair 对 B 的第 i 个 pair（按顺序直配）
+      // 并尝试所有 B 的排列（packageSize <= 3 时可行）
+      // 但 packageSize 通常 1-3，3 的排列数 = 6
+      const bPermutations = permutationsOf(partitionB);
+      for (const bPerm of bPermutations) {
+        let partnerDelta = 0;
+        let opponentDelta = 0;
+        let newMatchups = 0;
+        const matches = [];
+        const matchupKeys = [];
+        for (let i = 0; i < partitionA.length; i += 1) {
+          const pairA = partitionA[i];
+          const pairB = bPerm[i];
+          const score = scoreMatchup(pairA, pairB, state);
+          partnerDelta += score.partnerDelta;
+          opponentDelta += score.opponentDelta;
+          newMatchups += score.isNew;
+          matchupKeys.push(score.matchupKey);
+          matches.push({
+            teamA: pairA.slice(),
+            teamB: pairB.slice(),
+            matchupKey: score.matchupKey
+          });
+        }
+        const stableKey = matchupKeys.slice().sort().join(' || ');
+        if (seen.has(stableKey)) continue;
+        seen.add(stableKey);
+        packages.push({
+          matches,
+          partnerDelta,
+          opponentDelta,
+          newMatchups,
+          seedRank: hashString(`${normalizeSeed(seed)}::${stableKey}`),
+          stableKey
+        });
+      }
+    }
+  }
+
+  packages.sort((l, r) => {
+    if (r.newMatchups !== l.newMatchups) return r.newMatchups - l.newMatchups;
+    if (l.opponentDelta !== r.opponentDelta) return l.opponentDelta - r.opponentDelta;
+    if (l.partnerDelta !== r.partnerDelta) return l.partnerDelta - r.partnerDelta;
+    if (l.seedRank !== r.seedRank) return l.seedRank - r.seedRank;
+    return l.stableKey.localeCompare(r.stableKey);
+  });
+
+  return packages.slice(0, context.packageLimit);
+}
+
+function permutationsOf(array) {
+  if (array.length <= 1) return [array.slice()];
+  if (array.length === 2) {
+    return [[array[0], array[1]], [array[1], array[0]]];
+  }
+  const result = [];
+  for (let i = 0; i < array.length; i += 1) {
+    const rest = array.slice(0, i).concat(array.slice(i + 1));
+    for (const perm of permutationsOf(rest)) {
+      result.push([array[i]].concat(perm));
+    }
+  }
+  return result;
+}
+
+// 生成本轮所有候选（rest 选择 × 对阵组合）
+function buildRoundCandidates(state, context, seed) {
+  const remaining = context.totalMatches - state.matchCount;
+  if (remaining <= 0) return [];
+  const packageSize = Math.min(context.packageSize, remaining);
+  const restACount = context.idsA.length - (packageSize * 2);
+  const restBCount = context.idsB.length - (packageSize * 2);
+
+  const restA_list = enumerateRestForSquad(context.idsA, restACount, state, seed, context.restSetLimit);
+  const restB_list = enumerateRestForSquad(context.idsB, restBCount, state, seed + 1, context.restSetLimit);
+
+  // 评分 rest 方案：按 rest 后的 playSpread / playStreak 指标排序取 top
+  const restCandidates = [];
+  for (const restA of restA_list) {
+    for (const restB of restB_list) {
+      const restIds = restA.concat(restB);
+      const activeA = context.idsA.filter((id) => !restA.includes(id));
+      const activeB = context.idsB.filter((id) => !restB.includes(id));
+      // 估算下一步 playCount
+      const nextPlayCount = { ...state.playCount };
+      let nextMaxConsecutive = state.maxConsecutivePlay;
+      for (const id of activeA.concat(activeB)) {
+        nextPlayCount[id] = (nextPlayCount[id] || 0) + 1;
+        const ns = (state.playStreak[id] || 0) + 1;
+        if (ns > nextMaxConsecutive) nextMaxConsecutive = ns;
+      }
+      const restVector = restIds.map((id) => ({
+        id,
+        roundsSinceRest: computeRoundsSinceRest(state, state.rounds.length, id),
+        playStreak: Number(state.playStreak[id]) || 0
+      })).sort(compareRestPriorityEntry);
+      const restPriorityDelta = restVector.reduce((sum, item) => sum + (item.roundsSinceRest * 100) + item.playStreak, 0);
+      restCandidates.push({
+        restA,
+        restB,
+        activeA,
+        activeB,
+        nextPlaySpread: computeCountSpread(nextPlayCount, context.allIds),
+        nextMaxConsecutive,
+        restVector,
+        restPriorityDelta,
+        stableKey: `${restA.join(',')}|${restB.join(',')}`
+      });
+    }
+  }
+
+  restCandidates.sort((l, r) => {
+    if (l.nextPlaySpread !== r.nextPlaySpread) return l.nextPlaySpread - r.nextPlaySpread;
+    if (l.nextMaxConsecutive !== r.nextMaxConsecutive) return l.nextMaxConsecutive - r.nextMaxConsecutive;
+    const vectorCmp = compareRestPriorityVector(l.restVector, r.restVector);
+    if (vectorCmp !== 0) return vectorCmp;
+    return l.stableKey.localeCompare(r.stableKey);
+  });
+
+  // rest 候选截断：只有当 restCandidates 极多时才裁剪，避免过早丢弃对均衡有利的 rest 方案
+  // 6v6 courts=2 有 C(6,2)²=225 种组合，4v4 有 36 种，均应全量通过
+  const limitedRest = restCandidates.length <= 512
+    ? restCandidates
+    : restCandidates.slice(0, context.restSetLimit);
+
+  const roundCandidates = [];
+  for (const restCand of limitedRest) {
+    const packages = buildPackageCandidates(restCand.activeA, restCand.activeB, state, context, seed);
+    for (const pkg of packages) {
+      const combined = `${restCand.stableKey}::${pkg.stableKey}`;
+      roundCandidates.push({
+        restCandidate: restCand,
+        packageCandidate: pkg,
+        stableKey: combined,
+        // seedRank 基于 stateSeed（= seed，已包含 historyKey 哈希）——
+        // 不同路径的 beam state 使用不同的 stateSeed，相同候选的 seedRank 因此不同
+        // 这让每个 beam state 探索不同的并列候选顺序，实现真正的多样性
+        seedRank: hashString(`${seed}::${combined}`)
+      });
+    }
+  }
+  if (!roundCandidates.length) return [];
+
+  // 候选排序：play spread → 连续上场 → 组合代价（等权）→ 新对阵数 → seedRank（per-state 多样性）
+  // nextPlaySpread / nextMaxConsecutive 确保 rest 质量优先，seedRank 在真正并列时打破字典序偏倚
+  roundCandidates.sort((l, r) => {
+    const lPlaySpread = l.restCandidate.nextPlaySpread;
+    const rPlaySpread = r.restCandidate.nextPlaySpread;
+    if (lPlaySpread !== rPlaySpread) return lPlaySpread - rPlaySpread;
+    const lMaxCons = l.restCandidate.nextMaxConsecutive;
+    const rMaxCons = r.restCandidate.nextMaxConsecutive;
+    if (lMaxCons !== rMaxCons) return lMaxCons - rMaxCons;
+    const lp = l.packageCandidate;
+    const rp = r.packageCandidate;
+    const lCost = lp.opponentDelta + lp.partnerDelta;
+    const rCost = rp.opponentDelta + rp.partnerDelta;
+    if (lCost !== rCost) return lCost - rCost;
+    if (rp.newMatchups !== lp.newMatchups) return rp.newMatchups - lp.newMatchups;
+    if (l.seedRank !== r.seedRank) return l.seedRank - r.seedRank;
+    return l.stableKey.localeCompare(r.stableKey);
+  });
+
+  return roundCandidates.slice(0, context.perStateLimit);
+}
+
+function applyRoundCandidate(state, roundCand, context) {
+  const next = {
+    rounds: state.rounds.slice(),
+    matchCount: state.matchCount + roundCand.packageCandidate.matches.length,
+    playCount: { ...state.playCount },
+    byeCount: { ...state.byeCount },
+    playStreak: { ...state.playStreak },
+    restStreak: { ...state.restStreak },
+    lastRestRound: { ...state.lastRestRound },
+    partnerCount: { ...state.partnerCount },
+    opponentCount: { ...state.opponentCount },
+    usedMatchupKeys: new Set(state.usedMatchupKeys),
+    uniqueMatchupCount: state.uniqueMatchupCount,
+    partnerPenalty: state.partnerPenalty,
+    opponentPenalty: state.opponentPenalty,
+    playSpread: state.playSpread,
+    maxConsecutivePlay: state.maxConsecutivePlay,
+    restPriorityTotal: state.restPriorityTotal,
+    historyKey: state.historyKey
+  };
+
+  const played = new Set();
+  const roundIndex = state.rounds.length;
+  const roundMatches = roundCand.packageCandidate.matches.map((m, index) => {
+    const teamA = m.teamA.slice();
+    const teamB = m.teamB.slice();
+    teamA.concat(teamB).forEach((id) => played.add(id));
+
+    const pkA = pairKey(teamA[0], teamA[1]);
+    const pkB = pairKey(teamB[0], teamB[1]);
+    next.partnerPenalty += incrementalSquareCost(next.partnerCount[pkA] || 0)
+      + incrementalSquareCost(next.partnerCount[pkB] || 0);
+    next.partnerCount[pkA] = (next.partnerCount[pkA] || 0) + 1;
+    next.partnerCount[pkB] = (next.partnerCount[pkB] || 0) + 1;
+
+    for (const a of teamA) {
+      for (const b of teamB) {
+        const k = pairKey(a, b);
+        next.opponentPenalty += incrementalSquareCost(next.opponentCount[k] || 0);
+        next.opponentCount[k] = (next.opponentCount[k] || 0) + 1;
+      }
+    }
+
+    if (!next.usedMatchupKeys.has(m.matchupKey)) {
+      next.usedMatchupKeys.add(m.matchupKey);
+      next.uniqueMatchupCount += 1;
+    }
+
+    return {
+      matchIndex: state.matchCount + index,
+      matchType: 'SQUAD',
+      unitAId: 'A',
+      unitBId: 'B',
+      unitAName: 'A队',
+      unitBName: 'B队',
+      teamA,
+      teamB,
+      status: 'pending',
+      logicalRound: roundIndex
+    };
+  });
+
+  for (const id of context.allIds) {
+    if (played.has(id)) {
+      next.playCount[id] = (next.playCount[id] || 0) + 1;
+      next.playStreak[id] = (state.playStreak[id] || 0) + 1;
+      next.restStreak[id] = 0;
+      if (next.playStreak[id] > next.maxConsecutivePlay) {
+        next.maxConsecutivePlay = next.playStreak[id];
+      }
+    } else {
+      next.byeCount[id] = (next.byeCount[id] || 0) + 1;
+      next.playStreak[id] = 0;
+      next.restStreak[id] = (state.restStreak[id] || 0) + 1;
+      next.lastRestRound[id] = roundIndex;
+    }
+  }
+
+  next.restPriorityTotal += roundCand.restCandidate.restPriorityDelta;
+  next.playSpread = computeCountSpread(next.playCount, context.allIds);
+  // 用滚动数字哈希代替字符串拼接，避免字典序偏倚导致 beam 剪枝系统性偏向
+  // 特定名字排序靠前（如 A1,A2 rest → A3|A4 上场）会使对应 historyKey 更小而总是存活
+  next.historyKey = hashString(`${next.historyKey || 0}:${roundCand.stableKey}`);
+
+  const restPlayers = context.allIds.filter((id) => !played.has(id));
+  next.rounds.push({
+    roundIndex,
+    matches: roundMatches,
+    restPlayers
+  });
+
+  next.objective = {
+    playSpread: next.playSpread,
+    maxConsecutivePlay: next.maxConsecutivePlay,
+    opponentPenalty: next.opponentPenalty,
+    partnerPenalty: next.partnerPenalty,
+    uniqueMatchupCount: next.uniqueMatchupCount,
+    restPriorityTotal: next.restPriorityTotal
+  };
+  return next;
+}
+
+function greedilyCompleteState(state, context, seed) {
+  let current = state;
+  while (current && current.matchCount < context.totalMatches) {
+    if (context.deadlineAtMs > 0 && nowMs() >= context.deadlineAtMs) break;
+    const candidates = buildRoundCandidates(current, context, seed);
+    if (!candidates.length) break;
+    current = applyRoundCandidate(current, candidates[0], context);
+  }
+  return current;
+}
+
+function runSingleBeam(idsA, idsB, totalMatches, courts, seed, config = {}) {
+  const context = buildBeamContext(idsA, idsB, totalMatches, courts, config);
+  let beam = [buildInitialState(context.idsA, context.idsB)];
+  const startedAt = nowMs();
+  let timedOut = false;
+
+  while (beam.length) {
+    if (beam.every((s) => s.matchCount >= totalMatches)) break;
+    if ((nowMs() - startedAt) >= context.timeBudgetMs) {
+      timedOut = true;
+      break;
+    }
+    if (context.deadlineAtMs > 0 && nowMs() >= context.deadlineAtMs) {
+      timedOut = true;
+      break;
+    }
+    const expanded = [];
+    for (const state of beam) {
+      if (state.matchCount >= totalMatches) {
+        expanded.push(state);
+        continue;
+      }
+      // 用状态历史哈希而非单纯轮次作 seed，让不同路径的 beam state 探索不同候选顺序
+      const stateSeed = normalizeSeed(seed + (Number(state.historyKey) || state.matchCount));
+      const candidates = buildRoundCandidates(state, context, stateSeed);
+      for (const cand of candidates) {
+        expanded.push(applyRoundCandidate(state, cand, context));
+      }
+    }
+    if (!expanded.length) break;
+    expanded.sort(compareState);
+    beam = expanded.slice(0, context.beamWidth);
+  }
+
+  const completed = beam.filter((s) => s.matchCount >= totalMatches).sort(compareState);
+  if (completed.length) {
+    return { state: completed[0], timedOut: false };
+  }
+
+  // 贪心补齐
+  const greedyCompleted = beam
+    .map((s) => greedilyCompleteState(s, context, seed + 100003))
+    .filter((s) => s && s.matchCount >= totalMatches)
+    .sort(compareState);
+  if (greedyCompleted.length) {
+    return { state: greedyCompleted[0], timedOut };
+  }
+
+  const bestPartial = beam.slice().sort(compareState)[0];
+  return { state: bestPartial || buildInitialState(context.idsA, context.idsB), timedOut: true };
+}
+
+function buildFairnessScore(state) {
+  const penalty =
+    (state.playSpread * 50000)
+    + (state.maxConsecutivePlay * 20000)
+    + (state.opponentPenalty * 200)
+    + (state.partnerPenalty * 120)
+    - (state.restPriorityTotal * 5);
+  return Math.max(1, Math.round(1000000 / (1 + Math.max(0, penalty))));
+}
+
+function buildStats(rounds, allIds) {
+  const playCount = Object.fromEntries(allIds.map((id) => [id, 0]));
+  const partnerCount = {};
+  const opponentCount = {};
+  for (const round of rounds) {
+    for (const match of round.matches || []) {
+      const teamA = match.teamA || [];
+      const teamB = match.teamB || [];
+      teamA.concat(teamB).forEach((id) => {
+        playCount[id] = (playCount[id] || 0) + 1;
+      });
+      partnerCount[pairKey(teamA[0], teamA[1])] = (partnerCount[pairKey(teamA[0], teamA[1])] || 0) + 1;
+      partnerCount[pairKey(teamB[0], teamB[1])] = (partnerCount[pairKey(teamB[0], teamB[1])] || 0) + 1;
+      for (const a of teamA) {
+        for (const b of teamB) {
+          const k = pairKey(a, b);
+          opponentCount[k] = (opponentCount[k] || 0) + 1;
+        }
+      }
+    }
+  }
+  const partnerRepeats = Object.values(partnerCount).reduce((s, c) => s + Math.max(0, c - 1), 0);
+  const opponentRepeats = Object.values(opponentCount).reduce((s, c) => s + Math.max(0, c - 1), 0);
+  return { playCount, partnerRepeats, opponentRepeats };
+}
+
+function finalizeSchedule(state, idsA, idsB, seed) {
+  const allIds = idsA.concat(idsB);
+  const stats = buildStats(state.rounds, allIds);
+  const fairnessScore = buildFairnessScore(state);
+  return {
+    rounds: state.rounds,
+    fairnessScore,
+    fairness: {
+      engine: 'squad-v3-beam',
+      playSpread: state.playSpread,
+      maxConsecutivePlay: state.maxConsecutivePlay,
+      partnerRepeats: stats.partnerRepeats,
+      opponentRepeats: stats.opponentRepeats,
+      partnerPenalty: state.partnerPenalty,
+      opponentPenalty: state.opponentPenalty,
+      uniqueMatchupCount: state.uniqueMatchupCount,
+      restPriorityTotal: state.restPriorityTotal
+    },
+    playerStats: { playCount: stats.playCount },
+    seed,
+    schedulerMeta: {
+      engineVersion: 'squad-v3-beam',
+      mode: 'squad_doubles'
+    }
+  };
+}
+
+function resolveSquadSchedule(idsA, idsB, totalMatches, courts, options = {}) {
+  const sortedA = stableSortIds(idsA);
+  const sortedB = stableSortIds(idsB);
+  if (sortedA.length < 2 || sortedB.length < 2) return null;
+  const target = Math.max(1, Number(totalMatches) || 1);
+
+  const hardDeadlineMs = Number(options.hardDeadlineMs) || 2500;
+  const softBudgetMs = Math.min(1700, hardDeadlineMs - 500);
+  const startedAt = nowMs();
+  const softDeadlineAtMs = startedAt + softBudgetMs;
+  const hardDeadlineAtMs = startedAt + hardDeadlineMs;
+
+  const searchSeeds = Math.max(1, Number(options.searchSeeds) || 6);
+  const seedStep = Math.max(1, Number(options.seedStep) || 7919);
+  const baseSeed = normalizeSeed(options.seed || 1);
+
+  const effectiveCourts = Math.max(1, Math.min(
+    Number(courts) || 1,
+    Math.floor(sortedA.length / 2),
+    Math.floor(sortedB.length / 2)
+  ));
+
+  // 运行时配置：根据 courts 调整
+  // restSetLimit 必须足够覆盖小规模问题的完整 rest 组合，否则 partnerDelta 排序无法生效
+  // 4v4 courts=1：36 rest 组合；6v6 courts=1：225；6v6 courts=2：225
+  const runtimeConfig = effectiveCourts === 1
+    ? { beamWidth: 48, restSetLimit: 48, packageLimit: 24, perStateLimit: 8, timeBudgetMs: 220 }
+    : { beamWidth: 64, restSetLimit: 64, packageLimit: 32, perStateLimit: 10, timeBudgetMs: 280 };
+
+  let bestCompleted = null;
+  let bestPartial = null;
+
+  for (let i = 0; i < searchSeeds; i += 1) {
+    if (nowMs() >= softDeadlineAtMs) break;
+    const seed = normalizeSeed(baseSeed + (i * seedStep));
+    const remaining = Math.max(25, softDeadlineAtMs - nowMs());
+    const { state } = runSingleBeam(sortedA, sortedB, target, effectiveCourts, seed, {
+      ...runtimeConfig,
+      timeBudgetMs: Math.min(runtimeConfig.timeBudgetMs, remaining),
+      deadlineAtMs: softDeadlineAtMs
+    });
+    if (!state) continue;
+    if (state.matchCount >= target) {
+      if (!bestCompleted || compareState(state, bestCompleted) < 0) {
+        bestCompleted = state;
+      }
+    } else if (!bestPartial || compareState(state, bestPartial) < 0) {
+      bestPartial = state;
+    }
+  }
+
+  // 如果没有完整方案，尝试用 partial 贪心补齐
+  if (!bestCompleted && bestPartial && nowMs() < hardDeadlineAtMs) {
+    const guardContext = buildBeamContext(sortedA, sortedB, target, effectiveCourts, {
+      beamWidth: 16,
+      restSetLimit: 6,
+      packageLimit: 12,
+      perStateLimit: 3,
+      deadlineAtMs: hardDeadlineAtMs
+    });
+    const completed = greedilyCompleteState(bestPartial, guardContext, baseSeed + 100003);
+    if (completed && completed.matchCount >= target) {
+      bestCompleted = completed;
+    }
+  }
+
+  if (!bestCompleted) return null;
+  return finalizeSchedule(bestCompleted, sortedA, sortedB, baseSeed);
+}
+
+module.exports = {
+  resolveSquadSchedule,
+  // 导出内部函数便于测试
+  _internal: {
+    buildInitialState,
+    buildRoundCandidates,
+    applyRoundCandidate,
+    buildBeamContext,
+    compareObjective,
+    buildFairnessScore,
+    enumeratePairPartitions
+  }
+};
