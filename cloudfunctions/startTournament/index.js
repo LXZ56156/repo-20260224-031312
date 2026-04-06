@@ -92,7 +92,7 @@ exports.main = async (event) => {
         schedule.schedulerMeta.schedulerProfile = schedulerProfile;
       }
     } else if (mode === 'fixed_pair_rr') {
-      schedule = buildFixedPairSchedule(players, C, pairTeams);
+      schedule = buildFixedPairSchedule(players, C, pairTeams, { totalMatches: M });
       if (schedule && schedule.schedulerMeta) {
         schedule.schedulerMeta.schedulerProfile = schedulerProfile;
       }

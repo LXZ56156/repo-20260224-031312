@@ -283,11 +283,20 @@ function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
   };
 }
 
-function buildRoundRobinPairs(teamIds) {
+// cycleIndex > 0 时对非固定位选手做旋转偏移，使重复循环的对阵顺序不同
+function buildRoundRobinPairs(teamIds, cycleIndex) {
+  const ci = Math.max(0, Number(cycleIndex) || 0);
   const teams = teamIds.slice();
   const bye = '__BYE__';
   if (teams.length % 2 === 1) teams.push(bye);
   const n = teams.length;
+  if (ci > 0) {
+    // 保持 teams[0]（固定锚点），对后续选手做旋转以产生不同的对阵顺序
+    const fixed = teams[0];
+    const rest = teams.slice(1);
+    const shift = ci % rest.length;
+    teams.splice(0, teams.length, fixed, ...rest.slice(shift), ...rest.slice(0, shift));
+  }
   const rounds = [];
   for (let r = 0; r < n - 1; r += 1) {
     const pairs = [];
@@ -307,7 +316,7 @@ function buildRoundRobinPairs(teamIds) {
   return rounds;
 }
 
-function buildFixedPairSchedule(players, courts, pairTeamsRaw = []) {
+function buildFixedPairSchedule(players, courts, pairTeamsRaw = [], rules = {}) {
   const playerMap = {};
   for (const player of (players || [])) {
     const id = String(player && player.id || '').trim();
@@ -325,16 +334,31 @@ function buildFixedPairSchedule(players, courts, pairTeamsRaw = []) {
     throw new Error('固搭循环赛至少需要 2 支队伍');
   }
 
-  const roundsPair = buildRoundRobinPairs(pairTeams.map((team) => team.id));
+  const n = pairTeams.length;
+  const combN2 = (n * (n - 1)) / 2;
+  const targetMatches = Math.max(1, Number((rules && rules.totalMatches)) || combN2);
   const teamMap = Object.fromEntries(pairTeams.map((team) => [team.id, team]));
+  const maxCourts = Math.max(1, Number(courts) || 1);
+
+  // 生成足够多的循环轮次覆盖 targetMatches
+  const allLogicalRounds = [];
+  let cycleIdx = 0;
+  while (allLogicalRounds.reduce((s, r) => s + r.length, 0) < targetMatches && cycleIdx < 200) {
+    const cycleRounds = buildRoundRobinPairs(pairTeams.map((team) => team.id), cycleIdx);
+    allLogicalRounds.push(...cycleRounds);
+    cycleIdx += 1;
+  }
+
   const rounds = [];
   let roundIndex = 0;
   let matchIndex = 0;
-  const maxCourts = Math.max(1, Number(courts) || 1);
-  for (let logicalRound = 0; logicalRound < roundsPair.length; logicalRound += 1) {
-    const pendingPairs = roundsPair[logicalRound].slice();
-    while (pendingPairs.length) {
-      const pairs = pendingPairs.splice(0, maxCourts);
+
+  for (let li = 0; li < allLogicalRounds.length && matchIndex < targetMatches; li += 1) {
+    const logicalRound = li;
+    const pendingPairs = allLogicalRounds[li].slice();
+    while (pendingPairs.length && matchIndex < targetMatches) {
+      const take = Math.min(pendingPairs.length, maxCourts, targetMatches - matchIndex);
+      const pairs = pendingPairs.splice(0, take);
       const matches = pairs.map((pair) => {
         const teamA = teamMap[pair[0]];
         const teamB = teamMap[pair[1]];
@@ -359,16 +383,35 @@ function buildFixedPairSchedule(players, courts, pairTeamsRaw = []) {
     }
   }
 
+  // 计算真实 fairness 指标
+  const pairCounts = {};
+  rounds.forEach((r) => r.matches.forEach((m) => {
+    const key = [m.unitAId, m.unitBId].sort().join('|');
+    pairCounts[key] = (pairCounts[key] || 0) + 1;
+  }));
+  const pairCountVals = Object.values(pairCounts);
+  const playSpread = pairCountVals.length
+    ? Math.max(...pairCountVals) - Math.min(...pairCountVals)
+    : 0;
+  const uniquePairs = Object.keys(pairCounts).length;
+  const fairnessScore = Math.max(1, Math.round(1000000 / (1 + playSpread * 100)));
+
   return {
     rounds,
-    fairnessScore: 0,
-    fairness: { engine: 'fixed-pair-v1' },
+    fairnessScore,
+    fairness: {
+      engine: 'fixed-pair-v1',
+      playSpread,
+      totalMatches: matchIndex,
+      uniquePairs
+    },
     playerStats: {},
     seed: 0,
     schedulerMeta: {
       engineVersion: 'fixed-pair-v1',
       mode: 'fixed_pair_rr',
-      logicalRounds: roundsPair.length
+      logicalRounds: rounds.length,
+      cycles: cycleIdx
     }
   };
 }

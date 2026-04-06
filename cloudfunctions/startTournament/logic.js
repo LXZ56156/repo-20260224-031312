@@ -74,7 +74,8 @@ function validateBeforeGenerate(tournament) {
   if (mode === 'fixed_pair_rr') {
     const pairTeams = Array.isArray(t.pairTeams) ? t.pairTeams.filter((item) => Array.isArray(item && item.playerIds) && item.playerIds.length === 2) : [];
     if (pairTeams.length < 2) throw new Error('固搭循环赛至少需要 2 支队伍');
-    maxMatches = comb(pairTeams.length, 2);
+    // 支持重复循环：上限放宽到 10 倍 C(n,2)，允许多轮完整循环
+    maxMatches = comb(pairTeams.length, 2) * 10;
   }
   if (mode === 'squad_doubles') {
     const aCount = players.filter((item) => String(item && item.squad || '').toUpperCase() === 'A').length;
