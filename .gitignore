@@ -35,7 +35,7 @@ pnpm-debug.log*
 project.private.config.json
 
 # Claude Code
-.claude/settings.local.json
+.claude/settings*.json
 .claude.json
 .mcp.json
 
