@@ -108,6 +108,32 @@ test('schedule page derives finished hero copy from completed rounds', () => {
   }
 });
 
+test('schedule page prefers scheduledMatches over legacy totalMatches in hero progress', () => {
+  const definition = loadSchedulePageDefinition();
+  const ctx = createSchedulePageContext(definition);
+
+  try {
+    ctx.applyTournament(buildTournament({
+      totalMatches: 1,
+      scheduledMatches: 5,
+      rounds: [{
+        roundIndex: 0,
+        matches: [{
+          matchIndex: 0,
+          status: 'pending',
+          teamA: [{ id: 'u_admin', name: '甲一' }, { id: 'u_2', name: '乙二' }],
+          teamB: [{ id: 'u_3', name: '丙三' }, { id: 'u_4', name: '丁四' }]
+        }]
+      }]
+    }));
+
+    assert.equal(ctx.data.heroMatchText, '0 / 5 场');
+    assert.equal(ctx.data.heroPendingText, '仍有 1 场待录分');
+  } finally {
+    delete require.cache[schedulePagePath];
+  }
+});
+
 test('schedule page derives draft hero copy without progress bar', () => {
   const definition = loadSchedulePageDefinition();
   const ctx = createSchedulePageContext(definition);

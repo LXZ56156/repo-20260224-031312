@@ -7,6 +7,17 @@ function makePlayers(n) {
   return Array.from({ length: n }, (_, i) => ({ id: `p${i + 1}`, name: `P${i + 1}` }));
 }
 
+function makeSquadPlayers(aCount, bCount) {
+  const players = [];
+  for (let i = 0; i < aCount; i += 1) {
+    players.push({ id: `A${i + 1}`, name: `A${i + 1}`, squad: 'A' });
+  }
+  for (let i = 0; i < bCount; i += 1) {
+    players.push({ id: `B${i + 1}`, name: `B${i + 1}`, squad: 'B' });
+  }
+  return players;
+}
+
 test('parsePosInt normalizes numeric input', () => {
   assert.equal(logic.parsePosInt('', 10), null);
   assert.equal(logic.parsePosInt('3.8', 10), 3);
@@ -29,6 +40,36 @@ test('validateSettings rejects totalMatches over max', () => {
   );
 });
 
+test('validateSettings rejects duplicate player ids', () => {
+  assert.throws(
+    () => logic.validateSettings([
+      { id: 'p1', name: 'P1' },
+      { id: 'p1', name: 'P1 duplicate' },
+      { id: 'p2', name: 'P2' },
+      { id: 'p3', name: 'P3' }
+    ], 1, 1),
+    /重复成员/
+  );
+});
+
+test('validateSettings rejects target_wins when derived scheduled matches exceed max', () => {
+  assert.throws(
+    () => logic.validateSettings(
+      makeSquadPlayers(4, 4),
+      1,
+      2,
+      'squad_doubles',
+      [],
+      {
+        resolvedTotalMatches: 1,
+        endConditionType: 'target_wins',
+        endConditionTarget: 200
+      }
+    ),
+    /结束条件会产生 399 场，不能超过最大可选 210 场/
+  );
+});
+
 test('validateSettings builds patch and sets settingsConfigured only when both present', () => {
   const partial = logic.validateSettings(makePlayers(8), 5, null);
   assert.equal(partial.patch.totalMatches, 5);
@@ -38,6 +79,22 @@ test('validateSettings builds patch and sets settingsConfigured only when both p
   assert.equal(full.patch.totalMatches, 5);
   assert.equal(full.patch.courts, 2);
   assert.equal(full.patch.settingsConfigured, true);
+});
+
+test('validateSettings returns derived scheduledMatches for target_wins', () => {
+  const out = logic.validateSettings(
+    makeSquadPlayers(4, 4),
+    1,
+    2,
+    'squad_doubles',
+    [],
+    {
+      resolvedTotalMatches: 1,
+      endConditionType: 'target_wins',
+      endConditionTarget: 3
+    }
+  );
+  assert.equal(out.scheduledMatches, 5);
 });
 
 test('validateSettings uses 10-cycle cap for fixed pair round robin', () => {

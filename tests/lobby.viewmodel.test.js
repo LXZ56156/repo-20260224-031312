@@ -126,6 +126,28 @@ test('lobby view model turns finished state into summary-only actions and keeps 
   assert.deepEqual(result.patch.primaryNavItems.map((item) => item.key), ['match', 'ranking', 'schedule']);
 });
 
+test('lobby view model prefers scheduledMatches over legacy totalMatches after start', () => {
+  const result = viewModel.buildLobbyViewModel({
+    tournament: buildTournament({
+      status: 'running',
+      totalMatches: 3,
+      scheduledMatches: 5,
+      courts: 2,
+      players: [
+        { id: 'u_admin', name: '组织者', gender: 'male' },
+        { id: 'u_1', name: '球友1', gender: 'male' },
+        { id: 'u_2', name: '球友2', gender: 'female' },
+        { id: 'u_3', name: '球友3', gender: 'female' }
+      ]
+    }),
+    openid: 'u_admin',
+    data: {}
+  });
+
+  assert.equal(result.patch.kpiMatches, '5');
+  assert.match(result.patch.matchInfoText, /总 5 场/);
+});
+
 test('lobby view model promotes start card when admin draft is ready to begin', () => {
   const result = viewModel.buildLobbyViewModel({
     tournament: buildTournament({

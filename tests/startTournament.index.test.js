@@ -179,12 +179,95 @@ test('startTournament writes generated rounds and running state through the dire
   assert.equal(writtenData.status, 'running');
   assert.equal(Array.isArray(writtenData.rounds), true);
   assert.equal(writtenData.rounds.length, 1);
+  assert.equal(writtenData.scheduledMatches, 1);
   assert.equal(writtenData.rounds[0].matches[0].status, 'pending');
   assert.equal(Array.isArray(writtenData.rankings), true);
   assert.equal(writtenData.scheduleSeed, 123);
   assert.equal(writtenData.mode, 'multi_rotate');
   assert.equal(writtenData.fairnessScore, 0.88);
   assert.deepEqual(writtenData.version, { $inc: 1 });
+});
+
+test('startTournament rejects generated schedules with duplicate players in one match', async () => {
+  let updateCalled = false;
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      },
+      remove() {
+        return { $remove: true };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      assert.equal(name, 'tournaments');
+      return {
+        doc() {
+          return {
+            async get() {
+              return { data: buildTournament() };
+            }
+          };
+        },
+        where() {
+          return {
+            async update() {
+              updateCalled = true;
+              return { stats: { updated: 1 } };
+            }
+          };
+        }
+      };
+    }
+  };
+  const { main } = loadMain(db, {
+    rotation: {
+      generateSchedule() {
+        return {
+          seed: 123,
+          fairnessScore: 0.88,
+          fairness: { imbalance: 0 },
+          playerStats: { p1: { played: 1 } },
+          schedulerMeta: { source: 'stub' },
+          rounds: [{
+            roundIndex: 0,
+            matches: [{
+              matchIndex: 0,
+              matchType: 'doubles',
+              logicalRound: 0,
+              unitAId: 'pair_a',
+              unitBId: 'pair_b',
+              unitAName: 'A 组',
+              unitBName: 'B 组',
+              teamA: ['p1', 'p2'],
+              teamB: ['p1', 'p4']
+            }],
+            restPlayers: []
+          }]
+        };
+      },
+      selectSchedulerPolicy() {
+        return { selectedEpsilon: 1.2, selectedSearchSeeds: 4 };
+      },
+      computeEffectiveCourts(playersCount, courts) {
+        return Math.max(1, Math.min(Number(courts) || 1, Math.floor((Number(playersCount) || 0) / 4) || 1));
+      }
+    }
+  });
+
+  const result = await main({
+    tournamentId: 't_1',
+    schedulerProfile: 'balanced'
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'START_VALIDATION_FAILED');
+  assert.equal(result.state, 'invalid');
+  assert.match(result.message, /重复成员/);
+  assert.equal(updateCalled, false);
 });
 
 test('startTournament returns TOURNAMENT_ID_REQUIRED before reading the database', async () => {

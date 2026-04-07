@@ -1,14 +1,6 @@
 const fixedPair = require('./lib/fixed-pair');
-
-function pairKey(a, b) {
-  return a < b ? `${a}_${b}` : `${b}_${a}`;
-}
-
-function normalizeEndConditionType(type) {
-  const v = String(type || '').trim().toLowerCase();
-  if (v === 'total_matches' || v === 'total_rounds' || v === 'target_wins') return v;
-  return 'total_matches';
-}
+const scheduleContract = require('./lib/schedule');
+const { pairKey } = require('./utils');
 
 function sortForRotation(ids, playCount, playStreak, usedSet, opponentCount, rivals) {
   const used = usedSet || new Set();
@@ -195,6 +187,7 @@ function runSquadGreedyFallback(idsA, idsB, targetMatches, courts, endConditionT
 }
 
 function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
+  scheduleContract.assertValidRosterPlayers(players);
   const idsA = [];
   const idsB = [];
   for (const player of (players || [])) {
@@ -208,14 +201,13 @@ function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
     throw new Error('小队转需要 A/B 队至少各 2 人');
   }
 
-  const endConditionType = normalizeEndConditionType(rules.endCondition && rules.endCondition.type);
+  const endConditionType = scheduleContract.normalizeEndConditionType(rules.endCondition && rules.endCondition.type);
   const endConditionTarget = Math.max(1, Number(rules.endCondition && rules.endCondition.target) || totalMatches);
   const targetRounds = endConditionType === 'total_rounds' ? Math.max(1, endConditionTarget) : 0;
-  let targetMatches = Math.max(1, Number(totalMatches) || 1);
-  if (endConditionType === 'target_wins') {
-    // Best-of style lower bound: reaching N wins needs at most (2N-1) matches.
-    targetMatches = Math.max(targetMatches, endConditionTarget * 2 - 1);
-  }
+  const targetMatches = scheduleContract.deriveScheduledMatches(totalMatches, {
+    type: endConditionType,
+    target: endConditionTarget
+  });
 
   // Beam search 仅处理 target matches 场景，total_rounds 直接走贪心
   const forceFallback = rules._debugForceFallback === true;
@@ -319,6 +311,7 @@ function buildRoundRobinPairs(teamIds, cycleIndex) {
 }
 
 function buildFixedPairSchedule(players, courts, pairTeamsRaw = [], rules = {}) {
+  scheduleContract.assertValidRosterPlayers(players);
   const playerMap = {};
   for (const player of (players || [])) {
     const id = String(player && player.id || '').trim();
@@ -339,11 +332,18 @@ function buildFixedPairSchedule(players, courts, pairTeamsRaw = [], rules = {}) 
   const targetMatches = Math.max(1, Number((rules && rules.totalMatches)) || combN2);
   const teamMap = Object.fromEntries(pairTeams.map((team) => [team.id, team]));
   const maxCourts = Math.max(1, Number(courts) || 1);
+  const maxCycleLimit = Math.max(1, Number(fixedPair.FIXED_PAIR_MAX_CYCLES) || 1);
+  const maxPossibleMatches = fixedPair.calcFixedPairMaxMatches(n);
+  if (targetMatches > maxPossibleMatches) {
+    throw new Error(
+      `固搭循环赛所需场次（${targetMatches}）超出最大循环上限（${maxPossibleMatches}，${n} 支队伍 × ${maxCycleLimit} 循环），请减少场次`
+    );
+  }
 
   // 生成足够多的循环轮次覆盖 targetMatches
   const allLogicalRounds = [];
   let cycleIdx = 0;
-  while (allLogicalRounds.reduce((s, r) => s + r.length, 0) < targetMatches && cycleIdx < 200) {
+  while (allLogicalRounds.reduce((s, r) => s + r.length, 0) < targetMatches && cycleIdx < maxCycleLimit) {
     const cycleRounds = buildRoundRobinPairs(pairTeams.map((team) => team.id), cycleIdx);
     allLogicalRounds.push(...cycleRounds);
     cycleIdx += 1;

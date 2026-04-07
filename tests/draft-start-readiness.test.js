@@ -45,6 +45,23 @@ test('draft start readiness requires both squads to have at least two players', 
   assert.equal(out.playersChecklistHint, 'A队 2 / B队 1（至少各2人）');
 });
 
+test('draft start readiness blocks duplicate player ids before start', () => {
+  const out = startReadiness.buildDraftStartReadiness({
+    mode: flow.MODE_MULTI_ROTATE,
+    settingsConfigured: true,
+    players: [
+      { id: 'u_1', name: '球友1' },
+      { id: 'u_1', name: '球友1重复' },
+      { id: 'u_2', name: '球友2' },
+      { id: 'u_3', name: '球友3' }
+    ]
+  });
+
+  assert.equal(out.checkPlayersOk, false);
+  assert.equal(out.checkStartReady, false);
+  assert.match(out.playersChecklistHint, /重复成员/);
+});
+
 test('draft start readiness blocks fixed pair start when existing teams contain invalid entries', () => {
   const out = startReadiness.buildDraftStartReadiness({
     mode: flow.MODE_FIXED_PAIR_RR,

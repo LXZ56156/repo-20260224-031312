@@ -1,5 +1,6 @@
 const flow = require('./uxFlow');
 const fixedPair = require('./fixedPair');
+const scheduleContract = require('./scheduleContract');
 
 function buildDraftStartReadiness(tournament) {
   const t = tournament && typeof tournament === 'object' ? tournament : {};
@@ -11,16 +12,21 @@ function buildDraftStartReadiness(tournament) {
   const pairTeamValidation = fixedPair.validateFixedPairTeams(t.pairTeams, players);
   const validPairTeamsCount = pairTeamValidation.validTeamsCount;
   const invalidPairTeamsCount = pairTeamValidation.invalidTeamsCount;
+  const rosterValidation = scheduleContract.validateRosterPlayers(players);
 
-  let checkPlayersOk = playersCount >= 4;
-  let playersChecklistHint = checkPlayersOk ? '人数已达标' : '至少 4 人';
+  let checkPlayersOk = playersCount >= 4 && !rosterValidation.hasInvalid;
+  let playersChecklistHint = playersCount >= 4 ? '人数已达标' : '至少 4 人';
 
-  if (mode === flow.MODE_SQUAD_DOUBLES) {
+  if (rosterValidation.hasInvalid) {
+    playersChecklistHint = scheduleContract.getRosterValidationMessage(rosterValidation);
+  }
+
+  if (!rosterValidation.hasInvalid && mode === flow.MODE_SQUAD_DOUBLES) {
     checkPlayersOk = playersCount >= 4 && aCount >= 2 && bCount >= 2;
     playersChecklistHint = checkPlayersOk
       ? `A队 ${aCount} / B队 ${bCount}`
       : `A队 ${aCount} / B队 ${bCount}（至少各2人）`;
-  } else if (mode === flow.MODE_FIXED_PAIR_RR) {
+  } else if (!rosterValidation.hasInvalid && mode === flow.MODE_FIXED_PAIR_RR) {
     checkPlayersOk = playersCount >= 4 && validPairTeamsCount >= 2 && !pairTeamValidation.hasInvalid;
     playersChecklistHint = playersCount >= 4
       ? fixedPair.buildFixedPairReadinessHint(pairTeamValidation)

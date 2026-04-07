@@ -68,13 +68,12 @@ exports.main = async (event) => {
         throw new Error('满 4 人后才可设置比赛参数');
       }
       const mode = String(t.mode || 'multi_rotate').trim().toLowerCase();
-      const checked = validateSettings(players, totalMatches, courts, mode, t.pairTeams || []);
       const oldVersion = Number(t.version) || 1;
       const currentRules = (t.rules && typeof t.rules === 'object') ? t.rules : {};
       const currentEndCondition = (currentRules.endCondition && typeof currentRules.endCondition === 'object')
         ? currentRules.endCondition
         : {};
-      const resolvedTotalMatches = checked.patch.totalMatches || Number(t.totalMatches) || 1;
+      const resolvedTotalMatches = totalMatches !== null ? totalMatches : (Number(t.totalMatches) || 1);
       const resolvedEndConditionType = mode === 'squad_doubles'
         ? (endConditionTypeInput || normalizeEndConditionType(currentEndCondition.type))
         : 'total_matches';
@@ -84,6 +83,11 @@ exports.main = async (event) => {
           endConditionTargetInput,
           currentEndCondition.target || resolvedTotalMatches
         );
+      const checked = validateSettings(players, totalMatches, courts, mode, t.pairTeams || [], {
+        resolvedTotalMatches,
+        endConditionType: resolvedEndConditionType,
+        endConditionTarget: resolvedEndConditionTarget
+      });
       const nextRules = {
         ...currentRules,
         gamesPerMatch: 1,
@@ -151,6 +155,8 @@ function mapUpdateSettingsFailure(err, traceId = '') {
     message.includes('参数') ||
     message.includes('满 4 人') ||
     message.includes('人数') ||
+    message.includes('名单') ||
+    message.includes('成员') ||
     message.includes('队伍') ||
     message.includes('结束条件')
   ) {

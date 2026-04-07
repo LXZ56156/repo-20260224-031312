@@ -7,6 +7,7 @@ const pageTournamentSync = require('../../core/pageTournamentSync');
 const matchPrimaryNav = require('../../core/matchPrimaryNav');
 const shareMeta = require('../../core/shareMeta');
 const flow = require('../../core/uxFlow');
+const scheduleContract = require('../../core/scheduleContract');
 const avatarDisplay = require('../../core/avatarDisplay');
 
 const PLAYER_FILTER_OPTIONS = [
@@ -422,6 +423,11 @@ Page({
     const focusedRoundsUi = markPendingFocus(rawRoundsUi, firstPending);
     const roundsSummary = summarizeRounds(focusedRoundsUi);
     const canEditScore = perm.canEditScore(t, this.openid);
+    const displayTotalMatches = scheduleContract.resolveDisplayTotalMatches(t, roundsSummary.totalMatches);
+    const heroSummary = {
+      ...roundsSummary,
+      totalMatches: displayTotalMatches
+    };
     let nextActionKey = '';
     let nextActionText = '';
     if (status === 'running' && canEditScore && firstPending) {
@@ -429,12 +435,12 @@ Page({
       nextActionText = '继续录分';
     }
 
-    const heroSummaryText = buildHeroSummaryText(status, modeLabel, roundsSummary, firstPending);
-    const heroMatchText = roundsSummary.totalMatches
-      ? `${roundsSummary.finishedMatches} / ${roundsSummary.totalMatches} 场`
+    const heroSummaryText = buildHeroSummaryText(status, modeLabel, heroSummary, firstPending);
+    const heroMatchText = heroSummary.totalMatches
+      ? `${heroSummary.finishedMatches} / ${heroSummary.totalMatches} 场`
       : '暂无场次';
-    const heroPendingText = buildHeroPendingText(status, roundsSummary);
-    const heroProgressPercent = buildHeroProgressPercent(status, roundsSummary);
+    const heroPendingText = buildHeroPendingText(status, heroSummary);
+    const heroProgressPercent = buildHeroProgressPercent(status, heroSummary);
     const selectedPlayerIds = Array.isArray(this.data.selectedPlayerIds) ? this.data.selectedPlayerIds : [];
     const avatarFilterMode = String(this.data.avatarFilterMode || 'contains').trim() || 'contains';
     const statusFilter = String(this.data.statusFilter || 'all').trim() || 'all';

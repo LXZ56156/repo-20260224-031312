@@ -1,8 +1,6 @@
 const doublesEngine = require('./rotationDoublesEngine');
-
-function pairKey(a, b) {
-  return a < b ? `${a}_${b}` : `${b}_${a}`;
-}
+const scheduleContract = require('./lib/schedule');
+const { pairKey } = require('./utils');
 
 const POLICY_VERSION = 'v3';
 const DEFAULT_SEED_STEP = 7919;
@@ -110,7 +108,7 @@ function computeEffectiveCourts(playersCount, courts) {
 function buildGenderMap(players = []) {
   const out = {};
   for (const player of players) {
-    const id = String(player && player.id || '');
+    const id = String(player && player.id || '').trim();
     if (!id) continue;
     out[id] = normalizeGender(player && player.gender);
   }
@@ -1065,9 +1063,10 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
   if (!Array.isArray(players) || players.length < 4) {
     throw new Error('参赛人数必须不少于4人');
   }
+  scheduleContract.assertValidRosterPlayers(players);
   const M = Math.max(1, Number(totalMatches || 1));
   const C = Math.max(1, Number(courts || 1));
-  const ids = players.map((p) => p.id);
+  const ids = players.map((p) => String((p && p.id) || '').trim());
   const effectiveCourts = computeEffectiveCourts(ids.length, C);
   const mode = MODE_DOUBLES;
   const genderById = buildGenderMap(players);

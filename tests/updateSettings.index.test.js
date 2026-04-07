@@ -60,6 +60,35 @@ function buildTournament() {
   };
 }
 
+function buildSquadTournament() {
+  return {
+    _id: 't_squad',
+    creatorId: 'u_admin',
+    status: 'draft',
+    version: 6,
+    mode: 'squad_doubles',
+    allowOpenTeam: false,
+    totalMatches: 1,
+    courts: 2,
+    players: [
+      { id: 'A1', name: 'A1', squad: 'A' },
+      { id: 'A2', name: 'A2', squad: 'A' },
+      { id: 'A3', name: 'A3', squad: 'A' },
+      { id: 'A4', name: 'A4', squad: 'A' },
+      { id: 'B1', name: 'B1', squad: 'B' },
+      { id: 'B2', name: 'B2', squad: 'B' },
+      { id: 'B3', name: 'B3', squad: 'B' },
+      { id: 'B4', name: 'B4', squad: 'B' }
+    ],
+    pairTeams: [],
+    rules: {
+      pointsPerGame: 21,
+      endCondition: { type: 'target_wins', target: 1 },
+      unfinishedPolicy: 'admin_decide'
+    }
+  };
+}
+
 test('updateSettings writes normalized settings and rules through the direct index handler', async () => {
   let updateQuery = null;
   let writtenData = null;
@@ -202,5 +231,57 @@ test('updateSettings treats repeated clientRequestId as deduped success', async 
   assert.equal(result.deduped, true);
   assert.equal(result.clientRequestId, 'req_settings_1');
   assert.equal(result.version, 4);
+  assert.equal(updateCalled, false);
+});
+
+test('updateSettings rejects target_wins when derived scheduled matches exceed max', async () => {
+  let updateCalled = false;
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return { data: buildSquadTournament() };
+                }
+              };
+            },
+            where() {
+              return {
+                async update() {
+                  updateCalled = true;
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    totalMatches: 1,
+    courts: 2,
+    endConditionType: 'target_wins',
+    endConditionTarget: 200
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'SETTINGS_INVALID');
+  assert.equal(result.state, 'invalid');
+  assert.equal(result.message, '结束条件会产生 399 场，不能超过最大可选 210 场');
   assert.equal(updateCalled, false);
 });

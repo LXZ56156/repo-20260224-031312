@@ -64,3 +64,15 @@ test('generateSchedule still avoids player collisions inside the same round on d
     }
   }
 });
+
+test('generateSchedule rejects duplicate player ids before scheduling', () => {
+  assert.throws(
+    () => generateSchedule([
+      { id: 'p1', name: 'P1' },
+      { id: 'p1', name: 'P1 duplicate' },
+      { id: 'p2', name: 'P2' },
+      { id: 'p3', name: 'P3' }
+    ], 1, 1, { seed: 11 }),
+    /重复成员/
+  );
+});

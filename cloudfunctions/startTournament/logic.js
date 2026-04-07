@@ -1,5 +1,6 @@
 const modeHelper = require('./lib/mode');
 const fixedPair = require('./lib/fixed-pair');
+const scheduleContract = require('./lib/schedule');
 
 function calcMaxMatches(n) {
   const nn = Number(n) || 0;
@@ -47,6 +48,7 @@ function validateBeforeGenerate(tournament) {
   const t = tournament || {};
   const players = Array.isArray(t.players) ? t.players : [];
   if (players.length < 4) throw new Error('参赛人数不足 4 人');
+  scheduleContract.assertValidRosterPlayers(players);
 
   const mode = modeHelper.normalizeMode(t.mode);
 
@@ -73,12 +75,22 @@ function validateBeforeGenerate(tournament) {
     if (aCount < 2 || bCount < 2) throw new Error('小队转需要 A/B 队至少各 2 人');
     maxMatches = calcMaxMatches(players.length);
   }
-  if (maxMatches > 0 && totalMatches > maxMatches) {
+  const normalizedEndConditionType = scheduleContract.normalizeEndConditionType(endCondition.type);
+  const normalizedEndConditionTarget = Math.max(1, Number(endCondition.target) || totalMatches);
+  const scheduledMatches = scheduleContract.deriveScheduledMatches(totalMatches, {
+    type: normalizedEndConditionType,
+    target: normalizedEndConditionTarget
+  });
+  if (maxMatches > 0 && scheduledMatches > maxMatches) {
+    if (scheduledMatches !== totalMatches) {
+      throw new Error(`结束条件会产生 ${scheduledMatches} 场，不能超过最大可选 ${maxMatches} 场`);
+    }
     throw new Error(`总场次不能超过最大可选 ${maxMatches} 场`);
   }
   return {
     players,
     totalMatches,
+    scheduledMatches,
     courts,
     maxMatches,
     mode,
@@ -89,8 +101,8 @@ function validateBeforeGenerate(tournament) {
     rules: {
       pointsPerGame: Number(rules.pointsPerGame) || 21,
       endCondition: {
-        type: String(endCondition.type || 'total_matches').trim().toLowerCase() || 'total_matches',
-        target: Math.max(1, Number(endCondition.target) || totalMatches)
+        type: normalizedEndConditionType,
+        target: normalizedEndConditionTarget
       },
       unfinishedPolicy: String(rules.unfinishedPolicy || 'admin_decide')
     }

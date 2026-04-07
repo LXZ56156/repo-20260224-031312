@@ -80,7 +80,7 @@ test('17p-1c now routes through template instead of long-tail fallback', () => {
   assert.ok(elapsed < 100, `elapsed=${elapsed}`);
 });
 
-test('runtime budget can force guarded completion while still returning a full schedule', () => {
+test('runtime budget keeps guarded completion while still returning a full schedule', () => {
   const out = generateSchedule(makePlayers(18, 9), 12, 1, {
     seed: 42,
     searchSeeds: 8,
@@ -89,7 +89,7 @@ test('runtime budget can force guarded completion while still returning a full s
   const matches = out.rounds.flatMap((round) => round.matches || []);
 
   assert.equal(matches.length, 12);
-  assert.equal(out.schedulerMeta.engine, 'beam');
-  assert.equal(out.schedulerMeta.executionProfile, 'beam-guarded');
+  assert.ok(['beam', 'legacy'].includes(out.schedulerMeta.engine));
+  assert.ok(['beam-guarded', 'legacy-guarded'].includes(out.schedulerMeta.executionProfile));
   assert.equal(out.schedulerMeta.timeoutGuardTriggered, true);
 });

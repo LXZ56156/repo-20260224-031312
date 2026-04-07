@@ -25,16 +25,45 @@ function safePlayerName(p) {
 function idToPlayerMap(players) {
   const m = {};
   for (const p of (players || [])) {
-    if (!p || !p.id) continue;
+    const id = String((p && p.id) || '').trim();
+    if (!id) continue;
     const g = String(p.gender || '').trim().toLowerCase();
-    m[p.id] = {
-      id: p.id,
+    m[id] = {
+      id,
       name: safePlayerName(p),
       type: p.type || 'user',
       gender: (g === 'male' || g === 'female') ? g : 'unknown'
     };
   }
   return m;
+}
+
+function countRoundMatches(rounds = []) {
+  return (Array.isArray(rounds) ? rounds : []).reduce((sum, round) => {
+    return sum + ((Array.isArray(round && round.matches) ? round.matches : []).length);
+  }, 0);
+}
+
+function assertScheduleIntegrity(schedule) {
+  const rounds = Array.isArray(schedule && schedule.rounds) ? schedule.rounds : [];
+  for (const round of rounds) {
+    const matches = Array.isArray(round && round.matches) ? round.matches : [];
+    for (const match of matches) {
+      const ids = []
+        .concat(Array.isArray(match && match.teamA) ? match.teamA : [])
+        .concat(Array.isArray(match && match.teamB) ? match.teamB : [])
+        .map((id) => String(id || '').trim());
+      if (ids.some((id) => !id)) {
+        throw new Error('生成的对阵中有成员缺少唯一标识，请重试');
+      }
+      if (ids.length !== 4) {
+        throw new Error('生成的对阵人数异常，请重试');
+      }
+      if ((new Set(ids)).size !== ids.length) {
+        throw new Error('生成的对阵中有重复成员，请调整名单后重试');
+      }
+    }
+  }
 }
 
 exports.main = async (event) => {
@@ -111,6 +140,7 @@ exports.main = async (event) => {
         schedule.schedulerMeta.schedulerProfile = schedulerProfile;
       }
     }
+    assertScheduleIntegrity(schedule);
     const scheduleMs = Date.now() - scheduleStartedAtMs;
     const scheduleMeta = schedule && schedule.schedulerMeta && typeof schedule.schedulerMeta === 'object'
       ? schedule.schedulerMeta
@@ -155,10 +185,12 @@ exports.main = async (event) => {
     }));
 
     const rankings = modeHelper.buildInitialRankings(mode, players, pairTeams);
+    const scheduledMatches = countRoundMatches(rounds);
 
     const updateData = {
       status: 'running',
       rounds,
+      scheduledMatches,
       rankings,
       scheduleSeed: schedule.seed,
       mode,
@@ -262,6 +294,10 @@ function mapStartTournamentFailure(err, traceId = '') {
     message.includes('总场次不能超过') ||
     message.includes('至少') ||
     message.includes('场地') ||
+    message.includes('结束条件') ||
+    message.includes('名单') ||
+    message.includes('成员') ||
+    message.includes('对阵') ||
     message.includes('队伍')
   ) {
     return common.failResult('START_VALIDATION_FAILED', message, { traceId, state: 'invalid' });

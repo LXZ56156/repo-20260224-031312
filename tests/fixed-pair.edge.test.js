@@ -80,6 +80,19 @@ test('fixed_pair 5队 M=20 支持 2 倍循环', () => {
   Object.values(pairCounts).forEach((c) => assert.equal(c, 2));
 });
 
+test('fixed_pair rejects duplicate roster ids before scheduling', () => {
+  const { pairTeams } = makePairs(2);
+  assert.throws(
+    () => buildFixedPairSchedule([
+      { id: 'P1', name: 'P1' },
+      { id: 'P1', name: 'P1 duplicate' },
+      { id: 'P3', name: 'P3' },
+      { id: 'P4', name: 'P4' }
+    ], 1, pairTeams, { totalMatches: 1 }),
+    /重复成员/
+  );
+});
+
 // ——— squad beam 边界 ———
 
 test('squad beam 2v2 courts=1 最小情况不崩溃', () => {
@@ -100,4 +113,18 @@ test('squad beam courts 超过队伍数/2 时自动限制不崩溃', () => {
   });
   const matches = (out.rounds || []).flatMap((r) => r.matches || []);
   assert.equal(matches.length, 8);
+});
+
+test('squad schedule rejects duplicate roster ids before generation', () => {
+  assert.throws(
+    () => buildSquadSchedule([
+      { id: 'A1', name: 'A1', squad: 'A' },
+      { id: 'A1', name: 'A1 duplicate', squad: 'A' },
+      { id: 'B1', name: 'B1', squad: 'B' },
+      { id: 'B2', name: 'B2', squad: 'B' }
+    ], 1, 1, {
+      endCondition: { type: 'total_matches', target: 1 }
+    }),
+    /重复成员/
+  );
 });

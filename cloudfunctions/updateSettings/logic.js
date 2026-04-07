@@ -1,5 +1,6 @@
 const modeHelper = require('./lib/mode');
 const fixedPair = require('./lib/fixed-pair');
+const scheduleContract = require('./lib/schedule');
 
 function parsePosInt(v, maxV) {
   if (v === undefined || v === null || v === '') return null;
@@ -40,9 +41,7 @@ function normalizePoints(points) {
 }
 
 function normalizeEndConditionType(type) {
-  const value = String(type || '').trim().toLowerCase();
-  if (value === 'total_matches' || value === 'total_rounds' || value === 'target_wins') return value;
-  return 'total_matches';
+  return scheduleContract.normalizeEndConditionType(type);
 }
 
 function countGender(players) {
@@ -70,18 +69,35 @@ function calcMaxMatchesMixed(maleCount, femaleCount, unknownCount) {
   return Math.floor((mx + mm + ff) * 3);
 }
 
-function validateSettings(players, totalMatches, courts, mode = 'multi_rotate', pairTeams = []) {
+function validateSettings(players, totalMatches, courts, mode = 'multi_rotate', pairTeams = [], options = {}) {
   const list = Array.isArray(players) ? players : [];
+  scheduleContract.assertValidRosterPlayers(list);
   const normalizedMode = modeHelper.normalizeMode(mode);
   let maxMatches = calcMaxMatches(list.length);
   if (normalizedMode === 'fixed_pair_rr') {
     const validation = fixedPair.validateFixedPairTeams(pairTeams, list);
     maxMatches = fixedPair.calcFixedPairMaxMatches(validation.validTeamsCount);
   }
+  const resolvedTotalMatches = Math.max(
+    1,
+    Math.floor(Number(options && options.resolvedTotalMatches) || Number(totalMatches) || 1)
+  );
+  const normalizedEndConditionType = normalizeEndConditionType(options && options.endConditionType);
+  const normalizedEndConditionTarget = parseTargetInt(
+    options && options.endConditionTarget,
+    resolvedTotalMatches
+  );
+  const scheduledMatches = scheduleContract.deriveScheduledMatches(resolvedTotalMatches, {
+    type: normalizedEndConditionType,
+    target: normalizedEndConditionTarget
+  });
 
-  if (totalMatches !== null) {
+  if (totalMatches !== null || normalizedEndConditionType !== 'total_matches') {
     // 允许在人数不足 4 时先做预配置；开赛前由 startTournament 做最终校验。
-    if (maxMatches > 0 && totalMatches > maxMatches) {
+    if (maxMatches > 0 && scheduledMatches > maxMatches) {
+      if (scheduledMatches !== resolvedTotalMatches) {
+        throw new Error(`结束条件会产生 ${scheduledMatches} 场，不能超过最大可选 ${maxMatches} 场`);
+      }
       throw new Error(`总场次不能超过最大可选 ${maxMatches} 场`);
     }
   }
@@ -91,7 +107,7 @@ function validateSettings(players, totalMatches, courts, mode = 'multi_rotate', 
   if (courts !== null) patch.courts = courts;
   if (totalMatches !== null && courts !== null) patch.settingsConfigured = true;
 
-  return { maxMatches, patch };
+  return { maxMatches, scheduledMatches, patch };
 }
 
 module.exports = {

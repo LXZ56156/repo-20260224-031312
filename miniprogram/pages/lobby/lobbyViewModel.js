@@ -4,6 +4,7 @@ const matchPrimaryNav = require('../../core/matchPrimaryNav');
 const shareMeta = require('../../core/shareMeta');
 const flow = require('../../core/uxFlow');
 const draftStartReadiness = require('../../core/draftStartReadiness');
+const scheduleContract = require('../../core/scheduleContract');
 const settingsViewModel = require('../settings/settingsViewModel');
 
 function findFirstPendingPosition(rounds) {
@@ -499,7 +500,8 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
   const mode = flow.normalizeMode(t.mode || flow.MODE_MULTI_ROTATE);
   const modeLabel = flow.getModeLabel(mode);
   const modeRules = flow.getModeRuleLines(mode);
-  const totalMatches = Number(t.totalMatches) || 0;
+  const configuredTotalMatches = Number(t.totalMatches) || 0;
+  const displayTotalMatches = scheduleContract.resolveDisplayTotalMatches(t, configuredTotalMatches);
   const courts = Number(t.courts) || 0;
   const settingsFormState = settingsViewModel.buildSettingsFormState(t, { openid });
   const pointsPerGame = Math.max(1, Number(settingsFormState.pointsPerGame) || 21);
@@ -555,7 +557,7 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
   } else if (t.settingsConfigured === false) {
     kpiReady = false;
   } else {
-    kpiReady = playersCount >= 4 && totalMatches >= 1 && courts >= 1;
+    kpiReady = playersCount >= 4 && configuredTotalMatches >= 1 && courts >= 1;
   }
 
   const aCount = readiness.aCount;
@@ -567,7 +569,10 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
   const isFixedPairMode = mode === flow.MODE_FIXED_PAIR_RR;
 
   // needsSettingsSync: totalMatches 与实际可排场次不一致时需要先保存
-  const needsSettingsSync = isFixedPairMode && maxMatches > 0 && totalMatches !== maxMatches && validPairTeamsCount >= 2;
+  const needsSettingsSync = isFixedPairMode
+    && maxMatches > 0
+    && configuredTotalMatches !== maxMatches
+    && validPairTeamsCount >= 2;
 
   const checkSettingsOk = readiness.checkSettingsOk;
   const checkStartReady = readiness.checkStartReady;
@@ -718,14 +723,14 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       createdAtText,
       kpiReady,
       kpiPlayers: kpiReady ? String(playersCount) : '—',
-      kpiMatches: kpiReady ? String(totalMatches) : '—',
+      kpiMatches: kpiReady ? String(displayTotalMatches) : '—',
       kpiCourts: kpiReady ? String(courts) : '—',
       mode,
       modeLabel,
       modeRules,
       pointsPerGame,
       genderSummaryText: `男 ${genderCount.maleCount} · 女 ${genderCount.femaleCount} · 未设 ${genderCount.unknownCount}`,
-      matchInfoText: kpiReady ? `${modeLabel} · ${pointsPerGame}分制 · 总 ${totalMatches} 场 · 每轮最多 ${courts} 场` : '未设置',
+      matchInfoText: kpiReady ? `${modeLabel} · ${pointsPerGame}分制 · 总 ${displayTotalMatches} 场 · 每轮最多 ${courts} 场` : '未设置',
       quickConfigName,
       quickConfigGateHint: String(settingsFormState.settingsGateHint || ''),
       quickSettingsBusy: !!data.quickSettingsBusy,

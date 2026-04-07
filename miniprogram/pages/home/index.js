@@ -11,6 +11,7 @@ const writeErrorUi = require('../../core/writeErrorUi');
 const { normalizeTournament } = require('../../core/normalize');
 const adGuard = require('../../core/adGuard');
 const flow = require('../../core/uxFlow');
+const scheduleContract = require('../../core/scheduleContract');
 const systemInfo = require('../../core/systemInfo');
 const envConfig = require('../../config/env');
 const { buildHomeHeroCardState } = require('./heroCardState');
@@ -41,8 +42,7 @@ function calcProgress(t) {
       if (m && m.status === 'finished') done += 1;
     }
   }
-  const M = Number(t.totalMatches) || total || 0;
-  return { done, total: M || total };
+  return { done, total: scheduleContract.resolveDisplayTotalMatches(t, total) };
 }
 
 function statusLabel(s) {
@@ -90,7 +90,7 @@ function buildHomeItem(raw, fallbackId = '') {
   const t = normalizeTournament(raw || {});
   const players = Array.isArray(t.players) ? t.players : [];
   const { done, total } = calcProgress(t);
-  const mTotalRaw = Number(t.totalMatches) || total || 0;
+  const mTotalRaw = scheduleContract.resolveDisplayTotalMatches(t, total);
   const hasConfigured = (t.status !== 'draft') ? true : (t.settingsConfigured === true);
   const matchProgressText = (hasConfigured && mTotalRaw > 0) ? `${done}/${mTotalRaw}场` : '未设置';
   const updatedAt = t.updatedAt || t.createdAt;

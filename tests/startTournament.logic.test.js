@@ -7,6 +7,17 @@ function makePlayers(n) {
   return Array.from({ length: n }, (_, i) => ({ id: `p${i + 1}`, name: `P${i + 1}` }));
 }
 
+function makeSquadPlayers(aCount, bCount) {
+  const players = [];
+  for (let i = 0; i < aCount; i += 1) {
+    players.push({ id: `A${i + 1}`, name: `A${i + 1}`, squad: 'A' });
+  }
+  for (let i = 0; i < bCount; i += 1) {
+    players.push({ id: `B${i + 1}`, name: `B${i + 1}`, squad: 'B' });
+  }
+  return players;
+}
+
 test('calcMaxMatches computes C(n,4)*3', () => {
   assert.equal(logic.calcMaxMatches(3), 0);
   assert.equal(logic.calcMaxMatches(4), 3);
@@ -20,10 +31,57 @@ test('validateBeforeGenerate rejects insufficient players', () => {
   );
 });
 
+test('validateBeforeGenerate rejects duplicate player ids', () => {
+  assert.throws(
+    () => logic.validateBeforeGenerate({
+      players: [
+        { id: 'p1', name: 'P1' },
+        { id: 'p1', name: 'P1 duplicate' },
+        { id: 'p2', name: 'P2' },
+        { id: 'p3', name: 'P3' }
+      ],
+      totalMatches: 1,
+      courts: 1
+    }),
+    /重复成员/
+  );
+});
+
+test('validateBeforeGenerate rejects players missing ids', () => {
+  assert.throws(
+    () => logic.validateBeforeGenerate({
+      players: [
+        { id: 'p1', name: 'P1' },
+        { id: '   ', name: 'P2' },
+        { id: 'p3', name: 'P3' },
+        { id: 'p4', name: 'P4' }
+      ],
+      totalMatches: 1,
+      courts: 1
+    }),
+    /缺少唯一标识/
+  );
+});
+
 test('validateBeforeGenerate rejects totalMatches over max', () => {
   assert.throws(
     () => logic.validateBeforeGenerate({ players: makePlayers(4), totalMatches: 4, courts: 1 }),
     /总场次不能超过最大可选/
+  );
+});
+
+test('validateBeforeGenerate rejects target_wins when derived scheduled matches exceed max', () => {
+  assert.throws(
+    () => logic.validateBeforeGenerate({
+      players: makeSquadPlayers(4, 4),
+      totalMatches: 1,
+      courts: 2,
+      mode: 'squad_doubles',
+      rules: {
+        endCondition: { type: 'target_wins', target: 200 }
+      }
+    }),
+    /结束条件会产生 399 场，不能超过最大可选 210 场/
   );
 });
 
@@ -33,6 +91,21 @@ test('validateBeforeGenerate returns normalized values', () => {
   assert.equal(out.totalMatches, 5);
   assert.equal(out.courts, 10);
   assert.equal(out.maxMatches > 0, true);
+});
+
+test('validateBeforeGenerate derives scheduledMatches for target_wins', () => {
+  const out = logic.validateBeforeGenerate({
+    players: makeSquadPlayers(4, 4),
+    totalMatches: 1,
+    courts: 2,
+    mode: 'squad_doubles',
+    rules: {
+      endCondition: { type: 'target_wins', target: 3 }
+    }
+  });
+  assert.equal(out.totalMatches, 1);
+  assert.equal(out.scheduledMatches, 5);
+  assert.deepEqual(out.rules.endCondition, { type: 'target_wins', target: 3 });
 });
 
 test('validateBeforeGenerate accepts doubles alias and maps to multi_rotate', () => {

@@ -1,6 +1,4 @@
-function pairKey(a, b) {
-  return a < b ? `${a}_${b}` : `${b}_${a}`;
-}
+const { pairKey, stableSortIds } = require('./utils');
 
 function squareCost(count) {
   const value = Number(count) || 0;
@@ -45,13 +43,6 @@ function hashString(value) {
     hash |= 0;
   }
   return Math.abs(hash);
-}
-
-function stableSortIds(ids) {
-  return (Array.isArray(ids) ? ids : [])
-    .map((id) => String(id || '').trim())
-    .filter(Boolean)
-    .sort((left, right) => left.localeCompare(right));
 }
 
 function normalizeTeamKey(team) {
