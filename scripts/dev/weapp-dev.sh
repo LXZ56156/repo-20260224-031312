@@ -243,6 +243,32 @@ start_wechat_preview() {
   "$POWERSHELL_EXE" -NoProfile -ExecutionPolicy Bypass -File "$windows_script_path"
 }
 
+check_wechat_preview_running() {
+  "$POWERSHELL_EXE" -NoProfile -ExecutionPolicy Bypass -Command "\
+\$ErrorActionPreference = 'Stop'; \
+\$patterns = @('微信web开发者工具', 'wechatwebdevtools', 'WeChatDevTools', 'wechat-devtools'); \
+\$matched = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { \
+  \$text = @(\$_.Name, \$_.ExecutablePath, \$_.CommandLine) -join ' '; \
+  foreach (\$pattern in \$patterns) { \
+    if (\$text -like \"*\$pattern*\") { return \$true } \
+  }; \
+  return \$false \
+} | Select-Object -First 1; \
+if (\$matched) { exit 0 }; \
+exit 1" >/dev/null 2>&1
+}
+
+ensure_wechat_preview_started() {
+  log "检查微信开发者工具进程"
+  if check_wechat_preview_running; then
+    log "检测到已启动的微信开发者工具"
+    return 0
+  fi
+
+  log "未检测到微信开发者工具，先执行启动脚本"
+  start_wechat_preview
+}
+
 check_mcp_connection() {
   "$POWERSHELL_EXE" -NoProfile -ExecutionPolicy Bypass -Command "\
 \$ErrorActionPreference = 'Stop'; \
@@ -348,10 +374,12 @@ main() {
   case "$ACTION" in
     mcp|start)
       require_command nohup
+      require_command wslpath
       log "项目目录：$PROJECT_DIR"
       patch_weapp_mcp_screenshot_timeout
       start_sync
       ensure_mirror_current
+      ensure_wechat_preview_started
       ensure_mcp_ready
       show_status
       ;;
