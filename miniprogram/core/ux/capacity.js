@@ -2,6 +2,7 @@ const {
   normalizeMode,
   MODE_FIXED_PAIR_RR
 } = require('../mode');
+const fixedPair = require('../fixedPair');
 
 const RECOMMEND_MODEL_VERSION = 'v3';
 
@@ -35,7 +36,7 @@ function comb(n, k) {
   return Math.floor(numerator / denominator);
 }
 
-function calcMaxMatchesByMixedGender(maleCount, femaleCount, unknownCount, allowOpen = false) {
+function calcMaxMatchesByMixedGender(maleCount, femaleCount, unknownCount) {
   const male = Math.max(0, Number(maleCount) || 0);
   const female = Math.max(0, Number(femaleCount) || 0);
   const unknown = Math.max(0, Number(unknownCount) || 0);
@@ -45,8 +46,7 @@ function calcMaxMatchesByMixedGender(maleCount, femaleCount, unknownCount, allow
   const mxMatches = comb(male, 2) * comb(female, 2);
   const mmMatches = comb(male, 4);
   const ffMatches = comb(female, 4);
-  const openMatches = allowOpen ? comb(total, 4) : 0;
-  const totalMatches = mxMatches + mmMatches + ffMatches + openMatches;
+  const totalMatches = mxMatches + mmMatches + ffMatches;
   return Math.floor(totalMatches * 3);
 }
 
@@ -85,17 +85,17 @@ function buildTierMatches(cap, balancedRaw) {
 function buildMatchCountRecommendations(input) {
   const raw = input || {};
   const mode = normalizeMode(raw.mode);
-  const allowOpenTeam = raw.allowOpenTeam === true;
   const playersCount = Math.max(0, Number(raw.playersCount) || 0);
   const maleCount = Math.max(0, Number(raw.maleCount) || 0);
   const femaleCount = Math.max(0, Number(raw.femaleCount) || 0);
   const unknownCount = Math.max(0, Number(raw.unknownCount) || 0);
   const courts = Math.max(1, parsePositiveInt(raw.courts, 2, 10));
+  const pairTeamValidation = fixedPair.validateFixedPairTeams(raw.pairTeams, raw.players);
+  const fixedPairTeamsCount = pairTeamValidation.validTeamsCount;
 
   let maxByCombinatoricsRaw = calcMaxMatchesByPlayers(playersCount);
   if (mode === MODE_FIXED_PAIR_RR) {
-    const teamCount = Math.floor(playersCount / 2);
-    maxByCombinatoricsRaw = teamCount >= 2 ? comb(teamCount, 2) : 0;
+    maxByCombinatoricsRaw = fixedPair.calcFixedPairMaxMatches(fixedPairTeamsCount);
   }
 
   const estimatedMode = playersCount < 4;
@@ -110,14 +110,16 @@ function buildMatchCountRecommendations(input) {
 
   let capReason = 'roster';
   if (mode === MODE_FIXED_PAIR_RR) {
-    capReason = 'round_robin';
+    capReason = fixedPairTeamsCount >= 2 ? 'round_robin' : 'pair_teams';
   } else if (estimatedMode) {
     capReason = 'estimated';
   }
 
   let recommendationHint = '';
   if (capReason === 'round_robin') {
-    recommendationHint = `最多可安排：${cap} 场（按已组队伍单循环计算）`;
+    recommendationHint = `最多可安排：${cap} 场（按已组合法队伍最多 ${fixedPair.FIXED_PAIR_MAX_CYCLES} 轮计算）`;
+  } else if (capReason === 'pair_teams') {
+    recommendationHint = '至少需 2 支合法队伍后才能计算固搭最大场次。';
   } else if (capReason === 'estimated') {
     recommendationHint = `建议先按 ${suggestedMatches} 场配置，满 4 人后会自动重算。`;
   } else {
@@ -126,7 +128,9 @@ function buildMatchCountRecommendations(input) {
 
   let capacityHintShort = `建议配置 ${suggestedMatches} 场`;
   if (capReason === 'round_robin') {
-    capacityHintShort = `最多可安排：${cap} 场（按已组队伍单循环计算）`;
+    capacityHintShort = `最多可安排：${cap} 场（按已组合法队伍最多 ${fixedPair.FIXED_PAIR_MAX_CYCLES} 轮计算）`;
+  } else if (capReason === 'pair_teams') {
+    capacityHintShort = '至少 2 支合法队伍后再配置';
   } else if (capReason === 'estimated') {
     capacityHintShort = `建议先配置 ${suggestedMatches} 场`;
   }
@@ -135,7 +139,6 @@ function buildMatchCountRecommendations(input) {
   return {
     recommendedModelVersion: RECOMMEND_MODEL_VERSION,
     mode,
-    allowOpenTeam,
     playersCount,
     maleCount,
     femaleCount,

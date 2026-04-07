@@ -7,7 +7,6 @@ const ENTRY_PRUNE_VERSION_KEY = 'entry_prune_version';
 const HOME_SORT_MODE_KEY = 'home_sort_mode';
 const HOME_FILTER_STATUS_KEY = 'home_filter_status';
 const DEFAULT_MODE_KEY = 'default_mode';
-const ALLOW_OPEN_TEAM_KEY = 'allow_open_team';
 const SCHEDULER_PROFILE_KEY = 'scheduler_profile';
 
 function isOnboardingDone() {
@@ -72,14 +71,6 @@ function setDefaultMode(mode) {
   set(DEFAULT_MODE_KEY, normalizeMode(mode));
 }
 
-function getAllowOpenTeam() {
-  return get(ALLOW_OPEN_TEAM_KEY, false) === true;
-}
-
-function setAllowOpenTeam(enabled) {
-  set(ALLOW_OPEN_TEAM_KEY, !!enabled);
-}
-
 function normalizeSchedulerProfile(profile) {
   const value = String(profile || '').trim().toLowerCase();
   if (value === 'rest' || value === 'balanced' || value === 'repeat') return value;
@@ -107,8 +98,6 @@ module.exports = {
   setHomeFilterStatus,
   getDefaultMode,
   setDefaultMode,
-  getAllowOpenTeam,
-  setAllowOpenTeam,
   normalizeSchedulerProfile,
   getSchedulerProfile,
   setSchedulerProfile

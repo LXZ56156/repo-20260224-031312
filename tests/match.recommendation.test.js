@@ -89,9 +89,9 @@ test('buildMatchCountRecommendations snapshots core scenarios', () => {
   }
 });
 
-test('buildMatchCountRecommendations normalizes legacy mixed mode to multi_rotate', () => {
+test('buildMatchCountRecommendations normalizes doubles alias to multi_rotate', () => {
   const out = flow.buildMatchCountRecommendations({
-    mode: 'mixed_fallback',
+    mode: 'doubles',
     playersCount: 8,
     maleCount: 4,
     femaleCount: 4,
@@ -110,7 +110,7 @@ test('buildMatchCountRecommendations normalizes legacy mixed mode to multi_rotat
 
 test('buildMatchCountRecommendations uses estimated hint with unknown roster', () => {
   const out = flow.buildMatchCountRecommendations({
-    mode: 'mixed_fallback',
+    mode: 'doubles',
     playersCount: 0,
     maleCount: 0,
     femaleCount: 0,

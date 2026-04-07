@@ -1,14 +1,5 @@
 const flow = require('./uxFlow');
-
-function getValidPairTeams(pairTeams) {
-  const teams = Array.isArray(pairTeams) ? pairTeams : [];
-  return teams.filter((item) => {
-    const playerIds = Array.isArray(item && item.playerIds)
-      ? item.playerIds.map((id) => String(id || '').trim()).filter(Boolean)
-      : [];
-    return playerIds.length === 2;
-  });
-}
+const fixedPair = require('./fixedPair');
 
 function buildDraftStartReadiness(tournament) {
   const t = tournament && typeof tournament === 'object' ? tournament : {};
@@ -17,8 +8,9 @@ function buildDraftStartReadiness(tournament) {
   const mode = flow.normalizeMode(t.mode || flow.MODE_MULTI_ROTATE);
   const aCount = players.filter((item) => String(item && item.squad || '').toUpperCase() === 'A').length;
   const bCount = players.filter((item) => String(item && item.squad || '').toUpperCase() === 'B').length;
-  const validPairTeams = getValidPairTeams(t.pairTeams);
-  const validPairTeamsCount = validPairTeams.length;
+  const pairTeamValidation = fixedPair.validateFixedPairTeams(t.pairTeams, players);
+  const validPairTeamsCount = pairTeamValidation.validTeamsCount;
+  const invalidPairTeamsCount = pairTeamValidation.invalidTeamsCount;
 
   let checkPlayersOk = playersCount >= 4;
   let playersChecklistHint = checkPlayersOk ? '人数已达标' : '至少 4 人';
@@ -29,10 +21,10 @@ function buildDraftStartReadiness(tournament) {
       ? `A队 ${aCount} / B队 ${bCount}`
       : `A队 ${aCount} / B队 ${bCount}（至少各2人）`;
   } else if (mode === flow.MODE_FIXED_PAIR_RR) {
-    checkPlayersOk = playersCount >= 4 && validPairTeamsCount >= 2;
-    playersChecklistHint = checkPlayersOk
-      ? `已组 ${validPairTeamsCount} 支队伍`
-      : `需至少2支队伍（当前${validPairTeamsCount}）`;
+    checkPlayersOk = playersCount >= 4 && validPairTeamsCount >= 2 && !pairTeamValidation.hasInvalid;
+    playersChecklistHint = playersCount >= 4
+      ? fixedPair.buildFixedPairReadinessHint(pairTeamValidation)
+      : '至少 4 人';
   }
 
   const checkSettingsOk = !!t.settingsConfigured;
@@ -43,6 +35,7 @@ function buildDraftStartReadiness(tournament) {
     aCount,
     bCount,
     validPairTeamsCount,
+    invalidPairTeamsCount,
     checkPlayersOk,
     playersChecklistHint,
     checkSettingsOk,
@@ -51,6 +44,8 @@ function buildDraftStartReadiness(tournament) {
 }
 
 module.exports = {
-  getValidPairTeams,
+  getValidPairTeams(pairTeams, players = []) {
+    return fixedPair.validateFixedPairTeams(pairTeams, players).teams;
+  },
   buildDraftStartReadiness
 };

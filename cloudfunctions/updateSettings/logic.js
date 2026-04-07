@@ -1,4 +1,5 @@
 const modeHelper = require('./lib/mode');
+const fixedPair = require('./lib/fixed-pair');
 
 function parsePosInt(v, maxV) {
   if (v === undefined || v === null || v === '') return null;
@@ -20,21 +21,6 @@ function calcMaxMatches(n) {
   if (nn < 4) return 0;
   const comb4 = (nn * (nn - 1) * (nn - 2) * (nn - 3)) / 24;
   return Math.floor(comb4 * 3);
-}
-
-function comb(n, k) {
-  const nn = Math.floor(Number(n) || 0);
-  const kk = Math.floor(Number(k) || 0);
-  if (kk < 0 || nn < 0 || kk > nn) return 0;
-  if (kk === 0 || kk === nn) return 1;
-  const m = Math.min(kk, nn - kk);
-  let numerator = 1;
-  let denominator = 1;
-  for (let i = 1; i <= m; i += 1) {
-    numerator *= (nn - m + i);
-    denominator *= i;
-  }
-  return Math.floor(numerator / denominator);
 }
 
 function normalizeGender(gender) {
@@ -72,27 +58,25 @@ function countGender(players) {
   return { maleCount, femaleCount, unknownCount };
 }
 
-function calcMaxMatchesMixed(maleCount, femaleCount, unknownCount, allowOpenTeam = false) {
+function calcMaxMatchesMixed(maleCount, femaleCount, unknownCount) {
   const male = Math.max(0, Number(maleCount) || 0);
   const female = Math.max(0, Number(femaleCount) || 0);
   const unknown = Math.max(0, Number(unknownCount) || 0);
   const total = male + female + unknown;
   if (total < 4) return 0;
-  const mx = comb(male, 2) * comb(female, 2);
-  const mm = comb(male, 4);
-  const ff = comb(female, 4);
-  const open = allowOpenTeam ? comb(total, 4) : 0;
-  return Math.floor((mx + mm + ff + open) * 3);
+  const mx = fixedPair.comb(male, 2) * fixedPair.comb(female, 2);
+  const mm = fixedPair.comb(male, 4);
+  const ff = fixedPair.comb(female, 4);
+  return Math.floor((mx + mm + ff) * 3);
 }
 
-function validateSettings(players, totalMatches, courts, mode = 'multi_rotate', allowOpenTeam = false, pairTeams = []) {
+function validateSettings(players, totalMatches, courts, mode = 'multi_rotate', pairTeams = []) {
   const list = Array.isArray(players) ? players : [];
   const normalizedMode = modeHelper.normalizeMode(mode);
   let maxMatches = calcMaxMatches(list.length);
   if (normalizedMode === 'fixed_pair_rr') {
-    const teams = Array.isArray(pairTeams) ? pairTeams : [];
-    const teamCount = teams.length > 0 ? teams.length : Math.floor(list.length / 2);
-    maxMatches = teamCount >= 2 ? comb(teamCount, 2) : 0;
+    const validation = fixedPair.validateFixedPairTeams(pairTeams, list);
+    maxMatches = fixedPair.calcFixedPairMaxMatches(validation.validTeamsCount);
   }
 
   if (totalMatches !== null) {

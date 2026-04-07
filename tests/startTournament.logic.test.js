@@ -35,7 +35,7 @@ test('validateBeforeGenerate returns normalized values', () => {
   assert.equal(out.maxMatches > 0, true);
 });
 
-test('validateBeforeGenerate accepts legacy mixed mode and maps to multi_rotate', () => {
+test('validateBeforeGenerate accepts doubles alias and maps to multi_rotate', () => {
   const players = [
     { id: 'p1', name: 'P1', gender: 'male' },
     { id: 'p2', name: 'P2', gender: 'male' },
@@ -46,8 +46,7 @@ test('validateBeforeGenerate accepts legacy mixed mode and maps to multi_rotate'
     players,
     totalMatches: 1,
     courts: 1,
-    mode: 'mixed_fallback',
-    allowOpenTeam: false
+    mode: 'doubles'
   });
   assert.equal(out.mode, 'multi_rotate');
   assert.equal(out.maxMatches > 0, true);
@@ -64,9 +63,44 @@ test('validateBeforeGenerate accepts explicit multi_rotate regardless of gender 
     players,
     totalMatches: 1,
     courts: 1,
-    mode: 'multi_rotate',
-    allowOpenTeam: false
+    mode: 'multi_rotate'
   });
   assert.equal(out.mode, 'multi_rotate');
   assert.equal(out.maxMatches > 0, true);
+});
+
+test('validateBeforeGenerate uses 10-cycle cap for fixed pair round robin', () => {
+  const players = makePlayers(6);
+  const out = logic.validateBeforeGenerate({
+    players,
+    totalMatches: 30,
+    courts: 1,
+    mode: 'fixed_pair_rr',
+    pairTeams: [
+      { id: 'team_1', playerIds: ['p1', 'p2'] },
+      { id: 'team_2', playerIds: ['p3', 'p4'] },
+      { id: 'team_3', playerIds: ['p5', 'p6'] }
+    ]
+  });
+
+  assert.equal(out.mode, 'fixed_pair_rr');
+  assert.equal(out.maxMatches, 30);
+  assert.equal(out.pairTeams.length, 3);
+});
+
+test('validateBeforeGenerate blocks fixed pair start when pairTeams are dirty', () => {
+  const players = makePlayers(4);
+  assert.throws(
+    () => logic.validateBeforeGenerate({
+      players,
+      totalMatches: 3,
+      courts: 1,
+      mode: 'fixed_pair_rr',
+      pairTeams: [
+        { id: 'team_1', playerIds: ['p1', 'p2'] },
+        { id: 'team_2', playerIds: ['p2', 'p3'] }
+      ]
+    }),
+    /START_PAIR_TEAMS_INVALID/
+  );
 });

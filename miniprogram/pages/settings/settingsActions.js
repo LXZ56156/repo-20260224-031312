@@ -1,6 +1,7 @@
 const cloud = require('../../core/cloud');
 const actionGuard = require('../../core/actionGuard');
 const clientRequest = require('../../core/clientRequest');
+const flow = require('../../core/uxFlow');
 const nav = require('../../core/nav');
 const writeErrorUi = require('../../core/writeErrorUi');
 const viewModel = require('./settingsViewModel');
@@ -32,6 +33,29 @@ module.exports = {
     this.setData({ name: String((e && e.detail && e.detail.value) || '') });
   },
 
+  setTotalMatches(rawMatchCount) {
+    let m = flow.parsePositiveInt(rawMatchCount, 1);
+    if (m < 1) m = 1;
+    const maxMatches = Number(this.data.maxMatches) || 0;
+    if (maxMatches > 0 && m > maxMatches) {
+      m = maxMatches;
+    }
+
+    const next = { editM: m };
+    if (this.data.useSimpleMPicker) {
+      next.mIndex = Math.max(0, m - 1);
+    }
+    const len = Array.isArray(this.data.mDigitRange) ? this.data.mDigitRange.length : 0;
+    if (len > 0) {
+      next.mDigitValue = viewModel.valueToDigitValue(m, len);
+    }
+    if (this.data.endConditionType === 'total_matches') {
+      next.endConditionTarget = m;
+      next.endConditionTargetIndex = Math.max(0, m - 1);
+    }
+    this.setData(next, () => this.syncEndConditionUi());
+  },
+
   onPickTotalMatchesSimple(e) {
     const idx = Number(e.detail.value);
     const m = (this.data.mOptions || [])[idx] || 1;
@@ -59,6 +83,17 @@ module.exports = {
       next.endConditionTargetIndex = Math.max(0, m - 1);
     }
     this.setData(next, () => this.syncEndConditionUi());
+  },
+
+  onTapMatchShortcut(e) {
+    const dataset = (e && e.currentTarget && e.currentTarget.dataset) || {};
+    const disabled = dataset.disabled === true
+      || dataset.disabled === 'true'
+      || Number(dataset.disabled) === 1;
+    if (disabled || !this.data.canConfigureSettings) return;
+    const value = flow.parsePositiveInt(dataset.value, 0);
+    if (value < 1) return;
+    this.setTotalMatches(value);
   },
 
   onPickCourts(e) {
@@ -135,7 +170,7 @@ module.exports = {
       players,
       playersCount: players.length,
       courts: this.data.editC,
-      allowOpenTeam: this.data.allowOpenTeam
+      pairTeams: tournament.pairTeams
     });
     this.setData({
       suggestedMatches: Number(recommendation.suggestedMatches) || 1,
@@ -189,7 +224,6 @@ module.exports = {
           name,
           totalMatches: M,
           courts: C,
-          allowOpenTeam: false,
           pointsPerGame: Number(this.data.pointsPerGame) || 21,
           endConditionType,
           endConditionTarget,

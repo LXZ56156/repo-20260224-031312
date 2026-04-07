@@ -7,8 +7,7 @@ function pairKey(a, b) {
 const POLICY_VERSION = 'v3';
 const DEFAULT_SEED_STEP = 7919;
 const MODE_DOUBLES = 'doubles';
-const MODE_MIXED_FALLBACK = 'mixed_fallback';
-const TEAM_TYPES = ['MX', 'MM', 'FF', 'OPEN'];
+const TEAM_TYPES = ['MX', 'MM', 'FF'];
 
 function variance(values) {
   const n = values.length;
@@ -94,8 +93,7 @@ function squareCost(count) {
 // into the global business-mode normalizeMode semantics.
 function resolveSchedulerMode(mode) {
   const v = String(mode || '').trim().toLowerCase();
-  if (v === 'multi_rotate') return MODE_DOUBLES;
-  if (v === MODE_MIXED_FALLBACK || v === MODE_DOUBLES) return v;
+  if (v === 'multi_rotate' || v === MODE_DOUBLES) return MODE_DOUBLES;
   return MODE_DOUBLES;
 }
 
@@ -125,7 +123,7 @@ function classifyTeamType(team, genderById) {
   if (g1 === 'male' && g2 === 'male') return 'MM';
   if (g1 === 'female' && g2 === 'female') return 'FF';
   if ((g1 === 'male' && g2 === 'female') || (g1 === 'female' && g2 === 'male')) return 'MX';
-  return 'OPEN';
+  return '';
 }
 
 function countGenderInIds(ids, genderById) {
@@ -141,16 +139,15 @@ function countGenderInIds(ids, genderById) {
   return { maleCount, femaleCount, unknownCount };
 }
 
-function canFormTypeInEligible(type, eligibleIds, genderById, allowOpen) {
+function canFormTypeInEligible(type, eligibleIds, genderById) {
   const g = countGenderInIds(eligibleIds, genderById);
   if (type === 'MX') return g.maleCount >= 2 && g.femaleCount >= 2;
   if (type === 'MM') return g.maleCount >= 4;
   if (type === 'FF') return g.femaleCount >= 4;
-  if (type === 'OPEN') return allowOpen && (g.unknownCount > 0) && (eligibleIds.length >= 4);
   return false;
 }
 
-function buildTypeTargets(players, allowOpen, typeWeights = null) {
+function buildTypeTargets(players, typeWeights = null) {
   const ids = (players || []).map((p) => p.id);
   const genderById = buildGenderMap(players);
   const g = countGenderInIds(ids, genderById);
@@ -158,29 +155,26 @@ function buildTypeTargets(players, allowOpen, typeWeights = null) {
     MX: 1.3,
     MM: 0.9,
     FF: 0.9,
-    OPEN: 0.35,
     ...(typeWeights || {})
   };
   const base = {
     MX: Math.max(0, Math.floor(g.maleCount / 2) * Math.floor(g.femaleCount / 2)) * weights.MX,
     MM: Math.max(0, Math.floor(g.maleCount / 4)) * weights.MM,
-    FF: Math.max(0, Math.floor(g.femaleCount / 4)) * weights.FF,
-    OPEN: allowOpen ? Math.max(0, Math.floor((g.maleCount + g.femaleCount + g.unknownCount) / 4)) * weights.OPEN : 0
+    FF: Math.max(0, Math.floor(g.femaleCount / 4)) * weights.FF
   };
   const sum = Object.values(base).reduce((acc, item) => acc + item, 0);
   if (sum <= 0) {
-    return { MX: 0, MM: 0.5, FF: 0.5, OPEN: 0 };
+    return { MX: 0, MM: 0.5, FF: 0.5 };
   }
   return {
     MX: base.MX / sum,
     MM: base.MM / sum,
-    FF: base.FF / sum,
-    OPEN: base.OPEN / sum
+    FF: base.FF / sum
   };
 }
 
 function computeTypeBalanceGap(matchType, matchTypeCount, typeTargets) {
-  const current = Object.assign({ MX: 0, MM: 0, FF: 0, OPEN: 0 }, matchTypeCount || {});
+  const current = Object.assign({ MX: 0, MM: 0, FF: 0 }, matchTypeCount || {});
   if (!TEAM_TYPES.includes(matchType)) return 0;
   current[matchType] += 1;
   const total = TEAM_TYPES.reduce((sum, key) => sum + (Number(current[key]) || 0), 0);
@@ -229,10 +223,6 @@ function computeRestDebt(players4, eligibleIds, state) {
 }
 
 function scoreGroup(players4, state, weights, eligibleIds, options = {}) {
-  const mode = resolveSchedulerMode(options.mode);
-  const allowOpen = options.allowOpen === true;
-  const genderById = options.genderById || {};
-  const typeTargets = options.typeTargets || { MX: 0, MM: 0.5, FF: 0.5, OPEN: 0 };
   const playCounts = players4.map((id) => state.playCount[id]);
   const v = variance(playCounts);
   const restDebt = computeRestDebt(players4, eligibleIds, state);
@@ -244,15 +234,8 @@ function scoreGroup(players4, state, weights, eligibleIds, options = {}) {
   ];
 
   let best = null;
-  const mxAvailable = mode === MODE_MIXED_FALLBACK && canFormTypeInEligible('MX', eligibleIds, genderById, allowOpen);
   for (const [teamA, teamB] of splits) {
-    const typeA = classifyTeamType(teamA, genderById);
-    const typeB = classifyTeamType(teamB, genderById);
-    if (mode === MODE_MIXED_FALLBACK) {
-      if (typeA !== typeB) continue;
-      if (typeA === 'OPEN' && !allowOpen) continue;
-    }
-    const matchType = (mode === MODE_MIXED_FALLBACK) ? typeA : '';
+    const matchType = '';
     let partnerRep = 0; // raw repeat count (diagnostics)
     let opponentRep = 0; // raw repeat count (diagnostics)
     let partnerPenalty = 0; // non-linear incremental penalty
@@ -277,11 +260,9 @@ function scoreGroup(players4, state, weights, eligibleIds, options = {}) {
       if ((state.playStreak[id] || 0) >= 1) consecPlay += 1;
     }
 
-    const typeBalanceGap = mode === MODE_MIXED_FALLBACK
-      ? computeTypeBalanceGap(matchType, state.matchTypeCount, typeTargets)
-      : 0;
-    const fallbackPenalty = mode === MODE_MIXED_FALLBACK && matchType !== 'MX' && mxAvailable ? 1 : 0;
-    const openPenalty = mode === MODE_MIXED_FALLBACK && matchType === 'OPEN' ? 1 : 0;
+    const typeBalanceGap = 0;
+    const fallbackPenalty = 0;
+    const openPenalty = 0;
 
     const cost =
       weights.alpha * v +
@@ -325,7 +306,7 @@ function computeStats(rounds, playerIds) {
   const playCount = Object.fromEntries(playerIds.map((id) => [id, 0]));
   const partnerCount = {};
   const opponentCount = {};
-  const matchTypeCount = { MX: 0, MM: 0, FF: 0, OPEN: 0 };
+  const matchTypeCount = { MX: 0, MM: 0, FF: 0 };
 
   for (const r of rounds) {
     for (const m of r.matches) {
@@ -427,86 +408,7 @@ function buildWarmStartGroups(ids, eligible, roundIndex, slotIndex, courts, tota
   return groups;
 }
 
-function buildCandidateGroupsMixed(eligible, rng, genderById, allowOpen, warmStartGroups = []) {
-  const out = [];
-  const seen = new Set();
-  const pushGroup = (group) => {
-    if (!Array.isArray(group) || group.length !== 4) return;
-    const uniq = new Set(group);
-    if (uniq.size !== 4) return;
-    const key = groupKey(group);
-    if (seen.has(key)) return;
-    seen.add(key);
-    out.push(group.slice());
-  };
-
-  for (const g of warmStartGroups) pushGroup(g);
-
-  const male = [];
-  const female = [];
-  const unknown = [];
-  for (const id of eligible) {
-    const g = normalizeGender(genderById && genderById[id]);
-    if (g === 'male') male.push(id);
-    else if (g === 'female') female.push(id);
-    else unknown.push(id);
-  }
-
-  const mxTrials = clamp(12 + eligible.length, 12, 64);
-  for (let i = 0; i < mxTrials; i += 1) {
-    if (male.length < 2 || female.length < 2) break;
-    const group = pickK(male, 2, rng).concat(pickK(female, 2, rng));
-    pushGroup(group);
-  }
-
-  const mmTrials = clamp(8 + male.length, 8, 36);
-  for (let i = 0; i < mmTrials; i += 1) {
-    if (male.length < 4) break;
-    pushGroup(pickK(male, 4, rng));
-  }
-
-  const ffTrials = clamp(8 + female.length, 8, 36);
-  for (let i = 0; i < ffTrials; i += 1) {
-    if (female.length < 4) break;
-    pushGroup(pickK(female, 4, rng));
-  }
-
-  if (allowOpen && unknown.length > 0) {
-    const openTrials = clamp(8 + unknown.length, 8, 30);
-    for (let i = 0; i < openTrials; i += 1) {
-      if (eligible.length < 4) break;
-      // OPEN must include at least one unknown player.
-      const hasUnknown = pickK(unknown, 1, rng);
-      const restPool = eligible.filter((id) => !hasUnknown.includes(id));
-      if (restPool.length < 3) continue;
-      pushGroup(hasUnknown.concat(pickK(restPool, 3, rng)));
-    }
-  }
-
-  const randomTrials = clamp(10 + eligible.length, 10, 42);
-  for (let i = 0; i < randomTrials; i += 1) {
-    if (eligible.length < 4) break;
-    pushGroup(pickK(eligible, 4, rng));
-  }
-
-  if (out.length === 0 && eligible.length >= 4) {
-    pushGroup(eligible.slice(0, 4));
-  }
-  return out;
-}
-
 function buildCandidateGroups(eligible, rng, warmStartGroups = [], options = {}) {
-  const mode = resolveSchedulerMode(options.mode);
-  if (mode === MODE_MIXED_FALLBACK) {
-    return buildCandidateGroupsMixed(
-      eligible,
-      rng,
-      options.genderById || {},
-      options.allowOpen === true,
-      warmStartGroups
-    );
-  }
-
   const out = [];
   const seen = new Set();
   const pushGroup = (group) => {
@@ -578,10 +480,6 @@ function compareObjective(a, b) {
 }
 
 function generateLegacyScheduleOnce(ids, totalMatches, courts, weights, seed, options = {}) {
-  const mode = resolveSchedulerMode(options.mode);
-  const allowOpen = options.allowOpen === true;
-  const genderById = options.genderById || {};
-  const typeTargets = options.typeTargets || { MX: 0, MM: 0.5, FF: 0.5, OPEN: 0 };
   const rng = seededRng(seed);
   const state = {
     playCount: Object.fromEntries(ids.map((id) => [id, 0])),
@@ -590,7 +488,7 @@ function generateLegacyScheduleOnce(ids, totalMatches, courts, weights, seed, op
     maxRestStreak: Object.fromEntries(ids.map((id) => [id, 0])),
     partnerCount: {},
     opponentCount: {},
-    matchTypeCount: { MX: 0, MM: 0, FF: 0, OPEN: 0 }
+    matchTypeCount: { MX: 0, MM: 0, FF: 0 }
   };
 
   const rounds = [];
@@ -617,19 +515,10 @@ function generateLegacyScheduleOnce(ids, totalMatches, courts, weights, seed, op
         courts,
         totalMatches
       );
-      const groups = buildCandidateGroups(eligible, rng, warmStartGroups, {
-        mode,
-        allowOpen,
-        genderById
-      });
+      const groups = buildCandidateGroups(eligible, rng, warmStartGroups);
       let best = null;
       for (const group of groups) {
-        const scored = scoreGroup(group, state, weights, eligible, {
-          mode,
-          allowOpen,
-          genderById,
-          typeTargets
-        });
+        const scored = scoreGroup(group, state, weights, eligible);
         if (!scored) continue;
         if (
           !best ||
@@ -653,12 +542,6 @@ function generateLegacyScheduleOnce(ids, totalMatches, courts, weights, seed, op
         score: null
       });
       restDebtTotal += best.restDebt || 0;
-      typeBalanceGapTotal += best.typeBalanceGap || 0;
-      fallbackCount += best.fallbackPenalty || 0;
-      if (best.matchType && state.matchTypeCount[best.matchType] !== undefined) {
-        state.matchTypeCount[best.matchType] += 1;
-        if (best.matchType === 'OPEN') openMatchCount += 1;
-      }
 
       for (const id of [...teamA, ...teamB]) {
         used.add(id);
@@ -731,7 +614,7 @@ function generateLegacyScheduleOnce(ids, totalMatches, courts, weights, seed, op
       matchTypeCount: stats.matchTypeCount
     },
     fairness: {
-      mode,
+      mode: MODE_DOUBLES,
       alpha: weights.alpha,
       beta: weights.beta,
       gamma: weights.gamma,
@@ -1102,7 +985,7 @@ function finalizeDoublesSchedule(bestState, ids, weights, seed, options = {}) {
       partnerRepeats: stats.partnerRepeats,
       opponentRepeats: stats.opponentRepeats,
       maxRestStreak: bestState.maxRestStreak,
-      matchTypeCount: { MX: 0, MM: 0, FF: 0, OPEN: 0 },
+      matchTypeCount: { MX: 0, MM: 0, FF: 0 },
       uniqueMatchupCount: bestState.uniqueMatchupCount
     },
     fairness: {
@@ -1186,10 +1069,8 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
   const C = Math.max(1, Number(courts || 1));
   const ids = players.map((p) => p.id);
   const effectiveCourts = computeEffectiveCourts(ids.length, C);
-  const mode = resolveSchedulerMode(options.mode);
-  const allowOpen = options.allowOpen === true;
+  const mode = MODE_DOUBLES;
   const genderById = buildGenderMap(players);
-  const typeTargets = buildTypeTargets(players, allowOpen, options.typeWeights);
   const policy = options.policy || selectSchedulerPolicy(ids.length, effectiveCourts, M);
   const selectedEpsilon = Number(options.epsilon ?? policy.selectedEpsilon ?? 1.6);
   const selectedSearchSeeds = clampInt(options.searchSeeds ?? policy.selectedSearchSeeds ?? 16, 1, 64, 16);
@@ -1248,9 +1129,7 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
         coverageTriedSeeds.push(seed);
         const out = generateDoublesSchedule(ids, M, effectiveCourts, weights, seed, {
           mode,
-          allowOpen,
-          genderById,
-          typeTargets
+          genderById
         });
         out.engine = 'coverage';
         out.searchSeedsUsed = coverageSeeds;
@@ -1282,9 +1161,7 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
       legacyTriedSeeds.push(seed);
       const out = generateLegacyScheduleOnce(ids, M, effectiveCourts, weights, seed, {
         mode,
-        allowOpen,
-        genderById,
-        typeTargets
+        genderById
       });
       out.engine = 'legacy';
       out.searchSeedsUsed = legacySearchSeeds;
@@ -1336,7 +1213,6 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
       timeoutGuardTriggered: best.timeoutGuardTriggered === true,
       effectiveCourts: Number(best.effectiveCourts) || effectiveCourts,
       mode,
-      allowOpen,
       templateKey: String(best.templateKey || ''),
       templateVariantId: String(best.templateVariantId || ''),
       templateHorizon: Number(best.templateHorizon) || 0,
@@ -1344,7 +1220,6 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
       totalUniqueMatchups,
       playSpread,
       maxConsecutivePlay,
-      typeTargets,
       policy: {
         ...policy,
         policyVersion: policy.policyVersion || POLICY_VERSION,
@@ -1352,9 +1227,6 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
         selectedSearchSeeds: actualSearchSeeds,
         selectedEpsilon
       },
-      matchTypeCounts: (best.playerStats && best.playerStats.matchTypeCount) || {},
-      fallbackCount: Number(best.fairness && best.fairness.fallbackCount) || 0,
-      openMatchCount: Number(best.fairness && best.fairness.openMatchCount) || 0,
       genderCoverage: countGenderInIds(ids, genderById),
       objective: best.objective
     }

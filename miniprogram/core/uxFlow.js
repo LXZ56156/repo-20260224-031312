@@ -6,7 +6,6 @@ const MODE_MULTI_ROTATE = modeHelper.MODE_MULTI_ROTATE;
 const MODE_SQUAD_DOUBLES = modeHelper.MODE_SQUAD_DOUBLES;
 const MODE_FIXED_PAIR_RR = modeHelper.MODE_FIXED_PAIR_RR;
 const MODE_DOUBLES = modeHelper.MODE_DOUBLES;
-const MODE_MIXED_FALLBACK = modeHelper.MODE_MIXED_FALLBACK;
 
 const ACTION_TEMPLATES = {
   join: { text: '加入参赛' },
@@ -143,7 +142,6 @@ module.exports = {
   MODE_SQUAD_DOUBLES,
   MODE_FIXED_PAIR_RR,
   MODE_DOUBLES,
-  MODE_MIXED_FALLBACK,
   hasPendingMatch,
   pickNextAction
 };

@@ -58,7 +58,6 @@ exports.main = async (event) => {
     });
     const players = copied.players;
     const playerIds = Array.from(new Set(players.map((item) => String(item && item.id || '').trim()).filter(Boolean)));
-    const allowOpenTeam = source.allowOpenTeam === true;
     const pairTeams = mode === 'fixed_pair_rr'
       ? logic.copyPairTeams(source.pairTeams, copied.playerIdMap)
       : [];
@@ -67,7 +66,6 @@ exports.main = async (event) => {
       status: 'draft',
       creatorId: OPENID,
       mode,
-      allowOpenTeam,
       refereeId: '',
       settingsConfigured,
       totalMatches,

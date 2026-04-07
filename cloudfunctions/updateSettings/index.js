@@ -23,9 +23,6 @@ exports.main = async (event) => {
   const totalMatches = parsePosInt(event && event.totalMatches);
   // 并行场地（每轮最多场数）上限 10
   const courts = parsePosInt(event && event.courts, 10);
-  const allowOpenTeamInput = event && Object.prototype.hasOwnProperty.call(event, 'allowOpenTeam')
-    ? event.allowOpenTeam === true
-    : null;
   const pointsPerGame = event && Object.prototype.hasOwnProperty.call(event, 'pointsPerGame')
     ? normalizePoints(event.pointsPerGame)
     : null;
@@ -71,8 +68,7 @@ exports.main = async (event) => {
         throw new Error('满 4 人后才可设置比赛参数');
       }
       const mode = String(t.mode || 'multi_rotate').trim().toLowerCase();
-      const allowOpenTeam = allowOpenTeamInput === null ? (t.allowOpenTeam === true) : allowOpenTeamInput;
-      const checked = validateSettings(players, totalMatches, courts, mode, allowOpenTeam, t.pairTeams || []);
+      const checked = validateSettings(players, totalMatches, courts, mode, t.pairTeams || []);
       const oldVersion = Number(t.version) || 1;
       const currentRules = (t.rules && typeof t.rules === 'object') ? t.rules : {};
       const currentEndCondition = (currentRules.endCondition && typeof currentRules.endCondition === 'object')
@@ -103,9 +99,6 @@ exports.main = async (event) => {
       Object.assign(data, checked.patch);
       if (clientRequestId) data.lastClientRequestId = clientRequestId;
       if (nameProvided) data.name = normalizedName;
-      if (allowOpenTeamInput !== null) {
-        data.allowOpenTeam = allowOpenTeamInput;
-      }
       if (nameProvided || pointsPerGame !== null || endConditionTypeInput !== null || endConditionTargetInput !== null || totalMatches !== null) {
         data.rules = nextRules;
       }

@@ -116,6 +116,7 @@ Page({
     quickConfigMDigitRange: [],
     quickConfigMDigitValue: [],
     quickMatchShortcutOptions: [],
+    quickMatchShortcutHint: '',
     quickConfigCOptions: Array.from({ length: 10 }, (_, i) => i + 1),
     quickConfigCIndex: 1,
     quickPointsOptions: settingsViewModel.POINT_OPTIONS,
@@ -139,7 +140,6 @@ Page({
     quickRosterHint: '',
     maxMatches: 0,
     canConfigureSettings: false,
-    allowOpenTeam: false,
 
     nextActionKey: '',
     nextActionText: '',

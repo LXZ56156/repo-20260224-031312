@@ -106,12 +106,25 @@ test('fixed_pair fairnessScore 不为 0，fairness 包含真实字段', () => {
     `fairnessScore should > 0, got ${out.fairnessScore}`);
   assert.ok(out.fairness && typeof out.fairness === 'object');
   assert.equal(typeof out.fairness.playSpread, 'number');
+  assert.equal(typeof out.fairness.matchupRepeatSpread, 'number');
   assert.equal(typeof out.fairness.totalMatches, 'number');
   assert.equal(typeof out.fairness.uniquePairs, 'number');
   assert.ok(
     out.schedulerMeta && out.schedulerMeta.engineVersion,
     'schedulerMeta.engineVersion should be set'
   );
+  assert.equal(typeof out.schedulerMeta.logicalRounds, 'number');
+  assert.equal(typeof out.schedulerMeta.materializedRounds, 'number');
+});
+
+test('fixed_pair fairness.playSpread and matchupRepeatSpread use real fixed-pair semantics', () => {
+  const { players, pairTeams } = makePairs(4);
+  const out = buildFixedPairSchedule(players, 1, pairTeams, { totalMatches: 9 });
+
+  assert.equal(out.fairness.playSpread, 1);
+  assert.equal(out.fairness.matchupRepeatSpread, 1);
+  assert.equal(out.schedulerMeta.logicalRounds, 5);
+  assert.equal(out.schedulerMeta.materializedRounds, 9);
 });
 
 // ——— courts 多场地 ———
@@ -126,6 +139,8 @@ test('fixed_pair courts=2 每轮最多 2 场同时进行', () => {
   });
   const totalMatches = rounds.reduce((s, r) => s + r.matches.length, 0);
   assert.equal(totalMatches, 6);
+  assert.equal(out.schedulerMeta.logicalRounds, 3);
+  assert.equal(out.schedulerMeta.materializedRounds, 3);
 });
 
 test('fixed_pair courts=2 同一轮内没有重复队伍上场', () => {

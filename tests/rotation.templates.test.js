@@ -27,7 +27,7 @@ const HANDCRAFTED_CASES = [
 ];
 
 const BANDED_CASES = [
-  ...range(8, 16).map((players) => [`${players}p-1c`, players, 1]),
+  ...range(8, 17).map((players) => [`${players}p-1c`, players, 1]),
   ...range(8, 20).map((players) => [`${players}p-2c`, players, 2]),
   ...range(12, 24).map((players) => [`${players}p-3c`, players, 3])
 ];

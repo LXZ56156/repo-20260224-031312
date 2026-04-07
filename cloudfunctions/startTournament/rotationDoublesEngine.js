@@ -777,7 +777,7 @@ function finalizeSchedule(state, ids, seed, meta = {}) {
       partnerRepeats: stats.partnerRepeats,
       opponentRepeats: stats.opponentRepeats,
       maxRestStreak: stats.maxRestStreak,
-      matchTypeCount: { MX: 0, MM: 0, FF: 0, OPEN: 0 },
+      matchTypeCount: { MX: 0, MM: 0, FF: 0 },
       uniqueMatchupCount: state.uniqueMatchupCount
     },
     fairness: {

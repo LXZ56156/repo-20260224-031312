@@ -316,3 +316,47 @@ test('startTournament omits empty clientRequestId when not provided', async () =
   assert.equal(Object.prototype.hasOwnProperty.call(result, 'clientRequestId'), false);
   assert.equal(Object.prototype.hasOwnProperty.call(result.data || {}, 'clientRequestId'), false);
 });
+
+test('startTournament maps dirty fixed pair teams to structured invalid code', async () => {
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      },
+      remove() {
+        return { $remove: true };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection() {
+      return {
+        doc() {
+          return {
+            async get() {
+              return { data: { ...buildTournament(), mode: 'fixed_pair_rr' } };
+            }
+          };
+        },
+        where() {
+          throw new Error('should not update');
+        }
+      };
+    }
+  };
+  const { main } = loadMain(db, {
+    logic: {
+      validateBeforeGenerate() {
+        throw new Error('START_PAIR_TEAMS_INVALID:固搭队伍存在重复成员，请先调整');
+      }
+    }
+  });
+
+  const result = await main({ tournamentId: 't_1' });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'START_PAIR_TEAMS_INVALID');
+  assert.equal(result.state, 'invalid');
+  assert.equal(result.message, '固搭队伍存在重复成员，请先调整');
+});

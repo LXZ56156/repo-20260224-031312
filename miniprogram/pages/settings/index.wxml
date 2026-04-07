@@ -56,6 +56,23 @@
       </view>
     </view>
 
+    <view class="form-item" wx:if="{{matchShortcutHint || matchShortcutOptions.length}}">
+      <view class="form-label">快捷设置</view>
+      <view class="form-field">
+        <view class="muted small" wx:if="{{matchShortcutHint}}">{{matchShortcutHint}}</view>
+        <view class="quick-match-shortcuts" wx:if="{{matchShortcutOptions.length}}">
+          <view
+            wx:for="{{matchShortcutOptions}}"
+            wx:key="key"
+            class="chip quick-match-shortcut {{editM===item.value ? 'active' : ''}} {{item.disabled ? 'disabled' : ''}}"
+            data-value="{{item.value}}"
+            data-disabled="{{item.disabled ? 1 : 0}}"
+            bindtap="onTapMatchShortcut"
+          >{{item.label}}</view>
+        </view>
+      </view>
+    </view>
+
     <view class="form-item">
       <view class="form-label">每轮最多场数</view>
       <view class="form-field">

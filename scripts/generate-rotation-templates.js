@@ -33,7 +33,7 @@ function range(start, end) {
 
 function buildBandCases() {
   return [
-    ...range(8, 16).map((players) => ({ players, courts: 1 })),
+    ...range(8, 17).map((players) => ({ players, courts: 1 })),
     ...range(8, 20).map((players) => ({ players, courts: 2 })),
     ...range(12, 24).map((players) => ({ players, courts: 3 }))
   ];

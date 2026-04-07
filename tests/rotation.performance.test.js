@@ -67,20 +67,21 @@ test('effective-court normalization can route higher requested courts into templ
   assert.ok(elapsed < 100, `elapsed=${elapsed}`);
 });
 
-test('non-templated fallback still returns a full schedule for long-tail cases', () => {
+test('17p-1c now routes through template instead of long-tail fallback', () => {
   const started = Date.now();
   const out = generateSchedule(makePlayers(17, 8), 12, 1, { seed: 42, searchSeeds: 1 });
   const elapsed = Date.now() - started;
 
-  assert.ok(['beam', 'legacy'].includes(out.schedulerMeta.engine));
+  assert.equal(out.schedulerMeta.engine, 'template');
+  assert.equal(out.schedulerMeta.templateKey, '17p-1c');
   assert.equal(out.rounds.flatMap((round) => round.matches || []).length, 12);
   assert.equal(out.schedulerMeta.uniqueExactMatchupCount, 12);
   assert.equal(out.schedulerMeta.playSpread, 1);
-  assert.ok(elapsed < 12000, `elapsed=${elapsed}`);
+  assert.ok(elapsed < 100, `elapsed=${elapsed}`);
 });
 
 test('runtime budget can force guarded completion while still returning a full schedule', () => {
-  const out = generateSchedule(makePlayers(17, 8), 12, 1, {
+  const out = generateSchedule(makePlayers(18, 9), 12, 1, {
     seed: 42,
     searchSeeds: 8,
     runtimeBudgetMs: 700

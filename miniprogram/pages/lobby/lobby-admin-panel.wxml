@@ -90,8 +90,9 @@
             <view class="quick-config-col"></view>
           </view>
 
-          <view class="quick-settings-summary panel-soft" wx:if="{{canConfigureSettings && quickMatchShortcutOptions.length}}">
-            <view class="quick-match-shortcuts">
+          <view class="quick-settings-summary panel-soft" wx:if="{{canConfigureSettings && (quickMatchShortcutHint || quickMatchShortcutOptions.length)}}">
+            <view class="muted small quick-settings-hint" wx:if="{{quickMatchShortcutHint}}">{{quickMatchShortcutHint}}</view>
+            <view class="quick-match-shortcuts" wx:if="{{quickMatchShortcutOptions.length}}">
               <view
                 wx:for="{{quickMatchShortcutOptions}}"
                 wx:key="key"

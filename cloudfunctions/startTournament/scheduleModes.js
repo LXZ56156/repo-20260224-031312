@@ -1,3 +1,5 @@
+const fixedPair = require('./lib/fixed-pair');
+
 function pairKey(a, b) {
   return a < b ? `${a}_${b}` : `${b}_${a}`;
 }
@@ -320,22 +322,20 @@ function buildFixedPairSchedule(players, courts, pairTeamsRaw = [], rules = {}) 
   const playerMap = {};
   for (const player of (players || [])) {
     const id = String(player && player.id || '').trim();
-    if (!id) continue;
+      if (!id) continue;
     playerMap[id] = player;
   }
-  const pairTeams = (Array.isArray(pairTeamsRaw) ? pairTeamsRaw : [])
-    .map((team, idx) => ({
-      id: String(team && team.id || `pair_${idx}`).trim(),
-      name: String(team && team.name || `第${idx + 1}队`).trim(),
-      playerIds: Array.isArray(team && team.playerIds) ? team.playerIds.slice(0, 2).map((id) => String(id || '').trim()) : []
-    }))
-    .filter((team) => team.playerIds.length === 2 && team.playerIds.every((id) => !!playerMap[id]));
+  const pairValidation = fixedPair.validateFixedPairTeams(pairTeamsRaw, players);
+  if (pairValidation.hasInvalid) {
+    throw new Error(`START_PAIR_TEAMS_INVALID:${fixedPair.getFixedPairInvalidMessage(pairValidation)}`);
+  }
+  const pairTeams = pairValidation.teams;
   if (pairTeams.length < 2) {
-    throw new Error('固搭循环赛至少需要 2 支队伍');
+    throw new Error('固搭循环赛至少需要 2 支合法队伍');
   }
 
   const n = pairTeams.length;
-  const combN2 = (n * (n - 1)) / 2;
+  const combN2 = fixedPair.calcFixedPairRoundRobinMatches(n);
   const targetMatches = Math.max(1, Number((rules && rules.totalMatches)) || combN2);
   const teamMap = Object.fromEntries(pairTeams.map((team) => [team.id, team]));
   const maxCourts = Math.max(1, Number(courts) || 1);
@@ -384,17 +384,35 @@ function buildFixedPairSchedule(players, courts, pairTeamsRaw = [], rules = {}) 
   }
 
   // 计算真实 fairness 指标
+  const teamPlayCounts = Object.fromEntries(pairTeams.map((team) => [team.id, 0]));
   const pairCounts = {};
   rounds.forEach((r) => r.matches.forEach((m) => {
     const key = [m.unitAId, m.unitBId].sort().join('|');
+    teamPlayCounts[m.unitAId] = (teamPlayCounts[m.unitAId] || 0) + 1;
+    teamPlayCounts[m.unitBId] = (teamPlayCounts[m.unitBId] || 0) + 1;
     pairCounts[key] = (pairCounts[key] || 0) + 1;
   }));
-  const pairCountVals = Object.values(pairCounts);
-  const playSpread = pairCountVals.length
-    ? Math.max(...pairCountVals) - Math.min(...pairCountVals)
+  const playValues = Object.values(teamPlayCounts);
+  const playSpread = playValues.length
+    ? Math.max(...playValues) - Math.min(...playValues)
+    : 0;
+  const allPairCounts = [];
+  for (let i = 0; i < pairTeams.length; i += 1) {
+    for (let j = i + 1; j < pairTeams.length; j += 1) {
+      const key = [pairTeams[i].id, pairTeams[j].id].sort().join('|');
+      allPairCounts.push(Number(pairCounts[key] || 0));
+    }
+  }
+  const matchupRepeatSpread = allPairCounts.length
+    ? Math.max(...allPairCounts) - Math.min(...allPairCounts)
     : 0;
   const uniquePairs = Object.keys(pairCounts).length;
-  const fairnessScore = Math.max(1, Math.round(1000000 / (1 + playSpread * 100)));
+  const usedLogicalRounds = new Set();
+  rounds.forEach((round) => {
+    (round.matches || []).forEach((match) => usedLogicalRounds.add(Number(match.logicalRound) || 0));
+  });
+  const logicalRounds = usedLogicalRounds.size;
+  const fairnessScore = Math.max(1, Math.round(1000000 / (1 + playSpread * 100 + matchupRepeatSpread * 50)));
 
   return {
     rounds,
@@ -402,6 +420,7 @@ function buildFixedPairSchedule(players, courts, pairTeamsRaw = [], rules = {}) 
     fairness: {
       engine: 'fixed-pair-v1',
       playSpread,
+      matchupRepeatSpread,
       totalMatches: matchIndex,
       uniquePairs
     },
@@ -410,7 +429,8 @@ function buildFixedPairSchedule(players, courts, pairTeamsRaw = [], rules = {}) 
     schedulerMeta: {
       engineVersion: 'fixed-pair-v1',
       mode: 'fixed_pair_rr',
-      logicalRounds: rounds.length,
+      logicalRounds,
+      materializedRounds: rounds.length,
       cycles: cycleIdx
     }
   };

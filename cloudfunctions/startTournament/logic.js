@@ -1,25 +1,11 @@
 const modeHelper = require('./lib/mode');
+const fixedPair = require('./lib/fixed-pair');
 
 function calcMaxMatches(n) {
   const nn = Number(n) || 0;
   if (nn < 4) return 0;
   const comb4 = (nn * (nn - 1) * (nn - 2) * (nn - 3)) / 24;
   return Math.floor(comb4 * 3);
-}
-
-function comb(n, k) {
-  const nn = Math.floor(Number(n) || 0);
-  const kk = Math.floor(Number(k) || 0);
-  if (kk < 0 || nn < 0 || kk > nn) return 0;
-  if (kk === 0 || kk === nn) return 1;
-  const m = Math.min(kk, nn - kk);
-  let numerator = 1;
-  let denominator = 1;
-  for (let i = 1; i <= m; i += 1) {
-    numerator *= (nn - m + i);
-    denominator *= i;
-  }
-  return Math.floor(numerator / denominator);
 }
 
 function normalizeGender(gender) {
@@ -41,17 +27,20 @@ function countGender(players) {
   return { maleCount, femaleCount, unknownCount };
 }
 
-function calcMaxMatchesMixed(maleCount, femaleCount, unknownCount, allowOpenTeam = false) {
+function calcMaxMatchesMixed(maleCount, femaleCount, unknownCount) {
   const male = Math.max(0, Number(maleCount) || 0);
   const female = Math.max(0, Number(femaleCount) || 0);
   const unknown = Math.max(0, Number(unknownCount) || 0);
   const total = male + female + unknown;
   if (total < 4) return 0;
-  const mx = comb(male, 2) * comb(female, 2);
-  const mm = comb(male, 4);
-  const ff = comb(female, 4);
-  const open = allowOpenTeam ? comb(total, 4) : 0;
-  return Math.floor((mx + mm + ff + open) * 3);
+  const mx = fixedPair.comb(male, 2) * fixedPair.comb(female, 2);
+  const mm = fixedPair.comb(male, 4);
+  const ff = fixedPair.comb(female, 4);
+  return Math.floor((mx + mm + ff) * 3);
+}
+
+function buildPairTeamsInvalidError(validation) {
+  return new Error(`START_PAIR_TEAMS_INVALID:${fixedPair.getFixedPairInvalidMessage(validation)}`);
 }
 
 function validateBeforeGenerate(tournament) {
@@ -60,7 +49,6 @@ function validateBeforeGenerate(tournament) {
   if (players.length < 4) throw new Error('参赛人数不足 4 人');
 
   const mode = modeHelper.normalizeMode(t.mode);
-  const allowOpenTeam = false;
 
   const rules = t && t.rules && typeof t.rules === 'object' ? t.rules : {};
   const endCondition = rules && typeof rules.endCondition === 'object' ? rules.endCondition : {};
@@ -71,11 +59,13 @@ function validateBeforeGenerate(tournament) {
 
   const { maleCount, femaleCount, unknownCount } = countGender(players);
   let maxMatches = calcMaxMatches(players.length);
+  let pairTeams = Array.isArray(t.pairTeams) ? t.pairTeams : [];
   if (mode === 'fixed_pair_rr') {
-    const pairTeams = Array.isArray(t.pairTeams) ? t.pairTeams.filter((item) => Array.isArray(item && item.playerIds) && item.playerIds.length === 2) : [];
-    if (pairTeams.length < 2) throw new Error('固搭循环赛至少需要 2 支队伍');
-    // 支持重复循环：上限放宽到 10 倍 C(n,2)，允许多轮完整循环
-    maxMatches = comb(pairTeams.length, 2) * 10;
+    const validation = fixedPair.validateFixedPairTeams(pairTeams, players);
+    if (validation.hasInvalid) throw buildPairTeamsInvalidError(validation);
+    if (validation.validTeamsCount < 2) throw new Error('固搭循环赛至少需要 2 支合法队伍');
+    maxMatches = fixedPair.calcFixedPairMaxMatches(validation.validTeamsCount);
+    pairTeams = validation.teams;
   }
   if (mode === 'squad_doubles') {
     const aCount = players.filter((item) => String(item && item.squad || '').toUpperCase() === 'A').length;
@@ -92,11 +82,10 @@ function validateBeforeGenerate(tournament) {
     courts,
     maxMatches,
     mode,
-    allowOpenTeam,
     maleCount,
     femaleCount,
     unknownCount,
-    pairTeams: Array.isArray(t.pairTeams) ? t.pairTeams : [],
+    pairTeams,
     rules: {
       pointsPerGame: Number(rules.pointsPerGame) || 21,
       endCondition: {
@@ -114,5 +103,6 @@ module.exports = {
   normalizeMode: modeHelper.normalizeMode,
   normalizeGender,
   countGender,
+  buildPairTeamsInvalidError,
   validateBeforeGenerate
 };

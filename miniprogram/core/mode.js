@@ -4,12 +4,11 @@ const MODE_MULTI_ROTATE = 'multi_rotate';
 const MODE_SQUAD_DOUBLES = 'squad_doubles';
 const MODE_FIXED_PAIR_RR = 'fixed_pair_rr';
 const MODE_DOUBLES = 'doubles';
-const MODE_MIXED_FALLBACK = 'mixed_fallback';
 
 function normalizeMode(mode) {
   const v = String(mode || '').trim().toLowerCase();
   if (v === MODE_MULTI_ROTATE || v === MODE_SQUAD_DOUBLES || v === MODE_FIXED_PAIR_RR) return v;
-  if (v === MODE_MIXED_FALLBACK || v === MODE_DOUBLES) return MODE_MULTI_ROTATE;
+  if (v === MODE_DOUBLES) return MODE_MULTI_ROTATE;
   return MODE_MULTI_ROTATE;
 }
 
@@ -85,7 +84,6 @@ module.exports = {
   MODE_SQUAD_DOUBLES,
   MODE_FIXED_PAIR_RR,
   MODE_DOUBLES,
-  MODE_MIXED_FALLBACK,
   normalizeMode,
   isTeamMode,
   getModeLabel,

@@ -87,6 +87,21 @@ test('settings view model clamps fixed pair total matches to valid round-robin c
     openid: 'u_1'
   });
 
-  assert.equal(state.maxMatches, 1);
-  assert.equal(state.editM, 1);
+  assert.equal(state.maxMatches, 10);
+  assert.equal(state.editM, 10);
+  assert.equal(state.matchShortcutHint.includes('支持多循环'), true);
+  assert.deepEqual(
+    state.matchShortcutOptions.map((item) => ({
+      label: item.label,
+      value: item.value,
+      disabled: item.disabled
+    })),
+    [
+      { label: '1轮', value: 1, disabled: false },
+      { label: '2轮', value: 2, disabled: false },
+      { label: '3轮', value: 3, disabled: false },
+      { label: '5轮', value: 5, disabled: false },
+      { label: '10轮', value: 10, disabled: false }
+    ]
+  );
 });

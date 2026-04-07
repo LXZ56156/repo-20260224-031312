@@ -152,7 +152,7 @@ module.exports = {
       players,
       playersCount,
       courts: this.data.quickConfigC,
-      allowOpenTeam: false
+      pairTeams: tournament.pairTeams
     });
     this.setData({
       quickSuggestedMatches: Number(recommendation.suggestedMatches) || 1,
@@ -209,7 +209,6 @@ module.exports = {
           name,
           totalMatches: matchCount,
           courts,
-          allowOpenTeam: this.data.allowOpenTeam,
           pointsPerGame: Number(this.data.quickPointsPerGame) || 21,
           endConditionType,
           endConditionTarget,

@@ -79,7 +79,7 @@ test('cloud classifies all registered PARAM_CODES as param', () => {
   const paramCodes = [
     'ACTION_REQUIRED', 'TOURNAMENT_ID_REQUIRED', 'TOURNAMENT_NOT_FOUND',
     'PROFILE_MINIMUM_REQUIRED', 'SCORE_OUT_OF_RANGE', 'SETTINGS_REQUIRED',
-    'SETTINGS_INVALID', 'START_VALIDATION_FAILED'
+    'SETTINGS_INVALID', 'START_VALIDATION_FAILED', 'START_PAIR_TEAMS_INVALID'
   ];
   paramCodes.forEach((code) => {
     const normalized = cloud.normalizeCloudResult({ ok: false, code, message: `${code} test` }, 'paramTest');

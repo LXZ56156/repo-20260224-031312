@@ -212,3 +212,39 @@ test('lobby view model disables shortcut values above max matches', () => {
     ]
   );
 });
+
+test('lobby view model exposes fixed pair cycle shortcuts and hint', () => {
+  const players = Array.from({ length: 6 }, (_, index) => ({
+    id: `u_${index}`,
+    name: `球友${index}`
+  }));
+  const result = viewModel.buildLobbyViewModel({
+    tournament: buildTournament({
+      mode: 'fixed_pair_rr',
+      players,
+      pairTeams: [
+        { id: 'team_1', playerIds: ['u_0', 'u_1'] },
+        { id: 'team_2', playerIds: ['u_2', 'u_3'] },
+        { id: 'team_3', playerIds: ['u_4', 'u_5'] }
+      ]
+    }),
+    openid: 'u_admin',
+    data: {}
+  });
+
+  assert.equal(result.patch.quickMatchShortcutHint.includes('支持多循环'), true);
+  assert.deepEqual(
+    result.patch.quickMatchShortcutOptions.map((item) => ({
+      label: item.label,
+      value: item.value,
+      disabled: item.disabled
+    })),
+    [
+      { label: '1轮', value: 3, disabled: false },
+      { label: '2轮', value: 6, disabled: false },
+      { label: '3轮', value: 9, disabled: false },
+      { label: '5轮', value: 15, disabled: false },
+      { label: '10轮', value: 30, disabled: false }
+    ]
+  );
+});

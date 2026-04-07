@@ -1,6 +1,7 @@
 const perm = require('../../permission/permission');
 const draftStartReadiness = require('../../core/draftStartReadiness');
 const flow = require('../../core/uxFlow');
+const fixedPair = require('../../core/fixedPair');
 
 const POINT_OPTIONS = [11, 15, 21];
 const END_CONDITION_OPTIONS = [
@@ -81,7 +82,7 @@ function buildRecommendationState({
   players,
   playersCount,
   courts,
-  allowOpenTeam = false
+  pairTeams
 }) {
   const genderCount = flow.countGenderPlayers(players);
   const recommendation = flow.buildMatchCountRecommendations({
@@ -89,7 +90,8 @@ function buildRecommendationState({
     maleCount: genderCount.maleCount,
     femaleCount: genderCount.femaleCount,
     unknownCount: genderCount.unknownCount,
-    allowOpenTeam,
+    players,
+    pairTeams,
     playersCount,
     courts
   });
@@ -97,6 +99,50 @@ function buildRecommendationState({
     recommendation,
     genderCount
   };
+}
+
+function buildStandardMatchShortcutOptions(playersCount, maxMatches) {
+  const totalPlayers = Math.max(0, Math.floor(Number(playersCount) || 0));
+  if (totalPlayers < 4) return [];
+
+  const cap = Math.max(0, Math.floor(Number(maxMatches) || 0));
+  const seen = new Set();
+  const candidates = [totalPlayers - 1, 6, 9, 12];
+  const out = [];
+
+  candidates.forEach((rawValue, index) => {
+    const value = Math.max(1, Math.floor(Number(rawValue) || 0));
+    if (seen.has(value)) return;
+    seen.add(value);
+    out.push({
+      key: index === 0 ? 'players_minus_1' : `fixed_${value}`,
+      value,
+      label: `${value}场`,
+      disabled: cap > 0 && value > cap
+    });
+  });
+
+  return out;
+}
+
+function buildMatchShortcutOptions({
+  mode,
+  players,
+  playersCount,
+  pairTeams,
+  maxMatches
+}) {
+  if (mode === flow.MODE_FIXED_PAIR_RR) {
+    return fixedPair.buildFixedPairCycleShortcutOptions(pairTeams, players, maxMatches);
+  }
+  return buildStandardMatchShortcutOptions(playersCount, maxMatches);
+}
+
+function buildMatchShortcutHint(mode) {
+  if (mode === flow.MODE_FIXED_PAIR_RR) {
+    return fixedPair.buildFixedPairShortcutHint();
+  }
+  return '';
 }
 
 function buildSettingsFormState(tournament, options = {}) {
@@ -111,14 +157,11 @@ function buildSettingsFormState(tournament, options = {}) {
   const canConfigureSettings = playersCount >= 4;
   const mode = readiness.mode;
   const modeLabel = flow.getModeLabel(mode);
-  const allowOpenTeam = false;
+  const pairTeamValidation = fixedPair.validateFixedPairTeams(t.pairTeams, players);
 
   let maxMatches = flow.calcMaxMatchesByPlayers(playersCount);
   if (mode === flow.MODE_FIXED_PAIR_RR) {
-    const pairTeams = Array.isArray(t.pairTeams)
-      ? t.pairTeams.filter((item) => Array.isArray(item && item.playerIds) && item.playerIds.length === 2)
-      : [];
-    maxMatches = pairTeams.length >= 2 ? Math.floor((pairTeams.length * (pairTeams.length - 1)) / 2) : 0;
+    maxMatches = fixedPair.calcFixedPairMaxMatches(pairTeamValidation.validTeamsCount);
   }
 
   const courtsForRecommendation = Math.max(1, Math.min(10, Number(t.courts) || 1));
@@ -127,8 +170,16 @@ function buildSettingsFormState(tournament, options = {}) {
     players,
     playersCount,
     courts: courtsForRecommendation,
-    allowOpenTeam
+    pairTeams: pairTeamValidation.teams
   });
+  const matchShortcutOptions = buildMatchShortcutOptions({
+    mode,
+    players,
+    playersCount,
+    pairTeams: pairTeamValidation.teams,
+    maxMatches
+  });
+  const matchShortcutHint = buildMatchShortcutHint(mode);
 
   let editM = Number(t.totalMatches) || 0;
   if (editM < 1) editM = Number(recommendation.suggestedMatches || 8);
@@ -161,7 +212,6 @@ function buildSettingsFormState(tournament, options = {}) {
   return {
     mode,
     modeLabel,
-    allowOpenTeam,
     isAdmin,
     isDraft,
     playersCount,
@@ -182,6 +232,8 @@ function buildSettingsFormState(tournament, options = {}) {
     mandatoryTotal: 1,
     editM,
     editC,
+    matchShortcutOptions,
+    matchShortcutHint,
     useSimpleMPicker,
     mOptions,
     mIndex,
@@ -228,6 +280,8 @@ module.exports = {
   suggestEndConditionTarget,
   buildEndConditionUi,
   buildRecommendationState,
+  buildMatchShortcutOptions,
+  buildMatchShortcutHint,
   buildSettingsFormState,
   buildSettingsViewState
 };

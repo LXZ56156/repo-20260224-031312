@@ -47,9 +47,6 @@ exports.main = async (event) => {
   const avatar = String((event && (event.avatar || event.avatarUrl)) || '').trim();
   const mode = modeHelper.normalizeMode(event && event.mode);
   const creatorGender = normalizeGender(event && event.creatorGender);
-  const allowOpenTeam = event && Object.prototype.hasOwnProperty.call(event, 'allowOpenTeam')
-    ? event.allowOpenTeam === true
-    : false;
   if (!name) throw new Error('赛事名称不能为空');
 
   await ensureTournamentsCollection();
@@ -97,7 +94,6 @@ exports.main = async (event) => {
       status: 'draft',
       creatorId: OPENID,
       mode,
-      allowOpenTeam,
       refereeId: '',
       presetKey: 'custom',
       settingsConfigured: false,

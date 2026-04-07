@@ -12,16 +12,15 @@ function makePlayers() {
   }));
 }
 
-test('global normalizeMode stays on business semantics while rotation still resolves scheduler aliases', () => {
-  assert.equal(modeHelper.normalizeMode('mixed_fallback'), modeHelper.MODE_MULTI_ROTATE);
+test('global normalizeMode stays on business semantics while rotation resolves to doubles engine', () => {
   assert.equal(modeHelper.normalizeMode('doubles'), modeHelper.MODE_MULTI_ROTATE);
 
   const out = generateSchedule(makePlayers(), 6, 1, {
-    mode: 'mixed_fallback',
-    allowOpen: false,
+    mode: 'doubles',
     seed: 42
   });
 
   assert.equal(Array.isArray(out.rounds), true);
   assert.equal(out.rounds.length > 0, true);
+  assert.equal(out.schedulerMeta.mode, 'doubles');
 });

@@ -83,7 +83,6 @@ Page({
           avatar: String(profile.avatar || profile.avatarUrl || '').trim(),
           mode: this.data.mode,
           creatorGender: storage.normalizeGender(profile.gender),
-          allowOpenTeam: false,
           clientRequestId
         });
         wx.hideLoading();

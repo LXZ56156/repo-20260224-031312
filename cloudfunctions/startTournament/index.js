@@ -69,7 +69,6 @@ exports.main = async (event) => {
     const M = checked.totalMatches;
     const C = checked.courts;
     const mode = checked.mode || 'multi_rotate';
-    const allowOpenTeam = checked.allowOpenTeam === true;
     const rules = checked.rules || {};
     const endCondition = rules.endCondition || { type: 'total_matches', target: M };
     const pairTeams = Array.isArray(checked.pairTeams) ? checked.pairTeams : [];
@@ -99,7 +98,6 @@ exports.main = async (event) => {
     } else {
       const schedulerOptions = {
         mode: 'doubles',
-        allowOpen: allowOpenTeam,
         policy,
         searchSeeds: policy.selectedSearchSeeds,
         seedStep: 7919,
@@ -164,7 +162,6 @@ exports.main = async (event) => {
       rankings,
       scheduleSeed: schedule.seed,
       mode,
-      allowOpenTeam,
       pairTeams,
       fairnessScore: schedule.fairnessScore,
       // Store diagnostic details as JSON strings to avoid dot-path conflicts when existing fields are null.
@@ -239,6 +236,12 @@ exports.main = async (event) => {
 function mapStartTournamentFailure(err, traceId = '') {
   const message = String((err && err.message) || '').trim();
   if (!message) return null;
+  if (message.startsWith('START_PAIR_TEAMS_INVALID:')) {
+    return common.failResult('START_PAIR_TEAMS_INVALID', message.slice('START_PAIR_TEAMS_INVALID:'.length).trim() || '固搭队伍数据无效', {
+      traceId,
+      state: 'invalid'
+    });
+  }
   if (common.isConflictError(err)) {
     return common.failResult('VERSION_CONFLICT', '写入冲突，请刷新赛事后重试', { traceId, state: 'conflict' });
   }

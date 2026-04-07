@@ -47,28 +47,14 @@ function digitValueToNumber(digitValue) {
   return Number.isFinite(n) ? n : 0;
 }
 
-function buildQuickMatchShortcutOptions(playersCount, maxMatches) {
-  const totalPlayers = Math.max(0, Math.floor(Number(playersCount) || 0));
-  if (totalPlayers < 4) return [];
-
-  const cap = Math.max(0, Math.floor(Number(maxMatches) || 0));
-  const seen = new Set();
-  const candidates = [totalPlayers - 1, 6, 9, 12];
-  const out = [];
-
-  candidates.forEach((rawValue, index) => {
-    const value = Math.max(1, Math.floor(Number(rawValue) || 0));
-    if (seen.has(value)) return;
-    seen.add(value);
-    out.push({
-      key: index === 0 ? 'players_minus_1' : `fixed_${value}`,
-      value,
-      label: `${value}场`,
-      disabled: cap > 0 && value > cap
-    });
+function buildQuickMatchShortcutOptions({ mode, players, playersCount, pairTeams, maxMatches }) {
+  return settingsViewModel.buildMatchShortcutOptions({
+    mode,
+    players,
+    playersCount,
+    pairTeams,
+    maxMatches
   });
-
-  return out;
 }
 
 function getInitial(name) {
@@ -551,7 +537,14 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
   const quickConfigMDigitRange = settingsFormState.mDigitRange;
   const quickConfigMDigitValue = settingsFormState.mDigitValue;
   const quickConfigCIndex = settingsFormState.courtIndex;
-  const quickMatchShortcutOptions = buildQuickMatchShortcutOptions(playersCount, maxMatches);
+  const quickMatchShortcutOptions = buildQuickMatchShortcutOptions({
+    mode,
+    players,
+    playersCount,
+    pairTeams,
+    maxMatches
+  });
+  const quickMatchShortcutHint = settingsViewModel.buildMatchShortcutHint(mode);
   const readiness = draftStartReadiness.buildDraftStartReadiness(t);
 
   let kpiReady;
@@ -744,6 +737,7 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       quickConfigMDigitRange,
       quickConfigMDigitValue,
       quickMatchShortcutOptions,
+      quickMatchShortcutHint,
       quickConfigCIndex,
       quickPointsOptions: settingsFormState.pointsOptions,
       quickPointsPerGame: settingsFormState.pointsPerGame,
@@ -766,7 +760,6 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       quickRosterHint: String(settingsFormState.rosterHint || ''),
       maxMatches,
       canConfigureSettings: settingsFormState.canConfigureSettings,
-      allowOpenTeam: false,
       pairTeams,
       isFixedPairMode,
       needsSettingsSync,

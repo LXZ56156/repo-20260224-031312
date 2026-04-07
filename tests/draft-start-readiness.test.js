@@ -45,7 +45,7 @@ test('draft start readiness requires both squads to have at least two players', 
   assert.equal(out.playersChecklistHint, 'A队 2 / B队 1（至少各2人）');
 });
 
-test('draft start readiness requires at least two valid fixed pairs', () => {
+test('draft start readiness blocks fixed pair start when existing teams contain invalid entries', () => {
   const out = startReadiness.buildDraftStartReadiness({
     mode: flow.MODE_FIXED_PAIR_RR,
     settingsConfigured: true,
@@ -58,9 +58,10 @@ test('draft start readiness requires at least two valid fixed pairs', () => {
   });
 
   assert.equal(out.validPairTeamsCount, 2);
-  assert.equal(out.checkPlayersOk, true);
-  assert.equal(out.checkStartReady, true);
-  assert.equal(out.playersChecklistHint, '已组 2 支队伍');
+  assert.equal(out.invalidPairTeamsCount, 1);
+  assert.equal(out.checkPlayersOk, false);
+  assert.equal(out.checkStartReady, false);
+  assert.match(out.playersChecklistHint, /每队 2 人/);
 });
 
 test('draft start readiness keeps fixed pair not ready when fewer than two valid teams exist', () => {
@@ -75,7 +76,27 @@ test('draft start readiness keeps fixed pair not ready when fewer than two valid
   });
 
   assert.equal(out.validPairTeamsCount, 1);
+  assert.equal(out.invalidPairTeamsCount, 1);
   assert.equal(out.checkPlayersOk, false);
   assert.equal(out.checkStartReady, false);
-  assert.equal(out.playersChecklistHint, '需至少2支队伍（当前1）');
+  assert.match(out.playersChecklistHint, /当前合法队伍 1/);
+});
+
+test('draft start readiness blocks fixed pair start when teams overlap on players', () => {
+  const out = startReadiness.buildDraftStartReadiness({
+    mode: flow.MODE_FIXED_PAIR_RR,
+    settingsConfigured: true,
+    players: buildPlayers(4),
+    pairTeams: [
+      { id: 'team_1', playerIds: ['u_0', 'u_1'] },
+      { id: 'team_2', playerIds: ['u_1', 'u_2'] },
+      { id: 'team_3', playerIds: ['u_2', 'u_3'] }
+    ]
+  });
+
+  assert.equal(out.validPairTeamsCount, 2);
+  assert.equal(out.invalidPairTeamsCount, 1);
+  assert.equal(out.checkPlayersOk, false);
+  assert.equal(out.checkStartReady, false);
+  assert.match(out.playersChecklistHint, /重复成员/);
 });

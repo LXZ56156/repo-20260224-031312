@@ -39,3 +39,19 @@ test('validateSettings builds patch and sets settingsConfigured only when both p
   assert.equal(full.patch.courts, 2);
   assert.equal(full.patch.settingsConfigured, true);
 });
+
+test('validateSettings uses 10-cycle cap for fixed pair round robin', () => {
+  const players = makePlayers(6);
+  const pairTeams = [
+    { id: 'team_1', playerIds: ['p1', 'p2'] },
+    { id: 'team_2', playerIds: ['p3', 'p4'] },
+    { id: 'team_3', playerIds: ['p5', 'p6'] }
+  ];
+
+  const out = logic.validateSettings(players, 30, 1, 'fixed_pair_rr', pairTeams);
+  assert.equal(out.maxMatches, 30);
+  assert.throws(
+    () => logic.validateSettings(players, 31, 1, 'fixed_pair_rr', pairTeams),
+    /总场次不能超过最大可选 30 场/
+  );
+});
