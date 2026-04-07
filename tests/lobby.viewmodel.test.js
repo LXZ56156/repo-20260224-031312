@@ -183,7 +183,8 @@ test('lobby view model hides quick match shortcuts before 4 players', () => {
   assert.deepEqual(result.patch.quickMatchShortcutOptions, []);
 });
 
-test('lobby view model de-duplicates quick match shortcuts when players minus one overlaps fixed values', () => {
+test('lobby view model includes per-player shortcut and fixed options for 7 players', () => {
+  // 7 人：每人打6场 → ceil(7*6/4)=11，加上固定档 6/9/12，共4项，无重叠
   const players = Array.from({ length: 7 }, (_, index) => ({
     id: `u_${index}`,
     name: `球友${index}`,
@@ -199,11 +200,13 @@ test('lobby view model de-duplicates quick match shortcuts when players minus on
 
   assert.deepEqual(
     result.patch.quickMatchShortcutOptions.map((item) => item.value),
-    [6, 9, 12]
+    [11, 6, 9, 12]
   );
+  assert.equal(result.patch.quickMatchShortcutOptions[0].key, 'per_player_n_minus_1');
+  assert.equal(result.patch.quickMatchShortcutOptions[0].label, '每人6场');
   assert.deepEqual(
     result.patch.quickMatchShortcutOptions.map((item) => item.disabled),
-    [false, false, false]
+    [false, false, false, false]
   );
 });
 

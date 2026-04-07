@@ -107,18 +107,25 @@ function buildStandardMatchShortcutOptions(playersCount, maxMatches) {
 
   const cap = Math.max(0, Math.floor(Number(maxMatches) || 0));
   const seen = new Set();
-  const candidates = [totalPlayers - 1, 6, 9, 12];
   const out = [];
 
-  candidates.forEach((rawValue, index) => {
-    const value = Math.max(1, Math.floor(Number(rawValue) || 0));
-    if (seen.has(value)) return;
-    seen.add(value);
+  const perPlayerValue = Math.ceil(totalPlayers * (totalPlayers - 1) / 4);
+  seen.add(perPlayerValue);
+  out.push({
+    key: 'per_player_n_minus_1',
+    value: perPlayerValue,
+    label: `每人${totalPlayers - 1}场`,
+    disabled: cap > 0 && perPlayerValue > cap
+  });
+
+  [6, 9, 12].forEach((rawValue) => {
+    if (seen.has(rawValue)) return;
+    seen.add(rawValue);
     out.push({
-      key: index === 0 ? 'players_minus_1' : `fixed_${value}`,
-      value,
-      label: `${value}场`,
-      disabled: cap > 0 && value > cap
+      key: `fixed_${rawValue}`,
+      value: rawValue,
+      label: `${rawValue}场`,
+      disabled: cap > 0 && rawValue > cap
     });
   });
 
