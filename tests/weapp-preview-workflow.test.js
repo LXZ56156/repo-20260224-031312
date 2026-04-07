@@ -107,3 +107,30 @@ test('status keeps mirror synced when source only has empty directories pruned b
   assert.match(statusOutput, /镜像状态：已同步/);
   assert.doesNotMatch(statusOutput, /镜像状态：已过期/);
 });
+
+test('mirror starts background sync and waits until updated source reaches preview', () => {
+  const fixture = createFixture();
+
+  try {
+    runScript(DEV_SCRIPT, ['mirror'], fixture.env);
+
+    let statusOutput = runScript(DEV_SCRIPT, ['status'], fixture.env);
+    assert.match(statusOutput, /同步状态：running/);
+    assert.match(statusOutput, /镜像状态：已同步/);
+
+    writeFile(path.join(fixture.sourceDir, 'miniprogram/app.js'), 'App({ synced: true });\n');
+
+    runScript(DEV_SCRIPT, ['mirror'], fixture.env);
+
+    statusOutput = runScript(DEV_SCRIPT, ['status'], fixture.env);
+    const previewAppJs = fs.readFileSync(path.join(fixture.previewDir, 'miniprogram/app.js'), 'utf8');
+
+    assert.equal(previewAppJs, 'App({ synced: true });\n');
+    assert.match(statusOutput, /同步状态：running/);
+    assert.match(statusOutput, /镜像状态：已同步/);
+  } finally {
+    try {
+      runScript(DEV_SCRIPT, ['stop'], fixture.env);
+    } catch {}
+  }
+});

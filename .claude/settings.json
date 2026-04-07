@@ -1,0 +1,48 @@
+{
+  "effortLevel": "medium",
+  "permissions": {
+    "defaultMode": "bypassPermissions",
+    "allow": [],
+    "ask": [],
+    "deny": []
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__weapp_dev__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/dev/weapp-hook-ensure.sh mcp",
+            "timeout": 120,
+            "statusMessage": "确保微信开发环境就绪..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -lc './scripts/dev/weapp-hook-ensure.sh mirror && npm test --silent 2>&1'"
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "mcp__weapp_dev__mp_ensureConnection",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/dev/weapp-hook-ensure.sh mcp",
+            "timeout": 120,
+            "statusMessage": "MCP 连接失败，正在自动恢复..."
+          }
+        ]
+      }
+    ]
+  }
+}

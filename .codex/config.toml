@@ -1,0 +1,8 @@
+sandbox_mode = "danger-full-access"
+approval_policy = "never"
+
+[features]
+codex_hooks = true
+
+[projects]
+"/home/lizixuan/projects/badminton-miniapp" = { trust_level = "trusted" }

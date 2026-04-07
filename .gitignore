@@ -36,11 +36,20 @@ project.private.config.json
 
 # Claude Code
 .claude/settings*.json
+!.claude/settings.json
 .claude.json
 .mcp.json
 
 # Codex
 .codex/
+!.codex/
+.codex/*
+!.codex/config.toml
+!.codex/hooks.json
+!.codex/hooks/
+.codex/hooks/*
+!.codex/hooks/user_prompt_sync_windows_mirror.py
+!.codex/hooks/stop_sync_windows_mirror.py
 .codex-skill-staging/
 
 # Temp / tool artifacts

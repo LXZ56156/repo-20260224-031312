@@ -355,6 +355,12 @@ main() {
       ensure_mcp_ready
       show_status
       ;;
+    mirror)
+      require_command nohup
+      log "项目目录：$PROJECT_DIR"
+      start_sync
+      ensure_mirror_current
+      ;;
     preview)
       require_command nohup
       require_command wslpath
@@ -371,7 +377,7 @@ main() {
       stop_sync
       ;;
     *)
-      fail "不支持的动作：$ACTION，可选值：mcp | start | preview | status | stop"
+      fail "不支持的动作：$ACTION，可选值：mcp | start | mirror | preview | status | stop"
       ;;
   esac
 }
