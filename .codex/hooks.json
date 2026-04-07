@@ -7,7 +7,7 @@
             "type": "command",
             "command": "/usr/bin/python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/user_prompt_sync_windows_mirror.py\"",
             "timeout": 120,
-            "statusMessage": "同步 Windows 微信预览镜像..."
+            "statusMessage": "预热 Windows 微信开发环境..."
           }
         ]
       }

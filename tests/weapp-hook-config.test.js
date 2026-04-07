@@ -23,7 +23,7 @@ test('claude weapp hooks always run mirror sync helpers', () => {
   assert.match(recoverHook.hooks[0].command, /scripts\/dev\/weapp-hook-ensure\.sh mcp/);
 });
 
-test('codex hooks enable mirror sync before and after each turn', () => {
+test('codex hooks enable preflight and stop hooks for the Windows weapp workflow', () => {
   const configToml = fs.readFileSync(path.join(REPO_DIR, '.codex/config.toml'), 'utf8');
   const hooks = JSON.parse(fs.readFileSync(path.join(REPO_DIR, '.codex/hooks.json'), 'utf8'));
 
@@ -31,5 +31,6 @@ test('codex hooks enable mirror sync before and after each turn', () => {
   assert.ok(hooks.hooks.UserPromptSubmit, '缺少 Codex UserPromptSubmit hook');
   assert.ok(hooks.hooks.Stop, '缺少 Codex Stop hook');
   assert.match(hooks.hooks.UserPromptSubmit[0].hooks[0].command, /\.codex\/hooks\/user_prompt_sync_windows_mirror\.py/);
+  assert.match(hooks.hooks.UserPromptSubmit[0].hooks[0].statusMessage, /微信开发环境/);
   assert.match(hooks.hooks.Stop[0].hooks[0].command, /\.codex\/hooks\/stop_sync_windows_mirror\.py/);
 });
