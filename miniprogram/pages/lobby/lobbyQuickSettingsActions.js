@@ -7,6 +7,43 @@ const viewModel = require('./lobbyViewModel');
 const settingsViewModel = require('../settings/settingsViewModel');
 
 module.exports = {
+  syncQuickMatchSelectionUi() {
+    const tournament = this.data.tournament || {};
+    const players = Array.isArray(tournament.players) ? tournament.players : [];
+    const mode = tournament.mode || this.data.mode;
+    if (flow.normalizeMode(mode) === flow.MODE_FIXED_PAIR_RR) {
+      this.setData({
+        quickMatchShortcutOptions: settingsViewModel.buildMatchShortcutOptions({
+          mode,
+          players,
+          playersCount: players.length,
+          pairTeams: tournament.pairTeams,
+          maxMatches: this.data.maxMatches
+        }),
+        quickMatchShortcutHint: settingsViewModel.buildMatchShortcutHint(mode),
+        quickUseMatchPresetOptions: false,
+        quickCurrentCustomMatchLabel: '',
+        quickMatchPresetUnavailableHint: ''
+      });
+      return;
+    }
+    const selectionState = settingsViewModel.buildMatchSelectionUiState({
+      mode,
+      playersCount: players.length,
+      maxMatches: this.data.maxMatches,
+      currentMatches: this.data.quickConfigM,
+      courts: this.data.quickConfigC,
+      context: 'lobby'
+    });
+    this.setData({
+      quickMatchShortcutOptions: selectionState.matchShortcutOptions,
+      quickMatchShortcutHint: selectionState.matchShortcutHint,
+      quickUseMatchPresetOptions: selectionState.useMatchPresetOptions,
+      quickCurrentCustomMatchLabel: selectionState.currentCustomMatchLabel,
+      quickMatchPresetUnavailableHint: selectionState.matchPresetUnavailableHint
+    });
+  },
+
   setQuickMatchCount(rawMatchCount) {
     let matchCount = flow.parsePositiveInt(rawMatchCount, 1);
     const maxMatches = Number(this.data.maxMatches) || 0;
@@ -33,7 +70,10 @@ module.exports = {
       next.quickEndConditionTargetIndex = Math.max(0, matchCount - 1);
     }
 
-    this.setData(next, () => this.syncQuickEndConditionUi());
+    this.setData(next, () => {
+      this.syncQuickEndConditionUi();
+      this.syncQuickMatchSelectionUi();
+    });
   },
 
   onPickQuickConfigMSimple(e) {
@@ -160,7 +200,7 @@ module.exports = {
       quickCapacityHintShort: String(recommendation.capacityHintShort || ''),
       quickCapacityReason: String(recommendation.capacityReason || 'roster'),
       quickRosterHint: String(recommendation.rosterHint || '')
-    });
+    }, () => this.syncQuickMatchSelectionUi());
   },
 
   async saveQuickSettings(options = {}) {

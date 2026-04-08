@@ -33,7 +33,53 @@ module.exports = {
     this.setData({ name: String((e && e.detail && e.detail.value) || '') });
   },
 
-  setTotalMatches(rawMatchCount) {
+  syncMatchSelectionUi() {
+    const tournament = this.data.tournament || {};
+    const players = Array.isArray(tournament.players) ? tournament.players : [];
+    if (this.data.mode === flow.MODE_FIXED_PAIR_RR) {
+      this.setData({
+        matchShortcutOptions: viewModel.buildMatchShortcutOptions({
+          mode: this.data.mode,
+          players,
+          playersCount: players.length,
+          pairTeams: tournament.pairTeams,
+          maxMatches: this.data.maxMatches
+        }),
+        matchShortcutHint: viewModel.buildMatchShortcutHint(this.data.mode),
+        useMatchPresetOptions: false,
+        showAdvancedMatchEntry: false,
+        currentCustomMatchLabel: '',
+        matchPresetUnavailableHint: '',
+        showAdvancedMatchPicker: false
+      });
+      return;
+    }
+    const selectionState = viewModel.buildMatchSelectionUiState({
+      mode: this.data.mode,
+      playersCount: players.length,
+      maxMatches: this.data.maxMatches,
+      currentMatches: this.data.editM,
+      courts: this.data.editC,
+      context: 'settings'
+    });
+    const patch = {
+      matchShortcutOptions: selectionState.matchShortcutOptions,
+      matchShortcutHint: selectionState.matchShortcutHint,
+      useMatchPresetOptions: selectionState.useMatchPresetOptions,
+      showAdvancedMatchEntry: selectionState.showAdvancedMatchEntry,
+      currentCustomMatchLabel: selectionState.currentCustomMatchLabel,
+      matchPresetUnavailableHint: selectionState.matchPresetUnavailableHint
+    };
+    if (!selectionState.useMatchPresetOptions) patch.showAdvancedMatchPicker = false;
+    this.setData(patch);
+  },
+
+  toggleAdvancedMatchPicker() {
+    if (!this.data.canConfigureSettings || !this.data.showAdvancedMatchEntry) return;
+    this.setData({ showAdvancedMatchPicker: !this.data.showAdvancedMatchPicker });
+  },
+
+  setTotalMatches(rawMatchCount, options = {}) {
     let m = flow.parsePositiveInt(rawMatchCount, 1);
     if (m < 1) m = 1;
     const maxMatches = Number(this.data.maxMatches) || 0;
@@ -53,7 +99,13 @@ module.exports = {
       next.endConditionTarget = m;
       next.endConditionTargetIndex = Math.max(0, m - 1);
     }
-    this.setData(next, () => this.syncEndConditionUi());
+    if (options.fromPreset && this.data.useMatchPresetOptions) {
+      next.showAdvancedMatchPicker = false;
+    }
+    this.setData(next, () => {
+      this.syncEndConditionUi();
+      this.syncMatchSelectionUi();
+    });
   },
 
   onPickTotalMatchesSimple(e) {
@@ -64,7 +116,10 @@ module.exports = {
       next.endConditionTarget = m;
       next.endConditionTargetIndex = Math.max(0, m - 1);
     }
-    this.setData(next, () => this.syncEndConditionUi());
+    this.setData(next, () => {
+      this.syncEndConditionUi();
+      this.syncMatchSelectionUi();
+    });
   },
 
   onPickTotalMatches(e) {
@@ -82,7 +137,10 @@ module.exports = {
       next.endConditionTarget = m;
       next.endConditionTargetIndex = Math.max(0, m - 1);
     }
-    this.setData(next, () => this.syncEndConditionUi());
+    this.setData(next, () => {
+      this.syncEndConditionUi();
+      this.syncMatchSelectionUi();
+    });
   },
 
   onTapMatchShortcut(e) {
@@ -93,7 +151,7 @@ module.exports = {
     if (disabled || !this.data.canConfigureSettings) return;
     const value = flow.parsePositiveInt(dataset.value, 0);
     if (value < 1) return;
-    this.setTotalMatches(value);
+    this.setTotalMatches(value, { fromPreset: true });
   },
 
   onPickCourts(e) {
@@ -178,7 +236,7 @@ module.exports = {
       capacityHintShort: String(recommendation.capacityHintShort || ''),
       capacityReason: String(recommendation.capacityReason || 'time'),
       rosterHint: String(recommendation.rosterHint || '')
-    });
+    }, () => this.syncMatchSelectionUi());
   },
 
   async saveSettings(options = {}) {

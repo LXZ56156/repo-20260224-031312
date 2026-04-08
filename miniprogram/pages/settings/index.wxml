@@ -43,7 +43,32 @@
       <view class="form-label">总场次</view>
       <view class="form-field">
         <block wx:if="{{isAdmin && tournament.status==='draft' && canConfigureSettings}}">
-          <picker wx:if="{{useSimpleMPicker}}" mode="selector" range="{{mOptions}}" value="{{mIndex}}" bindchange="onPickTotalMatchesSimple">
+          <block wx:if="{{useMatchPresetOptions}}">
+            <view class="picker">{{editM}} 场</view>
+            <view class="muted small settings-match-meta" wx:if="{{currentCustomMatchLabel}}">{{currentCustomMatchLabel}}</view>
+            <text class="settings-link-btn" wx:if="{{showAdvancedMatchEntry}}" bindtap="toggleAdvancedMatchPicker">
+              {{showAdvancedMatchPicker ? '收起高级自定义' : '高级自定义'}}
+            </text>
+            <picker
+              wx:if="{{showAdvancedMatchPicker && useSimpleMPicker}}"
+              mode="selector"
+              range="{{mOptions}}"
+              value="{{mIndex}}"
+              bindchange="onPickTotalMatchesSimple"
+            >
+              <view class="picker settings-advanced-picker">{{editM}}</view>
+            </picker>
+            <picker
+              wx:elif="{{showAdvancedMatchPicker}}"
+              mode="multiSelector"
+              range="{{mDigitRange}}"
+              value="{{mDigitValue}}"
+              bindchange="onPickTotalMatches"
+            >
+              <view class="picker settings-advanced-picker">{{editM}}</view>
+            </picker>
+          </block>
+          <picker wx:elif="{{useSimpleMPicker}}" mode="selector" range="{{mOptions}}" value="{{mIndex}}" bindchange="onPickTotalMatchesSimple">
             <view class="picker">{{editM}}</view>
           </picker>
           <picker wx:else mode="multiSelector" range="{{mDigitRange}}" value="{{mDigitValue}}" bindchange="onPickTotalMatches">
@@ -56,10 +81,11 @@
       </view>
     </view>
 
-    <view class="form-item" wx:if="{{matchShortcutHint || matchShortcutOptions.length}}">
+    <view class="form-item" wx:if="{{matchShortcutHint || matchShortcutOptions.length || matchPresetUnavailableHint}}">
       <view class="form-label">快捷设置</view>
       <view class="form-field">
         <view class="muted small" wx:if="{{matchShortcutHint}}">{{matchShortcutHint}}</view>
+        <view class="muted small" wx:if="{{matchPresetUnavailableHint}}">{{matchPresetUnavailableHint}}</view>
         <view class="quick-match-shortcuts" wx:if="{{matchShortcutOptions.length}}">
           <view
             wx:for="{{matchShortcutOptions}}"

@@ -35,7 +35,10 @@
           <view class="quick-config-row">
             <view class="quick-config-col">
               <view class="quick-config-label">总场次</view>
-              <block wx:if="{{canConfigureSettings}}">
+              <block wx:if="{{mode==='multi_rotate'}}">
+                <view class="picker quick-config-picker {{canConfigureSettings ? '' : 'disabled'}}">{{quickConfigM}} 场</view>
+              </block>
+              <block wx:elif="{{canConfigureSettings}}">
                 <picker wx:if="{{useSimpleQuickMPicker}}" mode="selector" range="{{quickConfigMOptions}}" value="{{quickConfigMIndex}}" bindchange="onPickQuickConfigMSimple">
                   <view class="picker quick-config-picker">{{quickConfigM}}</view>
                 </picker>
@@ -90,8 +93,10 @@
             <view class="quick-config-col"></view>
           </view>
 
-          <view class="quick-settings-summary panel-soft" wx:if="{{canConfigureSettings && (quickMatchShortcutHint || quickMatchShortcutOptions.length)}}">
+          <view class="quick-settings-summary panel-soft" wx:if="{{canConfigureSettings && (quickMatchShortcutHint || quickMatchShortcutOptions.length || quickMatchPresetUnavailableHint || quickCurrentCustomMatchLabel)}}">
             <view class="muted small quick-settings-hint" wx:if="{{quickMatchShortcutHint}}">{{quickMatchShortcutHint}}</view>
+            <view class="muted small quick-settings-hint" wx:if="{{quickMatchPresetUnavailableHint}}">{{quickMatchPresetUnavailableHint}}</view>
+            <view class="muted small quick-settings-hint" wx:if="{{quickCurrentCustomMatchLabel}}">{{quickCurrentCustomMatchLabel}}</view>
             <view class="quick-match-shortcuts" wx:if="{{quickMatchShortcutOptions.length}}">
               <view
                 wx:for="{{quickMatchShortcutOptions}}"

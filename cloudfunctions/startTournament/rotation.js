@@ -688,6 +688,7 @@ function compareDoublesObjective(left, right) {
   if (left.maxConsecutivePlay !== right.maxConsecutivePlay) return left.maxConsecutivePlay - right.maxConsecutivePlay;
   if (left.restScoreTotal !== right.restScoreTotal) return right.restScoreTotal - left.restScoreTotal;
   if (left.uniqueMatchupCount !== right.uniqueMatchupCount) return right.uniqueMatchupCount - left.uniqueMatchupCount;
+  if (left.partnerCoverageCount !== right.partnerCoverageCount) return right.partnerCoverageCount - left.partnerCoverageCount;
   if (left.partnerPenalty !== right.partnerPenalty) return left.partnerPenalty - right.partnerPenalty;
   if (left.opponentPenalty !== right.opponentPenalty) return left.opponentPenalty - right.opponentPenalty;
   return 0;
@@ -715,6 +716,7 @@ function buildInitialDoublesState(ids) {
     opponentCount: {},
     usedMatchupKeys: new Set(),
     uniqueMatchupCount: 0,
+    partnerCoverageCount: 0,
     partnerPenalty: 0,
     opponentPenalty: 0,
     maxConsecutivePlay: 0,
@@ -726,6 +728,7 @@ function buildInitialDoublesState(ids) {
       maxConsecutivePlay: 0,
       restScoreTotal: 0,
       uniqueMatchupCount: 0,
+      partnerCoverageCount: 0,
       partnerPenalty: 0,
       opponentPenalty: 0
     }
@@ -787,6 +790,7 @@ function buildDoublesObjectiveFromState(state) {
     maxConsecutivePlay: state.maxConsecutivePlay,
     restScoreTotal: state.restScoreTotal,
     uniqueMatchupCount: state.uniqueMatchupCount,
+    partnerCoverageCount: state.partnerCoverageCount || 0,
     partnerPenalty: state.partnerPenalty,
     opponentPenalty: state.opponentPenalty
   };
@@ -804,6 +808,7 @@ function applyRoundCandidate(state, matches, ids) {
     opponentCount: { ...state.opponentCount },
     usedMatchupKeys: new Set(state.usedMatchupKeys),
     uniqueMatchupCount: state.uniqueMatchupCount,
+    partnerCoverageCount: state.partnerCoverageCount || 0,
     partnerPenalty: state.partnerPenalty,
     opponentPenalty: state.opponentPenalty,
     maxConsecutivePlay: state.maxConsecutivePlay,
@@ -827,6 +832,8 @@ function applyRoundCandidate(state, matches, ids) {
     const pk2 = pairKey(teamB[0], teamB[1]);
     const p1 = next.partnerCount[pk1] || 0;
     const p2 = next.partnerCount[pk2] || 0;
+    if (p1 === 0) next.partnerCoverageCount = (next.partnerCoverageCount || 0) + 1;
+    if (p2 === 0) next.partnerCoverageCount = (next.partnerCoverageCount || 0) + 1;
     const inc1 = incrementalSquareCost(p1);
     const inc2 = incrementalSquareCost(p2);
     partnerPenaltyDelta += inc1 + inc2;

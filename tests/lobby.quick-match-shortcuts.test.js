@@ -13,6 +13,7 @@ function readPage(relativePath) {
 function createContext(data = {}) {
   const ctx = {
     syncCalls: 0,
+    matchSyncCalls: 0,
     data: { ...(data || {}) }
   };
   Object.keys(lobbyDraftActions).forEach((key) => {
@@ -26,6 +27,9 @@ function createContext(data = {}) {
   };
   ctx.syncQuickEndConditionUi = function syncQuickEndConditionUi() {
     this.syncCalls += 1;
+  };
+  ctx.syncQuickMatchSelectionUi = function syncQuickMatchSelectionUi() {
+    this.matchSyncCalls += 1;
   };
   return ctx;
 }
@@ -86,6 +90,7 @@ test('lobby quick match shortcut syncs total matches for simple picker state', (
   assert.equal(ctx.data.quickEndConditionTarget, 6);
   assert.equal(ctx.data.quickEndConditionTargetIndex, 5);
   assert.equal(ctx.syncCalls, 1);
+  assert.equal(ctx.matchSyncCalls, 1);
 });
 
 test('lobby quick match shortcut syncs total matches for digit picker state', () => {
@@ -121,6 +126,7 @@ test('lobby quick match shortcut syncs total matches for digit picker state', ()
   assert.equal(ctx.data.quickEndConditionTarget, 12);
   assert.equal(ctx.data.quickEndConditionTargetIndex, 11);
   assert.equal(ctx.syncCalls, 1);
+  assert.equal(ctx.matchSyncCalls, 1);
 });
 
 test('lobby quick match shortcut ignores disabled options', () => {
@@ -152,4 +158,5 @@ test('lobby quick match shortcut ignores disabled options', () => {
   assert.equal(ctx.data.quickEndConditionTarget, 3);
   assert.equal(ctx.data.quickEndConditionTargetIndex, 2);
   assert.equal(ctx.syncCalls, 0);
+  assert.equal(ctx.matchSyncCalls, 0);
 });

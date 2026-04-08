@@ -19,6 +19,11 @@ Page({
     editC: 1,
     matchShortcutOptions: [],
     matchShortcutHint: '',
+    useMatchPresetOptions: false,
+    showAdvancedMatchEntry: false,
+    showAdvancedMatchPicker: false,
+    currentCustomMatchLabel: '',
+    matchPresetUnavailableHint: '',
     useSimpleMPicker: true,
     mOptions: [],
     mIndex: 0,
@@ -128,6 +133,9 @@ Page({
     const viewState = settingsViewModel.buildSettingsViewState(tournament, {
       openid: this.openid
     });
+    if (viewState.useMatchPresetOptions) {
+      viewState.showAdvancedMatchPicker = !!this.data.showAdvancedMatchPicker;
+    }
     this.setData(viewState);
 
     if (this._initialSection) {

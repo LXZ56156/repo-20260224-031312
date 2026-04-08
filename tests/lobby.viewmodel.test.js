@@ -183,8 +183,7 @@ test('lobby view model hides quick match shortcuts before 4 players', () => {
   assert.deepEqual(result.patch.quickMatchShortcutOptions, []);
 });
 
-test('lobby view model includes per-player shortcut and fixed options for 7 players', () => {
-  // 7 人：每人打6场 → ceil(7*6/4)=11，加上固定档 6/9/12，共4项，无重叠
+test('lobby view model exposes fixed fair presets for 7-player multi_rotate', () => {
   const players = Array.from({ length: 7 }, (_, index) => ({
     id: `u_${index}`,
     name: `球友${index}`,
@@ -200,17 +199,16 @@ test('lobby view model includes per-player shortcut and fixed options for 7 play
 
   assert.deepEqual(
     result.patch.quickMatchShortcutOptions.map((item) => item.value),
-    [11, 6, 9, 12]
+    [4, 7, 14]
   );
-  assert.equal(result.patch.quickMatchShortcutOptions[0].key, 'per_player_n_minus_1');
-  assert.equal(result.patch.quickMatchShortcutOptions[0].label, '每人6场');
+  assert.equal(result.patch.quickCurrentCustomMatchLabel, '');
   assert.deepEqual(
     result.patch.quickMatchShortcutOptions.map((item) => item.disabled),
-    [false, false, false, false]
+    [false, false, false]
   );
 });
 
-test('lobby view model disables shortcut values above max matches', () => {
+test('lobby view model keeps historical custom totals outside the fixed preset list', () => {
   const result = viewModel.buildLobbyViewModel({
     tournament: buildTournament({
       players: [
@@ -218,23 +216,39 @@ test('lobby view model disables shortcut values above max matches', () => {
         { id: 'u_1', name: '球友1', gender: 'male' },
         { id: 'u_2', name: '球友2', gender: 'female' },
         { id: 'u_3', name: '球友3', gender: 'female' }
-      ]
+      ],
+      totalMatches: 4
     }),
     openid: 'u_admin',
     data: {}
   });
 
   assert.deepEqual(
-    result.patch.quickMatchShortcutOptions.map((item) => ({
-      value: item.value,
-      disabled: item.disabled
-    })),
-    [
-      { value: 3, disabled: false },
-      { value: 6, disabled: true },
-      { value: 9, disabled: true },
-      { value: 12, disabled: true }
-    ]
+    result.patch.quickMatchShortcutOptions.map((item) => item.value),
+    [1, 2, 3]
+  );
+  assert.equal(result.patch.quickCurrentCustomMatchLabel, '当前自定义 4 场');
+});
+
+test('lobby view model falls back to settings-only custom flow when no preset case exists', () => {
+  const result = viewModel.buildLobbyViewModel({
+    tournament: buildTournament({
+      players: Array.from({ length: 25 }, (_, index) => ({
+        id: `u_${index}`,
+        name: `球友${index}`,
+        gender: index % 2 === 0 ? 'male' : 'female'
+      })),
+      courts: 1
+    }),
+    openid: 'u_admin',
+    data: {}
+  });
+
+  assert.equal(result.patch.quickUseMatchPresetOptions, false);
+  assert.deepEqual(result.patch.quickMatchShortcutOptions, []);
+  assert.equal(
+    result.patch.quickMatchPresetUnavailableHint,
+    '该人数暂不提供固定公平档位，请到“修改比赛”里自定义总场数'
   );
 });
 
@@ -260,16 +274,15 @@ test('lobby view model exposes fixed pair cycle shortcuts and hint', () => {
   assert.equal(result.patch.quickMatchShortcutHint.includes('支持多循环'), true);
   assert.deepEqual(
     result.patch.quickMatchShortcutOptions.map((item) => ({
-      label: item.label,
       value: item.value,
       disabled: item.disabled
     })),
     [
-      { label: '1轮', value: 3, disabled: false },
-      { label: '2轮', value: 6, disabled: false },
-      { label: '3轮', value: 9, disabled: false },
-      { label: '5轮', value: 15, disabled: false },
-      { label: '10轮', value: 30, disabled: false }
+      { value: 3, disabled: false },
+      { value: 6, disabled: false },
+      { value: 9, disabled: false },
+      { value: 15, disabled: false },
+      { value: 30, disabled: false }
     ]
   );
 });

@@ -162,6 +162,7 @@ function compareObjective(left, right) {
   if (left.maxConsecutivePlay !== right.maxConsecutivePlay) return left.maxConsecutivePlay - right.maxConsecutivePlay;
   if (left.restPriorityTotal !== right.restPriorityTotal) return right.restPriorityTotal - left.restPriorityTotal;
   if (left.uniqueExactMatchupCount !== right.uniqueExactMatchupCount) return right.uniqueExactMatchupCount - left.uniqueExactMatchupCount;
+  if ((left.partnerCoverageCount || 0) !== (right.partnerCoverageCount || 0)) return (right.partnerCoverageCount || 0) - (left.partnerCoverageCount || 0);
   if (left.partnerPenalty !== right.partnerPenalty) return left.partnerPenalty - right.partnerPenalty;
   if (left.opponentPenalty !== right.opponentPenalty) return left.opponentPenalty - right.opponentPenalty;
   return 0;
@@ -173,6 +174,7 @@ function compareBeamState(left, right) {
   if (left.maxConsecutivePlay !== right.maxConsecutivePlay) return left.maxConsecutivePlay - right.maxConsecutivePlay;
   if (left.restPriorityTotal !== right.restPriorityTotal) return right.restPriorityTotal - left.restPriorityTotal;
   if (left.uniqueExactMatchupCount !== right.uniqueExactMatchupCount) return right.uniqueExactMatchupCount - left.uniqueExactMatchupCount;
+  if ((left.partnerCoverageCount || 0) !== (right.partnerCoverageCount || 0)) return (right.partnerCoverageCount || 0) - (left.partnerCoverageCount || 0);
   if (left.partnerPenalty !== right.partnerPenalty) return left.partnerPenalty - right.partnerPenalty;
   if (left.opponentPenalty !== right.opponentPenalty) return left.opponentPenalty - right.opponentPenalty;
   return 0;
@@ -218,6 +220,7 @@ function buildInitialState(ids) {
     opponentCount: {},
     usedMatchupKeys: new Set(),
     uniqueMatchupCount: 0,
+    partnerCoverageCount: 0,
     partnerPenalty: 0,
     opponentPenalty: 0,
     playSpread: 0,
@@ -231,6 +234,7 @@ function buildInitialState(ids) {
       maxConsecutivePlay: 0,
       restPriorityTotal: 0,
       uniqueExactMatchupCount: 0,
+      partnerCoverageCount: 0,
       partnerPenalty: 0,
       opponentPenalty: 0
     }
@@ -266,6 +270,7 @@ function buildObjectiveFromState(state) {
     maxConsecutivePlay: state.maxConsecutivePlay,
     restPriorityTotal: state.restPriorityTotal,
     uniqueExactMatchupCount: state.uniqueMatchupCount,
+    partnerCoverageCount: state.partnerCoverageCount || 0,
     partnerPenalty: state.partnerPenalty,
     opponentPenalty: state.opponentPenalty
   };
@@ -459,6 +464,7 @@ function applyRoundCandidate(state, roundCandidate, ids) {
     opponentCount: { ...state.opponentCount },
     usedMatchupKeys: new Set(state.usedMatchupKeys),
     uniqueMatchupCount: state.uniqueMatchupCount,
+    partnerCoverageCount: state.partnerCoverageCount || 0,
     partnerPenalty: state.partnerPenalty,
     opponentPenalty: state.opponentPenalty,
     playSpread: state.playSpread,
@@ -478,6 +484,8 @@ function applyRoundCandidate(state, roundCandidate, ids) {
     const pk2 = pairKey(teamB[0], teamB[1]);
     const p1 = next.partnerCount[pk1] || 0;
     const p2 = next.partnerCount[pk2] || 0;
+    if (p1 === 0) next.partnerCoverageCount += 1;
+    if (p2 === 0) next.partnerCoverageCount += 1;
     next.partnerPenalty += incrementalSquareCost(p1) + incrementalSquareCost(p2);
     next.partnerCount[pk1] = p1 + 1;
     next.partnerCount[pk2] = p2 + 1;
@@ -1168,6 +1176,7 @@ function buildTemplateCase(caseSpec) {
     prefixMetrics[String(m)] = {
       uniqueExactMatchupCount: Number(bestPrefix.playerStats && bestPrefix.playerStats.uniqueMatchupCount) || 0,
       playSpread: Number(bestPrefix.fairness && bestPrefix.fairness.playSpread) || 0,
+      maxConsecutivePlay: Number(bestPrefix.fairness && bestPrefix.fairness.maxConsecutivePlay) || 0,
       theoreticalPlaySpread: expectedSpread
     };
   }
@@ -1214,16 +1223,56 @@ function serializeTemplateRounds(rounds) {
 }
 
 function buildHandcraftedTemplateCase(players, courts, horizonMatches) {
+  if (players === 4 && courts === 1 && horizonMatches <= 3) {
+    const rounds = [
+      { matches: [{ teamA: [1, 2], teamB: [3, 4] }] },
+      { matches: [{ teamA: [1, 3], teamB: [2, 4] }] },
+      { matches: [{ teamA: [1, 4], teamB: [2, 3] }] }
+    ];
+    const ids = Array.from({ length: players }, (_, index) => String(index + 1));
+    const prefixMetrics = {};
+    for (let m = 1; m <= horizonMatches; m += 1) {
+      const schedule = instantiateTemplate({
+        players,
+        courts,
+        horizonMatches,
+        totalUniqueMatchups: 3,
+        variants: [{ id: 'main', rounds }],
+        bestPrefixByMatchCount: { [String(m)]: 'main' }
+      }, ids, m);
+      prefixMetrics[String(m)] = {
+        uniqueExactMatchupCount: Number(schedule.playerStats && schedule.playerStats.uniqueMatchupCount) || 0,
+        playSpread: Number(schedule.fairness && schedule.fairness.playSpread) || 0,
+        maxConsecutivePlay: Number(schedule.fairness && schedule.fairness.maxConsecutivePlay) || 0,
+        theoreticalPlaySpread: theoreticalPlaySpread(players, m)
+      };
+    }
+    const bestPrefixByMatchCount = {};
+    for (let m = 1; m <= horizonMatches; m += 1) {
+      bestPrefixByMatchCount[String(m)] = 'main';
+    }
+    return {
+      key: buildTemplateKey(players, courts),
+      players,
+      courts,
+      horizonMatches,
+      totalUniqueMatchups: 3,
+      variants: [{ id: 'main', rounds }],
+      bestPrefixByMatchCount,
+      prefixMetrics
+    };
+  }
   if (players === 6 && courts === 1 && horizonMatches <= 18) {
     const rounds = [
-      { matches: [{ teamA: [3, 4], teamB: [5, 6] }] },
-      { matches: [{ teamA: [1, 2], teamB: [5, 6] }] },
+      // 前8轮覆盖全部15对搭档（8场×2搭档槽=16，含1对重复），spread=1
       { matches: [{ teamA: [1, 2], teamB: [3, 4] }] },
-      { matches: [{ teamA: [3, 5], teamB: [4, 6] }] },
-      { matches: [{ teamA: [1, 5], teamB: [2, 6] }] },
-      { matches: [{ teamA: [1, 3], teamB: [2, 4] }] },
-      { matches: [{ teamA: [2, 4], teamB: [5, 6] }] },
-      { matches: [{ teamA: [1, 3], teamB: [4, 6] }] },
+      { matches: [{ teamA: [1, 3], teamB: [5, 6] }] },
+      { matches: [{ teamA: [2, 5], teamB: [4, 6] }] },
+      { matches: [{ teamA: [1, 4], teamB: [2, 6] }] },
+      { matches: [{ teamA: [3, 5], teamB: [1, 6] }] },
+      { matches: [{ teamA: [2, 3], teamB: [4, 5] }] },
+      { matches: [{ teamA: [1, 5], teamB: [3, 6] }] },
+      { matches: [{ teamA: [2, 4], teamB: [1, 3] }] },
       { matches: [{ teamA: [1, 2], teamB: [3, 5] }] },
       { matches: [{ teamA: [2, 3], teamB: [5, 6] }] },
       { matches: [{ teamA: [1, 2], teamB: [4, 6] }] },
@@ -1249,6 +1298,7 @@ function buildHandcraftedTemplateCase(players, courts, horizonMatches) {
       prefixMetrics[String(m)] = {
         uniqueExactMatchupCount: Number(schedule.playerStats && schedule.playerStats.uniqueMatchupCount) || 0,
         playSpread: Number(schedule.fairness && schedule.fairness.playSpread) || 0,
+        maxConsecutivePlay: Number(schedule.fairness && schedule.fairness.maxConsecutivePlay) || 0,
         theoreticalPlaySpread: theoreticalPlaySpread(players, m)
       };
     }

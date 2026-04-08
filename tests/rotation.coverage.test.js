@@ -65,6 +65,24 @@ test('generateSchedule still avoids player collisions inside the same round on d
   }
 });
 
+test('generateSchedule covers all partner pairs for 6 players and 8 matches across multiple seeds', () => {
+  // 6人8场：16个搭档槽 >= 15对，理论上可全覆盖
+  const players = makePlayers(6);
+  const totalPairs = 6 * 5 / 2; // 15
+
+  for (const seed of [1, 7, 42, 99, 123]) {
+    const out = generateSchedule(players, 8, 1, { seed });
+    const partnerSeen = new Set();
+    for (const match of collectMatches(out)) {
+      const [a1, a2] = (match.teamA || []).slice().sort();
+      const [b1, b2] = (match.teamB || []).slice().sort();
+      partnerSeen.add(`${a1}|${a2}`);
+      partnerSeen.add(`${b1}|${b2}`);
+    }
+    assert.equal(partnerSeen.size, totalPairs, `seed=${seed} covered=${partnerSeen.size}/${totalPairs}`);
+  }
+});
+
 test('generateSchedule rejects duplicate player ids before scheduling', () => {
   assert.throws(
     () => generateSchedule([

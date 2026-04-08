@@ -64,8 +64,7 @@ test('settings view model exposes squad end condition editing when mode is squad
   assert.equal(state.showEndConditionTargetPicker, true);
 });
 
-test('settings view model generates per-player shortcut as first option for multi_rotate', () => {
-  // 8 人 multi_rotate：ceil(8*7/4)=14 场，label 为「每人7场」
+test('settings view model exposes fixed fair presets for multi_rotate', () => {
   const state = viewModel.buildSettingsViewState({
     _id: 't_x',
     status: 'draft',
@@ -75,13 +74,47 @@ test('settings view model generates per-player shortcut as first option for mult
     courts: 2
   }, { openid: 'u_1' });
 
-  const opts = state.matchShortcutOptions;
-  assert.equal(opts[0].key, 'per_player_n_minus_1');
-  assert.equal(opts[0].value, 14);
-  assert.equal(opts[0].label, '每人7场');
-  assert.ok(opts.some(o => o.value === 6 && o.label === '6场'));
-  assert.ok(opts.some(o => o.value === 9 && o.label === '9场'));
-  assert.ok(opts.some(o => o.value === 12 && o.label === '12场'));
+  assert.equal(state.useMatchPresetOptions, true);
+  assert.equal(state.showAdvancedMatchEntry, true);
+  assert.deepEqual(
+    state.matchShortcutOptions.map((item) => item.value),
+    [2, 4, 6]
+  );
+  assert.equal(state.currentCustomMatchLabel, '');
+});
+
+test('settings view model preserves non-preset saved totals as current custom state', () => {
+  const state = viewModel.buildSettingsViewState({
+    _id: 't_custom',
+    status: 'draft',
+    creatorId: 'u_1',
+    mode: flow.MODE_MULTI_ROTATE,
+    players: Array.from({ length: 8 }, (_, i) => ({ id: `u_${i}`, name: String(i) })),
+    courts: 2,
+    totalMatches: 5
+  }, { openid: 'u_1' });
+
+  assert.deepEqual(
+    state.matchShortcutOptions.map((item) => item.value),
+    [2, 4, 6]
+  );
+  assert.equal(state.editM, 5);
+  assert.equal(state.currentCustomMatchLabel, '当前自定义 5 场');
+});
+
+test('settings view model falls back to custom flow when no fixed fair presets exist', () => {
+  const state = viewModel.buildSettingsViewState({
+    _id: 't_25p',
+    status: 'draft',
+    creatorId: 'u_1',
+    mode: flow.MODE_MULTI_ROTATE,
+    players: Array.from({ length: 25 }, (_, i) => ({ id: `u_${i}`, name: String(i) })),
+    courts: 1
+  }, { openid: 'u_1' });
+
+  assert.equal(state.useMatchPresetOptions, false);
+  assert.equal(state.matchShortcutOptions.length, 0);
+  assert.equal(state.matchPresetUnavailableHint, '该人数暂不提供固定公平档位');
 });
 
 test('settings view model clamps fixed pair total matches to valid round-robin capacity', () => {

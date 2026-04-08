@@ -21,15 +21,17 @@ function range(start, end) {
 }
 
 const HANDCRAFTED_CASES = [
+  ['4p-1c', 4, 1, 3],
   ['5p-1c', 5, 1, 15],
   ['6p-1c', 6, 1, 18],
   ['7p-1c', 7, 1, 18]
 ];
 
 const BANDED_CASES = [
-  ...range(8, 17).map((players) => [`${players}p-1c`, players, 1]),
-  ...range(8, 20).map((players) => [`${players}p-2c`, players, 2]),
-  ...range(12, 24).map((players) => [`${players}p-3c`, players, 3])
+  ...range(8, 24).map((players) => [`${players}p-1c`, players, 1]),
+  ...range(8, 24).map((players) => [`${players}p-2c`, players, 2]),
+  ...range(12, 24).map((players) => [`${players}p-3c`, players, 3]),
+  ...range(16, 24).map((players) => [`${players}p-4c`, players, 4])
 ];
 
 const REQUIRED_CASES = [
@@ -37,7 +39,15 @@ const REQUIRED_CASES = [
   ...BANDED_CASES
 ];
 
-const ALLOWED_AUTO_HORIZONS = new Set([12, 16, 18, 22]);
+const SPECIAL_EXPECTED_HORIZONS = {
+  '16p-4c': 16,
+  '20p-1c': 18,
+  '21p-1c': 18,
+  '22p-1c': 12,
+  '23p-1c': 12,
+  '24p-1c': 12,
+  '24p-2c': 18
+};
 
 function buildGenderFixtures(playersCount) {
   const halfFemale = Math.floor(playersCount / 2);
@@ -66,7 +76,17 @@ test('rotation template library contains every approved template case', () => {
     assert.equal(Boolean(cases[key]), true, key);
     assert.equal(cases[key].players, players, key);
     assert.equal(cases[key].courts, courts, key);
-    assert.equal(ALLOWED_AUTO_HORIZONS.has(cases[key].horizonMatches), true, `${key} horizon`);
+    const expectedHorizon = SPECIAL_EXPECTED_HORIZONS[key];
+    if (expectedHorizon) {
+      assert.equal(cases[key].horizonMatches, expectedHorizon, `${key} horizon`);
+    } else {
+      assert.ok((Number(cases[key].horizonMatches) || 0) >= 12, `${key} horizon`);
+    }
+    assert.equal(
+      Object.keys(cases[key].prefixMetrics || {}).length,
+      Number(cases[key].horizonMatches) || 0,
+      `${key} prefix coverage`
+    );
     assert.ok(Array.isArray(cases[key].variants) && cases[key].variants.length >= 1, key);
   }
 });
@@ -82,11 +102,13 @@ test('templated cases keep exact-matchup coverage and theoretical play spread fo
 
       const out = generateSchedule(makePlayers(playersCount), matches, courts, { seed: 7 });
       const meta = out.schedulerMeta || {};
+      const metrics = caseData.prefixMetrics[String(matches)] || {};
 
       assert.equal(meta.engine, 'template', `${key}@${matches}`);
       assert.equal(meta.templateKey, key, `${key}@${matches}`);
       assert.equal(meta.uniqueExactMatchupCount, matches, `${key}@${matches}`);
       assert.equal(meta.playSpread, theoreticalPlaySpread(playersCount, matches), `${key}@${matches}`);
+      assert.equal(typeof metrics.maxConsecutivePlay, 'number', `${key}@${matches}`);
     }
   }
 });

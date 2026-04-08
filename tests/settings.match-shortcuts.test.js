@@ -13,6 +13,7 @@ function readPage(relativePath) {
 function createContext(data = {}) {
   const ctx = {
     syncCalls: 0,
+    matchSyncCalls: 0,
     data: { ...(data || {}) }
   };
   Object.keys(settingsActions).forEach((key) => {
@@ -26,6 +27,9 @@ function createContext(data = {}) {
   };
   ctx.syncEndConditionUi = function syncEndConditionUi() {
     this.syncCalls += 1;
+  };
+  ctx.syncMatchSelectionUi = function syncMatchSelectionUi() {
+    this.matchSyncCalls += 1;
   };
   return ctx;
 }
@@ -47,11 +51,13 @@ test('settings page renders fixed pair shortcut binding', () => {
 
   assert.match(wxml, /matchShortcutOptions/);
   assert.match(wxml, /bindtap="onTapMatchShortcut"/);
+  assert.match(wxml, /bindtap="toggleAdvancedMatchPicker"/);
 });
 
 test('settings page definition exposes match shortcut tap handler', () => {
   const definition = loadSettingsPageDefinition();
   assert.equal(typeof definition.onTapMatchShortcut, 'function');
+  assert.equal(typeof definition.toggleAdvancedMatchPicker, 'function');
 });
 
 test('settings match shortcut syncs total matches for simple picker state', () => {
@@ -84,6 +90,7 @@ test('settings match shortcut syncs total matches for simple picker state', () =
   assert.equal(ctx.data.endConditionTarget, 5);
   assert.equal(ctx.data.endConditionTargetIndex, 4);
   assert.equal(ctx.syncCalls, 1);
+  assert.equal(ctx.matchSyncCalls, 1);
 });
 
 test('settings match shortcut ignores disabled options', () => {
@@ -112,4 +119,5 @@ test('settings match shortcut ignores disabled options', () => {
 
   assert.equal(ctx.data.editM, 3);
   assert.equal(ctx.syncCalls, 0);
+  assert.equal(ctx.matchSyncCalls, 0);
 });

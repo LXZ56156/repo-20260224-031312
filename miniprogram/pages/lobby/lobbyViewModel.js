@@ -48,13 +48,15 @@ function digitValueToNumber(digitValue) {
   return Number.isFinite(n) ? n : 0;
 }
 
-function buildQuickMatchShortcutOptions({ mode, players, playersCount, pairTeams, maxMatches }) {
+function buildQuickMatchShortcutOptions({ mode, players, playersCount, pairTeams, maxMatches, currentMatches, courts }) {
   return settingsViewModel.buildMatchShortcutOptions({
     mode,
     players,
     playersCount,
     pairTeams,
-    maxMatches
+    maxMatches,
+    currentMatches,
+    courts
   });
 }
 
@@ -539,14 +541,28 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
   const quickConfigMDigitRange = settingsFormState.mDigitRange;
   const quickConfigMDigitValue = settingsFormState.mDigitValue;
   const quickConfigCIndex = settingsFormState.courtIndex;
-  const quickMatchShortcutOptions = buildQuickMatchShortcutOptions({
+  const quickMatchSelectionState = settingsViewModel.buildMatchSelectionUiState({
     mode,
-    players,
     playersCount,
-    pairTeams,
-    maxMatches
+    maxMatches,
+    currentMatches: quickConfigM,
+    courts: quickConfigC,
+    context: 'lobby'
   });
-  const quickMatchShortcutHint = settingsViewModel.buildMatchShortcutHint(mode);
+  const quickMatchShortcutOptions = flow.normalizeMode(mode) === flow.MODE_FIXED_PAIR_RR
+    ? buildQuickMatchShortcutOptions({
+      mode,
+      players,
+      playersCount,
+      pairTeams,
+      maxMatches,
+      currentMatches: quickConfigM,
+      courts: quickConfigC
+    })
+    : quickMatchSelectionState.matchShortcutOptions;
+  const quickMatchShortcutHint = flow.normalizeMode(mode) === flow.MODE_FIXED_PAIR_RR
+    ? String(settingsFormState.matchShortcutHint || '')
+    : String(quickMatchSelectionState.matchShortcutHint || '');
   const readiness = draftStartReadiness.buildDraftStartReadiness(t);
 
   let kpiReady;
@@ -743,6 +759,9 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       quickConfigMDigitValue,
       quickMatchShortcutOptions,
       quickMatchShortcutHint,
+      quickUseMatchPresetOptions: !!quickMatchSelectionState.useMatchPresetOptions,
+      quickCurrentCustomMatchLabel: String(quickMatchSelectionState.currentCustomMatchLabel || ''),
+      quickMatchPresetUnavailableHint: String(quickMatchSelectionState.matchPresetUnavailableHint || ''),
       quickConfigCIndex,
       quickPointsOptions: settingsFormState.pointsOptions,
       quickPointsPerGame: settingsFormState.pointsPerGame,

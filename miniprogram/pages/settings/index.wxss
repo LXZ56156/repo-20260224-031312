@@ -72,6 +72,24 @@
   width: 100%;
 }
 
+.settings-match-meta {
+  margin-top: 10rpx;
+}
+
+.settings-link-btn {
+  display: inline-flex;
+  margin-top: 12rpx;
+  color: var(--brand-600);
+  font-size: 25rpx;
+  font-weight: 700;
+  min-height: 44rpx;
+  align-items: center;
+}
+
+.settings-advanced-picker {
+  margin-top: 12rpx;
+}
+
 .settings-save {
   margin-top: 20rpx;
 }

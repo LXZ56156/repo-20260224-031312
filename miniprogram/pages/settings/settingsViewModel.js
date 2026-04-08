@@ -2,6 +2,7 @@ const perm = require('../../permission/permission');
 const draftStartReadiness = require('../../core/draftStartReadiness');
 const flow = require('../../core/uxFlow');
 const fixedPair = require('../../core/fixedPair');
+const multiRotateMatchOptions = require('../../core/ux/multiRotateMatchOptions');
 
 const POINT_OPTIONS = [11, 15, 21];
 const END_CONDITION_OPTIONS = [
@@ -101,35 +102,86 @@ function buildRecommendationState({
   };
 }
 
-function buildStandardMatchShortcutOptions(playersCount, maxMatches) {
-  const totalPlayers = Math.max(0, Math.floor(Number(playersCount) || 0));
-  if (totalPlayers < 4) return [];
-
+function buildMultiRotatePresetOptions(optionCase, maxMatches) {
+  const caseData = optionCase && typeof optionCase === 'object' ? optionCase : null;
+  if (!caseData) return [];
   const cap = Math.max(0, Math.floor(Number(maxMatches) || 0));
-  const seen = new Set();
-  const out = [];
+  return (Array.isArray(caseData.presetMatches) ? caseData.presetMatches : [])
+    .map((value) => Math.floor(Number(value) || 0))
+    .filter((value) => value >= 1 && (cap <= 0 || value <= cap))
+    .filter((value, index, list) => list.indexOf(value) === index)
+    .sort((left, right) => left - right)
+    .map((value) => ({
+      key: `preset_${value}`,
+      value,
+      label: `${value}场`,
+      disabled: false
+    }));
+}
 
-  const perPlayerValue = Math.ceil(totalPlayers * (totalPlayers - 1) / 4);
-  seen.add(perPlayerValue);
-  out.push({
-    key: 'per_player_n_minus_1',
-    value: perPlayerValue,
-    label: `每人${totalPlayers - 1}场`,
-    disabled: cap > 0 && perPlayerValue > cap
-  });
+function buildMatchSelectionUiState({
+  mode,
+  playersCount,
+  maxMatches,
+  currentMatches,
+  courts,
+  context = 'settings'
+}) {
+  const normalizedMode = flow.normalizeMode(mode);
+  const current = Math.max(1, Math.floor(Number(currentMatches) || 1));
+  if (normalizedMode === flow.MODE_FIXED_PAIR_RR) {
+    return {
+      matchShortcutOptions: [],
+      matchShortcutHint: fixedPair.buildFixedPairShortcutHint(),
+      useMatchPresetOptions: false,
+      showAdvancedMatchEntry: false,
+      currentCustomMatchLabel: '',
+      matchPresetUnavailableHint: '',
+      currentMatchIsPreset: false
+    };
+  }
+  if (normalizedMode !== flow.MODE_MULTI_ROTATE) {
+    return {
+      matchShortcutOptions: [],
+      matchShortcutHint: '',
+      useMatchPresetOptions: false,
+      showAdvancedMatchEntry: false,
+      currentCustomMatchLabel: '',
+      matchPresetUnavailableHint: '',
+      currentMatchIsPreset: false
+    };
+  }
 
-  [6, 9, 12].forEach((rawValue) => {
-    if (seen.has(rawValue)) return;
-    seen.add(rawValue);
-    out.push({
-      key: `fixed_${rawValue}`,
-      value: rawValue,
-      label: `${rawValue}场`,
-      disabled: cap > 0 && rawValue > cap
-    });
-  });
+  const optionCase = multiRotateMatchOptions.resolveMultiRotateMatchOptions(playersCount, courts);
+  const shortcutOptions = buildMultiRotatePresetOptions(optionCase, maxMatches);
+  if (!optionCase || !shortcutOptions.length) {
+    return {
+      matchShortcutOptions: [],
+      matchShortcutHint: '',
+      useMatchPresetOptions: false,
+      showAdvancedMatchEntry: false,
+      currentCustomMatchLabel: '',
+      matchPresetUnavailableHint: playersCount >= 4
+        ? (context === 'lobby'
+          ? '该人数暂不提供固定公平档位，请到“修改比赛”里自定义总场数'
+          : '该人数暂不提供固定公平档位')
+        : '',
+      currentMatchIsPreset: false
+    };
+  }
 
-  return out;
+  const presetValues = shortcutOptions.map((item) => item.value);
+  const currentMatchIsPreset = presetValues.includes(current);
+  return {
+    matchShortcutOptions: shortcutOptions,
+    matchShortcutHint: '',
+    useMatchPresetOptions: true,
+    showAdvancedMatchEntry: context === 'settings' && optionCase.supportsAdvancedCustom !== false,
+    currentCustomMatchLabel: currentMatchIsPreset ? '' : `当前自定义 ${current} 场`,
+    matchPresetUnavailableHint: '',
+    currentMatchIsPreset,
+    balancedMatch: Number(optionCase.balancedMatch) || 0
+  };
 }
 
 function buildMatchShortcutOptions({
@@ -137,12 +189,20 @@ function buildMatchShortcutOptions({
   players,
   playersCount,
   pairTeams,
-  maxMatches
+  maxMatches,
+  currentMatches,
+  courts
 }) {
   if (mode === flow.MODE_FIXED_PAIR_RR) {
     return fixedPair.buildFixedPairCycleShortcutOptions(pairTeams, players, maxMatches);
   }
-  return buildStandardMatchShortcutOptions(playersCount, maxMatches);
+  return buildMatchSelectionUiState({
+    mode,
+    playersCount,
+    maxMatches,
+    currentMatches,
+    courts
+  }).matchShortcutOptions;
 }
 
 function buildMatchShortcutHint(mode) {
@@ -179,19 +239,34 @@ function buildSettingsFormState(tournament, options = {}) {
     courts: courtsForRecommendation,
     pairTeams: pairTeamValidation.teams
   });
-  const matchShortcutOptions = buildMatchShortcutOptions({
-    mode,
-    players,
-    playersCount,
-    pairTeams: pairTeamValidation.teams,
-    maxMatches
-  });
-  const matchShortcutHint = buildMatchShortcutHint(mode);
 
+  const hasSavedTotalMatches = Number(t.totalMatches) > 0;
   let editM = Number(t.totalMatches) || 0;
   if (editM < 1) editM = Number(recommendation.suggestedMatches || 8);
   if (editM < 1) editM = 1;
-  if (maxMatches > 0 && editM > maxMatches) editM = maxMatches;
+  const shouldClampSavedMatches = mode !== flow.MODE_MULTI_ROTATE || !hasSavedTotalMatches;
+  if (maxMatches > 0 && editM > maxMatches && shouldClampSavedMatches) editM = maxMatches;
+
+  const matchSelectionState = buildMatchSelectionUiState({
+    mode,
+    playersCount,
+    maxMatches,
+    currentMatches: editM,
+    courts: courtsForRecommendation,
+    context: 'settings'
+  });
+  const matchShortcutOptions = mode === flow.MODE_FIXED_PAIR_RR
+    ? buildMatchShortcutOptions({
+      mode,
+      players,
+      playersCount,
+      pairTeams: pairTeamValidation.teams,
+      maxMatches
+    })
+    : matchSelectionState.matchShortcutOptions;
+  const matchShortcutHint = mode === flow.MODE_FIXED_PAIR_RR
+    ? buildMatchShortcutHint(mode)
+    : matchSelectionState.matchShortcutHint;
 
   const editC = courtsForRecommendation;
   const settingsReady = t.settingsConfigured === true;
@@ -241,6 +316,11 @@ function buildSettingsFormState(tournament, options = {}) {
     editC,
     matchShortcutOptions,
     matchShortcutHint,
+    useMatchPresetOptions: matchSelectionState.useMatchPresetOptions,
+    showAdvancedMatchEntry: matchSelectionState.showAdvancedMatchEntry,
+    showAdvancedMatchPicker: false,
+    currentCustomMatchLabel: matchSelectionState.currentCustomMatchLabel,
+    matchPresetUnavailableHint: matchSelectionState.matchPresetUnavailableHint,
     useSimpleMPicker,
     mOptions,
     mIndex,
@@ -287,6 +367,7 @@ module.exports = {
   suggestEndConditionTarget,
   buildEndConditionUi,
   buildRecommendationState,
+  buildMatchSelectionUiState,
   buildMatchShortcutOptions,
   buildMatchShortcutHint,
   buildSettingsFormState,
