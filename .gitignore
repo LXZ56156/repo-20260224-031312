@@ -55,3 +55,6 @@ project.private.config.json
 # Temp / tool artifacts
 tmp/
 .ui-audit-tmp/
+
+# local docs
+docs/
