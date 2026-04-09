@@ -2,70 +2,64 @@
 
 ## Project Overview
 
-微信小程序羽毛球赛事管理项目，使用原生微信框架（WXML / WXSS / JS）和微信云开发。核心链路覆盖：创建、配置、开赛、录分、排名、复盘。
+微信小程序羽毛球赛事管理项目，使用原生微信框架（WXML / WXSS / JS）和微信云开发。核心链路：创建 > 配置 > 开赛 > 录分 > 排名 > 复盘。
+
+## Reference Files
+
+- `docs/context/architecture.md` — 完整架构参考（层级、模式、关键 pattern）
+- `docs/tasks/current.md` — 当前任务状态，会话开始时先读
+- `docs/notes/learnings.md` — 临时规则与经验积累
 
 ## Commands
 
 ```bash
-# 全量测试
-node --test tests/*.test.js
-
-# 单测
-node --test tests/ranking-core.consistency.test.js
-
-# 同步云函数共享库
-./scripts/sync-cloud-common.sh
-
-# 检查云函数共享库是否同步
-./scripts/check-cloud-common.sh
+node --test tests/*.test.js          # 全量测试
+./scripts/sync-cloud-common.sh       # 同步云函数共享库
+./scripts/check-cloud-common.sh      # 检查共享库同步状态
 ```
 
-云函数部署仍通过微信开发者工具完成。
+云函数部署通过微信开发者工具完成。
 
-## Architecture
+## Architecture (Summary)
 
-- `miniprogram/pages/`：页面层（14 个页面，tabBar: home, launch, mine）
+- `miniprogram/pages/`：14 个页面，tabBar: home/launch/mine
 - `miniprogram/core/`：跨页面业务逻辑
-- `miniprogram/core/storage/`：本地存储与缓存
-- `miniprogram/permission/`：权限判断
 - `cloudfunctions/`：20 个云函数
-- `scripts/`：构建与模板同步脚本
-- `tests/`：~170 个 `node:test` 测试文件
 - 云函数共享代码以 `scripts/*-common.template.js` 为准，不直接修改 `cloudfunctions/*/lib/*`
+- Tournament states: `draft` > `running` > `finished`
+- Ranking: wins > point diff > points scored > name
+- Game modes: `multi_rotate`, `squad_doubles`, `fixed_pair_rr`
+
+## Testing Conventions
+
+- Framework: `node:test` + `node:assert/strict` (no external dependencies)
+- Tests mock wx APIs and cloud calls by stubbing globals — follow existing patterns
+- File naming: `*.test.js` (unit/integration), `*.consistency.test.js` (client-cloud parity), `*.smoke.test.js` (e2e), `*.async-stale-response.test.js` (weak network)
 
 ## Deprecated APIs
 
-- 不使用 `wx.saveFile` / `wx.removeSavedFile` → 改用 `wx.getFileSystemManager().saveFile` / `.removeSavedFile`
-- 不使用 `wx.getSystemInfo` / `wx.getSystemInfoSync` → 改用拆分后的官方 API 或现有封装 `miniprogram/core/systemInfo.js`
-- 涉及系统信息能力时，优先复用 `miniprogram/core/systemInfo.js`
-- 检查脚本: `scripts/check-deprecated-wx-api.sh`（或 `npm run check:deprecated-wx-api`）
+- `wx.saveFile` / `wx.removeSavedFile` > use `wx.getFileSystemManager().*`
+- `wx.getSystemInfo` / `wx.getSystemInfoSync` > use `miniprogram/core/systemInfo.js`
+- Check: `scripts/check-deprecated-wx-api.sh`
+
+## Execution Mode
+
+- Default: execute directly for non-functional changes (refactor, test, fix, config). No extra confirmation.
+- Pause and confirm when: ambiguity, destructive consequences, production deploy, external credentials, real data writes.
+- User-visible changes require explicit approval before implementation:
+  - Page structure, copy, CTAs, navigation paths, user flows, action semantics
+  - Even small changes to what users see or how they operate must be reviewed first.
+- Non-functional changes (stability fix, test, refactor, perf, config): execute and report.
 
 ## Methodology
 
-接到任务时，按以下顺序工作：
+1. **测试先行**：实现/修复前，先写或确认测试覆盖
+2. **验证后完成**：宣称完成前运行 `node --test tests/*.test.js` 和 `npm run check`
+3. **微信 API**：查文档再写代码，避免废弃 API
+4. **云函数模板**：改 `scripts/*-common.template.js`，改完运行 sync 脚本
 
-1. **影响判断**：改动是否会影响用户可见行为？是 → 输出方案等待确认，否 → 直接进行
-2. **测试先行**：实现功能或修复 bug 前，先写或确认测试能覆盖该路径
-3. **验证后声称完成**：宣称完成前，必须运行以下命令并确认无报错：
-   - `node --test tests/*.test.js`
-   - `npm run check`
-4. **涉及微信 API**：查 context7 文档再写代码，避免引入废弃 API
-5. **涉及云函数模板**：改 `scripts/*-common.template.js`，改完运行 `./scripts/sync-cloud-common.sh`，不直接改 `cloudfunctions/*/lib/*`
+## Style & Commit
 
-## Working Rules
-
-- 所有会影响用户可见行为的改动，都必须先向用户提出方案并获得明确审核，再开始实施。
-- 这条规则覆盖但不限于：
-  - 页面结构与信息架构
-  - 按钮文案、状态文案、提示文案
-  - 入口数量、主次 CTA、菜单项
-  - 页面跳转路径、返回路径、分享落地路径
-  - 用户操作步骤、提交流程、默认行为
-  - 删除/取消/修改等动作语义
-- 即使改动看起来很小，只要会改变用户看到的内容或操作方式，也不能跳过审核直接修改。
-- 只有当用户明确指定某个改动时，才能视为该项已经审核通过。
-
-## Style
-
-- 回复默认使用中文，技术名词和代码标识保持原文
-- 提交信息使用 `feat/fix/refactor/chore` 风格
+- 回复使用中文，技术名词和代码标识保持原文
+- 提交信息使用 conventional commits 风格（feat/fix/refactor/chore）
+- Before commit: review all changes, run full test suite, confirm all pass

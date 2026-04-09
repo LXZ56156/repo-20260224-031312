@@ -56,5 +56,8 @@ project.private.config.json
 tmp/
 .ui-audit-tmp/
 
-# local docs
-docs/
+# local docs (allow context/tasks/notes, ignore the rest)
+docs/*
+!docs/context/
+!docs/tasks/
+!docs/notes/
