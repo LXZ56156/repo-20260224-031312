@@ -200,73 +200,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -1337,133 +1373,199 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 0,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "13": {
           "uniqueExactMatchupCount": 13,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 26,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "14": {
           "uniqueExactMatchupCount": 14,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 28,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "15": {
           "uniqueExactMatchupCount": 15,
           "playSpread": 0,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 30,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "16": {
           "uniqueExactMatchupCount": 16,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 32,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "17": {
           "uniqueExactMatchupCount": 17,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 34,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "18": {
           "uniqueExactMatchupCount": 18,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 36,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "19": {
           "uniqueExactMatchupCount": 19,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 38,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "20": {
           "uniqueExactMatchupCount": 20,
           "playSpread": 0,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 40,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "21": {
           "uniqueExactMatchupCount": 21,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 42,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         },
         "22": {
           "uniqueExactMatchupCount": 22,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 44,
+          "totalPartnerPairs": 45,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -1666,73 +1768,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 55,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 55,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 55,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 55,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 55,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 55,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 55,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 55,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 55,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 55,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 55,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 55,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -2275,73 +2413,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 55,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 55,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 55,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 55,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 55,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 55,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 55,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 55,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 55,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 55,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 0,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 55,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 55,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -2544,73 +2718,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 23,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -2947,73 +3157,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -3184,73 +3430,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 0,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 0,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 66,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -3453,73 +3735,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -3832,73 +4150,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -4931,97 +5285,145 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "13": {
           "uniqueExactMatchupCount": 13,
           "playSpread": 0,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 26,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "14": {
           "uniqueExactMatchupCount": 14,
           "playSpread": 1,
           "maxConsecutivePlay": 5,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 28,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "15": {
           "uniqueExactMatchupCount": 15,
           "playSpread": 1,
           "maxConsecutivePlay": 5,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 30,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         },
         "16": {
           "uniqueExactMatchupCount": 16,
           "playSpread": 1,
           "maxConsecutivePlay": 5,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 32,
+          "totalPartnerPairs": 78,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -5315,109 +5717,163 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "13": {
           "uniqueExactMatchupCount": 13,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 26,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "14": {
           "uniqueExactMatchupCount": 14,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 28,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "15": {
           "uniqueExactMatchupCount": 15,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 30,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "16": {
           "uniqueExactMatchupCount": 16,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 32,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "17": {
           "uniqueExactMatchupCount": 17,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 34,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "18": {
           "uniqueExactMatchupCount": 18,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 35,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -5826,73 +6282,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -6833,97 +7325,145 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "13": {
           "uniqueExactMatchupCount": 13,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 26,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "14": {
           "uniqueExactMatchupCount": 14,
           "playSpread": 0,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 28,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "15": {
           "uniqueExactMatchupCount": 15,
           "playSpread": 1,
           "maxConsecutivePlay": 5,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 30,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         },
         "16": {
           "uniqueExactMatchupCount": 16,
           "playSpread": 1,
           "maxConsecutivePlay": 5,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 32,
+          "totalPartnerPairs": 91,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -7277,133 +7817,199 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "13": {
           "uniqueExactMatchupCount": 13,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 25,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "14": {
           "uniqueExactMatchupCount": 14,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 27,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "15": {
           "uniqueExactMatchupCount": 15,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 29,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "16": {
           "uniqueExactMatchupCount": 16,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 30,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "17": {
           "uniqueExactMatchupCount": 17,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 32,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "18": {
           "uniqueExactMatchupCount": 18,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 34,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "19": {
           "uniqueExactMatchupCount": 19,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 36,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "20": {
           "uniqueExactMatchupCount": 20,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 37,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "21": {
           "uniqueExactMatchupCount": 21,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 38,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "22": {
           "uniqueExactMatchupCount": 22,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 39,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -7856,73 +8462,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -8698,97 +9340,145 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "13": {
           "uniqueExactMatchupCount": 13,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 26,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "14": {
           "uniqueExactMatchupCount": 14,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 28,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "15": {
           "uniqueExactMatchupCount": 15,
           "playSpread": 0,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 30,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         },
         "16": {
           "uniqueExactMatchupCount": 16,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 32,
+          "totalPartnerPairs": 105,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -8992,73 +9682,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -9290,97 +10016,145 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "13": {
           "uniqueExactMatchupCount": 13,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 26,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "14": {
           "uniqueExactMatchupCount": 14,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 28,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "15": {
           "uniqueExactMatchupCount": 15,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 30,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "16": {
           "uniqueExactMatchupCount": 16,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 32,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -9852,73 +10626,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 0,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -10754,97 +11564,145 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 0,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "13": {
           "uniqueExactMatchupCount": 13,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 26,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "14": {
           "uniqueExactMatchupCount": 14,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 28,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "15": {
           "uniqueExactMatchupCount": 15,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 30,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         },
         "16": {
           "uniqueExactMatchupCount": 16,
           "playSpread": 0,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 32,
+          "totalPartnerPairs": 120,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -11048,73 +11906,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -11294,73 +12188,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -11745,73 +12675,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -12203,73 +13169,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 136,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -12473,73 +13475,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -12901,73 +13939,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -13255,73 +14329,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -14059,73 +15169,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 153,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -14329,73 +15475,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -14757,73 +15939,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -15232,73 +16450,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -15880,73 +17134,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 171,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -17488,109 +18778,163 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "13": {
           "uniqueExactMatchupCount": 13,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 26,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "14": {
           "uniqueExactMatchupCount": 14,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 28,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "15": {
           "uniqueExactMatchupCount": 15,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 30,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "16": {
           "uniqueExactMatchupCount": 16,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 31,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "17": {
           "uniqueExactMatchupCount": 17,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 33,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "18": {
           "uniqueExactMatchupCount": 18,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 34,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -17837,73 +19181,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -18443,73 +19823,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -19247,73 +20663,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 190,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -19607,109 +21059,163 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "13": {
           "uniqueExactMatchupCount": 13,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 26,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "14": {
           "uniqueExactMatchupCount": 14,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 28,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "15": {
           "uniqueExactMatchupCount": 15,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 30,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "16": {
           "uniqueExactMatchupCount": 16,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 32,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "17": {
           "uniqueExactMatchupCount": 17,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 34,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "18": {
           "uniqueExactMatchupCount": 18,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 36,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -20095,73 +21601,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -20701,73 +22243,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -21505,73 +23083,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 210,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -21775,73 +23389,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -22160,73 +23810,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -22766,73 +24452,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -23570,73 +25292,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 231,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -23840,73 +25598,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -24292,73 +26086,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -24898,73 +26728,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -25702,73 +27568,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 253,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -25972,73 +27874,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -26296,109 +28234,163 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "13": {
           "uniqueExactMatchupCount": 13,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 26,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "14": {
           "uniqueExactMatchupCount": 14,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 28,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "15": {
           "uniqueExactMatchupCount": 15,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 30,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "16": {
           "uniqueExactMatchupCount": 16,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 32,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "17": {
           "uniqueExactMatchupCount": 17,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 34,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "18": {
           "uniqueExactMatchupCount": 18,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 36,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -26570,73 +28562,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -27023,73 +29051,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 276,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -27158,19 +29222,28 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 6,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 6,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 0,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 6,
+          "allPartnerPairsCovered": true
         }
       }
     },
@@ -27418,91 +29491,136 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 10,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 10,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 10,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 10,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 0,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 10,
+          "allPartnerPairsCovered": true
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 10,
+          "allPartnerPairsCovered": true
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 10,
+          "allPartnerPairsCovered": true
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 10,
+          "allPartnerPairsCovered": true
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 10,
+          "allPartnerPairsCovered": true
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 0,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 10,
+          "allPartnerPairsCovered": true
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 10,
+          "allPartnerPairsCovered": true
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 10,
+          "allPartnerPairsCovered": true
         },
         "13": {
           "uniqueExactMatchupCount": 13,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 10,
+          "allPartnerPairsCovered": true
         },
         "14": {
           "uniqueExactMatchupCount": 14,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 10,
+          "allPartnerPairsCovered": true
         },
         "15": {
           "uniqueExactMatchupCount": 15,
           "playSpread": 0,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 10,
+          "allPartnerPairsCovered": true
         }
       }
     },
@@ -27795,109 +29913,163 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 15,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 15,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 15,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 15,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 15,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 0,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 15,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 15,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 15,
+          "totalPartnerPairs": 15,
+          "allPartnerPairsCovered": true
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 0,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 15,
+          "totalPartnerPairs": 15,
+          "allPartnerPairsCovered": true
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 15,
+          "totalPartnerPairs": 15,
+          "allPartnerPairsCovered": true
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 15,
+          "totalPartnerPairs": 15,
+          "allPartnerPairsCovered": true
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 0,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 15,
+          "totalPartnerPairs": 15,
+          "allPartnerPairsCovered": true
         },
         "13": {
           "uniqueExactMatchupCount": 13,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 15,
+          "totalPartnerPairs": 15,
+          "allPartnerPairsCovered": true
         },
         "14": {
           "uniqueExactMatchupCount": 14,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 15,
+          "totalPartnerPairs": 15,
+          "allPartnerPairsCovered": true
         },
         "15": {
           "uniqueExactMatchupCount": 15,
           "playSpread": 0,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 15,
+          "totalPartnerPairs": 15,
+          "allPartnerPairsCovered": true
         },
         "16": {
           "uniqueExactMatchupCount": 16,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 15,
+          "totalPartnerPairs": 15,
+          "allPartnerPairsCovered": true
         },
         "17": {
           "uniqueExactMatchupCount": 17,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 15,
+          "totalPartnerPairs": 15,
+          "allPartnerPairsCovered": true
         },
         "18": {
           "uniqueExactMatchupCount": 18,
           "playSpread": 0,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 15,
+          "totalPartnerPairs": 15,
+          "allPartnerPairsCovered": true
         }
       }
     },
@@ -28190,109 +30362,163 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 21,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 21,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 21,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 21,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 21,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 21,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 21,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 21,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 21,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 21,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 21,
+          "totalPartnerPairs": 21,
+          "allPartnerPairsCovered": true
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 21,
+          "totalPartnerPairs": 21,
+          "allPartnerPairsCovered": true
         },
         "13": {
           "uniqueExactMatchupCount": 13,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 21,
+          "totalPartnerPairs": 21,
+          "allPartnerPairsCovered": true
         },
         "14": {
           "uniqueExactMatchupCount": 14,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 21,
+          "totalPartnerPairs": 21,
+          "allPartnerPairsCovered": true
         },
         "15": {
           "uniqueExactMatchupCount": 15,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 21,
+          "totalPartnerPairs": 21,
+          "allPartnerPairsCovered": true
         },
         "16": {
           "uniqueExactMatchupCount": 16,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 21,
+          "totalPartnerPairs": 21,
+          "allPartnerPairsCovered": true
         },
         "17": {
           "uniqueExactMatchupCount": 17,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 21,
+          "totalPartnerPairs": 21,
+          "allPartnerPairsCovered": true
         },
         "18": {
           "uniqueExactMatchupCount": 18,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 21,
+          "totalPartnerPairs": 21,
+          "allPartnerPairsCovered": true
         }
       }
     },
@@ -28528,73 +30754,109 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 17,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 19,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": false
         }
       }
     },
@@ -28825,97 +31087,145 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 0,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 0,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 0,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 1,
           "maxConsecutivePlay": 5,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 0,
           "maxConsecutivePlay": 5,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 6,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 0,
           "maxConsecutivePlay": 6,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": false
         },
         "13": {
           "uniqueExactMatchupCount": 13,
           "playSpread": 1,
           "maxConsecutivePlay": 7,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 26,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": false
         },
         "14": {
           "uniqueExactMatchupCount": 14,
           "playSpread": 0,
           "maxConsecutivePlay": 7,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 28,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": true
         },
         "15": {
           "uniqueExactMatchupCount": 15,
           "playSpread": 1,
           "maxConsecutivePlay": 8,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 28,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": true
         },
         "16": {
           "uniqueExactMatchupCount": 16,
           "playSpread": 0,
           "maxConsecutivePlay": 8,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 28,
+          "totalPartnerPairs": 28,
+          "allPartnerPairsCovered": true
         }
       }
     },
@@ -29208,109 +31518,163 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "13": {
           "uniqueExactMatchupCount": 13,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 26,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "14": {
           "uniqueExactMatchupCount": 14,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 28,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "15": {
           "uniqueExactMatchupCount": 15,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 30,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "16": {
           "uniqueExactMatchupCount": 16,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 32,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "17": {
           "uniqueExactMatchupCount": 17,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 34,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "18": {
           "uniqueExactMatchupCount": 18,
           "playSpread": 0,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 36,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": true
         }
       }
     },
@@ -30142,109 +32506,163 @@ module.exports = {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 2,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "2": {
           "uniqueExactMatchupCount": 2,
           "playSpread": 1,
           "maxConsecutivePlay": 1,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 4,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "3": {
           "uniqueExactMatchupCount": 3,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 6,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "4": {
           "uniqueExactMatchupCount": 4,
           "playSpread": 1,
           "maxConsecutivePlay": 2,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 8,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "5": {
           "uniqueExactMatchupCount": 5,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 10,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "6": {
           "uniqueExactMatchupCount": 6,
           "playSpread": 1,
           "maxConsecutivePlay": 3,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 12,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "7": {
           "uniqueExactMatchupCount": 7,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 14,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "8": {
           "uniqueExactMatchupCount": 8,
           "playSpread": 1,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 16,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "9": {
           "uniqueExactMatchupCount": 9,
           "playSpread": 0,
           "maxConsecutivePlay": 4,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 18,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "10": {
           "uniqueExactMatchupCount": 10,
           "playSpread": 1,
           "maxConsecutivePlay": 5,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 20,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "11": {
           "uniqueExactMatchupCount": 11,
           "playSpread": 1,
           "maxConsecutivePlay": 5,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 22,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
           "playSpread": 1,
           "maxConsecutivePlay": 6,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 24,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "13": {
           "uniqueExactMatchupCount": 13,
           "playSpread": 1,
           "maxConsecutivePlay": 6,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 26,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "14": {
           "uniqueExactMatchupCount": 14,
           "playSpread": 1,
           "maxConsecutivePlay": 7,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 28,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "15": {
           "uniqueExactMatchupCount": 15,
           "playSpread": 1,
           "maxConsecutivePlay": 7,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 30,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "16": {
           "uniqueExactMatchupCount": 16,
           "playSpread": 1,
           "maxConsecutivePlay": 8,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 32,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "17": {
           "uniqueExactMatchupCount": 17,
           "playSpread": 1,
           "maxConsecutivePlay": 8,
-          "theoreticalPlaySpread": 1
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 34,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": false
         },
         "18": {
           "uniqueExactMatchupCount": 18,
           "playSpread": 0,
           "maxConsecutivePlay": 8,
-          "theoreticalPlaySpread": 0
+          "theoreticalPlaySpread": 0,
+          "partnerCoverageCount": 36,
+          "totalPartnerPairs": 36,
+          "allPartnerPairsCovered": true
         }
       }
     }

@@ -22,8 +22,20 @@ test('multi_rotate match options resolve representative preset cases', () => {
       players: 16,
       effectiveCourts: 4,
       horizonMatches: 16,
-      presetMatches: [4, 8, 12],
+      presetMatches: [8, 12, 16],
       balancedMatch: 12,
+      supportsAdvancedCustom: true
+    }
+  );
+
+  assert.deepEqual(
+    matchOptions.resolveMultiRotateMatchOptions(8, 2),
+    {
+      players: 8,
+      effectiveCourts: 2,
+      horizonMatches: 16,
+      presetMatches: [8, 14, 16],
+      balancedMatch: 14,
       supportsAdvancedCustom: true
     }
   );
@@ -55,9 +67,12 @@ test('multi_rotate match options include expanded large-roster presets', () => {
   );
 });
 
-test('multi_rotate match options fill sparse perfect cases with near-optimal presets', () => {
+test('multi_rotate match options fold partner-coverage milestones into sparse cases', () => {
   const caseData = matchOptions.resolveMultiRotateMatchOptions(7, 1);
-  assert.deepEqual(caseData && caseData.presetMatches, [4, 7, 14]);
+  assert.equal(Array.isArray(caseData && caseData.presetMatches), true);
+  assert.equal((caseData && caseData.presetMatches && caseData.presetMatches.length) || 0, 3);
+  assert.equal((caseData && caseData.presetMatches || []).includes(11), true);
+  assert.equal(Math.max(...(caseData && caseData.presetMatches || [0])), 18);
   assert.equal(caseData && caseData.supportsAdvancedCustom, true);
 });
 
@@ -68,4 +83,13 @@ test('multi_rotate match options normalize requested courts and return null when
   assert.equal((normalized && normalized.presetMatches && normalized.presetMatches.length) || 0, 3);
 
   assert.equal(matchOptions.resolveMultiRotateMatchOptions(25, 1), null);
+});
+
+test('multi_rotate match options always keep three sorted presets and a balanced match inside the list', () => {
+  for (const caseData of Object.values(matchOptions.cases || {})) {
+    const presetMatches = Array.isArray(caseData && caseData.presetMatches) ? caseData.presetMatches : [];
+    assert.equal(presetMatches.length, 3, `${caseData && caseData.players}p-${caseData && caseData.effectiveCourts}c`);
+    assert.deepEqual(presetMatches.slice().sort((left, right) => left - right), presetMatches);
+    assert.equal(presetMatches.includes(caseData.balancedMatch), true);
+  }
 });

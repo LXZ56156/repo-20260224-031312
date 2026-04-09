@@ -78,7 +78,7 @@ test('settings view model exposes fixed fair presets for multi_rotate', () => {
   assert.equal(state.showAdvancedMatchEntry, true);
   assert.deepEqual(
     state.matchShortcutOptions.map((item) => item.value),
-    [2, 4, 6]
+    [8, 14, 16]
   );
   assert.equal(state.currentCustomMatchLabel, '');
 });
@@ -96,7 +96,7 @@ test('settings view model preserves non-preset saved totals as current custom st
 
   assert.deepEqual(
     state.matchShortcutOptions.map((item) => item.value),
-    [2, 4, 6]
+    [8, 14, 16]
   );
   assert.equal(state.editM, 5);
   assert.equal(state.currentCustomMatchLabel, '当前自定义 5 场');

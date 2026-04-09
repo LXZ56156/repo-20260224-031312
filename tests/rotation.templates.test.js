@@ -113,6 +113,43 @@ test('templated cases keep exact-matchup coverage and theoretical play spread fo
   }
 });
 
+test('templated cases expose partner coverage metadata for every prefix', () => {
+  for (const [key] of REQUIRED_CASES) {
+    const caseData = templateLibrary.cases[key];
+    const totalPartnerPairs = (Number(caseData.players) * (Number(caseData.players) - 1)) / 2;
+    for (let matches = 1; matches <= Number(caseData.horizonMatches || 0); matches += 1) {
+      const metrics = caseData.prefixMetrics[String(matches)] || {};
+      assert.equal(typeof metrics.partnerCoverageCount, 'number', `${key}@${matches}`);
+      assert.equal(metrics.partnerCoverageCount >= 0, true, `${key}@${matches}`);
+      assert.equal(metrics.partnerCoverageCount <= totalPartnerPairs, true, `${key}@${matches}`);
+      assert.equal(metrics.totalPartnerPairs, totalPartnerPairs, `${key}@${matches}`);
+      assert.equal(typeof metrics.allPartnerPairsCovered, 'boolean', `${key}@${matches}`);
+      assert.equal(metrics.allPartnerPairsCovered, metrics.partnerCoverageCount === totalPartnerPairs, `${key}@${matches}`);
+    }
+  }
+});
+
+test('templated coverage milestones are flagged for representative cases', () => {
+  const expectedCoverageMatches = {
+    '6p-1c': 8,
+    '7p-1c': 11,
+    '8p-2c': 14,
+    '9p-1c': 18,
+    '9p-2c': 18
+  };
+
+  for (const [key, coverageMatch] of Object.entries(expectedCoverageMatches)) {
+    const caseData = templateLibrary.cases[key];
+    const beforeMetrics = caseData.prefixMetrics[String(coverageMatch - 1)] || null;
+    const metrics = caseData.prefixMetrics[String(coverageMatch)] || {};
+    assert.equal(metrics.allPartnerPairsCovered, true, `${key}@${coverageMatch}`);
+    assert.equal(metrics.partnerCoverageCount, metrics.totalPartnerPairs, `${key}@${coverageMatch}`);
+    if (beforeMetrics) {
+      assert.equal(beforeMetrics.allPartnerPairsCovered, false, `${key}@${coverageMatch - 1}`);
+    }
+  }
+});
+
 test('template routing normalizes requested courts to effective courts', () => {
   const a = generateSchedule(makePlayers(11), 12, 3, { seed: 7 });
   assert.equal(a.schedulerMeta.engine, 'template');

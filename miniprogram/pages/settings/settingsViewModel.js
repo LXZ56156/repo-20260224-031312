@@ -247,7 +247,7 @@ function buildSettingsFormState(tournament, options = {}) {
   const shouldClampSavedMatches = mode !== flow.MODE_MULTI_ROTATE || !hasSavedTotalMatches;
   if (maxMatches > 0 && editM > maxMatches && shouldClampSavedMatches) editM = maxMatches;
 
-  const matchSelectionState = buildMatchSelectionUiState({
+  let matchSelectionState = buildMatchSelectionUiState({
     mode,
     playersCount,
     maxMatches,
@@ -255,6 +255,24 @@ function buildSettingsFormState(tournament, options = {}) {
     courts: courtsForRecommendation,
     context: 'settings'
   });
+  if (
+    mode === flow.MODE_MULTI_ROTATE
+    && !hasSavedTotalMatches
+    && matchSelectionState.useMatchPresetOptions
+    && !matchSelectionState.currentMatchIsPreset
+    && Number(matchSelectionState.balancedMatch) > 0
+  ) {
+    editM = Number(matchSelectionState.balancedMatch) || editM;
+    if (maxMatches > 0 && editM > maxMatches) editM = maxMatches;
+    matchSelectionState = buildMatchSelectionUiState({
+      mode,
+      playersCount,
+      maxMatches,
+      currentMatches: editM,
+      courts: courtsForRecommendation,
+      context: 'settings'
+    });
+  }
   const matchShortcutOptions = mode === flow.MODE_FIXED_PAIR_RR
     ? buildMatchShortcutOptions({
       mode,

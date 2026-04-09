@@ -183,15 +183,16 @@ test('lobby view model hides quick match shortcuts before 4 players', () => {
   assert.deepEqual(result.patch.quickMatchShortcutOptions, []);
 });
 
-test('lobby view model exposes fixed fair presets for 7-player multi_rotate', () => {
-  const players = Array.from({ length: 7 }, (_, index) => ({
+test('lobby view model exposes optimized fixed fair presets for multi_rotate', () => {
+  const players = Array.from({ length: 8 }, (_, index) => ({
     id: `u_${index}`,
     name: `球友${index}`,
     gender: index % 2 === 0 ? 'male' : 'female'
   }));
   const result = viewModel.buildLobbyViewModel({
     tournament: buildTournament({
-      players
+      players,
+      courts: 2
     }),
     openid: 'u_admin',
     data: {}
@@ -199,7 +200,7 @@ test('lobby view model exposes fixed fair presets for 7-player multi_rotate', ()
 
   assert.deepEqual(
     result.patch.quickMatchShortcutOptions.map((item) => item.value),
-    [4, 7, 14]
+    [8, 14, 16]
   );
   assert.equal(result.patch.quickCurrentCustomMatchLabel, '');
   assert.deepEqual(

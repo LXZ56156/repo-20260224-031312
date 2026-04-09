@@ -167,6 +167,83 @@ function theoreticalPlaySpread(playersCount, totalMatches) {
   return Math.ceil(totalPlays / totalPlayers) - Math.floor(totalPlays / totalPlayers);
 }
 
+function buildPartnerPairKey(team) {
+  const normalized = stableSortIds(team);
+  return normalized.length === 2 ? normalized.join('|') : '';
+}
+
+function totalPartnerPairs(playersCount) {
+  return countComb(playersCount, 2);
+}
+
+function evaluateTemplatePrefixRounds(rounds, playersCount, totalMatches) {
+  const playCount = Object.fromEntries(Array.from({ length: playersCount }, (_, index) => [String(index + 1), 0]));
+  const playStreak = Object.fromEntries(Array.from({ length: playersCount }, (_, index) => [String(index + 1), 0]));
+  const usedMatchupKeys = new Set();
+  const partnerCoverage = new Set();
+  let matchCount = 0;
+  let maxConsecutivePlay = 0;
+
+  for (const round of Array.isArray(rounds) ? rounds : []) {
+    const playedThisRound = new Set();
+    for (const match of Array.isArray(round && round.matches) ? round.matches : []) {
+      if (matchCount >= totalMatches) break;
+      const teamA = stableSortIds(match.teamA);
+      const teamB = stableSortIds(match.teamB);
+      teamA.concat(teamB).forEach((id) => {
+        playCount[id] = (playCount[id] || 0) + 1;
+        playedThisRound.add(id);
+      });
+      usedMatchupKeys.add(buildMatchupKey(teamA, teamB));
+      const partnerA = buildPartnerPairKey(teamA);
+      const partnerB = buildPartnerPairKey(teamB);
+      if (partnerA) partnerCoverage.add(partnerA);
+      if (partnerB) partnerCoverage.add(partnerB);
+      matchCount += 1;
+    }
+
+    Object.keys(playStreak).forEach((id) => {
+      if (playedThisRound.has(id)) {
+        playStreak[id] = (playStreak[id] || 0) + 1;
+        if (playStreak[id] > maxConsecutivePlay) maxConsecutivePlay = playStreak[id];
+        return;
+      }
+      playStreak[id] = 0;
+    });
+
+    if (matchCount >= totalMatches) break;
+  }
+
+  const counts = Object.values(playCount);
+  const min = counts.length ? Math.min(...counts) : 0;
+  const max = counts.length ? Math.max(...counts) : 0;
+  const totalPartners = totalPartnerPairs(playersCount);
+  return {
+    uniqueExactMatchupCount: usedMatchupKeys.size,
+    playSpread: max - min,
+    maxConsecutivePlay,
+    theoreticalPlaySpread: theoreticalPlaySpread(playersCount, totalMatches),
+    partnerCoverageCount: partnerCoverage.size,
+    totalPartnerPairs: totalPartners,
+    allPartnerPairsCovered: totalPartners > 0 && partnerCoverage.size === totalPartners
+  };
+}
+
+function buildTemplatePrefixMetrics(rounds, playersCount, totalMatches, maxConsecutiveOverride) {
+  const metrics = evaluateTemplatePrefixRounds(rounds, playersCount, totalMatches);
+  return {
+    uniqueExactMatchupCount: metrics.uniqueExactMatchupCount,
+    playSpread: metrics.playSpread,
+    maxConsecutivePlay: Number.isFinite(Number(maxConsecutiveOverride))
+      ? Number(maxConsecutiveOverride)
+      : metrics.maxConsecutivePlay,
+    theoreticalPlaySpread: metrics.theoreticalPlaySpread,
+    partnerCoverageCount: metrics.partnerCoverageCount,
+    totalPartnerPairs: metrics.totalPartnerPairs,
+    allPartnerPairsCovered: metrics.allPartnerPairsCovered
+  };
+}
+
 function buildInitialState(ids) {
   return {
     rounds: [],
@@ -1156,12 +1233,12 @@ function buildTemplateCase(caseSpec) {
     }
 
     bestPrefixByMatchCount[String(m)] = variantId;
-    prefixMetrics[String(m)] = {
-      uniqueExactMatchupCount: Number(bestPrefix.playerStats && bestPrefix.playerStats.uniqueMatchupCount) || 0,
-      playSpread: Number(bestPrefix.fairness && bestPrefix.fairness.playSpread) || 0,
-      maxConsecutivePlay: Number(bestPrefix.fairness && bestPrefix.fairness.maxConsecutivePlay) || 0,
-      theoreticalPlaySpread: expectedSpread
-    };
+    prefixMetrics[String(m)] = buildTemplatePrefixMetrics(
+      bestPrefix.rounds,
+      players,
+      m,
+      Number(bestPrefix.fairness && bestPrefix.fairness.maxConsecutivePlay)
+    );
   }
 
   return {
@@ -1223,12 +1300,12 @@ function buildHandcraftedTemplateCase(players, courts, horizonMatches) {
         variants: [{ id: 'main', rounds }],
         bestPrefixByMatchCount: { [String(m)]: 'main' }
       }, ids, m);
-      prefixMetrics[String(m)] = {
-        uniqueExactMatchupCount: Number(schedule.playerStats && schedule.playerStats.uniqueMatchupCount) || 0,
-        playSpread: Number(schedule.fairness && schedule.fairness.playSpread) || 0,
-        maxConsecutivePlay: Number(schedule.fairness && schedule.fairness.maxConsecutivePlay) || 0,
-        theoreticalPlaySpread: theoreticalPlaySpread(players, m)
-      };
+      prefixMetrics[String(m)] = buildTemplatePrefixMetrics(
+        schedule.rounds,
+        players,
+        m,
+        Number(schedule.fairness && schedule.fairness.maxConsecutivePlay)
+      );
     }
     const bestPrefixByMatchCount = {};
     for (let m = 1; m <= horizonMatches; m += 1) {
@@ -1278,12 +1355,12 @@ function buildHandcraftedTemplateCase(players, courts, horizonMatches) {
         variants: [{ id: 'main', rounds }],
         bestPrefixByMatchCount: { [String(m)]: 'main' }
       }, ids, m);
-      prefixMetrics[String(m)] = {
-        uniqueExactMatchupCount: Number(schedule.playerStats && schedule.playerStats.uniqueMatchupCount) || 0,
-        playSpread: Number(schedule.fairness && schedule.fairness.playSpread) || 0,
-        maxConsecutivePlay: Number(schedule.fairness && schedule.fairness.maxConsecutivePlay) || 0,
-        theoreticalPlaySpread: theoreticalPlaySpread(players, m)
-      };
+      prefixMetrics[String(m)] = buildTemplatePrefixMetrics(
+        schedule.rounds,
+        players,
+        m,
+        Number(schedule.fairness && schedule.fairness.maxConsecutivePlay)
+      );
     }
     const bestPrefixByMatchCount = {};
     for (let m = 1; m <= horizonMatches; m += 1) {

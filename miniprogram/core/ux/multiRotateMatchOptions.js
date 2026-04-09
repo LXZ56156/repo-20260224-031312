@@ -7,10 +7,10 @@ const MATCH_OPTION_LIBRARY = {
       "horizonMatches": 12,
       "presetMatches": [
         5,
-        6,
+        8,
         10
       ],
-      "balancedMatch": 6,
+      "balancedMatch": 10,
       "supportsAdvancedCustom": true
     },
     "10p-2c": {
@@ -31,7 +31,7 @@ const MATCH_OPTION_LIBRARY = {
       "horizonMatches": 12,
       "presetMatches": [
         7,
-        8,
+        9,
         11
       ],
       "balancedMatch": 7,
@@ -43,7 +43,7 @@ const MATCH_OPTION_LIBRARY = {
       "horizonMatches": 12,
       "presetMatches": [
         8,
-        9,
+        10,
         11
       ],
       "balancedMatch": 8,
@@ -54,9 +54,9 @@ const MATCH_OPTION_LIBRARY = {
       "effectiveCourts": 1,
       "horizonMatches": 12,
       "presetMatches": [
-        3,
         6,
-        9
+        9,
+        12
       ],
       "balancedMatch": 9,
       "supportsAdvancedCustom": true
@@ -66,9 +66,9 @@ const MATCH_OPTION_LIBRARY = {
       "effectiveCourts": 2,
       "horizonMatches": 12,
       "presetMatches": [
-        3,
         6,
-        9
+        9,
+        12
       ],
       "balancedMatch": 9,
       "supportsAdvancedCustom": true
@@ -78,11 +78,11 @@ const MATCH_OPTION_LIBRARY = {
       "effectiveCourts": 3,
       "horizonMatches": 12,
       "presetMatches": [
-        3,
         6,
-        9
+        9,
+        12
       ],
-      "balancedMatch": 9,
+      "balancedMatch": 12,
       "supportsAdvancedCustom": true
     },
     "13p-1c": {
@@ -90,9 +90,9 @@ const MATCH_OPTION_LIBRARY = {
       "effectiveCourts": 1,
       "horizonMatches": 12,
       "presetMatches": [
-        7,
+        6,
         8,
-        9
+        10
       ],
       "balancedMatch": 8,
       "supportsAdvancedCustom": true
@@ -102,9 +102,9 @@ const MATCH_OPTION_LIBRARY = {
       "effectiveCourts": 2,
       "horizonMatches": 12,
       "presetMatches": [
-        9,
+        8,
         10,
-        11
+        12
       ],
       "balancedMatch": 10,
       "supportsAdvancedCustom": true
@@ -115,8 +115,8 @@ const MATCH_OPTION_LIBRARY = {
       "horizonMatches": 16,
       "presetMatches": [
         11,
-        12,
-        13
+        13,
+        14
       ],
       "balancedMatch": 11,
       "supportsAdvancedCustom": true
@@ -127,10 +127,10 @@ const MATCH_OPTION_LIBRARY = {
       "horizonMatches": 18,
       "presetMatches": [
         7,
-        9,
+        11,
         14
       ],
-      "balancedMatch": 9,
+      "balancedMatch": 14,
       "supportsAdvancedCustom": true
     },
     "14p-2c": {
@@ -151,10 +151,10 @@ const MATCH_OPTION_LIBRARY = {
       "horizonMatches": 16,
       "presetMatches": [
         7,
-        12,
-        14
+        14,
+        15
       ],
-      "balancedMatch": 12,
+      "balancedMatch": 14,
       "supportsAdvancedCustom": true
     },
     "15p-1c": {
@@ -163,7 +163,7 @@ const MATCH_OPTION_LIBRARY = {
       "horizonMatches": 22,
       "presetMatches": [
         9,
-        10,
+        11,
         15
       ],
       "balancedMatch": 9,
@@ -174,7 +174,7 @@ const MATCH_OPTION_LIBRARY = {
       "effectiveCourts": 2,
       "horizonMatches": 12,
       "presetMatches": [
-        10,
+        9,
         11,
         12
       ],
@@ -187,8 +187,8 @@ const MATCH_OPTION_LIBRARY = {
       "horizonMatches": 16,
       "presetMatches": [
         13,
-        14,
-        15
+        15,
+        16
       ],
       "balancedMatch": 13,
       "supportsAdvancedCustom": true
@@ -202,7 +202,7 @@ const MATCH_OPTION_LIBRARY = {
         8,
         12
       ],
-      "balancedMatch": 8,
+      "balancedMatch": 12,
       "supportsAdvancedCustom": true
     },
     "16p-2c": {
@@ -210,9 +210,9 @@ const MATCH_OPTION_LIBRARY = {
       "effectiveCourts": 2,
       "horizonMatches": 16,
       "presetMatches": [
-        4,
         8,
-        12
+        12,
+        16
       ],
       "balancedMatch": 12,
       "supportsAdvancedCustom": true
@@ -234,9 +234,9 @@ const MATCH_OPTION_LIBRARY = {
       "effectiveCourts": 4,
       "horizonMatches": 16,
       "presetMatches": [
-        4,
         8,
-        12
+        12,
+        16
       ],
       "balancedMatch": 12,
       "supportsAdvancedCustom": true
@@ -246,7 +246,7 @@ const MATCH_OPTION_LIBRARY = {
       "effectiveCourts": 1,
       "horizonMatches": 12,
       "presetMatches": [
-        10,
+        9,
         11,
         12
       ],
@@ -274,7 +274,7 @@ const MATCH_OPTION_LIBRARY = {
         11,
         12
       ],
-      "balancedMatch": 12,
+      "balancedMatch": 11,
       "supportsAdvancedCustom": true
     },
     "17p-4c": {
@@ -286,7 +286,7 @@ const MATCH_OPTION_LIBRARY = {
         11,
         12
       ],
-      "balancedMatch": 12,
+      "balancedMatch": 11,
       "supportsAdvancedCustom": true
     },
     "18p-1c": {
@@ -342,7 +342,7 @@ const MATCH_OPTION_LIBRARY = {
       "effectiveCourts": 1,
       "horizonMatches": 12,
       "presetMatches": [
-        10,
+        9,
         11,
         12
       ],
@@ -370,7 +370,7 @@ const MATCH_OPTION_LIBRARY = {
         11,
         12
       ],
-      "balancedMatch": 12,
+      "balancedMatch": 11,
       "supportsAdvancedCustom": true
     },
     "19p-4c": {
@@ -382,7 +382,7 @@ const MATCH_OPTION_LIBRARY = {
         11,
         12
       ],
-      "balancedMatch": 12,
+      "balancedMatch": 11,
       "supportsAdvancedCustom": true
     },
     "20p-1c": {
@@ -406,7 +406,7 @@ const MATCH_OPTION_LIBRARY = {
         10,
         12
       ],
-      "balancedMatch": 12,
+      "balancedMatch": 5,
       "supportsAdvancedCustom": true
     },
     "20p-3c": {
@@ -418,7 +418,7 @@ const MATCH_OPTION_LIBRARY = {
         10,
         12
       ],
-      "balancedMatch": 12,
+      "balancedMatch": 5,
       "supportsAdvancedCustom": true
     },
     "20p-4c": {
@@ -430,7 +430,7 @@ const MATCH_OPTION_LIBRARY = {
         10,
         12
       ],
-      "balancedMatch": 12,
+      "balancedMatch": 5,
       "supportsAdvancedCustom": true
     },
     "21p-1c": {
@@ -438,9 +438,9 @@ const MATCH_OPTION_LIBRARY = {
       "effectiveCourts": 1,
       "horizonMatches": 18,
       "presetMatches": [
-        12,
+        10,
         13,
-        14
+        16
       ],
       "balancedMatch": 13,
       "supportsAdvancedCustom": true
@@ -454,7 +454,7 @@ const MATCH_OPTION_LIBRARY = {
         11,
         12
       ],
-      "balancedMatch": 12,
+      "balancedMatch": 11,
       "supportsAdvancedCustom": true
     },
     "21p-3c": {
@@ -466,7 +466,7 @@ const MATCH_OPTION_LIBRARY = {
         11,
         12
       ],
-      "balancedMatch": 12,
+      "balancedMatch": 11,
       "supportsAdvancedCustom": true
     },
     "21p-4c": {
@@ -478,7 +478,7 @@ const MATCH_OPTION_LIBRARY = {
         11,
         12
       ],
-      "balancedMatch": 12,
+      "balancedMatch": 11,
       "supportsAdvancedCustom": true
     },
     "22p-1c": {
@@ -550,7 +550,7 @@ const MATCH_OPTION_LIBRARY = {
         11,
         12
       ],
-      "balancedMatch": 12,
+      "balancedMatch": 11,
       "supportsAdvancedCustom": true
     },
     "23p-3c": {
@@ -562,7 +562,7 @@ const MATCH_OPTION_LIBRARY = {
         11,
         12
       ],
-      "balancedMatch": 12,
+      "balancedMatch": 11,
       "supportsAdvancedCustom": true
     },
     "23p-4c": {
@@ -574,7 +574,7 @@ const MATCH_OPTION_LIBRARY = {
         11,
         12
       ],
-      "balancedMatch": 12,
+      "balancedMatch": 11,
       "supportsAdvancedCustom": true
     },
     "24p-1c": {
@@ -586,7 +586,7 @@ const MATCH_OPTION_LIBRARY = {
         11,
         12
       ],
-      "balancedMatch": 12,
+      "balancedMatch": 6,
       "supportsAdvancedCustom": true
     },
     "24p-2c": {
@@ -610,7 +610,7 @@ const MATCH_OPTION_LIBRARY = {
         11,
         12
       ],
-      "balancedMatch": 12,
+      "balancedMatch": 6,
       "supportsAdvancedCustom": true
     },
     "24p-4c": {
@@ -622,7 +622,7 @@ const MATCH_OPTION_LIBRARY = {
         11,
         12
       ],
-      "balancedMatch": 12,
+      "balancedMatch": 6,
       "supportsAdvancedCustom": true
     },
     "4p-1c": {
@@ -646,7 +646,7 @@ const MATCH_OPTION_LIBRARY = {
         10,
         15
       ],
-      "balancedMatch": 5,
+      "balancedMatch": 10,
       "supportsAdvancedCustom": true
     },
     "6p-1c": {
@@ -654,11 +654,11 @@ const MATCH_OPTION_LIBRARY = {
       "effectiveCourts": 1,
       "horizonMatches": 18,
       "presetMatches": [
-        3,
-        6,
-        9
+        8,
+        13,
+        18
       ],
-      "balancedMatch": 3,
+      "balancedMatch": 13,
       "supportsAdvancedCustom": true
     },
     "7p-1c": {
@@ -666,11 +666,11 @@ const MATCH_OPTION_LIBRARY = {
       "effectiveCourts": 1,
       "horizonMatches": 18,
       "presetMatches": [
-        4,
-        7,
-        14
+        11,
+        16,
+        18
       ],
-      "balancedMatch": 4,
+      "balancedMatch": 16,
       "supportsAdvancedCustom": true
     },
     "8p-1c": {
@@ -678,11 +678,11 @@ const MATCH_OPTION_LIBRARY = {
       "effectiveCourts": 1,
       "horizonMatches": 12,
       "presetMatches": [
-        2,
         4,
-        6
+        6,
+        8
       ],
-      "balancedMatch": 4,
+      "balancedMatch": 6,
       "supportsAdvancedCustom": true
     },
     "8p-2c": {
@@ -690,11 +690,11 @@ const MATCH_OPTION_LIBRARY = {
       "effectiveCourts": 2,
       "horizonMatches": 16,
       "presetMatches": [
-        2,
-        4,
-        6
+        8,
+        14,
+        16
       ],
-      "balancedMatch": 6,
+      "balancedMatch": 14,
       "supportsAdvancedCustom": true
     },
     "9p-1c": {
@@ -702,11 +702,11 @@ const MATCH_OPTION_LIBRARY = {
       "effectiveCourts": 1,
       "horizonMatches": 18,
       "presetMatches": [
-        6,
+        8,
         9,
         18
       ],
-      "balancedMatch": 6,
+      "balancedMatch": 18,
       "supportsAdvancedCustom": true
     },
     "9p-2c": {
@@ -714,11 +714,11 @@ const MATCH_OPTION_LIBRARY = {
       "effectiveCourts": 2,
       "horizonMatches": 18,
       "presetMatches": [
-        7,
         9,
+        10,
         18
       ],
-      "balancedMatch": 7,
+      "balancedMatch": 18,
       "supportsAdvancedCustom": true
     }
   }
