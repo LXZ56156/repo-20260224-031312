@@ -229,8 +229,10 @@ function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
   if (canUseBeam) {
     try {
       const squadEngine = require('./squadDoublesEngine');
+      const internalSeed = Number(rules._seed);
       const beamResult = squadEngine.resolveSquadSchedule(idsA, idsB, targetMatches, courts, {
-        hardDeadlineMs: Number(rules._hardDeadlineMs) || 2500
+        hardDeadlineMs: Number(rules._hardDeadlineMs) || 2500,
+        ...(Number.isFinite(internalSeed) ? { seed: internalSeed } : {})
       });
       if (beamResult && Array.isArray(beamResult.rounds)) {
         let matchIndex = 0;
