@@ -149,6 +149,9 @@ test('squad beam 正常路径 engineVersion == squad-v3-beam', () => {
   assert.equal(out.schedulerMeta && out.schedulerMeta.engineVersion, 'squad-v3-beam');
   assert.equal(out.fairness && out.fairness.engine, 'squad-v3-beam');
   assert.ok(typeof out.fairnessScore === 'number' && out.fairnessScore > 0);
+  assert.equal(out.schedulerMeta && out.schedulerMeta.executionProfile, 'beam-quality');
+  assert.equal(out.schedulerMeta && out.schedulerMeta.timeoutGuardTriggered, false);
+  assert.equal(out.schedulerMeta && out.schedulerMeta.fairnessVersion, 'v2');
 });
 
 test('squad beam 超时路径降级到 squad-v2-greedy', () => {
@@ -166,6 +169,9 @@ test('squad beam 超时路径降级到 squad-v2-greedy', () => {
   const matches = collectMatches(out);
   assert.equal(matches.length, 12, 'fallback 路径必须完成所有场次');
   assert.equal(out.schedulerMeta && out.schedulerMeta.engineVersion, 'squad-v2-greedy');
+  assert.equal(out.schedulerMeta && out.schedulerMeta.executionProfile, 'greedy-debug-fallback');
+  assert.equal(out.schedulerMeta && out.schedulerMeta.fallbackReason, 'debug_force_fallback');
+  assert.equal(out.schedulerMeta && out.schedulerMeta.fairnessVersion, 'v2');
 });
 
 test('squad beam 质量不劣于 greedy fallback', () => {

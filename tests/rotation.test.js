@@ -56,4 +56,5 @@ test('generateSchedule creates valid deterministic schedule', () => {
   assert.equal(a.schedulerMeta.policy.policyVersion, 'v3');
   assert.equal(a.schedulerMeta.selectedSearchSeeds, 0);
   assert.equal(a.schedulerMeta.selectedEpsilon, 1.6);
+  assert.equal(a.schedulerMeta.fairnessVersion, 'v2');
 });

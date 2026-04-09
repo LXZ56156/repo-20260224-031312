@@ -138,15 +138,20 @@ test('24p-2c now routes through template instead of guarded fallback', () => {
 });
 
 test('runtime budget keeps guarded completion when request exceeds template horizon', () => {
+  const started = Date.now();
   const out = generateSchedule(makePlayers(10, 5), 23, 2, {
     seed: 42,
     searchSeeds: 8,
     runtimeBudgetMs: 200
   });
+  const elapsed = Date.now() - started;
   const matches = out.rounds.flatMap((round) => round.matches || []);
 
   assert.equal(matches.length, 23);
   assert.ok(['beam', 'legacy'].includes(out.schedulerMeta.engine));
   assert.ok(['beam-guarded', 'legacy-guarded'].includes(out.schedulerMeta.executionProfile));
   assert.equal(out.schedulerMeta.timeoutGuardTriggered, true);
+  assert.equal(typeof out.schedulerMeta.searchElapsedMs, 'number');
+  assert.equal(out.schedulerMeta.fairnessVersion, 'v2');
+  assert.ok(elapsed < 1500, `elapsed=${elapsed}ms should stay under guarded bound`);
 });

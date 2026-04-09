@@ -1,48 +1,18 @@
 const { pairKey, stableSortIds } = require('./utils');
-
-function squareCost(count) {
-  const value = Number(count) || 0;
-  return value * value;
-}
-
-function incrementalSquareCost(count) {
-  const value = Number(count) || 0;
-  return (2 * value) + 1;
-}
-
-function countComb(n, k) {
-  const total = Math.max(0, Number(n) || 0);
-  const choose = Math.max(0, Number(k) || 0);
-  if (choose < 0 || choose > total) return 0;
-  if (choose === 0 || choose === total) return 1;
-  const upper = Math.min(choose, total - choose);
-  let acc = 1;
-  for (let i = 1; i <= upper; i += 1) {
-    acc = Math.floor((acc * (total - upper + i)) / i);
-  }
-  return acc;
-}
+const {
+  squareCost,
+  incrementalSquareCost,
+  normalizeSeed,
+  hashString,
+  countComb,
+  enumerateCombinations,
+  computeCountSpread,
+  computeRoundsSinceRest,
+  countDoublesMatchups
+} = require('./schedulerShared');
 
 function nowMs() {
   return Date.now();
-}
-
-function normalizeSeed(seed) {
-  const n = Number(seed);
-  if (!Number.isFinite(n)) return 1;
-  const mod = 2147483647;
-  const value = Math.floor(Math.abs(n)) % mod;
-  return value === 0 ? 1 : value;
-}
-
-function hashString(value) {
-  const str = String(value || '');
-  let hash = 0;
-  for (let i = 0; i < str.length; i += 1) {
-    hash = ((hash << 5) - hash) + str.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash);
 }
 
 function normalizeTeamKey(team) {
@@ -55,29 +25,6 @@ function buildMatchupKey(teamA, teamB) {
 
 function groupKey(players4) {
   return stableSortIds(players4).join('|');
-}
-
-function enumerateCombinations(ids, choose, visitor) {
-  const list = stableSortIds(ids);
-  const target = Math.max(0, Number(choose) || 0);
-  if (target === 0) {
-    visitor([]);
-    return;
-  }
-  const picked = [];
-  const walk = (start) => {
-    if (picked.length === target) {
-      visitor(picked.slice());
-      return;
-    }
-    const remaining = target - picked.length;
-    for (let i = start; i <= list.length - remaining; i += 1) {
-      picked.push(list[i]);
-      walk(i + 1);
-      picked.pop();
-    }
-  };
-  walk(0);
 }
 
 function buildMatchesForGroup(group) {
@@ -107,8 +54,22 @@ function buildAllMatches(ids) {
   const out = [];
   enumerateCombinations(ordered, 4, (group) => {
     out.push(...buildMatchesForGroup(group));
-  });
+  }, { stable: false });
   return out;
+}
+
+function buildMatchesForActiveIds(ids, deadlineAtMs = 0) {
+  const ordered = stableSortIds(ids);
+  const out = [];
+  const completed = enumerateCombinations(ordered, 4, (group) => {
+    out.push(...buildMatchesForGroup(group));
+    return true;
+  }, { stable: false, deadlineAtMs, nowFn: nowMs });
+  return { matches: out, completed };
+}
+
+function deadlineReached(deadlineAtMs) {
+  return Number(deadlineAtMs) > 0 && nowMs() >= Number(deadlineAtMs);
 }
 
 function compareRestPriorityEntry(left, right) {
@@ -242,13 +203,17 @@ function buildInitialState(ids) {
 }
 
 function buildBeamContext(ids, totalMatches, courts, config = {}) {
+  const totalUniqueMatchups = countDoublesMatchups(ids.length);
+  const useLazyMatchEnumeration = ids.length >= 20 || totalUniqueMatchups > 12000;
   return {
     ids: stableSortIds(ids),
     totalMatches,
     courts,
     lowTargetPlay: Math.floor((totalMatches * 4) / Math.max(1, ids.length)),
     highTargetPlay: Math.ceil((totalMatches * 4) / Math.max(1, ids.length)),
-    allMatches: buildAllMatches(ids),
+    totalUniqueMatchups,
+    useLazyMatchEnumeration,
+    allMatches: useLazyMatchEnumeration ? null : buildAllMatches(ids),
     activeMatchCache: new Map(),
     beamWidth: Number(config.beamWidth) || 64,
     restSetLimit: Number(config.restSetLimit) || 12,
@@ -298,24 +263,6 @@ function isTargetPlayReachable(playCount, ids, remainingRounds, lowTargetPlay, h
     if ((current + remainingRounds) < lowTargetPlay) return false;
   }
   return true;
-}
-
-function computeCountSpread(countMap, ids) {
-  let min = Number.POSITIVE_INFINITY;
-  let max = Number.NEGATIVE_INFINITY;
-  for (const id of ids) {
-    const value = Number(countMap[id]) || 0;
-    if (value < min) min = value;
-    if (value > max) max = value;
-  }
-  if (!Number.isFinite(min) || !Number.isFinite(max)) return 0;
-  return max - min;
-}
-
-function computeRoundsSinceRest(state, roundIndex, id) {
-  const last = Number(state.lastRestRound[id]);
-  if (!Number.isFinite(last) || last < 0) return roundIndex + 1;
-  return roundIndex - last;
 }
 
 function buildRestCandidate(ids, restIds, state, seed) {
@@ -381,9 +328,16 @@ function getActiveMatches(context, activeIds) {
   if (context.activeMatchCache.has(key)) {
     return context.activeMatchCache.get(key);
   }
-  const activeSet = new Set(activeIds);
-  const matches = context.allMatches.filter((match) => match.players.every((id) => activeSet.has(id)));
-  context.activeMatchCache.set(key, matches);
+  if (!context.useLazyMatchEnumeration && Array.isArray(context.allMatches)) {
+    const activeSet = new Set(activeIds);
+    const matches = context.allMatches.filter((match) => match.players.every((id) => activeSet.has(id)));
+    context.activeMatchCache.set(key, matches);
+    return matches;
+  }
+  const { matches, completed } = buildMatchesForActiveIds(activeIds, context.deadlineAtMs);
+  if (completed) {
+    context.activeMatchCache.set(key, matches);
+  }
   return matches;
 }
 
@@ -394,10 +348,17 @@ function buildPackageStableKey(matches) {
 function buildPackageCandidates(state, restCandidate, context, seed) {
   const packageSize = restCandidate.activeIds.length / 4;
   if (packageSize <= 0) return [];
-  let rawMatches = getActiveMatches(context, restCandidate.activeIds)
-    .map((match) => scoreSingleMatch(match, state, seed));
+  if (deadlineReached(context.deadlineAtMs)) return [];
+  const rawMatches = [];
+  const activeMatches = getActiveMatches(context, restCandidate.activeIds);
+  for (const match of activeMatches) {
+    if (deadlineReached(context.deadlineAtMs)) break;
+    rawMatches.push(scoreSingleMatch(match, state, seed));
+  }
   if (context.forceUniqueAll) {
-    rawMatches = rawMatches.filter((item) => item.newExactMatchups === 1);
+    for (let i = rawMatches.length - 1; i >= 0; i -= 1) {
+      if (rawMatches[i].newExactMatchups !== 1) rawMatches.splice(i, 1);
+    }
   }
   rawMatches.sort(comparePackageCandidate);
   const matchLimit = Math.max(context.packageLimit * Math.max(2, packageSize), context.packageLimit);
@@ -408,6 +369,7 @@ function buildPackageCandidates(state, restCandidate, context, seed) {
   const usedPlayers = new Set();
 
   const walk = (startIndex) => {
+    if (deadlineReached(context.deadlineAtMs)) return;
     if (packages.length >= context.packageLimit * 4) return;
     if (chosen.length === packageSize) {
       const stableKey = buildPackageStableKey(chosen.map((item) => item.match));
@@ -425,6 +387,7 @@ function buildPackageCandidates(state, restCandidate, context, seed) {
     }
 
     for (let i = startIndex; i < limited.length; i += 1) {
+      if (deadlineReached(context.deadlineAtMs)) return;
       const candidate = limited[i];
       if (candidate.match.players.some((id) => usedPlayers.has(id))) continue;
       candidate.match.players.forEach((id) => usedPlayers.add(id));
@@ -560,6 +523,7 @@ function buildRoundCandidates(state, context, seed) {
   const remainingMatches = context.totalMatches - state.matchCount;
   const packageSize = Math.min(context.courts, remainingMatches, Math.floor(context.ids.length / 4));
   if (packageSize <= 0) return [];
+  if (deadlineReached(context.deadlineAtMs)) return [];
 
   const restCount = context.ids.length - (packageSize * 4);
   const restCandidates = [];
@@ -584,8 +548,10 @@ function buildRoundCandidates(state, context, seed) {
       ? rankedPool
       : rankedPool.slice(0, Math.min(rankedPool.length, Math.max(restCount + 5, context.restSetLimit + 3)));
     enumerateCombinations(restPool, restCount, (combo) => {
+      if (deadlineReached(context.deadlineAtMs)) return false;
       restCandidates.push(buildRestCandidate(context.ids, combo, state, seed));
-    });
+      return true;
+    }, { stable: false, deadlineAtMs: context.deadlineAtMs, nowFn: nowMs });
   }
 
   const remainingMatchesAfterRound = Math.max(0, context.totalMatches - state.matchCount - packageSize);
@@ -604,8 +570,10 @@ function buildRoundCandidates(state, context, seed) {
   const limitedRest = reachableRestCandidates.slice(0, context.restSetLimit);
   const roundCandidates = [];
   for (const restCandidate of limitedRest) {
+    if (deadlineReached(context.deadlineAtMs)) break;
     const packages = buildPackageCandidates(state, restCandidate, context, seed);
     for (const packageCandidate of packages) {
+      if (deadlineReached(context.deadlineAtMs)) break;
       roundCandidates.push({
         restCandidate,
         packageCandidate,
@@ -661,8 +629,16 @@ function runSingleBeam(ids, totalMatches, courts, seed, config = {}) {
       timedOut = true;
       break;
     }
+    if (deadlineReached(context.deadlineAtMs)) {
+      timedOut = true;
+      break;
+    }
     const expanded = [];
     for (const state of beam) {
+      if (deadlineReached(context.deadlineAtMs)) {
+        timedOut = true;
+        break;
+      }
       if (state.matchCount >= totalMatches) {
         expanded.push(state);
         continue;
@@ -767,7 +743,7 @@ function buildFairnessScore(state, totalUniqueMatchups) {
 
 function finalizeSchedule(state, ids, seed, meta = {}) {
   const stats = buildStats(state.rounds, ids);
-  const totalUniqueMatchups = Number(meta.totalUniqueMatchups) || buildAllMatches(ids).length;
+  const totalUniqueMatchups = Number(meta.totalUniqueMatchups) || countDoublesMatchups(ids.length);
   const fairnessScore = buildFairnessScore(state, totalUniqueMatchups);
   return {
     rounds: state.rounds,
@@ -806,7 +782,8 @@ function finalizeSchedule(state, ids, seed, meta = {}) {
     triedSeeds: Array.isArray(meta.triedSeeds) ? meta.triedSeeds.slice() : [],
     timedOut: meta.timedOut === true,
     executionProfile: String(meta.executionProfile || meta.engine || 'beam'),
-    timeoutGuardTriggered: meta.timeoutGuardTriggered === true
+    timeoutGuardTriggered: meta.timeoutGuardTriggered === true,
+    fallbackReason: String(meta.fallbackReason || '')
   };
 }
 
@@ -926,7 +903,7 @@ function instantiateTemplate(caseData, ids, totalMatches) {
     templateVariantId: variantId,
     templateHorizon: caseData.horizonMatches,
     effectiveCourts: computeEffectiveCourts(caseData.players, caseData.courts),
-    totalUniqueMatchups: Number(caseData.totalUniqueMatchups) || buildAllMatches(orderedIds).length,
+    totalUniqueMatchups: Number(caseData.totalUniqueMatchups) || countDoublesMatchups(orderedIds.length),
     searchSeedsUsed: 0,
     triedSeeds: []
   });
@@ -948,12 +925,13 @@ function generateBeamSchedules(ids, totalMatches, courts, options = {}) {
   const seedStep = Math.max(1, Number(options.seedStep) || 7919);
   const baseSeed = normalizeSeed(options.seed);
   const outputs = [];
+  const totalUniqueMatchups = countDoublesMatchups(ids.length);
   for (let i = 0; i < searchSeeds; i += 1) {
     const seed = normalizeSeed(baseSeed + (i * seedStep));
     const { state, timedOut } = runSingleBeam(ids, totalMatches, courts, seed, options);
     outputs.push(finalizeSchedule(state, stableSortIds(ids), seed, {
       engine: 'beam',
-      totalUniqueMatchups: buildAllMatches(ids).length,
+      totalUniqueMatchups,
       searchSeedsUsed: searchSeeds,
       triedSeeds: [seed],
       timedOut,
@@ -1011,6 +989,7 @@ function resolveRuntimeSchedule(ids, totalMatches, courts, options = {}) {
       out.templateKey = templateMatch.templateKey;
       out.executionProfile = 'template';
       out.timeoutGuardTriggered = false;
+      out.fallbackReason = '';
       out.effectiveCourts = effectiveCourts;
       return out;
     }
@@ -1022,7 +1001,7 @@ function resolveRuntimeSchedule(ids, totalMatches, courts, options = {}) {
   const baseSeed = normalizeSeed(options.seed);
   const outputs = [];
   const runtimeConfig = createRuntimeQualityConfig(effectiveCourts);
-  const totalUniqueMatchups = buildAllMatches(ids).length;
+  const totalUniqueMatchups = countDoublesMatchups(ids.length);
   const softDeadlineAtMs = Number(options.softDeadlineAtMs) || 0;
   const guardDeadlineAtMs = Number(options.guardDeadlineAtMs) || 0;
   let timeoutGuardTriggered = false;
@@ -1039,6 +1018,7 @@ function resolveRuntimeSchedule(ids, totalMatches, courts, options = {}) {
     const { state, timedOut } = runSingleBeam(ids, totalMatches, effectiveCourts, seed, {
       ...runtimeConfig,
       timeBudgetMs: Math.max(25, Math.min(runtimeConfig.timeBudgetMs, remainingToSoft || runtimeConfig.timeBudgetMs)),
+      deadlineAtMs: softDeadlineAtMs,
       forceUniqueAll: false
     });
     bestPartial = pickBestStateCandidate(bestPartial, { state, seed });
@@ -1062,6 +1042,7 @@ function resolveRuntimeSchedule(ids, totalMatches, courts, options = {}) {
     bestCompleted.effectiveCourts = effectiveCourts;
     bestCompleted.executionProfile = 'beam-quality';
     bestCompleted.timeoutGuardTriggered = false;
+    bestCompleted.fallbackReason = '';
     return bestCompleted;
   }
 
@@ -1072,6 +1053,7 @@ function resolveRuntimeSchedule(ids, totalMatches, courts, options = {}) {
     bestCompleted.effectiveCourts = effectiveCourts;
     bestCompleted.executionProfile = 'beam-guarded';
     bestCompleted.timeoutGuardTriggered = timeoutGuardTriggered;
+    bestCompleted.fallbackReason = 'soft_deadline_guard';
     return bestCompleted;
   }
 
@@ -1088,7 +1070,8 @@ function resolveRuntimeSchedule(ids, totalMatches, courts, options = {}) {
     timedOut: false,
     effectiveCourts,
     executionProfile: 'beam-guarded',
-    timeoutGuardTriggered: true
+    timeoutGuardTriggered: true,
+    fallbackReason: 'guarded_greedy_completion'
   });
 }
 
@@ -1111,7 +1094,7 @@ function buildTemplateCase(caseSpec) {
     forceUniqueAll: true,
     enforceTargetBounds: true
   };
-  const totalUniqueMatchups = buildAllMatches(ids).length;
+  const totalUniqueMatchups = countDoublesMatchups(ids.length);
   const fullOutputs = generateBeamSchedules(ids, horizonMatches, courts, searchConfig);
   const primary = pickBestOutput(fullOutputs);
   if (!primary) {

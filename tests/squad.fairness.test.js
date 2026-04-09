@@ -164,6 +164,7 @@ test('squad reports non-zero fairnessScore and full fairness object', () => {
     `engine should be squad-v3-beam or squad-v2-greedy, got ${version}`
   );
   assert.equal(out.schedulerMeta && out.schedulerMeta.engineVersion, version);
+  assert.equal(out.schedulerMeta && out.schedulerMeta.fairnessVersion, 'v2');
 });
 
 test('squad v2 handles uneven squad sizes without crash and completes scheduling', () => {

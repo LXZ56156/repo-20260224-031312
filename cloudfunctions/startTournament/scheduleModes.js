@@ -1,6 +1,7 @@
 const fixedPair = require('./lib/fixed-pair');
 const scheduleContract = require('./lib/schedule');
 const { pairKey } = require('./utils');
+const { squareCost } = require('./schedulerShared');
 
 function sortForRotation(ids, playCount, playStreak, usedSet, opponentCount, rivals) {
   const used = usedSet || new Set();
@@ -163,12 +164,16 @@ function runSquadGreedyFallback(idsA, idsB, targetMatches, courts, endConditionT
     .reduce((sum, c) => sum + Math.max(0, Number(c) - 1), 0);
   const opponentRepeats = Object.values(opponentCount)
     .reduce((sum, c) => sum + Math.max(0, Number(c) - 1), 0);
+  const partnerPenalty = Object.values(partnerCount)
+    .reduce((sum, c) => sum + squareCost(c), 0);
+  const opponentPenalty = Object.values(opponentCount)
+    .reduce((sum, c) => sum + squareCost(c), 0);
   const penalty =
-      playSpread * 5000
-    + maxConsecutivePlay * 2000
-    + partnerRepeats * 120
-    + opponentRepeats * 60;
-  const fairnessScore = Math.max(1, Math.round(100000 / (1 + penalty)));
+      playSpread * 50000
+    + maxConsecutivePlay * 20000
+    + partnerPenalty * 120
+    + opponentPenalty * 200;
+  const fairnessScore = Math.max(1, Math.round(1000000 / (1 + penalty)));
 
   return {
     rounds,
@@ -178,7 +183,9 @@ function runSquadGreedyFallback(idsA, idsB, targetMatches, courts, endConditionT
       playSpread,
       maxConsecutivePlay,
       partnerRepeats,
-      opponentRepeats
+      opponentRepeats,
+      partnerPenalty,
+      opponentPenalty
     },
     playerStats: { playCount },
     seed: 0,
@@ -212,6 +219,12 @@ function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
   // Beam search 仅处理 target matches 场景，total_rounds 直接走贪心
   const forceFallback = rules._debugForceFallback === true;
   const canUseBeam = !forceFallback && endConditionType !== 'total_rounds';
+  const searchStartedAtMs = Date.now();
+  const effectiveCourts = Math.max(1, Math.min(
+    Number(courts) || 1,
+    Math.floor(idsA.length / 2),
+    Math.floor(idsB.length / 2)
+  ));
 
   if (canUseBeam) {
     try {
@@ -220,14 +233,12 @@ function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
         hardDeadlineMs: Number(rules._hardDeadlineMs) || 2500
       });
       if (beamResult && Array.isArray(beamResult.rounds)) {
+        let matchIndex = 0;
         // 标准化 matches 字段：补 matchType/unitAId/unitBId/logicalRound
         const normalizedRounds = beamResult.rounds.map((round, rIdx) => ({
           roundIndex: rIdx,
-          matches: (round.matches || []).map((m, mIdx) => ({
-            matchIndex: (round.matches || []).slice(0, mIdx)
-              .reduce((sum, _, i) => sum + 1, 0)
-              + (beamResult.rounds.slice(0, rIdx)
-                .reduce((sum, r) => sum + ((r.matches || []).length), 0)),
+          matches: (round.matches || []).map((m) => ({
+            matchIndex: matchIndex++,
             matchType: 'SQUAD',
             unitAId: 'A',
             unitBId: 'B',
@@ -250,18 +261,53 @@ function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
             engineVersion: 'squad-v3-beam',
             mode: 'squad_doubles',
             endConditionType,
-            endConditionTarget
+            endConditionTarget,
+            executionProfile: String(beamResult.executionProfile || 'beam-quality'),
+            timeoutGuardTriggered: beamResult.timeoutGuardTriggered === true,
+            fallbackReason: String(beamResult.fallbackReason || ''),
+            searchElapsedMs: Number(beamResult.searchElapsedMs) || (Date.now() - searchStartedAtMs),
+            fairnessVersion: 'v2',
+            effectiveCourts: Number(beamResult.schedulerMeta && beamResult.schedulerMeta.effectiveCourts) || effectiveCourts
           }
         };
       }
     } catch (err) {
-      // beam 失败 → 静默降级到贪心
-      // 生产环境下云函数日志仍可捕获 err
+      console.warn('[startTournament:squadBeamFallback]', JSON.stringify({
+        reason: 'beam_exception',
+        message: String(err && err.message || err || ''),
+        playersA: idsA.length,
+        playersB: idsB.length,
+        courts,
+        targetMatches
+      }));
+      const greedy = runSquadGreedyFallback(idsA, idsB, targetMatches, courts, endConditionType, targetRounds);
+      return {
+        rounds: greedy.rounds,
+        fairnessScore: greedy.fairnessScore,
+        fairness: greedy.fairness,
+        playerStats: greedy.playerStats,
+        seed: greedy.seed,
+        schedulerMeta: {
+          engineVersion: greedy.engineVersion,
+          mode: 'squad_doubles',
+          endConditionType,
+          endConditionTarget,
+          executionProfile: 'greedy-exception-fallback',
+          timeoutGuardTriggered: false,
+          fallbackReason: 'beam_exception',
+          searchElapsedMs: Date.now() - searchStartedAtMs,
+          fairnessVersion: 'v2',
+          effectiveCourts
+        }
+      };
     }
   }
 
   // Greedy fallback 路径
   const greedy = runSquadGreedyFallback(idsA, idsB, targetMatches, courts, endConditionType, targetRounds);
+  const fallbackReason = forceFallback
+    ? 'debug_force_fallback'
+    : (endConditionType === 'total_rounds' ? 'total_rounds_greedy_mode' : 'beam_no_complete_schedule');
   return {
     rounds: greedy.rounds,
     fairnessScore: greedy.fairnessScore,
@@ -272,7 +318,15 @@ function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
       engineVersion: greedy.engineVersion,
       mode: 'squad_doubles',
       endConditionType,
-      endConditionTarget
+      endConditionTarget,
+      executionProfile: forceFallback
+        ? 'greedy-debug-fallback'
+        : (endConditionType === 'total_rounds' ? 'greedy-total-rounds' : 'greedy-fallback'),
+      timeoutGuardTriggered: !forceFallback && endConditionType !== 'total_rounds',
+      fallbackReason,
+      searchElapsedMs: Date.now() - searchStartedAtMs,
+      fairnessVersion: 'v2',
+      effectiveCourts
     }
   };
 }

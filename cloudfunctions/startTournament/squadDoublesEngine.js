@@ -3,81 +3,38 @@
 // 不依赖 rotationDoublesEngine，避免污染 multi_rotate 稳定路径
 
 const { pairKey, stableSortIds } = require('./utils');
-
-function incrementalSquareCost(count) {
-  const value = Number(count) || 0;
-  return (2 * value) + 1;
-}
+const {
+  incrementalSquareCost,
+  normalizeSeed,
+  hashString,
+  countComb,
+  enumerateCombinations,
+  computeCountSpread,
+  computeRoundsSinceRest
+} = require('./schedulerShared');
 
 function nowMs() {
   return Date.now();
 }
 
-function normalizeSeed(seed) {
-  const n = Number(seed);
-  if (!Number.isFinite(n)) return 1;
-  const mod = 2147483647;
-  const value = Math.floor(Math.abs(n)) % mod;
-  return value === 0 ? 1 : value;
-}
-
-function hashString(value) {
-  const str = String(value || '');
-  let hash = 0;
-  for (let i = 0; i < str.length; i += 1) {
-    hash = ((hash << 5) - hash) + str.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-}
-
-function countComb(n, k) {
-  const total = Math.max(0, Number(n) || 0);
-  const choose = Math.max(0, Number(k) || 0);
-  if (choose < 0 || choose > total) return 0;
-  if (choose === 0 || choose === total) return 1;
-  const upper = Math.min(choose, total - choose);
-  let acc = 1;
-  for (let i = 1; i <= upper; i += 1) {
-    acc = Math.floor((acc * (total - upper + i)) / i);
-  }
-  return acc;
-}
-
-function enumerateCombinations(ids, choose, visitor) {
-  const list = ids.slice();
-  const target = Math.max(0, Number(choose) || 0);
-  if (target === 0) {
-    visitor([]);
-    return;
-  }
-  const picked = [];
-  const walk = (start) => {
-    if (picked.length === target) {
-      visitor(picked.slice());
-      return;
-    }
-    const remaining = target - picked.length;
-    for (let i = start; i <= list.length - remaining; i += 1) {
-      picked.push(list[i]);
-      walk(i + 1);
-      picked.pop();
-    }
-  };
-  walk(0);
+function deadlineReached(deadlineAtMs) {
+  return Number(deadlineAtMs) > 0 && nowMs() >= Number(deadlineAtMs);
 }
 
 // 把一组 active 选手（偶数个）穷举拆分成 k 个不相交的 2 人对
 // 返回：Array<Array<[id, id]>>，每个子数组是一种"全部分完"的方案
-function enumeratePairPartitions(active) {
+function enumeratePairPartitions(active, options = {}) {
   const results = [];
   if (!active.length || active.length % 2 !== 0) return results;
   const sorted = stableSortIds(active);
   const n = sorted.length;
   const used = new Array(n).fill(false);
   const current = [];
+  const limit = Math.max(0, Number(options.limit) || 0);
+  const deadlineAtMs = Number(options.deadlineAtMs) || 0;
 
   const walk = () => {
+    if ((limit > 0 && results.length >= limit) || deadlineReached(deadlineAtMs)) return;
     // 找第一个未用的元素作 pair 的 left
     let left = -1;
     for (let i = 0; i < n; i += 1) {
@@ -89,6 +46,7 @@ function enumeratePairPartitions(active) {
     }
     used[left] = true;
     for (let right = left + 1; right < n; right += 1) {
+      if ((limit > 0 && results.length >= limit) || deadlineReached(deadlineAtMs)) break;
       if (used[right]) continue;
       used[right] = true;
       current.push([sorted[left], sorted[right]]);
@@ -131,24 +89,6 @@ function compareRestPriorityVector(left, right) {
     if (cmp !== 0) return cmp;
   }
   return 0;
-}
-
-function computeCountSpread(countMap, ids) {
-  let min = Number.POSITIVE_INFINITY;
-  let max = Number.NEGATIVE_INFINITY;
-  for (const id of ids) {
-    const value = Number(countMap[id]) || 0;
-    if (value < min) min = value;
-    if (value > max) max = value;
-  }
-  if (!Number.isFinite(min) || !Number.isFinite(max)) return 0;
-  return max - min;
-}
-
-function computeRoundsSinceRest(state, roundIndex, id) {
-  const last = Number(state.lastRestRound[id]);
-  if (!Number.isFinite(last) || last < 0) return roundIndex + 1;
-  return roundIndex - last;
 }
 
 // squad 的评分函数：
@@ -227,7 +167,7 @@ function buildBeamContext(idsA, idsB, totalMatches, courts, config = {}) {
 }
 
 // 为某队枚举"谁坐下"的候选
-function enumerateRestForSquad(teamIds, restCount, state, seedRank, limit) {
+function enumerateRestForSquad(teamIds, restCount, state, limit, deadlineAtMs = 0) {
   if (restCount <= 0) return [[]];
   const n = teamIds.length;
   const totalComb = countComb(n, restCount);
@@ -249,7 +189,8 @@ function enumerateRestForSquad(teamIds, restCount, state, seedRank, limit) {
   const result = [];
   enumerateCombinations(pool, restCount, (combo) => {
     result.push(combo.slice());
-  });
+    return true;
+  }, { stable: false, deadlineAtMs, nowFn: nowMs });
   return result;
 }
 
@@ -270,106 +211,149 @@ function scoreMatchup(pairA, pairB, state) {
   return { partnerDelta, opponentDelta, isNew, matchupKey };
 }
 
+function comparePackageCandidateMetrics(left, right) {
+  if (right.newMatchups !== left.newMatchups) return right.newMatchups - left.newMatchups;
+  if (left.opponentDelta !== right.opponentDelta) return left.opponentDelta - right.opponentDelta;
+  if (left.partnerDelta !== right.partnerDelta) return left.partnerDelta - right.partnerDelta;
+  if (left.seedRank !== right.seedRank) return left.seedRank - right.seedRank;
+  return left.stableKey.localeCompare(right.stableKey);
+}
+
+function selectBestPackageForPartitions(partitionA, partitionB, state, seed, deadlineAtMs = 0) {
+  const packageSize = partitionA.length;
+  if (packageSize !== partitionB.length) return null;
+  const scoreMatrix = partitionA.map((pairA) => {
+    return partitionB.map((pairB) => ({
+      pairA,
+      pairB,
+      ...scoreMatchup(pairA, pairB, state)
+    }));
+  });
+  const cache = new Map();
+
+  const solve = (index, usedMask) => {
+    if (deadlineReached(deadlineAtMs)) return null;
+    if (index >= packageSize) {
+      return {
+        matches: [],
+        matchupKeys: [],
+        partnerDelta: 0,
+        opponentDelta: 0,
+        newMatchups: 0,
+        seedRank: 0,
+        stableKey: ''
+      };
+    }
+    const cacheKey = `${index}:${usedMask}`;
+    if (cache.has(cacheKey)) return cache.get(cacheKey);
+
+    let best = null;
+    for (let bIndex = 0; bIndex < packageSize; bIndex += 1) {
+      if ((usedMask & (1 << bIndex)) !== 0) continue;
+      const score = scoreMatrix[index][bIndex];
+      const tail = solve(index + 1, usedMask | (1 << bIndex));
+      if (!tail) continue;
+      const matchupKeys = [score.matchupKey].concat(tail.matchupKeys);
+      const stableKey = matchupKeys.slice().sort().join(' || ');
+      const candidate = {
+        matches: [{
+          teamA: score.pairA.slice(),
+          teamB: score.pairB.slice(),
+          matchupKey: score.matchupKey
+        }].concat(tail.matches),
+        matchupKeys,
+        partnerDelta: score.partnerDelta + tail.partnerDelta,
+        opponentDelta: score.opponentDelta + tail.opponentDelta,
+        newMatchups: score.isNew + tail.newMatchups,
+        seedRank: hashString(`${normalizeSeed(seed)}::${stableKey}`),
+        stableKey
+      };
+      if (!best || comparePackageCandidateMetrics(candidate, best) < 0) {
+        best = candidate;
+      }
+    }
+    cache.set(cacheKey, best);
+    return best;
+  };
+
+  return solve(0, 0);
+}
+
 // 生成本轮对阵组合候选（packageSize 场比赛）
-// 枚举 A 的 pair 分割 × B 的 pair 分割，然后贪心匹配 A-B
+// 枚举 A 的 pair 分割 × B 的 pair 分割，然后用 bitmask DP 选最优 bijection
 function buildPackageCandidates(activeA, activeB, state, context, seed) {
   const packageSize = activeA.length / 2;
   if (packageSize <= 0) return [];
   if (activeA.length !== activeB.length) return [];
-
-  const pairPartitionsA = enumeratePairPartitions(activeA);
-  const pairPartitionsB = enumeratePairPartitions(activeB);
+  if (deadlineReached(context.deadlineAtMs)) return [];
 
   // 限制组合爆炸：partition 数量过大时截断
   const maxPartitionsPerSide = context.packageLimit * 2;
-  const pa = pairPartitionsA.slice(0, maxPartitionsPerSide);
-  const pb = pairPartitionsB.slice(0, maxPartitionsPerSide);
+  const pa = enumeratePairPartitions(activeA, {
+    limit: maxPartitionsPerSide,
+    deadlineAtMs: context.deadlineAtMs
+  });
+  const pb = enumeratePairPartitions(activeB, {
+    limit: maxPartitionsPerSide,
+    deadlineAtMs: context.deadlineAtMs
+  });
 
   const packages = [];
   const seen = new Set();
 
   for (const partitionA of pa) {
+    if (deadlineReached(context.deadlineAtMs)) break;
     for (const partitionB of pb) {
-      // A 的第 i 个 pair 对 B 的第 i 个 pair（按顺序直配）
-      // 并尝试所有 B 的排列（packageSize <= 3 时可行）
-      // 但 packageSize 通常 1-3，3 的排列数 = 6
-      const bPermutations = permutationsOf(partitionB);
-      for (const bPerm of bPermutations) {
-        let partnerDelta = 0;
-        let opponentDelta = 0;
-        let newMatchups = 0;
-        const matches = [];
-        const matchupKeys = [];
-        for (let i = 0; i < partitionA.length; i += 1) {
-          const pairA = partitionA[i];
-          const pairB = bPerm[i];
-          const score = scoreMatchup(pairA, pairB, state);
-          partnerDelta += score.partnerDelta;
-          opponentDelta += score.opponentDelta;
-          newMatchups += score.isNew;
-          matchupKeys.push(score.matchupKey);
-          matches.push({
-            teamA: pairA.slice(),
-            teamB: pairB.slice(),
-            matchupKey: score.matchupKey
-          });
-        }
-        const stableKey = matchupKeys.slice().sort().join(' || ');
-        if (seen.has(stableKey)) continue;
-        seen.add(stableKey);
-        packages.push({
-          matches,
-          partnerDelta,
-          opponentDelta,
-          newMatchups,
-          seedRank: hashString(`${normalizeSeed(seed)}::${stableKey}`),
-          stableKey
-        });
-      }
+      if (deadlineReached(context.deadlineAtMs)) break;
+      const bestPackage = selectBestPackageForPartitions(
+        partitionA,
+        partitionB,
+        state,
+        seed,
+        context.deadlineAtMs
+      );
+      if (!bestPackage) continue;
+      if (seen.has(bestPackage.stableKey)) continue;
+      seen.add(bestPackage.stableKey);
+      packages.push(bestPackage);
     }
   }
 
-  packages.sort((l, r) => {
-    if (r.newMatchups !== l.newMatchups) return r.newMatchups - l.newMatchups;
-    if (l.opponentDelta !== r.opponentDelta) return l.opponentDelta - r.opponentDelta;
-    if (l.partnerDelta !== r.partnerDelta) return l.partnerDelta - r.partnerDelta;
-    if (l.seedRank !== r.seedRank) return l.seedRank - r.seedRank;
-    return l.stableKey.localeCompare(r.stableKey);
-  });
+  packages.sort(comparePackageCandidateMetrics);
 
   return packages.slice(0, context.packageLimit);
-}
-
-function permutationsOf(array) {
-  if (array.length <= 1) return [array.slice()];
-  if (array.length === 2) {
-    return [[array[0], array[1]], [array[1], array[0]]];
-  }
-  const result = [];
-  for (let i = 0; i < array.length; i += 1) {
-    const rest = array.slice(0, i).concat(array.slice(i + 1));
-    for (const perm of permutationsOf(rest)) {
-      result.push([array[i]].concat(perm));
-    }
-  }
-  return result;
 }
 
 // 生成本轮所有候选（rest 选择 × 对阵组合）
 function buildRoundCandidates(state, context, seed) {
   const remaining = context.totalMatches - state.matchCount;
   if (remaining <= 0) return [];
+  if (deadlineReached(context.deadlineAtMs)) return [];
   const packageSize = Math.min(context.packageSize, remaining);
   const restACount = context.idsA.length - (packageSize * 2);
   const restBCount = context.idsB.length - (packageSize * 2);
 
-  const restA_list = enumerateRestForSquad(context.idsA, restACount, state, seed, context.restSetLimit);
-  const restB_list = enumerateRestForSquad(context.idsB, restBCount, state, seed + 1, context.restSetLimit);
+  const restA_list = enumerateRestForSquad(
+    context.idsA,
+    restACount,
+    state,
+    context.restSetLimit,
+    context.deadlineAtMs
+  );
+  const restB_list = enumerateRestForSquad(
+    context.idsB,
+    restBCount,
+    state,
+    context.restSetLimit,
+    context.deadlineAtMs
+  );
 
   // 评分 rest 方案：按 rest 后的 playSpread / playStreak 指标排序取 top
   const restCandidates = [];
   for (const restA of restA_list) {
+    if (deadlineReached(context.deadlineAtMs)) break;
     for (const restB of restB_list) {
+      if (deadlineReached(context.deadlineAtMs)) break;
       const restIds = restA.concat(restB);
       const activeA = context.idsA.filter((id) => !restA.includes(id));
       const activeB = context.idsB.filter((id) => !restB.includes(id));
@@ -417,8 +401,10 @@ function buildRoundCandidates(state, context, seed) {
 
   const roundCandidates = [];
   for (const restCand of limitedRest) {
+    if (deadlineReached(context.deadlineAtMs)) break;
     const packages = buildPackageCandidates(restCand.activeA, restCand.activeB, state, context, seed);
     for (const pkg of packages) {
+      if (deadlineReached(context.deadlineAtMs)) break;
       const combined = `${restCand.stableKey}::${pkg.stableKey}`;
       roundCandidates.push({
         restCandidate: restCand,
@@ -656,7 +642,7 @@ function buildStats(rounds, allIds) {
   return { playCount, partnerRepeats, opponentRepeats };
 }
 
-function finalizeSchedule(state, idsA, idsB, seed) {
+function finalizeSchedule(state, idsA, idsB, seed, meta = {}) {
   const allIds = idsA.concat(idsB);
   const stats = buildStats(state.rounds, allIds);
   const fairnessScore = buildFairnessScore(state);
@@ -676,9 +662,18 @@ function finalizeSchedule(state, idsA, idsB, seed) {
     },
     playerStats: { playCount: stats.playCount },
     seed,
+    executionProfile: String(meta.executionProfile || 'beam-quality'),
+    timeoutGuardTriggered: meta.timeoutGuardTriggered === true,
+    fallbackReason: String(meta.fallbackReason || ''),
+    searchElapsedMs: Number(meta.searchElapsedMs) || 0,
     schedulerMeta: {
       engineVersion: 'squad-v3-beam',
-      mode: 'squad_doubles'
+      mode: 'squad_doubles',
+      executionProfile: String(meta.executionProfile || 'beam-quality'),
+      timeoutGuardTriggered: meta.timeoutGuardTriggered === true,
+      fallbackReason: String(meta.fallbackReason || ''),
+      searchElapsedMs: Number(meta.searchElapsedMs) || 0,
+      effectiveCourts: Number(meta.effectiveCourts) || 0
     }
   };
 }
@@ -714,9 +709,14 @@ function resolveSquadSchedule(idsA, idsB, totalMatches, courts, options = {}) {
 
   let bestCompleted = null;
   let bestPartial = null;
+  let softTimeoutTriggered = false;
+  let guardedCompletionUsed = false;
 
   for (let i = 0; i < searchSeeds; i += 1) {
-    if (nowMs() >= softDeadlineAtMs) break;
+    if (nowMs() >= softDeadlineAtMs) {
+      softTimeoutTriggered = true;
+      break;
+    }
     const seed = normalizeSeed(baseSeed + (i * seedStep));
     const remaining = Math.max(25, softDeadlineAtMs - nowMs());
     const { state } = runSingleBeam(sortedA, sortedB, target, effectiveCourts, seed, {
@@ -746,11 +746,21 @@ function resolveSquadSchedule(idsA, idsB, totalMatches, courts, options = {}) {
     const completed = greedilyCompleteState(bestPartial, guardContext, baseSeed + 100003);
     if (completed && completed.matchCount >= target) {
       bestCompleted = completed;
+      guardedCompletionUsed = true;
     }
   }
 
   if (!bestCompleted) return null;
-  return finalizeSchedule(bestCompleted, sortedA, sortedB, baseSeed);
+  const searchElapsedMs = nowMs() - startedAt;
+  return finalizeSchedule(bestCompleted, sortedA, sortedB, baseSeed, {
+    executionProfile: softTimeoutTriggered || guardedCompletionUsed ? 'beam-guarded' : 'beam-quality',
+    timeoutGuardTriggered: softTimeoutTriggered || guardedCompletionUsed,
+    fallbackReason: guardedCompletionUsed
+      ? 'guarded_greedy_completion'
+      : (softTimeoutTriggered ? 'soft_deadline_guard' : ''),
+    searchElapsedMs,
+    effectiveCourts
+  });
 }
 
 module.exports = {

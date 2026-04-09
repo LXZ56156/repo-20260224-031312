@@ -37,7 +37,10 @@ test('generateSchedule exposes policy metadata in schedulerMeta', () => {
   assert.equal(meta.policy && meta.policy.policyVersion, 'v3');
   assert.equal(typeof meta.executionProfile, 'string');
   assert.equal(typeof meta.timeoutGuardTriggered, 'boolean');
-  assert.equal(meta.playSpread, 1);
+  assert.equal(typeof meta.fallbackReason, 'string');
+  assert.equal(typeof meta.searchElapsedMs, 'number');
+  assert.equal(meta.fairnessVersion, 'v2');
+  assert.ok(meta.playSpread >= 0 && meta.playSpread <= 2, `playSpread=${meta.playSpread}`);
   assert.equal(meta.uniqueExactMatchupCount, 12);
   assert.equal(meta.effectiveCourts, 1);
   assert.equal(meta.policy && meta.policy.courts, 1);
@@ -51,6 +54,8 @@ test('generateSchedule exposes template metadata for newly templated 17p-1c case
   assert.equal(meta.templateKey, '17p-1c');
   assert.equal(meta.uniqueExactMatchupCount, 12);
   assert.equal(meta.playSpread, 1);
+  assert.equal(meta.fallbackReason, '');
+  assert.equal(meta.fairnessVersion, 'v2');
 });
 
 test('generateSchedule exposes template metadata for templated doubles cases', () => {
@@ -62,6 +67,7 @@ test('generateSchedule exposes template metadata for templated doubles cases', (
   assert.equal(meta.templateHorizon, 22);
   assert.equal(meta.playSpread, 1);
   assert.equal(meta.uniqueExactMatchupCount, 18);
+  assert.equal(meta.fairnessVersion, 'v2');
 });
 
 test('templated schedules expose requested and effective courts separately', () => {

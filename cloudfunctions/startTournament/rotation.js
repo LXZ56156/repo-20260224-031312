@@ -1,11 +1,18 @@
 const doublesEngine = require('./rotationDoublesEngine');
 const scheduleContract = require('./lib/schedule');
 const { pairKey } = require('./utils');
+const {
+  squareCost,
+  incrementalSquareCost,
+  normalizeSeed,
+  countComb,
+  enumerateCombinations,
+  countDoublesMatchups
+} = require('./schedulerShared');
 
 const POLICY_VERSION = 'v3';
 const DEFAULT_SEED_STEP = 7919;
 const MODE_DOUBLES = 'doubles';
-const TEAM_TYPES = ['MX', 'MM', 'FF'];
 
 function variance(values) {
   const n = values.length;
@@ -22,14 +29,6 @@ function clampInt(v, lo, hi, fallback) {
   const n = Number(v);
   if (!Number.isFinite(n)) return fallback;
   return clamp(Math.floor(n), lo, hi);
-}
-
-function normalizeSeed(seed) {
-  const n = Number(seed);
-  if (!Number.isFinite(n)) return 123456789;
-  const mod = 2147483647;
-  const value = Math.floor(Math.abs(n)) % mod;
-  return value === 0 ? 1 : value;
 }
 
 function seededRng(seed) {
@@ -55,36 +54,20 @@ function pickK(arr, k, rng) {
 }
 
 function countComb4(n) {
-  if (n < 4) return 0;
-  return Math.floor((n * (n - 1) * (n - 2) * (n - 3)) / 24);
+  return countComb(n, 4);
 }
 
 function enumerateComb4(ids) {
   const out = [];
-  for (let i = 0; i < ids.length - 3; i++) {
-    for (let j = i + 1; j < ids.length - 2; j++) {
-      for (let k = j + 1; k < ids.length - 1; k++) {
-        for (let m = k + 1; m < ids.length; m++) {
-          out.push([ids[i], ids[j], ids[k], ids[m]]);
-        }
-      }
-    }
-  }
+  enumerateCombinations(ids, 4, (group) => {
+    out.push(group);
+    return true;
+  }, { stable: false });
   return out;
 }
 
 function groupKey(players4) {
   return players4.slice().sort().join('|');
-}
-
-function incrementalSquareCost(count) {
-  const c = Number(count) || 0;
-  return 2 * c + 1;
-}
-
-function squareCost(count) {
-  const c = Number(count) || 0;
-  return c * c;
 }
 
 // Scheduler mode resolution accepts legacy/internal aliases that should not leak
@@ -115,15 +98,6 @@ function buildGenderMap(players = []) {
   return out;
 }
 
-function classifyTeamType(team, genderById) {
-  const g1 = normalizeGender(genderById && genderById[team[0]]);
-  const g2 = normalizeGender(genderById && genderById[team[1]]);
-  if (g1 === 'male' && g2 === 'male') return 'MM';
-  if (g1 === 'female' && g2 === 'female') return 'FF';
-  if ((g1 === 'male' && g2 === 'female') || (g1 === 'female' && g2 === 'male')) return 'MX';
-  return '';
-}
-
 function countGenderInIds(ids, genderById) {
   let maleCount = 0;
   let femaleCount = 0;
@@ -135,54 +109,6 @@ function countGenderInIds(ids, genderById) {
     else unknownCount += 1;
   }
   return { maleCount, femaleCount, unknownCount };
-}
-
-function canFormTypeInEligible(type, eligibleIds, genderById) {
-  const g = countGenderInIds(eligibleIds, genderById);
-  if (type === 'MX') return g.maleCount >= 2 && g.femaleCount >= 2;
-  if (type === 'MM') return g.maleCount >= 4;
-  if (type === 'FF') return g.femaleCount >= 4;
-  return false;
-}
-
-function buildTypeTargets(players, typeWeights = null) {
-  const ids = (players || []).map((p) => p.id);
-  const genderById = buildGenderMap(players);
-  const g = countGenderInIds(ids, genderById);
-  const weights = {
-    MX: 1.3,
-    MM: 0.9,
-    FF: 0.9,
-    ...(typeWeights || {})
-  };
-  const base = {
-    MX: Math.max(0, Math.floor(g.maleCount / 2) * Math.floor(g.femaleCount / 2)) * weights.MX,
-    MM: Math.max(0, Math.floor(g.maleCount / 4)) * weights.MM,
-    FF: Math.max(0, Math.floor(g.femaleCount / 4)) * weights.FF
-  };
-  const sum = Object.values(base).reduce((acc, item) => acc + item, 0);
-  if (sum <= 0) {
-    return { MX: 0, MM: 0.5, FF: 0.5 };
-  }
-  return {
-    MX: base.MX / sum,
-    MM: base.MM / sum,
-    FF: base.FF / sum
-  };
-}
-
-function computeTypeBalanceGap(matchType, matchTypeCount, typeTargets) {
-  const current = Object.assign({ MX: 0, MM: 0, FF: 0 }, matchTypeCount || {});
-  if (!TEAM_TYPES.includes(matchType)) return 0;
-  current[matchType] += 1;
-  const total = TEAM_TYPES.reduce((sum, key) => sum + (Number(current[key]) || 0), 0);
-  if (total <= 0) return 0;
-  let gap = 0;
-  for (const key of TEAM_TYPES) {
-    const share = (Number(current[key]) || 0) / total;
-    gap += Math.abs(share - (Number(typeTargets && typeTargets[key]) || 0));
-  }
-  return gap;
 }
 
 function selectSchedulerPolicy(playersCount, courts, totalMatches) {
@@ -233,7 +159,6 @@ function scoreGroup(players4, state, weights, eligibleIds, options = {}) {
 
   let best = null;
   for (const [teamA, teamB] of splits) {
-    const matchType = '';
     let partnerRep = 0; // raw repeat count (diagnostics)
     let opponentRep = 0; // raw repeat count (diagnostics)
     let partnerPenalty = 0; // non-linear incremental penalty
@@ -258,19 +183,12 @@ function scoreGroup(players4, state, weights, eligibleIds, options = {}) {
       if ((state.playStreak[id] || 0) >= 1) consecPlay += 1;
     }
 
-    const typeBalanceGap = 0;
-    const fallbackPenalty = 0;
-    const openPenalty = 0;
-
     const cost =
       weights.alpha * v +
       weights.beta * partnerPenalty +
       weights.gamma * opponentPenalty +
       weights.delta * consecPlay +
-      weights.epsilon * restDebt +
-      weights.theta * typeBalanceGap +
-      weights.zeta * fallbackPenalty +
-      weights.omega * openPenalty;
+      weights.epsilon * restDebt;
 
     if (
       !best ||
@@ -288,11 +206,7 @@ function scoreGroup(players4, state, weights, eligibleIds, options = {}) {
         partnerPenalty,
         opponentPenalty,
         consecPlay,
-        restDebt,
-        matchType,
-        typeBalanceGap,
-        fallbackPenalty,
-        openPenalty
+        restDebt
       };
     }
   }
@@ -305,8 +219,12 @@ function computeStats(rounds, playerIds) {
   const partnerCount = {};
   const opponentCount = {};
   const matchTypeCount = { MX: 0, MM: 0, FF: 0 };
+  const usedMatchupKeys = new Set();
+  const playStreak = Object.fromEntries(playerIds.map((id) => [id, 0]));
+  let maxConsecutivePlay = 0;
 
   for (const r of rounds) {
+    const playedInRound = new Set();
     for (const m of r.matches) {
       const a = m.teamA;
       const b = m.teamB;
@@ -314,7 +232,12 @@ function computeStats(rounds, playerIds) {
       if (Object.prototype.hasOwnProperty.call(matchTypeCount, mt)) {
         matchTypeCount[mt] += 1;
       }
-      for (const id of [...a, ...b]) playCount[id] += 1;
+      const matchupKey = buildMatchupKey(a, b);
+      if (matchupKey) usedMatchupKeys.add(matchupKey);
+      for (const id of [...a, ...b]) {
+        playCount[id] += 1;
+        playedInRound.add(id);
+      }
 
       const pk1 = pairKey(a[0], a[1]);
       const pk2 = pairKey(b[0], b[1]);
@@ -326,6 +249,14 @@ function computeStats(rounds, playerIds) {
           const ok = pairKey(x, y);
           opponentCount[ok] = (opponentCount[ok] || 0) + 1;
         }
+      }
+    }
+    for (const id of playerIds) {
+      if (playedInRound.has(id)) {
+        playStreak[id] += 1;
+        if (playStreak[id] > maxConsecutivePlay) maxConsecutivePlay = playStreak[id];
+      } else {
+        playStreak[id] = 0;
       }
     }
   }
@@ -346,6 +277,8 @@ function computeStats(rounds, playerIds) {
     opponentRepeats,
     partnerPenalty,
     opponentPenalty,
+    uniqueMatchupCount: usedMatchupKeys.size,
+    maxConsecutivePlay,
     maxPairRepeat: partnerValues.length ? Math.max(...partnerValues) : 0,
     maxOpponentRepeat: opponentValues.length ? Math.max(...opponentValues) : 0
   };
@@ -446,24 +379,18 @@ function buildCandidateGroups(eligible, rng, warmStartGroups = [], options = {})
   return out;
 }
 
-function buildObjective(stats, playCountVariance, restDebtTotal, typeBalanceGapTotal, fallbackCount, openMatchCount, weights) {
+function buildObjective(stats, playCountVariance, restDebtTotal, weights) {
   const F =
     weights.alpha * playCountVariance +
     weights.beta * stats.partnerPenalty +
     weights.gamma * stats.opponentPenalty +
-    weights.epsilon * restDebtTotal +
-    weights.theta * typeBalanceGapTotal +
-    weights.zeta * fallbackCount +
-    weights.omega * openMatchCount;
+    weights.epsilon * restDebtTotal;
   return {
     F,
     maxPairRepeat: stats.maxPairRepeat,
     maxOpponentRepeat: stats.maxOpponentRepeat,
     playCountVariance,
-    restDebtTotal,
-    typeBalanceGapTotal,
-    fallbackCount,
-    openMatchCount
+    restDebtTotal
   };
 }
 
@@ -472,8 +399,6 @@ function compareObjective(a, b) {
   if (a.maxPairRepeat !== b.maxPairRepeat) return a.maxPairRepeat - b.maxPairRepeat;
   if (a.maxOpponentRepeat !== b.maxOpponentRepeat) return a.maxOpponentRepeat - b.maxOpponentRepeat;
   if (a.playCountVariance !== b.playCountVariance) return a.playCountVariance - b.playCountVariance;
-  if ((a.fallbackCount || 0) !== (b.fallbackCount || 0)) return (a.fallbackCount || 0) - (b.fallbackCount || 0);
-  if ((a.openMatchCount || 0) !== (b.openMatchCount || 0)) return (a.openMatchCount || 0) - (b.openMatchCount || 0);
   return 0;
 }
 
@@ -493,9 +418,6 @@ function generateLegacyScheduleOnce(ids, totalMatches, courts, weights, seed, op
   let matchIndex = 0;
   let roundIndex = 0;
   let restDebtTotal = 0;
-  let typeBalanceGapTotal = 0;
-  let fallbackCount = 0;
-  let openMatchCount = 0;
 
   while (matchIndex < totalMatches) {
     const matchesThisRound = [];
@@ -595,12 +517,19 @@ function generateLegacyScheduleOnce(ids, totalMatches, courts, weights, seed, op
     stats,
     playCountVariance,
     restDebtTotal,
-    typeBalanceGapTotal,
-    fallbackCount,
-    openMatchCount,
     weights
   );
-  const fairnessScore = Math.round(100000 / (1 + objective.F));
+  const playValues = Object.values(stats.playCount);
+  const playSpread = playValues.length ? Math.max(...playValues) - Math.min(...playValues) : 0;
+  const totalUniqueMatchups = Number(options.totalUniqueMatchups) || countDoublesMatchups(ids.length);
+  const uniqueGap = Math.max(0, totalUniqueMatchups - stats.uniqueMatchupCount);
+  const fairnessPenalty =
+    (playSpread * 50000) +
+    (stats.maxConsecutivePlay * 20000) +
+    (uniqueGap * 12000) +
+    (stats.partnerPenalty * 120) +
+    (stats.opponentPenalty * 10);
+  const fairnessScore = Math.max(1, Math.round(1000000 / (1 + fairnessPenalty)));
 
   return {
     rounds,
@@ -609,7 +538,8 @@ function generateLegacyScheduleOnce(ids, totalMatches, courts, weights, seed, op
       partnerRepeats: stats.partnerRepeats,
       opponentRepeats: stats.opponentRepeats,
       maxRestStreak: state.maxRestStreak,
-      matchTypeCount: stats.matchTypeCount
+      matchTypeCount: stats.matchTypeCount,
+      uniqueMatchupCount: stats.uniqueMatchupCount
     },
     fairness: {
       mode: MODE_DOUBLES,
@@ -618,16 +548,16 @@ function generateLegacyScheduleOnce(ids, totalMatches, courts, weights, seed, op
       gamma: weights.gamma,
       delta: weights.delta,
       epsilon: weights.epsilon,
-      theta: weights.theta,
-      zeta: weights.zeta,
-      omega: weights.omega,
       variance: playCountVariance,
+      playSpread,
+      maxConsecutivePlay: stats.maxConsecutivePlay,
       partnerRepeats: stats.partnerRepeats,
       opponentRepeats: stats.opponentRepeats,
       restDebtTotal,
-      typeBalanceGapTotal,
-      fallbackCount,
-      openMatchCount
+      uniqueMatchupCount: stats.uniqueMatchupCount,
+      totalUniqueMatchups,
+      partnerPenalty: stats.partnerPenalty,
+      opponentPenalty: stats.opponentPenalty
     },
     objective,
     fairnessScore,
@@ -1000,9 +930,6 @@ function finalizeDoublesSchedule(bestState, ids, weights, seed, options = {}) {
       gamma: weights.gamma,
       delta: weights.delta,
       epsilon: weights.epsilon,
-      theta: weights.theta,
-      zeta: weights.zeta,
-      omega: weights.omega,
       playSpread: bestState.playSpread,
       maxConsecutivePlay: bestState.maxConsecutivePlay,
       restScoreTotal: bestState.restScoreTotal,
@@ -1059,7 +986,10 @@ function generateDoublesSchedule(ids, totalMatches, courts, weights, seed, optio
   const completed = beam.filter((state) => state.matchCount >= totalMatches);
   const bestState = (completed.length ? completed : beam).slice().sort(compareSearchState)[0];
   if (!bestState || bestState.matchCount < totalMatches) {
-    return generateLegacyScheduleOnce(ids, totalMatches, courts, weights, seed, options);
+    return generateLegacyScheduleOnce(ids, totalMatches, courts, weights, seed, {
+      ...options,
+      totalUniqueMatchups: context.totalUniqueMatchups
+    });
   }
   return finalizeDoublesSchedule(bestState, ids, weights, seed, {
     totalUniqueMatchups: context.totalUniqueMatchups
@@ -1087,10 +1017,7 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
     beta: Number(options.beta ?? 3.0),
     gamma: Number(options.gamma ?? 1.5),
     delta: Number(options.delta ?? 2.0),
-    epsilon: selectedEpsilon,
-    theta: Number(options.theta ?? 2.0),
-    zeta: Number(options.zeta ?? 3.0),
-    omega: Number(options.omega ?? 5.0)
+    epsilon: selectedEpsilon
   };
 
   const scheduleStartedAtMs = Date.now();
@@ -1140,6 +1067,9 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
         out.engine = 'coverage';
         out.searchSeedsUsed = coverageSeeds;
         out.triedSeeds = coverageTriedSeeds.slice();
+        out.executionProfile = 'coverage';
+        out.timeoutGuardTriggered = false;
+        out.fallbackReason = '';
         if (!coverageBest) {
           coverageBest = out;
           continue;
@@ -1167,13 +1097,15 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
       legacyTriedSeeds.push(seed);
       const out = generateLegacyScheduleOnce(ids, M, effectiveCourts, weights, seed, {
         mode,
-        genderById
+        genderById,
+        totalUniqueMatchups: countDoublesMatchups(ids.length)
       });
       out.engine = 'legacy';
       out.searchSeedsUsed = legacySearchSeeds;
       out.triedSeeds = legacyTriedSeeds.slice();
       out.executionProfile = mode === MODE_DOUBLES ? 'legacy-guarded' : 'legacy';
       out.timeoutGuardTriggered = mode === MODE_DOUBLES;
+      out.fallbackReason = mode === MODE_DOUBLES ? 'beam_unavailable' : '';
       if (!best) {
         best = out;
         continue;
@@ -1188,7 +1120,9 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
   }
 
   const engine = String(best.engine || (mode === MODE_DOUBLES ? 'beam' : 'legacy')).trim();
-  const totalUniqueMatchups = Number(best.objective && best.objective.totalUniqueMatchups) || 0;
+  const totalUniqueMatchups = Number(best.objective && best.objective.totalUniqueMatchups)
+    || Number(best.fairness && best.fairness.totalUniqueMatchups)
+    || countDoublesMatchups(ids.length);
   const uniqueExactMatchupCount = Number(best.playerStats && best.playerStats.uniqueMatchupCount)
     || Number(best.fairness && best.fairness.uniqueMatchupCount)
     || 0;
@@ -1217,6 +1151,9 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
       selectedEpsilon,
       executionProfile: String(best.executionProfile || engine),
       timeoutGuardTriggered: best.timeoutGuardTriggered === true,
+      fallbackReason: String(best.fallbackReason || ''),
+      searchElapsedMs: Date.now() - scheduleStartedAtMs,
+      fairnessVersion: 'v2',
       effectiveCourts: Number(best.effectiveCourts) || effectiveCourts,
       mode,
       templateKey: String(best.templateKey || ''),

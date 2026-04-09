@@ -94,3 +94,21 @@ test('squad beam fairnessScore 不差于 greedy fallback（8v8 courts=2）', () 
     `beam=${beam.fairnessScore} should >= greedy=${greedy.fairnessScore}`
   );
 });
+
+test('squad 10v10 courts=4 在预算内返回并暴露 fallback 元数据', () => {
+  const start = Date.now();
+  const out = buildSquadSchedule(
+    makePlayers(10, 10),
+    20,
+    4,
+    { endCondition: { type: 'total_matches', target: 20 }, _hardDeadlineMs: 2500 }
+  );
+  const elapsed = Date.now() - start;
+  assert.equal(collectMatches(out).length, 20);
+  assert.ok(elapsed < 3000, `elapsed=${elapsed}ms should be < 3000ms`);
+  assert.ok(['squad-v3-beam', 'squad-v2-greedy'].includes(out.schedulerMeta && out.schedulerMeta.engineVersion));
+  assert.equal(typeof (out.schedulerMeta && out.schedulerMeta.executionProfile), 'string');
+  assert.equal(typeof (out.schedulerMeta && out.schedulerMeta.fallbackReason), 'string');
+  assert.equal(typeof (out.schedulerMeta && out.schedulerMeta.searchElapsedMs), 'number');
+  assert.equal(out.schedulerMeta && out.schedulerMeta.fairnessVersion, 'v2');
+});
