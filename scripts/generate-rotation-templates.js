@@ -12,7 +12,11 @@ const {
 } = require('../cloudfunctions/startTournament/rotationDoublesEngine');
 const { generateSchedule } = require('../cloudfunctions/startTournament/rotation');
 const { buildMatchCountRecommendations } = require('../miniprogram/core/ux/capacity');
-const { MODE_MULTI_ROTATE } = require('../miniprogram/core/mode');
+const {
+  MATCH_OPTION_OVERRIDES,
+  buildMatchOptionsLibrary,
+  buildRecommendationAuditIssues
+} = require('./rotation-match-options-common');
 
 const DEFAULT_TEMPLATE_OUTPUT = path.resolve(__dirname, '../cloudfunctions/startTournament/rotation.templates.js');
 const DEFAULT_MATCH_OPTIONS_OUTPUT = path.resolve(__dirname, '../miniprogram/core/ux/multiRotateMatchOptions.js');
@@ -336,19 +340,47 @@ function findValidatedExistingCase(key, players) {
   return caseData;
 }
 
+function buildSearchUpperBound(players, courts) {
+  if (courts <= 2) {
+    if (players >= 20 && courts === 2) return 22;
+    return 18;
+  }
+  if (players >= 20) return 18;
+  return 16;
+}
+
 function candidateHorizonsFor(caseSpec) {
   const players = Math.max(4, Number(caseSpec.players) || 4);
   const courts = computeEffectiveCourts(players, caseSpec.courts);
   const explicitHorizon = Number(caseSpec.horizonMatches) || 0;
   if (explicitHorizon > 0) return [explicitHorizon];
-  if (courts === 1 && ((players >= 12 && players <= 13) || (players >= 16 && players <= 19) || players >= 22)) return [12];
   const key = buildTemplateKey(players, courts);
-  const existingCase = existingLibrary && existingLibrary.cases ? existingLibrary.cases[key] : null;
+  const overrideHorizon = Number(MATCH_OPTION_OVERRIDES[key] && MATCH_OPTION_OVERRIDES[key].horizonMatches) || 0;
+  if (overrideHorizon > 0) return [overrideHorizon];
+  const existingCase = findValidatedExistingCase(key, players);
   const existingHorizon = Number(existingCase && existingCase.horizonMatches) || 0;
-  if (existingHorizon > 0) return [existingHorizon];
-  const baseline = courts <= 2 ? 18 : 16;
-  const boundedBaseline = Math.min(totalUniqueMatchups(players), baseline);
-  return [boundedBaseline];
+  const recommendation = buildMatchCountRecommendations({
+    mode: 'multi_rotate',
+    playersCount: players,
+    maleCount: players,
+    femaleCount: 0,
+    unknownCount: 0,
+    courts
+  });
+  const balancedTarget = Number(recommendation && recommendation.suggestedMatches) || 0;
+  const intenseTarget = Number(
+    recommendation
+    && recommendation.recommendedMatches
+    && recommendation.recommendedMatches[2]
+    && recommendation.recommendedMatches[2].m
+  ) || 0;
+  const upperBound = Math.min(totalUniqueMatchups(players), buildSearchUpperBound(players, courts));
+  return Array.from(new Set([
+    existingHorizon,
+    Math.min(upperBound, balancedTarget),
+    Math.min(upperBound, intenseTarget),
+    upperBound
+  ].filter((value) => Number.isFinite(value) && value >= 1))).sort((left, right) => left - right);
 }
 
 function registerVariant(variants, variantBySerializedRounds, rounds) {
@@ -399,10 +431,15 @@ function buildScheduleOptionsFor(caseSpec, players, courts) {
 function resolveValidPrefixSchedule(roster, players, courts, matches, scheduleOptions) {
   const seeds = candidateSeedsFor({ players, courts, seed: scheduleOptions.seed });
   for (const seed of seeds) {
-    const candidate = generateSchedule(roster, matches, courts, {
-      ...scheduleOptions,
-      seed: seed + (matches * 131)
-    });
+    let candidate = null;
+    try {
+      candidate = generateSchedule(roster, matches, courts, {
+        ...scheduleOptions,
+        seed: seed + (matches * 131)
+      });
+    } catch (_) {
+      continue;
+    }
     if (validateScheduleOutput(candidate, players, matches)) return candidate;
   }
   return null;
@@ -492,7 +529,12 @@ function buildRuntimeTemplateCase(caseSpec) {
   const roster = makeIndexedPlayers(players);
   const scheduleOptions = buildScheduleOptionsFor(caseSpec, players, courts);
 
-  const fullOut = generateSchedule(roster, horizonMatches, courts, scheduleOptions);
+  let fullOut = null;
+  try {
+    fullOut = generateSchedule(roster, horizonMatches, courts, scheduleOptions);
+  } catch (_) {
+    fullOut = null;
+  }
   if (!validateScheduleOutput(fullOut, players, horizonMatches)) {
     return buildPrefixOnlyTemplateCase(caseSpec, players, courts, horizonMatches, roster, scheduleOptions)
       || buildExactTemplateCase(caseSpec, players, courts, horizonMatches);
@@ -611,21 +653,22 @@ function resolveHandcraftedCase(caseSpec) {
 function resolveAutoCase(caseSpec) {
   const normalized = normalizeCaseSpec(caseSpec);
   const key = buildTemplateKey(normalized.players, normalized.courts);
-  const desiredHorizon = candidateHorizonsFor(normalized)[0];
-  const reusable = findReusableCase(key, normalized.players, desiredHorizon);
-  if (reusable) {
-    logProgress(`reused ${key} @ ${reusable.horizonMatches}`);
-    return { key, caseData: reusable };
-  }
   const existingCase = findValidatedExistingCase(key, normalized.players);
-  if (existingCase) {
-    const extended = extendExistingTemplateCase(normalized, existingCase, desiredHorizon);
-    if (extended && validateResolvedCase(extended, normalized.players, desiredHorizon)) {
-      logProgress(`extended ${key} @ ${desiredHorizon}`);
-      return { key, caseData: extended };
+  const candidateHorizons = candidateHorizonsFor(normalized);
+
+  for (const horizonMatches of candidateHorizons.slice().sort((left, right) => right - left)) {
+    const reusable = findReusableCase(key, normalized.players, horizonMatches);
+    if (reusable) {
+      logProgress(`reused ${key} @ ${reusable.horizonMatches}`);
+      return { key, caseData: reusable };
     }
-  }
-  for (const horizonMatches of [desiredHorizon]) {
+    if (existingCase && Number(existingCase.horizonMatches) < horizonMatches) {
+      const extended = extendExistingTemplateCase(normalized, existingCase, horizonMatches);
+      if (extended && validateResolvedCase(extended, normalized.players, horizonMatches)) {
+        logProgress(`extended ${key} @ ${horizonMatches}`);
+        return { key, caseData: extended };
+      }
+    }
     for (const seed of candidateSeedsFor(normalized)) {
       const candidate = { ...normalized, horizonMatches, seed };
       try {
@@ -661,221 +704,6 @@ function resolveCases(wantedKeys = null) {
     cases[resolved.key] = resolved.caseData;
   }
   return cases;
-}
-
-function buildPresetCandidate(caseData, matches) {
-  const metrics = caseData && caseData.prefixMetrics ? caseData.prefixMetrics[String(matches)] : null;
-  if (!metrics) return null;
-  return {
-    matches,
-    uniqueExactMatchupCount: Number(metrics.uniqueExactMatchupCount) || 0,
-    playSpread: Number(metrics.playSpread) || 0,
-    maxConsecutivePlay: Number(metrics.maxConsecutivePlay) || 0,
-    theoreticalPlaySpread: Number(metrics.theoreticalPlaySpread) || 0,
-    partnerCoverageCount: Number(metrics.partnerCoverageCount) || 0,
-    totalPartnerPairs: Number(metrics.totalPartnerPairs) || 0,
-    allPartnerPairsCovered: metrics.allPartnerPairsCovered === true
-  };
-}
-
-function isZeroSpreadExactCandidate(candidate) {
-  return candidate.uniqueExactMatchupCount === candidate.matches && candidate.playSpread === 0;
-}
-
-function isQualityAcceptableCandidate(candidate) {
-  return candidate.uniqueExactMatchupCount === candidate.matches
-    && candidate.playSpread === candidate.theoreticalPlaySpread;
-}
-
-function extractRecommendationTargets(recommendation) {
-  const items = Array.isArray(recommendation && recommendation.recommendedMatches)
-    ? recommendation.recommendedMatches
-    : [];
-  const byKey = Object.fromEntries(items.map((item) => [String(item && item.key || ''), Number(item && item.m) || 0]));
-  return {
-    low: byKey.relax || Number(items[0] && items[0].m) || 1,
-    balanced: byKey.balanced || Number(items[1] && items[1].m) || Number(items[0] && items[0].m) || 1,
-    high: byKey.intense || Number(items[2] && items[2].m) || Number(items[items.length - 1] && items[items.length - 1].m) || 1
-  };
-}
-
-function compareCandidatesForSlot(left, right, target, options = {}) {
-  const direction = String(options.direction || 'any');
-  const preferHigher = options.preferHigher === true;
-  const spreadFirst = options.spreadFirst === true;
-  const leftDirectionPenalty = direction === 'down'
-    ? (left.matches > target ? 1 : 0)
-    : (direction === 'up' ? (left.matches < target ? 1 : 0) : 0);
-  const rightDirectionPenalty = direction === 'down'
-    ? (right.matches > target ? 1 : 0)
-    : (direction === 'up' ? (right.matches < target ? 1 : 0) : 0);
-  if (leftDirectionPenalty !== rightDirectionPenalty) return leftDirectionPenalty - rightDirectionPenalty;
-
-  if (spreadFirst) {
-    const leftSpreadGap = Math.max(0, left.playSpread - left.theoreticalPlaySpread);
-    const rightSpreadGap = Math.max(0, right.playSpread - right.theoreticalPlaySpread);
-    if (leftSpreadGap !== rightSpreadGap) return leftSpreadGap - rightSpreadGap;
-    if (left.maxConsecutivePlay !== right.maxConsecutivePlay) return left.maxConsecutivePlay - right.maxConsecutivePlay;
-  }
-
-  const leftDistance = Math.abs(left.matches - target);
-  const rightDistance = Math.abs(right.matches - target);
-  if (leftDistance !== rightDistance) return leftDistance - rightDistance;
-  if (!spreadFirst && left.maxConsecutivePlay !== right.maxConsecutivePlay) {
-    return left.maxConsecutivePlay - right.maxConsecutivePlay;
-  }
-  return preferHigher ? (right.matches - left.matches) : (left.matches - right.matches);
-}
-
-function pickCandidateForSlot(candidates, usedMatches, target, options = {}) {
-  const available = (Array.isArray(candidates) ? candidates : [])
-    .filter((candidate) => candidate && !usedMatches.has(candidate.matches));
-  if (!available.length) return null;
-  return available.slice().sort((left, right) => compareCandidatesForSlot(left, right, target, options))[0] || null;
-}
-
-function finalizePresetSelection(selection) {
-  const presetMatches = Object.values(selection || {})
-    .filter(Boolean)
-    .map((candidate) => candidate.matches)
-    .filter((value, index, list) => list.indexOf(value) === index)
-    .sort((left, right) => left - right);
-  return {
-    presetMatches,
-    balancedMatch: Number(selection && selection.balanced && selection.balanced.matches) || 0,
-    selection
-  };
-}
-
-function buildSlotSelection(slotTargets, primaryCandidates, secondaryCandidates, fallbackCandidates = []) {
-  const usedMatches = new Set();
-  const selection = {};
-  const slotSpecs = [
-    { key: 'low', target: Number(slotTargets.low) || 1, direction: 'down', preferHigher: false },
-    { key: 'balanced', target: Number(slotTargets.balanced) || Number(slotTargets.low) || 1, direction: 'any', preferHigher: false },
-    { key: 'high', target: Number(slotTargets.high) || Number(slotTargets.balanced) || Number(slotTargets.low) || 1, direction: 'up', preferHigher: true }
-  ];
-
-  for (const slot of slotSpecs) {
-    let candidate = pickCandidateForSlot(primaryCandidates, usedMatches, slot.target, slot);
-    if (!candidate) {
-      candidate = pickCandidateForSlot(secondaryCandidates, usedMatches, slot.target, slot);
-    }
-    if (!candidate) {
-      candidate = pickCandidateForSlot(fallbackCandidates, usedMatches, slot.target, {
-        ...slot,
-        spreadFirst: true
-      });
-    }
-    if (!candidate) continue;
-    selection[slot.key] = candidate;
-    usedMatches.add(candidate.matches);
-  }
-
-  return selection;
-}
-
-function buildRegularPresetSelection(candidates, slotTargets) {
-  const primaryCandidates = candidates.filter(isZeroSpreadExactCandidate);
-  const secondaryCandidates = candidates.filter((candidate) => (
-    isQualityAcceptableCandidate(candidate) && !primaryCandidates.some((item) => item.matches === candidate.matches)
-  ));
-  const fallbackCandidates = candidates.filter((candidate) => (
-    !primaryCandidates.some((item) => item.matches === candidate.matches)
-      && !secondaryCandidates.some((item) => item.matches === candidate.matches)
-  ));
-  return finalizePresetSelection(buildSlotSelection(
-    slotTargets,
-    primaryCandidates,
-    secondaryCandidates,
-    fallbackCandidates
-  ));
-}
-
-function buildCoveragePresetSelection(baseSelection, candidates) {
-  const presetMatches = Array.isArray(baseSelection && baseSelection.presetMatches)
-    ? baseSelection.presetMatches
-    : [];
-  const acceptableCandidates = candidates.filter(isQualityAcceptableCandidate);
-  const coverageCandidate = acceptableCandidates
-    .filter((candidate) => candidate.allPartnerPairsCovered)
-    .sort((left, right) => left.matches - right.matches)[0] || null;
-  if (!coverageCandidate || presetMatches.includes(coverageCandidate.matches)) return null;
-
-  const highestAcceptable = acceptableCandidates
-    .slice()
-    .sort((left, right) => left.matches - right.matches)
-    .slice(-1)[0] || null;
-  if (!highestAcceptable || !presetMatches.length) return null;
-
-  const lowTarget = Math.max(...presetMatches);
-  const slotTargets = {
-    low: lowTarget,
-    balanced: (lowTarget + highestAcceptable.matches) / 2,
-    high: highestAcceptable.matches
-  };
-  const selection = buildSlotSelection(slotTargets, acceptableCandidates, [], []);
-  if (!selection.low || !selection.balanced || !selection.high) return null;
-
-  const alreadyIncluded = [selection.low, selection.balanced, selection.high]
-    .filter(Boolean)
-    .some((candidate) => candidate.matches === coverageCandidate.matches);
-  if (!alreadyIncluded) {
-    const lowDistance = Math.abs(selection.low.matches - coverageCandidate.matches);
-    const balancedDistance = Math.abs(selection.balanced.matches - coverageCandidate.matches);
-    const replaceKey = balancedDistance <= lowDistance ? 'balanced' : 'low';
-    selection[replaceKey] = coverageCandidate;
-  }
-
-  return finalizePresetSelection(selection);
-}
-
-function buildPresetMatches(caseData) {
-  const players = Number(caseData && caseData.players) || 0;
-  const courts = Number(caseData && caseData.courts) || 1;
-  const horizonMatches = Number(caseData && caseData.horizonMatches) || 0;
-  const recommendation = buildMatchCountRecommendations({
-    mode: MODE_MULTI_ROTATE,
-    playersCount: players,
-    maleCount: players,
-    femaleCount: 0,
-    unknownCount: 0,
-    courts
-  });
-  const candidates = [];
-  for (let matches = 1; matches <= horizonMatches; matches += 1) {
-    const candidate = buildPresetCandidate(caseData, matches);
-    if (candidate) candidates.push(candidate);
-  }
-  const slotTargets = extractRecommendationTargets(recommendation);
-  const regularSelection = buildRegularPresetSelection(candidates, slotTargets);
-  const coverageSelection = buildCoveragePresetSelection(regularSelection, candidates);
-  return coverageSelection || regularSelection;
-}
-
-function buildMatchOptionsLibrary(cases) {
-  const outCases = {};
-  const sourceCases = cases && typeof cases === 'object' ? cases : {};
-  Object.keys(sourceCases).sort().forEach((key) => {
-    const caseData = sourceCases[key];
-    if (!caseData) return;
-    const players = Number(caseData.players) || 0;
-    const effectiveCourts = Number(caseData.courts) || 1;
-    if (players < 4 || players > 24) return;
-    const built = buildPresetMatches(caseData);
-    outCases[key] = {
-      players,
-      effectiveCourts,
-      horizonMatches: Number(caseData.horizonMatches) || 0,
-      presetMatches: built.presetMatches,
-      balancedMatch: built.balancedMatch,
-      supportsAdvancedCustom: true
-    };
-  });
-  return {
-    version: 'rotation-v3-match-options',
-    cases: outCases
-  };
 }
 
 function renderLibrary(library) {
@@ -916,6 +744,15 @@ function logProgress(message) {
   process.stderr.write(`${message}\n`);
 }
 
+function assertMatchOptionRationality(matchOptionLibrary) {
+  const issues = buildRecommendationAuditIssues(matchOptionLibrary && matchOptionLibrary.cases);
+  if (!issues.length) return;
+  issues.forEach((issue) => {
+    logProgress(`match-options issue ${issue.code} ${issue.key}: ${issue.message}`);
+  });
+  throw new Error(`match option rationality failed with ${issues.length} issue(s)`);
+}
+
 function runWorker(workerSpec) {
   const normalized = normalizeCaseSpec(workerSpec || {});
   const caseData = buildRuntimeTemplateCase(normalized);
@@ -945,6 +782,7 @@ function main() {
   logProgress(`rotation templates written: ${args.output}`);
   if (!args.skipFrontendOutput) {
     const matchOptionLibrary = buildMatchOptionsLibrary(cases);
+    assertMatchOptionRationality(matchOptionLibrary);
     const matchOptionContent = renderMatchOptionsLibrary(matchOptionLibrary);
     fs.writeFileSync(args.frontendOutput, matchOptionContent, 'utf8');
     logProgress(`multi-rotate match options written: ${args.frontendOutput}`);

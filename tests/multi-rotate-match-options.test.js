@@ -55,6 +55,30 @@ test('multi_rotate match options include expanded large-roster presets', () => {
   );
 
   assert.deepEqual(
+    matchOptions.resolveMultiRotateMatchOptions(20, 2),
+    {
+      players: 20,
+      effectiveCourts: 2,
+      horizonMatches: 18,
+      presetMatches: [12, 15, 18],
+      balancedMatch: 15,
+      supportsAdvancedCustom: true
+    }
+  );
+
+  assert.deepEqual(
+    matchOptions.resolveMultiRotateMatchOptions(24, 1),
+    {
+      players: 24,
+      effectiveCourts: 1,
+      horizonMatches: 16,
+      presetMatches: [12, 15, 16],
+      balancedMatch: 15,
+      supportsAdvancedCustom: true
+    }
+  );
+
+  assert.deepEqual(
     matchOptions.resolveMultiRotateMatchOptions(24, 2),
     {
       players: 24,
@@ -62,6 +86,56 @@ test('multi_rotate match options include expanded large-roster presets', () => {
       horizonMatches: 18,
       presetMatches: [6, 12, 18],
       balancedMatch: 18,
+      supportsAdvancedCustom: true
+    }
+  );
+});
+
+test('multi_rotate match options expose stabilized large-roster 3c and 4c bands', () => {
+  assert.deepEqual(
+    matchOptions.resolveMultiRotateMatchOptions(20, 3),
+    {
+      players: 20,
+      effectiveCourts: 3,
+      horizonMatches: 18,
+      presetMatches: [14, 17, 18],
+      balancedMatch: 18,
+      supportsAdvancedCustom: true
+    }
+  );
+
+  assert.deepEqual(
+    matchOptions.resolveMultiRotateMatchOptions(20, 4),
+    {
+      players: 20,
+      effectiveCourts: 4,
+      horizonMatches: 16,
+      presetMatches: [14, 15, 16],
+      balancedMatch: 16,
+      supportsAdvancedCustom: true
+    }
+  );
+
+  assert.deepEqual(
+    matchOptions.resolveMultiRotateMatchOptions(24, 3),
+    {
+      players: 24,
+      effectiveCourts: 3,
+      horizonMatches: 18,
+      presetMatches: [16, 17, 18],
+      balancedMatch: 18,
+      supportsAdvancedCustom: true
+    }
+  );
+
+  assert.deepEqual(
+    matchOptions.resolveMultiRotateMatchOptions(24, 4),
+    {
+      players: 24,
+      effectiveCourts: 4,
+      horizonMatches: 16,
+      presetMatches: [14, 15, 16],
+      balancedMatch: 16,
       supportsAdvancedCustom: true
     }
   );

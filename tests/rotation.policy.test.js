@@ -27,7 +27,11 @@ test('selectSchedulerPolicy picks expected searchSeeds and epsilon', () => {
 });
 
 test('generateSchedule exposes policy metadata in schedulerMeta', () => {
-  const out = generateSchedule(makePlayers(25, 12), 12, 1, { seed: 42, searchSeeds: 1 });
+  const out = generateSchedule(makePlayers(25, 12), 12, 1, {
+    seed: 42,
+    searchSeeds: 1,
+    runtimeBudgetMs: 8000
+  });
   const meta = out.schedulerMeta || {};
   assert.equal(meta.engineVersion, 'rotation-v3');
   assert.ok(['beam', 'legacy'].includes(meta.engine));

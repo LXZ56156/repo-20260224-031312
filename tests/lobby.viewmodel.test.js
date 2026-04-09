@@ -231,6 +231,28 @@ test('lobby view model keeps historical custom totals outside the fixed preset l
   assert.equal(result.patch.quickCurrentCustomMatchLabel, '当前自定义 4 场');
 });
 
+test('lobby view model exposes expanded large-roster presets for multi_rotate', () => {
+  const players = Array.from({ length: 20 }, (_, index) => ({
+    id: `u_${index}`,
+    name: `球友${index}`,
+    gender: index % 2 === 0 ? 'male' : 'female'
+  }));
+  const result = viewModel.buildLobbyViewModel({
+    tournament: buildTournament({
+      players,
+      courts: 2
+    }),
+    openid: 'u_admin',
+    data: {}
+  });
+
+  assert.deepEqual(
+    result.patch.quickMatchShortcutOptions.map((item) => item.value),
+    [12, 15, 18]
+  );
+  assert.equal(result.patch.quickCurrentCustomMatchLabel, '');
+});
+
 test('lobby view model falls back to settings-only custom flow when no preset case exists', () => {
   const result = viewModel.buildLobbyViewModel({
     tournament: buildTournament({

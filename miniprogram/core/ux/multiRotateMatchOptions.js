@@ -256,37 +256,37 @@ const MATCH_OPTION_LIBRARY = {
     "17p-2c": {
       "players": 17,
       "effectiveCourts": 2,
-      "horizonMatches": 12,
+      "horizonMatches": 18,
       "presetMatches": [
         10,
-        11,
-        12
+        13,
+        16
       ],
-      "balancedMatch": 12,
+      "balancedMatch": 13,
       "supportsAdvancedCustom": true
     },
     "17p-3c": {
       "players": 17,
       "effectiveCourts": 3,
-      "horizonMatches": 12,
+      "horizonMatches": 16,
       "presetMatches": [
-        10,
-        11,
-        12
+        12,
+        15,
+        16
       ],
-      "balancedMatch": 11,
+      "balancedMatch": 15,
       "supportsAdvancedCustom": true
     },
     "17p-4c": {
       "players": 17,
       "effectiveCourts": 4,
-      "horizonMatches": 12,
+      "horizonMatches": 16,
       "presetMatches": [
-        10,
-        11,
-        12
+        12,
+        15,
+        16
       ],
-      "balancedMatch": 11,
+      "balancedMatch": 15,
       "supportsAdvancedCustom": true
     },
     "18p-1c": {
@@ -304,37 +304,37 @@ const MATCH_OPTION_LIBRARY = {
     "18p-2c": {
       "players": 18,
       "effectiveCourts": 2,
-      "horizonMatches": 12,
+      "horizonMatches": 18,
       "presetMatches": [
-        9,
         11,
-        12
+        14,
+        17
       ],
-      "balancedMatch": 12,
+      "balancedMatch": 14,
       "supportsAdvancedCustom": true
     },
     "18p-3c": {
       "players": 18,
       "effectiveCourts": 3,
-      "horizonMatches": 12,
+      "horizonMatches": 16,
       "presetMatches": [
-        9,
-        11,
-        12
+        13,
+        15,
+        16
       ],
-      "balancedMatch": 12,
+      "balancedMatch": 16,
       "supportsAdvancedCustom": true
     },
     "18p-4c": {
       "players": 18,
       "effectiveCourts": 4,
-      "horizonMatches": 12,
+      "horizonMatches": 16,
       "presetMatches": [
-        9,
-        11,
-        12
+        13,
+        15,
+        16
       ],
-      "balancedMatch": 12,
+      "balancedMatch": 16,
       "supportsAdvancedCustom": true
     },
     "19p-1c": {
@@ -352,37 +352,37 @@ const MATCH_OPTION_LIBRARY = {
     "19p-2c": {
       "players": 19,
       "effectiveCourts": 2,
-      "horizonMatches": 12,
+      "horizonMatches": 18,
       "presetMatches": [
-        10,
         11,
-        12
+        14,
+        17
       ],
-      "balancedMatch": 12,
+      "balancedMatch": 14,
       "supportsAdvancedCustom": true
     },
     "19p-3c": {
       "players": 19,
       "effectiveCourts": 3,
-      "horizonMatches": 12,
+      "horizonMatches": 16,
       "presetMatches": [
-        10,
-        11,
-        12
+        13,
+        15,
+        16
       ],
-      "balancedMatch": 11,
+      "balancedMatch": 16,
       "supportsAdvancedCustom": true
     },
     "19p-4c": {
       "players": 19,
       "effectiveCourts": 4,
-      "horizonMatches": 12,
+      "horizonMatches": 16,
       "presetMatches": [
-        10,
-        11,
-        12
+        13,
+        15,
+        16
       ],
-      "balancedMatch": 11,
+      "balancedMatch": 16,
       "supportsAdvancedCustom": true
     },
     "20p-1c": {
@@ -400,37 +400,37 @@ const MATCH_OPTION_LIBRARY = {
     "20p-2c": {
       "players": 20,
       "effectiveCourts": 2,
-      "horizonMatches": 12,
+      "horizonMatches": 18,
       "presetMatches": [
-        5,
-        10,
-        12
+        12,
+        15,
+        18
       ],
-      "balancedMatch": 5,
+      "balancedMatch": 15,
       "supportsAdvancedCustom": true
     },
     "20p-3c": {
       "players": 20,
       "effectiveCourts": 3,
-      "horizonMatches": 12,
+      "horizonMatches": 18,
       "presetMatches": [
-        5,
-        10,
-        12
+        14,
+        17,
+        18
       ],
-      "balancedMatch": 5,
+      "balancedMatch": 18,
       "supportsAdvancedCustom": true
     },
     "20p-4c": {
       "players": 20,
       "effectiveCourts": 4,
-      "horizonMatches": 12,
+      "horizonMatches": 16,
       "presetMatches": [
-        5,
-        10,
-        12
+        14,
+        15,
+        16
       ],
-      "balancedMatch": 5,
+      "balancedMatch": 16,
       "supportsAdvancedCustom": true
     },
     "21p-1c": {
@@ -448,37 +448,37 @@ const MATCH_OPTION_LIBRARY = {
     "21p-2c": {
       "players": 21,
       "effectiveCourts": 2,
-      "horizonMatches": 12,
+      "horizonMatches": 16,
       "presetMatches": [
-        10,
-        11,
-        12
+        13,
+        15,
+        16
       ],
-      "balancedMatch": 11,
+      "balancedMatch": 16,
       "supportsAdvancedCustom": true
     },
     "21p-3c": {
       "players": 21,
       "effectiveCourts": 3,
-      "horizonMatches": 12,
+      "horizonMatches": 18,
       "presetMatches": [
-        10,
-        11,
-        12
+        14,
+        17,
+        18
       ],
-      "balancedMatch": 11,
+      "balancedMatch": 18,
       "supportsAdvancedCustom": true
     },
     "21p-4c": {
       "players": 21,
       "effectiveCourts": 4,
-      "horizonMatches": 12,
+      "horizonMatches": 16,
       "presetMatches": [
-        10,
-        11,
-        12
+        14,
+        15,
+        16
       ],
-      "balancedMatch": 11,
+      "balancedMatch": 16,
       "supportsAdvancedCustom": true
     },
     "22p-1c": {
@@ -496,37 +496,37 @@ const MATCH_OPTION_LIBRARY = {
     "22p-2c": {
       "players": 22,
       "effectiveCourts": 2,
-      "horizonMatches": 12,
+      "horizonMatches": 16,
       "presetMatches": [
-        10,
-        11,
-        12
+        13,
+        15,
+        16
       ],
-      "balancedMatch": 12,
+      "balancedMatch": 16,
       "supportsAdvancedCustom": true
     },
     "22p-3c": {
       "players": 22,
       "effectiveCourts": 3,
-      "horizonMatches": 12,
+      "horizonMatches": 18,
       "presetMatches": [
-        10,
-        11,
-        12
+        15,
+        17,
+        18
       ],
-      "balancedMatch": 12,
+      "balancedMatch": 18,
       "supportsAdvancedCustom": true
     },
     "22p-4c": {
       "players": 22,
       "effectiveCourts": 4,
-      "horizonMatches": 12,
+      "horizonMatches": 16,
       "presetMatches": [
-        10,
-        11,
-        12
+        14,
+        15,
+        16
       ],
-      "balancedMatch": 12,
+      "balancedMatch": 16,
       "supportsAdvancedCustom": true
     },
     "23p-1c": {
@@ -544,49 +544,49 @@ const MATCH_OPTION_LIBRARY = {
     "23p-2c": {
       "players": 23,
       "effectiveCourts": 2,
-      "horizonMatches": 12,
+      "horizonMatches": 16,
       "presetMatches": [
-        10,
-        11,
-        12
+        13,
+        15,
+        16
       ],
-      "balancedMatch": 11,
+      "balancedMatch": 16,
       "supportsAdvancedCustom": true
     },
     "23p-3c": {
       "players": 23,
       "effectiveCourts": 3,
-      "horizonMatches": 12,
+      "horizonMatches": 18,
       "presetMatches": [
-        10,
-        11,
-        12
+        16,
+        17,
+        18
       ],
-      "balancedMatch": 11,
+      "balancedMatch": 18,
       "supportsAdvancedCustom": true
     },
     "23p-4c": {
       "players": 23,
       "effectiveCourts": 4,
-      "horizonMatches": 12,
+      "horizonMatches": 16,
       "presetMatches": [
-        10,
-        11,
-        12
+        14,
+        15,
+        16
       ],
-      "balancedMatch": 11,
+      "balancedMatch": 16,
       "supportsAdvancedCustom": true
     },
     "24p-1c": {
       "players": 24,
       "effectiveCourts": 1,
-      "horizonMatches": 12,
+      "horizonMatches": 16,
       "presetMatches": [
-        6,
-        11,
-        12
+        12,
+        15,
+        16
       ],
-      "balancedMatch": 6,
+      "balancedMatch": 15,
       "supportsAdvancedCustom": true
     },
     "24p-2c": {
@@ -604,25 +604,25 @@ const MATCH_OPTION_LIBRARY = {
     "24p-3c": {
       "players": 24,
       "effectiveCourts": 3,
-      "horizonMatches": 12,
+      "horizonMatches": 18,
       "presetMatches": [
-        6,
-        11,
-        12
+        16,
+        17,
+        18
       ],
-      "balancedMatch": 6,
+      "balancedMatch": 18,
       "supportsAdvancedCustom": true
     },
     "24p-4c": {
       "players": 24,
       "effectiveCourts": 4,
-      "horizonMatches": 12,
+      "horizonMatches": 16,
       "presetMatches": [
-        6,
-        11,
-        12
+        14,
+        15,
+        16
       ],
-      "balancedMatch": 6,
+      "balancedMatch": 16,
       "supportsAdvancedCustom": true
     },
     "4p-1c": {

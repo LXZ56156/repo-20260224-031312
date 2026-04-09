@@ -102,6 +102,24 @@ test('settings view model preserves non-preset saved totals as current custom st
   assert.equal(state.currentCustomMatchLabel, '当前自定义 5 场');
 });
 
+test('settings view model exposes expanded large-roster presets for multi_rotate', () => {
+  const state = viewModel.buildSettingsViewState({
+    _id: 't_large_roster',
+    status: 'draft',
+    creatorId: 'u_1',
+    mode: flow.MODE_MULTI_ROTATE,
+    players: Array.from({ length: 20 }, (_, i) => ({ id: `u_${i}`, name: String(i) })),
+    courts: 2
+  }, { openid: 'u_1' });
+
+  assert.equal(state.useMatchPresetOptions, true);
+  assert.deepEqual(
+    state.matchShortcutOptions.map((item) => item.value),
+    [12, 15, 18]
+  );
+  assert.equal(state.currentCustomMatchLabel, '');
+});
+
 test('settings view model falls back to custom flow when no fixed fair presets exist', () => {
   const state = viewModel.buildSettingsViewState({
     _id: 't_25p',
