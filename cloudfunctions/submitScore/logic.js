@@ -60,13 +60,31 @@ function applyScoreToRounds(rounds, roundIndex, matchIndex, scoreA, scoreB, scor
   return nextRounds;
 }
 
-function applySquadTargetWinEndCondition(tournament, rounds, rankings) {
+function isSquadTargetWins(tournament) {
   const mode = modeHelper.normalizeMode(tournament && tournament.mode);
-  if (mode !== 'squad_doubles') return { rounds, finishedByRule: false };
+  if (mode !== 'squad_doubles') return false;
   const rules = tournament && tournament.rules && typeof tournament.rules === 'object' ? tournament.rules : {};
   const endCondition = rules && typeof rules.endCondition === 'object' ? rules.endCondition : {};
-  const type = String(endCondition.type || '').trim().toLowerCase();
-  if (type !== 'target_wins') return { rounds, finishedByRule: false };
+  return String(endCondition.type || '').trim().toLowerCase() === 'target_wins';
+}
+
+function reviveScorelessCanceledMatches(rounds) {
+  const nextRounds = Array.isArray(rounds) ? JSON.parse(JSON.stringify(rounds)) : [];
+  for (const round of nextRounds) {
+    const matches = Array.isArray(round && round.matches) ? round.matches : [];
+    for (const match of matches) {
+      if (!match || String(match.status || '') !== 'canceled') continue;
+      if (scoreUtils.isValidFinishedScore(match)) continue;
+      match.status = 'pending';
+    }
+  }
+  return nextRounds;
+}
+
+function applySquadTargetWinEndCondition(tournament, rounds, rankings) {
+  if (!isSquadTargetWins(tournament)) return { rounds, finishedByRule: false };
+  const rules = tournament && tournament.rules && typeof tournament.rules === 'object' ? tournament.rules : {};
+  const endCondition = rules && typeof rules.endCondition === 'object' ? rules.endCondition : {};
   const target = Math.max(1, Number(endCondition.target) || 1);
   const teamRows = Array.isArray(rankings) ? rankings : [];
   const hasWinner = teamRows.some((row) => Number(row && row.wins || 0) >= target);
@@ -92,10 +110,6 @@ function buildIdempotentRetryResult(match, scoreA, scoreB, requesterId, fallback
   if (!Number.isFinite(current.a) || !Number.isFinite(current.b)) return null;
   if (Number(current.a) !== Number(scoreA) || Number(current.b) !== Number(scoreB)) return null;
 
-  const scorerId = String(match && match.scorerId || '').trim();
-  const requester = String(requesterId || '').trim();
-  if (scorerId && scorerId !== requester) return null;
-
   return {
     ok: true,
     deduped: true,
@@ -105,7 +119,10 @@ function buildIdempotentRetryResult(match, scoreA, scoreB, requesterId, fallback
 }
 
 function buildSubmitResult(tournament, roundIndex, matchIndex, scoreA, scoreB, scorer = null) {
-  let rounds = applyScoreToRounds(tournament && tournament.rounds, roundIndex, matchIndex, scoreA, scoreB, scorer);
+  const sourceRounds = isSquadTargetWins(tournament)
+    ? reviveScorelessCanceledMatches(tournament && tournament.rounds)
+    : (tournament && tournament.rounds);
+  let rounds = applyScoreToRounds(sourceRounds, roundIndex, matchIndex, scoreA, scoreB, scorer);
   let rankings = computeRankings({ ...(tournament || {}), rounds });
   const squadEnd = applySquadTargetWinEndCondition(tournament, rounds, rankings);
   if (squadEnd.finishedByRule) {
@@ -128,6 +145,8 @@ module.exports = {
   computeRankings,
   allMatchesFinished,
   applyScoreToRounds,
+  isSquadTargetWins,
+  reviveScorelessCanceledMatches,
   buildIdempotentRetryResult,
   buildSubmitResult
 };

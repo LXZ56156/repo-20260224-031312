@@ -273,6 +273,78 @@ test('match view state keeps local draft visible after lock expiry so the user c
   assert.equal(viewState.data.displayScoreB, '18');
 });
 
+test('match view state shows finished scores as editable only after acquiring a lock', () => {
+  const readonlyState = buildTournamentViewState(buildFinishedTournament(21, 18), {
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    openid: 'user_1',
+    lockState: 'idle',
+    currentScoreA: 0,
+    currentScoreB: 0,
+    draft: { scoreA: 22, scoreB: 20 },
+    undoSize: 0
+  });
+
+  assert.equal(readonlyState.data.canEdit, false);
+  assert.equal(readonlyState.data.lockActionText, '修改比分');
+  assert.equal(readonlyState.data.canUseScoreLock, true);
+  assert.equal(readonlyState.shouldSyncLock, true);
+  assert.equal(readonlyState.shouldClearDraft, false);
+  assert.equal(readonlyState.data.displayScoreA, '21');
+  assert.equal(readonlyState.data.displayScoreB, '18');
+
+  const editState = buildTournamentViewState(buildFinishedTournament(21, 18), {
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    openid: 'user_1',
+    lockState: 'locked_by_me',
+    currentScoreA: 21,
+    currentScoreB: 18,
+    draft: { scoreA: 22, scoreB: 20 },
+    undoSize: 1
+  });
+
+  assert.equal(editState.data.canEdit, true);
+  assert.equal(editState.data.lockActionText, '修改比分');
+  assert.equal(editState.data.scoreA, 22);
+  assert.equal(editState.data.scoreB, 20);
+  assert.equal(editState.data.displayScoreA, '22');
+  assert.equal(editState.data.displayScoreB, '20');
+  assert.equal(editState.data.canUndo, true);
+});
+
+test('match view state keeps pending CTA and canceled matches readonly', () => {
+  const pendingState = buildTournamentViewState(buildPendingTournament(), {
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    openid: 'user_1',
+    lockState: 'idle'
+  });
+
+  assert.equal(pendingState.data.lockActionText, '开始录分');
+  assert.equal(pendingState.data.canUseScoreLock, true);
+
+  const canceledTournament = buildFinishedTournament(21, 18);
+  canceledTournament.rounds[0].matches[0].status = 'canceled';
+  const canceledState = buildTournamentViewState(canceledTournament, {
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    openid: 'user_1',
+    lockState: 'idle',
+    draft: { scoreA: 22, scoreB: 20 }
+  });
+
+  assert.equal(canceledState.data.canEdit, false);
+  assert.equal(canceledState.data.canUseScoreLock, false);
+  assert.equal(canceledState.shouldSyncLock, false);
+  assert.equal(canceledState.shouldClearDraft, true);
+  assert.equal(canceledState.data.matchStatusText, '已取消');
+});
+
 test('match submit can recover from lock expiry after reacquiring lock and retrying submit', async () => {
   const originalWx = global.wx;
   const toastCalls = [];

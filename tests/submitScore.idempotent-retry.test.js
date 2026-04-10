@@ -46,7 +46,7 @@ test('buildIdempotentRetryResult dedupes legacy finished match without scorerId 
   });
 });
 
-test('buildIdempotentRetryResult rejects finished retry when score differs or scorer differs', () => {
+test('buildIdempotentRetryResult rejects finished retry only when score differs', () => {
   assert.equal(logic.buildIdempotentRetryResult(
     {
       status: 'finished',
@@ -61,7 +61,7 @@ test('buildIdempotentRetryResult rejects finished retry when score differs or sc
     '备用名'
   ), null);
 
-  assert.equal(logic.buildIdempotentRetryResult(
+  assert.deepEqual(logic.buildIdempotentRetryResult(
     {
       status: 'finished',
       teamAScore: 21,
@@ -73,5 +73,10 @@ test('buildIdempotentRetryResult rejects finished retry when score differs or sc
     18,
     'user_2',
     '备用名'
-  ), null);
+  ), {
+    ok: true,
+    deduped: true,
+    finished: true,
+    scorerName: '裁判A'
+  });
 });

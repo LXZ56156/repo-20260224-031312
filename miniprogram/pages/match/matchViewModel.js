@@ -110,6 +110,8 @@ function buildInitialData() {
     lockExpireAt: 0,
     lockRemainingMs: 0,
     lockHintText: buildLockHint('idle', '', 0),
+    lockActionText: '开始录分',
+    canUseScoreLock: false,
     lockBusy: false,
     submitBusy: false,
     matchStatusText: '待录分',
@@ -163,6 +165,8 @@ function buildTournamentViewState(tournament, options = {}) {
         userCanScore,
         isAdmin,
         canEdit: false,
+        lockActionText: '开始录分',
+        canUseScoreLock: false,
         pair1Text,
         pair2Text
       }
@@ -170,22 +174,25 @@ function buildTournamentViewState(tournament, options = {}) {
   }
 
   const matchStatus = String(match.status || '').trim();
-  const finished = matchStatus === 'finished' || matchStatus === 'canceled';
+  const finished = matchStatus === 'finished';
+  const canceled = matchStatus === 'canceled';
   const matchStatusText = matchStatus === 'canceled' ? '已取消' : (matchStatus === 'finished' ? '已完赛' : '待录分');
+  const canUseScoreLock = !canceled;
+  const lockActionText = finished ? '修改比分' : '开始录分';
 
   let lockTransition = '';
-  if (finished && lockState !== 'finished') lockTransition = 'finished';
+  if (canceled && lockState !== 'finished') lockTransition = 'finished';
   else if (!userCanScore && lockState !== 'forbidden') lockTransition = 'forbidden';
-  else if (userCanScore && lockState === 'forbidden') lockTransition = 'idle';
+  else if (userCanScore && (lockState === 'forbidden' || lockState === 'finished')) lockTransition = 'idle';
 
-  const canEdit = userCanScore && !finished && lockState === 'locked_by_me';
+  const canEdit = userCanScore && !canceled && lockState === 'locked_by_me';
   const scorePair = extractScorePair(match && (match.score || match));
   const hasServerScore = scorePair.a !== null && scorePair.b !== null;
 
   let scoreA = currentScoreA;
   let scoreB = currentScoreB;
 
-  if (finished) {
+  if (canceled) {
     if (hasServerScore) {
       scoreA = clampScore(scorePair.a);
       scoreB = clampScore(scorePair.b);
@@ -198,6 +205,11 @@ function buildTournamentViewState(tournament, options = {}) {
       scoreA = clampScore(scorePair.a);
       scoreB = clampScore(scorePair.b);
     }
+  } else if (finished) {
+    if (hasServerScore) {
+      scoreA = clampScore(scorePair.a);
+      scoreB = clampScore(scorePair.b);
+    }
   } else if (userCanScore && hasDraft) {
     scoreA = clampScore(draft.scoreA);
     scoreB = clampScore(draft.scoreB);
@@ -206,15 +218,15 @@ function buildTournamentViewState(tournament, options = {}) {
     scoreB = clampScore(scorePair.b);
   }
 
-  const showDraftPreview = !finished && !canEdit && userCanScore && hasDraft;
-  const displayScoreA = (canEdit || finished || hasServerScore || showDraftPreview) ? String(scoreA) : '-';
-  const displayScoreB = (canEdit || finished || hasServerScore || showDraftPreview) ? String(scoreB) : '-';
+  const showDraftPreview = !finished && !canceled && !canEdit && userCanScore && hasDraft;
+  const displayScoreA = (canEdit || finished || canceled || hasServerScore || showDraftPreview) ? String(scoreA) : '-';
+  const displayScoreB = (canEdit || finished || canceled || hasServerScore || showDraftPreview) ? String(scoreB) : '-';
 
   return {
     tournament: nt,
     lockTransition,
-    shouldClearDraft: finished,
-    shouldSyncLock: !finished && userCanScore,
+    shouldClearDraft: canceled,
+    shouldSyncLock: canUseScoreLock && userCanScore,
     lockSyncKey: buildMatchKey(options.tournamentId, roundIndex, matchIndex),
     data: {
       loadError: false,
@@ -225,6 +237,8 @@ function buildTournamentViewState(tournament, options = {}) {
       userCanScore,
       isAdmin,
       canEdit,
+      lockActionText,
+      canUseScoreLock,
       scoreA,
       scoreB,
       scoreAIndex: scoreA,

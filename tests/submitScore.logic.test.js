@@ -25,6 +25,44 @@ function fixtureTournament() {
   };
 }
 
+function fixtureSquadTargetWinsTournament() {
+  return {
+    mode: 'squad_doubles',
+    rules: { endCondition: { type: 'target_wins', target: 2 } },
+    players: [
+      { id: 'a1', name: 'A1', squad: 'A' },
+      { id: 'a2', name: 'A2', squad: 'A' },
+      { id: 'b1', name: 'B1', squad: 'B' },
+      { id: 'b2', name: 'B2', squad: 'B' }
+    ],
+    rounds: [{
+      roundIndex: 0,
+      matches: [
+        {
+          matchIndex: 0,
+          status: 'finished',
+          teamA: [{ id: 'a1' }, { id: 'a2' }],
+          teamB: [{ id: 'b1' }, { id: 'b2' }],
+          score: { teamA: 21, teamB: 18 }
+        },
+        {
+          matchIndex: 1,
+          status: 'finished',
+          teamA: [{ id: 'a1' }, { id: 'a2' }],
+          teamB: [{ id: 'b1' }, { id: 'b2' }],
+          score: { teamA: 21, teamB: 19 }
+        },
+        {
+          matchIndex: 2,
+          status: 'canceled',
+          teamA: [{ id: 'a1' }, { id: 'a2' }],
+          teamB: [{ id: 'b1' }, { id: 'b2' }]
+        }
+      ]
+    }]
+  };
+}
+
 test('buildSubmitResult updates score, ranking and finished status', () => {
   const t = fixtureTournament();
   const out = logic.buildSubmitResult(t, 0, 0, 21, 17, {
@@ -65,6 +103,39 @@ test('buildSubmitResult keeps running when remaining matches not finished', () =
   const out = logic.buildSubmitResult(t, 0, 0, 21, 18);
   assert.equal(out.finished, false);
   assert.equal(out.nextStatus, 'running');
+});
+
+test('buildSubmitResult revives scoreless canceled matches when edited target_wins no longer has a winner', () => {
+  const t = fixtureSquadTargetWinsTournament();
+  const out = logic.buildSubmitResult(t, 0, 1, 18, 21);
+
+  assert.equal(out.rounds[0].matches[1].status, 'finished');
+  assert.deepEqual(out.rounds[0].matches[1].score, { teamA: 18, teamB: 21 });
+  assert.equal(out.rounds[0].matches[2].status, 'pending');
+  assert.equal(out.finished, false);
+  assert.equal(out.nextStatus, 'running');
+  assert.equal(out.rankings.find((row) => row.entityId === 'A').wins, 1);
+  assert.equal(out.rankings.find((row) => row.entityId === 'B').wins, 1);
+});
+
+test('buildSubmitResult re-cancels revived target_wins matches when a winner still exists', () => {
+  const t = fixtureSquadTargetWinsTournament();
+  const out = logic.buildSubmitResult(t, 0, 1, 22, 20);
+
+  assert.equal(out.rounds[0].matches[2].status, 'canceled');
+  assert.equal(out.finished, true);
+  assert.equal(out.nextStatus, 'finished');
+  assert.equal(out.rankings.find((row) => row.entityId === 'A').wins, 2);
+});
+
+test('buildSubmitResult does not revive canceled matches that already carry a valid score', () => {
+  const t = fixtureSquadTargetWinsTournament();
+  t.rounds[0].matches[2].score = { teamA: 21, teamB: 17 };
+  const out = logic.buildSubmitResult(t, 0, 1, 18, 21);
+
+  assert.equal(out.rounds[0].matches[2].status, 'canceled');
+  assert.equal(out.finished, true);
+  assert.equal(out.nextStatus, 'finished');
 });
 
 test('buildSubmitResult throws on invalid target round or match', () => {

@@ -41,7 +41,7 @@ function resolveLockAction(input = {}) {
     return { response: buildResponse({ ok: false, state: 'forbidden' }) };
   }
   if (!input.matchExists) throw new Error('比赛不存在');
-  if (matchStatus === 'finished' || matchStatus === 'canceled') {
+  if (matchStatus === 'canceled') {
     return { response: buildResponse({ ok: false, state: 'finished' }) };
   }
 

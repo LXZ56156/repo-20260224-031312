@@ -50,13 +50,13 @@
     </view>
 
     <!-- 锁态面板 -->
-    <view class="lock-panel" wx:if="{{match.status==='pending'}}">
+    <view class="lock-panel" wx:if="{{canUseScoreLock}}">
       <view class="lock-icon-row">
         <text class="lock-icon">🔒</text>
         <view class="lock-hint">{{lockHintText}}</view>
       </view>
       <view class="lock-actions" wx:if="{{userCanScore && lockState==='idle'}}">
-        <button class="btn btn-primary btn-sm lock-btn-primary" bindtap="onStartScoring" loading="{{lockBusy}}" disabled="{{lockBusy}}">开始录分</button>
+        <button class="btn btn-primary btn-sm lock-btn-primary" bindtap="onStartScoring" loading="{{lockBusy}}" disabled="{{lockBusy}}">{{lockActionText}}</button>
       </view>
       <view class="lock-actions" wx:elif="{{userCanScore && lockState==='locked_by_other'}}">
         <button class="btn btn-subtle btn-sm lock-btn" bindtap="onRefreshLock" loading="{{lockBusy}}" disabled="{{lockBusy}}">刷新状态</button>

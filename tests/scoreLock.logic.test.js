@@ -85,9 +85,13 @@ test('expired lock returns expired on heartbeat and can be force acquired by adm
   assert.equal(forceAcquire.response.ownerId, 'u1');
 });
 
-test('finished match and forbidden caller are rejected before lock mutation', () => {
+test('finished match can be locked again while canceled and forbidden callers are rejected', () => {
   const finished = logic.resolveLockAction(baseInput({ action: 'acquire', matchStatus: 'finished' }));
-  assert.equal(finished.response.state, 'finished');
+  assert.equal(finished.response.state, 'acquired');
+  assert.equal(finished.nextLockDoc.ownerId, 'u1');
+
+  const canceled = logic.resolveLockAction(baseInput({ action: 'acquire', matchStatus: 'canceled' }));
+  assert.equal(canceled.response.state, 'finished');
 
   const forbidden = logic.resolveLockAction(baseInput({ action: 'acquire', canUseLock: false }));
   assert.equal(forbidden.response.state, 'forbidden');

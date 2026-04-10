@@ -35,15 +35,16 @@ function buildTournament() {
   };
 }
 
-function loadSubmitScoreMain(db) {
+function loadSubmitScoreMain(db, options = {}) {
   const originalLoad = Module._load;
+  const openid = String(options.openid || 'u_admin');
   const mockSdk = {
     init() {},
     database() {
       return db;
     },
     getWXContext() {
-      return { OPENID: 'u_admin' };
+      return { OPENID: openid };
     },
     DYNAMIC_CURRENT_ENV: 'test-env'
   };
@@ -70,11 +71,13 @@ function loadSubmitScoreMain(db) {
 }
 
 function createDbHarness(lockGetImpl, options = {}) {
+  const tournamentFactory = typeof options.tournamentFactory === 'function' ? options.tournamentFactory : buildTournament;
   const calls = {
     tournamentGet: 0,
     lockGet: 0,
     update: 0,
-    remove: 0
+    remove: 0,
+    updatePayloads: []
   };
   const db = {
     command: {
@@ -93,15 +96,17 @@ function createDbHarness(lockGetImpl, options = {}) {
             return {
               async get() {
                 calls.tournamentGet += 1;
-                return { data: buildTournament() };
+                return { data: tournamentFactory() };
               }
             };
           },
           where(query) {
-            assert.deepEqual(query, { _id: 't_1', version: 1 });
+            const expectedVersion = Number(tournamentFactory().version) || 1;
+            assert.deepEqual(query, { _id: 't_1', version: expectedVersion });
             return {
-              async update() {
+              async update(payload) {
                 calls.update += 1;
+                calls.updatePayloads.push(payload);
                 return { stats: { updated: options.updatedCount === undefined ? 1 : options.updatedCount } };
               }
             };
@@ -189,5 +194,117 @@ test('submitScore returns VERSION_CONFLICT when optimistic update reports update
   assert.equal(calls.tournamentGet, 1);
   assert.equal(calls.lockGet, 1);
   assert.equal(calls.update, 1);
+  assert.equal(calls.remove, 0);
+});
+
+test('submitScore treats same-score finished submit by another participant as deduped no-op', async () => {
+  const { db, calls } = createDbHarness(async () => {
+    throw new Error('lock should not be read for same-score no-op');
+  }, {
+    tournamentFactory: () => {
+      const t = buildTournament();
+      t.rounds[0].matches[0] = {
+        ...t.rounds[0].matches[0],
+        status: 'finished',
+        score: { teamA: 21, teamB: 19 },
+        scorerId: 'u_admin',
+        scorerName: '管理员'
+      };
+      return t;
+    }
+  });
+  const { main } = loadSubmitScoreMain(db, { openid: 'u_b' });
+
+  const result = await main({
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    scoreA: 21,
+    scoreB: 19,
+    clientRequestId: 'req_same_score'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.code, 'SCORE_SUBMIT_DEDUPED');
+  assert.equal(result.state, 'deduped');
+  assert.equal(result.clientRequestId, 'req_same_score');
+  assert.equal(calls.tournamentGet, 1);
+  assert.equal(calls.lockGet, 0);
+  assert.equal(calls.update, 0);
+  assert.equal(calls.remove, 0);
+});
+
+test('submitScore lets participants overwrite a finished score when they hold the lock', async () => {
+  const { db, calls } = createDbHarness(async () => ({
+    data: {
+      ownerId: 'u_b',
+      ownerName: '球友B',
+      expireAt: Date.now() + 60_000
+    }
+  }), {
+    tournamentFactory: () => {
+      const t = buildTournament();
+      t.rounds[0].matches[0] = {
+        ...t.rounds[0].matches[0],
+        status: 'finished',
+        score: { teamA: 21, teamB: 19 },
+        scorerId: 'u_admin',
+        scorerName: '管理员'
+      };
+      return t;
+    }
+  });
+  const { main } = loadSubmitScoreMain(db, { openid: 'u_b' });
+
+  const result = await main({
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    scoreA: 18,
+    scoreB: 21
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.code, 'SCORE_SUBMITTED');
+  assert.equal(result.scorerName, '球友B');
+  assert.equal(calls.tournamentGet, 1);
+  assert.equal(calls.lockGet, 1);
+  assert.equal(calls.update, 1);
+  assert.equal(calls.remove, 1);
+  const writtenMatch = calls.updatePayloads[0].data.rounds[0].matches[0];
+  assert.deepEqual(writtenMatch.score, { teamA: 18, teamB: 21 });
+  assert.equal(writtenMatch.scorerId, 'u_b');
+  assert.equal(writtenMatch.scorerName, '球友B');
+});
+
+test('submitScore keeps canceled matches non-editable', async () => {
+  const { db, calls } = createDbHarness(async () => {
+    throw new Error('lock should not be read for canceled match');
+  }, {
+    tournamentFactory: () => {
+      const t = buildTournament();
+      t.rounds[0].matches[0] = {
+        ...t.rounds[0].matches[0],
+        status: 'canceled'
+      };
+      return t;
+    }
+  });
+  const { main } = loadSubmitScoreMain(db, { openid: 'u_b' });
+
+  const result = await main({
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    scoreA: 18,
+    scoreB: 21
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'MATCH_FINISHED');
+  assert.equal(result.state, 'conflict');
+  assert.equal(calls.tournamentGet, 1);
+  assert.equal(calls.lockGet, 0);
+  assert.equal(calls.update, 0);
   assert.equal(calls.remove, 0);
 });

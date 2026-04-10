@@ -93,7 +93,7 @@ exports.main = async (event) => {
         traceId
       });
     }
-    if (String(match.status || '') === 'finished' || String(match.status || '') === 'canceled') {
+    if (String(match.status || '') === 'canceled') {
       return createCodeResult('MATCH_FINISHED', '该场已结束', { traceId });
     }
 

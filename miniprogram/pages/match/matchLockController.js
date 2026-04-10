@@ -125,7 +125,7 @@ function createMatchLockController(ctx, deps = {}) {
   async function syncLockStatus(silent = false) {
     const match = ctx.data.match;
     const status = String(match && match.status || '').trim();
-    if (!ctx.data.userCanScore || !match || status === 'finished' || status === 'canceled') return;
+    if (!ctx.data.userCanScore || !match || status === 'canceled') return;
     try {
       const res = await cloudApi.call('scoreLock', buildScoreLockPayload('status'));
       applyScoreLockResult(res, { silent });

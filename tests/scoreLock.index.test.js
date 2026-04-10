@@ -278,8 +278,8 @@ test('scoreLock index normalizes occupied lock errors to conflict state', async 
   assert.equal(calls.remove.length, 0);
 });
 
-test('scoreLock index normalizes finished match errors to conflict state', async () => {
-  const { db } = createDbHarnessWithTournament(
+test('scoreLock index can acquire a finished match for score edits', async () => {
+  const { db, calls } = createDbHarnessWithTournament(
     async () => {
       throw new Error('document.get:fail document does not exist');
     },
@@ -294,7 +294,37 @@ test('scoreLock index normalizes finished match errors to conflict state', async
   const { main } = loadScoreLockMain(db);
 
   const result = await main({
-    action: 'status',
+    action: 'acquire',
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.code, 'LOCK_ACQUIRED');
+  assert.equal(result.state, 'acquired');
+  assert.equal(result.ownerId, 'u_admin');
+  assert.equal(calls.set.length, 1);
+  assert.equal(calls.remove.length, 0);
+});
+
+test('scoreLock index keeps canceled matches locked out', async () => {
+  const { db, calls } = createDbHarnessWithTournament(
+    async () => {
+      throw new Error('document.get:fail document does not exist');
+    },
+    () => ({
+      ...buildTournament(),
+      rounds: [{
+        roundIndex: 0,
+        matches: [{ matchIndex: 0, status: 'canceled' }]
+      }]
+    })
+  );
+  const { main } = loadScoreLockMain(db);
+
+  const result = await main({
+    action: 'acquire',
     tournamentId: 't_1',
     roundIndex: 0,
     matchIndex: 0
@@ -303,6 +333,8 @@ test('scoreLock index normalizes finished match errors to conflict state', async
   assert.equal(result.ok, false);
   assert.equal(result.code, 'MATCH_FINISHED');
   assert.equal(result.state, 'conflict');
+  assert.equal(calls.set.length, 0);
+  assert.equal(calls.remove.length, 0);
 });
 
 test('scoreLock index normalizes expired heartbeat errors to conflict state', async () => {
