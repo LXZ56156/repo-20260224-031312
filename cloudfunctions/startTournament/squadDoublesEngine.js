@@ -2,6 +2,7 @@
 // 设计目标：保证 A 队两人 + B 队两人的对阵结构下的全局公平性
 // 不依赖 rotationDoublesEngine，避免污染 multi_rotate 稳定路径
 
+const { performance: nodePerf } = require('perf_hooks');
 const { pairKey, stableSortIds } = require('./utils');
 const {
   incrementalSquareCost,
@@ -13,8 +14,11 @@ const {
   computeRoundsSinceRest
 } = require('./schedulerShared');
 
+// 使用 performance.now() 代替 Date.now()，避免 WSL2/虚拟化环境下系统时钟跳变
+const perfNowBase = nodePerf.now();
+const dateNowBase = Date.now();
 function nowMs() {
-  return Date.now();
+  return dateNowBase + (nodePerf.now() - perfNowBase);
 }
 
 function deadlineReached(deadlineAtMs) {
@@ -161,6 +165,7 @@ function buildBeamContext(idsA, idsB, totalMatches, courts, config = {}) {
     restSetLimit: Number(config.restSetLimit) || 10,
     packageLimit: Number(config.packageLimit) || 24,
     perStateLimit: Number(config.perStateLimit) || 8,
+    greedyRestLimit: Number(config.greedyRestLimit) || 0,
     timeBudgetMs: Number(config.timeBudgetMs) || 180,
     deadlineAtMs: Number(config.deadlineAtMs) || 0
   };
@@ -171,6 +176,7 @@ function enumerateRestForSquad(teamIds, restCount, state, limit, deadlineAtMs = 
   if (restCount <= 0) return [[]];
   const n = teamIds.length;
   const totalComb = countComb(n, restCount);
+  const comboLimit = Math.max(1, Number(limit) || 0);
   const rankedPool = teamIds.slice().sort((left, right) => {
     const lb = Number(state.byeCount[left]) || 0;
     const rb = Number(state.byeCount[right]) || 0;
@@ -183,13 +189,12 @@ function enumerateRestForSquad(teamIds, restCount, state, limit, deadlineAtMs = 
     if (ls !== rs) return rs - ls;
     return left.localeCompare(right);
   });
-  const pool = totalComb <= 256
-    ? rankedPool
-    : rankedPool.slice(0, Math.max(restCount + 3, Math.min(n, limit + 3)));
+  const shouldEarlyStop = totalComb > comboLimit;
   const result = [];
-  enumerateCombinations(pool, restCount, (combo) => {
+  enumerateCombinations(rankedPool, restCount, (combo) => {
     result.push(combo.slice());
-    return true;
+    if (!shouldEarlyStop) return true;
+    return result.length < comboLimit;
   }, { stable: false, deadlineAtMs, nowFn: nowMs });
   return result;
 }
@@ -209,6 +214,24 @@ function scoreMatchup(pairA, pairB, state) {
   const matchupKey = buildMatchupKey(pairA, pairB);
   const isNew = state.usedMatchupKeys.has(matchupKey) ? 0 : 1;
   return { partnerDelta, opponentDelta, isNew, matchupKey };
+}
+
+function buildPackageCandidate(score, tail, seed) {
+  const matchupKeys = [score.matchupKey].concat(tail.matchupKeys);
+  const stableKey = matchupKeys.slice().sort().join(' || ');
+  return {
+    matches: [{
+      teamA: score.pairA.slice(),
+      teamB: score.pairB.slice(),
+      matchupKey: score.matchupKey
+    }].concat(tail.matches),
+    matchupKeys,
+    partnerDelta: score.partnerDelta + tail.partnerDelta,
+    opponentDelta: score.opponentDelta + tail.opponentDelta,
+    newMatchups: score.isNew + tail.newMatchups,
+    seedRank: hashString(`${normalizeSeed(seed)}::${stableKey}`),
+    stableKey
+  };
 }
 
 function comparePackageCandidateMetrics(left, right) {
@@ -253,25 +276,90 @@ function selectBestPackageForPartitions(partitionA, partitionB, state, seed, dea
       const score = scoreMatrix[index][bIndex];
       const tail = solve(index + 1, usedMask | (1 << bIndex));
       if (!tail) continue;
-      const matchupKeys = [score.matchupKey].concat(tail.matchupKeys);
-      const stableKey = matchupKeys.slice().sort().join(' || ');
-      const candidate = {
-        matches: [{
-          teamA: score.pairA.slice(),
-          teamB: score.pairB.slice(),
-          matchupKey: score.matchupKey
-        }].concat(tail.matches),
-        matchupKeys,
-        partnerDelta: score.partnerDelta + tail.partnerDelta,
-        opponentDelta: score.opponentDelta + tail.opponentDelta,
-        newMatchups: score.isNew + tail.newMatchups,
-        seedRank: hashString(`${normalizeSeed(seed)}::${stableKey}`),
-        stableKey
-      };
+      const candidate = buildPackageCandidate(score, tail, seed);
       if (!best || comparePackageCandidateMetrics(candidate, best) < 0) {
         best = candidate;
       }
     }
+    cache.set(cacheKey, best);
+    return best;
+  };
+
+  return solve(0, 0);
+}
+
+function buildActivePairEntries(activeIds) {
+  const sorted = stableSortIds(activeIds);
+  const entries = [];
+  for (let left = 0; left < sorted.length; left += 1) {
+    for (let right = left + 1; right < sorted.length; right += 1) {
+      entries.push({
+        pair: [sorted[left], sorted[right]],
+        mask: (1 << left) | (1 << right),
+        stableKey: pairStableKey([sorted[left], sorted[right]])
+      });
+    }
+  }
+  entries.sort((left, right) => left.stableKey.localeCompare(right.stableKey));
+  return entries;
+}
+
+function firstUnusedBitIndex(mask, size) {
+  for (let index = 0; index < size; index += 1) {
+    if ((mask & (1 << index)) === 0) return index;
+  }
+  return -1;
+}
+
+function selectBestPackageForLargeActiveSet(activeA, activeB, state, seed, deadlineAtMs = 0) {
+  if (activeA.length !== activeB.length || activeA.length < 6) return null;
+
+  const pairsA = buildActivePairEntries(activeA);
+  const pairsB = buildActivePairEntries(activeB);
+  const fullAMask = (1 << activeA.length) - 1;
+  const fullBMask = (1 << activeB.length) - 1;
+  const scoreMatrix = pairsA.map((entryA) => pairsB.map((entryB) => ({
+    pairA: entryA.pair,
+    pairB: entryB.pair,
+    ...scoreMatchup(entryA.pair, entryB.pair, state)
+  })));
+  const cache = new Map();
+
+  const solve = (usedAMask, usedBMask) => {
+    if (deadlineReached(deadlineAtMs)) return null;
+    if (usedAMask === fullAMask && usedBMask === fullBMask) {
+      return {
+        matches: [],
+        matchupKeys: [],
+        partnerDelta: 0,
+        opponentDelta: 0,
+        newMatchups: 0,
+        seedRank: 0,
+        stableKey: ''
+      };
+    }
+    const cacheKey = `${usedAMask}:${usedBMask}`;
+    if (cache.has(cacheKey)) return cache.get(cacheKey);
+
+    const anchorIndex = firstUnusedBitIndex(usedAMask, activeA.length);
+    let best = null;
+
+    for (let aIndex = 0; aIndex < pairsA.length; aIndex += 1) {
+      const pairA = pairsA[aIndex];
+      if ((pairA.mask & usedAMask) !== 0) continue;
+      if ((pairA.mask & (1 << anchorIndex)) === 0) continue;
+      for (let bIndex = 0; bIndex < pairsB.length; bIndex += 1) {
+        const pairB = pairsB[bIndex];
+        if ((pairB.mask & usedBMask) !== 0) continue;
+        const tail = solve(usedAMask | pairA.mask, usedBMask | pairB.mask);
+        if (!tail) continue;
+        const candidate = buildPackageCandidate(scoreMatrix[aIndex][bIndex], tail, seed);
+        if (!best || comparePackageCandidateMetrics(candidate, best) < 0) {
+          best = candidate;
+        }
+      }
+    }
+
     cache.set(cacheKey, best);
     return best;
   };
@@ -286,6 +374,17 @@ function buildPackageCandidates(activeA, activeB, state, context, seed) {
   if (packageSize <= 0) return [];
   if (activeA.length !== activeB.length) return [];
   if (deadlineReached(context.deadlineAtMs)) return [];
+
+  if (activeA.length >= 6) {
+    const bestPackage = selectBestPackageForLargeActiveSet(
+      activeA,
+      activeB,
+      state,
+      seed,
+      context.deadlineAtMs
+    );
+    return bestPackage ? [bestPackage] : [];
+  }
 
   // 限制组合爆炸：partition 数量过大时截断
   const maxPartitionsPerSide = context.packageLimit * 2;
@@ -395,12 +494,20 @@ function buildRoundCandidates(state, context, seed) {
 
   // rest 候选截断：只有当 restCandidates 极多时才裁剪，避免过早丢弃对均衡有利的 rest 方案
   // 6v6 courts=2 有 C(6,2)²=225 种组合，4v4 有 36 种，均应全量通过
-  const limitedRest = restCandidates.length <= 512
-    ? restCandidates
-    : restCandidates.slice(0, context.restSetLimit);
+  const largeRoster = Math.max(context.idsA.length, context.idsB.length) >= 9;
+  const limitedRest = largeRoster && restCandidates.length > context.restSetLimit
+    ? restCandidates.slice(0, context.restSetLimit)
+    : (restCandidates.length <= 512
+      ? restCandidates
+      : restCandidates.slice(0, context.restSetLimit));
+
+  const greedyRestLimit = Math.max(0, Number(context.greedyRestLimit) || 0);
+  const packageRestCandidates = greedyRestLimit > 0
+    ? limitedRest.slice(0, greedyRestLimit)
+    : limitedRest;
 
   const roundCandidates = [];
-  for (const restCand of limitedRest) {
+  for (const restCand of packageRestCandidates) {
     if (deadlineReached(context.deadlineAtMs)) break;
     const packages = buildPackageCandidates(restCand.activeA, restCand.activeB, state, context, seed);
     for (const pkg of packages) {
@@ -572,6 +679,13 @@ function runSingleBeam(idsA, idsB, totalMatches, courts, seed, config = {}) {
     }
     const expanded = [];
     for (const state of beam) {
+      // 内部 deadline 检查：避免单轮扩展多个 state 导致超时
+      if (deadlineReached(context.deadlineAtMs)
+          || (nowMs() - startedAt) >= context.timeBudgetMs) {
+        timedOut = true;
+        expanded.push(state);
+        continue;
+      }
       if (state.matchCount >= totalMatches) {
         expanded.push(state);
         continue;
@@ -678,6 +792,27 @@ function finalizeSchedule(state, idsA, idsB, seed, meta = {}) {
   };
 }
 
+function computeAdaptiveConfig(playersPerSquad, effectiveCourts) {
+  // ≤5 人/side, 1 court：组合空间小，多 seed 提升质量
+  if (playersPerSquad <= 5 && effectiveCourts === 1) {
+    return { searchSeeds: 6, beamWidth: 48, restSetLimit: 48, packageLimit: 24, perStateLimit: 8, timeBudgetMs: 220 };
+  }
+  // ≤5 人/side, 2 courts：适度缩减 seed，增加单 seed 时间
+  if (playersPerSquad <= 5) {
+    return { searchSeeds: 4, beamWidth: 40, restSetLimit: 32, packageLimit: 20, perStateLimit: 6, timeBudgetMs: 350 };
+  }
+  // 6-7 人/side：中等规模，3 seed 平衡搜索宽度与深度
+  if (playersPerSquad <= 7) {
+    return { searchSeeds: 3, beamWidth: 32, restSetLimit: 24, packageLimit: 16, perStateLimit: 5, timeBudgetMs: 450 };
+  }
+  // 8+ 人/side, 4 courts：最大规模，最激进的截断
+  if (effectiveCourts >= 4) {
+    return { searchSeeds: 2, beamWidth: 16, restSetLimit: 12, packageLimit: 8, perStateLimit: 3, timeBudgetMs: 650 };
+  }
+  // 8+ 人/side, ≤3 courts
+  return { searchSeeds: 2, beamWidth: 24, restSetLimit: 16, packageLimit: 12, perStateLimit: 4, timeBudgetMs: 650 };
+}
+
 function resolveSquadSchedule(idsA, idsB, totalMatches, courts, options = {}) {
   const sortedA = stableSortIds(idsA);
   const sortedB = stableSortIds(idsB);
@@ -690,7 +825,6 @@ function resolveSquadSchedule(idsA, idsB, totalMatches, courts, options = {}) {
   const softDeadlineAtMs = startedAt + softBudgetMs;
   const hardDeadlineAtMs = startedAt + hardDeadlineMs;
 
-  const searchSeeds = Math.max(1, Number(options.searchSeeds) || 6);
   const seedStep = Math.max(1, Number(options.seedStep) || 7919);
   const baseSeed = normalizeSeed(options.seed || 1);
 
@@ -700,17 +834,17 @@ function resolveSquadSchedule(idsA, idsB, totalMatches, courts, options = {}) {
     Math.floor(sortedB.length / 2)
   ));
 
-  // 运行时配置：根据 courts 调整
-  // restSetLimit 必须足够覆盖小规模问题的完整 rest 组合，否则 partnerDelta 排序无法生效
-  // 4v4 courts=1：36 rest 组合；6v6 courts=1：225；6v6 courts=2：225
-  const runtimeConfig = effectiveCourts === 1
-    ? { beamWidth: 48, restSetLimit: 48, packageLimit: 24, perStateLimit: 8, timeBudgetMs: 220 }
-    : { beamWidth: 64, restSetLimit: 64, packageLimit: 32, perStateLimit: 10, timeBudgetMs: 280 };
+  // 自适应运行时配置：根据 (playersPerSquad, effectiveCourts) 调整
+  // 关键原则：searchSeeds × timeBudgetMs ≤ softBudgetMs，每个 seed 分到足够时间完成搜索
+  const playersPerSquad = Math.max(sortedA.length, sortedB.length);
+  const runtimeConfig = computeAdaptiveConfig(playersPerSquad, effectiveCourts);
+  const searchSeeds = Math.max(1, Number(options.searchSeeds) || runtimeConfig.searchSeeds);
 
   let bestCompleted = null;
   let bestPartial = null;
   let softTimeoutTriggered = false;
   let guardedCompletionUsed = false;
+  const earlyExitThreshold = Math.max(2, Math.ceil(searchSeeds / 2));
 
   for (let i = 0; i < searchSeeds; i += 1) {
     if (nowMs() >= softDeadlineAtMs) {
@@ -732,15 +866,25 @@ function resolveSquadSchedule(idsA, idsB, totalMatches, courts, options = {}) {
     } else if (!bestPartial || compareState(state, bestPartial) < 0) {
       bestPartial = state;
     }
+    // 提前退出：前半数 seed 都没有 complete 且 partial 进度 < 50%，留时间给 greedy completion
+    if (!bestCompleted && i + 1 >= earlyExitThreshold && bestPartial
+        && bestPartial.matchCount < target * 0.5) {
+      softTimeoutTriggered = true;
+      break;
+    }
   }
 
-  // 如果没有完整方案，尝试用 partial 贪心补齐
+  // 如果没有完整方案，尝试用 partial 贪心补齐（使用更大的参数以提高成功率）
   if (!bestCompleted && bestPartial && nowMs() < hardDeadlineAtMs) {
+    const largeRosterGreedyRestLimit = playersPerSquad >= 8
+      ? (effectiveCourts >= 4 ? 2 : 4)
+      : 0;
     const guardContext = buildBeamContext(sortedA, sortedB, target, effectiveCourts, {
-      beamWidth: 16,
-      restSetLimit: 6,
-      packageLimit: 12,
-      perStateLimit: 3,
+      beamWidth: 32,
+      restSetLimit: 16,
+      packageLimit: 16,
+      perStateLimit: 1,
+      greedyRestLimit: largeRosterGreedyRestLimit,
       deadlineAtMs: hardDeadlineAtMs
     });
     const completed = greedilyCompleteState(bestPartial, guardContext, baseSeed + 100003);

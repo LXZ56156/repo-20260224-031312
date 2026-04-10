@@ -1,26 +1,26 @@
 # 排阵算法全量审计与推荐场数报告
 
-- 生成时间: `2026-04-09T16:48:30.933Z`
-- 当前 commit: `93648d3`
+- 生成时间: `2026-04-09T18:53:50.132Z`
+- 当前 commit: `7f9e0c2`
 - 工作区脏状态: `dirty`
 - 矩阵场景数: `959`
 - 代表性场景数: `16`
-- warnings: `19`
-- failures: `14`
+- warnings: `0`
+- failures: `0`
 
 ## 执行摘要
 
 | mode | scenarios | warnings | failures | avgElapsedMs | maxElapsedMs | guardedRatio | greedyFallbackRatio |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| multi_rotate | 912 | 1 | 2 | 13 | 5512 | 2/912 (0%) | 0/912 (0%) |
-| squad_doubles | 47 | 18 | 12 | 2379 | 5518 | 21/47 (45%) | 12/47 (26%) |
+| multi_rotate | 912 | 0 | 0 | 2 | 498 | 4/912 (0%) | 0/912 (0%) |
+| squad_doubles | 47 | 0 | 0 | 866 | 2070 | 13/47 (28%) | 0/47 (0%) |
 
 ## multi_rotate 审计
 
 | group | scenarios | warnings | failures | avgElapsedMs | maxElapsedMs | guardedRatio | greedyFallbackRatio |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| template matrix | 908 | 0 | 0 | 0 | 4 | 0/908 (0%) | 0/908 (0%) |
-| longtail matrix | 4 | 1 | 2 | 2863 | 5512 | 2/4 (50%) | 0/4 (0%) |
+| template matrix | 908 | 0 | 0 | 0 | 5 | 0/908 (0%) | 0/908 (0%) |
+| longtail matrix | 4 | 0 | 0 | 297 | 498 | 4/4 (100%) | 0/4 (0%) |
 
 ### 代表性场景
 
@@ -29,26 +29,21 @@
 | rotation 6p/12m/1c | pass | 0 | 300 | template | false |  | 0 | 4 | 12 |
 | rotation 8p/8m/2c | pass | 0 | 300 | template | false |  | 0 | 4 | 8 |
 | rotation 9p/12m/1c | pass | 1 | 300 | template | false |  | 1 | 1 | 12 |
-| rotation 10p/18m/2c | pass | 0 | 300 | template | false |  | 1 | 4 | 18 |
-| rotation 12p/12m/2c | pass | 0 | 300 | template | false |  | 0 | 2 | 12 |
+| rotation 10p/18m/2c | pass | 1 | 300 | template | false |  | 1 | 4 | 18 |
+| rotation 12p/12m/2c | pass | 1 | 300 | template | false |  | 0 | 2 | 12 |
 | rotation 14p/12m/4c | pass | 0 | 300 | template | false |  | 1 | 4 | 12 |
 | rotation 16p/12m/4c | pass | 0 | 300 | template | false |  | 0 | 3 | 12 |
 | rotation 20p/12m/1c | pass | 1 | 300 | template | false |  | 1 | 1 | 12 |
 | rotation 24p/12m/2c | pass | 0 | 300 | template | false |  | 0 | 1 | 12 |
-| rotation 10p/23m/2c budget=200 | pass | 218 | 1500 | beam-guarded | true | guarded_greedy_completion | 1 | 4 | 23 |
+| rotation 10p/23m/2c budget=200 | pass | 220 | 1500 | beam-guarded | true | guarded_greedy_completion | 1 | 4 | 23 |
 
 ### 失败项
 
-| scenario | code | message |
-| --- | --- | --- |
-| rotation longtail 13p/16m/2c budget=800 | elapsed_ms | elapsedMs=5512 > 2500 |
-| rotation longtail 15p/18m/3c budget=1200 | elapsed_ms | elapsedMs=5503 > 2500 |
+none
 
 ### 警告项
 
-| scenario | code | message |
-| --- | --- | --- |
-| rotation longtail 13p/16m/2c budget=800 | runtime_retry_passed | firstError=排阵超时，请减少场次或补充模板 retryElapsedMs=5512 |
+none
 
 ## multi_rotate 推荐合理性
 
@@ -64,59 +59,27 @@ none
 
 | group | scenarios | warnings | failures | avgElapsedMs | maxElapsedMs | guardedRatio | greedyFallbackRatio |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| equal matrix | 44 | 18 | 12 | 2468 | 5518 | 20/44 (45%) | 12/44 (27%) |
-| uneven matrix | 3 | 0 | 0 | 1077 | 1700 | 1/3 (33%) | 0/3 (0%) |
+| equal matrix | 44 | 0 | 0 | 849 | 2070 | 12/44 (27%) | 0/44 (0%) |
+| uneven matrix | 3 | 0 | 0 | 1123 | 1700 | 1/3 (33%) | 0/3 (0%) |
 
 ### 代表性场景
 
 | scenario | status | elapsedMs | maxElapsedMs | executionProfile | timeoutGuardTriggered | fallbackReason | playSpread | maxConsecutivePlay | uniqueExactMatchupCount |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| squad 4v4/12m/1c | pass | 736 | 2500 | beam-quality | false |  | 0 | 1 | 2 |
-| squad 5v5/12m/2c | pass | 1312 | 2500 | beam-guarded | true | soft_deadline_guard | 1 | 4 | 12 |
-| squad 6v6/12m/2c | pass | 5510 | 6000 | beam-guarded | true | soft_deadline_guard | 0 | 2 | 12 |
-| squad 8v8/16m/2c | pass | 5516 | 6000 | greedy-fallback | true | beam_no_complete_schedule | 0 | 2 | 16 |
-| squad 10v10/20m/4c | warn | 5517 | 6000 | greedy-fallback | true | beam_no_complete_schedule | 2 | 5 | 20 |
-| squad 3v4/9m/1c | pass | 309 | 2500 | beam-quality | false |  | 2 | 2 | 9 |
+| squad 4v4/12m/1c | pass | 791 | 2500 | beam-quality | false |  | 0 | 1 | 2 |
+| squad 5v5/12m/2c | pass | 1409 | 2500 | beam-quality | false |  | 1 | 4 | 12 |
+| squad 6v6/12m/2c | pass | 1701 | 6000 | beam-guarded | true | soft_deadline_guard | 0 | 2 | 12 |
+| squad 8v8/16m/2c | pass | 1701 | 6000 | beam-guarded | true | soft_deadline_guard | 0 | 1 | 16 |
+| squad 10v10/20m/4c | warn | 1998 | 6000 | beam-guarded | true | guarded_greedy_completion | 0 | 4 | 20 |
+| squad 3v4/9m/1c | pass | 290 | 2500 | beam-quality | false |  | 2 | 2 | 9 |
 
 ### 失败项
 
-| scenario | code | message |
-| --- | --- | --- |
-| squad equal 6v6/6m/2c | elapsed_ms | elapsedMs=5502 > 2500 |
-| squad equal 6v6/12m/2c | elapsed_ms | elapsedMs=5516 > 2500 |
-| squad equal 7v7/12m/2c | elapsed_ms | elapsedMs=5510 > 2500 |
-| squad equal 7v7/9m/3c | elapsed_ms | elapsedMs=5501 > 2500 |
-| squad equal 7v7/18m/3c | elapsed_ms | elapsedMs=5518 > 3000 |
-| squad equal 8v8/9m/3c | elapsed_ms | elapsedMs=5516 > 2500 |
-| squad equal 8v8/18m/3c | elapsed_ms | elapsedMs=5506 > 3000 |
-| squad equal 8v8/12m/4c | elapsed_ms | elapsedMs=5505 > 3000 |
-| squad equal 8v8/24m/4c | elapsed_ms | elapsedMs=5508 > 3000 |
-| squad equal 9v9/12m/4c | elapsed_ms | elapsedMs=5504 > 3000 |
-| squad equal 9v9/24m/4c | elapsed_ms | elapsedMs=5500 > 3000 |
-| squad equal 10v10/24m/4c | elapsed_ms | elapsedMs=5515 > 3000 |
+none
 
 ### 警告项
 
-| scenario | code | message |
-| --- | --- | --- |
-| squad equal 7v7/6m/2c | elapsed_retry_passed | firstElapsedMs=3821 retryElapsedMs=1693 |
-| squad equal 7v7/18m/3c | greedy_fallback | executionProfile=greedy-fallback fallbackReason=beam_no_complete_schedule |
-| squad equal 8v8/12m/2c | greedy_fallback | executionProfile=greedy-fallback fallbackReason=beam_no_complete_schedule |
-| squad equal 8v8/18m/3c | greedy_fallback | executionProfile=greedy-fallback fallbackReason=beam_no_complete_schedule |
-| squad equal 8v8/24m/4c | greedy_fallback | executionProfile=greedy-fallback fallbackReason=beam_no_complete_schedule |
-| squad equal 9v9/18m/3c | greedy_fallback | executionProfile=greedy-fallback fallbackReason=beam_no_complete_schedule |
-| squad equal 9v9/12m/4c | greedy_fallback | executionProfile=greedy-fallback fallbackReason=beam_no_complete_schedule |
-| squad equal 9v9/24m/4c | greedy_fallback | executionProfile=greedy-fallback fallbackReason=beam_no_complete_schedule |
-| squad equal 10v10/3m/1c | elapsed_retry_passed | firstElapsedMs=3231 retryElapsedMs=1700 |
-| squad equal 10v10/6m/1c | greedy_fallback | executionProfile=greedy-fallback fallbackReason=beam_no_complete_schedule |
-| squad equal 10v10/6m/2c | elapsed_retry_passed | firstElapsedMs=8000 retryElapsedMs=1926 |
-| squad equal 10v10/12m/2c | elapsed_retry_passed | firstElapsedMs=3022 retryElapsedMs=2524 |
-| squad equal 10v10/12m/2c | greedy_fallback | executionProfile=greedy-fallback fallbackReason=beam_no_complete_schedule |
-| squad equal 10v10/18m/3c | greedy_fallback | executionProfile=greedy-fallback fallbackReason=beam_no_complete_schedule |
-| squad equal 10v10/12m/4c | greedy_fallback | executionProfile=greedy-fallback fallbackReason=beam_no_complete_schedule |
-| squad equal 10v10/24m/4c | max_consecutive | maxConsecutivePlay=5 structureLimit=4 |
-| squad equal 10v10/24m/4c | greedy_fallback | executionProfile=greedy-fallback fallbackReason=beam_no_complete_schedule |
-| squad equal matrix | greedy_ratio | greedyRatio=0.27 (12/44) |
+none
 
 ## fixed_pair_rr 摘要
 
