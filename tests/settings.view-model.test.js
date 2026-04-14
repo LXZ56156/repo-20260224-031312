@@ -81,6 +81,7 @@ test('settings view model exposes fixed fair presets for multi_rotate', () => {
     [8, 14, 16]
   );
   assert.equal(state.currentCustomMatchLabel, '');
+  assert.equal(state.coveragePriorityNote, '');
 });
 
 test('settings view model preserves non-preset saved totals as current custom state', () => {
@@ -118,6 +119,23 @@ test('settings view model exposes expanded large-roster presets for multi_rotate
     [12, 15, 18]
   );
   assert.equal(state.currentCustomMatchLabel, '');
+});
+
+test('settings view model surfaces coverage-first recommendation notes when presets accept the tradeoff', () => {
+  const state = viewModel.buildSettingsViewState({
+    _id: 't_6p',
+    status: 'draft',
+    creatorId: 'u_1',
+    mode: flow.MODE_MULTI_ROTATE,
+    players: Array.from({ length: 6 }, (_, i) => ({ id: `u_${i}`, name: String(i) })),
+    courts: 1
+  }, { openid: 'u_1' });
+
+  assert.deepEqual(
+    state.matchShortcutOptions.map((item) => item.value),
+    [8, 13, 18]
+  );
+  assert.match(state.coveragePriorityNote, /coverage-first/);
 });
 
 test('settings view model falls back to custom flow when no fixed fair presets exist', () => {

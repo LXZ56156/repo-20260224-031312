@@ -95,11 +95,70 @@ function compareRestPriorityVector(left, right) {
   return 0;
 }
 
+function computePlayCountBoundsFromCounts(playCount, ids) {
+  const total = (ids || []).reduce((sum, id) => sum + (Number(playCount[id]) || 0), 0);
+  const size = Math.max(1, Array.isArray(ids) ? ids.length : 0);
+  return {
+    min: Math.floor(total / size),
+    max: Math.ceil(total / size)
+  };
+}
+
+function computeUnevenSpreadMetrics(playCount, context) {
+  const squadABounds = computePlayCountBoundsFromCounts(playCount, context.idsA);
+  const squadBBounds = computePlayCountBoundsFromCounts(playCount, context.idsB);
+  const squadAPlaySpread = computeCountSpread(playCount, context.idsA);
+  const squadBPlaySpread = computeCountSpread(playCount, context.idsB);
+  const globalPlaySpread = computeCountSpread(playCount, context.allIds);
+  const globalPlaySpreadBaseline = Math.max(squadABounds.max, squadBBounds.max) - Math.min(squadABounds.min, squadBBounds.min);
+  const squadAPlaySpreadBaseline = squadABounds.max - squadABounds.min;
+  const squadBPlaySpreadBaseline = squadBBounds.max - squadBBounds.min;
+  const squadAPlaySpreadExcess = Math.max(0, squadAPlaySpread - squadAPlaySpreadBaseline);
+  const squadBPlaySpreadExcess = Math.max(0, squadBPlaySpread - squadBPlaySpreadBaseline);
+
+  return {
+    globalPlaySpread,
+    globalPlaySpreadBaseline,
+    playSpreadExcess: Math.max(0, globalPlaySpread - globalPlaySpreadBaseline),
+    squadAPlaySpread,
+    squadBPlaySpread,
+    squadAPlaySpreadBaseline,
+    squadBPlaySpreadBaseline,
+    squadAPlaySpreadExcess,
+    squadBPlaySpreadExcess,
+    squadSpreadExcess: squadAPlaySpreadExcess + squadBPlaySpreadExcess,
+    maxSquadPlaySpreadExcess: Math.max(squadAPlaySpreadExcess, squadBPlaySpreadExcess)
+  };
+}
+
+function isPartnerDiversityPriorityContext(context) {
+  return Boolean(context && context.prioritizePartnerDiversity);
+}
+
 // squad 的评分函数：
 // 对 squad 而言，对手遭遇均衡的重要性 >= 搭档均衡（因为 A/B 队伍天然分隔，搭档空间更小）
 function compareObjective(left, right) {
+  if ((left.playSpreadExcess || 0) !== (right.playSpreadExcess || 0)) {
+    return (left.playSpreadExcess || 0) - (right.playSpreadExcess || 0);
+  }
+  if ((left.squadSpreadExcess || 0) !== (right.squadSpreadExcess || 0)) {
+    return (left.squadSpreadExcess || 0) - (right.squadSpreadExcess || 0);
+  }
   if (left.playSpread !== right.playSpread) return left.playSpread - right.playSpread;
   if (left.maxConsecutivePlay !== right.maxConsecutivePlay) return left.maxConsecutivePlay - right.maxConsecutivePlay;
+  if (left.prioritizePartnerDiversity || right.prioritizePartnerDiversity) {
+    if ((left.uniquePartnerPairCount || 0) !== (right.uniquePartnerPairCount || 0)) {
+      return (right.uniquePartnerPairCount || 0) - (left.uniquePartnerPairCount || 0);
+    }
+    if (left.partnerPenalty !== right.partnerPenalty) return left.partnerPenalty - right.partnerPenalty;
+    if (left.uniqueMatchupCount !== right.uniqueMatchupCount) return right.uniqueMatchupCount - left.uniqueMatchupCount;
+    if ((left.uniqueOpponentPairCount || 0) !== (right.uniqueOpponentPairCount || 0)) {
+      return (right.uniqueOpponentPairCount || 0) - (left.uniqueOpponentPairCount || 0);
+    }
+    if (left.opponentPenalty !== right.opponentPenalty) return left.opponentPenalty - right.opponentPenalty;
+    if (left.restPriorityTotal !== right.restPriorityTotal) return right.restPriorityTotal - left.restPriorityTotal;
+    return 0;
+  }
   if (left.opponentPenalty !== right.opponentPenalty) return left.opponentPenalty - right.opponentPenalty;
   if (left.partnerPenalty !== right.partnerPenalty) return left.partnerPenalty - right.partnerPenalty;
   if (left.uniqueMatchupCount !== right.uniqueMatchupCount) return right.uniqueMatchupCount - left.uniqueMatchupCount;
@@ -113,7 +172,7 @@ function compareState(left, right) {
   return String(left.historyKey || '').localeCompare(String(right.historyKey || ''));
 }
 
-function buildInitialState(idsA, idsB) {
+function buildInitialState(idsA, idsB, context = {}) {
   const all = idsA.concat(idsB);
   return {
     rounds: [],
@@ -127,19 +186,32 @@ function buildInitialState(idsA, idsB) {
     opponentCount: {},
     usedMatchupKeys: new Set(),
     uniqueMatchupCount: 0,
+    uniquePartnerPairCount: 0,
+    uniqueOpponentPairCount: 0,
     partnerPenalty: 0,
     opponentPenalty: 0,
     playSpread: 0,
+    playSpreadExcess: 0,
+    squadSpreadExcess: 0,
+    squadAPlaySpread: 0,
+    squadBPlaySpread: 0,
+    globalPlaySpreadBaseline: 0,
     maxConsecutivePlay: 0,
     restPriorityTotal: 0,
+    prioritizePartnerDiversity: isPartnerDiversityPriorityContext(context),
     historyKey: '',
     objective: {
       playSpread: 0,
+      playSpreadExcess: 0,
+      squadSpreadExcess: 0,
       maxConsecutivePlay: 0,
+      uniquePartnerPairCount: 0,
+      uniqueOpponentPairCount: 0,
       opponentPenalty: 0,
       partnerPenalty: 0,
       uniqueMatchupCount: 0,
-      restPriorityTotal: 0
+      restPriorityTotal: 0,
+      prioritizePartnerDiversity: isPartnerDiversityPriorityContext(context)
     }
   };
 }
@@ -152,6 +224,12 @@ function buildBeamContext(idsA, idsB, totalMatches, courts, config = {}) {
     Math.floor(sortedA.length / 2),
     Math.floor(sortedB.length / 2)
   ));
+  const unevenGap = Math.abs(sortedA.length - sortedB.length);
+  const prioritizePartnerDiversity = sortedA.length === sortedB.length
+    && Number(totalMatches) === 18
+    && Number(courts) === 3
+    && packageSize === 3
+    && (sortedA.length === 6 || sortedA.length === 7);
   return {
     idsA: sortedA,
     idsB: sortedB,
@@ -166,6 +244,9 @@ function buildBeamContext(idsA, idsB, totalMatches, courts, config = {}) {
     packageLimit: Number(config.packageLimit) || 24,
     perStateLimit: Number(config.perStateLimit) || 8,
     greedyRestLimit: Number(config.greedyRestLimit) || 0,
+    isUneven: sortedA.length !== sortedB.length,
+    useUnevenPriority: unevenGap > 0 && (unevenGap > 1 || packageSize === 1),
+    prioritizePartnerDiversity,
     timeBudgetMs: Number(config.timeBudgetMs) || 180,
     deadlineAtMs: Number(config.deadlineAtMs) || 0
   };
@@ -205,15 +286,20 @@ function scoreMatchup(pairA, pairB, state) {
   const pkB = pairKey(pairB[0], pairB[1]);
   const partnerDelta = incrementalSquareCost(state.partnerCount[pkA] || 0)
     + incrementalSquareCost(state.partnerCount[pkB] || 0);
+  const newPartnerPairs = Number((state.partnerCount[pkA] || 0) === 0)
+    + Number((state.partnerCount[pkB] || 0) === 0);
   let opponentDelta = 0;
+  let newOpponentPairs = 0;
   for (const a of pairA) {
     for (const b of pairB) {
-      opponentDelta += incrementalSquareCost(state.opponentCount[pairKey(a, b)] || 0);
+      const key = pairKey(a, b);
+      opponentDelta += incrementalSquareCost(state.opponentCount[key] || 0);
+      if ((state.opponentCount[key] || 0) === 0) newOpponentPairs += 1;
     }
   }
   const matchupKey = buildMatchupKey(pairA, pairB);
   const isNew = state.usedMatchupKeys.has(matchupKey) ? 0 : 1;
-  return { partnerDelta, opponentDelta, isNew, matchupKey };
+  return { partnerDelta, opponentDelta, isNew, matchupKey, newPartnerPairs, newOpponentPairs };
 }
 
 function buildPackageCandidate(score, tail, seed) {
@@ -229,12 +315,23 @@ function buildPackageCandidate(score, tail, seed) {
     partnerDelta: score.partnerDelta + tail.partnerDelta,
     opponentDelta: score.opponentDelta + tail.opponentDelta,
     newMatchups: score.isNew + tail.newMatchups,
+    newPartnerPairs: score.newPartnerPairs + tail.newPartnerPairs,
+    newOpponentPairs: score.newOpponentPairs + tail.newOpponentPairs,
     seedRank: hashString(`${normalizeSeed(seed)}::${stableKey}`),
     stableKey
   };
 }
 
-function comparePackageCandidateMetrics(left, right) {
+function comparePackageCandidateMetrics(left, right, context = {}) {
+  if (isPartnerDiversityPriorityContext(context)) {
+    if (right.newPartnerPairs !== left.newPartnerPairs) return right.newPartnerPairs - left.newPartnerPairs;
+    if (left.partnerDelta !== right.partnerDelta) return left.partnerDelta - right.partnerDelta;
+    if (right.newMatchups !== left.newMatchups) return right.newMatchups - left.newMatchups;
+    if (right.newOpponentPairs !== left.newOpponentPairs) return right.newOpponentPairs - left.newOpponentPairs;
+    if (left.opponentDelta !== right.opponentDelta) return left.opponentDelta - right.opponentDelta;
+    if (left.seedRank !== right.seedRank) return left.seedRank - right.seedRank;
+    return left.stableKey.localeCompare(right.stableKey);
+  }
   if (right.newMatchups !== left.newMatchups) return right.newMatchups - left.newMatchups;
   if (left.opponentDelta !== right.opponentDelta) return left.opponentDelta - right.opponentDelta;
   if (left.partnerDelta !== right.partnerDelta) return left.partnerDelta - right.partnerDelta;
@@ -263,6 +360,8 @@ function selectBestPackageForPartitions(partitionA, partitionB, state, seed, dea
         partnerDelta: 0,
         opponentDelta: 0,
         newMatchups: 0,
+        newPartnerPairs: 0,
+        newOpponentPairs: 0,
         seedRank: 0,
         stableKey: ''
       };
@@ -277,7 +376,7 @@ function selectBestPackageForPartitions(partitionA, partitionB, state, seed, dea
       const tail = solve(index + 1, usedMask | (1 << bIndex));
       if (!tail) continue;
       const candidate = buildPackageCandidate(score, tail, seed);
-      if (!best || comparePackageCandidateMetrics(candidate, best) < 0) {
+      if (!best || comparePackageCandidateMetrics(candidate, best, state) < 0) {
         best = candidate;
       }
     }
@@ -334,6 +433,8 @@ function selectBestPackageForLargeActiveSet(activeA, activeB, state, seed, deadl
         partnerDelta: 0,
         opponentDelta: 0,
         newMatchups: 0,
+        newPartnerPairs: 0,
+        newOpponentPairs: 0,
         seedRank: 0,
         stableKey: ''
       };
@@ -354,7 +455,7 @@ function selectBestPackageForLargeActiveSet(activeA, activeB, state, seed, deadl
         const tail = solve(usedAMask | pairA.mask, usedBMask | pairB.mask);
         if (!tail) continue;
         const candidate = buildPackageCandidate(scoreMatrix[aIndex][bIndex], tail, seed);
-        if (!best || comparePackageCandidateMetrics(candidate, best) < 0) {
+        if (!best || comparePackageCandidateMetrics(candidate, best, state) < 0) {
           best = candidate;
         }
       }
@@ -418,7 +519,7 @@ function buildPackageCandidates(activeA, activeB, state, context, seed) {
     }
   }
 
-  packages.sort(comparePackageCandidateMetrics);
+  packages.sort((left, right) => comparePackageCandidateMetrics(left, right, state));
 
   return packages.slice(0, context.packageLimit);
 }
@@ -470,12 +571,16 @@ function buildRoundCandidates(state, context, seed) {
         playStreak: Number(state.playStreak[id]) || 0
       })).sort(compareRestPriorityEntry);
       const restPriorityDelta = restVector.reduce((sum, item) => sum + (item.roundsSinceRest * 100) + item.playStreak, 0);
+      const unevenMetrics = computeUnevenSpreadMetrics(nextPlayCount, context);
       restCandidates.push({
         restA,
         restB,
         activeA,
         activeB,
-        nextPlaySpread: computeCountSpread(nextPlayCount, context.allIds),
+        nextPlaySpread: unevenMetrics.globalPlaySpread,
+        nextPlaySpreadExcess: unevenMetrics.playSpreadExcess,
+        nextSquadSpreadExcess: unevenMetrics.squadSpreadExcess,
+        nextMaxSquadSpreadExcess: unevenMetrics.maxSquadPlaySpreadExcess,
         nextMaxConsecutive,
         restVector,
         restPriorityDelta,
@@ -485,6 +590,15 @@ function buildRoundCandidates(state, context, seed) {
   }
 
   restCandidates.sort((l, r) => {
+    if (context.useUnevenPriority && l.nextPlaySpreadExcess !== r.nextPlaySpreadExcess) {
+      return l.nextPlaySpreadExcess - r.nextPlaySpreadExcess;
+    }
+    if (context.useUnevenPriority && l.nextSquadSpreadExcess !== r.nextSquadSpreadExcess) {
+      return l.nextSquadSpreadExcess - r.nextSquadSpreadExcess;
+    }
+    if (context.useUnevenPriority && l.nextMaxSquadSpreadExcess !== r.nextMaxSquadSpreadExcess) {
+      return l.nextMaxSquadSpreadExcess - r.nextMaxSquadSpreadExcess;
+    }
     if (l.nextPlaySpread !== r.nextPlaySpread) return l.nextPlaySpread - r.nextPlaySpread;
     if (l.nextMaxConsecutive !== r.nextMaxConsecutive) return l.nextMaxConsecutive - r.nextMaxConsecutive;
     const vectorCmp = compareRestPriorityVector(l.restVector, r.restVector);
@@ -529,6 +643,12 @@ function buildRoundCandidates(state, context, seed) {
   // 候选排序：play spread → 连续上场 → 组合代价（等权）→ 新对阵数 → seedRank（per-state 多样性）
   // nextPlaySpread / nextMaxConsecutive 确保 rest 质量优先，seedRank 在真正并列时打破字典序偏倚
   roundCandidates.sort((l, r) => {
+    if (context.useUnevenPriority && l.restCandidate.nextPlaySpreadExcess !== r.restCandidate.nextPlaySpreadExcess) {
+      return l.restCandidate.nextPlaySpreadExcess - r.restCandidate.nextPlaySpreadExcess;
+    }
+    if (context.useUnevenPriority && l.restCandidate.nextSquadSpreadExcess !== r.restCandidate.nextSquadSpreadExcess) {
+      return l.restCandidate.nextSquadSpreadExcess - r.restCandidate.nextSquadSpreadExcess;
+    }
     const lPlaySpread = l.restCandidate.nextPlaySpread;
     const rPlaySpread = r.restCandidate.nextPlaySpread;
     if (lPlaySpread !== rPlaySpread) return lPlaySpread - rPlaySpread;
@@ -537,8 +657,21 @@ function buildRoundCandidates(state, context, seed) {
     if (lMaxCons !== rMaxCons) return lMaxCons - rMaxCons;
     const lp = l.packageCandidate;
     const rp = r.packageCandidate;
-    const lCost = lp.opponentDelta + lp.partnerDelta;
-    const rCost = rp.opponentDelta + rp.partnerDelta;
+    if (context.prioritizePartnerDiversity) {
+      if (rp.newPartnerPairs !== lp.newPartnerPairs) return rp.newPartnerPairs - lp.newPartnerPairs;
+      if (lp.partnerDelta !== rp.partnerDelta) return lp.partnerDelta - rp.partnerDelta;
+      if (rp.newMatchups !== lp.newMatchups) return rp.newMatchups - lp.newMatchups;
+      if (lp.opponentDelta !== rp.opponentDelta) return lp.opponentDelta - rp.opponentDelta;
+      if (rp.newOpponentPairs !== lp.newOpponentPairs) return rp.newOpponentPairs - lp.newOpponentPairs;
+      if (l.seedRank !== r.seedRank) return l.seedRank - r.seedRank;
+      return l.stableKey.localeCompare(r.stableKey);
+    }
+    const lCost = context.useUnevenPriority
+      ? (lp.opponentDelta * 3) + (lp.partnerDelta * 2)
+      : (lp.opponentDelta + lp.partnerDelta);
+    const rCost = context.useUnevenPriority
+      ? (rp.opponentDelta * 3) + (rp.partnerDelta * 2)
+      : (rp.opponentDelta + rp.partnerDelta);
     if (lCost !== rCost) return lCost - rCost;
     if (rp.newMatchups !== lp.newMatchups) return rp.newMatchups - lp.newMatchups;
     if (l.seedRank !== r.seedRank) return l.seedRank - r.seedRank;
@@ -561,11 +694,14 @@ function applyRoundCandidate(state, roundCand, context) {
     opponentCount: { ...state.opponentCount },
     usedMatchupKeys: new Set(state.usedMatchupKeys),
     uniqueMatchupCount: state.uniqueMatchupCount,
+    uniquePartnerPairCount: state.uniquePartnerPairCount,
+    uniqueOpponentPairCount: state.uniqueOpponentPairCount,
     partnerPenalty: state.partnerPenalty,
     opponentPenalty: state.opponentPenalty,
     playSpread: state.playSpread,
     maxConsecutivePlay: state.maxConsecutivePlay,
     restPriorityTotal: state.restPriorityTotal,
+    prioritizePartnerDiversity: state.prioritizePartnerDiversity === true,
     historyKey: state.historyKey
   };
 
@@ -580,6 +716,8 @@ function applyRoundCandidate(state, roundCand, context) {
     const pkB = pairKey(teamB[0], teamB[1]);
     next.partnerPenalty += incrementalSquareCost(next.partnerCount[pkA] || 0)
       + incrementalSquareCost(next.partnerCount[pkB] || 0);
+    if ((next.partnerCount[pkA] || 0) === 0) next.uniquePartnerPairCount += 1;
+    if ((next.partnerCount[pkB] || 0) === 0) next.uniquePartnerPairCount += 1;
     next.partnerCount[pkA] = (next.partnerCount[pkA] || 0) + 1;
     next.partnerCount[pkB] = (next.partnerCount[pkB] || 0) + 1;
 
@@ -587,6 +725,7 @@ function applyRoundCandidate(state, roundCand, context) {
       for (const b of teamB) {
         const k = pairKey(a, b);
         next.opponentPenalty += incrementalSquareCost(next.opponentCount[k] || 0);
+        if ((next.opponentCount[k] || 0) === 0) next.uniqueOpponentPairCount += 1;
         next.opponentCount[k] = (next.opponentCount[k] || 0) + 1;
       }
     }
@@ -627,7 +766,13 @@ function applyRoundCandidate(state, roundCand, context) {
   }
 
   next.restPriorityTotal += roundCand.restCandidate.restPriorityDelta;
-  next.playSpread = computeCountSpread(next.playCount, context.allIds);
+  const unevenMetrics = computeUnevenSpreadMetrics(next.playCount, context);
+  next.playSpread = unevenMetrics.globalPlaySpread;
+  next.playSpreadExcess = unevenMetrics.playSpreadExcess;
+  next.squadSpreadExcess = unevenMetrics.squadSpreadExcess;
+  next.squadAPlaySpread = unevenMetrics.squadAPlaySpread;
+  next.squadBPlaySpread = unevenMetrics.squadBPlaySpread;
+  next.globalPlaySpreadBaseline = unevenMetrics.globalPlaySpreadBaseline;
   // 用滚动数字哈希代替字符串拼接，避免字典序偏倚导致 beam 剪枝系统性偏向
   // 特定名字排序靠前（如 A1,A2 rest → A3|A4 上场）会使对应 historyKey 更小而总是存活
   next.historyKey = hashString(`${next.historyKey || 0}:${roundCand.stableKey}`);
@@ -641,11 +786,16 @@ function applyRoundCandidate(state, roundCand, context) {
 
   next.objective = {
     playSpread: next.playSpread,
+    playSpreadExcess: next.playSpreadExcess,
+    squadSpreadExcess: next.squadSpreadExcess,
     maxConsecutivePlay: next.maxConsecutivePlay,
+    uniquePartnerPairCount: next.uniquePartnerPairCount,
+    uniqueOpponentPairCount: next.uniqueOpponentPairCount,
     opponentPenalty: next.opponentPenalty,
     partnerPenalty: next.partnerPenalty,
     uniqueMatchupCount: next.uniqueMatchupCount,
-    restPriorityTotal: next.restPriorityTotal
+    restPriorityTotal: next.restPriorityTotal,
+    prioritizePartnerDiversity: next.prioritizePartnerDiversity === true
   };
   return next;
 }
@@ -663,7 +813,7 @@ function greedilyCompleteState(state, context, seed) {
 
 function runSingleBeam(idsA, idsB, totalMatches, courts, seed, config = {}) {
   const context = buildBeamContext(idsA, idsB, totalMatches, courts, config);
-  let beam = [buildInitialState(context.idsA, context.idsB)];
+  let beam = [buildInitialState(context.idsA, context.idsB, context)];
   const startedAt = nowMs();
   let timedOut = false;
 
@@ -717,7 +867,7 @@ function runSingleBeam(idsA, idsB, totalMatches, courts, seed, config = {}) {
   }
 
   const bestPartial = beam.slice().sort(compareState)[0];
-  return { state: bestPartial || buildInitialState(context.idsA, context.idsB), timedOut: true };
+  return { state: bestPartial || buildInitialState(context.idsA, context.idsB, context), timedOut: true };
 }
 
 function buildFairnessScore(state) {
@@ -803,7 +953,7 @@ function computeAdaptiveConfig(playersPerSquad, effectiveCourts) {
   }
   // 6-7 人/side：中等规模，3 seed 平衡搜索宽度与深度
   if (playersPerSquad <= 7) {
-    return { searchSeeds: 3, beamWidth: 32, restSetLimit: 24, packageLimit: 16, perStateLimit: 5, timeBudgetMs: 450 };
+    return { searchSeeds: 3, beamWidth: 36, restSetLimit: 24, packageLimit: 16, perStateLimit: 5, timeBudgetMs: 500 };
   }
   // 8+ 人/side, 4 courts：最大规模，最激进的截断
   if (effectiveCourts >= 4) {
@@ -818,9 +968,15 @@ function resolveSquadSchedule(idsA, idsB, totalMatches, courts, options = {}) {
   const sortedB = stableSortIds(idsB);
   if (sortedA.length < 2 || sortedB.length < 2) return null;
   const target = Math.max(1, Number(totalMatches) || 1);
+  const isPartnerDiversityHotspot = sortedA.length === sortedB.length
+    && Number(courts) === 3
+    && target === 18
+    && (sortedA.length === 6 || sortedA.length === 7);
 
   const hardDeadlineMs = Number(options.hardDeadlineMs) || 2500;
-  const softBudgetMs = Math.min(1700, hardDeadlineMs - 500);
+  const softBudgetMs = isPartnerDiversityHotspot
+    ? Math.min(2100, hardDeadlineMs - 250)
+    : Math.min(1700, hardDeadlineMs - 500);
   const startedAt = nowMs();
   const softDeadlineAtMs = startedAt + softBudgetMs;
   const hardDeadlineAtMs = startedAt + hardDeadlineMs;
@@ -837,7 +993,16 @@ function resolveSquadSchedule(idsA, idsB, totalMatches, courts, options = {}) {
   // 自适应运行时配置：根据 (playersPerSquad, effectiveCourts) 调整
   // 关键原则：searchSeeds × timeBudgetMs ≤ softBudgetMs，每个 seed 分到足够时间完成搜索
   const playersPerSquad = Math.max(sortedA.length, sortedB.length);
-  const runtimeConfig = computeAdaptiveConfig(playersPerSquad, effectiveCourts);
+  const baseRuntimeConfig = computeAdaptiveConfig(playersPerSquad, effectiveCourts);
+  const runtimeConfig = isPartnerDiversityHotspot
+    ? {
+      ...baseRuntimeConfig,
+      beamWidth: Math.max(baseRuntimeConfig.beamWidth, 48),
+      packageLimit: Math.max(baseRuntimeConfig.packageLimit, 20),
+      perStateLimit: Math.max(baseRuntimeConfig.perStateLimit, 6),
+      timeBudgetMs: Math.max(baseRuntimeConfig.timeBudgetMs, 650)
+    }
+    : baseRuntimeConfig;
   const searchSeeds = Math.max(1, Number(options.searchSeeds) || runtimeConfig.searchSeeds);
 
   let bestCompleted = null;
@@ -845,10 +1010,13 @@ function resolveSquadSchedule(idsA, idsB, totalMatches, courts, options = {}) {
   let softTimeoutTriggered = false;
   let guardedCompletionUsed = false;
   const earlyExitThreshold = Math.max(2, Math.ceil(searchSeeds / 2));
+  const completedExitThreshold = Math.max(1, Math.floor(searchSeeds / 2));
+  const allowCompletedEarlyExit = !isPartnerDiversityHotspot
+    && (playersPerSquad >= 7 || effectiveCourts >= 3 || searchSeeds <= 2);
 
   for (let i = 0; i < searchSeeds; i += 1) {
     if (nowMs() >= softDeadlineAtMs) {
-      softTimeoutTriggered = true;
+      if (!bestCompleted) softTimeoutTriggered = true;
       break;
     }
     const seed = normalizeSeed(baseSeed + (i * seedStep));
@@ -865,6 +1033,9 @@ function resolveSquadSchedule(idsA, idsB, totalMatches, courts, options = {}) {
       }
     } else if (!bestPartial || compareState(state, bestPartial) < 0) {
       bestPartial = state;
+    }
+    if (allowCompletedEarlyExit && bestCompleted && i + 1 >= completedExitThreshold) {
+      break;
     }
     // 提前退出：前半数 seed 都没有 complete 且 partial 进度 < 50%，留时间给 greedy completion
     if (!bestCompleted && i + 1 >= earlyExitThreshold && bestPartial

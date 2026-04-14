@@ -137,7 +137,8 @@ function buildMatchSelectionUiState({
       showAdvancedMatchEntry: false,
       currentCustomMatchLabel: '',
       matchPresetUnavailableHint: '',
-      currentMatchIsPreset: false
+      currentMatchIsPreset: false,
+      coveragePriorityNote: ''
     };
   }
   if (normalizedMode !== flow.MODE_MULTI_ROTATE) {
@@ -148,7 +149,8 @@ function buildMatchSelectionUiState({
       showAdvancedMatchEntry: false,
       currentCustomMatchLabel: '',
       matchPresetUnavailableHint: '',
-      currentMatchIsPreset: false
+      currentMatchIsPreset: false,
+      coveragePriorityNote: ''
     };
   }
 
@@ -166,7 +168,8 @@ function buildMatchSelectionUiState({
           ? '该人数暂不提供固定公平档位，请到“修改比赛”里自定义总场数'
           : '该人数暂不提供固定公平档位')
         : '',
-      currentMatchIsPreset: false
+      currentMatchIsPreset: false,
+      coveragePriorityNote: ''
     };
   }
 
@@ -180,7 +183,8 @@ function buildMatchSelectionUiState({
     currentCustomMatchLabel: currentMatchIsPreset ? '' : `当前自定义 ${current} 场`,
     matchPresetUnavailableHint: '',
     currentMatchIsPreset,
-    balancedMatch: Number(optionCase.balancedMatch) || 0
+    balancedMatch: Number(optionCase.balancedMatch) || 0,
+    coveragePriorityNote: String(optionCase.coveragePriorityNote || '')
   };
 }
 
@@ -339,6 +343,7 @@ function buildSettingsFormState(tournament, options = {}) {
     showAdvancedMatchPicker: false,
     currentCustomMatchLabel: matchSelectionState.currentCustomMatchLabel,
     matchPresetUnavailableHint: matchSelectionState.matchPresetUnavailableHint,
+    coveragePriorityNote: matchSelectionState.coveragePriorityNote,
     useSimpleMPicker,
     mOptions,
     mIndex,

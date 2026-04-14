@@ -155,3 +155,41 @@ test('runtime budget keeps guarded completion when request exceeds template hori
   assert.equal(out.schedulerMeta.fairnessVersion, 'v2');
   assert.ok(elapsed < 1500, `elapsed=${elapsed}ms should stay under guarded bound`);
 });
+
+test('coverage-first template exceptions stay deterministic for 6p-1c and 9p-2c', () => {
+  for (const seed of [1, 7, 17]) {
+    const sixPlayers = generateSchedule(makePlayers(6), 18, 1, { seed });
+    assert.equal(sixPlayers.schedulerMeta.templateKey, '6p-1c');
+    assert.equal(sixPlayers.schedulerMeta.uniqueExactMatchupCount, 18);
+    assert.equal(sixPlayers.schedulerMeta.playSpread, 0);
+    assert.equal(sixPlayers.schedulerMeta.maxConsecutivePlay, 4);
+
+    const ninePlayers = generateSchedule(makePlayers(9), 18, 2, { seed });
+    assert.equal(ninePlayers.schedulerMeta.templateKey, '9p-2c');
+    assert.equal(ninePlayers.schedulerMeta.uniqueExactMatchupCount, 18);
+    assert.equal(ninePlayers.schedulerMeta.playSpread, 0);
+    assert.equal(ninePlayers.fairness.partnerRepeats, 0);
+    assert.equal(ninePlayers.schedulerMeta.maxConsecutivePlay, 8);
+  }
+});
+
+test('guarded long-tail scenarios keep coverage-first metrics stable across seeds', () => {
+  const scenarios = [
+    { players: 10, femaleCount: 5, totalMatches: 23, courts: 2, runtimeBudgetMs: 200, expectedPlaySpread: 1, expectedUniqueExact: 23 },
+    { players: 11, femaleCount: 5, totalMatches: 14, courts: 2, runtimeBudgetMs: 800, expectedPlaySpread: 1, expectedUniqueExact: 14 }
+  ];
+
+  for (const scenario of scenarios) {
+    for (const seed of [1, 3, 17]) {
+      const out = generateSchedule(makePlayers(scenario.players, scenario.femaleCount), scenario.totalMatches, scenario.courts, {
+        seed,
+        searchSeeds: 1,
+        runtimeBudgetMs: scenario.runtimeBudgetMs
+      });
+      assert.ok(['beam-guarded', 'legacy-guarded'].includes(out.schedulerMeta.executionProfile));
+      assert.equal(out.schedulerMeta.playSpread, scenario.expectedPlaySpread);
+      assert.equal(out.schedulerMeta.uniqueExactMatchupCount, scenario.expectedUniqueExact);
+      assert.equal(out.schedulerMeta.timeoutGuardTriggered, true);
+    }
+  }
+});

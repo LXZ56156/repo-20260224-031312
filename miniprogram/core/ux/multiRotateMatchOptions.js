@@ -659,6 +659,12 @@ const MATCH_OPTION_LIBRARY = {
         18
       ],
       "balancedMatch": 13,
+      "coveragePriorityPresetMatches": [
+        8,
+        13,
+        18
+      ],
+      "coveragePriorityNote": "coverage-first: 为保 15 对搭档覆盖，6p-1c 默认档允许 maxConsecutivePlay=4，暂不降档。",
       "supportsAdvancedCustom": true
     },
     "7p-1c": {
@@ -719,6 +725,10 @@ const MATCH_OPTION_LIBRARY = {
         18
       ],
       "balancedMatch": 18,
+      "coveragePriorityPresetMatches": [
+        18
+      ],
+      "coveragePriorityNote": "coverage-first: 保留 balancedMatch=18，以维持 18 个 unique exact matchups 与 0 partner repeat。",
       "supportsAdvancedCustom": true
     }
   }

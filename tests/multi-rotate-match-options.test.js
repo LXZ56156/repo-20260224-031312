@@ -159,6 +159,16 @@ test('multi_rotate match options normalize requested courts and return null when
   assert.equal(matchOptions.resolveMultiRotateMatchOptions(25, 1), null);
 });
 
+test('multi_rotate match options expose coverage-first notes for accepted exception cases', () => {
+  const sixPlayers = matchOptions.resolveMultiRotateMatchOptions(6, 1);
+  assert.deepEqual(sixPlayers && sixPlayers.coveragePriorityPresetMatches, [8, 13, 18]);
+  assert.match(String(sixPlayers && sixPlayers.coveragePriorityNote || ''), /coverage-first/);
+
+  const ninePlayers = matchOptions.resolveMultiRotateMatchOptions(9, 2);
+  assert.deepEqual(ninePlayers && ninePlayers.coveragePriorityPresetMatches, [18]);
+  assert.match(String(ninePlayers && ninePlayers.coveragePriorityNote || ''), /balancedMatch=18/);
+});
+
 test('multi_rotate match options always keep three sorted presets and a balanced match inside the list', () => {
   for (const caseData of Object.values(matchOptions.cases || {})) {
     const presetMatches = Array.isArray(caseData && caseData.presetMatches) ? caseData.presetMatches : [];

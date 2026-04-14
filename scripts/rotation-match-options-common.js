@@ -112,6 +112,17 @@ const MATCH_OPTION_OVERRIDES = Object.freeze({
   })
 });
 
+const MATCH_OPTION_COVERAGE_PRIORITY_NOTES = Object.freeze({
+  '6p-1c': Object.freeze({
+    coveragePriorityPresetMatches: [8, 13, 18],
+    coveragePriorityNote: 'coverage-first: 为保 15 对搭档覆盖，6p-1c 默认档允许 maxConsecutivePlay=4，暂不降档。'
+  }),
+  '9p-2c': Object.freeze({
+    coveragePriorityPresetMatches: [18],
+    coveragePriorityNote: 'coverage-first: 保留 balancedMatch=18，以维持 18 个 unique exact matchups 与 0 partner repeat。'
+  })
+});
+
 function buildPresetCandidate(caseData, matches) {
   const metrics = caseData && caseData.prefixMetrics ? caseData.prefixMetrics[String(matches)] : null;
   if (!metrics) return null;
@@ -416,6 +427,10 @@ function buildRecommendationAuditRows(cases) {
         presetSignature: presetMatches.join('/'),
         highestPreset: presetMatches.length ? presetMatches[presetMatches.length - 1] : 0,
         balancedMatch: Number(caseData && caseData.balancedMatch) || 0,
+        coveragePriorityPresetMatches: Array.isArray(caseData && caseData.coveragePriorityPresetMatches)
+          ? caseData.coveragePriorityPresetMatches.slice()
+          : [],
+        coveragePriorityNote: String(caseData && caseData.coveragePriorityNote || ''),
         capacitySuggested: Number(recommendation.suggestedMatches) || 0,
         capacityBalancedRaw: Number(recommendation.balancedRaw) || 0,
         capacityIntense: Number(recommendation.recommendedMatches && recommendation.recommendedMatches[2] && recommendation.recommendedMatches[2].m) || 0,
@@ -514,12 +529,17 @@ function buildMatchOptionsLibrary(cases) {
     if (players < 4 || players > 24) return;
     const built = buildPresetMatches(key, caseData);
     const override = MATCH_OPTION_OVERRIDES[key];
+    const coveragePriorityNote = MATCH_OPTION_COVERAGE_PRIORITY_NOTES[key];
     outCases[key] = {
       players,
       effectiveCourts,
       horizonMatches: Number(override && override.horizonMatches) || Number(caseData.horizonMatches) || 0,
       presetMatches: built.presetMatches,
       balancedMatch: built.balancedMatch,
+      ...(coveragePriorityNote ? {
+        coveragePriorityPresetMatches: coveragePriorityNote.coveragePriorityPresetMatches.slice(),
+        coveragePriorityNote: coveragePriorityNote.coveragePriorityNote
+      } : {}),
       supportsAdvancedCustom: true
     };
   });
@@ -531,6 +551,7 @@ function buildMatchOptionsLibrary(cases) {
 
 module.exports = {
   MATCH_OPTION_OVERRIDES,
+  MATCH_OPTION_COVERAGE_PRIORITY_NOTES,
   buildPresetCandidate,
   isZeroSpreadExactCandidate,
   isQualityAcceptableCandidate,
