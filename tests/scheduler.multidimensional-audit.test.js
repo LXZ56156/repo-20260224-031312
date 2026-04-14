@@ -69,6 +69,22 @@ test('scheduler scenario result exposes repeat baselines and excess for equal sq
   });
 });
 
+test('scheduler scenario result exposes exact repeat metrics for 4v4 single-court cases', () => {
+  const scenarios = [
+    { name: 'squad equal 4v4/3m/1c', actualMatches: 3 },
+    { name: 'squad equal 4v4/6m/1c', actualMatches: 6 }
+  ];
+
+  scenarios.forEach((entry) => {
+    const result = scenarioCommon.runScenario(findAuditScenario(entry.name));
+    assert.equal(result.actualMatches, entry.actualMatches, `${entry.name} actualMatches`);
+    assert.equal(result.uniqueExactMatchupCount, entry.actualMatches, `${entry.name} uniqueExact`);
+    assert.equal(result.exactRepeatCount, 0, `${entry.name} exactRepeatCount`);
+    assert.equal(result.exactRepeatBaseline, 0, `${entry.name} exactRepeatBaseline`);
+    assert.equal(result.exactRepeatExcess, 0, `${entry.name} exactRepeatExcess`);
+  });
+});
+
 test('scheduler stability matrix summarizes multi-seed ranges and worst seed', () => {
   const rows = scenarioCommon.runExtendedStabilityMatrix([
     {

@@ -148,6 +148,7 @@ function buildRepresentativeRows(results) {
     playSpread: result.playSpread,
     maxConsecutivePlay: result.maxConsecutivePlay,
     uniqueExactMatchupCount: result.uniqueExactMatchupCount,
+    exactRepeatCount: result.exactRepeatCount || 0,
     partnerRepeats: result.partnerRepeats,
     opponentRepeats: result.opponentRepeats,
     restCountSpread: result.restCountSpread
@@ -167,6 +168,7 @@ function buildRepresentativeTable(results) {
       { key: 'playSpread', label: 'playSpread' },
       { key: 'maxConsecutivePlay', label: 'maxConsecutivePlay' },
       { key: 'uniqueExactMatchupCount', label: 'uniqueExactMatchupCount' },
+      { key: 'exactRepeatCount', label: 'exactRepeatCount' },
       { key: 'partnerRepeats', label: 'partnerRepeats' },
       { key: 'opponentRepeats', label: 'opponentRepeats' },
       { key: 'restCountSpread', label: 'restCountSpread' }
@@ -210,6 +212,8 @@ function toWorstCaseRow(result) {
     playSpread: result.playSpread,
     playSpreadExcess: result.playSpreadExcess || 0,
     maxConsecutivePlay: result.maxConsecutivePlay,
+    exactRepeatCount: result.exactRepeatCount || 0,
+    exactRepeatExcess: result.exactRepeatExcess || 0,
     partnerRepeats: result.partnerRepeats,
     opponentRepeats: result.opponentRepeats,
     partnerRepeatBaseline: result.partnerRepeatBaseline || 0,
@@ -239,6 +243,9 @@ function buildWorstUniqueCaseRows(results, limit = WORST_CASE_LIMIT) {
 
 function buildObservationReason(result) {
   const reasons = [];
+  if ((Number(result.exactRepeatExcess) || 0) > 0) {
+    reasons.push(`exactRepeatExcess=${result.exactRepeatExcess}`);
+  }
   if ((Number(result.playSpreadExcess) || 0) > 0) {
     reasons.push(`playSpreadExcess=${result.playSpreadExcess}`);
   }
@@ -273,6 +280,8 @@ function buildObservationRows(results, limit = OBSERVATION_LIMIT) {
       playSpread: result.playSpread,
       playSpreadExcess: result.playSpreadExcess || 0,
       maxConsecutivePlay: result.maxConsecutivePlay,
+      exactRepeatCount: result.exactRepeatCount || 0,
+      exactRepeatExcess: result.exactRepeatExcess || 0,
       partnerRepeats: result.partnerRepeats,
       opponentRepeats: result.opponentRepeats,
       partnerRepeatExcess: result.partnerRepeatExcess || 0,
@@ -643,6 +652,8 @@ function buildRotationSection(audit, representative) {
         { key: 'playSpread', label: 'playSpread' },
         { key: 'playSpreadExcess', label: 'playSpreadExcess' },
         { key: 'maxConsecutivePlay', label: 'maxConsecutivePlay' },
+        { key: 'exactRepeatCount', label: 'exactRepeatCount' },
+        { key: 'exactRepeatExcess', label: 'exactRepeatExcess' },
         { key: 'partnerRepeats', label: 'partnerRepeats' },
         { key: 'opponentRepeats', label: 'opponentRepeats' },
         { key: 'timeoutGuardTriggered', label: 'timeoutGuardTriggered' },
@@ -660,6 +671,8 @@ function buildRotationSection(audit, representative) {
         { key: 'playSpread', label: 'playSpread' },
         { key: 'playSpreadExcess', label: 'playSpreadExcess' },
         { key: 'maxConsecutivePlay', label: 'maxConsecutivePlay' },
+        { key: 'exactRepeatCount', label: 'exactRepeatCount' },
+        { key: 'exactRepeatExcess', label: 'exactRepeatExcess' },
         { key: 'partnerRepeats', label: 'partnerRepeats' },
         { key: 'opponentRepeats', label: 'opponentRepeats' },
         { key: 'timeoutGuardTriggered', label: 'timeoutGuardTriggered' },
@@ -677,6 +690,8 @@ function buildRotationSection(audit, representative) {
         { key: 'playSpread', label: 'playSpread' },
         { key: 'playSpreadExcess', label: 'playSpreadExcess' },
         { key: 'maxConsecutivePlay', label: 'maxConsecutivePlay' },
+        { key: 'exactRepeatCount', label: 'exactRepeatCount' },
+        { key: 'exactRepeatExcess', label: 'exactRepeatExcess' },
         { key: 'partnerRepeats', label: 'partnerRepeats' },
         { key: 'opponentRepeats', label: 'opponentRepeats' },
         { key: 'executionProfile', label: 'executionProfile' }
@@ -760,6 +775,8 @@ function buildSquadSection(audit, representative) {
         { key: 'playSpread', label: 'playSpread' },
         { key: 'playSpreadExcess', label: 'playSpreadExcess' },
         { key: 'maxConsecutivePlay', label: 'maxConsecutivePlay' },
+        { key: 'exactRepeatCount', label: 'exactRepeatCount' },
+        { key: 'exactRepeatExcess', label: 'exactRepeatExcess' },
         { key: 'partnerRepeats', label: 'partnerRepeats' },
         { key: 'opponentRepeats', label: 'opponentRepeats' },
         { key: 'partnerRepeatExcess', label: 'partnerRepeatExcess' },
@@ -779,6 +796,8 @@ function buildSquadSection(audit, representative) {
         { key: 'playSpread', label: 'playSpread' },
         { key: 'playSpreadExcess', label: 'playSpreadExcess' },
         { key: 'maxConsecutivePlay', label: 'maxConsecutivePlay' },
+        { key: 'exactRepeatCount', label: 'exactRepeatCount' },
+        { key: 'exactRepeatExcess', label: 'exactRepeatExcess' },
         { key: 'partnerRepeats', label: 'partnerRepeats' },
         { key: 'opponentRepeats', label: 'opponentRepeats' },
         { key: 'partnerRepeatExcess', label: 'partnerRepeatExcess' },
@@ -798,6 +817,8 @@ function buildSquadSection(audit, representative) {
         { key: 'playSpread', label: 'playSpread' },
         { key: 'playSpreadExcess', label: 'playSpreadExcess' },
         { key: 'maxConsecutivePlay', label: 'maxConsecutivePlay' },
+        { key: 'exactRepeatCount', label: 'exactRepeatCount' },
+        { key: 'exactRepeatExcess', label: 'exactRepeatExcess' },
         { key: 'partnerRepeats', label: 'partnerRepeats' },
         { key: 'opponentRepeats', label: 'opponentRepeats' },
         { key: 'partnerRepeatExcess', label: 'partnerRepeatExcess' },

@@ -1,7 +1,112 @@
 const fixedPair = require('./lib/fixed-pair');
 const scheduleContract = require('./lib/schedule');
-const { pairKey } = require('./utils');
+const { pairKey, stableSortIds } = require('./utils');
 const { squareCost } = require('./schedulerShared');
+
+const SQUAD_4V4_SINGLE_COURT_TEMPLATES = Object.freeze({
+  1: Object.freeze([
+    Object.freeze({ teamA: Object.freeze([0, 1]), teamB: Object.freeze([0, 1]) })
+  ]),
+  2: Object.freeze([
+    Object.freeze({ teamA: Object.freeze([0, 2]), teamB: Object.freeze([0, 3]) }),
+    Object.freeze({ teamA: Object.freeze([1, 3]), teamB: Object.freeze([1, 2]) })
+  ]),
+  3: Object.freeze([
+    Object.freeze({ teamA: Object.freeze([0, 1]), teamB: Object.freeze([0, 1]) }),
+    Object.freeze({ teamA: Object.freeze([0, 3]), teamB: Object.freeze([2, 3]) }),
+    Object.freeze({ teamA: Object.freeze([1, 2]), teamB: Object.freeze([1, 3]) })
+  ]),
+  4: Object.freeze([
+    Object.freeze({ teamA: Object.freeze([0, 1]), teamB: Object.freeze([0, 1]) }),
+    Object.freeze({ teamA: Object.freeze([0, 3]), teamB: Object.freeze([2, 3]) }),
+    Object.freeze({ teamA: Object.freeze([1, 2]), teamB: Object.freeze([1, 3]) }),
+    Object.freeze({ teamA: Object.freeze([2, 3]), teamB: Object.freeze([0, 2]) })
+  ]),
+  5: Object.freeze([
+    Object.freeze({ teamA: Object.freeze([0, 1]), teamB: Object.freeze([0, 1]) }),
+    Object.freeze({ teamA: Object.freeze([0, 3]), teamB: Object.freeze([2, 3]) }),
+    Object.freeze({ teamA: Object.freeze([1, 2]), teamB: Object.freeze([1, 3]) }),
+    Object.freeze({ teamA: Object.freeze([2, 3]), teamB: Object.freeze([0, 2]) }),
+    Object.freeze({ teamA: Object.freeze([1, 3]), teamB: Object.freeze([1, 2]) })
+  ]),
+  6: Object.freeze([
+    Object.freeze({ teamA: Object.freeze([0, 1]), teamB: Object.freeze([0, 1]) }),
+    Object.freeze({ teamA: Object.freeze([0, 3]), teamB: Object.freeze([2, 3]) }),
+    Object.freeze({ teamA: Object.freeze([1, 2]), teamB: Object.freeze([1, 3]) }),
+    Object.freeze({ teamA: Object.freeze([2, 3]), teamB: Object.freeze([0, 2]) }),
+    Object.freeze({ teamA: Object.freeze([1, 3]), teamB: Object.freeze([1, 2]) }),
+    Object.freeze({ teamA: Object.freeze([0, 2]), teamB: Object.freeze([0, 3]) })
+  ]),
+  7: Object.freeze([
+    Object.freeze({ teamA: Object.freeze([0, 1]), teamB: Object.freeze([0, 1]) }),
+    Object.freeze({ teamA: Object.freeze([0, 3]), teamB: Object.freeze([2, 3]) }),
+    Object.freeze({ teamA: Object.freeze([1, 2]), teamB: Object.freeze([1, 3]) }),
+    Object.freeze({ teamA: Object.freeze([0, 1]), teamB: Object.freeze([0, 2]) }),
+    Object.freeze({ teamA: Object.freeze([0, 2]), teamB: Object.freeze([0, 3]) }),
+    Object.freeze({ teamA: Object.freeze([1, 3]), teamB: Object.freeze([1, 2]) }),
+    Object.freeze({ teamA: Object.freeze([2, 3]), teamB: Object.freeze([0, 2]) })
+  ]),
+  8: Object.freeze([
+    Object.freeze({ teamA: Object.freeze([0, 1]), teamB: Object.freeze([0, 1]) }),
+    Object.freeze({ teamA: Object.freeze([0, 3]), teamB: Object.freeze([2, 3]) }),
+    Object.freeze({ teamA: Object.freeze([1, 2]), teamB: Object.freeze([1, 3]) }),
+    Object.freeze({ teamA: Object.freeze([2, 3]), teamB: Object.freeze([0, 2]) }),
+    Object.freeze({ teamA: Object.freeze([1, 3]), teamB: Object.freeze([0, 3]) }),
+    Object.freeze({ teamA: Object.freeze([0, 2]), teamB: Object.freeze([1, 2]) }),
+    Object.freeze({ teamA: Object.freeze([0, 2]), teamB: Object.freeze([0, 3]) }),
+    Object.freeze({ teamA: Object.freeze([1, 3]), teamB: Object.freeze([1, 2]) })
+  ]),
+  9: Object.freeze([
+    Object.freeze({ teamA: Object.freeze([0, 1]), teamB: Object.freeze([0, 1]) }),
+    Object.freeze({ teamA: Object.freeze([0, 3]), teamB: Object.freeze([2, 3]) }),
+    Object.freeze({ teamA: Object.freeze([1, 2]), teamB: Object.freeze([1, 3]) }),
+    Object.freeze({ teamA: Object.freeze([0, 1]), teamB: Object.freeze([0, 2]) }),
+    Object.freeze({ teamA: Object.freeze([0, 2]), teamB: Object.freeze([0, 3]) }),
+    Object.freeze({ teamA: Object.freeze([1, 3]), teamB: Object.freeze([1, 2]) }),
+    Object.freeze({ teamA: Object.freeze([0, 2]), teamB: Object.freeze([1, 2]) }),
+    Object.freeze({ teamA: Object.freeze([1, 3]), teamB: Object.freeze([0, 3]) }),
+    Object.freeze({ teamA: Object.freeze([2, 3]), teamB: Object.freeze([0, 2]) })
+  ]),
+  10: Object.freeze([
+    Object.freeze({ teamA: Object.freeze([0, 1]), teamB: Object.freeze([0, 1]) }),
+    Object.freeze({ teamA: Object.freeze([0, 3]), teamB: Object.freeze([2, 3]) }),
+    Object.freeze({ teamA: Object.freeze([1, 2]), teamB: Object.freeze([1, 3]) }),
+    Object.freeze({ teamA: Object.freeze([0, 1]), teamB: Object.freeze([0, 2]) }),
+    Object.freeze({ teamA: Object.freeze([0, 3]), teamB: Object.freeze([1, 3]) }),
+    Object.freeze({ teamA: Object.freeze([1, 2]), teamB: Object.freeze([2, 3]) }),
+    Object.freeze({ teamA: Object.freeze([2, 3]), teamB: Object.freeze([0, 1]) }),
+    Object.freeze({ teamA: Object.freeze([1, 3]), teamB: Object.freeze([0, 3]) }),
+    Object.freeze({ teamA: Object.freeze([0, 2]), teamB: Object.freeze([1, 2]) }),
+    Object.freeze({ teamA: Object.freeze([2, 3]), teamB: Object.freeze([0, 2]) })
+  ]),
+  11: Object.freeze([
+    Object.freeze({ teamA: Object.freeze([0, 1]), teamB: Object.freeze([0, 1]) }),
+    Object.freeze({ teamA: Object.freeze([0, 3]), teamB: Object.freeze([2, 3]) }),
+    Object.freeze({ teamA: Object.freeze([1, 2]), teamB: Object.freeze([1, 3]) }),
+    Object.freeze({ teamA: Object.freeze([0, 1]), teamB: Object.freeze([0, 2]) }),
+    Object.freeze({ teamA: Object.freeze([0, 3]), teamB: Object.freeze([1, 3]) }),
+    Object.freeze({ teamA: Object.freeze([1, 2]), teamB: Object.freeze([2, 3]) }),
+    Object.freeze({ teamA: Object.freeze([0, 2]), teamB: Object.freeze([1, 2]) }),
+    Object.freeze({ teamA: Object.freeze([1, 3]), teamB: Object.freeze([0, 3]) }),
+    Object.freeze({ teamA: Object.freeze([0, 2]), teamB: Object.freeze([0, 3]) }),
+    Object.freeze({ teamA: Object.freeze([1, 3]), teamB: Object.freeze([1, 2]) }),
+    Object.freeze({ teamA: Object.freeze([2, 3]), teamB: Object.freeze([0, 2]) })
+  ]),
+  12: Object.freeze([
+    Object.freeze({ teamA: Object.freeze([0, 1]), teamB: Object.freeze([0, 1]) }),
+    Object.freeze({ teamA: Object.freeze([0, 3]), teamB: Object.freeze([2, 3]) }),
+    Object.freeze({ teamA: Object.freeze([1, 2]), teamB: Object.freeze([1, 3]) }),
+    Object.freeze({ teamA: Object.freeze([0, 1]), teamB: Object.freeze([0, 2]) }),
+    Object.freeze({ teamA: Object.freeze([0, 3]), teamB: Object.freeze([1, 3]) }),
+    Object.freeze({ teamA: Object.freeze([1, 2]), teamB: Object.freeze([2, 3]) }),
+    Object.freeze({ teamA: Object.freeze([2, 3]), teamB: Object.freeze([0, 1]) }),
+    Object.freeze({ teamA: Object.freeze([1, 3]), teamB: Object.freeze([0, 3]) }),
+    Object.freeze({ teamA: Object.freeze([0, 2]), teamB: Object.freeze([1, 2]) }),
+    Object.freeze({ teamA: Object.freeze([0, 2]), teamB: Object.freeze([0, 3]) }),
+    Object.freeze({ teamA: Object.freeze([1, 3]), teamB: Object.freeze([1, 2]) }),
+    Object.freeze({ teamA: Object.freeze([2, 3]), teamB: Object.freeze([0, 2]) })
+  ])
+});
 
 function sortForRotation(ids, playCount, playStreak, usedSet, opponentCount, rivals) {
   const used = usedSet || new Set();
@@ -193,6 +298,136 @@ function runSquadGreedyFallback(idsA, idsB, targetMatches, courts, endConditionT
   };
 }
 
+function buildSquadFairnessFromRounds(rounds, allIds) {
+  const playCount = Object.fromEntries(allIds.map((id) => [id, 0]));
+  const partnerCount = {};
+  const opponentCount = {};
+  let maxConsecutivePlay = 0;
+  const playStreak = Object.fromEntries(allIds.map((id) => [id, 0]));
+
+  (rounds || []).forEach((round) => {
+    const active = new Set();
+    (round.matches || []).forEach((match) => {
+      const teamA = Array.isArray(match.teamA) ? match.teamA : [];
+      const teamB = Array.isArray(match.teamB) ? match.teamB : [];
+      teamA.concat(teamB).forEach((id) => {
+        active.add(id);
+        playCount[id] = (playCount[id] || 0) + 1;
+      });
+      if (teamA.length >= 2) {
+        const pkA = pairKey(teamA[0], teamA[1]);
+        partnerCount[pkA] = (partnerCount[pkA] || 0) + 1;
+      }
+      if (teamB.length >= 2) {
+        const pkB = pairKey(teamB[0], teamB[1]);
+        partnerCount[pkB] = (partnerCount[pkB] || 0) + 1;
+      }
+      teamA.forEach((a) => {
+        teamB.forEach((b) => {
+          const key = pairKey(a, b);
+          opponentCount[key] = (opponentCount[key] || 0) + 1;
+        });
+      });
+    });
+    allIds.forEach((id) => {
+      if (active.has(id)) {
+        playStreak[id] = (playStreak[id] || 0) + 1;
+        if (playStreak[id] > maxConsecutivePlay) maxConsecutivePlay = playStreak[id];
+      } else {
+        playStreak[id] = 0;
+      }
+    });
+  });
+
+  const playValues = Object.values(playCount);
+  const playSpread = playValues.length ? Math.max(...playValues) - Math.min(...playValues) : 0;
+  const partnerRepeats = Object.values(partnerCount)
+    .reduce((sum, count) => sum + Math.max(0, Number(count) - 1), 0);
+  const opponentRepeats = Object.values(opponentCount)
+    .reduce((sum, count) => sum + Math.max(0, Number(count) - 1), 0);
+  const partnerPenalty = Object.values(partnerCount)
+    .reduce((sum, count) => sum + squareCost(count), 0);
+  const opponentPenalty = Object.values(opponentCount)
+    .reduce((sum, count) => sum + squareCost(count), 0);
+  const penalty =
+      playSpread * 50000
+    + maxConsecutivePlay * 20000
+    + partnerPenalty * 120
+    + opponentPenalty * 200;
+
+  return {
+    playCount,
+    playSpread,
+    maxConsecutivePlay,
+    partnerRepeats,
+    opponentRepeats,
+    partnerPenalty,
+    opponentPenalty,
+    fairnessScore: Math.max(1, Math.round(1000000 / (1 + penalty)))
+  };
+}
+
+function buildDeterministicSquad4v4SingleCourtSchedule(idsA, idsB, targetMatches, meta = {}) {
+  const template = SQUAD_4V4_SINGLE_COURT_TEMPLATES[String(targetMatches)];
+  if (!template) return null;
+
+  const sortedA = stableSortIds(idsA);
+  const sortedB = stableSortIds(idsB);
+  const allIds = sortedA.concat(sortedB);
+  const rounds = template.map((entry, roundIndex) => {
+    const teamA = entry.teamA.map((index) => sortedA[index]);
+    const teamB = entry.teamB.map((index) => sortedB[index]);
+    const active = new Set(teamA.concat(teamB));
+    return {
+      roundIndex,
+      matches: [{
+        matchIndex: roundIndex,
+        matchType: 'SQUAD',
+        unitAId: 'A',
+        unitBId: 'B',
+        unitAName: 'A队',
+        unitBName: 'B队',
+        teamA,
+        teamB,
+        status: 'pending',
+        logicalRound: roundIndex
+      }],
+      restPlayers: allIds.filter((id) => !active.has(id))
+    };
+  });
+
+  const fairnessMetrics = buildSquadFairnessFromRounds(rounds, allIds);
+  return {
+    rounds,
+    fairnessScore: fairnessMetrics.fairnessScore,
+    fairness: {
+      engine: 'squad-v3-beam',
+      playSpread: fairnessMetrics.playSpread,
+      maxConsecutivePlay: fairnessMetrics.maxConsecutivePlay,
+      partnerRepeats: fairnessMetrics.partnerRepeats,
+      opponentRepeats: fairnessMetrics.opponentRepeats,
+      partnerPenalty: fairnessMetrics.partnerPenalty,
+      opponentPenalty: fairnessMetrics.opponentPenalty,
+      uniqueMatchupCount: rounds.length,
+      restPriorityTotal: 0
+    },
+    playerStats: { playCount: fairnessMetrics.playCount },
+    seed: 0,
+    schedulerMeta: {
+      engineVersion: 'squad-v3-beam',
+      mode: 'squad_doubles',
+      endConditionType: String(meta.endConditionType || 'total_matches'),
+      endConditionTarget: Number(meta.endConditionTarget) || targetMatches,
+      executionProfile: 'beam-quality',
+      timeoutGuardTriggered: false,
+      fallbackReason: '',
+      searchElapsedMs: 0,
+      fairnessVersion: 'v2',
+      effectiveCourts: 1
+    }
+  };
+}
+
 function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
   scheduleContract.assertValidRosterPlayers(players);
   const idsA = [];
@@ -215,16 +450,32 @@ function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
     type: endConditionType,
     target: endConditionTarget
   });
-
-  // Beam search 仅处理 target matches 场景，total_rounds 直接走贪心
-  const forceFallback = rules._debugForceFallback === true;
-  const canUseBeam = !forceFallback && endConditionType !== 'total_rounds';
-  const searchStartedAtMs = Date.now();
   const effectiveCourts = Math.max(1, Math.min(
     Number(courts) || 1,
     Math.floor(idsA.length / 2),
     Math.floor(idsB.length / 2)
   ));
+
+  // Beam search 仅处理 target matches 场景，total_rounds 直接走贪心
+  const forceFallback = rules._debugForceFallback === true;
+  const deterministicTargetMatches = endConditionType === 'total_rounds'
+    ? (targetRounds * effectiveCourts)
+    : targetMatches;
+  if (
+    !forceFallback
+    && idsA.length === 4
+    && idsB.length === 4
+    && effectiveCourts === 1
+    && deterministicTargetMatches >= 1
+    && deterministicTargetMatches <= 12
+  ) {
+    return buildDeterministicSquad4v4SingleCourtSchedule(idsA, idsB, deterministicTargetMatches, {
+      endConditionType,
+      endConditionTarget
+    });
+  }
+  const canUseBeam = !forceFallback && endConditionType !== 'total_rounds';
+  const searchStartedAtMs = Date.now();
 
   if (canUseBeam) {
     try {

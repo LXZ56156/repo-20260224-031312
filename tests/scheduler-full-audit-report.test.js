@@ -27,6 +27,9 @@ function buildRepresentativeResult(name, mode, overrides = {}) {
     squadBPlaySpread: overrides.squadBPlaySpread || 0,
     maxConsecutivePlay: overrides.maxConsecutivePlay || 1,
     uniqueExactMatchupCount: overrides.uniqueExactMatchupCount || 8,
+    exactRepeatCount: overrides.exactRepeatCount || 0,
+    exactRepeatBaseline: overrides.exactRepeatBaseline || 0,
+    exactRepeatExcess: overrides.exactRepeatExcess || 0,
     partnerRepeats: overrides.partnerRepeats || 0,
     opponentRepeats: overrides.opponentRepeats || 0,
     partnerRepeatBaseline: overrides.partnerRepeatBaseline || 0,
@@ -431,6 +434,38 @@ test('scheduler full audit worst-case rows rank equal squad hotspots by repeat e
   assert.equal(rows[1].partnerRepeatExcess, 0);
 });
 
+test('scheduler full audit worst-case rows rank exact-repeat regressions ahead of pure repeat pressure', () => {
+  const rows = report.buildWorstCaseRows([
+    buildRepresentativeResult('squad exact-repeat regression', 'squad', {
+      actualMatches: 6,
+      uniqueExactMatchupCount: 2,
+      exactRepeatCount: 4,
+      exactRepeatBaseline: 0,
+      exactRepeatExcess: 4,
+      partnerRepeats: 4,
+      opponentRepeats: 8,
+      scenario: { targetMatches: 6, squadAPlayers: 4, squadBPlayers: 4, courts: 1 }
+    }),
+    buildRepresentativeResult('squad repeat-only pressure', 'squad', {
+      actualMatches: 12,
+      uniqueExactMatchupCount: 12,
+      exactRepeatCount: 0,
+      exactRepeatBaseline: 0,
+      exactRepeatExcess: 0,
+      partnerRepeats: 16,
+      opponentRepeats: 32,
+      partnerRepeatBaseline: 0,
+      opponentRepeatBaseline: 0,
+      partnerRepeatExcess: 16,
+      opponentRepeatExcess: 32,
+      scenario: { targetMatches: 12, squadAPlayers: 8, squadBPlayers: 8, courts: 2 }
+    })
+  ]);
+
+  assert.equal(rows[0].scenario, 'squad exact-repeat regression');
+  assert.equal(rows[0].exactRepeatExcess, 4);
+});
+
 test('scheduler full audit observation rows explain equal squad repeats with excess metrics', () => {
   const rows = report.buildObservationRows([
     buildRepresentativeResult('squad equal 4v4/12m/2c', 'squad', {
@@ -539,4 +574,23 @@ test('scheduler full audit observation rows ignore structural uneven playSpread 
 
   assert.deepEqual(rows.map((row) => row.scenario), ['squad excess']);
   assert.match(rows[0].observation, /playSpreadExcess=1/);
+});
+
+test('scheduler full audit observation rows surface exact-repeat excess explicitly', () => {
+  const rows = report.buildObservationRows([
+    buildRepresentativeResult('squad exact-repeat regression', 'squad', {
+      actualMatches: 12,
+      uniqueExactMatchupCount: 2,
+      exactRepeatCount: 10,
+      exactRepeatBaseline: 0,
+      exactRepeatExcess: 10,
+      partnerRepeats: 20,
+      opponentRepeats: 40,
+      scenario: { targetMatches: 12, squadAPlayers: 4, squadBPlayers: 4, courts: 1 }
+    })
+  ]);
+
+  assert.equal(rows.length, 1);
+  assert.match(rows[0].observation, /exactRepeatExcess=10/);
+  assert.equal(rows[0].exactRepeatCount, 10);
 });

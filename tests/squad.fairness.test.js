@@ -44,6 +44,16 @@ function computeOpponentCounts(matches) {
   return result;
 }
 
+function computeUniqueExactMatchupCount(matches) {
+  const seen = new Set();
+  matches.forEach((m) => {
+    const teamA = m.teamA.slice().sort().join('+');
+    const teamB = m.teamB.slice().sort().join('+');
+    seen.add(`${teamA} vs ${teamB}`);
+  });
+  return seen.size;
+}
+
 function computePlayCountSpread(matches, ids) {
   const counts = Object.fromEntries(ids.map((id) => [id, 0]));
   matches.forEach((m) => {
@@ -165,6 +175,52 @@ test('squad reports non-zero fairnessScore and full fairness object', () => {
   );
   assert.equal(out.schedulerMeta && out.schedulerMeta.engineVersion, version);
   assert.equal(out.schedulerMeta && out.schedulerMeta.fairnessVersion, 'v2');
+});
+
+test('squad 4v4/1c exact-matchup templates remove full repeats for 3/6/12 matches', () => {
+  const cases = [
+    { matches: 3, playSpread: 1, partnerRepeats: 0, opponentRepeats: 1, maxConsecutivePlay: 2 },
+    { matches: 6, playSpread: 0, partnerRepeats: 0, opponentRepeats: 8, maxConsecutivePlay: 2 },
+    { matches: 12, playSpread: 0, partnerRepeats: 12, opponentRepeats: 32, maxConsecutivePlay: 2 }
+  ];
+
+  cases.forEach((entry) => {
+    const out = buildSquadSchedule(
+      makePlayers(4, 4),
+      entry.matches,
+      1,
+      { endCondition: { type: 'total_matches', target: entry.matches } }
+    );
+    const matches = collectAllMatches(out);
+    const uniqueExactMatchupCount = computeUniqueExactMatchupCount(matches);
+
+    assert.equal(matches.length, entry.matches, `${entry.matches}m actualMatches`);
+    assert.equal(uniqueExactMatchupCount, entry.matches, `${entry.matches}m uniqueExact`);
+    assert.equal(matches.length - uniqueExactMatchupCount, 0, `${entry.matches}m exactRepeatCount`);
+    assert.equal(out.fairness.playSpread, entry.playSpread, `${entry.matches}m playSpread`);
+    assert.equal(out.fairness.partnerRepeats, entry.partnerRepeats, `${entry.matches}m partnerRepeats`);
+    assert.equal(out.fairness.opponentRepeats, entry.opponentRepeats, `${entry.matches}m opponentRepeats`);
+    assert.ok(out.fairness.maxConsecutivePlay <= entry.maxConsecutivePlay, `${entry.matches}m maxConsecutivePlay=${out.fairness.maxConsecutivePlay}`);
+    assert.equal(out.schedulerMeta && out.schedulerMeta.executionProfile, 'beam-quality', `${entry.matches}m executionProfile`);
+  });
+});
+
+test('squad 4v4/1c total_rounds path reuses exact-matchup templates without falling back to repeated pairings', () => {
+  const out = buildSquadSchedule(
+    makePlayers(4, 4),
+    12,
+    1,
+    { endCondition: { type: 'total_rounds', target: 6 } }
+  );
+  const matches = collectAllMatches(out);
+  const uniqueExactMatchupCount = computeUniqueExactMatchupCount(matches);
+
+  assert.equal(matches.length, 6);
+  assert.equal(uniqueExactMatchupCount, 6);
+  assert.equal(matches.length - uniqueExactMatchupCount, 0);
+  assert.equal(out.fairness.playSpread, 0);
+  assert.equal(out.fairness.partnerRepeats, 0);
+  assert.equal(out.fairness.opponentRepeats, 8);
 });
 
 test('squad v2 handles uneven squad sizes without crash and completes scheduling', () => {

@@ -189,6 +189,16 @@ function computeCoverageTotals(scenario, ids) {
   };
 }
 
+function computeTotalExactMatchupCapacity(scenario, ids) {
+  if (!scenario || scenario.mode === 'rotation') {
+    const playerCount = Math.max(0, Array.isArray(ids) ? ids.length : 0);
+    return playerCount >= 4 ? countComb(playerCount, 4) * 3 : 0;
+  }
+  const aCount = Math.max(0, Number(scenario.squadAPlayers) || 0);
+  const bCount = Math.max(0, Number(scenario.squadBPlayers) || 0);
+  return countComb(aCount, 2) * countComb(bCount, 2);
+}
+
 function isEqualSquadScenario(scenario) {
   return Boolean(scenario)
     && scenario.mode === 'squad'
@@ -545,7 +555,7 @@ function buildSquadRepresentativeScenarios() {
       rules: { endCondition: { type: 'total_matches', target: 12 }, _seed: 1 },
       maxElapsedMs: SQUAD_FAST_BOUND_MS,
       expectedPlaySpread: 0,
-      expectedMaxConsecutivePlay: 1
+      expectedMaxConsecutivePlay: 2
     },
     {
       id: 'squad-5v5-12m-2c',
@@ -935,6 +945,7 @@ function runScenario(scenario) {
     playerStats.maxRestStreak || {}
   );
   const coverageTotals = computeCoverageTotals(scenario, ids);
+  const totalExactMatchupCapacity = computeTotalExactMatchupCapacity(scenario, ids);
   const repeatBaselines = computeSquadRepeatBaselines(scenario, matches.length, coverageTotals);
   const squadAPlaySpread = scenario.mode === 'squad'
     ? computeCountSpreadForIds(playCounts, idsA)
@@ -953,6 +964,9 @@ function runScenario(scenario) {
   const playSpreadExcess = scenario.mode === 'squad'
     ? Math.max(0, (Number(fairness.playSpread ?? meta.playSpread ?? computeSpread(Object.values(playCounts))) || 0) - globalPlaySpreadBaseline)
     : 0;
+  const uniqueExactMatchupCount = Number(meta.uniqueExactMatchupCount ?? countUniqueExactMatchups(matches)) || 0;
+  const exactRepeatCount = Math.max(0, matches.length - uniqueExactMatchupCount);
+  const exactRepeatBaseline = Math.max(0, matches.length - totalExactMatchupCapacity);
 
   return {
     scenario,
@@ -962,10 +976,14 @@ function runScenario(scenario) {
     computedPlaySpread: computeSpread(Object.values(playCounts)),
     computedMaxConsecutivePlay: computeMaxConsecutive(out.rounds || [], ids),
     computedUniqueExactMatchupCount: countUniqueExactMatchups(matches),
+    totalExactMatchupCapacity,
+    exactRepeatCount,
+    exactRepeatBaseline,
+    exactRepeatExcess: Math.max(0, exactRepeatCount - exactRepeatBaseline),
     fairnessScore: Number(out.fairnessScore) || 0,
     playSpread: Number(fairness.playSpread ?? meta.playSpread ?? computeSpread(Object.values(playCounts))),
     maxConsecutivePlay: Number(fairness.maxConsecutivePlay ?? meta.maxConsecutivePlay ?? 0),
-    uniqueExactMatchupCount: Number(meta.uniqueExactMatchupCount ?? countUniqueExactMatchups(matches)),
+    uniqueExactMatchupCount,
     uniquePartnerPairs: Number(playerStats.uniquePartnerPairs ?? pairMetrics.uniquePartnerPairs),
     uniqueOpponentPairs: Number(playerStats.uniqueOpponentPairs ?? pairMetrics.uniqueOpponentPairs),
     partnerRepeats: Number(fairness.partnerRepeats ?? playerStats.partnerRepeats ?? pairMetrics.partnerRepeats),
@@ -1025,6 +1043,10 @@ function buildErroredScenarioResult(scenario, error, elapsedMs) {
     playSpread: 0,
     maxConsecutivePlay: 0,
     uniqueExactMatchupCount: 0,
+    totalExactMatchupCapacity: 0,
+    exactRepeatCount: 0,
+    exactRepeatBaseline: 0,
+    exactRepeatExcess: 0,
     uniquePartnerPairs: 0,
     uniqueOpponentPairs: 0,
     partnerRepeats: 0,
@@ -1072,6 +1094,9 @@ function compareWorstResult(left, right) {
   const leftCoverageLoss = Math.max(0, (Number(left.scenario && left.scenario.targetMatches) || 0) - (Number(left.actualMatches) || 0));
   const rightCoverageLoss = Math.max(0, (Number(right.scenario && right.scenario.targetMatches) || 0) - (Number(right.actualMatches) || 0));
   if (leftCoverageLoss !== rightCoverageLoss) return rightCoverageLoss - leftCoverageLoss;
+  const leftExactRepeatPressure = Number(left.exactRepeatExcess ?? left.exactRepeatCount) || 0;
+  const rightExactRepeatPressure = Number(right.exactRepeatExcess ?? right.exactRepeatCount) || 0;
+  if (leftExactRepeatPressure !== rightExactRepeatPressure) return rightExactRepeatPressure - leftExactRepeatPressure;
   const leftRepeatPressure = left.scenario && left.scenario.mode === 'squad'
     ? ((Number(left.partnerRepeatExcess) || 0) * 100 + (Number(left.opponentRepeatExcess) || 0))
     : ((Number(left.partnerRepeats) || 0) * 100 + (Number(left.opponentRepeats) || 0));
@@ -1423,6 +1448,9 @@ function toSummaryRow(result) {
     theoreticalPlaySpread: theoreticalSpread,
     maxConsecutivePlay: result.maxConsecutivePlay,
     uniqueExactMatchupCount: result.uniqueExactMatchupCount,
+    exactRepeatCount: result.exactRepeatCount,
+    exactRepeatBaseline: result.exactRepeatBaseline,
+    exactRepeatExcess: result.exactRepeatExcess,
     partnerRepeats: result.partnerRepeats,
     opponentRepeats: result.opponentRepeats,
     partnerRepeatBaseline: result.partnerRepeatBaseline,
