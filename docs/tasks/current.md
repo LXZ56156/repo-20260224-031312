@@ -6,6 +6,8 @@
 ## Status: completed
 
 ## Last Completed
+- 2026-04-15 Codex: 完成 `multi_rotate` 模板短前缀的 rounds 顺序后处理优化。`cloudfunctions/startTournament/rotation.js` 新增仅对短前缀模板结果生效的 round reorder post-process：保持对阵集合完全不变，仅在 `targetMatches<=12` 且重排后能同时改善 `maxConsecutivePlay / maxRestStreak` 时接收新顺序。代表性 `rotation 6p/12m/1c` 已从 `maxConsecutivePlay=4 / maxRestStreak=2` 降到 `3 / 1`，且 `uniqueExactMatchupCount=12`、`partnerRepeats=9`、`opponentRepeats=33` 不变；`6p-1c@18` 等 coverage-first 默认档保持原口径不变。`node --test tests/*.test.js`、`npm run check`、`node scripts/audit-scheduler-scenarios.js`、`node scripts/generate-scheduler-full-audit.js` 全部通过，报告已刷新为 `warnings=0 / failures=0`。
+- 2026-04-15 Codex: 完成 `squad_doubles` 热点与 uneven repeat baseline 修复。`scheduleModes` 新增 `8v8/16m/2c` 与 `10v10/20m/4c` 两段式 deterministic 路径；`squadDoublesEngine` 为 `9v9/18m/3c` 增加 round-layout/partner-diversity 排序，稳定到 `partnerRepeats=0` 且保持 `beam-quality`；审计层为 tracked uneven case（`3v4/9m/1c`、`5v4/12m/1c`、`6v5/12m/2c`）补齐 `partner/opponentRepeatBaseline` 与 `Excess`；报告按 repeatExcess 解释 uneven/equal 热点，并刷新 `docs/scheduler-full-audit.md` 为 `warnings=0 / failures=0`。同时把 rotation guarded representative 的离线预算样本从 `budget=200` 稳定到 `budget=300`，避免全量并发下的偶发超时误报。`node --test tests/*.test.js`、`npm run check`、`node scripts/audit-scheduler-scenarios.js`、`node scripts/generate-scheduler-full-audit.js` 全部通过。
 - 2026-04-15 Codex: 完成 `squad_doubles 4v4/1c` exact-matchup 去重修复。`scheduleModes` 新增窄范围 deterministic 模板路径，覆盖 `4v4/1c` 且 `targetMatches<=12` 的 `total_matches` / `total_rounds` 两条入口；`3m/6m/12m` 及其余前缀均改为无完全重复对阵，`4v4/12m/1c` 达到 `uniqueExactMatchupCount=12`、`partnerRepeats=12`、`opponentRepeats=32`。审计层新增 `exactRepeatCount / exactRepeatBaseline / exactRepeatExcess`，报告按 exact-repeat 暴露热点；同步确认 `4v4/12m/1c` 在无 exact repeat 前提下 `maxConsecutivePlay<=1` 不可实现，因此代表性验收口径改为 `<=2`。`node --test tests/*.test.js`、`npm run check`、`node scripts/audit-scheduler-scenarios.js`、`node scripts/generate-scheduler-full-audit.js` 全部通过，报告已刷新为 warnings=0 / failures=0。
 - 2026-04-14 Codex: 完成 `squad_doubles` equal hotspot 优化与 repeat baseline 纠偏。审计层新增 `partnerRepeatBaseline` / `opponentRepeatBaseline` / `partnerRepeatExcess` / `opponentRepeatExcess`；`4v4/12m/2c` 改判为结构性最优基线；`6v6/18m/3c` 稳定降到 `partnerRepeats=6`、`7v7/18m/3c` 稳定降到 `partnerRepeats=0` 且保持 `opponentRepeats=23`；报告新增 repeat-baseline 解释并改用 repeatExcess 排序/观察；`node --test tests/*.test.js`、`npm run check`、`node scripts/audit-scheduler-scenarios.js`、`node scripts/generate-scheduler-full-audit.js` 全部通过，报告已刷新为 warnings=0 / failures=0。
 - 2026-04-13 Codex: 完成排阵热点修复与评测降噪。`squad_doubles` 新增 uneven 结构性 `playSpread` 基线与 `playSpreadExcess` 审计口径；报告新增“最差 Unique Case”“结构性 / 可接受例外”视图；`7v7/18m/3c` 从 `beam-guarded` 降到 `beam-quality`；多 seed/stability 扩展到 longtail、risk prefix、uneven、guarded heavy case；`node --test tests/*.test.js`、`npm run check`、`node scripts/audit-scheduler-scenarios.js`、`node scripts/generate-scheduler-full-audit.js` 全部通过，报告已刷新为 warnings=0 / failures=0。
@@ -20,6 +22,13 @@
 
 ## What Changed (未提交)
 
+- `cloudfunctions/startTournament/scheduleModes.js`：新增 `8v8/16m/2c` 与 `10v10/20m/4c` 的 deterministic 热点模板；`8v8` 现在在 `playSpread=0`、`maxConsecutivePlay=1` 下达到 `partnerRepeatBaseline=8 / opponentRepeatBaseline=32`；`10v10` 不再依赖 `beam-guarded + guarded_greedy_completion`，改为固定轮休 + 轮内配对，代表性 case 稳定为 `beam-quality`、`timeoutGuardTriggered=false`。
+- `cloudfunctions/startTournament/squadDoublesEngine.js`：为 `9v9/18m/3c` 增加 `roundLayoutPenalty` / active-layout 去重 / partner-diversity 优先排序，避免相似 active players 轮次重复复用搭档结构；目标 case 在多 seed 下稳定保持 `partnerRepeats=0`、`opponentRepeats=9`、`executionProfile=beam-quality`。
+- `cloudfunctions/startTournament/rotation.js`：为模板短前缀新增 round reorder post-process；仅在 `targetMatches<=12`、存在 bench 且重排后能严格改善 `maxConsecutivePlay/maxRestStreak` 时接收新顺序，并同步重算 `playerStats` / `fairness` / `objective` / `fairnessScore`。当前 `rotation 6p/12m/1c` 已稳定改善到 `maxConsecutivePlay=3`、`maxRestStreak=1`，且对阵集合与 coverage 指标不变。
+- `scripts/scheduler-scenario-common.js`：tracked uneven case 新增精确 `partnerRepeatBaseline` / `opponentRepeatBaseline` 常量表（`3v4/9m/1c=9/24`、`5v4/12m/1c=8/28`、`6v5/12m/2c=2/18`）；`8v8/16m/2c` equal hotspot 也补齐 baseline；rotation guarded representative 离线预算样本从 `budget=200` 调整为 `budget=300` 以消除全量并发下的偶发超时噪声。
+- `scripts/generate-scheduler-full-audit.js` + `docs/scheduler-full-audit.md`：uneven / tracked equal hotspot 的 observation 与结构性例外说明统一按 `repeatBaseline` / `repeatExcess` 输出，不再用 raw repeat 直接解释热点；报告已刷新为 `scenarios=960 warnings=0 failures=0`。
+- `tests/scheduler.multidimensional-audit.test.js`、`tests/scheduler-full-audit-report.test.js`、`tests/squad.fairness.test.js`、`tests/squad.beam.performance.test.js`：补充 uneven repeat baseline 精确验证（改为容量下界 + witness，避免重搜索拖慢全量）、`8v8/16m/2c` / `9v9/18m/3c` / `10v10/20m/4c` 回归、report 文案断言，以及高压 squad case 的更稳测试 headroom。
+- `tests/rotation.performance.test.js`：补充 `6p/12m/1c` 的顺序重排回归，锁定“对阵集合不变、`maxConsecutivePlay=3`、`maxRestStreak=1`”。
 - `cloudfunctions/startTournament/scheduleModes.js`：新增 `4v4/1c` 窄范围 deterministic 模板族，优先接管 `targetMatches<=12` 的 `squad_doubles` 单场地排阵；统一从 rounds 派生 `playSpread` / `maxConsecutivePlay` / `partnerRepeats` / `opponentRepeats` / `fairnessScore`，避免走通用 beam 后出现 exact matchup 重复。
 - `scripts/scheduler-scenario-common.js`：新增 `totalExactMatchupCapacity`、`exactRepeatCount`、`exactRepeatBaseline`、`exactRepeatExcess`；worst-case 比较逻辑改为在 coverage 后优先暴露 exact-repeat excess；`squad-4v4-12m-1c` 的代表性验收上限调整为 `maxConsecutivePlay<=2`。
 - `scripts/generate-scheduler-full-audit.js` + `docs/scheduler-full-audit.md`：代表性表、worst-case、observation 补充 `exactRepeatCount` / `exactRepeatExcess` 展示，避免“uniqueExact 很低但不显眼”的报告盲点。
@@ -38,22 +47,13 @@
 - Tests：补充 match view state、scoreLock、submitScore index/logic/idempotency 覆盖。
 
 ## Next Steps
-- 若继续排阵专项：优先检查 `squad 8v8/16m/2c` 和 uneven case 的 repeat 是否存在结构性下限之外的 excess，再决定是补基线口径还是继续调 beam/guarded 启发式。
+- 若继续排阵专项：优先检查 `squad equal 8v8/24m/4c`、`9v9/24m/4c`、`10v10/24m/4c` 等高压 equal case 的 guarded 依赖，以及 `squad uneven 5v4/12m/1c`、`6v5/12m/2c` 仍存在的 repeatExcess 是否值得继续下探。
 
 ## Blockers
 - 无。
 
 ## Verified Subset Output
-- 全量测试：`node --test tests/*.test.js` => 760 pass / 0 fail
+- 全量测试：`node --test tests/*.test.js` => 764 pass / 0 fail
 - 静态检查：`npm run check` => pass
 - 审计脚本：`node scripts/audit-scheduler-scenarios.js` => `scenarios=960 warnings=0 failures=0`
 - 报告生成：`node scripts/generate-scheduler-full-audit.js` => `scenarios=960 warnings=0 failures=0`
-- 全量测试：`node --test tests/*.test.js` => 755 pass / 0 fail
-- 静态检查：`npm run check` => pass
-- 审计脚本：`node scripts/audit-scheduler-scenarios.js` => `scenarios=960 warnings=0 failures=0`
-- 报告生成：`node scripts/generate-scheduler-full-audit.js` => `scenarios=960 warnings=0 failures=0`
-- focused：`node --test tests/scheduler.multidimensional-audit.test.js tests/scheduler-full-audit-report.test.js tests/squad.fairness.test.js` => pass
-- focused：`node --test tests/match*.test.js tests/submitScore*.test.js tests/scoreLock*.test.js tests/permission*.test.js tests/role-permission-matrix-score-entry.test.js tests/cloud*.test.js tests/ranking-core*.test.js tests/smoke.score-lock-submit.test.js tests/smoke.reset-delete-locks.test.js tests/smoke.weak-network-cache-fallback.test.js` => 111 pass / 0 fail
-- shared common：`bash ./scripts/check-cloud-common.sh` => pass
-- 静态检查：`npm run check` => pass
-- 全量测试：`node --test tests/*.test.js` => 首次 726 pass / 1 fail（`rotation 10p/23m/2c budget=200` 偶发超时）；单独重跑 `tests/scheduler.scenarios.test.js` => 16 pass / 0 fail；再次全量 => 727 pass / 0 fail

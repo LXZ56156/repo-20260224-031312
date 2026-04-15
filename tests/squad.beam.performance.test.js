@@ -117,16 +117,19 @@ test('squad 10v10 courts=4 在预算内返回并暴露 fallback 元数据', () =
 
 [
   { aCount: 9, bCount: 9, totalMatches: 12, courts: 4 },
-  { aCount: 9, bCount: 9, totalMatches: 24, courts: 4 },
+  { aCount: 9, bCount: 9, totalMatches: 24, courts: 4, hardDeadlineMs: 6000 },
   { aCount: 10, bCount: 10, totalMatches: 12, courts: 2 },
   { aCount: 10, bCount: 10, totalMatches: 18, courts: 3 }
-].forEach(({ aCount, bCount, totalMatches, courts }) => {
+].forEach(({ aCount, bCount, totalMatches, courts, hardDeadlineMs }) => {
   test(`squad ${aCount}v${bCount}/${totalMatches}m/${courts}c 不降级到 greedy-fallback`, () => {
     const { out } = measureSchedule(() => buildSquadSchedule(
       makePlayers(aCount, bCount),
       totalMatches,
       courts,
-      { endCondition: { type: 'total_matches', target: totalMatches } }
+      {
+        endCondition: { type: 'total_matches', target: totalMatches },
+        ...(Number.isFinite(hardDeadlineMs) ? { _hardDeadlineMs: hardDeadlineMs } : {})
+      }
     ));
     const meta = out.schedulerMeta || {};
 

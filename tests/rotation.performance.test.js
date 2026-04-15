@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { generateSchedule } = require('../cloudfunctions/startTournament/rotation');
+const templateLibrary = require('../cloudfunctions/startTournament/rotation.templates');
 
 const TEMPLATE_FAST_BOUND_MS = 300;
 
@@ -11,6 +12,20 @@ function makePlayers(n, femaleCount = 0) {
     name: `P${i + 1}`,
     gender: i < femaleCount ? 'female' : 'male'
   }));
+}
+
+function normalizeTeam(team) {
+  return (team || []).map((id) => String(id)).slice().sort().join('+');
+}
+
+function buildMatchupKey(teamA, teamB) {
+  return [normalizeTeam(teamA), normalizeTeam(teamB)].sort().join(' vs ');
+}
+
+function collectMatchupKeys(rounds) {
+  return (rounds || [])
+    .flatMap((round) => (round.matches || []).map((match) => buildMatchupKey(match.teamA, match.teamB)))
+    .sort();
 }
 
 test('templated schedules return within a tight bound', () => {
@@ -33,6 +48,26 @@ test('4p-1c handcrafted template returns within a tight bound', () => {
   assert.equal(out.schedulerMeta.uniqueExactMatchupCount, 3);
   assert.equal(out.schedulerMeta.playSpread, 0);
   assert.ok(elapsed < TEMPLATE_FAST_BOUND_MS, `elapsed=${elapsed}`);
+});
+
+test('template round reorder can reduce rest pressure without changing 6p-1c short-prefix matchups', () => {
+  const out = generateSchedule(makePlayers(6), 12, 1, { seed: 7 });
+  const expectedRounds = templateLibrary.cases['6p-1c'].variants[0].rounds.slice(0, 12).map((round) => ({
+    matches: (round.matches || []).map((match) => ({
+      teamA: (match.teamA || []).map((id) => `p${id}`),
+      teamB: (match.teamB || []).map((id) => `p${id}`)
+    }))
+  }));
+
+  assert.equal(out.schedulerMeta.engine, 'template');
+  assert.equal(out.schedulerMeta.templateKey, '6p-1c');
+  assert.equal(out.schedulerMeta.uniqueExactMatchupCount, 12);
+  assert.equal(out.schedulerMeta.playSpread, 0);
+  assert.equal(out.schedulerMeta.maxConsecutivePlay, 3);
+  assert.equal(Math.max(...Object.values(out.playerStats.maxRestStreak || { p1: 0 })), 1);
+  assert.equal(out.fairness.partnerRepeats, 9);
+  assert.equal(out.fairness.opponentRepeats, 33);
+  assert.deepEqual(collectMatchupKeys(out.rounds), collectMatchupKeys(expectedRounds));
 });
 
 test('newly templated single-court cases return within a tight bound', () => {

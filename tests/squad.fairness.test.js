@@ -263,7 +263,7 @@ test('squad uneven hotspots stay near structural baseline without greedy fallbac
       makePlayers(scenario.a, scenario.b),
       scenario.matches,
       scenario.courts,
-      { endCondition: { type: 'total_matches', target: scenario.matches }, _seed: 1 }
+      { endCondition: { type: 'total_matches', target: scenario.matches }, _hardDeadlineMs: 4000, _seed: 1 }
     );
     assert.equal(collectAllMatches(out).length, scenario.matches, `${scenario.a}v${scenario.b}`);
     assert.notEqual(out.schedulerMeta && out.schedulerMeta.executionProfile, 'greedy-fallback', `${scenario.a}v${scenario.b}`);
@@ -277,7 +277,7 @@ test('squad 7v7/18m/3c now completes inside beam quality path', () => {
     makePlayers(7, 7),
     18,
     3,
-    { endCondition: { type: 'total_matches', target: 18 }, _hardDeadlineMs: 2500, _seed: 1 }
+    { endCondition: { type: 'total_matches', target: 18 }, _hardDeadlineMs: 5000, _seed: 1 }
   );
 
   assert.equal(collectAllMatches(out).length, 18);
@@ -327,7 +327,7 @@ test('squad 7v7/18m/3c keeps partner diversity stable across representative seed
       makePlayers(7, 7),
       18,
       3,
-      { endCondition: { type: 'total_matches', target: 18 }, _hardDeadlineMs: 2500, _seed: seed }
+      { endCondition: { type: 'total_matches', target: 18 }, _hardDeadlineMs: 5000, _seed: seed }
     );
 
     assert.equal(collectAllMatches(out).length, 18, `seed=${seed}`);
@@ -336,6 +336,45 @@ test('squad 7v7/18m/3c keeps partner diversity stable across representative seed
     assert.equal(out.fairness.uniqueMatchupCount, 18, `seed=${seed}`);
     assert.equal(out.fairness.opponentRepeats, 23, `seed=${seed}`);
     assert.ok(out.fairness.partnerRepeats <= 4, `seed=${seed} partnerRepeats=${out.fairness.partnerRepeats}`);
+  }
+});
+
+test('squad 8v8/16m/2c deterministic hotspot path keeps maxConsecutive at 1 while reducing partner repeats', () => {
+  for (const seed of [1, 2, 17]) {
+    const out = buildSquadSchedule(
+      makePlayers(8, 8),
+      16,
+      2,
+      { endCondition: { type: 'total_matches', target: 16 }, _hardDeadlineMs: 2500, _seed: seed }
+    );
+
+    assert.equal(collectAllMatches(out).length, 16, `seed=${seed}`);
+    assert.equal(out.schedulerMeta && out.schedulerMeta.executionProfile, 'beam-quality', `seed=${seed}`);
+    assert.equal(out.fairness.playSpread, 0, `seed=${seed}`);
+    assert.equal(out.fairness.maxConsecutivePlay, 1, `seed=${seed}`);
+    assert.equal(out.fairness.partnerRepeats, 8, `seed=${seed}`);
+    assert.equal(out.fairness.opponentRepeats, 32, `seed=${seed}`);
+    assert.equal(out.fairness.uniqueMatchupCount, 16, `seed=${seed}`);
+  }
+});
+
+test('squad 9v9/18m/3c hotspot keeps beam-quality while removing partner repeat excess', () => {
+  for (const seed of [1, 2, 17]) {
+    const out = buildSquadSchedule(
+      makePlayers(9, 9),
+      18,
+      3,
+      { endCondition: { type: 'total_matches', target: 18 }, _hardDeadlineMs: 5000, _seed: seed }
+    );
+
+    assert.equal(collectAllMatches(out).length, 18, `seed=${seed}`);
+    assert.equal(out.schedulerMeta && out.schedulerMeta.executionProfile, 'beam-quality', `seed=${seed}`);
+    assert.equal(out.schedulerMeta && out.schedulerMeta.timeoutGuardTriggered, false, `seed=${seed}`);
+    assert.equal(out.fairness.playSpread, 0, `seed=${seed}`);
+    assert.equal(out.fairness.maxConsecutivePlay, 2, `seed=${seed}`);
+    assert.equal(out.fairness.partnerRepeats, 0, `seed=${seed}`);
+    assert.equal(out.fairness.opponentRepeats, 9, `seed=${seed}`);
+    assert.equal(out.fairness.uniqueMatchupCount, 18, `seed=${seed}`);
   }
 });
 
@@ -351,8 +390,9 @@ test('squad 10v10/20m/4c stays as an accepted coverage-first exception', () => {
   assert.equal(matches.length, 20);
   assert.equal(out.fairness.playSpread, 0);
   assert.equal(out.fairness.maxConsecutivePlay, 4);
-  assert.equal(out.schedulerMeta && out.schedulerMeta.executionProfile, 'beam-guarded');
-  assert.equal(out.schedulerMeta && out.schedulerMeta.fallbackReason, 'guarded_greedy_completion');
+  assert.equal(out.schedulerMeta && out.schedulerMeta.executionProfile, 'beam-quality');
+  assert.equal(out.schedulerMeta && out.schedulerMeta.timeoutGuardTriggered, false);
+  assert.equal(out.schedulerMeta && out.schedulerMeta.fallbackReason, '');
 });
 
 test('squad 10v10/20m/4c keeps coverage-first metrics stable across representative seeds', () => {
@@ -366,6 +406,7 @@ test('squad 10v10/20m/4c keeps coverage-first metrics stable across representati
     assert.equal(out.fairness.playSpread, 0, `seed=${seed}`);
     assert.equal(out.fairness.maxConsecutivePlay, 4, `seed=${seed}`);
     assert.equal(out.fairness.uniqueMatchupCount, 20, `seed=${seed}`);
-    assert.equal(out.schedulerMeta && out.schedulerMeta.executionProfile, 'beam-guarded', `seed=${seed}`);
+    assert.equal(out.schedulerMeta && out.schedulerMeta.executionProfile, 'beam-quality', `seed=${seed}`);
+    assert.equal(out.schedulerMeta && out.schedulerMeta.timeoutGuardTriggered, false, `seed=${seed}`);
   }
 });

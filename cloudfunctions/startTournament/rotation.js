@@ -221,9 +221,16 @@ function computeStats(rounds, playerIds) {
   const matchTypeCount = { MX: 0, MM: 0, FF: 0 };
   const usedMatchupKeys = new Set();
   const playStreak = Object.fromEntries(playerIds.map((id) => [id, 0]));
+  const restStreak = Object.fromEntries(playerIds.map((id) => [id, 0]));
+  const maxRestStreak = Object.fromEntries(playerIds.map((id) => [id, 0]));
+  const lastRestRound = Object.fromEntries(playerIds.map((id) => [id, -1]));
+  const restCount = Object.fromEntries(playerIds.map((id) => [id, 0]));
   let maxConsecutivePlay = 0;
+  let maxRestStreakValue = 0;
+  let restPriorityTotal = 0;
 
-  for (const r of rounds) {
+  for (let roundIndex = 0; roundIndex < rounds.length; roundIndex += 1) {
+    const r = rounds[roundIndex];
     const playedInRound = new Set();
     for (const m of r.matches) {
       const a = m.teamA;
@@ -254,9 +261,17 @@ function computeStats(rounds, playerIds) {
     for (const id of playerIds) {
       if (playedInRound.has(id)) {
         playStreak[id] += 1;
+        restStreak[id] = 0;
         if (playStreak[id] > maxConsecutivePlay) maxConsecutivePlay = playStreak[id];
       } else {
+        restPriorityTotal += ((lastRestRound[id] < 0 ? (roundIndex + 1) : (roundIndex - lastRestRound[id])) * 100)
+          + (playStreak[id] || 0);
+        restCount[id] += 1;
         playStreak[id] = 0;
+        restStreak[id] += 1;
+        lastRestRound[id] = roundIndex;
+        if (restStreak[id] > maxRestStreak[id]) maxRestStreak[id] = restStreak[id];
+        if (restStreak[id] > maxRestStreakValue) maxRestStreakValue = restStreak[id];
       }
     }
   }
@@ -279,8 +294,211 @@ function computeStats(rounds, playerIds) {
     opponentPenalty,
     uniqueMatchupCount: usedMatchupKeys.size,
     maxConsecutivePlay,
+    maxRestStreak,
+    maxRestStreakValue,
+    restCount,
+    restPriorityTotal,
     maxPairRepeat: partnerValues.length ? Math.max(...partnerValues) : 0,
     maxOpponentRepeat: opponentValues.length ? Math.max(...opponentValues) : 0
+  };
+}
+
+function hasBenchRounds(rounds) {
+  return (rounds || []).some((round) => Array.isArray(round && round.restPlayers) && round.restPlayers.length > 0);
+}
+
+function buildReorderedRounds(originalRounds, order, playerIds) {
+  let matchIndex = 0;
+  return order.map((roundIdx, nextRoundIndex) => {
+    const sourceRound = originalRounds[roundIdx] || {};
+    const matches = (sourceRound.matches || []).map((match) => ({
+      ...match,
+      teamA: (match.teamA || []).slice(),
+      teamB: (match.teamB || []).slice(),
+      matchIndex: matchIndex++
+    }));
+    const played = new Set();
+    matches.forEach((match) => {
+      match.teamA.concat(match.teamB).forEach((id) => played.add(id));
+    });
+    return {
+      roundIndex: nextRoundIndex,
+      matches,
+      restPlayers: playerIds.filter((id) => !played.has(id))
+    };
+  });
+}
+
+function compareRoundOrderState(left, right) {
+  if (left.maxConsecutivePlay !== right.maxConsecutivePlay) return left.maxConsecutivePlay - right.maxConsecutivePlay;
+  if (left.maxRestStreak !== right.maxRestStreak) return left.maxRestStreak - right.maxRestStreak;
+  if (left.streakPressure !== right.streakPressure) return left.streakPressure - right.streakPressure;
+  return left.orderKey.localeCompare(right.orderKey);
+}
+
+function isBetterRoundOrderOutcome(candidate, current) {
+  if (!candidate) return false;
+  if (candidate.maxConsecutivePlay !== current.maxConsecutivePlay) {
+    return candidate.maxConsecutivePlay < current.maxConsecutivePlay;
+  }
+  if (candidate.maxRestStreak !== current.maxRestStreak) {
+    return candidate.maxRestStreak < current.maxRestStreak;
+  }
+  return false;
+}
+
+function reorderTemplateRounds(rounds, playerIds) {
+  const normalizedRounds = Array.isArray(rounds) ? rounds : [];
+  if (normalizedRounds.length <= 1 || !hasBenchRounds(normalizedRounds)) return null;
+
+  const currentStats = computeStats(normalizedRounds, playerIds);
+  if ((currentStats.maxConsecutivePlay || 0) < 3 && (currentStats.maxRestStreakValue || 0) < 2) {
+    return null;
+  }
+
+  const playerIndex = Object.fromEntries(playerIds.map((id, index) => [id, index]));
+  const playedMasks = normalizedRounds.map((round) => {
+    let mask = 0n;
+    for (const match of round.matches || []) {
+      for (const id of (match.teamA || []).concat(match.teamB || [])) {
+        const index = playerIndex[id];
+        if (Number.isInteger(index) && index >= 0) {
+          mask |= (1n << BigInt(index));
+        }
+      }
+    }
+    return mask;
+  });
+
+  const beamWidth = normalizedRounds.length <= 8 ? 96 : (normalizedRounds.length <= 12 ? 72 : 48);
+  let beam = [{
+    usedMask: 0n,
+    order: [],
+    orderKey: '',
+    playStreak: Array(playerIds.length).fill(0),
+    restStreak: Array(playerIds.length).fill(0),
+    maxConsecutivePlay: 0,
+    maxRestStreak: 0,
+    streakPressure: 0
+  }];
+
+  for (let step = 0; step < normalizedRounds.length; step += 1) {
+    const expanded = [];
+    for (const state of beam) {
+      for (let roundIdx = 0; roundIdx < normalizedRounds.length; roundIdx += 1) {
+        if (((state.usedMask >> BigInt(roundIdx)) & 1n) === 1n) continue;
+        const playedMask = playedMasks[roundIdx];
+        const nextPlayStreak = state.playStreak.slice();
+        const nextRestStreak = state.restStreak.slice();
+        let nextMaxConsecutivePlay = state.maxConsecutivePlay;
+        let nextMaxRestStreak = state.maxRestStreak;
+        let streakPressure = 0;
+        for (let playerIdx = 0; playerIdx < playerIds.length; playerIdx += 1) {
+          const played = ((playedMask >> BigInt(playerIdx)) & 1n) === 1n;
+          if (played) {
+            nextPlayStreak[playerIdx] += 1;
+            nextRestStreak[playerIdx] = 0;
+            if (nextPlayStreak[playerIdx] > nextMaxConsecutivePlay) nextMaxConsecutivePlay = nextPlayStreak[playerIdx];
+          } else {
+            nextRestStreak[playerIdx] += 1;
+            nextPlayStreak[playerIdx] = 0;
+            if (nextRestStreak[playerIdx] > nextMaxRestStreak) nextMaxRestStreak = nextRestStreak[playerIdx];
+          }
+          streakPressure += (nextPlayStreak[playerIdx] * nextPlayStreak[playerIdx]) + (nextRestStreak[playerIdx] * nextRestStreak[playerIdx]);
+        }
+        const nextOrder = state.order.concat(roundIdx);
+        expanded.push({
+          usedMask: state.usedMask | (1n << BigInt(roundIdx)),
+          order: nextOrder,
+          orderKey: nextOrder.join(','),
+          playStreak: nextPlayStreak,
+          restStreak: nextRestStreak,
+          maxConsecutivePlay: nextMaxConsecutivePlay,
+          maxRestStreak: nextMaxRestStreak,
+          streakPressure
+        });
+      }
+    }
+    expanded.sort(compareRoundOrderState);
+    beam = expanded.slice(0, beamWidth);
+  }
+
+  const bestState = beam.length ? beam[0] : null;
+  if (!isBetterRoundOrderOutcome(bestState, {
+    maxConsecutivePlay: currentStats.maxConsecutivePlay || 0,
+    maxRestStreak: currentStats.maxRestStreakValue || 0
+  })) {
+    return null;
+  }
+
+  return buildReorderedRounds(normalizedRounds, bestState.order, playerIds);
+}
+
+function buildPlaySpread(playCount, playerIds) {
+  const values = playerIds.map((id) => Number(playCount[id]) || 0);
+  return values.length ? Math.max(...values) - Math.min(...values) : 0;
+}
+
+function buildTemplateFairnessScore(stats, playSpread, totalUniqueMatchups) {
+  const uniqueGap = Math.max(0, totalUniqueMatchups - stats.uniqueMatchupCount);
+  const penalty =
+    (playSpread * 50000) +
+    (stats.maxConsecutivePlay * 20000) +
+    (uniqueGap * 12000) +
+    (stats.partnerPenalty * 120) +
+    (stats.opponentPenalty * 10) -
+    (stats.restPriorityTotal * 5);
+  return Math.max(1, Math.round(1000000 / (1 + Math.max(0, penalty))));
+}
+
+function optimizeTemplateRoundOrder(result, playerIds, totalMatches) {
+  if (!result || String(result.engine || '') !== 'template') return result;
+  if (Number(totalMatches) > 12) return result;
+
+  const reorderedRounds = reorderTemplateRounds(result.rounds, playerIds);
+  if (!reorderedRounds) return result;
+
+  const stats = computeStats(reorderedRounds, playerIds);
+  const playSpread = buildPlaySpread(stats.playCount, playerIds);
+  const totalUniqueMatchups = Number(result.objective && result.objective.totalUniqueMatchups)
+    || Number(result.fairness && result.fairness.totalUniqueMatchups)
+    || countDoublesMatchups(playerIds.length);
+
+  return {
+    ...result,
+    rounds: reorderedRounds,
+    playerStats: {
+      ...(result.playerStats || {}),
+      playCount: stats.playCount,
+      partnerRepeats: stats.partnerRepeats,
+      opponentRepeats: stats.opponentRepeats,
+      maxRestStreak: stats.maxRestStreak,
+      matchTypeCount: stats.matchTypeCount,
+      uniqueMatchupCount: stats.uniqueMatchupCount
+    },
+    fairness: {
+      ...(result.fairness || {}),
+      playSpread,
+      maxConsecutivePlay: stats.maxConsecutivePlay,
+      restPriorityTotal: stats.restPriorityTotal,
+      uniqueMatchupCount: stats.uniqueMatchupCount,
+      totalUniqueMatchups,
+      partnerRepeats: stats.partnerRepeats,
+      opponentRepeats: stats.opponentRepeats,
+      partnerPenalty: stats.partnerPenalty,
+      opponentPenalty: stats.opponentPenalty
+    },
+    objective: {
+      ...(result.objective || {}),
+      playSpread,
+      maxConsecutivePlay: stats.maxConsecutivePlay,
+      restPriorityTotal: stats.restPriorityTotal,
+      uniqueExactMatchupCount: stats.uniqueMatchupCount,
+      partnerPenalty: stats.partnerPenalty,
+      opponentPenalty: stats.opponentPenalty,
+      totalUniqueMatchups
+    },
+    fairnessScore: buildTemplateFairnessScore(stats, playSpread, totalUniqueMatchups)
   };
 }
 
@@ -1046,6 +1264,7 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
       hardReturnDeadlineAtMs
     });
     if (best) {
+      best = optimizeTemplateRoundOrder(best, ids, M);
       triedSeeds = Array.isArray(best.triedSeeds) ? best.triedSeeds.slice() : [];
       actualSearchSeeds = Number(best.searchSeedsUsed) || 0;
     }

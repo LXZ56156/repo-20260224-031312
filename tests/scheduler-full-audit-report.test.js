@@ -281,8 +281,8 @@ test('scheduler full audit exception appendix deduplicates accepted coverage-fir
     representative: {
       results: [
         buildRepresentativeResult('squad 10v10/20m/4c', 'squad', {
-          executionProfile: 'beam-guarded',
-          fallbackReason: 'guarded_greedy_completion',
+          executionProfile: 'beam-quality',
+          fallbackReason: '',
           maxConsecutivePlay: 4,
           scenario: {
             courts: 4,
@@ -304,7 +304,7 @@ test('scheduler full audit exception appendix deduplicates accepted coverage-fir
   );
   assert.equal(rows[0].structureLimit, 3);
   assert.equal(rows[0].actualMaxConsecutivePlay, 4);
-  assert.equal(rows[1].executionProfile, 'beam-guarded');
+  assert.equal(rows[1].executionProfile, 'beam-quality');
 });
 
 test('scheduler full audit mode exception rows separate structural uneven and coverage-first cases', () => {
@@ -315,6 +315,10 @@ test('scheduler full audit mode exception rows separate structural uneven and co
       globalPlaySpreadBaseline: 2,
       squadAPlaySpread: 0,
       squadBPlaySpread: 1,
+      partnerRepeatBaseline: 9,
+      opponentRepeatBaseline: 24,
+      partnerRepeatExcess: 0,
+      opponentRepeatExcess: 0,
       scenario: {
         targetMatches: 9,
         courts: 1,
@@ -338,6 +342,7 @@ test('scheduler full audit mode exception rows separate structural uneven and co
 
   assert.deepEqual(rows.map((row) => row.type), ['structural-baseline', 'coverage-first']);
   assert.match(rows[0].note, /global=2/);
+  assert.match(rows[0].note, /repeatBaseline=9\/24/);
 });
 
 test('scheduler full audit mode exception rows include repeat baseline notes for tracked equal hotspots', () => {
@@ -371,13 +376,29 @@ test('scheduler full audit mode exception rows include repeat baseline notes for
         squadAPlayers: 6,
         squadBPlayers: 6
       }
+    }),
+    buildRepresentativeResult('squad equal 8v8/16m/2c', 'squad', {
+      playSpread: 0,
+      partnerRepeats: 8,
+      opponentRepeats: 32,
+      partnerRepeatBaseline: 8,
+      opponentRepeatBaseline: 32,
+      partnerRepeatExcess: 0,
+      opponentRepeatExcess: 0,
+      scenario: {
+        targetMatches: 16,
+        courts: 2,
+        squadAPlayers: 8,
+        squadBPlayers: 8
+      }
     })
   ], 'squad_doubles');
 
   const repeatRows = rows.filter((row) => row.type === 'repeat-baseline');
-  assert.deepEqual(repeatRows.map((row) => row.scope), ['4v4/12m/2c', '6v6/18m/3c']);
+  assert.deepEqual(repeatRows.map((row) => row.scope), ['4v4/12m/2c', '6v6/18m/3c', '8v8/16m/2c']);
   assert.match(repeatRows[0].note, /repeatExcess=0\/0/);
   assert.match(repeatRows[1].note, /partnerExcess=7/);
+  assert.match(repeatRows[2].note, /repeatExcess=0\/0/);
 });
 
 test('scheduler full audit worst-case rows sort by coverage then fairness pressure', () => {

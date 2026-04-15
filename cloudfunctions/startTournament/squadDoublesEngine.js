@@ -135,6 +135,27 @@ function isPartnerDiversityPriorityContext(context) {
   return Boolean(context && context.prioritizePartnerDiversity);
 }
 
+function isRoundLayoutDiversityPriorityContext(context) {
+  return Boolean(context && context.avoidRepeatedRoundLayouts);
+}
+
+function buildRoundLayoutSignature(activeA, activeB, matches) {
+  const aPairs = (matches || [])
+    .map((match) => pairStableKey(match.teamA))
+    .sort()
+    .join(',');
+  const bPairs = (matches || [])
+    .map((match) => pairStableKey(match.teamB))
+    .sort()
+    .join(',');
+  return [
+    `A:${stableSortIds(activeA || []).join(',')}`,
+    `B:${stableSortIds(activeB || []).join(',')}`,
+    `PA:${aPairs}`,
+    `PB:${bPairs}`
+  ].join(' || ');
+}
+
 // squad 的评分函数：
 // 对 squad 而言，对手遭遇均衡的重要性 >= 搭档均衡（因为 A/B 队伍天然分隔，搭档空间更小）
 function compareObjective(left, right) {
@@ -146,6 +167,9 @@ function compareObjective(left, right) {
   }
   if (left.playSpread !== right.playSpread) return left.playSpread - right.playSpread;
   if (left.maxConsecutivePlay !== right.maxConsecutivePlay) return left.maxConsecutivePlay - right.maxConsecutivePlay;
+  if ((left.roundLayoutPenalty || 0) !== (right.roundLayoutPenalty || 0)) {
+    return (left.roundLayoutPenalty || 0) - (right.roundLayoutPenalty || 0);
+  }
   if (left.prioritizePartnerDiversity || right.prioritizePartnerDiversity) {
     if ((left.uniquePartnerPairCount || 0) !== (right.uniquePartnerPairCount || 0)) {
       return (right.uniquePartnerPairCount || 0) - (left.uniquePartnerPairCount || 0);
@@ -188,6 +212,8 @@ function buildInitialState(idsA, idsB, context = {}) {
     uniqueMatchupCount: 0,
     uniquePartnerPairCount: 0,
     uniqueOpponentPairCount: 0,
+    roundLayoutCount: {},
+    roundLayoutPenalty: 0,
     partnerPenalty: 0,
     opponentPenalty: 0,
     playSpread: 0,
@@ -205,6 +231,7 @@ function buildInitialState(idsA, idsB, context = {}) {
       playSpreadExcess: 0,
       squadSpreadExcess: 0,
       maxConsecutivePlay: 0,
+      roundLayoutPenalty: 0,
       uniquePartnerPairCount: 0,
       uniqueOpponentPairCount: 0,
       opponentPenalty: 0,
@@ -229,7 +256,12 @@ function buildBeamContext(idsA, idsB, totalMatches, courts, config = {}) {
     && Number(totalMatches) === 18
     && Number(courts) === 3
     && packageSize === 3
-    && (sortedA.length === 6 || sortedA.length === 7);
+    && (sortedA.length === 6 || sortedA.length === 7 || sortedA.length === 9);
+  const avoidRepeatedRoundLayouts = sortedA.length === sortedB.length
+    && Number(totalMatches) === 18
+    && Number(courts) === 3
+    && packageSize === 3
+    && sortedA.length === 9;
   return {
     idsA: sortedA,
     idsB: sortedB,
@@ -247,6 +279,7 @@ function buildBeamContext(idsA, idsB, totalMatches, courts, config = {}) {
     isUneven: sortedA.length !== sortedB.length,
     useUnevenPriority: unevenGap > 0 && (unevenGap > 1 || packageSize === 1),
     prioritizePartnerDiversity,
+    avoidRepeatedRoundLayouts,
     timeBudgetMs: Number(config.timeBudgetMs) || 180,
     deadlineAtMs: Number(config.deadlineAtMs) || 0
   };
@@ -627,10 +660,15 @@ function buildRoundCandidates(state, context, seed) {
     for (const pkg of packages) {
       if (deadlineReached(context.deadlineAtMs)) break;
       const combined = `${restCand.stableKey}::${pkg.stableKey}`;
+      const roundLayoutSignature = buildRoundLayoutSignature(restCand.activeA, restCand.activeB, pkg.matches);
       roundCandidates.push({
         restCandidate: restCand,
         packageCandidate: pkg,
         stableKey: combined,
+        roundLayoutSignature,
+        roundLayoutPenalty: isRoundLayoutDiversityPriorityContext(context)
+          ? Number(state.roundLayoutCount[roundLayoutSignature] || 0)
+          : 0,
         // seedRank 基于 stateSeed（= seed，已包含 historyKey 哈希）——
         // 不同路径的 beam state 使用不同的 stateSeed，相同候选的 seedRank 因此不同
         // 这让每个 beam state 探索不同的并列候选顺序，实现真正的多样性
@@ -655,6 +693,9 @@ function buildRoundCandidates(state, context, seed) {
     const lMaxCons = l.restCandidate.nextMaxConsecutive;
     const rMaxCons = r.restCandidate.nextMaxConsecutive;
     if (lMaxCons !== rMaxCons) return lMaxCons - rMaxCons;
+    if (context.avoidRepeatedRoundLayouts && l.roundLayoutPenalty !== r.roundLayoutPenalty) {
+      return l.roundLayoutPenalty - r.roundLayoutPenalty;
+    }
     const lp = l.packageCandidate;
     const rp = r.packageCandidate;
     if (context.prioritizePartnerDiversity) {
@@ -696,6 +737,8 @@ function applyRoundCandidate(state, roundCand, context) {
     uniqueMatchupCount: state.uniqueMatchupCount,
     uniquePartnerPairCount: state.uniquePartnerPairCount,
     uniqueOpponentPairCount: state.uniqueOpponentPairCount,
+    roundLayoutCount: { ...state.roundLayoutCount },
+    roundLayoutPenalty: state.roundLayoutPenalty,
     partnerPenalty: state.partnerPenalty,
     opponentPenalty: state.opponentPenalty,
     playSpread: state.playSpread,
@@ -766,6 +809,14 @@ function applyRoundCandidate(state, roundCand, context) {
   }
 
   next.restPriorityTotal += roundCand.restCandidate.restPriorityDelta;
+  if (isRoundLayoutDiversityPriorityContext(context)) {
+    const layoutSignature = String(roundCand.roundLayoutSignature || '');
+    if (layoutSignature) {
+      const repeatedCount = Number(next.roundLayoutCount[layoutSignature] || 0);
+      next.roundLayoutPenalty += repeatedCount;
+      next.roundLayoutCount[layoutSignature] = repeatedCount + 1;
+    }
+  }
   const unevenMetrics = computeUnevenSpreadMetrics(next.playCount, context);
   next.playSpread = unevenMetrics.globalPlaySpread;
   next.playSpreadExcess = unevenMetrics.playSpreadExcess;
@@ -789,6 +840,7 @@ function applyRoundCandidate(state, roundCand, context) {
     playSpreadExcess: next.playSpreadExcess,
     squadSpreadExcess: next.squadSpreadExcess,
     maxConsecutivePlay: next.maxConsecutivePlay,
+    roundLayoutPenalty: next.roundLayoutPenalty,
     uniquePartnerPairCount: next.uniquePartnerPairCount,
     uniqueOpponentPairCount: next.uniqueOpponentPairCount,
     opponentPenalty: next.opponentPenalty,

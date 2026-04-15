@@ -3,12 +3,32 @@ const assert = require('node:assert/strict');
 
 const scenarioCommon = require('../scripts/scheduler-scenario-common');
 
-function findAuditScenario(name) {
-  return scenarioCommon.buildAuditScenarios().find((scenario) => scenario.name === name);
+function findScenario(name) {
+  return scenarioCommon.buildAuditScenarios().find((scenario) => scenario.name === name)
+    || scenarioCommon.buildRepresentativeScenarios().find((scenario) => scenario.name === name);
+}
+
+function pairKey(a, b) {
+  return a < b ? `${a}|${b}` : `${b}|${a}`;
+}
+
+function computePartnerRepeatsFromPairs(roundPairs) {
+  const counts = {};
+  (roundPairs || []).forEach((pairs) => {
+    (pairs || []).forEach((pair) => {
+      const key = pairKey(pair[0], pair[1]);
+      counts[key] = (counts[key] || 0) + 1;
+    });
+  });
+  return Object.values(counts).reduce((sum, count) => sum + Math.max(0, count - 1), 0);
+}
+
+function computePairCapacityLowerBound(totalPairUsages, uniquePairCapacity) {
+  return Math.max(0, totalPairUsages - uniquePairCapacity);
 }
 
 test('scheduler scenario result exposes multidimensional coverage and fairness metrics', () => {
-  const scenario = findAuditScenario('rotation template 6p-1c@8');
+  const scenario = findScenario('rotation template 6p-1c@8');
   const result = scenarioCommon.runScenario(scenario);
 
   assert.equal(result.actualMatches, 8);
@@ -25,7 +45,7 @@ test('scheduler scenario result exposes multidimensional coverage and fairness m
 });
 
 test('scheduler scenario result exposes structural play-spread baselines for uneven squad cases', () => {
-  const scenario = findAuditScenario('squad uneven 3v4/9m/1c');
+  const scenario = findScenario('squad uneven 3v4/9m/1c');
   const result = scenarioCommon.runScenario(scenario);
 
   assert.equal(result.playSpread, 2);
@@ -53,11 +73,18 @@ test('scheduler scenario result exposes repeat baselines and excess for equal sq
       name: 'squad equal 7v7/18m/3c',
       partnerRepeatBaseline: 0,
       opponentRepeatBaseline: 23
+    },
+    {
+      name: 'squad 8v8/16m/2c',
+      partnerRepeatBaseline: 8,
+      opponentRepeatBaseline: 32,
+      partnerRepeatExcess: 0,
+      opponentRepeatExcess: 0
     }
   ];
 
   cases.forEach((entry) => {
-    const result = scenarioCommon.runScenario(findAuditScenario(entry.name));
+    const result = scenarioCommon.runScenario(findScenario(entry.name));
     assert.equal(result.partnerRepeatBaseline, entry.partnerRepeatBaseline, `${entry.name} partner baseline`);
     assert.equal(result.opponentRepeatBaseline, entry.opponentRepeatBaseline, `${entry.name} opponent baseline`);
     if (typeof entry.partnerRepeatExcess === 'number') {
@@ -69,6 +96,86 @@ test('scheduler scenario result exposes repeat baselines and excess for equal sq
   });
 });
 
+test('scheduler scenario result exposes exact tracked uneven repeat baselines', () => {
+  const threePlayerWitness = [
+    [['P1', 'P2']],
+    [['P1', 'P3']],
+    [['P2', 'P3']],
+    [['P1', 'P2']],
+    [['P1', 'P3']],
+    [['P2', 'P3']],
+    [['P1', 'P2']],
+    [['P1', 'P3']],
+    [['P2', 'P3']]
+  ];
+  const fourPlayerNineRoundWitness = [
+    [['P1', 'P2']],
+    [['P1', 'P3']],
+    [['P1', 'P4']],
+    [['P2', 'P3']],
+    [['P2', 'P4']],
+    [['P3', 'P4']],
+    [['P1', 'P2']],
+    [['P1', 'P3']],
+    [['P2', 'P4']]
+  ];
+  const fivePlayerTwelveRoundWitness = [
+    [['P1', 'P2']],
+    [['P1', 'P3']],
+    [['P1', 'P4']],
+    [['P1', 'P5']],
+    [['P2', 'P3']],
+    [['P2', 'P4']],
+    [['P2', 'P5']],
+    [['P3', 'P4']],
+    [['P3', 'P5']],
+    [['P4', 'P5']],
+    [['P1', 'P2']],
+    [['P3', 'P4']]
+  ];
+  const fivePlayerTwoCourtWitness = [
+    [['P1', 'P2'], ['P3', 'P4']],
+    [['P1', 'P3'], ['P2', 'P5']],
+    [['P1', 'P4'], ['P3', 'P5']],
+    [['P1', 'P5'], ['P2', 'P4']],
+    [['P2', 'P3'], ['P4', 'P5']],
+    [['P1', 'P2'], ['P3', 'P4']]
+  ];
+
+  assert.equal(computePartnerRepeatsFromPairs(threePlayerWitness), computePairCapacityLowerBound(9, 3));
+  assert.equal(computePartnerRepeatsFromPairs(fourPlayerNineRoundWitness), computePairCapacityLowerBound(9, 6));
+  assert.equal(computePartnerRepeatsFromPairs(fivePlayerTwelveRoundWitness), computePairCapacityLowerBound(12, 10));
+  assert.equal(computePartnerRepeatsFromPairs(fivePlayerTwoCourtWitness), computePairCapacityLowerBound(12, 10));
+
+  const exactPartnerBaselines = {
+    'squad uneven 3v4/9m/1c': (
+      computePairCapacityLowerBound(9, 3)
+      + computePairCapacityLowerBound(9, 6)
+    ),
+    'squad uneven 5v4/12m/1c': (
+      computePairCapacityLowerBound(12, 10)
+      + computePairCapacityLowerBound(12, 6)
+    ),
+    'squad uneven 6v5/12m/2c': (
+      0
+      + computePairCapacityLowerBound(12, 10)
+    )
+  };
+
+  const expected = {
+    'squad uneven 3v4/9m/1c': { partnerRepeatBaseline: 9, opponentRepeatBaseline: 24 },
+    'squad uneven 5v4/12m/1c': { partnerRepeatBaseline: 8, opponentRepeatBaseline: 28 },
+    'squad uneven 6v5/12m/2c': { partnerRepeatBaseline: 2, opponentRepeatBaseline: 18 }
+  };
+
+  Object.entries(expected).forEach(([name, baselines]) => {
+    assert.equal(exactPartnerBaselines[name], baselines.partnerRepeatBaseline, `${name} exact partner baseline`);
+    const result = scenarioCommon.runScenario(findScenario(name));
+    assert.equal(result.partnerRepeatBaseline, baselines.partnerRepeatBaseline, `${name} partner baseline`);
+    assert.equal(result.opponentRepeatBaseline, baselines.opponentRepeatBaseline, `${name} opponent baseline`);
+  });
+});
+
 test('scheduler scenario result exposes exact repeat metrics for 4v4 single-court cases', () => {
   const scenarios = [
     { name: 'squad equal 4v4/3m/1c', actualMatches: 3 },
@@ -76,7 +183,7 @@ test('scheduler scenario result exposes exact repeat metrics for 4v4 single-cour
   ];
 
   scenarios.forEach((entry) => {
-    const result = scenarioCommon.runScenario(findAuditScenario(entry.name));
+    const result = scenarioCommon.runScenario(findScenario(entry.name));
     assert.equal(result.actualMatches, entry.actualMatches, `${entry.name} actualMatches`);
     assert.equal(result.uniqueExactMatchupCount, entry.actualMatches, `${entry.name} uniqueExact`);
     assert.equal(result.exactRepeatCount, 0, `${entry.name} exactRepeatCount`);

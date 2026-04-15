@@ -108,6 +108,74 @@ const SQUAD_4V4_SINGLE_COURT_TEMPLATES = Object.freeze({
   ])
 });
 
+const SQUAD_8V8_TWO_COURT_16_MATCH_TEMPLATE = Object.freeze([
+  Object.freeze([
+    Object.freeze({ teamA: Object.freeze([0, 1]), teamB: Object.freeze([0, 1]) }),
+    Object.freeze({ teamA: Object.freeze([2, 3]), teamB: Object.freeze([2, 3]) })
+  ]),
+  Object.freeze([
+    Object.freeze({ teamA: Object.freeze([4, 5]), teamB: Object.freeze([4, 5]) }),
+    Object.freeze({ teamA: Object.freeze([6, 7]), teamB: Object.freeze([6, 7]) })
+  ]),
+  Object.freeze([
+    Object.freeze({ teamA: Object.freeze([0, 1]), teamB: Object.freeze([2, 3]) }),
+    Object.freeze({ teamA: Object.freeze([2, 3]), teamB: Object.freeze([0, 1]) })
+  ]),
+  Object.freeze([
+    Object.freeze({ teamA: Object.freeze([4, 5]), teamB: Object.freeze([6, 7]) }),
+    Object.freeze({ teamA: Object.freeze([6, 7]), teamB: Object.freeze([4, 5]) })
+  ]),
+  Object.freeze([
+    Object.freeze({ teamA: Object.freeze([0, 2]), teamB: Object.freeze([0, 2]) }),
+    Object.freeze({ teamA: Object.freeze([1, 3]), teamB: Object.freeze([1, 3]) })
+  ]),
+  Object.freeze([
+    Object.freeze({ teamA: Object.freeze([4, 6]), teamB: Object.freeze([4, 6]) }),
+    Object.freeze({ teamA: Object.freeze([5, 7]), teamB: Object.freeze([5, 7]) })
+  ]),
+  Object.freeze([
+    Object.freeze({ teamA: Object.freeze([0, 3]), teamB: Object.freeze([0, 3]) }),
+    Object.freeze({ teamA: Object.freeze([1, 2]), teamB: Object.freeze([1, 2]) })
+  ]),
+  Object.freeze([
+    Object.freeze({ teamA: Object.freeze([4, 7]), teamB: Object.freeze([4, 7]) }),
+    Object.freeze({ teamA: Object.freeze([5, 6]), teamB: Object.freeze([5, 6]) })
+  ])
+]);
+
+const SQUAD_10V10_FOUR_COURT_20_MATCH_TEMPLATE = Object.freeze([
+  Object.freeze([
+    Object.freeze({ teamA: Object.freeze([1, 8]), teamB: Object.freeze([2, 3]) }),
+    Object.freeze({ teamA: Object.freeze([2, 4]), teamB: Object.freeze([1, 5]) }),
+    Object.freeze({ teamA: Object.freeze([3, 7]), teamB: Object.freeze([9, 7]) }),
+    Object.freeze({ teamA: Object.freeze([5, 6]), teamB: Object.freeze([4, 8]) })
+  ]),
+  Object.freeze([
+    Object.freeze({ teamA: Object.freeze([0, 9]), teamB: Object.freeze([3, 4]) }),
+    Object.freeze({ teamA: Object.freeze([3, 4]), teamB: Object.freeze([0, 8]) }),
+    Object.freeze({ teamA: Object.freeze([5, 8]), teamB: Object.freeze([5, 7]) }),
+    Object.freeze({ teamA: Object.freeze([6, 7]), teamB: Object.freeze([2, 6]) })
+  ]),
+  Object.freeze([
+    Object.freeze({ teamA: Object.freeze([0, 6]), teamB: Object.freeze([9, 5]) }),
+    Object.freeze({ teamA: Object.freeze([9, 8]), teamB: Object.freeze([1, 8]) }),
+    Object.freeze({ teamA: Object.freeze([1, 2]), teamB: Object.freeze([6, 7]) }),
+    Object.freeze({ teamA: Object.freeze([5, 7]), teamB: Object.freeze([0, 3]) })
+  ]),
+  Object.freeze([
+    Object.freeze({ teamA: Object.freeze([0, 3]), teamB: Object.freeze([1, 2]) }),
+    Object.freeze({ teamA: Object.freeze([9, 2]), teamB: Object.freeze([0, 9]) }),
+    Object.freeze({ teamA: Object.freeze([1, 7]), teamB: Object.freeze([5, 8]) }),
+    Object.freeze({ teamA: Object.freeze([4, 8]), teamB: Object.freeze([4, 6]) })
+  ]),
+  Object.freeze([
+    Object.freeze({ teamA: Object.freeze([0, 9]), teamB: Object.freeze([6, 7]) }),
+    Object.freeze({ teamA: Object.freeze([1, 6]), teamB: Object.freeze([0, 1]) }),
+    Object.freeze({ teamA: Object.freeze([2, 3]), teamB: Object.freeze([3, 4]) }),
+    Object.freeze({ teamA: Object.freeze([4, 5]), teamB: Object.freeze([9, 2]) })
+  ])
+]);
+
 function sortForRotation(ids, playCount, playStreak, usedSet, opponentCount, rivals) {
   const used = usedSet || new Set();
   const rivalList = Array.isArray(rivals) ? rivals : [];
@@ -371,17 +439,24 @@ function buildDeterministicSquad4v4SingleCourtSchedule(idsA, idsB, targetMatches
   const template = SQUAD_4V4_SINGLE_COURT_TEMPLATES[String(targetMatches)];
   if (!template) return null;
 
+  return buildDeterministicSquadTemplateSchedule(
+    idsA,
+    idsB,
+    template.map((entry) => [entry]),
+    { ...meta, effectiveCourts: 1, targetMatches }
+  );
+}
+
+function buildDeterministicSquadTemplateSchedule(idsA, idsB, roundTemplates, meta = {}) {
   const sortedA = stableSortIds(idsA);
   const sortedB = stableSortIds(idsB);
   const allIds = sortedA.concat(sortedB);
-  const rounds = template.map((entry, roundIndex) => {
-    const teamA = entry.teamA.map((index) => sortedA[index]);
-    const teamB = entry.teamB.map((index) => sortedB[index]);
-    const active = new Set(teamA.concat(teamB));
-    return {
-      roundIndex,
-      matches: [{
-        matchIndex: roundIndex,
+  const rounds = (roundTemplates || []).map((roundEntries, roundIndex) => {
+    const matches = (roundEntries || []).map((entry, matchOffset) => {
+      const teamA = entry.teamA.map((index) => sortedA[index]);
+      const teamB = entry.teamB.map((index) => sortedB[index]);
+      return {
+        matchIndex: (roundIndex * 10) + matchOffset,
         matchType: 'SQUAD',
         unitAId: 'A',
         unitBId: 'B',
@@ -391,9 +466,24 @@ function buildDeterministicSquad4v4SingleCourtSchedule(idsA, idsB, targetMatches
         teamB,
         status: 'pending',
         logicalRound: roundIndex
-      }],
+      };
+    });
+    const active = new Set();
+    matches.forEach((match) => {
+      match.teamA.concat(match.teamB).forEach((id) => active.add(id));
+    });
+    return {
+      roundIndex,
+      matches,
       restPlayers: allIds.filter((id) => !active.has(id))
     };
+  });
+  let matchIndex = 0;
+  rounds.forEach((round) => {
+    (round.matches || []).forEach((match) => {
+      match.matchIndex = matchIndex;
+      matchIndex += 1;
+    });
   });
 
   const fairnessMetrics = buildSquadFairnessFromRounds(rounds, allIds);
@@ -408,7 +498,7 @@ function buildDeterministicSquad4v4SingleCourtSchedule(idsA, idsB, targetMatches
       opponentRepeats: fairnessMetrics.opponentRepeats,
       partnerPenalty: fairnessMetrics.partnerPenalty,
       opponentPenalty: fairnessMetrics.opponentPenalty,
-      uniqueMatchupCount: rounds.length,
+      uniqueMatchupCount: matchIndex,
       restPriorityTotal: 0
     },
     playerStats: { playCount: fairnessMetrics.playCount },
@@ -417,15 +507,33 @@ function buildDeterministicSquad4v4SingleCourtSchedule(idsA, idsB, targetMatches
       engineVersion: 'squad-v3-beam',
       mode: 'squad_doubles',
       endConditionType: String(meta.endConditionType || 'total_matches'),
-      endConditionTarget: Number(meta.endConditionTarget) || targetMatches,
+      endConditionTarget: Number(meta.endConditionTarget) || Number(meta.targetMatches) || matchIndex,
       executionProfile: 'beam-quality',
       timeoutGuardTriggered: false,
       fallbackReason: '',
       searchElapsedMs: 0,
       fairnessVersion: 'v2',
-      effectiveCourts: 1
+      effectiveCourts: Number(meta.effectiveCourts) || 1
     }
   };
+}
+
+function buildDeterministicSquad8v8TwoCourtSchedule(idsA, idsB, meta = {}) {
+  return buildDeterministicSquadTemplateSchedule(
+    idsA,
+    idsB,
+    SQUAD_8V8_TWO_COURT_16_MATCH_TEMPLATE,
+    { ...meta, effectiveCourts: 2, targetMatches: 16 }
+  );
+}
+
+function buildDeterministicSquad10v10FourCourtSchedule(idsA, idsB, meta = {}) {
+  return buildDeterministicSquadTemplateSchedule(
+    idsA,
+    idsB,
+    SQUAD_10V10_FOUR_COURT_20_MATCH_TEMPLATE,
+    { ...meta, effectiveCourts: 4, targetMatches: 20 }
+  );
 }
 
 function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
@@ -470,6 +578,30 @@ function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
     && deterministicTargetMatches <= 12
   ) {
     return buildDeterministicSquad4v4SingleCourtSchedule(idsA, idsB, deterministicTargetMatches, {
+      endConditionType,
+      endConditionTarget
+    });
+  }
+  if (
+    !forceFallback
+    && idsA.length === 8
+    && idsB.length === 8
+    && effectiveCourts === 2
+    && deterministicTargetMatches === 16
+  ) {
+    return buildDeterministicSquad8v8TwoCourtSchedule(idsA, idsB, {
+      endConditionType,
+      endConditionTarget
+    });
+  }
+  if (
+    !forceFallback
+    && idsA.length === 10
+    && idsB.length === 10
+    && effectiveCourts === 4
+    && deterministicTargetMatches === 20
+  ) {
+    return buildDeterministicSquad10v10FourCourtSchedule(idsA, idsB, {
       endConditionType,
       endConditionTarget
     });

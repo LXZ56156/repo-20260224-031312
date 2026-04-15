@@ -30,7 +30,26 @@ const COVERAGE_FIRST_EXCEPTION_META = Object.freeze({
     mode: 'squad_doubles',
     case: '10v10/20m/4c',
     scope: '20 场 / 4 片 / 5 轮',
-    note: '当前 deterministic guarded completion 先保 playSpread=0 与完整 20 场输出，暂未找到 <=3 的 coverage 等价解。'
+    note: '当前固定轮休 + 轮内 deterministic 配对优先保 playSpread=0 与完整 20 场输出，maxConsecutivePlay 仍高于结构下限 3。'
+  })
+});
+
+const SQUAD_REPEAT_BASELINE_OVERRIDES = Object.freeze({
+  'squad:uneven:3v4/9m/1c': Object.freeze({
+    partnerRepeatBaseline: 9,
+    opponentRepeatBaseline: 24
+  }),
+  'squad:uneven:5v4/12m/1c': Object.freeze({
+    partnerRepeatBaseline: 8,
+    opponentRepeatBaseline: 28
+  }),
+  'squad:uneven:6v5/12m/2c': Object.freeze({
+    partnerRepeatBaseline: 2,
+    opponentRepeatBaseline: 18
+  }),
+  'squad:equal:8v8/16m/2c': Object.freeze({
+    partnerRepeatBaseline: 8,
+    opponentRepeatBaseline: 32
   })
 });
 
@@ -206,7 +225,21 @@ function isEqualSquadScenario(scenario) {
     && Number(scenario.squadAPlayers) === Number(scenario.squadBPlayers);
 }
 
+function buildSquadRepeatBaselineScope(scenario) {
+  if (!scenario || scenario.mode !== 'squad') return '';
+  const scope = `${scenario.squadAPlayers}v${scenario.squadBPlayers}/${scenario.targetMatches}m/${scenario.courts}c`;
+  const shape = isEqualSquadScenario(scenario) ? 'equal' : 'uneven';
+  return `squad:${shape}:${scope}`;
+}
+
 function computeSquadRepeatBaselines(scenario, actualMatches, coverageTotals = {}) {
+  const override = SQUAD_REPEAT_BASELINE_OVERRIDES[buildSquadRepeatBaselineScope(scenario)];
+  if (override) {
+    return {
+      partnerRepeatBaseline: Number(override.partnerRepeatBaseline) || 0,
+      opponentRepeatBaseline: Number(override.opponentRepeatBaseline) || 0
+    };
+  }
   if (!isEqualSquadScenario(scenario)) {
     return {
       partnerRepeatBaseline: 0,
@@ -524,8 +557,8 @@ function buildRotationRepresentativeScenarios() {
 function buildRotationBudgetRepresentativeScenarios() {
   return [
     {
-      id: 'rotation-10p-23m-2c-budget200',
-      name: 'rotation 10p/23m/2c budget=200',
+      id: 'rotation-10p-23m-2c-budget300',
+      name: 'rotation 10p/23m/2c budget=300',
       mode: 'rotation',
       kind: 'rotation_budget_representative',
       playersCount: 10,
@@ -533,7 +566,7 @@ function buildRotationBudgetRepresentativeScenarios() {
       totalMatches: 23,
       targetMatches: 23,
       courts: 2,
-      options: { seed: 42, searchSeeds: 1, runtimeBudgetMs: 200 },
+      options: { seed: 42, searchSeeds: 1, runtimeBudgetMs: 300 },
       maxElapsedMs: ROTATION_GUARDED_BOUND_MS,
       requireGuardedProfile: true
     }
@@ -600,7 +633,7 @@ function buildSquadRepresentativeScenarios() {
       rules: { endCondition: { type: 'total_matches', target: 16 }, _seed: 1 },
       maxElapsedMs: SQUAD_HEAVY_BOUND_MS,
       expectedPlaySpread: 0,
-      maxConsecutivePlay: 2
+      maxConsecutivePlay: 1
     },
     {
       id: 'squad-10v10-20m-4c',
@@ -620,8 +653,7 @@ function buildSquadRepresentativeScenarios() {
       coverageFirstExceptionId: 'squad-10v10-20m-4c',
       maxElapsedMs: SQUAD_HEAVY_BOUND_MS,
       expectedPlaySpread: 0,
-      maxPlaySpreadOnAllowedFallback: 2,
-      allowedExecutionProfiles: ['beam-guarded', 'greedy-fallback']
+      maxConsecutivePlay: 4
     },
     {
       id: 'squad-3v4-9m-1c',

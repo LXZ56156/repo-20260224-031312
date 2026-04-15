@@ -21,7 +21,8 @@ const OBSERVATION_LIMIT = 5;
 const EQUAL_REPEAT_BASELINE_SCOPES = new Set([
   '4v4/12m/2c',
   '6v6/18m/3c',
-  '7v7/18m/3c'
+  '7v7/18m/3c',
+  '8v8/16m/2c'
 ]);
 const COVERAGE_EXPLANATIONS = {
   '6p-1c': '最早 coverage 里程碑已经落在 8 场，后续两档继续沿长赛事带上移，避免回落到过短赛程。',
@@ -256,7 +257,16 @@ function buildObservationReason(result) {
     && result.scenario.mode === 'squad'
     && Number(result.scenario.squadAPlayers) > 0
     && Number(result.scenario.squadAPlayers) === Number(result.scenario.squadBPlayers);
-  if (isEqualSquad) {
+  const hasRepeatBaseline = result.scenario
+    && result.scenario.mode === 'squad'
+    && (
+      (Number(result.partnerRepeatBaseline) || 0) > 0
+      || (Number(result.opponentRepeatBaseline) || 0) > 0
+    );
+  if (hasRepeatBaseline) {
+    if ((Number(result.partnerRepeatExcess) || 0) > 0) reasons.push(`partnerRepeatExcess=${result.partnerRepeatExcess}`);
+    if ((Number(result.opponentRepeatExcess) || 0) > 0) reasons.push(`opponentRepeatExcess=${result.opponentRepeatExcess}`);
+  } else if (isEqualSquad) {
     if ((Number(result.partnerRepeatExcess) || 0) > 0) reasons.push(`partnerRepeatExcess=${result.partnerRepeatExcess}`);
     if ((Number(result.opponentRepeatExcess) || 0) > 0) reasons.push(`opponentRepeatExcess=${result.opponentRepeatExcess}`);
   } else {
@@ -347,9 +357,18 @@ function buildStructuralSquadExceptionRows(results) {
         playSpreadExcess: result.playSpreadExcess || 0,
         baseline: result.globalPlaySpreadBaseline || 0,
         maxConsecutivePlay: result.maxConsecutivePlay,
-        note: result.playSpreadExcess > 0
-          ? `高于结构下限 ${result.playSpreadExcess}`
-          : `global=${result.playSpread}；A/B spread=${result.squadAPlaySpread}/${result.squadBPlaySpread}`
+        note: [
+          result.playSpreadExcess > 0
+            ? `高于结构下限 ${result.playSpreadExcess}`
+            : `global=${result.playSpread}；A/B spread=${result.squadAPlaySpread}/${result.squadBPlaySpread}`,
+          ((Number(result.partnerRepeatBaseline) || 0) > 0 || (Number(result.opponentRepeatBaseline) || 0) > 0)
+            ? (
+              (Number(result.partnerRepeatExcess) || 0) > 0 || (Number(result.opponentRepeatExcess) || 0) > 0
+                ? `repeatExcess=${result.partnerRepeatExcess || 0}/${result.opponentRepeatExcess || 0}`
+                : `repeatBaseline=${result.partnerRepeatBaseline || 0}/${result.opponentRepeatBaseline || 0}`
+            )
+            : ''
+        ].filter(Boolean).join('；')
       };
       const existing = rowsByScope.get(scope);
       if (
