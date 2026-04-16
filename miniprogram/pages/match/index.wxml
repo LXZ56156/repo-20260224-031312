@@ -67,10 +67,14 @@
     <!-- 快捷比分工具栏（编辑态） -->
     <view class="score-toolbar" wx:if="{{canEdit}}">
       <view class="quick-scores">
-        <text class="quick-score-chip" bindtap="onQuickScore" data-a="21" data-b="19">21:19</text>
-        <text class="quick-score-chip" bindtap="onQuickScore" data-a="21" data-b="15">21:15</text>
-        <text class="quick-score-chip" bindtap="onQuickScore" data-a="21" data-b="10">21:10</text>
-        <text class="quick-score-chip" bindtap="onQuickScore" data-a="15" data-b="21">15:21</text>
+        <text
+          wx:for="{{quickScoreOptions}}"
+          wx:key="label"
+          class="quick-score-chip"
+          bindtap="onQuickScore"
+          data-a="{{item.a}}"
+          data-b="{{item.b}}"
+        >{{item.label}}</text>
       </view>
       <button class="btn-mini mode-undo {{!canUndo ? 'disabled' : ''}}" bindtap="onUndoStep" disabled="{{!canUndo}}">撤销</button>
     </view>

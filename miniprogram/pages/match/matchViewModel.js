@@ -2,9 +2,42 @@ const perm = require('../../permission/permission');
 const { normalizeTournament, safePlayerName } = require('../../core/normalize');
 
 const SCORE_MAX = 60;
+const DEFAULT_POINTS_PER_GAME = 21;
+const QUICK_SCORE_PRESETS = Object.freeze({
+  11: Object.freeze([
+    Object.freeze({ label: '11:9', a: 11, b: 9 }),
+    Object.freeze({ label: '11:7', a: 11, b: 7 }),
+    Object.freeze({ label: '11:4', a: 11, b: 4 }),
+    Object.freeze({ label: '9:11', a: 9, b: 11 })
+  ]),
+  15: Object.freeze([
+    Object.freeze({ label: '15:13', a: 15, b: 13 }),
+    Object.freeze({ label: '15:11', a: 15, b: 11 }),
+    Object.freeze({ label: '15:8', a: 15, b: 8 }),
+    Object.freeze({ label: '13:15', a: 13, b: 15 })
+  ]),
+  21: Object.freeze([
+    Object.freeze({ label: '21:19', a: 21, b: 19 }),
+    Object.freeze({ label: '21:17', a: 21, b: 17 }),
+    Object.freeze({ label: '21:15', a: 21, b: 15 }),
+    Object.freeze({ label: '21:10', a: 21, b: 10 }),
+    Object.freeze({ label: '19:21', a: 19, b: 21 })
+  ])
+});
 
 function buildScoreOptions() {
   return Array.from({ length: SCORE_MAX + 1 }, (_, i) => i);
+}
+
+function normalizePointsPerGame(value) {
+  const points = Number(value);
+  if (Object.prototype.hasOwnProperty.call(QUICK_SCORE_PRESETS, points)) return points;
+  return DEFAULT_POINTS_PER_GAME;
+}
+
+function buildQuickScoreOptions(pointsPerGame) {
+  const normalizedPoints = normalizePointsPerGame(pointsPerGame);
+  return QUICK_SCORE_PRESETS[normalizedPoints].map((item) => ({ ...item }));
 }
 
 function clampScore(value) {
@@ -83,6 +116,7 @@ function buildInitialData() {
     canUndo: false,
     displayScoreA: '-',
     displayScoreB: '-',
+    quickScoreOptions: buildQuickScoreOptions(DEFAULT_POINTS_PER_GAME),
     canEdit: false,
     userCanScore: false,
     isAdmin: false,
@@ -115,7 +149,7 @@ function buildInitialData() {
     lockBusy: false,
     submitBusy: false,
     matchStatusText: '待录分',
-    pointsPerGame: 21
+    pointsPerGame: DEFAULT_POINTS_PER_GAME
   };
 }
 
@@ -173,6 +207,7 @@ function buildTournamentViewState(tournament, options = {}) {
     };
   }
 
+  const pointsPerGame = normalizePointsPerGame(nt.rules && nt.rules.pointsPerGame);
   const matchStatus = String(match.status || '').trim();
   const finished = matchStatus === 'finished';
   const canceled = matchStatus === 'canceled';
@@ -233,7 +268,8 @@ function buildTournamentViewState(tournament, options = {}) {
       tournamentName: nt.name,
       match,
       matchStatusText,
-      pointsPerGame: Math.max(1, Number(nt.rules && nt.rules.pointsPerGame) || 21),
+      pointsPerGame,
+      quickScoreOptions: buildQuickScoreOptions(pointsPerGame),
       userCanScore,
       isAdmin,
       canEdit,
@@ -255,6 +291,7 @@ function buildTournamentViewState(tournament, options = {}) {
 module.exports = {
   SCORE_MAX,
   buildInitialData,
+  buildQuickScoreOptions,
   clampScore,
   extractScorePair,
   formatRemaining,
