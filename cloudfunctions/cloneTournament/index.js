@@ -21,84 +21,115 @@ exports.main = async (event) => {
 
   if (!sourceTournamentId) throw new Error('缺少 sourceTournamentId');
 
+  if (clientRequestId) {
+    await common.ensureCollection(db, common.CLIENT_REQUEST_LOG_COLLECTION);
+  }
+  const requestLogOptions = {
+    scope: 'clone_tournament',
+    subjectKey: `clone_source:${sourceTournamentId}`,
+    operatorOpenId: OPENID,
+    clientRequestId
+  };
+
   try {
-    if (clientRequestId) {
-      const existing = await db.collection('tournaments').where({
+    return await common.runTransactionCompat(db, async (transaction) => {
+      if (clientRequestId) {
+        const requestLog = await common.getClientRequestLog(transaction, requestLogOptions);
+        if (common.isSuccessfulClientRequestLog(requestLog) && String(requestLog.resourceId || '').trim()) {
+          return common.okResult('TOURNAMENT_CLONED', '已复制赛事', {
+            traceId,
+            state: 'deduped',
+            deduped: true,
+            ...(clientRequestId ? { clientRequestId } : {}),
+            tournamentId: String(requestLog.resourceId || '').trim()
+          });
+        }
+      }
+
+      const tournaments = transaction.collection('tournaments');
+      const docRes = await tournaments.doc(sourceTournamentId).get();
+      const source = common.assertTournamentExists(docRes && docRes.data);
+      common.assertCreator(source, OPENID, '仅创建者可复制自己的赛事');
+
+      const totalMatches = toPosInt(source.totalMatches, 0);
+      const courts = toPosInt(source.courts, 0);
+      const settingsConfigured = Boolean(source.settingsConfigured) && totalMatches >= 1 && courts >= 1;
+      const nextName = renamed || `${logic.normalizeName(source.name) || '比赛'}（副本）`;
+      const rules = source && source.rules && typeof source.rules === 'object'
+        ? source.rules
+        : { gamesPerMatch: 1, pointsPerGame: 21, endCondition: { type: 'total_matches', target: 1 }, unfinishedPolicy: 'admin_decide' };
+      const modeRaw = String(source.mode || '').trim().toLowerCase();
+      const mode = modeHelper.normalizeMode(modeRaw);
+      const copied = logic.copyPlayers(source.players, OPENID, undefined, {
+        preserveSquad: mode === 'squad_doubles'
+      });
+      const players = copied.players;
+      const playerIds = Array.from(new Set(players.map((item) => String(item && item.id || '').trim()).filter(Boolean)));
+      const pairTeams = mode === 'fixed_pair_rr'
+        ? logic.copyPairTeams(source.pairTeams, copied.playerIdMap)
+        : [];
+      const data = common.assertNoReservedRootKeys({
+        name: nextName,
+        status: 'draft',
         creatorId: OPENID,
+        mode,
+        refereeId: '',
+        settingsConfigured,
+        totalMatches,
+        courts,
+        rules,
+        players,
+        playerIds,
+        pairTeams,
         cloneSourceTournamentId: sourceTournamentId,
-        clientRequestId
-      }).limit(1).get();
-      const existingDoc = Array.isArray(existing && existing.data) ? existing.data[0] : null;
-      if (existingDoc && existingDoc._id) {
+        clientRequestId,
+        rounds: [],
+        rankings: [],
+        scheduleSeed: null,
+        fairnessScore: 0,
+        fairnessJson: '',
+        playerStatsJson: '',
+        schedulerMetaJson: '',
+        createdAt: db.serverDate(),
+        updatedAt: db.serverDate(),
+        version: 1
+      }, ['_id'], '赛事复制数据');
+
+      const addRes = await tournaments.add({
+        data
+      });
+      const tournamentId = String(addRes && addRes._id || '').trim();
+      if (clientRequestId) {
+        await common.upsertClientRequestLog(transaction, db, {
+          ...requestLogOptions,
+          status: 'succeeded',
+          resourceType: 'tournament',
+          resourceId: tournamentId,
+          responseCode: 'TOURNAMENT_CLONED',
+          responseState: 'created'
+        });
+      }
+
+      return common.okResult('TOURNAMENT_CLONED', '已复制赛事', {
+        state: 'created',
+        traceId,
+        ...(clientRequestId ? { clientRequestId } : {}),
+        tournamentId
+      });
+    });
+  } catch (err) {
+    if (clientRequestId) {
+      const requestLog = await common.getClientRequestLog(db, requestLogOptions);
+      if (common.isSuccessfulClientRequestLog(requestLog) && String(requestLog.resourceId || '').trim()) {
         return common.okResult('TOURNAMENT_CLONED', '已复制赛事', {
           traceId,
           state: 'deduped',
           deduped: true,
           ...(clientRequestId ? { clientRequestId } : {}),
-          tournamentId: existingDoc._id
+          tournamentId: String(requestLog.resourceId || '').trim()
         });
       }
     }
-
-    const docRes = await db.collection('tournaments').doc(sourceTournamentId).get();
-    const source = common.assertTournamentExists(docRes && docRes.data);
-    common.assertCreator(source, OPENID, '仅创建者可复制自己的赛事');
-
-    const totalMatches = toPosInt(source.totalMatches, 0);
-    const courts = toPosInt(source.courts, 0);
-    const settingsConfigured = Boolean(source.settingsConfigured) && totalMatches >= 1 && courts >= 1;
-    const nextName = renamed || `${logic.normalizeName(source.name) || '比赛'}（副本）`;
-    const rules = source && source.rules && typeof source.rules === 'object'
-      ? source.rules
-      : { gamesPerMatch: 1, pointsPerGame: 21, endCondition: { type: 'total_matches', target: 1 }, unfinishedPolicy: 'admin_decide' };
-    const modeRaw = String(source.mode || '').trim().toLowerCase();
-    const mode = modeHelper.normalizeMode(modeRaw);
-    const copied = logic.copyPlayers(source.players, OPENID, undefined, {
-      preserveSquad: mode === 'squad_doubles'
-    });
-    const players = copied.players;
-    const playerIds = Array.from(new Set(players.map((item) => String(item && item.id || '').trim()).filter(Boolean)));
-    const pairTeams = mode === 'fixed_pair_rr'
-      ? logic.copyPairTeams(source.pairTeams, copied.playerIdMap)
-      : [];
-    const data = common.assertNoReservedRootKeys({
-      name: nextName,
-      status: 'draft',
-      creatorId: OPENID,
-      mode,
-      refereeId: '',
-      settingsConfigured,
-      totalMatches,
-      courts,
-      rules,
-      players,
-      playerIds,
-      pairTeams,
-      cloneSourceTournamentId: sourceTournamentId,
-      clientRequestId,
-      rounds: [],
-      rankings: [],
-      scheduleSeed: null,
-      fairnessScore: 0,
-      fairnessJson: '',
-      playerStatsJson: '',
-      schedulerMetaJson: '',
-      createdAt: db.serverDate(),
-      updatedAt: db.serverDate(),
-      version: 1
-    }, ['_id'], '赛事复制数据');
-
-    const addRes = await db.collection('tournaments').add({
-      data
-    });
-
-    return common.okResult('TOURNAMENT_CLONED', '已复制赛事', {
-      state: 'created',
-      traceId,
-      ...(clientRequestId ? { clientRequestId } : {}),
-      tournamentId: addRes._id
-    });
-  } catch (err) {
     throw common.normalizeConflictError(err, '复制赛事失败');
   }
 };

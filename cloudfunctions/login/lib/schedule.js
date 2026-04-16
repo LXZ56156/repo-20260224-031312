@@ -41,6 +41,10 @@ function validateRosterPlayers(players = []) {
   };
 }
 
+function normalizeRosterPlayers(players = []) {
+  return playerUtils.normalizeRosterPlayers(players);
+}
+
 function getRosterValidationMessage(validation, label = '参赛名单') {
   const result = validation && typeof validation === 'object' ? validation : {};
   const prefix = String(label || '参赛名单').trim() || '参赛名单';
@@ -64,6 +68,7 @@ function assertValidRosterPlayers(players = [], label = '参赛名单') {
 module.exports = {
   normalizeEndConditionType,
   deriveScheduledMatches,
+  normalizeRosterPlayers,
   validateRosterPlayers,
   getRosterValidationMessage,
   assertValidRosterPlayers

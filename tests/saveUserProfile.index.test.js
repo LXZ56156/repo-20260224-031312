@@ -168,6 +168,22 @@ test('saveUserProfile treats repeated clientRequestId as deduped success', async
       return { $serverDate: true };
     },
     collection(name) {
+      if (name === 'client_request_logs') {
+        return {
+          doc() {
+            return {
+              async get() {
+                return {
+                  data: {
+                    status: 'succeeded',
+                    resourceId: 'profile_existing'
+                  }
+                };
+              }
+            };
+          }
+        };
+      }
       if (name === 'tournaments') {
         return {
           where(query) {
@@ -219,7 +235,7 @@ test('saveUserProfile treats repeated clientRequestId as deduped success', async
                 async get() {
                   return {
                     data: [{
-                      _id: 'profile_existing',
+                        _id: 'profile_existing',
                       lastClientRequestId: 'req_profile_1',
                       avatar: 'cloud://avatar/b.png'
                     }]

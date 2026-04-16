@@ -28,50 +28,84 @@ exports.main = async (event) => {
   if (content.length < 10) throw new Error('反馈内容至少10字');
 
   await ensureCollection('feedbacks');
-  const col = db.collection('feedbacks');
+  if (clientRequestId) {
+    await common.ensureCollection(db, common.CLIENT_REQUEST_LOG_COLLECTION);
+  }
   const now = Date.now();
   const nowDate = db.serverDate();
+  const requestLogOptions = {
+    scope: 'feedback_submit',
+    subjectKey: `feedback:${OPENID}`,
+    operatorOpenId: OPENID,
+    clientRequestId
+  };
 
-  if (clientRequestId) {
-    const existing = await col.where({
-      openid: OPENID,
-      clientRequestId
-    }).limit(1).get();
-    const existingDoc = Array.isArray(existing && existing.data) ? existing.data[0] : null;
-    if (existingDoc && existingDoc._id) {
+  try {
+    return await common.runTransactionCompat(db, async (transaction) => {
+      if (clientRequestId) {
+        const requestLog = await common.getClientRequestLog(transaction, requestLogOptions);
+        if (common.isSuccessfulClientRequestLog(requestLog) && String(requestLog.resourceId || '').trim()) {
+          return common.okResult('FEEDBACK_SAVED', '反馈已提交', {
+            traceId,
+            state: 'deduped',
+            deduped: true,
+            ...(clientRequestId ? { clientRequestId } : {}),
+            feedbackId: String(requestLog.resourceId || '').trim()
+          });
+        }
+      }
+
+      const col = transaction.collection('feedbacks');
+      const recent = await col.where({
+        openid: OPENID,
+        createdAtMs: db.command.gte(now - 60 * 1000)
+      }).limit(1).get();
+      if (Array.isArray(recent.data) && recent.data.length) {
+        throw new Error('提交太频繁，请稍后再试');
+      }
+
+      const addRes = await col.add({
+        data: common.assertNoReservedRootKeys({
+          openid: OPENID,
+          category,
+          content,
+          contact,
+          clientRequestId,
+          createdAt: nowDate,
+          createdAtMs: now
+        }, ['_id'], '反馈提交数据')
+      });
+      const feedbackId = String(addRes && addRes._id || '').trim();
+      if (clientRequestId) {
+        await common.upsertClientRequestLog(transaction, db, {
+          ...requestLogOptions,
+          status: 'succeeded',
+          resourceType: 'feedback',
+          resourceId: feedbackId,
+          responseCode: 'FEEDBACK_SAVED',
+          responseState: 'saved'
+        });
+      }
       return common.okResult('FEEDBACK_SAVED', '反馈已提交', {
         traceId,
-        state: 'deduped',
-        deduped: true,
+        state: 'saved',
         ...(clientRequestId ? { clientRequestId } : {}),
-        feedbackId: existingDoc._id
+        feedbackId
       });
+    });
+  } catch (err) {
+    if (clientRequestId) {
+      const requestLog = await common.getClientRequestLog(db, requestLogOptions);
+      if (common.isSuccessfulClientRequestLog(requestLog) && String(requestLog.resourceId || '').trim()) {
+        return common.okResult('FEEDBACK_SAVED', '反馈已提交', {
+          traceId,
+          state: 'deduped',
+          deduped: true,
+          ...(clientRequestId ? { clientRequestId } : {}),
+          feedbackId: String(requestLog.resourceId || '').trim()
+        });
+      }
     }
+    throw err;
   }
-
-  const recent = await col.where({
-    openid: OPENID,
-    createdAtMs: db.command.gte(now - 60 * 1000)
-  }).limit(1).get();
-  if (Array.isArray(recent.data) && recent.data.length) {
-    throw new Error('提交太频繁，请稍后再试');
-  }
-
-  const addRes = await col.add({
-    data: common.assertNoReservedRootKeys({
-      openid: OPENID,
-      category,
-      content,
-      contact,
-      clientRequestId,
-      createdAt: nowDate,
-      createdAtMs: now
-    }, ['_id'], '反馈提交数据')
-  });
-  return common.okResult('FEEDBACK_SAVED', '反馈已提交', {
-    traceId,
-    state: 'saved',
-    ...(clientRequestId ? { clientRequestId } : {}),
-    feedbackId: addRes._id
-  });
 };

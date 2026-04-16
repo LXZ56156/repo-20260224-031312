@@ -50,23 +50,16 @@ exports.main = async (event) => {
   if (!name) throw new Error('赛事名称不能为空');
 
   await ensureTournamentsCollection();
-
   if (clientRequestId) {
-    const existing = await db.collection('tournaments').where({
-      creatorId: OPENID,
-      clientRequestId
-    }).limit(1).get();
-    const existingDoc = Array.isArray(existing && existing.data) ? existing.data[0] : null;
-    if (existingDoc && existingDoc._id) {
-      return common.okResult('TOURNAMENT_CREATED', '已创建比赛', {
-        traceId,
-        state: 'deduped',
-        deduped: true,
-        ...(clientRequestId ? { clientRequestId } : {}),
-        tournamentId: existingDoc._id
-      });
-    }
+    await common.ensureCollection(db, common.CLIENT_REQUEST_LOG_COLLECTION);
   }
+
+  const requestLogOptions = {
+    scope: 'create_tournament',
+    subjectKey: `creator:${OPENID}`,
+    operatorOpenId: OPENID,
+    clientRequestId
+  };
 
   const rules = {
     gamesPerMatch: 1,
@@ -89,43 +82,81 @@ exports.main = async (event) => {
   };
 
   try {
-    const data = {
-      name,
-      status: 'draft',
-      creatorId: OPENID,
-      mode,
-      refereeId: '',
-      presetKey: 'custom',
-      settingsConfigured: false,
-      totalMatches: 0,
-      courts: 0,
-      rules,
-      players: [creatorPlayer],
-      playerIds: [OPENID],
-      pairTeams: [],
-      rounds: [],
-      rankings: [],
-      scheduleSeed: null,
-      fairnessScore: 0,
-      // Avoid nested-object updates causing DB dot-path conflicts.
-      fairnessJson: '',
-      playerStatsJson: '',
-      createdAt: db.serverDate(),
-      updatedAt: db.serverDate(),
-      version: 1
-    };
-    if (clientRequestId) data.clientRequestId = clientRequestId;
-    common.assertNoReservedRootKeys(data, ['_id'], '赛事创建数据');
-    const res = await db.collection('tournaments').add({
-      data
-    });
-    return common.okResult('TOURNAMENT_CREATED', '已创建比赛', {
-      state: 'created',
-      traceId,
-      ...(clientRequestId ? { clientRequestId } : {}),
-      tournamentId: res._id
+    return await common.runTransactionCompat(db, async (transaction) => {
+      if (clientRequestId) {
+        const requestLog = await common.getClientRequestLog(transaction, requestLogOptions);
+        if (common.isSuccessfulClientRequestLog(requestLog) && String(requestLog.resourceId || '').trim()) {
+          return common.okResult('TOURNAMENT_CREATED', '已创建比赛', {
+            traceId,
+            state: 'deduped',
+            deduped: true,
+            ...(clientRequestId ? { clientRequestId } : {}),
+            tournamentId: String(requestLog.resourceId || '').trim()
+          });
+        }
+      }
+
+      const data = {
+        name,
+        status: 'draft',
+        creatorId: OPENID,
+        mode,
+        refereeId: '',
+        presetKey: 'custom',
+        settingsConfigured: false,
+        totalMatches: 0,
+        courts: 0,
+        rules,
+        players: [creatorPlayer],
+        playerIds: [OPENID],
+        pairTeams: [],
+        rounds: [],
+        rankings: [],
+        scheduleSeed: null,
+        fairnessScore: 0,
+        // Avoid nested-object updates causing DB dot-path conflicts.
+        fairnessJson: '',
+        playerStatsJson: '',
+        createdAt: db.serverDate(),
+        updatedAt: db.serverDate(),
+        version: 1
+      };
+      if (clientRequestId) data.clientRequestId = clientRequestId;
+      common.assertNoReservedRootKeys(data, ['_id'], '赛事创建数据');
+      const res = await transaction.collection('tournaments').add({
+        data
+      });
+      const tournamentId = String(res && res._id || '').trim();
+      if (clientRequestId) {
+        await common.upsertClientRequestLog(transaction, db, {
+          ...requestLogOptions,
+          status: 'succeeded',
+          resourceType: 'tournament',
+          resourceId: tournamentId,
+          responseCode: 'TOURNAMENT_CREATED',
+          responseState: 'created'
+        });
+      }
+      return common.okResult('TOURNAMENT_CREATED', '已创建比赛', {
+        state: 'created',
+        traceId,
+        ...(clientRequestId ? { clientRequestId } : {}),
+        tournamentId
+      });
     });
   } catch (err) {
+    if (clientRequestId) {
+      const requestLog = await common.getClientRequestLog(db, requestLogOptions);
+      if (common.isSuccessfulClientRequestLog(requestLog) && String(requestLog.resourceId || '').trim()) {
+        return common.okResult('TOURNAMENT_CREATED', '已创建比赛', {
+          traceId,
+          state: 'deduped',
+          deduped: true,
+          ...(clientRequestId ? { clientRequestId } : {}),
+          tournamentId: String(requestLog.resourceId || '').trim()
+        });
+      }
+    }
     if (common.isCollectionNotExists(err)) {
       throw new Error('数据库集合 tournaments 不存在：请在云开发控制台（数据库 -> 创建集合）创建 tournaments 后再试。');
     }

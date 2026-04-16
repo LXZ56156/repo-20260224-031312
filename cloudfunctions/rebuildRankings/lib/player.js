@@ -4,6 +4,24 @@ function extractPlayerId(player) {
   return String(player.id || player.playerId || player._id || '').trim();
 }
 
+function normalizeRosterPlayer(player) {
+  if (!player || typeof player !== 'object' || Array.isArray(player)) {
+    return player;
+  }
+  const id = extractPlayerId(player);
+  if (!id && !Object.prototype.hasOwnProperty.call(player, 'id')) {
+    return { ...player };
+  }
+  return {
+    ...player,
+    id
+  };
+}
+
+function normalizeRosterPlayers(players = []) {
+  return (Array.isArray(players) ? players : []).map(normalizeRosterPlayer);
+}
+
 function safePlayerName(player) {
   const raw = player && (player.name || player.nickName || player.nickname || player.displayName);
   const name = String(raw || '').trim();
@@ -30,6 +48,8 @@ function isParticipantInTournament(tournament, openid) {
 
 module.exports = {
   extractPlayerId,
+  normalizeRosterPlayer,
+  normalizeRosterPlayers,
   safePlayerName,
   isParticipantInTournament
 };

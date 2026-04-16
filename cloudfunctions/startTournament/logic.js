@@ -46,7 +46,7 @@ function buildPairTeamsInvalidError(validation) {
 
 function validateBeforeGenerate(tournament) {
   const t = tournament || {};
-  const players = Array.isArray(t.players) ? t.players : [];
+  const players = scheduleContract.normalizeRosterPlayers(Array.isArray(t.players) ? t.players : []);
   if (players.length < 4) throw new Error('参赛人数不足 4 人');
   scheduleContract.assertValidRosterPlayers(players);
 

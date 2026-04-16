@@ -1,3 +1,5 @@
+const playerUtils = require('./player');
+
 const FIXED_PAIR_MAX_CYCLES = 10;
 const FIXED_PAIR_CYCLE_SHORTCUTS = [1, 2, 3, 5, 10];
 const PAIR_TEAM_VALIDATION_CODES = {
@@ -37,7 +39,7 @@ function buildValidPlayerIds(players) {
   const list = Array.isArray(players) ? players : [];
   const out = [];
   for (const player of list) {
-    const id = String(player && player.id || '').trim();
+    const id = playerUtils.extractPlayerId(player);
     if (!id || out.includes(id)) continue;
     out.push(id);
   }

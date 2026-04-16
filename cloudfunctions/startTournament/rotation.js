@@ -1219,12 +1219,13 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
     throw new Error('参赛人数必须不少于4人');
   }
   scheduleContract.assertValidRosterPlayers(players);
+  const normalizedPlayers = scheduleContract.normalizeRosterPlayers(players);
   const M = Math.max(1, Number(totalMatches || 1));
   const C = Math.max(1, Number(courts || 1));
-  const ids = players.map((p) => String((p && p.id) || '').trim());
+  const ids = normalizedPlayers.map((p) => String((p && p.id) || '').trim());
   const effectiveCourts = computeEffectiveCourts(ids.length, C);
   const mode = MODE_DOUBLES;
-  const genderById = buildGenderMap(players);
+  const genderById = buildGenderMap(normalizedPlayers);
   const policy = options.policy || selectSchedulerPolicy(ids.length, effectiveCourts, M);
   const selectedEpsilon = Number(options.epsilon ?? policy.selectedEpsilon ?? 1.6);
   const selectedSearchSeeds = clampInt(options.searchSeeds ?? policy.selectedSearchSeeds ?? 16, 1, 64, 16);

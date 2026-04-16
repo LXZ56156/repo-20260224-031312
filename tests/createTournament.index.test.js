@@ -123,24 +123,24 @@ test('createTournament treats repeated clientRequestId as deduped success', asyn
       return { $serverDate: true };
     },
     collection(name) {
+      if (name === 'client_request_logs') {
+        return {
+          doc() {
+            return {
+              async get() {
+                return {
+                  data: {
+                    status: 'succeeded',
+                    resourceId: 't_existing'
+                  }
+                };
+              }
+            };
+          }
+        };
+      }
       assert.equal(name, 'tournaments');
       return {
-        where(query) {
-          assert.deepEqual(query, {
-            creatorId: 'u_creator',
-            clientRequestId: 'req_create_1'
-          });
-          return {
-            limit(value) {
-              assert.equal(value, 1);
-              return {
-                async get() {
-                  return { data: [{ _id: 't_existing' }] };
-                }
-              };
-            }
-          };
-        },
         async add() {
           addCalled = true;
           return { _id: 't_should_not_write' };
@@ -161,4 +161,108 @@ test('createTournament treats repeated clientRequestId as deduped success', asyn
   assert.equal(result.tournamentId, 't_existing');
   assert.equal(result.clientRequestId, 'req_create_1');
   assert.equal(addCalled, false);
+});
+
+test('createTournament concurrent same clientRequestId only creates one tournament document', async () => {
+  const state = {
+    requestLog: null,
+    tournaments: []
+  };
+  let barrierCount = 0;
+  let releaseBarrier = null;
+  const barrierPromise = new Promise((resolve) => {
+    releaseBarrier = resolve;
+  });
+  const waitForBarrier = async () => {
+    barrierCount += 1;
+    if (barrierCount >= 2) releaseBarrier();
+    await barrierPromise;
+  };
+  const db = {
+    async createCollection() {},
+    serverDate() {
+      return { $serverDate: true };
+    },
+    async runTransaction(handler) {
+      const pending = {
+        tournamentData: null,
+        tournamentId: '',
+        requestLog: null
+      };
+      const result = await handler({
+        collection(name) {
+          if (name === 'client_request_logs') {
+            return {
+              doc() {
+                return {
+                  async get() {
+                    await waitForBarrier();
+                    if (state.requestLog) return { data: state.requestLog };
+                    throw new Error('document.get:fail requested document does not exist');
+                  },
+                  async set(payload) {
+                    pending.requestLog = payload.data;
+                  }
+                };
+              }
+            };
+          }
+          if (name === 'tournaments') {
+            return {
+              async add(payload) {
+                pending.tournamentData = payload.data;
+                pending.tournamentId = `t_${state.tournaments.length + 1}`;
+                return { _id: pending.tournamentId };
+              }
+            };
+          }
+          throw new Error(`unexpected collection ${name}`);
+        }
+      });
+      if (pending.requestLog) {
+        if (state.requestLog) throw new Error('write conflict');
+        state.requestLog = pending.requestLog;
+      }
+      if (pending.tournamentData) {
+        state.tournaments.push({
+          _id: pending.tournamentId,
+          ...pending.tournamentData
+        });
+      }
+      return result;
+    },
+    collection(name) {
+      if (name === 'client_request_logs') {
+        return {
+          doc() {
+            return {
+              async get() {
+                if (state.requestLog) return { data: state.requestLog };
+                throw new Error('document.get:fail requested document does not exist');
+              }
+            };
+          }
+        };
+      }
+      if (name === 'tournaments') {
+        return {
+          async add() {
+            throw new Error('unexpected fallback add');
+          }
+        };
+      }
+      throw new Error(`unexpected collection ${name}`);
+    }
+  };
+  const { main } = loadMain(db);
+
+  const [first, second] = await Promise.all([
+    main({ name: '周五夜场', clientRequestId: 'req_create_concurrent_1' }),
+    main({ name: '周五夜场', clientRequestId: 'req_create_concurrent_1' })
+  ]);
+
+  assert.equal(state.tournaments.length, 1);
+  assert.equal(state.requestLog.resourceId, state.tournaments[0]._id);
+  assert.deepEqual([first.state, second.state].sort(), ['created', 'deduped']);
+  assert.deepEqual([first.tournamentId, second.tournamentId], [state.tournaments[0]._id, state.tournaments[0]._id]);
 });

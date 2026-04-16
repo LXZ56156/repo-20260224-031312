@@ -12,13 +12,7 @@ function normalizeGender(gender) {
 }
 
 async function ensureCollection(name) {
-  try {
-    if (typeof db.createCollection === 'function') {
-      await db.createCollection(name);
-    }
-  } catch (_) {
-    // ignore
-  }
+  await common.ensureCollection(db, name);
 }
 
 function isUserPlayerRef(player, openid) {
@@ -141,6 +135,11 @@ async function syncAvatarToTournaments(openid, avatar) {
   return synced;
 }
 
+async function findProfile(reader, openid) {
+  const res = await reader.collection('user_profiles').where({ openid }).limit(1).get();
+  return Array.isArray(res && res.data) && res.data[0] ? res.data[0] : null;
+}
+
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
   const traceId = String((event && event.__traceId) || '').trim();
@@ -152,59 +151,114 @@ exports.main = async (event) => {
   if (gender === 'unknown') throw new Error('性别不能为空');
 
   await ensureCollection('user_profiles');
-  const col = db.collection('user_profiles');
+  if (clientRequestId) {
+    await common.ensureCollection(db, common.CLIENT_REQUEST_LOG_COLLECTION);
+  }
   const now = db.serverDate();
-  const findRes = await col.where({ openid: OPENID }).limit(1).get();
-  const doc = Array.isArray(findRes.data) && findRes.data[0] ? findRes.data[0] : null;
-  if (doc && clientRequestId && String(doc.lastClientRequestId || '').trim() === clientRequestId) {
-    const syncedTournamentCount = await syncAvatarToTournaments(OPENID, String(doc.avatar || avatar || '').trim());
-    return common.okResult('PROFILE_SAVED', '已保存资料', {
-      traceId,
-      state: 'deduped',
-      deduped: true,
-      ...(clientRequestId ? { clientRequestId } : {}),
-      profileId: doc._id,
-      syncedTournamentCount
-    });
-  }
-  if (!doc) {
-    const addData = {
-      openid: OPENID,
-      nickname,
-      avatar,
-      gender,
-      createdAt: now,
-      updatedAt: now
-    };
-    if (clientRequestId) addData.lastClientRequestId = clientRequestId;
-    const addRes = await col.add({
-      data: common.assertNoReservedRootKeys(addData, ['_id'], '用户资料新增数据')
-    });
-    const syncedTournamentCount = await syncAvatarToTournaments(OPENID, avatar);
-    return common.okResult('PROFILE_SAVED', '已保存资料', {
-      traceId,
-      state: 'updated',
-      ...(clientRequestId ? { clientRequestId } : {}),
-      profileId: addRes._id,
-      syncedTournamentCount
-    });
-  }
-  const updateData = {
-    nickname,
-    avatar,
-    gender,
-    updatedAt: now
+  const requestLogOptions = {
+    scope: 'save_user_profile',
+    subjectKey: `profile:${OPENID}`,
+    operatorOpenId: OPENID,
+    clientRequestId
   };
-  if (clientRequestId) updateData.lastClientRequestId = clientRequestId;
-  await col.doc(doc._id).update({
-    data: common.assertNoReservedRootKeys(updateData, ['_id'], '用户资料更新数据')
-  });
-  const syncedTournamentCount = await syncAvatarToTournaments(OPENID, avatar);
-  return common.okResult('PROFILE_SAVED', '已保存资料', {
-    traceId,
-    state: 'updated',
-    ...(clientRequestId ? { clientRequestId } : {}),
-    profileId: doc._id,
-    syncedTournamentCount
-  });
+
+  const buildProfileSavedResult = async (meta = {}) => {
+    const avatarToSync = String(meta.avatarToSync || '').trim();
+    const syncedTournamentCount = await syncAvatarToTournaments(OPENID, avatarToSync);
+    return common.okResult('PROFILE_SAVED', '已保存资料', {
+      traceId,
+      state: meta.deduped ? 'deduped' : 'updated',
+      ...(meta.deduped ? { deduped: true } : {}),
+      ...(clientRequestId ? { clientRequestId } : {}),
+      profileId: meta.profileId,
+      syncedTournamentCount
+    });
+  };
+
+  try {
+    const txResult = await common.runTransactionCompat(db, async (transaction) => {
+      const doc = await findProfile(transaction, OPENID);
+      if (clientRequestId) {
+        const requestLog = await common.getClientRequestLog(transaction, requestLogOptions);
+        if (common.isSuccessfulClientRequestLog(requestLog)) {
+          return {
+            deduped: true,
+            profileId: String(requestLog.resourceId || (doc && doc._id) || '').trim(),
+            avatarToSync: String((doc && doc.avatar) || avatar || '').trim()
+          };
+        }
+      }
+
+      const col = transaction.collection('user_profiles');
+      if (!doc) {
+        const addData = {
+          openid: OPENID,
+          nickname,
+          avatar,
+          gender,
+          createdAt: now,
+          updatedAt: now
+        };
+        if (clientRequestId) addData.lastClientRequestId = clientRequestId;
+        const addRes = await col.add({
+          data: common.assertNoReservedRootKeys(addData, ['_id'], '用户资料新增数据')
+        });
+        const profileId = String(addRes && addRes._id || '').trim();
+        if (clientRequestId) {
+          await common.upsertClientRequestLog(transaction, db, {
+            ...requestLogOptions,
+            status: 'succeeded',
+            resourceType: 'user_profile',
+            resourceId: profileId,
+            responseCode: 'PROFILE_SAVED',
+            responseState: 'updated'
+          });
+        }
+        return { deduped: false, profileId, avatarToSync: avatar };
+      }
+
+      const updateData = {
+        nickname,
+        avatar,
+        gender,
+        updatedAt: now
+      };
+      if (clientRequestId) updateData.lastClientRequestId = clientRequestId;
+      await col.doc(doc._id).update({
+        data: common.assertNoReservedRootKeys(updateData, ['_id'], '用户资料更新数据')
+      });
+      const profileId = String(doc._id || '').trim();
+      if (clientRequestId) {
+        await common.upsertClientRequestLog(transaction, db, {
+          ...requestLogOptions,
+          status: 'succeeded',
+          resourceType: 'user_profile',
+          resourceId: profileId,
+          responseCode: 'PROFILE_SAVED',
+          responseState: 'updated'
+        });
+      }
+      return { deduped: false, profileId, avatarToSync: avatar };
+    });
+    return buildProfileSavedResult(txResult);
+  } catch (err) {
+    if (clientRequestId) {
+      const requestLog = await common.getClientRequestLog(db, requestLogOptions);
+      if (common.isSuccessfulClientRequestLog(requestLog)) {
+        const profileId = String(requestLog.resourceId || '').trim();
+        let doc = null;
+        try {
+          doc = await findProfile(db, OPENID);
+        } catch (_) {
+          doc = null;
+        }
+        return buildProfileSavedResult({
+          deduped: true,
+          profileId: profileId || String((doc && doc._id) || '').trim(),
+          avatarToSync: String((doc && doc.avatar) || avatar || '').trim()
+        });
+      }
+    }
+    throw err;
+  }
 };

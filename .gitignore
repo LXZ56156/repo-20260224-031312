@@ -59,6 +59,7 @@ tmp/
 # local docs (allow context/tasks/notes, ignore the rest)
 docs/*
 !docs/scheduler-full-audit.md
+!docs/backend-audit-2026-04-16.md
 !docs/context/
 !docs/tasks/
 !docs/notes/

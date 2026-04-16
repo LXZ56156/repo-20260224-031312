@@ -130,25 +130,24 @@ test('cloneTournament treats repeated clientRequestId as deduped success', async
       return { $serverDate: true };
     },
     collection(name) {
+      if (name === 'client_request_logs') {
+        return {
+          doc() {
+            return {
+              async get() {
+                return {
+                  data: {
+                    status: 'succeeded',
+                    resourceId: 't_copy_existing'
+                  }
+                };
+              }
+            };
+          }
+        };
+      }
       assert.equal(name, 'tournaments');
       return {
-        where(query) {
-          assert.deepEqual(query, {
-            creatorId: 'u_creator',
-            cloneSourceTournamentId: 't_source',
-            clientRequestId: 'req_clone_1'
-          });
-          return {
-            limit(value) {
-              assert.equal(value, 1);
-              return {
-                async get() {
-                  return { data: [{ _id: 't_copy_existing' }] };
-                }
-              };
-            }
-          };
-        },
         doc() {
           sourceRead = true;
           return {

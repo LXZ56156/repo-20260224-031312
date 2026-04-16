@@ -538,9 +538,10 @@ function buildDeterministicSquad10v10FourCourtSchedule(idsA, idsB, meta = {}) {
 
 function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
   scheduleContract.assertValidRosterPlayers(players);
+  const normalizedPlayers = scheduleContract.normalizeRosterPlayers(players);
   const idsA = [];
   const idsB = [];
-  for (const player of (players || [])) {
+  for (const player of normalizedPlayers) {
     const id = String(player && player.id || '').trim();
     if (!id) continue;
     const squad = String(player && player.squad || '').trim().toUpperCase();
@@ -751,13 +752,14 @@ function buildRoundRobinPairs(teamIds, cycleIndex) {
 
 function buildFixedPairSchedule(players, courts, pairTeamsRaw = [], rules = {}) {
   scheduleContract.assertValidRosterPlayers(players);
+  const normalizedPlayers = scheduleContract.normalizeRosterPlayers(players);
   const playerMap = {};
-  for (const player of (players || [])) {
+  for (const player of normalizedPlayers) {
     const id = String(player && player.id || '').trim();
       if (!id) continue;
     playerMap[id] = player;
   }
-  const pairValidation = fixedPair.validateFixedPairTeams(pairTeamsRaw, players);
+  const pairValidation = fixedPair.validateFixedPairTeams(pairTeamsRaw, normalizedPlayers);
   if (pairValidation.hasInvalid) {
     throw new Error(`START_PAIR_TEAMS_INVALID:${fixedPair.getFixedPairInvalidMessage(pairValidation)}`);
   }

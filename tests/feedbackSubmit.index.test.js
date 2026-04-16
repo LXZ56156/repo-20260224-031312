@@ -143,24 +143,25 @@ test('feedbackSubmit treats repeated clientRequestId as deduped success', async 
     serverDate() {
       return { $serverDate: true };
     },
-    collection() {
-      return {
-        where(query) {
-          if (query.clientRequestId) {
-            assert.deepEqual(query, {
-              openid: 'u_feedback',
-              clientRequestId: 'req_feedback_1'
-            });
+    collection(name) {
+      if (name === 'client_request_logs') {
+        return {
+          doc() {
             return {
-              limit() {
+              async get() {
                 return {
-                  async get() {
-                    return { data: [{ _id: 'fb_existing' }] };
+                  data: {
+                    status: 'succeeded',
+                    resourceId: 'fb_existing'
                   }
                 };
               }
             };
           }
+        };
+      }
+      return {
+        where() {
           return {
             limit() {
               return {

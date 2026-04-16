@@ -123,6 +123,23 @@ function buildTournament() {
   };
 }
 
+function buildStartedTournament() {
+  return {
+    ...buildTournament(),
+    status: 'running',
+    version: 3,
+    rounds: [{
+      roundIndex: 0,
+      matches: [{
+        matchIndex: 0,
+        teamA: [{ id: 'p1', name: 'A1' }, { id: 'p2', name: 'A2' }],
+        teamB: [{ id: 'p3', name: 'B1' }, { id: 'p4', name: 'B2' }]
+      }],
+      restPlayers: []
+    }]
+  };
+}
+
 test('startTournament writes generated rounds and running state through the direct index handler', async () => {
   let updateQuery = null;
   let writtenData = null;
@@ -313,19 +330,28 @@ test('startTournament treats repeated clientRequestId as deduped success', async
     serverDate() {
       return { $serverDate: true };
     },
-    collection() {
+    collection(name) {
+      if (name === 'client_request_logs') {
+        return {
+          doc() {
+            return {
+              async get() {
+                return {
+                  data: {
+                    status: 'succeeded',
+                    resourceId: 't_1'
+                  }
+                };
+              }
+            };
+          }
+        };
+      }
       return {
         doc() {
           return {
             async get() {
-              return {
-                data: {
-                  ...buildTournament(),
-                  status: 'running',
-                  version: 3,
-                  lastClientRequestId: 'req_start_1'
-                }
-              };
+              return { data: buildStartedTournament() };
             }
           };
         },
@@ -353,6 +379,216 @@ test('startTournament treats repeated clientRequestId as deduped success', async
   assert.equal(result.clientRequestId, 'req_start_1');
   assert.equal(result.version, 3);
   assert.equal(updateCalled, false);
+});
+
+test('startTournament does not dedupe from unrelated lastClientRequestId pollution', async () => {
+  let updateCalled = false;
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      },
+      remove() {
+        return { $remove: true };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      if (name === 'client_request_logs') {
+        return {
+          doc() {
+            return {
+              async get() {
+                throw new Error('document.get:fail requested document does not exist');
+              }
+            };
+          }
+        };
+      }
+      return {
+        doc() {
+          return {
+            async get() {
+              return {
+                data: {
+                  ...buildTournament(),
+                  settingsConfigured: false,
+                  lastClientRequestId: 'update_settings_123'
+                }
+              };
+            }
+          };
+        },
+        where() {
+          updateCalled = true;
+          return {
+            async update() {
+              return { stats: { updated: 1 } };
+            }
+          };
+        }
+      };
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    clientRequestId: 'update_settings_123'
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'SETTINGS_REQUIRED');
+  assert.equal(result.state, 'invalid');
+  assert.equal(updateCalled, false);
+});
+
+test('startTournament concurrent same clientRequestId only advances tournament once', async () => {
+  const state = {
+    tournament: buildTournament(),
+    requestLog: null
+  };
+  let barrierCount = 0;
+  let releaseBarrier = null;
+  const barrierPromise = new Promise((resolve) => {
+    releaseBarrier = resolve;
+  });
+  const waitForBarrier = async () => {
+    barrierCount += 1;
+    if (barrierCount >= 2) releaseBarrier();
+    await barrierPromise;
+  };
+  function cloneTournamentData() {
+    return JSON.parse(JSON.stringify(state.tournament));
+  }
+  function applyUpdate(target, data) {
+    Object.keys(data).forEach((key) => {
+      const value = data[key];
+      if (value && typeof value === 'object' && value.$inc !== undefined) {
+        target[key] = (Number(target[key]) || 0) + Number(value.$inc || 0);
+        return;
+      }
+      if (value && typeof value === 'object' && value.$remove) {
+        delete target[key];
+        return;
+      }
+      target[key] = value;
+    });
+  }
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      },
+      remove() {
+        return { $remove: true };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    async runTransaction(handler) {
+      const pending = {
+        updateQuery: null,
+        updateData: null,
+        requestLog: null
+      };
+      const result = await handler({
+        collection(name) {
+          if (name === 'client_request_logs') {
+            return {
+              doc() {
+                return {
+                  async get() {
+                    await waitForBarrier();
+                    if (state.requestLog) return { data: state.requestLog };
+                    throw new Error('document.get:fail requested document does not exist');
+                  },
+                  async set(payload) {
+                    pending.requestLog = payload.data;
+                  }
+                };
+              }
+            };
+          }
+          if (name === 'tournaments') {
+            return {
+              doc() {
+                return {
+                  async get() {
+                    return { data: cloneTournamentData() };
+                  }
+                };
+              },
+              where(query) {
+                pending.updateQuery = query;
+                return {
+                  async update(payload) {
+                    pending.updateData = payload.data;
+                    return { stats: { updated: 1 } };
+                  }
+                };
+              }
+            };
+          }
+          throw new Error(`unexpected collection ${name}`);
+        }
+      });
+      if (pending.updateQuery) {
+        if (Number(pending.updateQuery.version) !== Number(state.tournament.version || 0)) {
+          throw new Error('write conflict');
+        }
+        applyUpdate(state.tournament, pending.updateData);
+      }
+      if (pending.requestLog) {
+        if (state.requestLog) throw new Error('write conflict');
+        state.requestLog = pending.requestLog;
+      }
+      return result;
+    },
+    collection(name) {
+      if (name === 'client_request_logs') {
+        return {
+          doc() {
+            return {
+              async get() {
+                if (state.requestLog) return { data: state.requestLog };
+                throw new Error('document.get:fail requested document does not exist');
+              }
+            };
+          }
+        };
+      }
+      if (name === 'tournaments') {
+        return {
+          doc() {
+            return {
+              async get() {
+                return { data: cloneTournamentData() };
+              }
+            };
+          }
+        };
+      }
+      throw new Error(`unexpected collection ${name}`);
+    }
+  };
+  const { main } = loadMain(db);
+
+  const [first, second] = await Promise.all([
+    main({ tournamentId: 't_1', clientRequestId: 'req_start_concurrent_1' }),
+    main({ tournamentId: 't_1', clientRequestId: 'req_start_concurrent_1' })
+  ]);
+
+  assert.equal(state.tournament.status, 'running');
+  assert.equal(state.tournament.version, 3);
+  assert.ok(Array.isArray(state.tournament.rounds));
+  assert.equal(state.tournament.rounds.length, 1);
+  assert.equal(String(state.requestLog.resourceId || ''), 't_1');
+  assert.deepEqual([first.state, second.state].sort(), ['deduped', 'started']);
+  assert.deepEqual([first.version, second.version], [3, 3]);
 });
 
 test('startTournament omits empty clientRequestId when not provided', async () => {

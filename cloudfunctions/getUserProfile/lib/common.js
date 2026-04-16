@@ -1,3 +1,7 @@
+const crypto = require('node:crypto');
+
+const CLIENT_REQUEST_LOG_COLLECTION = 'client_request_logs';
+
 function errMsg(err) {
   return String((err && (err.message || err.errMsg)) || err || '');
 }
@@ -94,6 +98,95 @@ function failResult(code = 'OP_FAILED', message = '操作失败', extra = {}) {
   return withWriteResult({ ...extra, ok: false }, { ok: false, code, message });
 }
 
+async function ensureCollection(db, name) {
+  if (!db || typeof db.createCollection !== 'function') return;
+  try {
+    await db.createCollection(String(name || '').trim());
+  } catch (_) {
+    // ignore
+  }
+}
+
+async function runTransactionCompat(db, handler) {
+  if (!db || typeof handler !== 'function') {
+    throw new Error('transaction handler required');
+  }
+  if (typeof db.runTransaction === 'function') {
+    return db.runTransaction(handler);
+  }
+  return handler({
+    collection(name) {
+      return db.collection(name);
+    }
+  });
+}
+
+function normalizeClientRequestLogPart(value) {
+  return String(value || '').trim();
+}
+
+function buildClientRequestLogId(options = {}) {
+  const scope = normalizeClientRequestLogPart(options.scope);
+  const subjectKey = normalizeClientRequestLogPart(options.subjectKey);
+  const operatorOpenId = normalizeClientRequestLogPart(options.operatorOpenId);
+  const clientRequestId = normalizeClientRequestLogPart(options.clientRequestId);
+  if (!scope || !subjectKey || !operatorOpenId || !clientRequestId) return '';
+  const digest = crypto.createHash('sha1')
+    .update([scope, subjectKey, operatorOpenId, clientRequestId].join('\n'))
+    .digest('hex');
+  return `req_${digest}`;
+}
+
+function isSuccessfulClientRequestLog(log) {
+  return !!(log && String(log.status || '').trim() === 'succeeded');
+}
+
+async function getClientRequestLog(reader, options = {}) {
+  const logId = buildClientRequestLogId(options);
+  if (!logId || !reader || typeof reader.collection !== 'function') return null;
+  try {
+    const res = await reader.collection(CLIENT_REQUEST_LOG_COLLECTION).doc(logId).get();
+    return res && res.data ? res.data : null;
+  } catch (err) {
+    if (isDocNotExists(err) || isCollectionNotExists(err)) return null;
+    throw err;
+  }
+}
+
+function buildClientRequestLogData(db, options = {}) {
+  const scope = normalizeClientRequestLogPart(options.scope);
+  const subjectKey = normalizeClientRequestLogPart(options.subjectKey);
+  const operatorOpenId = normalizeClientRequestLogPart(options.operatorOpenId);
+  const clientRequestId = normalizeClientRequestLogPart(options.clientRequestId);
+  const status = normalizeClientRequestLogPart(options.status) || 'succeeded';
+  const resourceType = normalizeClientRequestLogPart(options.resourceType);
+  const resourceId = normalizeClientRequestLogPart(options.resourceId);
+  const responseCode = normalizeResultCode(options.responseCode || 'OK');
+  const responseState = normalizeClientRequestLogPart(options.responseState);
+  return assertNoReservedRootKeys({
+    scope,
+    subjectKey,
+    operatorOpenId,
+    clientRequestId,
+    status,
+    resourceType,
+    resourceId,
+    responseCode,
+    responseState,
+    createdAt: typeof (db && db.serverDate) === 'function' ? db.serverDate() : null,
+    updatedAt: typeof (db && db.serverDate) === 'function' ? db.serverDate() : null
+  }, ['_id'], '请求幂等日志数据');
+}
+
+async function upsertClientRequestLog(writer, db, options = {}) {
+  const logId = buildClientRequestLogId(options);
+  if (!logId || !writer || typeof writer.collection !== 'function') return '';
+  await writer.collection(CLIENT_REQUEST_LOG_COLLECTION).doc(logId).set({
+    data: buildClientRequestLogData(db, options)
+  });
+  return logId;
+}
+
 function assertNoReservedRootKeys(data, reservedKeys = ['_id'], context = '写入数据') {
   if (!data || typeof data !== 'object' || Array.isArray(data)) return data;
   const hits = (Array.isArray(reservedKeys) ? reservedKeys : ['_id'])
@@ -117,6 +210,7 @@ async function cleanupScoreLocks(db, tournamentId) {
 }
 
 module.exports = {
+  CLIENT_REQUEST_LOG_COLLECTION,
   errMsg,
   isCollectionNotExists,
   isConflictError,
@@ -128,8 +222,14 @@ module.exports = {
   assertNoReservedRootKeys,
   normalizeConflictError,
   cleanupScoreLocks,
+  ensureCollection,
+  runTransactionCompat,
   withWriteResult,
   okResult,
   failResult,
-  buildResultData
+  buildResultData,
+  buildClientRequestLogId,
+  getClientRequestLog,
+  upsertClientRequestLog,
+  isSuccessfulClientRequestLog
 };
