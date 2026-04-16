@@ -423,3 +423,62 @@ test('match submit can recover from lock expiry after reacquiring lock and retry
     global.wx = originalWx;
   }
 });
+
+test('match submit absorbs MATCH_CANCELED without falling into generic write error flow', async () => {
+  const originalWx = global.wx;
+  const toastCalls = [];
+  let submitCalls = 0;
+
+  global.wx = {
+    showLoading() {},
+    hideLoading() {},
+    showToast(payload) {
+      toastCalls.push(payload);
+    }
+  };
+
+  try {
+    const ctx = createCtx();
+    const service = createMatchSubmitService(ctx, {
+      cloud: {
+        async call() {
+          submitCalls += 1;
+          return {
+            ok: false,
+            code: 'MATCH_CANCELED',
+            message: '该场已结束',
+            state: 'canceled'
+          };
+        },
+        parseCloudError() {
+          return { isNetwork: false };
+        }
+      },
+      storage: {
+        get(key, fallback) {
+          if (key === 'score_auto_next' || key === 'score_auto_return') return false;
+          return fallback;
+        }
+      },
+      nav: {
+        markRefreshFlag() {},
+        buildTournamentUrl(path, tournamentId, query = {}) {
+          return `${path}?tournamentId=${tournamentId}&roundIndex=${query.roundIndex || 0}&matchIndex=${query.matchIndex || 0}`;
+        },
+        redirectOrBack() {},
+        redirectOrNavigate() {}
+      }
+    });
+
+    await service.submit();
+
+    assert.equal(submitCalls, 1);
+    assert.equal(ctx.data.lockState, 'finished');
+    assert.equal(ctx._writeErrors.length, 0);
+    assert.equal(ctx._retryAction, null);
+    assert.equal(ctx._clearDraftCount, 0);
+    assert.equal(toastCalls.length, 0);
+  } finally {
+    global.wx = originalWx;
+  }
+});

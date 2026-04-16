@@ -47,7 +47,13 @@ exports.main = async (event) => {
   const avatar = String((event && (event.avatar || event.avatarUrl)) || '').trim();
   const mode = modeHelper.normalizeMode(event && event.mode);
   const creatorGender = normalizeGender(event && event.creatorGender);
-  if (!name) throw new Error('赛事名称不能为空');
+  if (!name) {
+    return common.failResult('SETTINGS_INVALID', '赛事名称不能为空', {
+      traceId,
+      state: 'invalid',
+      ...(clientRequestId ? { clientRequestId } : {})
+    });
+  }
 
   await ensureTournamentsCollection();
   if (clientRequestId) {

@@ -153,7 +153,7 @@ test('submitScore returns LOCK_EXPIRED when score lock document is missing', asy
     ok: false,
     code: 'LOCK_EXPIRED',
     message: '录分会话已过期，请重新开始录分',
-    state: 'conflict',
+    state: 'expired',
     traceId: '',
     data: {}
   });
@@ -194,6 +194,50 @@ test('submitScore returns VERSION_CONFLICT when optimistic update reports update
   assert.equal(calls.tournamentGet, 1);
   assert.equal(calls.lockGet, 1);
   assert.equal(calls.update, 1);
+  assert.equal(calls.remove, 0);
+});
+
+test('submitScore returns LOCK_OCCUPIED when another scorer owns the lock', async () => {
+  const expireAt = Date.now() + 60_000;
+  const { db, calls } = createDbHarness(async () => ({
+    data: {
+      ownerId: 'u_b',
+      ownerName: '球友B',
+      expireAt
+    }
+  }));
+  const { main } = loadSubmitScoreMain(db, { openid: 'u_admin' });
+
+  const result = await main({
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    scoreA: 21,
+    scoreB: 19
+  });
+
+  assert.deepEqual(result, {
+    ok: false,
+    code: 'LOCK_OCCUPIED',
+    message: '当前有人正在录入比分',
+    state: 'occupied',
+    traceId: '',
+    ownerId: 'u_b',
+    ownerName: '球友B',
+    remainingMs: result.remainingMs,
+    expireAt,
+    data: {
+      ownerId: 'u_b',
+      ownerName: '球友B',
+      remainingMs: result.remainingMs,
+      expireAt
+    }
+  });
+  assert.equal(typeof result.remainingMs, 'number');
+  assert.ok(result.remainingMs > 0);
+  assert.equal(calls.tournamentGet, 1);
+  assert.equal(calls.lockGet, 1);
+  assert.equal(calls.update, 0);
   assert.equal(calls.remove, 0);
 });
 
@@ -301,8 +345,9 @@ test('submitScore keeps canceled matches non-editable', async () => {
   });
 
   assert.equal(result.ok, false);
-  assert.equal(result.code, 'MATCH_FINISHED');
-  assert.equal(result.state, 'conflict');
+  assert.equal(result.code, 'MATCH_CANCELED');
+  assert.equal(result.state, 'canceled');
+  assert.equal(result.message, '该场已结束');
   assert.equal(calls.tournamentGet, 1);
   assert.equal(calls.lockGet, 0);
   assert.equal(calls.update, 0);

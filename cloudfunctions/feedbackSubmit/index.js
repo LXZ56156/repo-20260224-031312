@@ -25,7 +25,13 @@ exports.main = async (event) => {
   const category = sanitizeText(event && event.category, 24) || '其他';
   const content = sanitizeText(event && event.content, 500);
   const contact = sanitizeText(event && event.contact, 64);
-  if (content.length < 10) throw new Error('反馈内容至少10字');
+  if (content.length < 10) {
+    return common.failResult('FEEDBACK_CONTENT_TOO_SHORT', '反馈内容至少10字', {
+      traceId,
+      state: 'invalid',
+      ...(clientRequestId ? { clientRequestId } : {})
+    });
+  }
 
   await ensureCollection('feedbacks');
   if (clientRequestId) {
@@ -61,7 +67,11 @@ exports.main = async (event) => {
         createdAtMs: db.command.gte(now - 60 * 1000)
       }).limit(1).get();
       if (Array.isArray(recent.data) && recent.data.length) {
-        throw new Error('提交太频繁，请稍后再试');
+        return common.failResult('FEEDBACK_RATE_LIMITED', '提交太频繁，请稍后再试', {
+          traceId,
+          state: 'invalid',
+          ...(clientRequestId ? { clientRequestId } : {})
+        });
       }
 
       const addRes = await col.add({

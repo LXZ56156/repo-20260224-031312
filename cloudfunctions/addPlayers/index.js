@@ -16,6 +16,11 @@ function normalizeInputPlayers(payloadPlayers, payloadNames) {
   const validUnique = [];
   const duplicateNames = [];
   const invalidNames = [];
+  const normalizedNames = Array.isArray(payloadNames)
+    ? payloadNames
+    : (typeof payloadNames === 'string'
+        ? String(payloadNames || '').split(/[\n,，;；\t ]+/).filter(Boolean)
+        : []);
   const source = Array.isArray(payloadPlayers) && payloadPlayers.length
     ? payloadPlayers.map((item) => {
         if (item && typeof item === 'object') {
@@ -23,7 +28,7 @@ function normalizeInputPlayers(payloadPlayers, payloadNames) {
         }
         return { name: '', gender: 'unknown' };
       })
-    : (payloadNames || []).map((name) => ({ name, gender: 'unknown' }));
+    : normalizedNames.map((name) => ({ name, gender: 'unknown' }));
 
   for (const raw of source) {
     const n = String(raw && raw.name || '').trim();
@@ -58,7 +63,13 @@ exports.main = async (event) => {
   const tournamentId = String((event && event.tournamentId) || '').trim();
   const normalized = normalizeInputPlayers(event && event.players, event && event.names);
   const entries = normalized.validUnique;
-  if (!tournamentId) throw new Error('缺少 tournamentId');
+  if (!tournamentId) {
+    return common.failResult('TOURNAMENT_ID_REQUIRED', '缺少 tournamentId', {
+      traceId,
+      state: 'invalid',
+      ...(clientRequestId ? { clientRequestId } : {})
+    });
+  }
   if (!Array.isArray(entries) || entries.length === 0) {
     if (normalized.invalidNames.length > 0 || normalized.duplicateNames.length > 0) {
       return {
@@ -74,15 +85,50 @@ exports.main = async (event) => {
         invalidNames: normalized.invalidNames
       };
     }
-    throw new Error('缺少 names');
+    return common.failResult('NAMES_REQUIRED', '缺少 names', {
+      traceId,
+      state: 'invalid',
+      ...(clientRequestId ? { clientRequestId } : {})
+    });
   }
 
   try {
     return await db.runTransaction(async (transaction) => {
-      const docRes = await transaction.collection('tournaments').doc(tournamentId).get();
-      const t = common.assertTournamentExists(docRes.data);
-      common.assertCreator(t, OPENID);
-      common.assertDraft(t, '非草稿阶段不可导入');
+      let t = null;
+      try {
+        const docRes = await transaction.collection('tournaments').doc(tournamentId).get();
+        t = docRes && docRes.data ? docRes.data : null;
+      } catch (err) {
+        if (common.isDocNotExists(err)) {
+          return common.failResult('TOURNAMENT_NOT_FOUND', '赛事不存在', {
+            traceId,
+            state: 'not_found',
+            ...(clientRequestId ? { clientRequestId } : {})
+          });
+        }
+        throw err;
+      }
+      if (!t) {
+        return common.failResult('TOURNAMENT_NOT_FOUND', '赛事不存在', {
+          traceId,
+          state: 'not_found',
+          ...(clientRequestId ? { clientRequestId } : {})
+        });
+      }
+      if (String(t.creatorId || '') !== String(OPENID || '')) {
+        return common.failResult('PERMISSION_DENIED', '仅管理员可导入', {
+          traceId,
+          state: 'forbidden',
+          ...(clientRequestId ? { clientRequestId } : {})
+        });
+      }
+      if (String(t.status || '') !== 'draft') {
+        return common.failResult('ADD_PLAYERS_DRAFT_ONLY', '仅草稿阶段可导入', {
+          traceId,
+          state: 'forbidden',
+          ...(clientRequestId ? { clientRequestId } : {})
+        });
+      }
       if (clientRequestId && String(t.lastClientRequestId || '').trim() === clientRequestId) {
         return {
           ok: true,
@@ -146,7 +192,13 @@ exports.main = async (event) => {
       const updRes = await transaction.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({
         data: common.assertNoReservedRootKeys(updateData, ['_id'], '赛事导入名单写入数据')
       });
-      common.assertOptimisticUpdate(updRes, '写入冲突，请重试');
+      if (!updRes || !updRes.stats || Number(updRes.stats.updated || 0) <= 0) {
+        return common.failResult('VERSION_CONFLICT', '写入冲突，请重试', {
+          traceId,
+          state: 'conflict',
+          ...(clientRequestId ? { clientRequestId } : {})
+        });
+      }
       const maleCount = toAdd.filter((p) => p.gender === 'male').length;
       const femaleCount = toAdd.filter((p) => p.gender === 'female').length;
       const unknownCount = toAdd.length - maleCount - femaleCount;
@@ -165,6 +217,20 @@ exports.main = async (event) => {
       };
     });
   } catch (err) {
+    if (common.isDocNotExists(err) || String((err && err.message) || '').includes('赛事不存在')) {
+      return common.failResult('TOURNAMENT_NOT_FOUND', '赛事不存在', {
+        traceId,
+        state: 'not_found',
+        ...(clientRequestId ? { clientRequestId } : {})
+      });
+    }
+    if (common.isConflictError(err)) {
+      return common.failResult('VERSION_CONFLICT', '写入冲突，请重试', {
+        traceId,
+        state: 'conflict',
+        ...(clientRequestId ? { clientRequestId } : {})
+      });
+    }
     throw common.normalizeConflictError(err, '添加失败');
   }
 };

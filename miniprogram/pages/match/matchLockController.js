@@ -9,6 +9,7 @@ function resolveLockResultKind(result = {}) {
   if (code === 'LOCK_ACQUIRED') return 'acquired';
   if (code === 'LOCK_OCCUPIED') return 'occupied';
   if (code === 'MATCH_FINISHED') return 'finished';
+  if (code === 'MATCH_CANCELED') return 'canceled';
   if (code === 'LOCK_FORBIDDEN') return 'forbidden';
   if (code === 'LOCK_EXPIRED') return 'expired';
   if (code === 'LOCK_RELEASED') return 'released';
@@ -173,6 +174,11 @@ function createMatchLockController(ctx, deps = {}) {
       return;
     }
     if (kind === 'finished') {
+      setLockState('finished', result);
+      if (!options.silent) wx.showToast({ title: String(result.message || '该场已结束'), icon: 'none' });
+      return;
+    }
+    if (kind === 'canceled') {
       setLockState('finished', result);
       if (!options.silent) wx.showToast({ title: String(result.message || '该场已结束'), icon: 'none' });
       return;

@@ -53,3 +53,28 @@ test('cloud assertWriteResult throws a normalized error that keeps code state an
     return true;
   });
 });
+
+test('cloud describeWriteError keeps score-entry semantic states on toast ui', () => {
+  const cases = [
+    { code: 'LOCK_OCCUPIED', state: 'occupied', message: '当前有人正在录入比分' },
+    { code: 'LOCK_EXPIRED', state: 'expired', message: '录分会话已过期，请重新开始录分' },
+    { code: 'MATCH_FINISHED', state: 'finished', message: '该场已结束' },
+    { code: 'MATCH_CANCELED', state: 'canceled', message: '该场已结束' }
+  ];
+
+  cases.forEach((item) => {
+    const descriptor = cloud.describeWriteError({
+      err: {
+        ok: false,
+        code: item.code,
+        state: item.state,
+        message: item.message
+      },
+      fallbackMessage: '失败'
+    });
+
+    assert.equal(descriptor.level, item.state);
+    assert.equal(descriptor.ui.type, 'toast');
+    assert.equal(descriptor.ui.title, item.message);
+  });
+});

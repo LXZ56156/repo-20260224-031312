@@ -29,6 +29,9 @@ async function syncCloudProfile() {
   const local = readLocalProfile();
   try {
     const res = await cloud.call('getUserProfile', {});
+    if (res && res.ok === false) {
+      throw cloud.normalizeWriteFailure(res, '读取资料失败');
+    }
     const serverProfile = res && res.profile ? res.profile : null;
     if (!serverProfile) return local;
     const merged = mergeProfile(local, serverProfile);

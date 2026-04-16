@@ -100,7 +100,7 @@ test('createTournament writes normalized tournament document with default creato
   });
 });
 
-test('createTournament rejects empty tournament name', async () => {
+test('createTournament returns structured invalid result for empty tournament name', async () => {
   const db = {
     async createCollection() {},
     serverDate() {
@@ -112,7 +112,15 @@ test('createTournament rejects empty tournament name', async () => {
   };
   const { main } = loadMain(db);
 
-  await assert.rejects(() => main({ name: '   ' }), /赛事名称不能为空/);
+  const result = await main({ name: '   ', __traceId: 'trace-create-invalid' });
+  assert.deepEqual(result, {
+    ok: false,
+    code: 'SETTINGS_INVALID',
+    message: '赛事名称不能为空',
+    state: 'invalid',
+    traceId: 'trace-create-invalid',
+    data: {}
+  });
 });
 
 test('createTournament treats repeated clientRequestId as deduped success', async () => {

@@ -42,7 +42,7 @@ function resolveLockAction(input = {}) {
   }
   if (!input.matchExists) throw new Error('比赛不存在');
   if (matchStatus === 'canceled') {
-    return { response: buildResponse({ ok: false, state: 'finished' }) };
+    return { response: buildResponse({ ok: false, state: 'canceled' }) };
   }
 
   const expireAt = Number(lockDoc && lockDoc.expireAt) || 0;

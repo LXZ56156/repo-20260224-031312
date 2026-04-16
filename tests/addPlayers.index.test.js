@@ -131,7 +131,70 @@ test('addPlayers imports unique valid players and returns detailed counts', asyn
   }
 });
 
-test('addPlayers throws conflict error when optimistic update loses the race', async () => {
+test('addPlayers returns structured invalid result for missing tournamentId', async () => {
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    async runTransaction() {
+      throw new Error('should not start transaction');
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    players: [{ name: '球友A', gender: 'male' }],
+    __traceId: 'trace-add-missing-id'
+  });
+
+  assert.deepEqual(result, {
+    ok: false,
+    code: 'TOURNAMENT_ID_REQUIRED',
+    message: '缺少 tournamentId',
+    state: 'invalid',
+    traceId: 'trace-add-missing-id',
+    data: {}
+  });
+});
+
+test('addPlayers returns structured invalid result for missing names payload', async () => {
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    async runTransaction() {
+      throw new Error('should not start transaction');
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    names: '   ',
+    __traceId: 'trace-add-missing-names'
+  });
+
+  assert.deepEqual(result, {
+    ok: false,
+    code: 'NAMES_REQUIRED',
+    message: '缺少 names',
+    state: 'invalid',
+    traceId: 'trace-add-missing-names',
+    data: {}
+  });
+});
+
+test('addPlayers returns structured conflict result when optimistic update loses the race', async () => {
   const db = {
     command: {
       inc(value) {
@@ -166,10 +229,20 @@ test('addPlayers throws conflict error when optimistic update loses the race', a
   };
   const { main } = loadMain(db);
 
-  await assert.rejects(() => main({
+  const result = await main({
     tournamentId: 't_1',
-    players: [{ name: '球友A', gender: 'male' }]
-  }), /写入冲突/);
+    players: [{ name: '球友A', gender: 'male' }],
+    __traceId: 'trace-add-conflict'
+  });
+
+  assert.deepEqual(result, {
+    ok: false,
+    code: 'VERSION_CONFLICT',
+    message: '写入冲突，请重试',
+    state: 'conflict',
+    traceId: 'trace-add-conflict',
+    data: {}
+  });
 });
 
 test('addPlayers treats repeated clientRequestId as deduped success', async () => {

@@ -96,7 +96,40 @@ test('feedbackSubmit writes sanitized feedback when no recent duplicate exists',
   assert.equal(addPayload.contact, 'wx:test');
 });
 
-test('feedbackSubmit rejects rapid duplicate submission within one minute', async () => {
+test('feedbackSubmit returns structured invalid result for short content', async () => {
+  const db = {
+    command: {
+      gte(value) {
+        return { $gte: value };
+      }
+    },
+    async createCollection() {},
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection() {
+      throw new Error('should not hit collection for invalid payload');
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    category: '其他',
+    content: '太短',
+    __traceId: 'trace-feedback-short'
+  });
+
+  assert.deepEqual(result, {
+    ok: false,
+    code: 'FEEDBACK_CONTENT_TOO_SHORT',
+    message: '反馈内容至少10字',
+    state: 'invalid',
+    traceId: 'trace-feedback-short',
+    data: {}
+  });
+});
+
+test('feedbackSubmit returns structured invalid result for rapid duplicate submission within one minute', async () => {
   const db = {
     command: {
       gte(value) {
@@ -125,10 +158,20 @@ test('feedbackSubmit rejects rapid duplicate submission within one minute', asyn
   };
   const { main } = loadMain(db);
 
-  await assert.rejects(() => main({
+  const result = await main({
     category: '其他',
-    content: '这是一条足够长的反馈内容，用于测试限流逻辑'
-  }), /提交太频繁/);
+    content: '这是一条足够长的反馈内容，用于测试限流逻辑',
+    __traceId: 'trace-feedback-limit'
+  });
+
+  assert.deepEqual(result, {
+    ok: false,
+    code: 'FEEDBACK_RATE_LIMITED',
+    message: '提交太频繁，请稍后再试',
+    state: 'invalid',
+    traceId: 'trace-feedback-limit',
+    data: {}
+  });
 });
 
 test('feedbackSubmit treats repeated clientRequestId as deduped success', async () => {

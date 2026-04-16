@@ -23,7 +23,7 @@ function createCtx() {
   };
 }
 
-test('match lock messaging differentiates occupied finished and forbidden states', () => {
+test('match lock messaging differentiates occupied finished canceled and forbidden states', () => {
   const originalWx = global.wx;
   const toastCalls = [];
   global.wx = {
@@ -48,14 +48,20 @@ test('match lock messaging differentiates occupied finished and forbidden states
     controller.applyScoreLockResult({
       ok: false,
       code: 'LOCK_OCCUPIED',
-      state: 'conflict',
+      state: 'occupied',
       ownerName: '裁判A',
       message: '当前有人正在录入比分'
     });
     controller.applyScoreLockResult({
       ok: false,
       code: 'MATCH_FINISHED',
-      state: 'conflict',
+      state: 'finished',
+      message: '该场已结束'
+    });
+    controller.applyScoreLockResult({
+      ok: false,
+      code: 'MATCH_CANCELED',
+      state: 'canceled',
       message: '该场已结束'
     });
     controller.applyScoreLockResult({
@@ -65,10 +71,11 @@ test('match lock messaging differentiates occupied finished and forbidden states
       message: '仅管理员或参赛成员可录分'
     });
 
-    assert.equal(toastCalls.length, 3);
+    assert.equal(toastCalls.length, 4);
     assert.equal(toastCalls[0].title, '当前由 裁判A 正在录分');
     assert.equal(toastCalls[1].title, '该场已结束');
-    assert.equal(toastCalls[2].title, '仅管理员或参赛成员可录分');
+    assert.equal(toastCalls[2].title, '该场已结束');
+    assert.equal(toastCalls[3].title, '仅管理员或参赛成员可录分');
   } finally {
     global.wx = originalWx;
   }

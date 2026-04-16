@@ -250,7 +250,7 @@ test('scoreLock index strips stored _id before heartbeat writeback', async () =>
   assert.equal(calls.set[0].payload.data.ownerId, 'u_admin');
 });
 
-test('scoreLock index normalizes occupied lock errors to conflict state', async () => {
+test('scoreLock index returns occupied lock errors with occupied state', async () => {
   const expireAt = Date.now() + 30_000;
   const { db, calls } = createDbHarness(async () => ({
     data: {
@@ -270,10 +270,103 @@ test('scoreLock index normalizes occupied lock errors to conflict state', async 
 
   assert.equal(result.ok, false);
   assert.equal(result.code, 'LOCK_OCCUPIED');
-  assert.equal(result.state, 'conflict');
+  assert.equal(result.state, 'occupied');
   assert.equal(result.ownerId, 'u_other');
   assert.equal(result.ownerName, '裁判A');
   assert.equal(result.expireAt, expireAt);
+  assert.equal(calls.set.length, 0);
+  assert.equal(calls.remove.length, 0);
+});
+
+test('scoreLock index returns structured not_found result when tournament is missing', async () => {
+  const { db, calls } = createDbHarness(async () => ({
+    data: {
+      ownerId: 'u_admin',
+      ownerName: '管理员',
+      expireAt: Date.now() + 5_000
+    }
+  }));
+  db.runTransaction = async (handler) => handler({
+    collection(name) {
+      if (name === 'tournaments') {
+        return {
+          doc() {
+            return {
+              async get() {
+                throw new Error('document.get:fail document does not exist');
+              }
+            };
+          }
+        };
+      }
+      if (name === 'score_locks') {
+        return {
+          doc(id) {
+            return {
+              async get() {
+                return { data: { _id: id } };
+              },
+              async set(payload) {
+                calls.set.push({ id, payload });
+              },
+              async remove() {
+                calls.remove.push(id);
+              }
+            };
+          }
+        };
+      }
+      throw new Error(`unexpected collection ${name}`);
+    }
+  });
+  const { main } = loadScoreLockMain(db);
+
+  const result = await main({
+    action: 'status',
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    __traceId: 'trace-lock-missing-tournament'
+  });
+
+  assert.deepEqual(result, {
+    ok: false,
+    code: 'TOURNAMENT_NOT_FOUND',
+    message: '赛事不存在',
+    state: 'not_found',
+    traceId: 'trace-lock-missing-tournament',
+    data: {}
+  });
+});
+
+test('scoreLock index returns structured invalid result when match is missing', async () => {
+  const { db, calls } = createDbHarnessWithTournament(
+    async () => {
+      throw new Error('document.get:fail document does not exist');
+    },
+    () => ({
+      ...buildTournament(),
+      rounds: [{ roundIndex: 0, matches: [] }]
+    })
+  );
+  const { main } = loadScoreLockMain(db);
+
+  const result = await main({
+    action: 'status',
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    __traceId: 'trace-lock-missing-match'
+  });
+
+  assert.deepEqual(result, {
+    ok: false,
+    code: 'MATCH_NOT_FOUND',
+    message: '比赛不存在',
+    state: 'invalid',
+    traceId: 'trace-lock-missing-match',
+    data: {}
+  });
   assert.equal(calls.set.length, 0);
   assert.equal(calls.remove.length, 0);
 });
@@ -331,13 +424,14 @@ test('scoreLock index keeps canceled matches locked out', async () => {
   });
 
   assert.equal(result.ok, false);
-  assert.equal(result.code, 'MATCH_FINISHED');
-  assert.equal(result.state, 'conflict');
+  assert.equal(result.code, 'MATCH_CANCELED');
+  assert.equal(result.state, 'canceled');
+  assert.equal(result.message, '该场已结束');
   assert.equal(calls.set.length, 0);
   assert.equal(calls.remove.length, 0);
 });
 
-test('scoreLock index normalizes expired heartbeat errors to conflict state', async () => {
+test('scoreLock index returns expired heartbeat errors with expired state', async () => {
   const { db } = createDbHarness(async () => ({
     data: {
       ownerId: 'u_admin',
@@ -356,5 +450,5 @@ test('scoreLock index normalizes expired heartbeat errors to conflict state', as
 
   assert.equal(result.ok, false);
   assert.equal(result.code, 'LOCK_EXPIRED');
-  assert.equal(result.state, 'conflict');
+  assert.equal(result.state, 'expired');
 });

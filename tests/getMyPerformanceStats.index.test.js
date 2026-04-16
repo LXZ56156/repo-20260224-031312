@@ -100,3 +100,62 @@ test('getMyPerformanceStats aggregates finished participated tournaments from in
   assert.equal(result.pointDiff, 3);
   assert.match(String(result.updatedAt || ''), /^20/);
 });
+
+test('getMyPerformanceStats returns truncated signal when query hits 4000 cap', async () => {
+  const fastRows = Array.from({ length: 4000 }, (_, index) => ({
+    _id: `t_fast_${index}`,
+    status: 'finished',
+    playerIds: ['u_stat'],
+    rounds: [],
+    updatedAt: '2026-03-12T10:10:00.000Z'
+  }));
+  const db = {
+    command: {
+      in(value) {
+        return { $in: value };
+      },
+      exists(value) {
+        return { $exists: value };
+      }
+    },
+    collection(name) {
+      assert.equal(name, 'tournaments');
+      return {
+        where(query) {
+          return {
+            field() {
+              return this;
+            },
+            skip(skipValue) {
+              this._skip = skipValue;
+              return this;
+            },
+            limit(limitValue) {
+              this._limit = limitValue;
+              return this;
+            },
+            async get() {
+              if (query.playerIds && query.playerIds.$in) {
+                if (this._limit === 1 && this._skip === 4000) {
+                  return { data: [{ _id: 't_fast_probe' }] };
+                }
+                return {
+                  data: fastRows.slice(this._skip || 0, (this._skip || 0) + (this._limit || 0))
+                };
+              }
+              return { data: [] };
+            }
+          };
+        }
+      };
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({ window: 'all' });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.queryCap, 4000);
+  assert.equal(result.truncated, true);
+  assert.equal(result.tournamentsCompleted, 4000);
+});

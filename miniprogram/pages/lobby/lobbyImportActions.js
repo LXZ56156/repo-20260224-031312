@@ -70,11 +70,11 @@ module.exports = {
     return actionGuard.runCriticalWrite(actionKey, async () => {
       wx.showLoading({ title: '导入中...' });
       try {
-        const res = await cloud.call('addPlayers', {
+        const res = cloud.assertWriteResult(await cloud.call('addPlayers', {
           tournamentId: this.data.tournamentId,
           players,
           clientRequestId
-        });
+        }), '导入失败');
         wx.hideLoading();
         this.clearLastFailedAction();
         await this.fetchTournament(this.data.tournamentId);

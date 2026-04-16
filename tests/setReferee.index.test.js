@@ -103,7 +103,34 @@ test('setReferee persists tournament referee with optimistic lock', async () => 
   assert.equal(writtenData.refereeId, 'p_ref');
 });
 
-test('setReferee rejects referee ids that are not current participants', async () => {
+test('setReferee returns structured invalid result for missing tournamentId', async () => {
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    async runTransaction() {
+      throw new Error('should not start transaction');
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({ refereeId: 'p_ref', __traceId: 'trace-ref-missing-id' });
+  assert.deepEqual(result, {
+    ok: false,
+    code: 'TOURNAMENT_ID_REQUIRED',
+    message: '缺少 tournamentId',
+    state: 'invalid',
+    traceId: 'trace-ref-missing-id',
+    data: {}
+  });
+});
+
+test('setReferee returns structured invalid result when referee is not a current participant', async () => {
   const db = {
     command: {
       inc(value) {
@@ -138,8 +165,18 @@ test('setReferee rejects referee ids that are not current participants', async (
   };
   const { main } = loadMain(db);
 
-  await assert.rejects(() => main({
+  const result = await main({
     tournamentId: 't_1',
-    refereeId: 'p_unknown'
-  }), /裁判必须是当前参赛成员/);
+    refereeId: 'p_unknown',
+    __traceId: 'trace-ref-invalid'
+  });
+
+  assert.deepEqual(result, {
+    ok: false,
+    code: 'REFEREE_INVALID',
+    message: '裁判必须是当前参赛成员',
+    state: 'invalid',
+    traceId: 'trace-ref-invalid',
+    data: {}
+  });
 });

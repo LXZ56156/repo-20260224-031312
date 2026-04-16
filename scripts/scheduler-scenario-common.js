@@ -968,7 +968,8 @@ function runScenario(scenario) {
   const fairness = out.fairness || {};
   const playerStats = out.playerStats || {};
   const playCounts = computePlayCounts(matches, ids);
-  const logicalRounds = scenario.logicalRounds || Math.ceil((scenario.totalMatches || 0) / Math.max(1, scenario.courts || 1));
+  const effectiveCourts = Math.max(1, Number(meta.effectiveCourts) || Number(scenario.courts) || 1);
+  const logicalRounds = scenario.logicalRounds || Math.ceil((scenario.totalMatches || 0) / effectiveCourts);
   const pairMetrics = collectPairMetrics(matches);
   const restMetrics = computeRestMetrics(
     ids,
@@ -989,7 +990,7 @@ function runScenario(scenario) {
     ? computeSquadGlobalPlaySpreadBaseline(
       scenario.squadAPlayers,
       scenario.squadBPlayers,
-      scenario.courts,
+      effectiveCourts,
       logicalRounds
     )
     : 0;
@@ -1055,7 +1056,7 @@ function runScenario(scenario) {
     fallbackReason: String(meta.fallbackReason || ''),
     fairnessVersion: String(meta.fairnessVersion || ''),
     searchElapsedMs: Number(meta.searchElapsedMs),
-    effectiveCourts: Number(meta.effectiveCourts) || scenario.courts,
+    effectiveCourts,
     templateKey: String(meta.templateKey || '')
   };
 }

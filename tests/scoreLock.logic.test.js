@@ -91,7 +91,7 @@ test('finished match can be locked again while canceled and forbidden callers ar
   assert.equal(finished.nextLockDoc.ownerId, 'u1');
 
   const canceled = logic.resolveLockAction(baseInput({ action: 'acquire', matchStatus: 'canceled' }));
-  assert.equal(canceled.response.state, 'finished');
+  assert.equal(canceled.response.state, 'canceled');
 
   const forbidden = logic.resolveLockAction(baseInput({ action: 'acquire', canUseLock: false }));
   assert.equal(forbidden.response.state, 'forbidden');

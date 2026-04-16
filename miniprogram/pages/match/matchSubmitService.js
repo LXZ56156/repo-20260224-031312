@@ -261,6 +261,15 @@ function createMatchSubmitService(ctx, deps = {}) {
       }
       return true;
     }
+    if (code === 'MATCH_CANCELED') {
+      ctx.lockController.setLockState('finished', res);
+      if (ctx.data.batchMode) {
+        scheduleNavigation(() => jumpAfterBatch('该场已录完，已跳到下一场'), 160);
+      } else {
+        refreshTournamentDoc();
+      }
+      return true;
+    }
     if (code === 'PERMISSION_DENIED') {
       ctx.lockController.setLockState('forbidden', res);
       wx.showToast({ title: String(res.message || '无权限录分'), icon: 'none' });

@@ -6,6 +6,8 @@
 ## Status: completed
 
 ## Last Completed
+- 2026-04-16 Codex: 完成后端审计最后一项 `scoreLock` / `submitScore` 状态语义收口。`scoreLock` 逻辑层不再把 `canceled` 折叠成 `finished`；云端返回已拆分为 `occupied` / `expired` / `finished` / `canceled`，并新增 `MATCH_CANCELED` code；`submitScore` 失败 state 与 score-entry 语义对齐，不再把 `LOCK_OCCUPIED` / `LOCK_EXPIRED` / `MATCH_FINISHED` 折叠成 `conflict`。客户端 `miniprogram/core/cloud.js` 新增 score-entry 细粒度分类，`describeWriteError()` 对这些状态统一走 toast，不再误入 conflict modal；match 页消费侧已吸收 `MATCH_CANCELED`，页面内部 `lockState` 仍保持现状。验证结果：score-entry 聚焦回归 `43 pass / 0 fail`，`node --test tests/*.test.js` => `793 pass / 0 fail`，`npm run check` 通过。
+- 2026-04-16 Codex: 完成后端审计中优先级 contract 收口，并顺手清掉两个低风险尾项。`createTournament` / `feedbackSubmit` / `cloneTournament` / `saveUserProfile` / `addPlayers` / `setReferee` / `scoreLock` 的预期内失败统一改为结构化 `failResult()`；`create` / `feedback` / `lobby quick import` 前端入口改为 `cloud.assertWriteResult(await cloud.call(...))`，不再把 `ok:false` 当成功；`getUserProfile` 仅对 “collection not exists” 降级，其余数据库异常返回 `PROFILE_LOAD_FAILED`，`syncCloudProfile()` 遇到结构化失败会保留本地资料；`miniprogram/core/cloud.js` 新增 `not_found` 分类并把 `TOURNAMENT_NOT_FOUND` 从 `param` 中剥离；`scripts/scheduler-scenario-common.js` 改按 `effectiveCourts` 推导 `totalRounds/rest`；`getMyPerformanceStats` 新增 `truncated` / `queryCap`。补齐云函数 contract、客户端消费、错误分类、审计口径和截断信号回归。验证结果：聚焦回归 `87 pass / 0 fail`，`node --test tests/*.test.js` => `790 pass / 0 fail`，`npm run check` 通过。
 - 2026-04-16 Codex: 完成后端高优先级 contract 修复并补齐交接。引入共享 `client_request_logs` 幂等日志与事务兼容 helper，`createTournament` / `feedbackSubmit` / `cloneTournament` / `saveUserProfile` / `startTournament` 全部改为事务内先查请求日志、成功后写日志；`startTournament` 不再依赖通用 `lastClientRequestId` 做 dedupe，只有赛事确实 `running` 且已物化 `rounds` 时才返回 `deduped`。同时把排阵链路的 roster contract 统一到 canonical `player.id`：模板源 `scripts/player-common.template.js` / `scripts/schedule-common.template.js` / `scripts/fixed-pair-common.template.js` 新增 `normalizeRosterPlayers()` 并同步到 `cloudfunctions/*/lib/*`，`validateBeforeGenerate`、`generateSchedule`、`buildSquadSchedule`、`buildFixedPairSchedule`、`idToPlayerMap` 均已切换。新增跨动作 requestId 污染回归、create/update 并发幂等、`playerId/_id` roster contract 测试。验证结果：`bash scripts/check-cloud-common.sh` 通过，`node --test tests/*.test.js` => `771 pass / 0 fail`，`npm run check` 通过。
 - 2026-04-16 Codex: 完成后端全面审查并新增 `docs/backend-audit-2026-04-16.md`。报告确认 3 个高风险问题：`startTournament` 会被其他动作写入的 `lastClientRequestId` 误触发 dedupe、排阵链路对 `playerId/_id` 与 `player.id` 的 contract 不一致、`createTournament/feedbackSubmit/cloneTournament/saveUserProfile` 的 `clientRequestId` 幂等是先查再写且非原子。额外记录了结构化错误返回不一致、`getUserProfile` 吞掉数据库异常、前端将 `not_found` 降级为 `param`、审计脚本忽略 `effectiveCourts` 等问题。验证结果：`bash scripts/check-cloud-common.sh`、`npm run check` 通过；`node --test tests/*.test.js` 首跑 `763 pass / 1 fail`（`tests/rotation.performance.test.js` 超时），单独复跑该文件 `14 pass / 0 fail`。
 - 2026-04-15 Codex: 完成 `multi_rotate` 模板短前缀的 rounds 顺序后处理优化。`cloudfunctions/startTournament/rotation.js` 新增仅对短前缀模板结果生效的 round reorder post-process：保持对阵集合完全不变，仅在 `targetMatches<=12` 且重排后能同时改善 `maxConsecutivePlay / maxRestStreak` 时接收新顺序。代表性 `rotation 6p/12m/1c` 已从 `maxConsecutivePlay=4 / maxRestStreak=2` 降到 `3 / 1`，且 `uniqueExactMatchupCount=12`、`partnerRepeats=9`、`opponentRepeats=33` 不变；`6p-1c@18` 等 coverage-first 默认档保持原口径不变。`node --test tests/*.test.js`、`npm run check`、`node scripts/audit-scheduler-scenarios.js`、`node scripts/generate-scheduler-full-audit.js` 全部通过，报告已刷新为 `warnings=0 / failures=0`。
@@ -23,21 +25,24 @@
 - 无。
 
 ## What Changed (未提交)
-- 共享模板源：`scripts/cloud-common.template.js` 新增 `client_request_logs` helper（确定性 log id、事务兼容封装、log 读写/回读）；`scripts/player-common.template.js`、`scripts/schedule-common.template.js`、`scripts/fixed-pair-common.template.js` 新增 canonical roster 归一化并统一用 `extractPlayerId()` 识别成员。
-- 云函数同步产物：已执行 `bash scripts/sync-cloud-common.sh`，所有 `cloudfunctions/*/lib/common.js` / `player.js` / `schedule.js` / `fixed-pair.js` 已从模板同步到最新。
-- 高优先级写链路：`cloudfunctions/createTournament/index.js`、`feedbackSubmit/index.js`、`cloneTournament/index.js`、`saveUserProfile/index.js`、`startTournament/index.js` 已切到事务内 request-log 幂等；`startTournament` 现在只认 `scope=start_tournament` 的请求日志，并要求赛事已经 `running` 且 `rounds` 已物化后才返回 `deduped`。
-- 排阵 contract：`cloudfunctions/startTournament/logic.js`、`rotation.js`、`scheduleModes.js`、`index.js` 已统一 canonical `player.id` 语义，`playerId/_id` roster 不会再在校验通过后于排阵阶段崩溃。
-- 回归测试：更新 `tests/createTournament.index.test.js`、`feedbackSubmit.index.test.js`、`cloneTournament.index.test.js`、`saveUserProfile.index.test.js`、`startTournament.index.test.js`，新增 `tests/startTournament.roster-contract.test.js`；覆盖跨动作 requestId 污染、串行 dedupe、create/update 并发幂等、`playerId/_id` roster contract。
+- `cloudfunctions/scoreLock/logic.js`、`scoreLock/index.js`、`submitScore/index.js` 已拆分 `occupied` / `expired` / `finished` / `canceled` 失败语义；新增 `MATCH_CANCELED`，并保持 `VERSION_CONFLICT` 继续使用 `state: 'conflict'`。
+- `miniprogram/core/cloud.js` 已新增 score-entry 细粒度解析与分类，`occupied` / `expired` / `finished` / `canceled` 在 release 下仍保留结构化 message，且不会触发通用 conflict modal。
+- `miniprogram/pages/match/matchLockController.js`、`matchSubmitService.js` 已吸收 `MATCH_CANCELED`；页面内部仍维持现有 `lockState` 模型，不新增 `canceled` 页面态。
+- 回归测试：更新 `tests/scoreLock.logic.test.js`、`scoreLock.index.test.js`、`submitScore.index.test.js`、`match.lock-state-messaging.test.js`、`match.submit-recover.test.js`、`cloud.error-matrix.test.js`、`cloud.classify-error-edge.test.js`。
+- 云函数失败契约：`cloudfunctions/createTournament/index.js`、`feedbackSubmit/index.js`、`cloneTournament/index.js`、`saveUserProfile/index.js`、`addPlayers/index.js`、`setReferee/index.js`、`scoreLock/index.js` 已统一结构化失败返回；其中 `TOURNAMENT_NOT_FOUND` 使用 `state: 'not_found'`，`MATCH_NOT_FOUND` 维持 `state: 'invalid'`。
+- 读链路与前端消费：`cloudfunctions/getUserProfile/index.js` 不再吞真实数据库异常；`miniprogram/core/profile.js` 会把 `getUserProfile` 的 `ok:false` 当失败处理并回退到本地资料；`miniprogram/pages/create/index.js`、`feedback/index.js`、`lobby/lobbyImportActions.js` 已改为显式 `assertWriteResult()`。
+- 错误分类与低风险尾项：`miniprogram/core/cloud.js` 新增 `not_found` 分类；`scripts/scheduler-scenario-common.js` 已按 `effectiveCourts` 推导审计口径；`cloudfunctions/getMyPerformanceStats/index.js` 返回新增 `truncated` 与 `queryCap`。
+- 回归测试：更新 `tests/createTournament.index.test.js`、`feedbackSubmit.index.test.js`、`addPlayers.index.test.js`、`setReferee.index.test.js`、`cloneTournament.index.test.js`、`saveUserProfile.index.test.js`、`scoreLock.index.test.js`、`getUserProfile.index.test.js`、`cloud.error-matrix.test.js`、`getMyPerformanceStats.index.test.js`、`scheduler.scenarios.test.js`、`profile.test.js`，并新增 `tests/cloud.write-result-consumers.test.js`。
 
 ## Next Steps
-- 中优先级后端 contract 仍待收口：结构化失败返回统一、`getUserProfile` 真实数据库故障透传、前端 `not_found` 分类纠正。
-- 低优先级与审计项仍待处理：`scoreLock` 的 `finished/expired/occupied/canceled` state 语义整理、`scripts/scheduler-scenario-common.js` 改按 `effectiveCourts` 推导 `logicalRounds/rest`。
-- 附加风险仍未处理：`getMyPerformanceStats` 4k 查询上限没有 `truncated` 信号。
+- 后端审计项已收口完成；如要继续迭代，可单独评估是否把 `MATCH_NOT_FOUND` 从 `invalid` 升级为独立客户端分类，以及是否为“已取消比赛”引入独立用户可见文案。
 
 ## Blockers
 - 无。
 
 ## Verified Subset Output
-- 全量测试：`node --test tests/*.test.js` => `771 pass / 0 fail`
+- score-entry 聚焦回归：`node --test tests/scoreLock.logic.test.js tests/scoreLock.index.test.js tests/submitScore.index.test.js tests/match.lock-state-messaging.test.js tests/match.submit-recover.test.js tests/cloud.error-matrix.test.js tests/cloud.classify-error-edge.test.js` => `43 pass / 0 fail`
+- 聚焦回归：`node --test tests/createTournament.index.test.js tests/feedbackSubmit.index.test.js tests/addPlayers.index.test.js tests/setReferee.index.test.js tests/cloneTournament.index.test.js tests/saveUserProfile.index.test.js tests/scoreLock.index.test.js tests/getUserProfile.index.test.js tests/profile.test.js tests/cloud.error-matrix.test.js tests/getMyPerformanceStats.index.test.js tests/scheduler.scenarios.test.js tests/cloud.write-result-consumers.test.js` => `87 pass / 0 fail`
+- 全量测试：`node --test tests/*.test.js` => `793 pass / 0 fail`
 - 静态检查：`npm run check` => pass
 - shared-common 校验：`bash scripts/check-cloud-common.sh` => pass

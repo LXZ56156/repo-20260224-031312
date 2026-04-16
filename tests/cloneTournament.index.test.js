@@ -37,7 +37,7 @@ function loadMain(db, stubs = {}) {
       return db;
     },
     getWXContext() {
-      return { OPENID: 'u_creator' };
+      return { OPENID: stubs.openid || 'u_creator' };
     },
     DYNAMIC_CURRENT_ENV: 'test-env'
   };
@@ -121,6 +121,99 @@ test('cloneTournament index creates a new draft copy with remapped pair teams', 
   } finally {
     Date.now = originalNow;
   }
+});
+
+test('cloneTournament index returns structured invalid result for missing sourceTournamentId', async () => {
+  const db = {
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection() {
+      throw new Error('should not access db');
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({ __traceId: 'trace-clone-missing-id' });
+  assert.deepEqual(result, {
+    ok: false,
+    code: 'SOURCE_TOURNAMENT_ID_REQUIRED',
+    message: '缺少 sourceTournamentId',
+    state: 'invalid',
+    traceId: 'trace-clone-missing-id',
+    data: {}
+  });
+});
+
+test('cloneTournament index returns structured not_found result when source tournament is missing', async () => {
+  const db = {
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      assert.equal(name, 'tournaments');
+      return {
+        doc(id) {
+          assert.equal(id, 't_missing');
+          return {
+            async get() {
+              throw new Error('document.get:fail document does not exist');
+            }
+          };
+        }
+      };
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    sourceTournamentId: 't_missing',
+    __traceId: 'trace-clone-missing-source'
+  });
+
+  assert.deepEqual(result, {
+    ok: false,
+    code: 'TOURNAMENT_NOT_FOUND',
+    message: '赛事不存在',
+    state: 'not_found',
+    traceId: 'trace-clone-missing-source',
+    data: {}
+  });
+});
+
+test('cloneTournament index returns structured forbidden result for non creator', async () => {
+  const db = {
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      assert.equal(name, 'tournaments');
+      return {
+        doc() {
+          return {
+            async get() {
+              return { data: buildSourceTournament() };
+            }
+          };
+        }
+      };
+    }
+  };
+  const { main } = loadMain(db, { openid: 'u_other' });
+
+  const result = await main({
+    sourceTournamentId: 't_source',
+    __traceId: 'trace-clone-forbidden'
+  });
+
+  assert.deepEqual(result, {
+    ok: false,
+    code: 'PERMISSION_DENIED',
+    message: '仅创建者可复制自己的赛事',
+    state: 'forbidden',
+    traceId: 'trace-clone-forbidden',
+    data: {}
+  });
 });
 
 test('cloneTournament treats repeated clientRequestId as deduped success', async () => {

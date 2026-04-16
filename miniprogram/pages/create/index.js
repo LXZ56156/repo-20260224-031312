@@ -77,14 +77,14 @@ Page({
 
       wx.showLoading({ title: '创建中...' });
       try {
-        const res = await cloud.call('createTournament', {
+        const res = cloud.assertWriteResult(await cloud.call('createTournament', {
           name,
           nickname: storage.getProfileNickName(profile),
           avatar: String(profile.avatar || profile.avatarUrl || '').trim(),
           mode: this.data.mode,
           creatorGender: storage.normalizeGender(profile.gender),
           clientRequestId
-        });
+        }), '创建失败');
         wx.hideLoading();
         this.clearLastFailedAction();
         wx.redirectTo({

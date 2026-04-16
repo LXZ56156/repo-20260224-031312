@@ -13,7 +13,10 @@ async function listByWhere(where) {
   const col = db.collection('tournaments');
   const all = [];
   let skip = 0;
-  while (skip <= QUERY_CAP) {
+  let truncated = false;
+  while (all.length < QUERY_CAP) {
+    const remaining = QUERY_CAP - all.length;
+    const pageSize = Math.min(PAGE_SIZE, remaining);
     const res = await col
       .where(where)
       .field({
@@ -26,14 +29,24 @@ async function listByWhere(where) {
         updatedAt: true
       })
       .skip(skip)
-      .limit(PAGE_SIZE)
+      .limit(pageSize)
       .get();
     const data = Array.isArray(res && res.data) ? res.data : [];
     all.push(...data);
-    if (data.length < PAGE_SIZE) break;
+    if (data.length < pageSize) break;
     skip += data.length;
+    if (all.length >= QUERY_CAP) {
+      const probe = await col
+        .where(where)
+        .field({ _id: true })
+        .skip(skip)
+        .limit(1)
+        .get();
+      truncated = Array.isArray(probe && probe.data) && probe.data.length > 0;
+      break;
+    }
   }
-  return all;
+  return { rows: all, truncated };
 }
 
 function dedupeById(list) {
@@ -54,35 +67,44 @@ exports.main = async (event) => {
   let fastRows = [];
   let legacyRows = [];
   let fallbackRows = [];
+  let truncated = false;
   let needFullFallback = false;
 
   try {
-    fastRows = await listByWhere({
+    const fastResult = await listByWhere({
       status: 'finished',
       playerIds: _.in([OPENID])
     });
+    fastRows = fastResult.rows;
+    truncated = truncated || fastResult.truncated;
   } catch (_) {
     needFullFallback = true;
   }
 
   try {
-    legacyRows = await listByWhere({
+    const legacyResult = await listByWhere({
       status: 'finished',
       playerIds: _.exists(false)
     });
+    legacyRows = legacyResult.rows;
+    truncated = truncated || legacyResult.truncated;
   } catch (_) {
     // exists 查询在极个别环境可能不可用，回退到全量 finished 扫描
     needFullFallback = true;
   }
 
   if (needFullFallback) {
-    fallbackRows = await listByWhere({ status: 'finished' });
+    const fallbackResult = await listByWhere({ status: 'finished' });
+    fallbackRows = fallbackResult.rows;
+    truncated = truncated || fallbackResult.truncated;
   }
 
   const source = dedupeById(fastRows.concat(legacyRows, fallbackRows));
   const result = logic.computeMyPerformanceStats(source, OPENID, window, Date.now());
   return common.okResult('PERFORMANCE_STATS_READY', '已获取战绩统计', {
     state: 'updated',
+    truncated,
+    queryCap: QUERY_CAP,
     ...result,
     updatedAt: new Date().toISOString()
   });

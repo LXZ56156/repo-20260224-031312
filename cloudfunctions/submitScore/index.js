@@ -94,7 +94,7 @@ exports.main = async (event) => {
       });
     }
     if (String(match.status || '') === 'canceled') {
-      return createCodeResult('MATCH_FINISHED', '该场已结束', { traceId });
+      return createCodeResult('MATCH_CANCELED', '该场已结束', { traceId });
     }
 
     const lockId = buildLockId(tournamentId, roundIndex, matchIndex);
@@ -167,12 +167,23 @@ exports.main = async (event) => {
 function resolveFailureState(code, fallbackState = '') {
   const normalized = String(code || '').trim().toUpperCase();
   const fallback = String(fallbackState || '').trim().toLowerCase();
-  if (fallback === 'conflict' || fallback === 'forbidden' || fallback === 'invalid' || fallback === 'not_found' || fallback === 'deduped') {
+  if (
+    fallback === 'conflict' ||
+    fallback === 'forbidden' ||
+    fallback === 'invalid' ||
+    fallback === 'not_found' ||
+    fallback === 'deduped' ||
+    fallback === 'occupied' ||
+    fallback === 'expired' ||
+    fallback === 'finished' ||
+    fallback === 'canceled'
+  ) {
     return fallback;
   }
-  if (normalized === 'LOCK_OCCUPIED') return 'conflict';
-  if (normalized === 'LOCK_EXPIRED') return 'conflict';
-  if (normalized === 'MATCH_FINISHED') return 'conflict';
+  if (normalized === 'LOCK_OCCUPIED') return 'occupied';
+  if (normalized === 'LOCK_EXPIRED') return 'expired';
+  if (normalized === 'MATCH_FINISHED') return 'finished';
+  if (normalized === 'MATCH_CANCELED') return 'canceled';
   if (normalized === 'PERMISSION_DENIED') return 'forbidden';
   if (normalized === 'MATCH_NOT_FOUND') return 'invalid';
   if (normalized === 'TOURNAMENT_ID_REQUIRED') return 'invalid';

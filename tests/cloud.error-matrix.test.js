@@ -27,11 +27,32 @@ test('cloud classifies major structured error states consistently', () => {
       flag: 'isTimeout'
     },
     {
+      name: 'occupied',
+      input: { ok: false, code: 'LOCK_OCCUPIED', message: '当前有人正在录入比分', state: 'occupied' },
+      level: 'occupied',
+      userMessage: '当前有人正在录入比分',
+      flag: 'isOccupied'
+    },
+    {
+      name: 'expired',
+      input: { ok: false, code: 'LOCK_EXPIRED', message: '录分会话已过期，请重新开始录分', state: 'expired' },
+      level: 'expired',
+      userMessage: '录分会话已过期，请重新开始录分',
+      flag: 'isExpired'
+    },
+    {
       name: 'finished',
       input: { ok: false, code: 'MATCH_FINISHED', message: '该场已结束', state: 'finished' },
       level: 'finished',
       userMessage: '该场已结束',
       flag: 'isFinished'
+    },
+    {
+      name: 'canceled',
+      input: { ok: false, code: 'MATCH_CANCELED', message: '该场已结束', state: 'canceled' },
+      level: 'canceled',
+      userMessage: '该场已结束',
+      flag: 'isCanceled'
     },
     {
       name: 'deduped',
@@ -46,6 +67,13 @@ test('cloud classifies major structured error states consistently', () => {
       level: 'permission',
       userMessage: '仅管理员可操作',
       flag: 'isPermission'
+    },
+    {
+      name: 'not_found',
+      input: { ok: false, code: 'TOURNAMENT_NOT_FOUND', message: '赛事不存在', state: 'not_found' },
+      level: 'not_found',
+      userMessage: '赛事不存在',
+      flag: 'isNotFound'
     },
     {
       name: 'param',
@@ -77,7 +105,7 @@ test('cloud classifies all registered PERMISSION_CODES as permission', () => {
 
 test('cloud classifies all registered PARAM_CODES as param', () => {
   const paramCodes = [
-    'ACTION_REQUIRED', 'TOURNAMENT_ID_REQUIRED', 'TOURNAMENT_NOT_FOUND',
+    'ACTION_REQUIRED', 'TOURNAMENT_ID_REQUIRED',
     'PROFILE_MINIMUM_REQUIRED', 'SCORE_OUT_OF_RANGE', 'SETTINGS_REQUIRED',
     'SETTINGS_INVALID', 'START_VALIDATION_FAILED', 'START_PAIR_TEAMS_INVALID'
   ];
@@ -87,6 +115,21 @@ test('cloud classifies all registered PARAM_CODES as param', () => {
     assert.equal(parsed.isParam, true, `${code} should be isParam`);
     assert.equal(cloud.classifyCloudError(parsed), 'param', `${code} should classify as param`);
   });
+});
+
+test('cloud classifies TOURNAMENT_NOT_FOUND as not_found instead of param', () => {
+  const normalized = cloud.normalizeCloudResult({
+    ok: false,
+    code: 'TOURNAMENT_NOT_FOUND',
+    message: '赛事不存在',
+    state: 'not_found'
+  }, 'missingTournament');
+  const parsed = cloud.parseCloudError(normalized, '失败');
+
+  assert.equal(parsed.isNotFound, true);
+  assert.equal(parsed.isParam, false);
+  assert.equal(cloud.classifyCloudError(parsed), 'not_found');
+  assert.equal(cloud.getUnifiedErrorMessage(normalized, '失败'), '赛事不存在');
 });
 
 test('cloud classifies all registered DEDUPED_CODES as deduped', () => {

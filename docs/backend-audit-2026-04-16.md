@@ -21,13 +21,19 @@
 - 已修复高优先级 1：`startTournament` 不再使用通用 `lastClientRequestId` 做 dedupe，改为只认 `client_request_logs` 中 `scope=start_tournament` 的成功记录；返回 `deduped` 前还会再次确认赛事已 `running` 且 `rounds` 已物化。
 - 已修复高优先级 2：排阵链路已统一 canonical roster 语义，`playerId/_id` 会在入口归一化为 `player.id`；`validateBeforeGenerate()`、`generateSchedule()`、`buildSquadSchedule()`、`buildFixedPairSchedule()`、`idToPlayerMap()` 已切到同一套 contract。
 - 已修复高优先级 3：`createTournament`、`feedbackSubmit`、`cloneTournament`、`saveUserProfile`、`startTournament` 已切到事务内请求日志幂等，不再使用“先查再写”的非原子模式；共享 helper 已下沉到 `scripts/cloud-common.template.js` 并同步到 `cloudfunctions/*/lib/common.js`。
+- 已修复中优先级 4：`createTournament`、`feedbackSubmit`、`cloneTournament`、`saveUserProfile`、`addPlayers`、`setReferee`、`scoreLock` 的预期内失败已统一到结构化 `failResult()`；`scoreLock` 已补 `TOURNAMENT_NOT_FOUND` / `MATCH_NOT_FOUND` 契约。
+- 已修复中优先级 5：`getUserProfile` 仅在 “collection not exists” 时降级返回 `PROFILE_READY + profile:null`；其余数据库异常改为结构化 `PROFILE_LOAD_FAILED`。前端 `syncCloudProfile()` 遇到 `ok:false` 会保留本地资料，不再把真实故障当成“云端没资料”。
+- 已修复中优先级 6：`miniprogram/core/cloud.js` 已新增 `not_found` 分类，`TOURNAMENT_NOT_FOUND` 不再被降级为 `param`；`getUnifiedErrorMessage()` 在 release 环境下也会保留结构化 `not_found` / `invalid` 文案。
+- 已修复低优先级 7：`scoreLock` / `submitScore` 不再把 `occupied` / `expired` / `finished` / `canceled` 折叠成 `state: 'conflict'`；`scoreLock` 已新增 `MATCH_CANCELED` 并保留现有用户可见文案，客户端 `cloud.js` 也已将这些 score-entry 状态从通用 conflict modal 中拆出。
+- 已修复低优先级 8：`scripts/scheduler-scenario-common.js` 已改按 `schedulerMeta.effectiveCourts` 推导 `logicalRounds`、`restMetrics`、`globalPlaySpreadBaseline`。
+- 已修复附加风险：`getMyPerformanceStats` 返回已新增 `truncated` 与 `queryCap=4000`，超过查询上限时会显式给出截断信号。
 - 已补齐对应测试缺口：新增跨动作 `clientRequestId` 污染回归、create/update 并发幂等测试、`playerId/_id` roster contract 测试，并将原串行 dedupe 用例改成 request-log 模型。
-- 当前仍待处理：问题 4/5/6/7/8 与 `getMyPerformanceStats` 4k 截断风险，本轮未动前端 `not_found` 分类和 `scoreLock` 用户可见语义。
+- 当前仍待处理：无。审计报告列出的 8 个问题与 1 个附加风险均已在当前工作区收口；若后续继续打磨，只剩可选增强项（如 `MATCH_NOT_FOUND` 独立分类、“已取消”专用文案）。
 
 ### 当前工作区验证
 
 - `bash scripts/check-cloud-common.sh`：通过
-- `node --test tests/*.test.js`：`771 pass / 0 fail`
+- `node --test tests/*.test.js`：`793 pass / 0 fail`
 - `npm run check`：通过
 
 ## 主要发现

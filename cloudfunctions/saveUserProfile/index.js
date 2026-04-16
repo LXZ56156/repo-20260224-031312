@@ -147,8 +147,20 @@ exports.main = async (event) => {
   const nickname = String(event && event.nickname || '').trim();
   const avatar = String(event && event.avatar || '').trim();
   const gender = normalizeGender(event && event.gender);
-  if (!nickname) throw new Error('昵称不能为空');
-  if (gender === 'unknown') throw new Error('性别不能为空');
+  if (!nickname) {
+    return common.failResult('PROFILE_NICKNAME_REQUIRED', '昵称不能为空', {
+      traceId,
+      state: 'invalid',
+      ...(clientRequestId ? { clientRequestId } : {})
+    });
+  }
+  if (gender === 'unknown') {
+    return common.failResult('PROFILE_GENDER_REQUIRED', '性别不能为空', {
+      traceId,
+      state: 'invalid',
+      ...(clientRequestId ? { clientRequestId } : {})
+    });
+  }
 
   await ensureCollection('user_profiles');
   if (clientRequestId) {

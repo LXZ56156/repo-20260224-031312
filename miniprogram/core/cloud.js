@@ -4,11 +4,13 @@ const envConfig = require('../config/env');
 const CONFLICT_CODES = new Set(['VERSION_CONFLICT']);
 const NETWORK_CODES = new Set(['NETWORK_ERROR']);
 const TIMEOUT_CODES = new Set(['TIMEOUT', 'REQUEST_TIMEOUT']);
+const NOT_FOUND_CODES = new Set(['TOURNAMENT_NOT_FOUND']);
+const OCCUPIED_CODES = new Set(['LOCK_OCCUPIED']);
+const EXPIRED_CODES = new Set(['LOCK_EXPIRED']);
 const PERMISSION_CODES = new Set(['PERMISSION_DENIED', 'LOCK_FORBIDDEN', 'JOIN_DRAFT_ONLY', 'START_DRAFT_ONLY', 'SETTINGS_DRAFT_ONLY']);
 const PARAM_CODES = new Set([
   'ACTION_REQUIRED',
   'TOURNAMENT_ID_REQUIRED',
-  'TOURNAMENT_NOT_FOUND',
   'PROFILE_MINIMUM_REQUIRED',
   'SCORE_OUT_OF_RANGE',
   'SETTINGS_REQUIRED',
@@ -17,6 +19,7 @@ const PARAM_CODES = new Set([
   'START_PAIR_TEAMS_INVALID'
 ]);
 const FINISHED_CODES = new Set(['MATCH_FINISHED']);
+const CANCELED_CODES = new Set(['MATCH_CANCELED']);
 const DEDUPED_CODES = new Set(['SCORE_SUBMIT_DEDUPED', 'PLAYER_REMOVED_DEDUPED', 'PLAYER_SQUAD_DEDUPED', 'PAIR_TEAMS_DEDUPED']);
 
 function normalizeResultCode(err) {
@@ -67,11 +70,15 @@ function inferResultState(result, ok) {
     return String(source.state || '').trim();
   }
   if (source.deduped === true || DEDUPED_CODES.has(code)) return 'deduped';
+  if (!ok && OCCUPIED_CODES.has(code)) return 'occupied';
+  if (!ok && EXPIRED_CODES.has(code)) return 'expired';
   if (source.finished === true || FINISHED_CODES.has(code)) return 'finished';
+  if (!ok && CANCELED_CODES.has(code)) return 'canceled';
   const message = stripCloudPrefix(normalizeErrMsg(source)).toLowerCase();
   if (!ok && (TIMEOUT_CODES.has(code) || message.includes('timeout') || message.includes('超时'))) return 'timeout';
   if (!ok && (NETWORK_CODES.has(code) || message.includes('network') || message.includes('网络'))) return 'network';
   if (!ok && (CONFLICT_CODES.has(code) || message.includes('conflict') || message.includes('冲突'))) return 'conflict';
+  if (!ok && NOT_FOUND_CODES.has(code)) return 'not_found';
   if (!ok && (PERMISSION_CODES.has(code) || message.includes('permission') || message.includes('权限'))) return 'forbidden';
   if (!ok && (PARAM_CODES.has(code) || message.includes('invalid') || message.includes('参数'))) return 'invalid';
   return ok ? 'success' : '';
@@ -161,10 +168,14 @@ function parseCloudError(err, fallbackMessage = '操作失败') {
       isTimeout: false,
       isConflict: false,
       isNetwork: false,
+      isNotFound: false,
+      isOccupied: false,
+      isExpired: false,
       isPermission: false,
       isParam: false,
       isInvalidWriteShape: false,
       isFinished: false,
+      isCanceled: false,
       isDeduped: false,
       rawMessage: '',
       userMessage: fallbackMessage
@@ -203,6 +214,18 @@ function parseCloudError(err, fallbackMessage = '操作失败') {
     low.includes('fail to connect') ||
     cleaned.includes('网络')
   );
+  const isNotFound = (
+    NOT_FOUND_CODES.has(code) ||
+    state === 'not_found'
+  );
+  const isOccupied = (
+    OCCUPIED_CODES.has(code) ||
+    state === 'occupied'
+  );
+  const isExpired = (
+    EXPIRED_CODES.has(code) ||
+    state === 'expired'
+  );
   const isPermission = (
     PERMISSION_CODES.has(code) ||
     state === 'forbidden'
@@ -216,6 +239,10 @@ function parseCloudError(err, fallbackMessage = '操作失败') {
   const isFinished = (
     FINISHED_CODES.has(code) ||
     state === 'finished'
+  );
+  const isCanceled = (
+    CANCELED_CODES.has(code) ||
+    state === 'canceled'
   );
   const isDeduped = (
     DEDUPED_CODES.has(code) ||
@@ -231,10 +258,14 @@ function parseCloudError(err, fallbackMessage = '操作失败') {
     isTimeout,
     isConflict,
     isNetwork,
+    isNotFound,
+    isOccupied,
+    isExpired,
     isPermission,
     isParam,
     isInvalidWriteShape,
     isFinished,
+    isCanceled,
     isDeduped,
     rawMessage,
     userMessage: cleaned || fallbackMessage
@@ -246,7 +277,11 @@ function classifyCloudError(parsed) {
   if (p.isConflict) return 'conflict';
   if (p.isTimeout) return 'timeout';
   if (p.isNetwork) return 'network';
+  if (p.isNotFound) return 'not_found';
+  if (p.isOccupied) return 'occupied';
+  if (p.isExpired) return 'expired';
   if (p.isFinished) return 'finished';
+  if (p.isCanceled) return 'canceled';
   if (p.isDeduped) return 'deduped';
   if (p.isPermission) return 'permission';
   if (p.isParam || p.isInvalidWriteShape) return 'param';
@@ -289,8 +324,13 @@ function getUnifiedErrorMessage(err, fallbackMessage = '操作失败') {
       ? (parsed.userMessage || '数据已被其他人更新，请刷新后重试')
       : '数据已被其他人更新，请刷新后重试';
   }
-  if (level === 'finished' || level === 'deduped') {
+  if (level === 'occupied' || level === 'expired' || level === 'finished' || level === 'canceled' || level === 'deduped') {
     return parsed.userMessage || fallbackMessage;
+  }
+  if (level === 'not_found') {
+    return parsed.hasStructuredContext
+      ? (parsed.userMessage || '赛事不存在')
+      : '赛事不存在';
   }
   if (level === 'permission') {
     return parsed.hasStructuredContext

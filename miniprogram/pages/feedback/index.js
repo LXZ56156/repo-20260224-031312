@@ -72,12 +72,12 @@ Page({
     return actionGuard.runWithCriticalPageBusy(this, 'submitting', actionKey, async () => {
       wx.showLoading({ title: '提交中...' });
       try {
-        const res = await cloud.call('feedbackSubmit', {
+        const res = cloud.assertWriteResult(await cloud.call('feedbackSubmit', {
           category: this.data.categoryOptions[this.data.categoryIndex] || '其他',
           content,
           contact: String(this.data.contact || '').trim(),
           clientRequestId
-        });
+        }), '提交失败');
         wx.hideLoading();
         wx.showModal({
           title: '提交成功',

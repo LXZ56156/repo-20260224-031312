@@ -59,12 +59,25 @@ exports.main = async (event) => {
 
   try {
     return await db.runTransaction(async (transaction) => {
-      const tRes = await transaction.collection('tournaments').doc(tournamentId).get();
-      const tournament = common.assertTournamentExists(tRes.data);
+      let tournament = null;
+      try {
+        const tRes = await transaction.collection('tournaments').doc(tournamentId).get();
+        tournament = tRes && tRes.data ? tRes.data : null;
+      } catch (err) {
+        if (common.isDocNotExists(err)) {
+          return common.failResult('TOURNAMENT_NOT_FOUND', '赛事不存在', { traceId, state: 'not_found' });
+        }
+        throw err;
+      }
+      if (!tournament) {
+        return common.failResult('TOURNAMENT_NOT_FOUND', '赛事不存在', { traceId, state: 'not_found' });
+      }
       const admin = permission.isAdmin(tournament, OPENID);
       const status = String(tournament.status || '').trim();
       const match = findMatch(tournament, roundIndex, matchIndex);
-      if (!match) throw new Error('比赛不存在');
+      if (!match) {
+        return common.failResult('MATCH_NOT_FOUND', '比赛不存在', { traceId, state: 'invalid' });
+      }
 
       let lockDoc = null;
       try {
@@ -118,6 +131,9 @@ exports.main = async (event) => {
     if (common.isCollectionNotExists(err)) {
       throw new Error('数据库集合不存在，请在云开发控制台创建 tournaments 与 score_locks。');
     }
+    if (common.isDocNotExists(err) || String((err && err.message) || '').includes('赛事不存在')) {
+      return common.failResult('TOURNAMENT_NOT_FOUND', '赛事不存在', { traceId, state: 'not_found' });
+    }
     throw common.normalizeConflictError(err, '录分锁操作失败');
   }
 };
@@ -131,16 +147,19 @@ function describeScoreLockState(result = {}) {
     return { code: 'LOCK_ACQUIRED', message: '已进入录分状态', state: 'acquired' };
   }
   if (state === 'occupied') {
-    return { code: 'LOCK_OCCUPIED', message: '当前有人正在录入比分', state: 'conflict' };
+    return { code: 'LOCK_OCCUPIED', message: '当前有人正在录入比分', state: 'occupied' };
   }
   if (state === 'forbidden') {
     return { code: 'LOCK_FORBIDDEN', message: '仅管理员或参赛成员可录分', state: 'forbidden' };
   }
   if (state === 'finished') {
-    return { code: 'MATCH_FINISHED', message: '该场已结束', state: 'conflict' };
+    return { code: 'MATCH_FINISHED', message: '该场已结束', state: 'finished' };
+  }
+  if (state === 'canceled') {
+    return { code: 'MATCH_CANCELED', message: '该场已结束', state: 'canceled' };
   }
   if (state === 'expired') {
-    return { code: 'LOCK_EXPIRED', message: '录分会话已过期，请重新开始录分', state: 'conflict' };
+    return { code: 'LOCK_EXPIRED', message: '录分会话已过期，请重新开始录分', state: 'expired' };
   }
   if (state === 'released') {
     return { code: 'LOCK_RELEASED', message: '已结束录分会话', state: 'released' };

@@ -19,7 +19,13 @@ exports.main = async (event) => {
   const clientRequestId = String((event && event.clientRequestId) || '').trim();
   const renamed = logic.normalizeName(event && event.name);
 
-  if (!sourceTournamentId) throw new Error('缺少 sourceTournamentId');
+  if (!sourceTournamentId) {
+    return common.failResult('SOURCE_TOURNAMENT_ID_REQUIRED', '缺少 sourceTournamentId', {
+      traceId,
+      state: 'invalid',
+      ...(clientRequestId ? { clientRequestId } : {})
+    });
+  }
 
   if (clientRequestId) {
     await common.ensureCollection(db, common.CLIENT_REQUEST_LOG_COLLECTION);
@@ -47,9 +53,34 @@ exports.main = async (event) => {
       }
 
       const tournaments = transaction.collection('tournaments');
-      const docRes = await tournaments.doc(sourceTournamentId).get();
-      const source = common.assertTournamentExists(docRes && docRes.data);
-      common.assertCreator(source, OPENID, '仅创建者可复制自己的赛事');
+      let source = null;
+      try {
+        const docRes = await tournaments.doc(sourceTournamentId).get();
+        source = docRes && docRes.data ? docRes.data : null;
+      } catch (err) {
+        if (common.isDocNotExists(err)) {
+          return common.failResult('TOURNAMENT_NOT_FOUND', '赛事不存在', {
+            traceId,
+            state: 'not_found',
+            ...(clientRequestId ? { clientRequestId } : {})
+          });
+        }
+        throw err;
+      }
+      if (!source) {
+        return common.failResult('TOURNAMENT_NOT_FOUND', '赛事不存在', {
+          traceId,
+          state: 'not_found',
+          ...(clientRequestId ? { clientRequestId } : {})
+        });
+      }
+      if (String(source.creatorId || '') !== String(OPENID || '')) {
+        return common.failResult('PERMISSION_DENIED', '仅创建者可复制自己的赛事', {
+          traceId,
+          state: 'forbidden',
+          ...(clientRequestId ? { clientRequestId } : {})
+        });
+      }
 
       const totalMatches = toPosInt(source.totalMatches, 0);
       const courts = toPosInt(source.courts, 0);
@@ -129,6 +160,27 @@ exports.main = async (event) => {
           tournamentId: String(requestLog.resourceId || '').trim()
         });
       }
+    }
+    if (common.isDocNotExists(err) || String((err && err.message) || '').includes('赛事不存在')) {
+      return common.failResult('TOURNAMENT_NOT_FOUND', '赛事不存在', {
+        traceId,
+        state: 'not_found',
+        ...(clientRequestId ? { clientRequestId } : {})
+      });
+    }
+    if (String((err && err.message) || '').includes('仅创建者可复制自己的赛事')) {
+      return common.failResult('PERMISSION_DENIED', '仅创建者可复制自己的赛事', {
+        traceId,
+        state: 'forbidden',
+        ...(clientRequestId ? { clientRequestId } : {})
+      });
+    }
+    if (common.isConflictError(err)) {
+      return common.failResult('VERSION_CONFLICT', '写入冲突，请刷新后重试', {
+        traceId,
+        state: 'conflict',
+        ...(clientRequestId ? { clientRequestId } : {})
+      });
     }
     throw common.normalizeConflictError(err, '复制赛事失败');
   }

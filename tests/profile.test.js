@@ -15,6 +15,7 @@ global.wx = global.wx || {
 };
 
 const storage = require('../miniprogram/core/storage');
+const cloud = require('../miniprogram/core/cloud');
 const profile = require('../miniprogram/core/profile');
 
 // --- mergeProfile ---
@@ -97,6 +98,37 @@ test('readLocalProfile returns stored profile', () => {
     assert.deepEqual(result, stored);
   } finally {
     storage.getUserProfile = originalGet;
+  }
+});
+
+test('syncCloudProfile keeps local profile when cloud returns structured failure', async () => {
+  const localProfile = { nickName: '本地昵称', avatar: 'local.png', gender: 'female' };
+  const originalGet = storage.getUserProfile;
+  const originalSet = storage.setUserProfile;
+  const originalCall = cloud.call;
+  let setCalled = false;
+
+  storage.getUserProfile = () => localProfile;
+  storage.setUserProfile = () => {
+    setCalled = true;
+  };
+  cloud.call = async () => ({
+    ok: false,
+    code: 'PROFILE_LOAD_FAILED',
+    message: '读取资料失败，请稍后重试',
+    state: '',
+    traceId: 'trace-profile-sync-fail',
+    data: {}
+  });
+
+  try {
+    const result = await profile.syncCloudProfile();
+    assert.deepEqual(result, localProfile);
+    assert.equal(setCalled, false);
+  } finally {
+    storage.getUserProfile = originalGet;
+    storage.setUserProfile = originalSet;
+    cloud.call = originalCall;
   }
 });
 

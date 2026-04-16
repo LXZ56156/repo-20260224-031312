@@ -91,3 +91,15 @@ for (const scenario of scenarioCommon.buildSquadRepresentativeScenarios()) {
     }
   });
 }
+
+test('rotation 14p/12m/4c uses effectiveCourts to derive totalRounds', () => {
+  const scenario = scenarioCommon
+    .buildRotationRepresentativeScenarios()
+    .find((item) => item.id === 'rotation-14p-12m-4c');
+
+  assert.ok(scenario, 'rotation-14p-12m-4c scenario should exist');
+
+  const result = scenarioCommon.runScenario(scenario);
+  assert.equal(result.effectiveCourts, 3);
+  assert.equal(result.totalRounds, Math.ceil(result.scenario.targetMatches / result.effectiveCourts));
+});

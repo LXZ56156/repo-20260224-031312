@@ -151,6 +151,68 @@ test('saveUserProfile updates existing profile in place', async () => {
   });
 });
 
+test('saveUserProfile returns structured invalid result for empty nickname', async () => {
+  const db = {
+    async createCollection() {
+      throw new Error('should not create collection');
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection() {
+      throw new Error('should not query profile');
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    nickname: '   ',
+    avatar: '',
+    gender: 'male',
+    __traceId: 'trace-profile-nickname'
+  });
+
+  assert.deepEqual(result, {
+    ok: false,
+    code: 'PROFILE_NICKNAME_REQUIRED',
+    message: '昵称不能为空',
+    state: 'invalid',
+    traceId: 'trace-profile-nickname',
+    data: {}
+  });
+});
+
+test('saveUserProfile returns structured invalid result for unknown gender', async () => {
+  const db = {
+    async createCollection() {
+      throw new Error('should not create collection');
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection() {
+      throw new Error('should not query profile');
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    nickname: '球友A',
+    avatar: '',
+    gender: 'unknown',
+    __traceId: 'trace-profile-gender'
+  });
+
+  assert.deepEqual(result, {
+    ok: false,
+    code: 'PROFILE_GENDER_REQUIRED',
+    message: '性别不能为空',
+    state: 'invalid',
+    traceId: 'trace-profile-gender',
+    data: {}
+  });
+});
+
 test('saveUserProfile treats repeated clientRequestId as deduped success', async () => {
   let updateCalled = false;
   const tournamentUpdates = [];
