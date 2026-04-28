@@ -707,6 +707,11 @@
   filter: saturate(0.7);
 }
 
+.player-roster-hint {
+  font-size: 22rpx;
+  color: var(--neutral-500);
+}
+
 /* --- Quick Import --- */
 .quick-import {
   margin-top: 16rpx;

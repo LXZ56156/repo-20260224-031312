@@ -188,3 +188,82 @@ test('lobby quickImportPlayers routes structured ok:false result into handleWrit
     nav.markRefreshFlag = originalMarkRefreshFlag;
   }
 });
+
+test('lobby removePlayer routes structured ok:false result into handleWriteError', async () => {
+  const originalWx = global.wx;
+  const originalCall = cloud.call;
+  const originalMarkRefreshFlag = nav.markRefreshFlag;
+  const handleErrors = [];
+  const lastFailed = [];
+  let fetchCalled = false;
+  const pendingModalTasks = [];
+
+  global.wx = {
+    showLoading() {},
+    hideLoading() {},
+    showToast() {},
+    showModal(options = {}) {
+      const task = options && typeof options.success === 'function'
+        ? options.success({ confirm: true, cancel: false })
+        : null;
+      if (task && typeof task.then === 'function') pendingModalTasks.push(task);
+    }
+  };
+
+  try {
+    cloud.call = async () => ({
+      ok: false,
+      code: 'TOURNAMENT_NOT_FOUND',
+      message: '赛事不存在',
+      state: 'not_found',
+      traceId: 'trace-remove-consumer',
+      data: {}
+    });
+    nav.markRefreshFlag = () => {
+      throw new Error('should not mark refresh on structured failure');
+    };
+
+    const ctx = createContext(lobbyDraftActions, {
+      tournamentId: 't_remove',
+      isAdmin: true,
+      tournament: {
+        status: 'draft',
+        players: [
+          { id: 'u_admin', name: '管理员' },
+          { id: 'p_remove', name: '待移除' }
+        ]
+      },
+      displayPlayers: [
+        { id: 'u_admin', name: '管理员' },
+        { id: 'p_remove', name: '待移除' }
+      ]
+    });
+    ctx.openid = 'u_admin';
+    ctx.fetchTournament = async () => {
+      fetchCalled = true;
+    };
+    ctx.clearLastFailedAction = () => {};
+    ctx.setLastFailedAction = (text, fn, options) => {
+      lastFailed.push({ text, fn: typeof fn, options });
+    };
+    ctx.handleWriteError = (err, fallbackMessage) => {
+      handleErrors.push({ err, fallbackMessage });
+    };
+
+    ctx.onPlayerLongPress({ currentTarget: { dataset: { player: 'p_remove', name: '待移除' } } });
+    await Promise.all(pendingModalTasks);
+
+    assert.equal(fetchCalled, false);
+    assert.equal(lastFailed.length, 1);
+    assert.equal(lastFailed[0].text, '移除参赛成员');
+    assert.equal(handleErrors.length, 1);
+    assert.equal(handleErrors[0].fallbackMessage, '移除失败');
+    assert.equal(handleErrors[0].err.code, 'TOURNAMENT_NOT_FOUND');
+    assert.equal(handleErrors[0].err.state, 'not_found');
+  } finally {
+    actionGuard.clear('lobby:removePlayer:t_remove:p_remove');
+    global.wx = originalWx;
+    cloud.call = originalCall;
+    nav.markRefreshFlag = originalMarkRefreshFlag;
+  }
+});

@@ -21,11 +21,12 @@ exports.main = async (event) => {
     return await db.runTransaction(async (transaction) => {
       const docRes = await transaction.collection('tournaments').doc(tournamentId).get();
       const t = common.assertTournamentExists(docRes.data);
-      common.assertCreator(t, OPENID);
       common.assertDraft(t, '非草稿阶段不可移除');
       const oldVersion = Number(t.version) || 1;
-      if (playerId === t.creatorId) {
-        return common.failResult('PLAYER_REMOVE_FORBIDDEN', '不能移除创建者', {
+      const isCreator = String(t.creatorId || '') === String(OPENID || '');
+      const isSelfRemove = String(playerId || '') === String(OPENID || '');
+      if (!isCreator && !isSelfRemove) {
+        return common.failResult('PERMISSION_DENIED', '无权限', {
           traceId,
           state: 'forbidden',
           clientRequestId
@@ -44,7 +45,7 @@ exports.main = async (event) => {
         });
       }
 
-      const players = existingPlayers.filter(p => p.id !== playerId);
+      const players = existingPlayers.filter(p => String(p && p.id || '').trim() !== playerId);
       const playerIds = Array.from(new Set(players.map((item) => String(item && item.id || '').trim()).filter(Boolean)));
       const refereeId = (t.refereeId === playerId) ? '' : (t.refereeId || '');
       const pairTeamsRaw = Array.isArray(t.pairTeams) ? t.pairTeams : [];

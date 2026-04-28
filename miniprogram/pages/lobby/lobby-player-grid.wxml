@@ -2,12 +2,13 @@
     <view class="section-head">
       <view class="section-title">参赛名单</view>
       <view class="row-right">
+        <text class="player-roster-hint" wx:if="{{playerRosterHint}}">{{playerRosterHint}}</text>
         <text class="count-pill">{{tournament.players.length}} 人</text>
         <text class="link-btn" wx:if="{{tournament.players.length>12}}" bindtap="togglePlayers">{{showAllPlayers?'收起':'展开'}}</text>
       </view>
     </view>
     <view class="player-grid" wx:if="{{displayPlayers.length}}">
-      <view class="player-cell" wx:for="{{displayPlayers}}" wx:key="id" data-player="{{item.id}}" bindtap="onTogglePlayerSquad">
+      <view class="player-cell" wx:for="{{displayPlayers}}" wx:key="id" data-player="{{item.id}}" data-name="{{item.name}}" bindtap="onTogglePlayerSquad" bindlongpress="onPlayerLongPress">
         <view class="player-avatar {{item.colorClass}}">
           <image class="player-avatar-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill"></image>
           <text class="player-initial" wx:else>{{item.initial}}</text>

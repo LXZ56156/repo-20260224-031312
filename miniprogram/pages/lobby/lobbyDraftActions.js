@@ -4,10 +4,72 @@ const clientRequest = require('../../core/clientRequest');
 const flow = require('../../core/uxFlow');
 const nav = require('../../core/nav');
 const pageTimers = require('../../core/pageTimers');
+const storage = require('../../core/storage');
 const viewModel = require('./lobbyViewModel');
 const quickSettingsActions = require('./lobbyQuickSettingsActions');
 const importActions = require('./lobbyImportActions');
 const lifecycleActions = require('./lobbyLifecycleActions');
+
+const PLAYER_LONGPRESS_TAP_SUPPRESS_MS = 700;
+
+function resolveOpenId(ctx) {
+  const direct = String((ctx && ctx.openid) || '').trim();
+  if (direct) return direct;
+  try {
+    const app = typeof getApp === 'function' ? getApp() : null;
+    const value = String((app && app.globalData && app.globalData.openid) || '').trim();
+    if (value) return value;
+  } catch (_) {
+    // ignore
+  }
+  return String(storage.get('openid', '') || '').trim();
+}
+
+function findPlayerName(ctx, playerId, fallback = '') {
+  const pid = String(playerId || '').trim();
+  const fromDisplay = (ctx.data.displayPlayers || []).find((item) => String(item && item.id || '').trim() === pid);
+  if (fromDisplay && String(fromDisplay.name || '').trim()) return String(fromDisplay.name || '').trim();
+  const tournament = ctx.data.tournament || {};
+  const fromTournament = (Array.isArray(tournament.players) ? tournament.players : [])
+    .find((item) => String(item && item.id || '').trim() === pid);
+  return String((fromTournament && fromTournament.name) || fallback || '').trim() || '该成员';
+}
+
+async function executeRemovePlayer(ctx, options = {}) {
+  const playerId = String(options.playerId || '').trim();
+  if (!playerId) return;
+  const tournamentId = String(ctx.data.tournamentId || '').trim();
+  if (!tournamentId) return;
+
+  const isSelfRemove = options.isSelfRemove === true;
+  const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'remove_player');
+  const actionKey = `lobby:removePlayer:${tournamentId}:${playerId}`;
+  if (actionGuard.isBusy(actionKey)) return;
+
+  return actionGuard.runCriticalWrite(actionKey, async () => {
+    wx.showLoading({ title: isSelfRemove ? '退出中...' : '移除中...' });
+    try {
+      cloud.assertWriteResult(await cloud.call('removePlayer', {
+        tournamentId,
+        playerId,
+        clientRequestId
+      }), isSelfRemove ? '退出失败' : '移除失败');
+      wx.hideLoading();
+      ctx.clearLastFailedAction();
+      wx.showToast({ title: isSelfRemove ? '已退出参赛' : '已移除', icon: 'success' });
+      await ctx.fetchTournament(tournamentId);
+      nav.markRefreshFlag(tournamentId);
+    } catch (err) {
+      wx.hideLoading();
+      ctx.setLastFailedAction(isSelfRemove ? '退出参赛' : '移除参赛成员', () => executeRemovePlayer(ctx, {
+        playerId,
+        isSelfRemove,
+        clientRequestId
+      }), { actionKey });
+      ctx.handleWriteError(err, isSelfRemove ? '退出失败' : '移除失败', () => ctx.fetchTournament(tournamentId));
+    }
+  });
+}
 
 const draftActions = {
   runFlowAction(rawKey) {
@@ -122,6 +184,7 @@ const draftActions = {
   },
 
   async onTogglePlayerSquad(e, options = {}) {
+    if (Number(this._ignorePlayerTapUntil || 0) > Date.now()) return;
     if (!this.data.isAdmin) return;
     if (String((this.data.tournament && this.data.tournament.status) || '') !== 'draft') return;
     if (this.data.mode !== flow.MODE_SQUAD_DOUBLES) return;
@@ -145,6 +208,33 @@ const draftActions = {
         this.fetchTournament(this.data.tournamentId);
       } catch (err) {
         wx.showToast({ title: cloud.getUnifiedErrorMessage(err, '调整分队失败'), icon: 'none' });
+      }
+    });
+  },
+
+  async onPlayerLongPress(e, options = {}) {
+    const tournament = this.data.tournament;
+    if (!tournament || String(tournament.status || '').trim() !== 'draft') return;
+    const playerId = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.player) || '').trim();
+    if (!playerId) return;
+
+    this._ignorePlayerTapUntil = Date.now() + PLAYER_LONGPRESS_TAP_SUPPRESS_MS;
+    const openid = resolveOpenId(this);
+    const isSelfRemove = !!openid && playerId === openid;
+    if (!this.data.isAdmin && !isSelfRemove) return;
+
+    const playerName = findPlayerName(this, playerId, e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.name);
+    const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'remove_player');
+    wx.showModal({
+      title: isSelfRemove ? '退出参赛？' : `移除 ${playerName}？`,
+      content: isSelfRemove
+        ? '你会从参赛名单中移除，草稿阶段可重新加入。'
+        : '该成员会从参赛名单中移除，草稿阶段可重新加入。',
+      confirmText: isSelfRemove ? '退出' : '移除',
+      confirmColor: '#ef4444',
+      success: async (res) => {
+        if (!res.confirm) return;
+        await executeRemovePlayer(this, { playerId, isSelfRemove, clientRequestId });
       }
     });
   },

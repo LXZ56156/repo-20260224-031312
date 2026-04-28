@@ -26,7 +26,7 @@ function buildTournament(extra = {}) {
   };
 }
 
-function loadMain(db) {
+function loadMain(db, openid = 'u_admin') {
   const originalLoad = Module._load;
   const mockSdk = {
     init() {},
@@ -34,7 +34,7 @@ function loadMain(db) {
       return db;
     },
     getWXContext() {
-      return { OPENID: 'u_admin' };
+      return { OPENID: openid };
     },
     DYNAMIC_CURRENT_ENV: 'test-env'
   };
@@ -114,6 +114,181 @@ test('removePlayer updates player roster, referee and pair teams in one transact
   assert.deepEqual(writtenData.pairTeams, [
     { id: 'team_keep', playerIds: ['p_keep', 'p_other'] }
   ]);
+});
+
+test('removePlayer lets creator remove self without changing creatorId', async () => {
+  let writtenData = null;
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return {
+                    data: buildTournament({
+                      refereeId: 'u_admin',
+                      pairTeams: [
+                        { id: 'team_drop', playerIds: ['u_admin', 'p_keep'] },
+                        { id: 'team_keep', playerIds: ['p_remove', 'p_other'] }
+                      ]
+                    })
+                  };
+                }
+              };
+            },
+            where(query) {
+              assert.deepEqual(query, { _id: 't_1', version: 3 });
+              return {
+                async update(payload) {
+                  writtenData = payload.data;
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db, 'u_admin');
+
+  const result = await main({
+    tournamentId: 't_1',
+    playerId: 'u_admin'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.code, 'PLAYER_REMOVED');
+  assert.equal(result.state, 'removed');
+  assert.equal(Object.prototype.hasOwnProperty.call(writtenData, 'creatorId'), false);
+  assert.deepEqual(writtenData.playerIds, ['p_remove', 'p_keep', 'p_other']);
+  assert.equal(writtenData.refereeId, '');
+  assert.equal(writtenData.players.some((player) => player.id === 'u_admin'), false);
+  assert.deepEqual(writtenData.pairTeams, [
+    { id: 'team_keep', playerIds: ['p_remove', 'p_other'] }
+  ]);
+});
+
+test('removePlayer lets participant remove self and can leave roster below start minimum', async () => {
+  let writtenData = null;
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return {
+                    data: buildTournament({
+                      players: [
+                        { id: 'u_admin', name: '管理员' },
+                        { id: 'u_member', name: '普通成员' },
+                        { id: 'p_keep', name: '保留成员' },
+                        { id: 'p_other', name: '其他成员' }
+                      ],
+                      pairTeams: []
+                    })
+                  };
+                }
+              };
+            },
+            where(query) {
+              assert.deepEqual(query, { _id: 't_1', version: 3 });
+              return {
+                async update(payload) {
+                  writtenData = payload.data;
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db, 'u_member');
+
+  const result = await main({
+    tournamentId: 't_1',
+    playerId: 'u_member'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.code, 'PLAYER_REMOVED');
+  assert.deepEqual(writtenData.playerIds, ['u_admin', 'p_keep', 'p_other']);
+  assert.equal(writtenData.players.length, 3);
+});
+
+test('removePlayer rejects participant removing another player', async () => {
+  let writeCalled = false;
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return {
+                    data: buildTournament({
+                      players: [
+                        { id: 'u_admin', name: '管理员' },
+                        { id: 'u_member', name: '普通成员' },
+                        { id: 'p_target', name: '目标成员' },
+                        { id: 'p_other', name: '其他成员' }
+                      ]
+                    })
+                  };
+                }
+              };
+            },
+            where() {
+              writeCalled = true;
+              throw new Error('should not write when permission denied');
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db, 'u_member');
+
+  const result = await main({
+    tournamentId: 't_1',
+    playerId: 'p_target'
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'PERMISSION_DENIED');
+  assert.equal(result.state, 'forbidden');
+  assert.equal(writeCalled, false);
 });
 
 test('removePlayer surfaces optimistic-lock conflicts as structured retryable result', async () => {

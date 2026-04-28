@@ -487,6 +487,9 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
   const showMyProfile = status === 'draft' && myJoined;
   const showAllPlayers = !!data.showAllPlayers;
   const displayPlayers = buildDisplayPlayers(showAllPlayers ? players : players.slice(0, 12), avatarCache);
+  const playerRosterHint = status === 'draft' && playersCount > 0
+    ? (isAdmin ? '长按成员可移除' : (myJoined ? '长按自己可退出' : ''))
+    : '';
 
   const createdAtText = (() => {
     try {
@@ -740,6 +743,7 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       showMyProfile,
       myJoined,
       displayPlayers,
+      playerRosterHint,
       createdAtText,
       kpiReady,
       kpiPlayers: kpiReady ? String(playersCount) : '—',

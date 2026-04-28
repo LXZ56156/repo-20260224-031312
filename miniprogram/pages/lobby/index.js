@@ -57,6 +57,7 @@ Page({
     viewOnlyJoinExpanded: false,
     showAllPlayers: false,
     displayPlayers: [],
+    playerRosterHint: '',
     roleCards: [],
     currentRoleKey: '',
     currentRoleTitle: '',

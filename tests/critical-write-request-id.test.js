@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
+const actionGuard = require('../miniprogram/core/actionGuard');
 const cloud = require('../miniprogram/core/cloud');
 const nav = require('../miniprogram/core/nav');
 const profileCore = require('../miniprogram/core/profile');
@@ -443,6 +444,67 @@ test('lobby cancelTournament retry reuses the same clientRequestId', async () =>
     storage.removeRecentTournamentId = originalRemoveRecentTournamentId;
     storage.removeLocalCompletedTournamentSnapshot = originalRemoveSnapshot;
     storage.removeLocalTournamentCache = originalRemoveCache;
+  }
+});
+
+test('lobby removePlayer retry reuses the same clientRequestId', async () => {
+  const originalWx = global.wx;
+  const originalCloudCall = cloud.call;
+  const originalMarkRefreshFlag = nav.markRefreshFlag;
+
+  const wxBox = createWxStub();
+  const requestIds = [];
+  let callCount = 0;
+  let retryFn = null;
+
+  global.wx = wxBox.api;
+
+  try {
+    cloud.call = async (_name, payload) => {
+      requestIds.push(payload.clientRequestId);
+      callCount += 1;
+      if (callCount === 1) throw new Error('network timeout');
+      return { ok: true, state: 'removed' };
+    };
+    nav.markRefreshFlag = () => {};
+
+    const ctx = createContext(lobbyDraftActions, {
+      tournamentId: 't_remove',
+      tournament: {
+        status: 'draft',
+        players: [
+          { id: 'u_admin', name: '管理员' },
+          { id: 'p_remove', name: '待移除' }
+        ]
+      },
+      isAdmin: true,
+      displayPlayers: [
+        { id: 'u_admin', name: '管理员' },
+        { id: 'p_remove', name: '待移除' }
+      ]
+    });
+    ctx.openid = 'u_admin';
+    ctx.fetchTournament = async () => {};
+    ctx.clearLastFailedAction = () => {};
+    ctx.setLastFailedAction = (_text, fn) => {
+      retryFn = fn;
+    };
+    ctx.handleWriteError = () => {};
+
+    ctx.onPlayerLongPress({ currentTarget: { dataset: { player: 'p_remove', name: '待移除' } } });
+    await Promise.all(wxBox.pendingModalTasks);
+    assert.equal(typeof retryFn, 'function');
+
+    await retryFn();
+
+    assert.equal(requestIds.length, 2);
+    assert.equal(requestIds[0], requestIds[1]);
+    assert.match(String(requestIds[0] || ''), /^remove_player_/);
+  } finally {
+    actionGuard.clear('lobby:removePlayer:t_remove:p_remove');
+    global.wx = originalWx;
+    cloud.call = originalCloudCall;
+    nav.markRefreshFlag = originalMarkRefreshFlag;
   }
 });
 
