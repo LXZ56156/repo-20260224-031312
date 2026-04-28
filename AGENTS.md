@@ -57,6 +57,7 @@ node --test tests/*.test.js          # 全量测试
 2. **验证后完成**：宣称完成前运行 `node --test tests/*.test.js` 和 `npm run check`
 3. **微信 API**：查文档再写代码，避免废弃 API
 4. **云函数模板**：改 `scripts/*-common.template.js`，改完运行 sync 脚本
+5. **云函数上传提醒**：完成改动后检查是否涉及 `cloudfunctions/`；如有需要通过微信开发者工具上传的云函数，在最终汇报中提醒一次具体函数名，不反复提醒
 
 ## Style & Commit
 
