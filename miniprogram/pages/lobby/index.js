@@ -118,6 +118,8 @@ Page({
     quickMatchShortcutOptions: [],
     quickMatchShortcutHint: '',
     quickUseMatchPresetOptions: false,
+    quickShowAdvancedMatchEntry: false,
+    quickShowAdvancedMatchPicker: false,
     quickCurrentCustomMatchLabel: '',
     quickMatchPresetUnavailableHint: '',
     quickConfigCOptions: Array.from({ length: 10 }, (_, i) => i + 1),
@@ -259,6 +261,11 @@ Page({
 
   onTapQuickMatchShortcut(e) {
     return lobbyPageDelegates.onTapQuickMatchShortcut.call(this, e);
+  },
+
+  toggleQuickAdvancedMatchPicker() {
+    if (!this.data.canConfigureSettings || !this.data.quickShowAdvancedMatchEntry) return;
+    this.setData({ quickShowAdvancedMatchPicker: !this.data.quickShowAdvancedMatchPicker });
   },
 
   goHome() {

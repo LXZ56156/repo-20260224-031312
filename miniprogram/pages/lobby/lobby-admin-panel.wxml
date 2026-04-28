@@ -93,7 +93,7 @@
             <view class="quick-config-col"></view>
           </view>
 
-          <view class="quick-settings-summary panel-soft" wx:if="{{canConfigureSettings && (quickMatchShortcutHint || quickMatchShortcutOptions.length || quickMatchPresetUnavailableHint || quickCurrentCustomMatchLabel)}}">
+          <view class="quick-settings-summary panel-soft" wx:if="{{canConfigureSettings && (quickMatchShortcutHint || quickMatchShortcutOptions.length || quickMatchPresetUnavailableHint || quickCurrentCustomMatchLabel || quickShowAdvancedMatchEntry)}}">
             <view class="muted small quick-settings-hint" wx:if="{{quickMatchShortcutHint}}">{{quickMatchShortcutHint}}</view>
             <view class="muted small quick-settings-hint" wx:if="{{quickMatchPresetUnavailableHint}}">{{quickMatchPresetUnavailableHint}}</view>
             <view class="muted small quick-settings-hint" wx:if="{{quickCurrentCustomMatchLabel}}">{{quickCurrentCustomMatchLabel}}</view>
@@ -106,6 +106,37 @@
                 data-disabled="{{item.disabled ? 1 : 0}}"
                 bindtap="onTapQuickMatchShortcut"
               >{{item.label}}</view>
+            </view>
+            <view class="quick-custom-match-card" wx:if="{{quickShowAdvancedMatchEntry}}">
+              <view class="quick-custom-match-head">
+                <text class="quick-custom-match-title" catchtap="toggleQuickAdvancedMatchPicker">自定义场数</text>
+                <view class="quick-custom-match-action" catchtap="toggleQuickAdvancedMatchPicker">
+                  {{quickShowAdvancedMatchPicker ? '收起' : '展开'}}
+                </view>
+              </view>
+              <view class="quick-custom-match-body" wx:if="{{quickShowAdvancedMatchPicker}}">
+                <text class="quick-custom-match-label">总场次</text>
+                <picker
+                  wx:if="{{useSimpleQuickMPicker}}"
+                  class="quick-custom-match-picker-wrap"
+                  mode="selector"
+                  range="{{quickConfigMOptions}}"
+                  value="{{quickConfigMIndex}}"
+                  bindchange="onPickQuickConfigMSimple"
+                >
+                  <view class="quick-custom-match-value quick-custom-match-picker">{{quickConfigM}} 场</view>
+                </picker>
+                <picker
+                  wx:else
+                  class="quick-custom-match-picker-wrap"
+                  mode="multiSelector"
+                  range="{{quickConfigMDigitRange}}"
+                  value="{{quickConfigMDigitValue}}"
+                  bindchange="onPickQuickConfigMDigit"
+                >
+                  <view class="quick-custom-match-value quick-custom-match-picker">{{quickConfigM}} 场</view>
+                </picker>
+              </view>
             </view>
           </view>
 

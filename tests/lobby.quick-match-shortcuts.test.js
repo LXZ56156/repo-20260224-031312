@@ -51,6 +51,12 @@ test('lobby quick settings replace recommendation hints with match shortcut taps
 
   assert.match(wxml, /quickMatchShortcutOptions/);
   assert.match(wxml, /bindtap="onTapQuickMatchShortcut"/);
+  assert.match(wxml, /自定义场数/);
+  assert.match(wxml, /catchtap="toggleQuickAdvancedMatchPicker"/);
+  assert.match(wxml, /view class="quick-custom-match-action"/);
+  assert.match(wxml, /quick-custom-match-card/);
+  assert.doesNotMatch(wxml, /quick-custom-match-toggle/);
+  assert.doesNotMatch(wxml, /收起自定义场数/);
   assert.doesNotMatch(wxml, /建议总场次/);
   assert.doesNotMatch(wxml, /建议先配置/);
   assert.doesNotMatch(wxml, /满 ?4 ?人后会自动重算/);
@@ -59,6 +65,47 @@ test('lobby quick settings replace recommendation hints with match shortcut taps
 test('lobby page definition exposes quick match shortcut tap handler', () => {
   const definition = loadLobbyPageDefinition();
   assert.equal(typeof definition.onTapQuickMatchShortcut, 'function');
+  assert.equal(typeof definition.toggleQuickAdvancedMatchPicker, 'function');
+
+  const ctx = createContext({
+    canConfigureSettings: true,
+    quickShowAdvancedMatchEntry: true,
+    quickShowAdvancedMatchPicker: true
+  });
+  definition.toggleQuickAdvancedMatchPicker.call(ctx);
+  assert.equal(ctx.data.quickShowAdvancedMatchPicker, false);
+});
+
+test('lobby quick custom match entry toggles advanced picker', () => {
+  const ctx = createContext({
+    canConfigureSettings: true,
+    quickShowAdvancedMatchEntry: true,
+    quickShowAdvancedMatchPicker: false
+  });
+
+  ctx.toggleQuickAdvancedMatchPicker();
+  assert.equal(ctx.data.quickShowAdvancedMatchPicker, true);
+
+  ctx.toggleQuickAdvancedMatchPicker();
+  assert.equal(ctx.data.quickShowAdvancedMatchPicker, false);
+});
+
+test('lobby quick custom match entry ignores gated states', () => {
+  const ctx = createContext({
+    canConfigureSettings: true,
+    quickShowAdvancedMatchEntry: false,
+    quickShowAdvancedMatchPicker: false
+  });
+
+  ctx.toggleQuickAdvancedMatchPicker();
+  assert.equal(ctx.data.quickShowAdvancedMatchPicker, false);
+
+  ctx.setData({
+    canConfigureSettings: false,
+    quickShowAdvancedMatchEntry: true
+  });
+  ctx.toggleQuickAdvancedMatchPicker();
+  assert.equal(ctx.data.quickShowAdvancedMatchPicker, false);
 });
 
 test('lobby quick match shortcut syncs total matches for simple picker state', () => {

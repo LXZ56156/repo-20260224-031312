@@ -563,6 +563,10 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
   const quickMatchShortcutHint = flow.normalizeMode(mode) === flow.MODE_FIXED_PAIR_RR
     ? String(settingsFormState.matchShortcutHint || '')
     : String(quickMatchSelectionState.matchShortcutHint || '');
+  const quickShowAdvancedMatchEntry = mode === flow.MODE_MULTI_ROTATE
+    && settingsFormState.showAdvancedMatchEntry === true;
+  const quickShowAdvancedMatchPicker = quickShowAdvancedMatchEntry
+    && data.quickShowAdvancedMatchPicker === true;
   const readiness = draftStartReadiness.buildDraftStartReadiness(t);
 
   let kpiReady;
@@ -760,6 +764,8 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       quickMatchShortcutOptions,
       quickMatchShortcutHint,
       quickUseMatchPresetOptions: !!quickMatchSelectionState.useMatchPresetOptions,
+      quickShowAdvancedMatchEntry,
+      quickShowAdvancedMatchPicker,
       quickCurrentCustomMatchLabel: String(quickMatchSelectionState.currentCustomMatchLabel || ''),
       quickMatchPresetUnavailableHint: String(quickMatchSelectionState.matchPresetUnavailableHint || ''),
       quickConfigCIndex,

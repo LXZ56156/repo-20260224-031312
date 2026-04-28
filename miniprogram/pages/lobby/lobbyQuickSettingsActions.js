@@ -22,6 +22,8 @@ module.exports = {
         }),
         quickMatchShortcutHint: settingsViewModel.buildMatchShortcutHint(mode),
         quickUseMatchPresetOptions: false,
+        quickShowAdvancedMatchEntry: false,
+        quickShowAdvancedMatchPicker: false,
         quickCurrentCustomMatchLabel: '',
         quickMatchPresetUnavailableHint: ''
       });
@@ -35,13 +37,28 @@ module.exports = {
       courts: this.data.quickConfigC,
       context: 'lobby'
     });
+    const advancedSelectionState = settingsViewModel.buildMatchSelectionUiState({
+      mode,
+      playersCount: players.length,
+      maxMatches: this.data.maxMatches,
+      currentMatches: this.data.quickConfigM,
+      courts: this.data.quickConfigC,
+      context: 'settings'
+    });
     this.setData({
       quickMatchShortcutOptions: selectionState.matchShortcutOptions,
       quickMatchShortcutHint: selectionState.matchShortcutHint,
       quickUseMatchPresetOptions: selectionState.useMatchPresetOptions,
+      quickShowAdvancedMatchEntry: advancedSelectionState.showAdvancedMatchEntry,
+      ...(!advancedSelectionState.showAdvancedMatchEntry ? { quickShowAdvancedMatchPicker: false } : {}),
       quickCurrentCustomMatchLabel: selectionState.currentCustomMatchLabel,
       quickMatchPresetUnavailableHint: selectionState.matchPresetUnavailableHint
     });
+  },
+
+  toggleQuickAdvancedMatchPicker() {
+    if (!this.data.canConfigureSettings || !this.data.quickShowAdvancedMatchEntry) return;
+    this.setData({ quickShowAdvancedMatchPicker: !this.data.quickShowAdvancedMatchPicker });
   },
 
   setQuickMatchCount(rawMatchCount) {

@@ -207,6 +207,8 @@ test('lobby view model exposes optimized fixed fair presets for multi_rotate', (
     result.patch.quickMatchShortcutOptions.map((item) => item.disabled),
     [false, false, false]
   );
+  assert.equal(result.patch.quickShowAdvancedMatchEntry, true);
+  assert.equal(result.patch.quickShowAdvancedMatchPicker, false);
 });
 
 test('lobby view model keeps historical custom totals outside the fixed preset list', () => {
@@ -269,6 +271,8 @@ test('lobby view model falls back to settings-only custom flow when no preset ca
 
   assert.equal(result.patch.quickUseMatchPresetOptions, false);
   assert.deepEqual(result.patch.quickMatchShortcutOptions, []);
+  assert.equal(result.patch.quickShowAdvancedMatchEntry, false);
+  assert.equal(result.patch.quickShowAdvancedMatchPicker, false);
   assert.equal(
     result.patch.quickMatchPresetUnavailableHint,
     '该人数暂不提供固定公平档位，请到“修改比赛”里自定义总场数'
