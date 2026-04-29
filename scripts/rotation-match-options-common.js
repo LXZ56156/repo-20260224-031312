@@ -2,6 +2,59 @@ const { buildMatchCountRecommendations } = require('../miniprogram/core/ux/capac
 const { MODE_MULTI_ROTATE } = require('../miniprogram/core/mode');
 
 const MATCH_OPTION_OVERRIDES = Object.freeze({
+  '4p-1c': Object.freeze({
+    presetMatches: [1, 2, 3],
+    balancedMatch: 3,
+    reason: 'coverage-first small-roster preset: balanced match covers every partner pair once'
+  }),
+  '5p-1c': Object.freeze({
+    presetMatches: [5, 10, 15],
+    balancedMatch: 5,
+    reason: 'coverage-first small-roster preset: balanced match covers every partner pair once'
+  }),
+  '6p-1c': Object.freeze({
+    presetMatches: [8, 13, 18],
+    balancedMatch: 8,
+    reason: 'coverage-first small-roster preset: balanced match covers every partner pair once'
+  }),
+  '7p-1c': Object.freeze({
+    presetMatches: [11, 16, 18],
+    balancedMatch: 11,
+    reason: 'coverage-first small-roster preset: balanced match covers every partner pair once'
+  }),
+  '8p-1c': Object.freeze({
+    horizonMatches: 16,
+    presetMatches: [8, 14, 16],
+    balancedMatch: 14,
+    reason: 'coverage-first small-roster preset aligned with 8p-2c: balanced match covers every partner pair once'
+  }),
+  '8p-2c': Object.freeze({
+    presetMatches: [8, 14, 16],
+    balancedMatch: 14,
+    reason: 'coverage-first small-roster preset: balanced match covers every partner pair once'
+  }),
+  '9p-1c': Object.freeze({
+    presetMatches: [8, 9, 18],
+    balancedMatch: 18,
+    reason: 'coverage-first small-roster preset: balanced match covers every partner pair once'
+  }),
+  '9p-2c': Object.freeze({
+    presetMatches: [9, 10, 18],
+    balancedMatch: 18,
+    reason: 'coverage-first small-roster preset: balanced match covers every partner pair once'
+  }),
+  '10p-1c': Object.freeze({
+    horizonMatches: 30,
+    presetMatches: [15, 23, 30],
+    balancedMatch: 23,
+    reason: 'coverage-first small-roster preset: balanced match covers every partner pair once'
+  }),
+  '10p-2c': Object.freeze({
+    horizonMatches: 30,
+    presetMatches: [15, 23, 30],
+    balancedMatch: 23,
+    reason: 'coverage-first small-roster preset: balanced match covers every partner pair once'
+  }),
   '20p-2c': Object.freeze({
     horizonMatches: 18,
     reason: 'keep 2-court large-roster horizon aligned with the stable 12/15/18 recommendation band'
@@ -115,7 +168,7 @@ const MATCH_OPTION_OVERRIDES = Object.freeze({
 const MATCH_OPTION_COVERAGE_PRIORITY_NOTES = Object.freeze({
   '6p-1c': Object.freeze({
     coveragePriorityPresetMatches: [8, 13, 18],
-    coveragePriorityNote: 'coverage-first: 为保 15 对搭档覆盖，6p-1c 默认档允许 maxConsecutivePlay=4，暂不降档。'
+    coveragePriorityNote: 'coverage-first: 8 场覆盖 15 对搭档，后续两档沿长赛事带加量。'
   }),
   '9p-2c': Object.freeze({
     coveragePriorityPresetMatches: [18],

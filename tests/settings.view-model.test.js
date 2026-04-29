@@ -84,6 +84,38 @@ test('settings view model exposes fixed fair presets for multi_rotate', () => {
   assert.equal(state.coveragePriorityNote, '');
 });
 
+test('settings view model defaults small multi_rotate rosters to partner coverage preset', () => {
+  const eightSingleCourt = viewModel.buildSettingsViewState({
+    _id: 't_8p_1c',
+    status: 'draft',
+    creatorId: 'u_1',
+    mode: flow.MODE_MULTI_ROTATE,
+    players: Array.from({ length: 8 }, (_, i) => ({ id: `u_${i}`, name: String(i) })),
+    courts: 1
+  }, { openid: 'u_1' });
+
+  assert.deepEqual(
+    eightSingleCourt.matchShortcutOptions.map((item) => item.value),
+    [8, 14, 16]
+  );
+  assert.equal(eightSingleCourt.editM, 14);
+
+  const tenRequestedFourCourts = viewModel.buildSettingsViewState({
+    _id: 't_10p_4c',
+    status: 'draft',
+    creatorId: 'u_1',
+    mode: flow.MODE_MULTI_ROTATE,
+    players: Array.from({ length: 10 }, (_, i) => ({ id: `u_${i}`, name: String(i) })),
+    courts: 4
+  }, { openid: 'u_1' });
+
+  assert.deepEqual(
+    tenRequestedFourCourts.matchShortcutOptions.map((item) => item.value),
+    [15, 23, 30]
+  );
+  assert.equal(tenRequestedFourCourts.editM, 23);
+});
+
 test('settings view model preserves non-preset saved totals as current custom state', () => {
   const state = viewModel.buildSettingsViewState({
     _id: 't_custom',

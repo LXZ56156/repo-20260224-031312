@@ -14,7 +14,7 @@ const templateLibrary = require('../cloudfunctions/startTournament/rotation.temp
 const fixedPair = require('../miniprogram/core/fixedPair');
 
 const OUTPUT_PATH = path.resolve(__dirname, '../docs/scheduler-full-audit.md');
-const COVERAGE_APPENDIX_KEYS = ['6p-1c', '7p-1c', '8p-2c'];
+const COVERAGE_APPENDIX_KEYS = ['4p-1c', '5p-1c', '6p-1c', '7p-1c', '8p-1c', '8p-2c', '9p-1c', '9p-2c', '10p-1c', '10p-2c'];
 const ROTATION_PREFIX_TRACKED_KEYS = ['6p-1c', '9p-2c', '17p-1c', '24p-2c'];
 const WORST_CASE_LIMIT = 5;
 const OBSERVATION_LIMIT = 5;
@@ -25,9 +25,16 @@ const EQUAL_REPEAT_BASELINE_SCOPES = new Set([
   '8v8/16m/2c'
 ]);
 const COVERAGE_EXPLANATIONS = {
-  '6p-1c': '最早 coverage 里程碑已经落在 8 场，后续两档继续沿长赛事带上移，避免回落到过短赛程。',
-  '7p-1c': '要纳入最早 coverage=11，同时保持高质量前缀，三档会整体偏长。',
-  '8p-2c': 'coverage=14 落在 8 和 16 之间，规则会用 14 替换中档，得到 8/14/16。'
+  '4p-1c': '3 场完成 6 对搭档覆盖，作为默认均衡档。',
+  '5p-1c': '5 场完成 10 对搭档覆盖，作为默认均衡档。',
+  '6p-1c': '8 场完成 15 对搭档覆盖，作为默认均衡档，后续两档沿长赛事带加量。',
+  '7p-1c': '11 场完成 21 对搭档覆盖，作为默认均衡档。',
+  '8p-1c': '对标 8p-2c，14 场完成 28 对搭档覆盖，作为默认均衡档。',
+  '8p-2c': '14 场完成 28 对搭档覆盖，作为默认均衡档。',
+  '9p-1c': '18 场完成 36 对搭档覆盖，作为默认均衡档。',
+  '9p-2c': '18 场完成 36 对搭档覆盖，作为默认均衡档。',
+  '10p-1c': '23 场完成 45 对搭档覆盖，作为默认均衡档；30 场为加量档。',
+  '10p-2c': '23 场完成 45 对搭档覆盖，作为默认均衡档；30 场为加量档。'
 };
 
 function formatNumber(value) {

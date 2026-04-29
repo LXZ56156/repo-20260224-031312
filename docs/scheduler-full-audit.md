@@ -1,9 +1,9 @@
 # 排阵算法全量审计与推荐场数报告
 
-- 生成时间: `2026-04-15T09:00:15.399Z`
-- 当前 commit: `f8aa9e1`
+- 生成时间: `2026-04-29T08:38:41.236Z`
+- 当前 commit: `f114d20`
 - 工作区脏状态: `dirty`
-- 矩阵场景数: `960`
+- 矩阵场景数: `990`
 - 代表性场景数: `16`
 - matrixWarnings: `0`
 - representativeWarnings: `0`
@@ -14,15 +14,15 @@
 
 | mode | scenarios | warnings | failures | avgElapsedMs | maxElapsedMs | guardedRatio | greedyFallbackRatio |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| multi_rotate | 912 | 0 | 0 | 2 | 500 | 4/912 (0%) | 0/912 (0%) |
-| squad_doubles | 48 | 0 | 0 | 797 | 2100 | 3/48 (6%) | 0/48 (0%) |
+| multi_rotate | 942 | 0 | 0 | 2 | 479 | 4/942 (0%) | 0/942 (0%) |
+| squad_doubles | 48 | 0 | 0 | 732 | 2101 | 3/48 (6%) | 0/48 (0%) |
 
 ## multi_rotate 审计
 
 | group | scenarios | warnings | failures | avgElapsedMs | maxElapsedMs | guardedRatio | greedyFallbackRatio | maxPlaySpread | maxConsecutivePlay | maxPartnerRepeats | maxOpponentRepeats | maxRestCountSpread | minPartnerCoveragePct | minOpponentCoveragePct |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| template matrix | 908 | 0 | 0 | 1 | 11 | 0/908 (0%) | 0/908 (0%) | 1 | 8 | 21 | 57 | 1 | 1 | 1 |
-| longtail matrix | 4 | 0 | 0 | 295 | 500 | 4/4 (100%) | 0/4 (0%) | 1 | 4 | 3 | 47 | 1 | 34 | 68 |
+| template matrix | 938 | 0 | 0 | 1 | 10 | 0/938 (0%) | 0/938 (0%) | 1 | 8 | 21 | 75 | 1 | 1 | 1 |
+| longtail matrix | 4 | 0 | 0 | 287 | 479 | 4/4 (100%) | 0/4 (0%) | 1 | 4 | 17 | 79 | 1 | 34 | 68 |
 
 ### 最差 5 个 Case
 
@@ -31,8 +31,8 @@
 | rotation template 6p-1c@18 | 0 | 0 | 0 | 4 | 0 | 0 | 21 | 57 | false | template | 1 |
 | rotation template 5p-1c@15 | 0 | 0 | 0 | 4 | 0 | 0 | 20 | 50 | false | template | 0 |
 | rotation template 6p-1c@17 | 0 | 1 | 0 | 4 | 0 | 0 | 19 | 53 | false | template | 0 |
-| rotation template 5p-1c@14 | 0 | 1 | 0 | 4 | 0 | 0 | 18 | 46 | false | template | 0 |
-| rotation template 6p-1c@16 | 0 | 1 | 0 | 4 | 0 | 0 | 17 | 49 | false | template | 0 |
+| rotation template 5p-1c@14 | 0 | 1 | 0 | 4 | 0 | 0 | 18 | 46 | false | template | 1 |
+| rotation longtail 10p/31m/2c budget=200 | 0 | 1 | 0 | 4 | 0 | 0 | 17 | 79 | true | beam-guarded | 231 |
 
 ### 最差 Unique Case
 
@@ -40,9 +40,9 @@
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | rotation template 6p-1c@18 | 0 | 0 | 0 | 4 | 0 | 0 | 21 | 57 | false | template | 1 |
 | rotation template 5p-1c@15 | 0 | 0 | 0 | 4 | 0 | 0 | 20 | 50 | false | template | 0 |
-| rotation template 7p-1c@18 | 0 | 1 | 0 | 2 | 0 | 0 | 15 | 51 | false | template | 1 |
-| rotation template 15p-1c@22 | 0 | 1 | 0 | 1 | 0 | 0 | 5 | 44 | false | template | 2 |
-| rotation template 8p-2c@16 | 0 | 0 | 0 | 8 | 0 | 0 | 4 | 36 | false | template | 1 |
+| rotation longtail 10p/31m/2c budget=200 | 0 | 1 | 0 | 4 | 0 | 0 | 17 | 79 | true | beam-guarded | 231 |
+| rotation template 10p-2c@30 | 0 | 0 | 0 | 4 | 0 | 0 | 15 | 75 | false | template | 1 |
+| rotation template 10p-1c@30 | 0 | 0 | 0 | 2 | 0 | 0 | 15 | 75 | false | template | 1 |
 
 ### 评测观察项
 
@@ -52,29 +52,29 @@
 | rotation template 5p-1c@15 | partnerRepeats=20, opponentRepeats=50 | 0 | 0 | 4 | 0 | 0 | 20 | 50 | template |
 | rotation template 6p-1c@17 | partnerRepeats=19, opponentRepeats=53 | 1 | 0 | 4 | 0 | 0 | 19 | 53 | template |
 | rotation template 5p-1c@14 | partnerRepeats=18, opponentRepeats=46 | 1 | 0 | 4 | 0 | 0 | 18 | 46 | template |
-| rotation template 6p-1c@16 | partnerRepeats=17, opponentRepeats=49 | 1 | 0 | 4 | 0 | 0 | 17 | 49 | template |
+| rotation longtail 10p/31m/2c budget=200 | timeout-guard, guarded-profile, partnerRepeats=17, opponentRepeats=79 | 1 | 0 | 4 | 0 | 0 | 17 | 79 | beam-guarded |
 
 ### 可接受例外
 
 | type | scenario | scope | baseline | maxConsecutivePlay | note |
 | --- | --- | --- | --- | --- | --- |
-| coverage-first | 6p-1c | 默认档 8/13/18；审计例外区间 5-18 场 | 3 | 4 | 为保 15 对搭档覆盖与当前 repeat 水平，当前模板允许 maxConsecutivePlay=4，暂不降档。 |
+| coverage-first | 6p-1c | coverage-first 默认档 8；审计例外区间 5-18 场 | 3 | 4 | 8 场完成 15 对搭档覆盖；为保持当前 repeat 水平，模板允许 maxConsecutivePlay=4。 |
 | coverage-first | 9p-2c | balanced=18；审计例外区间 17-18 场 | 8 | 8 | 保留 balancedMatch=18，以维持 18 个 unique exact matchups 与 0 partner repeat。 |
 
 ### 代表性场景
 
 | scenario | status | elapsedMs | maxElapsedMs | executionProfile | timeoutGuardTriggered | fallbackReason | playSpread | maxConsecutivePlay | uniqueExactMatchupCount | exactRepeatCount | partnerRepeats | opponentRepeats | restCountSpread |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| rotation 6p/12m/1c | pass | 6 | 300 | template | false |  | 0 | 3 | 12 | 0 | 9 | 33 | 0 |
+| rotation 6p/12m/1c | pass | 9 | 300 | template | false |  | 0 | 3 | 12 | 0 | 9 | 33 | 0 |
 | rotation 8p/8m/2c | pass | 1 | 300 | template | false |  | 0 | 4 | 8 | 0 | 0 | 4 | 0 |
 | rotation 9p/12m/1c | pass | 6 | 300 | template | false |  | 1 | 1 | 12 | 0 | 0 | 16 | 1 |
 | rotation 10p/18m/2c | pass | 1 | 300 | template | false |  | 1 | 4 | 18 | 0 | 0 | 28 | 1 |
-| rotation 12p/12m/2c | pass | 0 | 300 | template | false |  | 0 | 2 | 12 | 0 | 0 | 0 | 0 |
-| rotation 14p/12m/4c | pass | 0 | 300 | template | false |  | 1 | 4 | 12 | 0 | 0 | 0 | 0 |
+| rotation 12p/12m/2c | pass | 1 | 300 | template | false |  | 0 | 2 | 12 | 0 | 0 | 0 | 0 |
+| rotation 14p/12m/4c | pass | 1 | 300 | template | false |  | 1 | 4 | 12 | 0 | 0 | 0 | 1 |
 | rotation 16p/12m/4c | pass | 0 | 300 | template | false |  | 0 | 3 | 12 | 0 | 0 | 0 | 0 |
-| rotation 20p/12m/1c | pass | 7 | 300 | template | false |  | 1 | 1 | 12 | 0 | 0 | 11 | 1 |
-| rotation 24p/12m/2c | pass | 3 | 300 | template | false |  | 0 | 1 | 12 | 0 | 0 | 0 | 0 |
-| rotation 10p/23m/2c budget=300 | pass | 223 | 1500 | beam-guarded | true | guarded_greedy_completion | 1 | 4 | 23 | 0 | 3 | 47 | 1 |
+| rotation 20p/12m/1c | pass | 8 | 300 | template | false |  | 1 | 1 | 12 | 0 | 0 | 11 | 1 |
+| rotation 24p/12m/2c | pass | 2 | 300 | template | false |  | 0 | 1 | 12 | 0 | 0 | 0 | 0 |
+| rotation 10p/23m/2c budget=300 | pass | 1 | 1500 | template | false |  | 1 | 4 | 23 | 0 | 1 | 49 | 1 |
 
 ### 失败项
 
@@ -98,28 +98,28 @@ none
 
 | group | scenarios | warnings | failures | avgElapsedMs | maxElapsedMs | guardedRatio | greedyFallbackRatio | maxPlaySpread | maxConsecutivePlay | maxPartnerRepeats | maxOpponentRepeats | maxRestCountSpread | minPartnerCoveragePct | minOpponentCoveragePct |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| equal matrix | 45 | 0 | 0 | 765 | 2100 | 3/45 (7%) | 0/45 (0%) | 1 | 6 | 12 | 36 | 1 | 7 | 12 |
-| uneven matrix | 3 | 0 | 0 | 1276 | 1701 | 0/3 (0%) | 0/3 (0%) | 2 | 4 | 15 | 28 | 2 | 56 | 100 |
+| equal matrix | 45 | 0 | 0 | 699 | 2101 | 3/45 (7%) | 0/45 (0%) | 1 | 6 | 12 | 36 | 1 | 7 | 12 |
+| uneven matrix | 3 | 0 | 0 | 1217 | 1701 | 0/3 (0%) | 0/3 (0%) | 2 | 4 | 15 | 28 | 2 | 56 | 100 |
 
 ### 最差 5 个 Case
 
 | scenario | coverageLoss | playSpread | playSpreadExcess | maxConsecutivePlay | exactRepeatCount | exactRepeatExcess | partnerRepeats | opponentRepeats | partnerRepeatExcess | opponentRepeatExcess | timeoutGuardTriggered | executionProfile | elapsedMs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| squad equal 8v8/12m/2c | 0 | 0 | 0 | 1 | 0 | 0 | 8 | 16 | 8 | 16 | false | beam-quality | 1702 |
-| squad equal 8v8/18m/3c | 0 | 1 | 0 | 3 | 0 | 0 | 7 | 13 | 7 | 5 | true | beam-guarded | 1746 |
-| squad uneven 5v4/12m/1c | 0 | 2 | 0 | 1 | 0 | 0 | 15 | 28 | 7 | 0 | false | beam-quality | 1700 |
-| squad equal 6v6/9m/3c | 0 | 0 | 0 | 3 | 0 | 0 | 6 | 0 | 6 | 0 | false | beam-quality | 8 |
-| squad equal 10v10/24m/4c | 0 | 1 | 0 | 4 | 0 | 0 | 4 | 6 | 4 | 6 | true | beam-guarded | 2062 |
+| squad equal 8v8/12m/2c | 0 | 0 | 0 | 1 | 0 | 0 | 8 | 16 | 8 | 16 | false | beam-quality | 1701 |
+| squad equal 8v8/18m/3c | 0 | 1 | 0 | 3 | 0 | 0 | 7 | 13 | 7 | 5 | true | beam-guarded | 1737 |
+| squad uneven 5v4/12m/1c | 0 | 2 | 0 | 1 | 0 | 0 | 15 | 28 | 7 | 0 | false | beam-quality | 1594 |
+| squad equal 6v6/9m/3c | 0 | 0 | 0 | 3 | 0 | 0 | 6 | 0 | 6 | 0 | false | beam-quality | 7 |
+| squad equal 10v10/24m/4c | 0 | 1 | 0 | 4 | 0 | 0 | 4 | 6 | 4 | 6 | true | beam-guarded | 2019 |
 
 ### 最差 Unique Case
 
 | scenario | coverageLoss | playSpread | playSpreadExcess | maxConsecutivePlay | exactRepeatCount | exactRepeatExcess | partnerRepeats | opponentRepeats | partnerRepeatExcess | opponentRepeatExcess | timeoutGuardTriggered | executionProfile | elapsedMs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| squad equal 8v8/12m/2c | 0 | 0 | 0 | 1 | 0 | 0 | 8 | 16 | 8 | 16 | false | beam-quality | 1702 |
-| squad equal 8v8/18m/3c | 0 | 1 | 0 | 3 | 0 | 0 | 7 | 13 | 7 | 5 | true | beam-guarded | 1746 |
-| squad uneven 5v4/12m/1c | 0 | 2 | 0 | 1 | 0 | 0 | 15 | 28 | 7 | 0 | false | beam-quality | 1700 |
-| squad equal 6v6/9m/3c | 0 | 0 | 0 | 3 | 0 | 0 | 6 | 0 | 6 | 0 | false | beam-quality | 8 |
-| squad equal 10v10/24m/4c | 0 | 1 | 0 | 4 | 0 | 0 | 4 | 6 | 4 | 6 | true | beam-guarded | 2062 |
+| squad equal 8v8/12m/2c | 0 | 0 | 0 | 1 | 0 | 0 | 8 | 16 | 8 | 16 | false | beam-quality | 1701 |
+| squad equal 8v8/18m/3c | 0 | 1 | 0 | 3 | 0 | 0 | 7 | 13 | 7 | 5 | true | beam-guarded | 1737 |
+| squad uneven 5v4/12m/1c | 0 | 2 | 0 | 1 | 0 | 0 | 15 | 28 | 7 | 0 | false | beam-quality | 1594 |
+| squad equal 6v6/9m/3c | 0 | 0 | 0 | 3 | 0 | 0 | 6 | 0 | 6 | 0 | false | beam-quality | 7 |
+| squad equal 10v10/24m/4c | 0 | 1 | 0 | 4 | 0 | 0 | 4 | 6 | 4 | 6 | true | beam-guarded | 2019 |
 
 ### 评测观察项
 
@@ -149,11 +149,11 @@ none
 | scenario | status | elapsedMs | maxElapsedMs | executionProfile | timeoutGuardTriggered | fallbackReason | playSpread | maxConsecutivePlay | uniqueExactMatchupCount | exactRepeatCount | partnerRepeats | opponentRepeats | restCountSpread |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | squad 4v4/12m/1c | pass | 0 | 2500 | beam-quality | false |  | 0 | 2 | 12 | 0 | 12 | 32 | 0 |
-| squad 5v5/12m/2c | pass | 1701 | 2500 | beam-quality | false |  | 1 | 4 | 12 | 0 | 8 | 23 | 1 |
+| squad 5v5/12m/2c | pass | 1700 | 2500 | beam-quality | false |  | 1 | 4 | 12 | 0 | 8 | 23 | 1 |
 | squad 6v6/12m/2c | pass | 1701 | 6000 | beam-quality | false |  | 0 | 2 | 12 | 0 | 0 | 12 | 0 |
 | squad 8v8/16m/2c | pass | 0 | 6000 | beam-quality | false |  | 0 | 1 | 16 | 0 | 8 | 32 | 0 |
 | squad 10v10/20m/4c | pass | 0 | 6000 | beam-quality | false |  | 0 | 4 | 20 | 0 | 3 | 0 | 0 |
-| squad 3v4/9m/1c | pass | 371 | 2500 | beam-quality | false |  | 2 | 2 | 9 | 0 | 9 | 24 | 2 |
+| squad 3v4/9m/1c | pass | 364 | 2500 | beam-quality | false |  | 2 | 2 | 9 | 0 | 9 | 24 | 2 |
 
 ### 失败项
 
@@ -181,16 +181,16 @@ none
 
 | case | players | effectiveCourts | horizonMatches | presetMatches | balancedMatch | coverageMatch |
 | --- | --- | --- | --- | --- | --- | --- |
-| 4p-1c | 4 | 1 | 3 | 1 / 2 / 3 | 2 | 3 |
-| 5p-1c | 5 | 1 | 15 | 5 / 10 / 15 | 10 | 5 |
-| 6p-1c | 6 | 1 | 18 | 8 / 13 / 18 | 13 | 8 |
-| 7p-1c | 7 | 1 | 18 | 11 / 16 / 18 | 16 | 11 |
-| 8p-1c | 8 | 1 | 12 | 4 / 6 / 8 | 6 |  |
+| 4p-1c | 4 | 1 | 3 | 1 / 2 / 3 | 3 | 3 |
+| 5p-1c | 5 | 1 | 15 | 5 / 10 / 15 | 5 | 5 |
+| 6p-1c | 6 | 1 | 18 | 8 / 13 / 18 | 8 | 8 |
+| 7p-1c | 7 | 1 | 18 | 11 / 16 / 18 | 11 | 11 |
+| 8p-1c | 8 | 1 | 16 | 8 / 14 / 16 | 14 | 14 |
 | 8p-2c | 8 | 2 | 16 | 8 / 14 / 16 | 14 | 14 |
 | 9p-1c | 9 | 1 | 18 | 8 / 9 / 18 | 18 | 18 |
 | 9p-2c | 9 | 2 | 18 | 9 / 10 / 18 | 18 | 18 |
-| 10p-1c | 10 | 1 | 12 | 5 / 8 / 10 | 10 |  |
-| 10p-2c | 10 | 2 | 22 | 5 / 10 / 15 | 10 |  |
+| 10p-1c | 10 | 1 | 30 | 15 / 23 / 30 | 23 | 23 |
+| 10p-2c | 10 | 2 | 30 | 15 / 23 / 30 | 23 | 23 |
 | 11p-1c | 11 | 1 | 12 | 7 / 9 / 11 | 7 |  |
 | 11p-2c | 11 | 2 | 12 | 8 / 10 / 11 | 8 |  |
 | 12p-1c | 12 | 1 | 12 | 6 / 9 / 12 | 9 |  |
@@ -246,15 +246,22 @@ none
 
 | case | presetMatches | balancedMatch | coverageMatch | note |
 | --- | --- | --- | --- | --- |
-| 6p-1c | 8 / 13 / 18 | 13 | 8 | 最早 coverage 里程碑已经落在 8 场，后续两档继续沿长赛事带上移，避免回落到过短赛程。 |
-| 7p-1c | 11 / 16 / 18 | 16 | 11 | 要纳入最早 coverage=11，同时保持高质量前缀，三档会整体偏长。 |
-| 8p-2c | 8 / 14 / 16 | 14 | 14 | coverage=14 落在 8 和 16 之间，规则会用 14 替换中档，得到 8/14/16。 |
+| 4p-1c | 1 / 2 / 3 | 3 | 3 | 3 场完成 6 对搭档覆盖，作为默认均衡档。 |
+| 5p-1c | 5 / 10 / 15 | 5 | 5 | 5 场完成 10 对搭档覆盖，作为默认均衡档。 |
+| 6p-1c | 8 / 13 / 18 | 8 | 8 | 8 场完成 15 对搭档覆盖，作为默认均衡档，后续两档沿长赛事带加量。 |
+| 7p-1c | 11 / 16 / 18 | 11 | 11 | 11 场完成 21 对搭档覆盖，作为默认均衡档。 |
+| 8p-1c | 8 / 14 / 16 | 14 | 14 | 对标 8p-2c，14 场完成 28 对搭档覆盖，作为默认均衡档。 |
+| 8p-2c | 8 / 14 / 16 | 14 | 14 | 14 场完成 28 对搭档覆盖，作为默认均衡档。 |
+| 9p-1c | 8 / 9 / 18 | 18 | 18 | 18 场完成 36 对搭档覆盖，作为默认均衡档。 |
+| 9p-2c | 9 / 10 / 18 | 18 | 18 | 18 场完成 36 对搭档覆盖，作为默认均衡档。 |
+| 10p-1c | 15 / 23 / 30 | 23 | 23 | 23 场完成 45 对搭档覆盖，作为默认均衡档；30 场为加量档。 |
+| 10p-2c | 15 / 23 / 30 | 23 | 23 | 23 场完成 45 对搭档覆盖，作为默认均衡档；30 场为加量档。 |
 
 ## 附录 C：coverage-first 例外
 
 | mode | case | scope | structureLimit | actualMaxConsecutivePlay | executionProfile | fallbackReason | note |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| multi_rotate | 6p-1c | 默认档 8/13/18；审计例外区间 5-18 场 | 3 | 4 | template |  | 为保 15 对搭档覆盖与当前 repeat 水平，当前模板允许 maxConsecutivePlay=4，暂不降档。 |
+| multi_rotate | 6p-1c | coverage-first 默认档 8；审计例外区间 5-18 场 | 3 | 4 | template |  | 8 场完成 15 对搭档覆盖；为保持当前 repeat 水平，模板允许 maxConsecutivePlay=4。 |
 | multi_rotate | 9p-2c | balanced=18；审计例外区间 17-18 场 | 8 | 8 | template |  | 保留 balancedMatch=18，以维持 18 个 unique exact matchups 与 0 partner repeat。 |
 | squad_doubles | 10v10/20m/4c | 20 场 / 4 片 / 5 轮 | 3 | 4 | beam-quality |  | 当前固定轮休 + 轮内 deterministic 配对优先保 playSpread=0 与完整 20 场输出，maxConsecutivePlay 仍高于结构下限 3。 |
 
@@ -270,15 +277,15 @@ none
 | multi_rotate | rotation 9p-2c/16m | 1, 7 | 1-1 | 8-8 | 16-16 | 0-0 | 29-29 | 0-0 | 1 | template | template:2 |
 | multi_rotate | rotation 9p-2c/17m | 1, 7 | 1-1 | 8-8 | 17-17 | 0-0 | 32-32 | 0-0 | 1 | template | template:2 |
 | multi_rotate | rotation 9p-2c/18m | 1, 7 | 0-0 | 8-8 | 18-18 | 0-0 | 36-36 | 0-0 | 1 | template | template:2 |
-| multi_rotate | rotation 10p/23m/2c budget=200 | 1, 17 | 1-1 | 4-4 | 23-23 | 1-4 | 47-47 | 220-222 | 1 | beam-guarded | beam-guarded:2 |
-| multi_rotate | rotation 11p/14m/2c budget=800 | 1, 17 | 1-1 | 3-3 | 14-14 | 0-0 | 8-9 | 215-221 | 1 | beam-guarded | beam-guarded:2 |
-| multi_rotate | rotation 13p/16m/2c budget=800 | 1, 17 | 1-1 | 2-2 | 16-16 | 0-0 | 6-8 | 226-230 | 1 | beam-guarded | beam-guarded:2 |
-| multi_rotate | rotation 15p/18m/3c budget=1200 | 1, 17 | 1-1 | 4-4 | 18-18 | 0-0 | 1-2 | 479-498 | 17 | beam-guarded | beam-guarded:2 |
-| squad_doubles | squad 3v4/9m/1c | 1, 17 | 2-2 | 2-2 | 9-9 | 9-9 | 24-24 | 381-388 | 17 | beam-quality | beam-quality:2 |
-| squad_doubles | squad 5v4/12m/1c | 1, 17 | 2-2 | 1-1 | 12-12 | 15-15 | 28-28 | 1635-1700 | 17 | beam-quality | beam-quality:2 |
-| squad_doubles | squad 6v5/12m/2c | 1, 17 | 1-1 | 4-4 | 12-12 | 4-5 | 18-18 | 1701-1701 | 1 | beam-quality | beam-quality:2 |
+| multi_rotate | rotation 10p/31m/2c budget=200 | 1, 17 | 1-1 | 4-5 | 31-31 | 17-17 | 79-79 | 227-228 | 17 | beam-guarded | beam-guarded:2 |
+| multi_rotate | rotation 11p/14m/2c budget=800 | 1, 17 | 1-1 | 3-3 | 14-14 | 0-0 | 8-9 | 212-213 | 1 | beam-guarded | beam-guarded:2 |
+| multi_rotate | rotation 13p/16m/2c budget=800 | 1, 17 | 1-1 | 2-2 | 16-16 | 0-0 | 6-8 | 225-226 | 1 | beam-guarded | beam-guarded:2 |
+| multi_rotate | rotation 15p/18m/3c budget=1200 | 1, 17 | 1-1 | 4-4 | 18-18 | 0-0 | 1-2 | 472-478 | 17 | beam-guarded | beam-guarded:2 |
+| squad_doubles | squad 3v4/9m/1c | 1, 17 | 2-2 | 2-2 | 9-9 | 9-9 | 24-24 | 352-353 | 1 | beam-quality | beam-quality:2 |
+| squad_doubles | squad 5v4/12m/1c | 1, 17 | 2-2 | 1-1 | 12-12 | 15-15 | 28-28 | 1528-1606 | 17 | beam-quality | beam-quality:2 |
+| squad_doubles | squad 6v5/12m/2c | 1, 17 | 1-1 | 4-4 | 12-12 | 4-5 | 18-18 | 1700-1701 | 1 | beam-quality | beam-quality:2 |
 | squad_doubles | squad 7v7/18m/3c | 1, 2 | 1-1 | 6-6 | 18-18 | 0-0 | 23-23 | 2100-2100 | 1 | beam-quality | beam-quality:2 |
-| squad_doubles | squad 9v9/24m/4c | 1, 2 | 1-1 | 6-6 | 24-24 | 4-4 | 15-16 | 2040-2046 | 2 | beam-guarded | beam-guarded:2 |
+| squad_doubles | squad 9v9/24m/4c | 1, 2 | 1-1 | 6-6 | 24-24 | 4-4 | 15-16 | 2009-2073 | 2 | beam-guarded | beam-guarded:2 |
 | squad_doubles | squad 10v10/20m/4c | 1, 2 | 0-0 | 4-4 | 20-20 | 3-3 | 0-0 | 0-0 | 1 | beam-quality | beam-quality:2 |
 
 ## 附录 E：multi_rotate 前缀质量曲线
@@ -287,7 +294,6 @@ none
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 6p-1c | 1 | 1 | 1 | 1 | 0 | 0 | 13 | 27 |
 | 6p-1c | 8 | 1 | 3 | 8 | 1 | 17 | 100 | 100 |
-| 6p-1c | 13 | 1 | 4 | 13 | 11 | 37 | 100 | 100 |
 | 6p-1c | 18 | 0 | 4 | 18 | 21 | 57 | 100 | 100 |
 | 9p-2c | 1 | 1 | 1 | 1 | 0 | 0 | 6 | 11 |
 | 9p-2c | 18 | 0 | 8 | 18 | 0 | 36 | 100 | 100 |

@@ -230,7 +230,7 @@ test('scheduler exposes configured extended stability scenarios for both modes',
 
   assert.ok(rows.length >= 10);
   assert.deepEqual([...modeSet].sort(), ['multi_rotate', 'squad_doubles']);
-  assert.ok(rows.some((row) => row.label === 'rotation 10p/23m/2c budget=200'));
+  assert.ok(rows.some((row) => row.label === 'rotation 10p/31m/2c budget=200'));
   assert.ok(rows.some((row) => row.label === 'rotation 8p-2c/13m'));
   assert.ok(rows.some((row) => row.label === 'rotation 9p-2c/18m'));
   assert.ok(rows.some((row) => row.label === 'squad 3v4/9m/1c'));

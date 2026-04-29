@@ -36,6 +36,12 @@ const HANDCRAFTED_CASES = [
   { players: 7, courts: 1, horizonMatches: 18, seed: 19 }
 ];
 
+const DERIVED_SINGLE_COURT_CASES = Object.freeze({
+  '8p-1c': Object.freeze({ sourceKey: '8p-2c', sourceCourts: 2, horizonMatches: 16 }),
+  '10p-1c': Object.freeze({ sourceKey: '10p-2c', sourceCourts: 2, horizonMatches: 30 })
+});
+const FORCE_REBUILD_CASES = new Set(['10p-2c']);
+
 function range(start, end) {
   return Array.from({ length: end - start + 1 }, (_, index) => start + index);
 }
@@ -203,6 +209,21 @@ function mapRoundsToTemplate(rounds) {
   })).filter((round) => round.matches.length > 0);
 }
 
+function flattenRoundsToSingleMatchRounds(rounds) {
+  const flattened = [];
+  for (const round of Array.isArray(rounds) ? rounds : []) {
+    for (const match of Array.isArray(round && round.matches) ? round.matches : []) {
+      flattened.push({
+        matches: [{
+          teamA: (Array.isArray(match && match.teamA) ? match.teamA : []).map((id) => Number(id)),
+          teamB: (Array.isArray(match && match.teamB) ? match.teamB : []).map((id) => Number(id))
+        }]
+      });
+    }
+  }
+  return flattened;
+}
+
 function serializeTemplateRounds(rounds) {
   return JSON.stringify((Array.isArray(rounds) ? rounds : []).map((round) => ({
     matches: (Array.isArray(round && round.matches) ? round.matches : []).map((match) => ({
@@ -340,6 +361,15 @@ function findValidatedExistingCase(key, players) {
   return caseData;
 }
 
+function findExistingCaseRaw(key, minimumHorizon = 0) {
+  const caseData = existingLibrary && existingLibrary.cases ? existingLibrary.cases[key] : null;
+  if (!caseData) return null;
+  const horizonMatches = Number(caseData.horizonMatches) || 0;
+  const requiredHorizon = Math.max(1, Number(minimumHorizon) || horizonMatches);
+  if (horizonMatches < requiredHorizon) return null;
+  return caseData;
+}
+
 function buildSearchUpperBound(players, courts) {
   if (courts <= 2) {
     if (players >= 20 && courts === 2) return 22;
@@ -359,6 +389,7 @@ function candidateHorizonsFor(caseSpec) {
   if (overrideHorizon > 0) return [overrideHorizon];
   const existingCase = findValidatedExistingCase(key, players);
   const existingHorizon = Number(existingCase && existingCase.horizonMatches) || 0;
+  if (existingHorizon > 0) return [existingHorizon];
   const recommendation = buildMatchCountRecommendations({
     mode: 'multi_rotate',
     playersCount: players,
@@ -469,6 +500,52 @@ function buildPrefixOnlyTemplateCase(caseSpec, players, courts, horizonMatches, 
     key: buildTemplateKey(players, courts),
     players,
     courts,
+    horizonMatches,
+    totalUniqueMatchups: totalUniqueMatchups(players),
+    variants,
+    bestPrefixByMatchCount,
+    prefixMetrics
+  };
+}
+
+function deriveSingleCourtTemplateCase(caseSpec, sourceCase, targetHorizon) {
+  const players = Math.max(4, Number(caseSpec.players) || 4);
+  const horizonMatches = Math.max(1, Number(targetHorizon) || Number(sourceCase && sourceCase.horizonMatches) || 1);
+  const sourceHorizon = Number(sourceCase && sourceCase.horizonMatches) || 0;
+  if (!sourceCase || sourceHorizon < horizonMatches) return null;
+
+  const sourceVariants = Array.isArray(sourceCase.variants) ? sourceCase.variants : [];
+  const sourceVariantMap = new Map(sourceVariants.map((variant) => [String(variant && variant.id || ''), variant]));
+  const variants = [];
+  const variantBySerializedRounds = new Map();
+  const bestPrefixByMatchCount = {};
+  const prefixMetrics = {};
+
+  for (let matches = 1; matches <= horizonMatches; matches += 1) {
+    const sourceVariantId = String(
+      sourceCase.bestPrefixByMatchCount
+      && sourceCase.bestPrefixByMatchCount[String(matches)]
+      || 'main'
+    );
+    const sourceVariant = sourceVariantMap.get(sourceVariantId) || sourceVariants[0];
+    const flattenedRounds = flattenRoundsToSingleMatchRounds(sourceVariant && sourceVariant.rounds);
+    const metrics = evaluateTemplateRounds(flattenedRounds, players, matches);
+    if (
+      metrics.matchCount !== matches
+      || metrics.uniqueExactMatchupCount !== matches
+      || metrics.playSpread !== theoreticalPlaySpread(players, matches)
+    ) {
+      return null;
+    }
+    const variantId = registerVariant(variants, variantBySerializedRounds, flattenedRounds);
+    bestPrefixByMatchCount[String(matches)] = variantId;
+    prefixMetrics[String(matches)] = buildPrefixMetricsEntryFromRounds(flattenedRounds, players, matches);
+  }
+
+  return {
+    key: buildTemplateKey(players, 1),
+    players,
+    courts: 1,
     horizonMatches,
     totalUniqueMatchups: totalUniqueMatchups(players),
     variants,
@@ -653,6 +730,12 @@ function resolveHandcraftedCase(caseSpec) {
 function resolveAutoCase(caseSpec) {
   const normalized = normalizeCaseSpec(caseSpec);
   const key = buildTemplateKey(normalized.players, normalized.courts);
+  const overrideHorizon = Number(MATCH_OPTION_OVERRIDES[key] && MATCH_OPTION_OVERRIDES[key].horizonMatches) || 0;
+  const rawExisting = findExistingCaseRaw(key, FORCE_REBUILD_CASES.has(key) ? overrideHorizon : 0);
+  if (rawExisting && !FORCE_REBUILD_CASES.has(key)) {
+    logProgress(`reused ${key} @ ${rawExisting.horizonMatches}`);
+    return { key, caseData: rawExisting };
+  }
   const existingCase = findValidatedExistingCase(key, normalized.players);
   const candidateHorizons = candidateHorizonsFor(normalized);
 
@@ -691,17 +774,50 @@ function resolveAutoCase(caseSpec) {
 
 function resolveCases(wantedKeys = null) {
   const cases = {};
+  const resolving = new Set();
+
+  function resolveCase(caseSpec) {
+    const key = buildTemplateKey(caseSpec.players, caseSpec.courts);
+    if (cases[key]) return { key, caseData: cases[key] };
+    if (resolving.has(key)) {
+      throw new Error(`recursive template dependency for ${key}`);
+    }
+
+    resolving.add(key);
+    let resolved;
+    const derivedSpec = DERIVED_SINGLE_COURT_CASES[key];
+    if (derivedSpec) {
+      const sourceResolved = resolveCase({
+        players: caseSpec.players,
+        courts: derivedSpec.sourceCourts,
+        horizonMatches: derivedSpec.horizonMatches,
+        seed: Number(caseSpec.seed) || seedFor(caseSpec.players, derivedSpec.sourceCourts)
+      });
+      const caseData = deriveSingleCourtTemplateCase(caseSpec, sourceResolved.caseData, derivedSpec.horizonMatches);
+      if (!validateResolvedCase(caseData, caseSpec.players, derivedSpec.horizonMatches)) {
+        throw new Error(`derived template validation failed for ${key}`);
+      }
+      logProgress(`derived ${key} @ ${derivedSpec.horizonMatches} from ${derivedSpec.sourceKey}`);
+      resolved = { key, caseData };
+    } else if (HANDCRAFTED_CASES.some((item) => buildTemplateKey(item.players, item.courts) === key)) {
+      resolved = resolveHandcraftedCase(caseSpec);
+    } else {
+      resolved = resolveAutoCase(caseSpec);
+    }
+    cases[resolved.key] = resolved.caseData;
+    resolving.delete(key);
+    return resolved;
+  }
+
   for (const caseSpec of HANDCRAFTED_CASES) {
     const key = buildTemplateKey(caseSpec.players, caseSpec.courts);
     if (wantedKeys && !wantedKeys.has(key)) continue;
-    const resolved = resolveHandcraftedCase(caseSpec);
-    cases[resolved.key] = resolved.caseData;
+    resolveCase(caseSpec);
   }
   for (const caseSpec of buildBandCases()) {
     const key = buildTemplateKey(caseSpec.players, caseSpec.courts);
     if (wantedKeys && !wantedKeys.has(key)) continue;
-    const resolved = resolveAutoCase(caseSpec);
-    cases[resolved.key] = resolved.caseData;
+    resolveCase(caseSpec);
   }
   return cases;
 }

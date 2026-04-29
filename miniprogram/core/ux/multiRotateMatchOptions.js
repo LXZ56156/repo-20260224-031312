@@ -4,25 +4,25 @@ const MATCH_OPTION_LIBRARY = {
     "10p-1c": {
       "players": 10,
       "effectiveCourts": 1,
-      "horizonMatches": 12,
+      "horizonMatches": 30,
       "presetMatches": [
-        5,
-        8,
-        10
+        15,
+        23,
+        30
       ],
-      "balancedMatch": 10,
+      "balancedMatch": 23,
       "supportsAdvancedCustom": true
     },
     "10p-2c": {
       "players": 10,
       "effectiveCourts": 2,
-      "horizonMatches": 22,
+      "horizonMatches": 30,
       "presetMatches": [
-        5,
-        10,
-        15
+        15,
+        23,
+        30
       ],
-      "balancedMatch": 10,
+      "balancedMatch": 23,
       "supportsAdvancedCustom": true
     },
     "11p-1c": {
@@ -634,7 +634,7 @@ const MATCH_OPTION_LIBRARY = {
         2,
         3
       ],
-      "balancedMatch": 2,
+      "balancedMatch": 3,
       "supportsAdvancedCustom": true
     },
     "5p-1c": {
@@ -646,7 +646,7 @@ const MATCH_OPTION_LIBRARY = {
         10,
         15
       ],
-      "balancedMatch": 10,
+      "balancedMatch": 5,
       "supportsAdvancedCustom": true
     },
     "6p-1c": {
@@ -658,13 +658,13 @@ const MATCH_OPTION_LIBRARY = {
         13,
         18
       ],
-      "balancedMatch": 13,
+      "balancedMatch": 8,
       "coveragePriorityPresetMatches": [
         8,
         13,
         18
       ],
-      "coveragePriorityNote": "coverage-first: 为保 15 对搭档覆盖，6p-1c 默认档允许 maxConsecutivePlay=4，暂不降档。",
+      "coveragePriorityNote": "coverage-first: 8 场覆盖 15 对搭档，后续两档沿长赛事带加量。",
       "supportsAdvancedCustom": true
     },
     "7p-1c": {
@@ -676,19 +676,19 @@ const MATCH_OPTION_LIBRARY = {
         16,
         18
       ],
-      "balancedMatch": 16,
+      "balancedMatch": 11,
       "supportsAdvancedCustom": true
     },
     "8p-1c": {
       "players": 8,
       "effectiveCourts": 1,
-      "horizonMatches": 12,
+      "horizonMatches": 16,
       "presetMatches": [
-        4,
-        6,
-        8
+        8,
+        14,
+        16
       ],
-      "balancedMatch": 6,
+      "balancedMatch": 14,
       "supportsAdvancedCustom": true
     },
     "8p-2c": {

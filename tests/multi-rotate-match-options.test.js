@@ -2,6 +2,15 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const matchOptions = require('../miniprogram/core/ux/multiRotateMatchOptions');
+const templateLibrary = require('../cloudfunctions/startTournament/rotation.templates');
+
+function findCoverageMatch(caseData) {
+  const prefixMetrics = caseData && caseData.prefixMetrics ? caseData.prefixMetrics : {};
+  return Object.keys(prefixMetrics)
+    .map((value) => Number(value) || 0)
+    .filter((matches) => matches > 0 && prefixMetrics[String(matches)] && prefixMetrics[String(matches)].allPartnerPairsCovered === true)
+    .sort((left, right) => left - right)[0] || 0;
+}
 
 test('multi_rotate match options resolve representative preset cases', () => {
   assert.deepEqual(
@@ -9,9 +18,9 @@ test('multi_rotate match options resolve representative preset cases', () => {
     {
       players: 10,
       effectiveCourts: 2,
-      horizonMatches: 22,
-      presetMatches: [5, 10, 15],
-      balancedMatch: 10,
+      horizonMatches: 30,
+      presetMatches: [15, 23, 30],
+      balancedMatch: 23,
       supportsAdvancedCustom: true
     }
   );
@@ -150,6 +159,30 @@ test('multi_rotate match options fold partner-coverage milestones into sparse ca
   assert.equal(caseData && caseData.supportsAdvancedCustom, true);
 });
 
+test('multi_rotate match options use partner-coverage as balanced preset for up to 10 players', () => {
+  const expected = {
+    '4p-1c': { players: 4, courts: 1, presets: [1, 2, 3], balanced: 3 },
+    '5p-1c': { players: 5, courts: 1, presets: [5, 10, 15], balanced: 5 },
+    '6p-1c': { players: 6, courts: 1, presets: [8, 13, 18], balanced: 8 },
+    '7p-1c': { players: 7, courts: 1, presets: [11, 16, 18], balanced: 11 },
+    '8p-1c': { players: 8, courts: 1, presets: [8, 14, 16], balanced: 14 },
+    '8p-2c': { players: 8, courts: 2, presets: [8, 14, 16], balanced: 14 },
+    '9p-1c': { players: 9, courts: 1, presets: [8, 9, 18], balanced: 18 },
+    '9p-2c': { players: 9, courts: 2, presets: [9, 10, 18], balanced: 18 },
+    '10p-1c': { players: 10, courts: 1, presets: [15, 23, 30], balanced: 23 },
+    '10p-2c': { players: 10, courts: 2, presets: [15, 23, 30], balanced: 23 }
+  };
+
+  for (const [key, item] of Object.entries(expected)) {
+    const out = matchOptions.resolveMultiRotateMatchOptions(item.players, item.courts);
+    const coverageMatch = findCoverageMatch(templateLibrary.cases[key]);
+    assert.deepEqual(out && out.presetMatches, item.presets, key);
+    assert.equal(out && out.balancedMatch, item.balanced, key);
+    assert.equal(coverageMatch, item.balanced, `${key} coverage`);
+    assert.equal(out && out.presetMatches.includes(coverageMatch), true, `${key} preset coverage`);
+  }
+});
+
 test('multi_rotate match options normalize requested courts and return null when no case exists', () => {
   const normalized = matchOptions.resolveMultiRotateMatchOptions(14, 4);
   assert.equal(normalized && normalized.effectiveCourts, 3);
@@ -157,6 +190,10 @@ test('multi_rotate match options normalize requested courts and return null when
   assert.equal((normalized && normalized.presetMatches && normalized.presetMatches.length) || 0, 3);
 
   assert.equal(matchOptions.resolveMultiRotateMatchOptions(25, 1), null);
+
+  const tenPlayers = matchOptions.resolveMultiRotateMatchOptions(10, 4);
+  assert.equal(tenPlayers && tenPlayers.effectiveCourts, 2);
+  assert.deepEqual(tenPlayers && tenPlayers.presetMatches, [15, 23, 30]);
 });
 
 test('multi_rotate match options expose coverage-first notes for accepted exception cases', () => {

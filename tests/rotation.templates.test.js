@@ -40,6 +40,9 @@ const REQUIRED_CASES = [
 ];
 
 const SPECIAL_EXPECTED_HORIZONS = {
+  '8p-1c': 16,
+  '10p-1c': 30,
+  '10p-2c': 30,
   '16p-4c': 16,
   '17p-2c': 18,
   '17p-3c': 16,
@@ -149,11 +152,16 @@ test('templated cases expose partner coverage metadata for every prefix', () => 
 
 test('templated coverage milestones are flagged for representative cases', () => {
   const expectedCoverageMatches = {
+    '4p-1c': 3,
+    '5p-1c': 5,
     '6p-1c': 8,
     '7p-1c': 11,
+    '8p-1c': 14,
     '8p-2c': 14,
     '9p-1c': 18,
-    '9p-2c': 18
+    '9p-2c': 18,
+    '10p-1c': 23,
+    '10p-2c': 23
   };
 
   for (const [key, coverageMatch] of Object.entries(expectedCoverageMatches)) {

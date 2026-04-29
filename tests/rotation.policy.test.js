@@ -68,7 +68,7 @@ test('generateSchedule exposes template metadata for templated doubles cases', (
   assert.equal(meta.engineVersion, 'rotation-v3');
   assert.equal(meta.engine, 'template');
   assert.equal(meta.templateKey, '10p-2c');
-  assert.equal(meta.templateHorizon, 22);
+  assert.equal(meta.templateHorizon, 30);
   assert.equal(meta.playSpread, 1);
   assert.equal(meta.uniqueExactMatchupCount, 18);
   assert.equal(meta.fairnessVersion, 'v2');

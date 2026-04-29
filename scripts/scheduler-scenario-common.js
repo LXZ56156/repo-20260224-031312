@@ -15,8 +15,8 @@ const COVERAGE_FIRST_EXCEPTION_META = Object.freeze({
     id: 'rotation-6p-1c',
     mode: 'multi_rotate',
     case: '6p-1c',
-    scope: '默认档 8/13/18；审计例外区间 5-18 场',
-    note: '为保 15 对搭档覆盖与当前 repeat 水平，当前模板允许 maxConsecutivePlay=4，暂不降档。'
+    scope: 'coverage-first 默认档 8；审计例外区间 5-18 场',
+    note: '8 场完成 15 对搭档覆盖；为保持当前 repeat 水平，模板允许 maxConsecutivePlay=4。'
   }),
   'rotation-9p-2c': Object.freeze({
     id: 'rotation-9p-2c',
@@ -713,15 +713,15 @@ function buildRotationTemplateAuditScenarios() {
 function buildRotationLongTailAuditScenarios() {
   return [
     {
-      id: 'rotation-longtail-10p-23m-2c-budget200',
-      name: 'rotation longtail 10p/23m/2c budget=200',
+      id: 'rotation-longtail-10p-31m-2c-budget200',
+      name: 'rotation longtail 10p/31m/2c budget=200',
       mode: 'rotation',
       kind: 'rotation_longtail_audit',
-      caseKey: '10p-23m-2c-budget200',
+      caseKey: '10p-31m-2c-budget200',
       playersCount: 10,
       femaleCount: 5,
-      totalMatches: 23,
-      targetMatches: 23,
+      totalMatches: 31,
+      targetMatches: 31,
       courts: 2,
       options: { seed: 42, searchSeeds: 1, runtimeBudgetMs: 200 },
       maxElapsedMs: ROTATION_GUARDED_BOUND_MS

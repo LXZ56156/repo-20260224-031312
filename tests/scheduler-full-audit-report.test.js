@@ -62,9 +62,12 @@ test('scheduler full audit recommendation appendix covers all multi_rotate cases
 
   assert.equal(rowMap['6p-1c'].coverageMatch, '8');
   assert.equal(rowMap['7p-1c'].coverageMatch, '11');
+  assert.equal(rowMap['8p-1c'].coverageMatch, '14');
   assert.equal(rowMap['8p-2c'].coverageMatch, '14');
   assert.equal(rowMap['9p-1c'].coverageMatch, '18');
   assert.equal(rowMap['9p-2c'].coverageMatch, '18');
+  assert.equal(rowMap['10p-1c'].coverageMatch, '23');
+  assert.equal(rowMap['10p-2c'].coverageMatch, '23');
 });
 
 test('scheduler full audit markdown renders required sections and none placeholders', () => {
@@ -212,7 +215,7 @@ test('scheduler full audit report writer persists markdown even with failures pr
     audit: {
       results: [],
       warnings: [],
-      failures: [{ scenario: 'rotation longtail 10p/23m/2c budget=200', mode: 'rotation', code: 'elapsed_ms', message: 'elapsedMs=2000' }]
+      failures: [{ scenario: 'rotation longtail 10p/31m/2c budget=200', mode: 'rotation', code: 'elapsed_ms', message: 'elapsedMs=2000' }]
     },
     representative: {
       results: [],
@@ -255,7 +258,7 @@ test('scheduler full audit report writer persists markdown even with failures pr
 
   assert.equal(fs.existsSync(outputPath), true);
   const content = fs.readFileSync(outputPath, 'utf8');
-  assert.match(content, /rotation longtail 10p\/23m\/2c budget=200/);
+  assert.match(content, /rotation longtail 10p\/31m\/2c budget=200/);
   assert.match(content, /large_roster_shortfall/);
   assert.match(content, /^## 附录 A：multi_rotate 当前推荐场数$/m);
 });

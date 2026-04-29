@@ -38,10 +38,16 @@ for (const scenario of scenarioCommon.buildRotationRepresentativeScenarios()) {
 for (const scenario of scenarioCommon.buildRotationBudgetRepresentativeScenarios()) {
   test(`${scenario.name} 在 guarded 预算内完成`, () => {
     const result = scenarioCommon.runScenario(scenario);
+    const meta = result.out.schedulerMeta || {};
 
     assertCommonScenario(result);
-    assert.ok(['beam-guarded', 'legacy-guarded'].includes(result.executionProfile), `${scenario.name} executionProfile=${result.executionProfile}`);
-    assert.equal(result.timeoutGuardTriggered, true, `${scenario.name} timeoutGuardTriggered`);
+    if (meta.engine === 'template') {
+      assert.equal(result.executionProfile, 'template', `${scenario.name} executionProfile=${result.executionProfile}`);
+      assert.equal(result.timeoutGuardTriggered, false, `${scenario.name} timeoutGuardTriggered`);
+    } else {
+      assert.ok(['beam-guarded', 'legacy-guarded'].includes(result.executionProfile), `${scenario.name} executionProfile=${result.executionProfile}`);
+      assert.equal(result.timeoutGuardTriggered, true, `${scenario.name} timeoutGuardTriggered`);
+    }
     assert.ok(result.elapsedMs < scenario.maxElapsedMs, `${scenario.name} elapsed=${result.elapsedMs}`);
   });
 }

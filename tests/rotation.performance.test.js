@@ -174,7 +174,7 @@ test('24p-2c now routes through template instead of guarded fallback', () => {
 
 test('runtime budget keeps guarded completion when request exceeds template horizon', () => {
   const started = Date.now();
-  const out = generateSchedule(makePlayers(10, 5), 23, 2, {
+  const out = generateSchedule(makePlayers(10, 5), 31, 2, {
     seed: 42,
     searchSeeds: 8,
     runtimeBudgetMs: 200
@@ -182,7 +182,7 @@ test('runtime budget keeps guarded completion when request exceeds template hori
   const elapsed = Date.now() - started;
   const matches = out.rounds.flatMap((round) => round.matches || []);
 
-  assert.equal(matches.length, 23);
+  assert.equal(matches.length, 31);
   assert.ok(['beam', 'legacy'].includes(out.schedulerMeta.engine));
   assert.ok(['beam-guarded', 'legacy-guarded'].includes(out.schedulerMeta.executionProfile));
   assert.equal(out.schedulerMeta.timeoutGuardTriggered, true);
@@ -210,7 +210,7 @@ test('coverage-first template exceptions stay deterministic for 6p-1c and 9p-2c'
 
 test('guarded long-tail scenarios keep coverage-first metrics stable across seeds', () => {
   const scenarios = [
-    { players: 10, femaleCount: 5, totalMatches: 23, courts: 2, runtimeBudgetMs: 200, expectedPlaySpread: 1, expectedUniqueExact: 23 },
+    { players: 10, femaleCount: 5, totalMatches: 31, courts: 2, runtimeBudgetMs: 200, expectedPlaySpread: 1, expectedUniqueExact: 31 },
     { players: 11, femaleCount: 5, totalMatches: 14, courts: 2, runtimeBudgetMs: 800, expectedPlaySpread: 1, expectedUniqueExact: 14 }
   ];
 
