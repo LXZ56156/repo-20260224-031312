@@ -2,6 +2,7 @@ const storage = require('../../core/storage');
 const actionGuard = require('../../core/actionGuard');
 const clientRequest = require('../../core/clientRequest');
 const profileCore = require('../../core/profile');
+const nav = require('../../core/nav');
 
 Page({
   data: {
@@ -26,6 +27,7 @@ Page({
   },
 
   async onLoad(options) {
+    this._pageActive = true;
     options = options || {};
     const returnUrl = options.returnUrl ? decodeURIComponent(options.returnUrl) : '';
     this.setData({ returnUrl });
@@ -33,6 +35,41 @@ Page({
     this.applyProfile(local);
     const synced = await profileCore.syncCloudProfile();
     if (synced) this.applyProfile(synced);
+  },
+
+  onShow() {
+    this._pageActive = true;
+  },
+
+  onHide() {
+    this._pageActive = false;
+    this.clearPostSaveNavTimer();
+  },
+
+  onUnload() {
+    this._pageActive = false;
+    this.clearPostSaveNavTimer();
+  },
+
+  clearPostSaveNavTimer() {
+    if (this._postSaveNavTimer) clearTimeout(this._postSaveNavTimer);
+    this._postSaveNavTimer = null;
+  },
+
+  schedulePostSaveNavigation(returnUrl) {
+    this.clearPostSaveNavTimer();
+    this._postSaveNavTimer = setTimeout(() => {
+      this._postSaveNavTimer = null;
+      if (this._pageActive === false) return;
+      if (returnUrl) {
+        nav.redirectOrNavigate(returnUrl);
+        return;
+      }
+      wx.navigateBack({
+        delta: 1,
+        fail: () => wx.switchTab({ url: '/pages/mine/index' })
+      });
+    }, 220);
   },
 
   applyProfile(profile) {
@@ -246,28 +283,7 @@ Page({
         wx.hideLoading();
         wx.showToast({ title: '已保存', icon: 'success' });
         const returnUrl = String(this.data.returnUrl || '').trim();
-        setTimeout(() => {
-          if (returnUrl) {
-            const isTab = (
-              returnUrl === '/pages/home/index' ||
-              returnUrl === '/pages/launch/index' ||
-              returnUrl === '/pages/mine/index'
-            );
-            if (isTab) {
-              wx.switchTab({ url: returnUrl });
-            } else {
-              wx.redirectTo({
-                url: returnUrl,
-                fail: () => wx.navigateTo({ url: returnUrl })
-              });
-            }
-            return;
-          }
-          wx.navigateBack({
-            delta: 1,
-            fail: () => wx.switchTab({ url: '/pages/mine/index' })
-          });
-        }, 220);
+        this.schedulePostSaveNavigation(returnUrl);
       } catch (e) {
         wx.hideLoading();
         wx.showToast({ title: '保存失败，请重试', icon: 'none' });

@@ -23,11 +23,17 @@ function setNamedTimer(ctx, name, fn, delay = 0, options = {}) {
   const clearTimeoutFn = options.clearTimeoutFn || clearTimeout;
   const timers = ensureTimerMap(ctx);
   clearNamedTimer(ctx, key, clearTimeoutFn);
-  const timerId = setTimeoutFn(() => {
-    if (timers[key] === timerId) delete timers[key];
+  let firedBeforeAssign = false;
+  let timerId;
+  timerId = setTimeoutFn(() => {
+    if (timerId === undefined) {
+      firedBeforeAssign = true;
+    } else if (timers[key] === timerId) {
+      delete timers[key];
+    }
     fn();
   }, Math.max(0, Number(delay) || 0));
-  timers[key] = timerId;
+  if (!firedBeforeAssign) timers[key] = timerId;
   return timerId;
 }
 

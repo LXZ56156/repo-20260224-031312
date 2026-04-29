@@ -2,6 +2,21 @@ function trimText(value) {
   return String(value || '').trim();
 }
 
+const TAB_BAR_PATHS = {
+  '/pages/home/index': true,
+  '/pages/launch/index': true,
+  '/pages/mine/index': true
+};
+
+function pathOfUrl(url) {
+  return trimText(url).split('?')[0].split('#')[0];
+}
+
+function getTabBarTarget(url) {
+  const path = pathOfUrl(url);
+  return TAB_BAR_PATHS[path] ? path : '';
+}
+
 function buildUrl(path, query = {}) {
   const target = trimText(path);
   if (!target) return '';
@@ -102,6 +117,10 @@ function navigateBackOrRedirect(url, delay = 0) {
   const target = trimText(url);
   if (!target) return;
   const run = () => {
+    if (getTabBarTarget(target)) {
+      switchTabUrl(target);
+      return;
+    }
     wx.navigateBack({
       delta: 1,
       fail: () => {
@@ -123,6 +142,10 @@ function redirectOrBack(url, delay = 0) {
   const target = trimText(url);
   if (!target) return;
   const run = () => {
+    if (getTabBarTarget(target)) {
+      switchTabUrl(target);
+      return;
+    }
     wx.redirectTo({
       url: target,
       fail: () => {
@@ -144,6 +167,10 @@ function redirectOrNavigate(url, delay = 0) {
   const target = trimText(url);
   if (!target) return;
   const run = () => {
+    if (getTabBarTarget(target)) {
+      switchTabUrl(target);
+      return;
+    }
     if (typeof wx.redirectTo === 'function') {
       wx.redirectTo({
         url: target,
@@ -163,34 +190,37 @@ function redirectOrNavigate(url, delay = 0) {
 }
 
 function goHome() {
-  const target = '/pages/home/index';
-  if (typeof wx.switchTab === 'function') {
-    wx.switchTab({
-      url: target,
-      fail: () => {
-        wx.reLaunch({
-          url: target,
-          fail: () => wx.navigateTo({ url: target })
-        });
-      }
-    });
-    return;
-  }
-  wx.reLaunch({
-    url: target,
-    fail: () => wx.navigateTo({ url: target })
-  });
+  switchTabUrl('/pages/home/index');
 }
 
 function navigateToUrl(url) {
   const target = trimText(url);
-  if (!target || typeof wx.navigateTo !== 'function') return;
+  if (!target) return;
+  if (getTabBarTarget(target)) {
+    switchTabUrl(target);
+    return;
+  }
+  if (typeof wx.navigateTo !== 'function') return;
   wx.navigateTo({ url: target });
 }
 
 function switchTabUrl(url) {
   const target = trimText(url);
   if (!target) return;
+  const tabTarget = getTabBarTarget(target);
+  if (tabTarget) {
+    if (typeof wx.switchTab === 'function') {
+      wx.switchTab({
+        url: tabTarget,
+        fail: () => {
+          if (typeof wx.reLaunch === 'function') wx.reLaunch({ url: tabTarget });
+        }
+      });
+      return;
+    }
+    if (typeof wx.reLaunch === 'function') wx.reLaunch({ url: tabTarget });
+    return;
+  }
   if (typeof wx.switchTab === 'function') {
     wx.switchTab({
       url: target,

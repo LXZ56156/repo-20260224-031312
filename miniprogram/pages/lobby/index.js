@@ -232,6 +232,7 @@ Page({
 
   onHide() {
     pageTournamentSync.pauseTournamentSync(this);
+    pageTimers.clearNamedTimer(this, 'startNavigation');
     pageTimers.clearNamedTimer(this, 'sharePulse');
     if (this.data.sharePulse) this.setData({ sharePulse: false });
   },

@@ -6,6 +6,7 @@ const channels = {};
 const POLL_BASE_MS = 1500;
 const POLL_MAX_MS = 8000;
 const RECOVER_DELAYS_MS = [5000, 15000, 30000, 60000];
+const DISPOSE_GRACE_MS = 1200;
 
 function msgOf(err) {
   return String((err && (err.message || err.errMsg)) || err || '');
@@ -201,6 +202,23 @@ function clearRecoverTimer(channel) {
   channel.recoverTimer = null;
 }
 
+function clearDisposeTimer(channel) {
+  if (!channel || !channel.disposeTimer) return;
+  try { clearTimeout(channel.disposeTimer); } catch (_) {}
+  channel.disposeTimer = null;
+}
+
+function scheduleDisposeChannel(channel) {
+  if (!channel || channel.disposed) return;
+  clearDisposeTimer(channel);
+  channel.disposeTimer = setTimeout(() => {
+    if (!channel || channel.disposed) return;
+    channel.disposeTimer = null;
+    if (Object.keys(channel.listeners || {}).length > 0) return;
+    disposeChannel(channel);
+  }, DISPOSE_GRACE_MS);
+}
+
 function scheduleRealtimeRecovery(channel, tournamentId) {
   if (!channel || channel.disposed) return;
   if (channel.mode !== 'polling') return;
@@ -234,6 +252,7 @@ function fallbackToPolling(channel, tournamentId, reason = 'unknown') {
 function disposeChannel(channel) {
   if (!channel || channel.disposed) return;
   channel.disposed = true;
+  clearDisposeTimer(channel);
   clearRecoverTimer(channel);
   channel.listeners = {};
   closeSource(channel);
@@ -341,6 +360,7 @@ function ensureChannel(tournamentId, options = {}) {
     mode: 'realtime',
     fallbackReason: '',
     recoverTimer: null,
+    disposeTimer: null,
     recoverAttempts: 0,
     recovering: false,
     latestDoc: options.initialDoc || null
@@ -352,9 +372,15 @@ function ensureChannel(tournamentId, options = {}) {
 
 function watchTournament(tournamentId, onData, onError, options = {}) {
   if (!tournamentId) return null;
+  const hadExistingChannel = !!(channels[tournamentId] && !channels[tournamentId].disposed);
   const channel = ensureChannel(tournamentId, options);
+  clearDisposeTimer(channel);
+  const hadNoListeners = Object.keys(channel.listeners || {}).length === 0;
   const listenerId = `l_${Date.now()}_${channel.nextListenerId++}`;
   channel.listeners[listenerId] = { onData, onError };
+  if (hadExistingChannel && hadNoListeners && channel.latestDoc) {
+    safeCall(onData, channel.latestDoc, { source: 'reuse_cache', tournamentId: String(tournamentId || '').trim() });
+  }
   let closed = false;
 
   return {
@@ -367,7 +393,7 @@ function watchTournament(tournamentId, onData, onError, options = {}) {
       if (!channel || channel.disposed) return;
       delete channel.listeners[listenerId];
       if (Object.keys(channel.listeners).length === 0) {
-        disposeChannel(channel);
+        scheduleDisposeChannel(channel);
       }
     }
   };

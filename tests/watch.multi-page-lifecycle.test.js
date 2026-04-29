@@ -67,28 +67,184 @@ test('watchTournament keeps shared channels stable across multi-page close and r
     assert.equal(closeCount, 0);
 
     watcherB.close();
-    assert.equal(closeCount, 1);
+    assert.equal(closeCount, 0);
 
     const watcherC = watchModule.watchTournament('t_1', (doc) => pageC.push(doc.version));
     await Promise.resolve();
     await Promise.resolve();
 
-    assert.equal(realtimeHandlers.length, 2);
-    assert.deepEqual(pageC, [2]);
+    assert.equal(realtimeHandlers.length, 1);
+    assert.deepEqual(pageC, [3]);
 
     // A stale double-close should not touch the reopened shared channel.
     watcherA.close();
-    assert.equal(closeCount, 1);
+    assert.equal(closeCount, 0);
 
-    realtimeHandlers[1].onChange({ docs: [{ _id: 't_1', version: 4 }] });
-    assert.deepEqual(pageC, [2, 4]);
+    realtimeHandlers[0].onChange({ docs: [{ _id: 't_1', version: 4 }] });
+    assert.deepEqual(pageC, [3, 4]);
 
     watcherC.close();
-    assert.equal(closeCount, 2);
+    assert.equal(closeCount, 0);
   } finally {
     watchModule.closeWatch('t_1');
     global.wx = originalWx;
     Date.now = originalNow;
+  }
+});
+
+test('watchTournament delays source close after the last listener and reuses the channel within grace', async () => {
+  const originalWx = global.wx;
+  const originalSetTimeout = global.setTimeout;
+  const originalClearTimeout = global.clearTimeout;
+  const timers = [];
+  const activeTimers = new Set();
+  const realtimeHandlers = [];
+  const pageA = [];
+  const pageB = [];
+  let closeCount = 0;
+
+  global.setTimeout = (fn, delay = 0) => {
+    const handle = { fn, delay };
+    timers.push(handle);
+    activeTimers.add(handle);
+    return handle;
+  };
+  global.clearTimeout = (handle) => {
+    activeTimers.delete(handle);
+  };
+  global.wx = {
+    cloud: {
+      database() {
+        return {
+          collection(name) {
+            assert.equal(name, 'tournaments');
+            return {
+              doc(id) {
+                assert.equal(id, 't_grace');
+                return {
+                  async get() {
+                    return { data: { _id: 't_grace', version: 1 } };
+                  },
+                  watch(handlers) {
+                    realtimeHandlers.push(handlers);
+                    return {
+                      close() {
+                        closeCount += 1;
+                      }
+                    };
+                  }
+                };
+              }
+            };
+          }
+        };
+      }
+    }
+  };
+
+  const watcherA = watchModule.watchTournament('t_grace', (doc) => pageA.push(doc.version));
+
+  try {
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.deepEqual(pageA, [1]);
+    assert.equal(realtimeHandlers.length, 1);
+
+    realtimeHandlers[0].onChange({ docs: [{ _id: 't_grace', version: 2 }] });
+    watcherA.close();
+
+    const disposeTimer = timers.find((handle) => handle.delay === 1200);
+    assert.ok(disposeTimer);
+    assert.equal(closeCount, 0);
+
+    const watcherB = watchModule.watchTournament('t_grace', (doc) => pageB.push(doc.version));
+    assert.equal(activeTimers.has(disposeTimer), false);
+    assert.equal(closeCount, 0);
+    assert.equal(realtimeHandlers.length, 1);
+    assert.deepEqual(pageB, [2]);
+
+    realtimeHandlers[0].onChange({ docs: [{ _id: 't_grace', version: 3 }] });
+    assert.deepEqual(pageB, [2, 3]);
+
+    watcherB.close();
+  } finally {
+    watchModule.closeWatch('t_grace');
+    global.wx = originalWx;
+    global.setTimeout = originalSetTimeout;
+    global.clearTimeout = originalClearTimeout;
+  }
+});
+
+test('watchTournament closes the source after grace and closeWatch still closes immediately', async () => {
+  const originalWx = global.wx;
+  const originalSetTimeout = global.setTimeout;
+  const originalClearTimeout = global.clearTimeout;
+  const timers = [];
+  const activeTimers = new Set();
+  let closeCount = 0;
+
+  global.setTimeout = (fn, delay = 0) => {
+    const handle = { fn, delay };
+    timers.push(handle);
+    activeTimers.add(handle);
+    return handle;
+  };
+  global.clearTimeout = (handle) => {
+    activeTimers.delete(handle);
+  };
+  global.wx = {
+    cloud: {
+      database() {
+        return {
+          collection() {
+            return {
+              doc() {
+                return {
+                  async get() {
+                    return { data: { _id: 't_dispose', version: 1 } };
+                  },
+                  watch() {
+                    return {
+                      close() {
+                        closeCount += 1;
+                      }
+                    };
+                  }
+                };
+              }
+            };
+          }
+        };
+      }
+    }
+  };
+
+  const watcher = watchModule.watchTournament('t_dispose', () => {});
+
+  try {
+    await Promise.resolve();
+    await Promise.resolve();
+    watcher.close();
+    const disposeTimer = timers.find((handle) => handle.delay === 1200);
+    assert.ok(disposeTimer);
+    assert.equal(closeCount, 0);
+
+    activeTimers.delete(disposeTimer);
+    disposeTimer.fn();
+    assert.equal(closeCount, 1);
+
+    const second = watchModule.watchTournament('t_dispose', () => {});
+    await Promise.resolve();
+    await Promise.resolve();
+    second.close();
+    assert.equal(closeCount, 1);
+    watchModule.closeWatch('t_dispose');
+    assert.equal(closeCount, 2);
+  } finally {
+    watchModule.closeWatch('t_dispose');
+    global.wx = originalWx;
+    global.setTimeout = originalSetTimeout;
+    global.clearTimeout = originalClearTimeout;
   }
 });
 

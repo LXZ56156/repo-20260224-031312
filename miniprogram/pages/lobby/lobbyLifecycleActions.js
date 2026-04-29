@@ -5,6 +5,7 @@ const cloneTournamentCore = require('../../core/cloneTournament');
 const storage = require('../../core/storage');
 const tournamentSync = require('../../core/tournamentSync');
 const nav = require('../../core/nav');
+const pageTimers = require('../../core/pageTimers');
 const writeErrorUi = require('../../core/writeErrorUi');
 
 function isStartedTournament(doc) {
@@ -98,7 +99,7 @@ module.exports = {
     this.clearLastFailedAction();
     wx.showToast({ title: '已开赛', icon: 'success' });
     nav.markRefreshFlag(this.data.tournamentId);
-    setTimeout(() => {
+    pageTimers.setNamedTimer(this, 'startNavigation', () => {
       nav.goSchedule(this.data.tournamentId);
     }, 280);
   },

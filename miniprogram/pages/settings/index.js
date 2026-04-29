@@ -111,6 +111,8 @@ Page({
 
   onHide() {
     pageTournamentSync.pauseTournamentSync(this);
+    if (this._autoBackTimer) clearTimeout(this._autoBackTimer);
+    this._autoBackTimer = null;
   },
 
   onUnload() {

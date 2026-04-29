@@ -169,6 +169,10 @@ test('watchTournament clears pending recovery timer when the last listener close
 
     watcher.close();
     assert.equal(realtimeClosed, 1);
+    assert.equal(activeTimers.has(recoverTimer), true);
+    const disposeTimer = timerQueue.find((handle) => handle.delay === 1200);
+    assert.ok(disposeTimer);
+    await runTimer(disposeTimer, activeTimers);
     assert.equal(activeTimers.has(recoverTimer), false);
   } finally {
     watchModule.closeWatch('t_close');
