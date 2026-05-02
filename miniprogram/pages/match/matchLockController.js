@@ -3,6 +3,7 @@ const { normalizeLockState, buildLockHint } = require('./matchViewModel');
 
 const LOCK_HEARTBEAT_MS = 15 * 1000;
 const LOCK_AUTOPOLL_MS = 5 * 1000;
+const LOCK_RELEASE_RETRY_DELAY_MS = 300;
 
 function resolveLockResultKind(result = {}) {
   const code = String(result.code || '').trim().toUpperCase();
@@ -20,6 +21,7 @@ function createMatchLockController(ctx, deps = {}) {
   const cloudApi = deps.cloud || cloud;
   const setIntervalFn = deps.setIntervalFn || setInterval;
   const clearIntervalFn = deps.clearIntervalFn || clearInterval;
+  const setTimeoutFn = deps.setTimeoutFn || setTimeout;
   let heartbeatTimer = null;
   let countdownTimer = null;
   let autoPollTimer = null;
@@ -102,6 +104,21 @@ function createMatchLockController(ctx, deps = {}) {
     stopLockCountdown();
   }
 
+  function delay(ms) {
+    const waitMs = Math.max(0, Number(ms) || 0);
+    return new Promise((resolve) => {
+      setTimeoutFn(resolve, waitMs);
+    });
+  }
+
+  function warnReleaseFailure(stage, err) {
+    try {
+      console.warn('score lock release failed', stage, err);
+    } catch (_) {
+      // ignore
+    }
+  }
+
   function setLockState(state, payload = {}, options = {}) {
     const lockState = normalizeLockState(state);
     const ownerId = String(payload.ownerId || '').trim();
@@ -145,12 +162,27 @@ function createMatchLockController(ctx, deps = {}) {
     }
   }
 
-  async function releaseLockIfOwned(force = false) {
+  async function releaseLockIfOwned(force = false, options = {}) {
     if (ctx.data.lockState !== 'locked_by_me' && !force) return;
+    const payload = buildScoreLockPayload('release', force);
+    const retryDelayMs = Number.isFinite(Number(options.retryDelayMs))
+      ? Number(options.retryDelayMs)
+      : LOCK_RELEASE_RETRY_DELAY_MS;
     try {
-      await cloudApi.call('scoreLock', buildScoreLockPayload('release', force));
-    } catch (_) {
-      // ignore
+      await cloudApi.call('scoreLock', payload, { retry: false });
+      return true;
+    } catch (err) {
+      warnReleaseFailure('initial', err);
+      if (options.retry === false) return false;
+    }
+
+    if (retryDelayMs > 0) await delay(retryDelayMs);
+    try {
+      await cloudApi.call('scoreLock', payload, { retry: false });
+      return true;
+    } catch (err) {
+      warnReleaseFailure('retry', err);
+      return false;
     }
   }
 
@@ -228,5 +260,6 @@ function createMatchLockController(ctx, deps = {}) {
 module.exports = {
   LOCK_HEARTBEAT_MS,
   LOCK_AUTOPOLL_MS,
+  LOCK_RELEASE_RETRY_DELAY_MS,
   createMatchLockController
 };

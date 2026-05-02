@@ -21,6 +21,8 @@ const PARAM_CODES = new Set([
 const FINISHED_CODES = new Set(['MATCH_FINISHED']);
 const CANCELED_CODES = new Set(['MATCH_CANCELED']);
 const DEDUPED_CODES = new Set(['SCORE_SUBMIT_DEDUPED', 'PLAYER_REMOVED_DEDUPED', 'PLAYER_SQUAD_DEDUPED', 'PAIR_TEAMS_DEDUPED']);
+const READ_ONLY_FUNCTIONS = new Set(['login', 'getUserProfile', 'getMyPerformanceStats']);
+const DEFAULT_RETRY_DELAYS_MS = [300, 900];
 
 function normalizeResultCode(err) {
   return String(err && err.code || '').trim().toUpperCase();
@@ -420,29 +422,91 @@ function buildDeveloperHint(name, msg) {
   return null;
 }
 
-function call(name, data = {}) {
+function isReadOnlyCloudCall(name, payload = {}) {
+  const functionName = String(name || '').trim();
+  if (READ_ONLY_FUNCTIONS.has(functionName)) return true;
+  if (functionName === 'scoreLock') {
+    return String(payload.action || '').trim().toLowerCase() === 'status';
+  }
+  return false;
+}
+
+function shouldRetryCloudCall(name, payload = {}, options = {}) {
+  if (options.retry === false) return false;
+  if (options.retry === true) return true;
+  if (isReadOnlyCloudCall(name, payload)) return true;
+  return !!String(payload.clientRequestId || '').trim();
+}
+
+function normalizeRetryDelays(options = {}) {
+  if (Array.isArray(options.retryDelaysMs)) {
+    return options.retryDelaysMs
+      .map((value) => Math.max(0, Number(value) || 0))
+      .slice(0, 2);
+  }
+  const maxRetries = Number.isFinite(Number(options.maxRetries))
+    ? Math.max(0, Math.min(2, Math.floor(Number(options.maxRetries))))
+    : 2;
+  return DEFAULT_RETRY_DELAYS_MS.slice(0, maxRetries);
+}
+
+function wait(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, Math.max(0, Number(ms) || 0));
+  });
+}
+
+function isRetryableCallError(err) {
+  const parsed = parseCloudError(err, '操作失败');
+  return parsed.isNetwork || parsed.isTimeout;
+}
+
+function handleCloudCallFailure(name, err) {
+  const msg = normalizeErrMsg(err);
+  console.error('云函数调用失败', name, err);
+
+  const devHint = buildDeveloperHint(name, msg);
+  if (devHint) {
+    attachDeveloperHint(err, devHint);
+  } else if (isInvalidWriteShapeMessage(msg)) {
+    console.warn(
+      '云函数写入参数不合法',
+      '检测到云函数向数据库根级写入了保留字段 _id，请检查 doc(id).set/update/add 的 data。'
+    );
+  }
+}
+
+function warnCloudCallRetry(name, attempt, err) {
+  try {
+    console.warn('云函数调用失败，准备重试', name, attempt + 1, err);
+  } catch (_) {
+    // ignore
+  }
+}
+
+async function call(name, data = {}, options = {}) {
   const payload = (data && typeof data === 'object') ? { ...data } : {};
   if (!String(payload.__traceId || '').trim()) {
     payload.__traceId = trace.createTraceId(String(name || 'op').trim() || 'op');
   }
-  return wx.cloud.callFunction({ name, data: payload })
-    .then(res => normalizeCloudResult(res && res.result, name))
-    .catch(err => {
-      const msg = normalizeErrMsg(err);
-      console.error('云函数调用失败', name, err);
+  const retryDelays = shouldRetryCloudCall(name, payload, options)
+    ? normalizeRetryDelays(options)
+    : [];
 
-      const devHint = buildDeveloperHint(name, msg);
-      if (devHint) {
-        attachDeveloperHint(err, devHint);
-      } else if (isInvalidWriteShapeMessage(msg)) {
-        console.warn(
-          '云函数写入参数不合法',
-          '检测到云函数向数据库根级写入了保留字段 _id，请检查 doc(id).set/update/add 的 data。'
-        );
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      const res = await wx.cloud.callFunction({ name, data: payload });
+      return normalizeCloudResult(res && res.result, name);
+    } catch (err) {
+      const canRetry = attempt < retryDelays.length && isRetryableCallError(err);
+      if (!canRetry) {
+        handleCloudCallFailure(name, err);
+        throw err;
       }
-
-      throw err;
-    });
+      warnCloudCallRetry(name, attempt, err);
+      await wait(retryDelays[attempt]);
+    }
+  }
 }
 
 module.exports = {

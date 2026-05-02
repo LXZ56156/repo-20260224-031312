@@ -69,3 +69,65 @@ test('matchLockController teardown clears countdown and heartbeat timers and can
     global.wx = originalWx;
   }
 });
+
+test('matchLockController release retries once with captured payload after teardown', async () => {
+  const originalWx = global.wx;
+  const originalWarn = console.warn;
+  const warnCalls = [];
+  const calls = [];
+  global.wx = { showToast() {} };
+  console.warn = (...args) => warnCalls.push(args);
+
+  const ctx = {
+    data: {
+      tournamentId: 't_1',
+      roundIndex: 0,
+      matchIndex: 1,
+      lockState: 'idle',
+      lockOwnerName: '',
+      lockRemainingMs: 0
+    },
+    _latestTournament: null,
+    setData(update) {
+      this.data = { ...this.data, ...(update || {}) };
+    },
+    applyTournament() {}
+  };
+
+  try {
+    const controller = createMatchLockController(ctx, {
+      cloud: {
+        call: async (name, payload) => {
+          calls.push({ name, payload });
+          if (calls.length === 1) throw new Error('request:fail timeout');
+          return { ok: true, state: 'released' };
+        },
+        getUnifiedErrorMessage: () => '失败'
+      },
+      setTimeoutFn: (fn) => {
+        if (typeof fn === 'function') fn();
+        return 1;
+      }
+    });
+
+    controller.setLockState('locked_by_me', {
+      ownerId: 'user_1',
+      ownerName: '裁判A',
+      expireAt: Date.now() + 5000
+    }, { skipApply: true });
+
+    const releaseTask = controller.releaseLockIfOwned(false, { retryDelayMs: 0 });
+    controller.teardown({ resetState: true });
+    const released = await releaseTask;
+
+    assert.equal(released, true);
+    assert.equal(ctx.data.lockState, 'idle');
+    assert.equal(calls.length, 2);
+    assert.deepEqual(calls.map((item) => item.payload.action), ['release', 'release']);
+    assert.equal(calls[0].payload.tournamentId, 't_1');
+    assert.equal(warnCalls.length, 1);
+  } finally {
+    global.wx = originalWx;
+    console.warn = originalWarn;
+  }
+});

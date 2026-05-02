@@ -55,6 +55,8 @@ test('local completed tournament snapshots keep sorted order and populate aggreg
   const snapshotMap = storage.get('local_completed_tournament_map_v2', {});
   assert.equal(!!snapshotMap.t_old, true);
   assert.equal(!!snapshotMap.t_new, true);
+  assert.equal(memory.has('local_tournament_snapshot_t_old'), false);
+  assert.equal(memory.has('local_tournament_snapshot_t_new'), false);
 });
 
 test('local completed tournament snapshots can read legacy per-key cache and backfill aggregate map', () => {
@@ -73,6 +75,38 @@ test('local completed tournament snapshots can read legacy per-key cache and bac
   const snapshotMap = storage.get('local_completed_tournament_map_v2', {});
   assert.equal(snapshotMap.t_legacy._id, 't_legacy');
   assert.equal(storage.getLocalCompletedTournamentCompatVersion(), 1);
+});
+
+test('local completed migration does not mark compat version when aggregate write fails', () => {
+  resetStore();
+  storage.set('local_completed_tournament_ids_v1', ['t_legacy']);
+  storage.set('local_tournament_snapshot_t_legacy', {
+    _id: 't_legacy',
+    updatedAtTs: 123,
+    status: 'finished',
+    players: [],
+    rounds: []
+  });
+
+  const originalSetStorageSync = global.wx.setStorageSync;
+  const originalWarn = console.warn;
+  console.warn = () => {};
+  global.wx.setStorageSync = (key, value) => {
+    if (key === 'local_completed_tournament_map_v2') {
+      throw new Error('storage full');
+    }
+    return originalSetStorageSync.call(global.wx, key, value);
+  };
+
+  try {
+    const snapshots = storage.getLocalCompletedTournamentSnapshots();
+    assert.deepEqual(snapshots.map((item) => item._id), ['t_legacy']);
+    assert.equal(storage.getLocalCompletedTournamentCompatVersion(), 0);
+    assert.equal(memory.has('local_tournament_snapshot_t_legacy'), true);
+  } finally {
+    global.wx.setStorageSync = originalSetStorageSync;
+    console.warn = originalWarn;
+  }
 });
 
 test('local tournament snapshot prefers newer legacy entry and backfills aggregate map', () => {
@@ -136,7 +170,7 @@ test('local completed tournament snapshots prefer newer legacy entries over stal
 
 test('local completed tournament snapshots trim overflow entries from aggregate map too', () => {
   resetStore();
-  const ids = Array.from({ length: 500 }, (_, idx) => `t_${idx}`);
+  const ids = Array.from({ length: 100 }, (_, idx) => `t_${idx}`);
   const snapshotMap = {};
   for (const id of ids) {
     snapshotMap[id] = { _id: id };
@@ -147,13 +181,13 @@ test('local completed tournament snapshots trim overflow entries from aggregate 
   storage.upsertLocalCompletedTournamentSnapshot(buildTournament('t_newest', '2026-03-03T10:00:00.000Z'), 'u_me');
 
   const nextIds = storage.getLocalCompletedTournamentIds();
-  assert.equal(nextIds.length, 500);
+  assert.equal(nextIds.length, 100);
   assert.equal(nextIds[0], 't_newest');
-  assert.equal(nextIds.includes('t_499'), false);
+  assert.equal(nextIds.includes('t_99'), false);
 
   const nextMap = storage.get('local_completed_tournament_map_v2', {});
   assert.equal(!!nextMap.t_newest, true);
-  assert.equal(!!nextMap.t_499, false);
+  assert.equal(!!nextMap.t_99, false);
 });
 
 test('local completed tournament snapshots self-heal from fresher finished cache docs', () => {

@@ -14,11 +14,11 @@ function getScoreDraft(tournamentId, roundIndex, matchIndex) {
 }
 
 function setScoreDraft(tournamentId, roundIndex, matchIndex, draft) {
-  set(buildScoreDraftKey(tournamentId, roundIndex, matchIndex), draft || null);
+  return set(buildScoreDraftKey(tournamentId, roundIndex, matchIndex), draft || null);
 }
 
 function removeScoreDraft(tournamentId, roundIndex, matchIndex) {
-  del(buildScoreDraftKey(tournamentId, roundIndex, matchIndex));
+  return del(buildScoreDraftKey(tournamentId, roundIndex, matchIndex));
 }
 
 module.exports = {

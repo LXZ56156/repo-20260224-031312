@@ -10,7 +10,7 @@ const LOCAL_COMPLETED_TOURNAMENT_COMPAT_VERSION_KEY = 'local_completed_tournamen
 const LOCAL_TOURNAMENT_SNAPSHOT_PREFIX = 'local_tournament_snapshot_';
 const LOCAL_TOURNAMENT_CACHE_PREFIX = 'local_tournament_cache_';
 const LOCAL_TOURNAMENT_CACHE_AT_PREFIX = 'local_tournament_cache_at_';
-const LOCAL_COMPLETED_MAX = 500;
+const LOCAL_COMPLETED_MAX = 100;
 const LOCAL_COMPLETED_TOURNAMENT_COMPAT_VERSION = 1;
 
 function getRecentTournamentIds() {
@@ -22,12 +22,12 @@ function addRecentTournamentId(id) {
   if (!id) return;
   const ids = getRecentTournamentIds();
   const next = [id, ...ids.filter((item) => item && item !== id)].slice(0, 20);
-  set(RECENT_TOURNAMENTS_KEY, next);
+  return set(RECENT_TOURNAMENTS_KEY, next);
 }
 
 function removeRecentTournamentId(id) {
   const ids = getRecentTournamentIds().filter((item) => item && item !== id);
-  set(RECENT_TOURNAMENTS_KEY, ids);
+  return set(RECENT_TOURNAMENTS_KEY, ids);
 }
 
 function toTs(value) {
@@ -92,7 +92,7 @@ function getLocalCompletedTournamentMap() {
 
 function setLocalCompletedTournamentMap(map) {
   const value = map && typeof map === 'object' ? map : {};
-  set(LOCAL_COMPLETED_TOURNAMENT_MAP_KEY, value);
+  return set(LOCAL_COMPLETED_TOURNAMENT_MAP_KEY, value);
 }
 
 function getLocalCompletedTournamentCompatVersion() {
@@ -100,12 +100,12 @@ function getLocalCompletedTournamentCompatVersion() {
 }
 
 function setLocalCompletedTournamentCompatVersion(version = LOCAL_COMPLETED_TOURNAMENT_COMPAT_VERSION) {
-  set(LOCAL_COMPLETED_TOURNAMENT_COMPAT_VERSION_KEY, Number(version) || 0);
+  return set(LOCAL_COMPLETED_TOURNAMENT_COMPAT_VERSION_KEY, Number(version) || 0);
 }
 
 function setLocalCompletedTournamentIds(ids) {
   const next = Array.isArray(ids) ? ids.map((id) => String(id || '').trim()).filter(Boolean) : [];
-  set(LOCAL_COMPLETED_TOURNAMENT_IDS_KEY, next);
+  return set(LOCAL_COMPLETED_TOURNAMENT_IDS_KEY, next);
 }
 
 function needsLegacySnapshotMigration() {
@@ -132,8 +132,11 @@ function migrateLocalCompletedSnapshotMap(ids = getLocalCompletedTournamentIds()
     }
   }
 
-  if (mapChanged) setLocalCompletedTournamentMap(snapshotMap);
-  setLocalCompletedTournamentCompatVersion();
+  const mapOk = !mapChanged || setLocalCompletedTournamentMap(snapshotMap);
+  const versionOk = mapOk ? setLocalCompletedTournamentCompatVersion() : false;
+  if (mapOk && versionOk) {
+    list.forEach((id) => del(getLocalTournamentSnapshotKey(id)));
+  }
   return mapChanged ? getLocalCompletedTournamentMap() : snapshotMap;
 }
 
@@ -149,17 +152,27 @@ function getLocalTournamentSnapshot(tournamentId) {
     const preferred = choosePreferredSnapshot(mapSnapshot, readLegacySnapshotById(tid));
     if (preferred.snapshot && preferred.snapshot !== mapSnapshot) {
       snapshotMap[tid] = preferred.snapshot;
-      setLocalCompletedTournamentMap(snapshotMap);
+      if (setLocalCompletedTournamentMap(snapshotMap)) {
+        del(getLocalTournamentSnapshotKey(tid));
+        setLocalCompletedTournamentCompatVersion();
+      }
     }
-    if (preferred.snapshot) return preferred.snapshot;
+    if (preferred.snapshot) {
+      if (preferred.source === 'map' && setLocalCompletedTournamentCompatVersion()) {
+        del(getLocalTournamentSnapshotKey(tid));
+      }
+      return preferred.snapshot;
+    }
   }
   if (mapSnapshot && typeof mapSnapshot === 'object') return mapSnapshot;
 
   const legacySnapshot = readLegacySnapshotById(tid);
   if (legacySnapshot && typeof legacySnapshot === 'object') {
     snapshotMap[tid] = legacySnapshot;
-    setLocalCompletedTournamentMap(snapshotMap);
-    setLocalCompletedTournamentCompatVersion();
+    if (setLocalCompletedTournamentMap(snapshotMap)) {
+      del(getLocalTournamentSnapshotKey(tid));
+      setLocalCompletedTournamentCompatVersion();
+    }
     return legacySnapshot;
   }
   return null;
@@ -167,12 +180,13 @@ function getLocalTournamentSnapshot(tournamentId) {
 
 function setLocalTournamentSnapshot(tournamentId, snapshot) {
   const tid = String(tournamentId || '').trim();
-  if (!tid || !snapshot || typeof snapshot !== 'object') return;
-  set(getLocalTournamentSnapshotKey(tid), snapshot);
+  if (!tid || !snapshot || typeof snapshot !== 'object') return false;
   const snapshotMap = getLocalCompletedTournamentMap();
   snapshotMap[tid] = snapshot;
-  setLocalCompletedTournamentMap(snapshotMap);
-  setLocalCompletedTournamentCompatVersion();
+  const mapOk = setLocalCompletedTournamentMap(snapshotMap);
+  if (mapOk) del(getLocalTournamentSnapshotKey(tid));
+  const versionOk = setLocalCompletedTournamentCompatVersion();
+  return mapOk && versionOk;
 }
 
 function getLocalTournamentCache(tournamentId) {
@@ -193,30 +207,34 @@ function getLocalTournamentCacheInfo(tournamentId) {
 
 function setLocalTournamentCache(tournamentId, tournamentDoc) {
   const tid = String(tournamentId || '').trim();
-  if (!tid || !tournamentDoc || typeof tournamentDoc !== 'object') return;
-  set(getLocalTournamentCacheKey(tid), tournamentDoc);
-  set(getLocalTournamentCacheAtKey(tid), Date.now());
+  if (!tid || !tournamentDoc || typeof tournamentDoc !== 'object') return false;
+  const docOk = set(getLocalTournamentCacheKey(tid), tournamentDoc);
+  const atOk = set(getLocalTournamentCacheAtKey(tid), Date.now());
+  return docOk && atOk;
 }
 
 function removeLocalTournamentCache(tournamentId) {
   const tid = String(tournamentId || '').trim();
-  if (!tid) return;
-  del(getLocalTournamentCacheKey(tid));
-  del(getLocalTournamentCacheAtKey(tid));
+  if (!tid) return false;
+  const docOk = del(getLocalTournamentCacheKey(tid));
+  const atOk = del(getLocalTournamentCacheAtKey(tid));
+  return docOk && atOk;
 }
 
 function removeLocalCompletedTournamentSnapshot(tournamentId) {
   const tid = String(tournamentId || '').trim();
-  if (!tid) return;
+  if (!tid) return false;
   const nextIds = getLocalCompletedTournamentIds().filter((id) => id !== tid);
-  setLocalCompletedTournamentIds(nextIds);
-  del(getLocalTournamentSnapshotKey(tid));
+  const idsOk = setLocalCompletedTournamentIds(nextIds);
+  const legacyOk = del(getLocalTournamentSnapshotKey(tid));
   const snapshotMap = getLocalCompletedTournamentMap();
+  let mapOk = true;
   if (snapshotMap[tid]) {
     delete snapshotMap[tid];
-    setLocalCompletedTournamentMap(snapshotMap);
+    mapOk = setLocalCompletedTournamentMap(snapshotMap);
   }
-  setLocalCompletedTournamentCompatVersion();
+  const versionOk = setLocalCompletedTournamentCompatVersion();
+  return idsOk && legacyOk && mapOk && versionOk;
 }
 
 function buildLocalTournamentSnapshot(tournament) {
@@ -283,7 +301,6 @@ function upsertLocalCompletedTournamentSnapshot(tournament, openid = '') {
 
   const snapshot = buildLocalTournamentSnapshot(t);
   if (!snapshot) return false;
-  setLocalTournamentSnapshot(tid, snapshot);
 
   const ids = getLocalCompletedTournamentIds();
   const nextIds = [tid, ...ids.filter((id) => id !== tid)];
@@ -296,10 +313,11 @@ function upsertLocalCompletedTournamentSnapshot(tournament, openid = '') {
       delete snapshotMap[id];
     });
   }
-  setLocalCompletedTournamentMap(snapshotMap);
-  setLocalCompletedTournamentIds(nextIds.slice(0, LOCAL_COMPLETED_MAX));
-  setLocalCompletedTournamentCompatVersion();
-  return true;
+  const mapOk = setLocalCompletedTournamentMap(snapshotMap);
+  if (mapOk) del(getLocalTournamentSnapshotKey(tid));
+  const idsOk = mapOk ? setLocalCompletedTournamentIds(nextIds.slice(0, LOCAL_COMPLETED_MAX)) : false;
+  const versionOk = mapOk && idsOk ? setLocalCompletedTournamentCompatVersion() : false;
+  return mapOk && idsOk && versionOk;
 }
 
 function getLocalCompletedTournamentSnapshots() {
@@ -346,9 +364,9 @@ function getLocalCompletedTournamentSnapshots() {
     }
   }
   if (mapChanged) {
-    setLocalCompletedTournamentMap(snapshotMap);
-    setLocalCompletedTournamentIds(nextIds);
-    setLocalCompletedTournamentCompatVersion();
+    const mapOk = setLocalCompletedTournamentMap(snapshotMap);
+    const idsOk = mapOk ? setLocalCompletedTournamentIds(nextIds) : false;
+    if (mapOk && idsOk) setLocalCompletedTournamentCompatVersion();
   }
   out.sort((a, b) => (Number(b.updatedAtTs) || 0) - (Number(a.updatedAtTs) || 0));
   return out;

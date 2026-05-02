@@ -4,7 +4,8 @@ const Module = require('node:module');
 
 const mainPath = require.resolve('../cloudfunctions/deleteTournament/index.js');
 const commonPath = require.resolve('../cloudfunctions/deleteTournament/lib/common.js');
-const requestLogCollection = 'delete_tournament_requests';
+const legacyRequestLogCollection = 'delete_tournament_requests';
+const clientRequestLogCollection = 'client_request_logs';
 
 function loadMain(db, stubs = {}) {
   const originalLoad = Module._load;
@@ -47,8 +48,12 @@ function buildTournament(overrides = {}) {
 function createDeleteTournamentDb(options = {}) {
   const state = {
     tournament: options.tournament === null ? null : buildTournament(options.tournament),
-    requestLogs: Array.isArray(options.requestLogs) ? options.requestLogs.map((item, index) => ({
+    legacyRequestLogs: Array.isArray(options.legacyRequestLogs) ? options.legacyRequestLogs.map((item, index) => ({
       _id: item && item._id ? item._id : `req_log_${index + 1}`,
+      ...item
+    })) : [],
+    clientRequestLogs: Array.isArray(options.clientRequestLogs) ? options.clientRequestLogs.map((item, index) => ({
+      _id: item && item._id ? item._id : `client_req_log_${index + 1}`,
       ...item
     })) : [],
     removedCount: 0,
@@ -56,11 +61,15 @@ function createDeleteTournamentDb(options = {}) {
     createCollectionCalls: []
   };
 
-  function findRequestLogs(query = {}) {
-    return state.requestLogs.filter((item) => {
+  function findLegacyRequestLogs(query = {}) {
+    return state.legacyRequestLogs.filter((item) => {
       if (!item || typeof item !== 'object') return false;
       return Object.keys(query).every((key) => item[key] === query[key]);
     });
+  }
+
+  function findClientRequestLogById(id) {
+    return state.clientRequestLogs.find((item) => item && item._id === id) || null;
   }
 
   function getTournamentDoc() {
@@ -90,7 +99,7 @@ function createDeleteTournamentDb(options = {}) {
     };
   }
 
-  function buildRequestLogCollection() {
+  function buildLegacyRequestLogCollection() {
     return {
       where(query) {
         return {
@@ -99,7 +108,7 @@ function createDeleteTournamentDb(options = {}) {
             return {
               async get() {
                 return {
-                  data: findRequestLogs(query).slice(0, count).map((item) => ({ ...item }))
+                  data: findLegacyRequestLogs(query).slice(0, count).map((item) => ({ ...item }))
                 };
               }
             };
@@ -108,11 +117,34 @@ function createDeleteTournamentDb(options = {}) {
       },
       async add({ data }) {
         const next = {
-          _id: `req_log_${state.requestLogs.length + 1}`,
+          _id: `req_log_${state.legacyRequestLogs.length + 1}`,
           ...data
         };
-        state.requestLogs.push(next);
+        state.legacyRequestLogs.push(next);
         return { _id: next._id };
+      }
+    };
+  }
+
+  function buildClientRequestLogCollection() {
+    return {
+      doc(id) {
+        return {
+          async get() {
+            const existing = findClientRequestLogById(id);
+            if (!existing) throw new Error('document.get:fail document does not exist');
+            return { data: { ...existing } };
+          },
+          async set({ data }) {
+            const existing = findClientRequestLogById(id);
+            if (existing) {
+              Object.assign(existing, data);
+              return {};
+            }
+            state.clientRequestLogs.push({ _id: id, ...data });
+            return {};
+          }
+        };
       }
     };
   }
@@ -138,14 +170,16 @@ function createDeleteTournamentDb(options = {}) {
         };
       }
       if (name === 'tournaments') return buildTournamentCollection();
-      if (name === requestLogCollection) return buildRequestLogCollection();
+      if (name === legacyRequestLogCollection) return buildLegacyRequestLogCollection();
+      if (name === clientRequestLogCollection) return buildClientRequestLogCollection();
       throw new Error(`unexpected collection ${name}`);
     },
     async runTransaction(handler) {
       return handler({
         collection(name) {
           if (name === 'tournaments') return buildTournamentCollection();
-          if (name === requestLogCollection) return buildRequestLogCollection();
+          if (name === legacyRequestLogCollection) return buildLegacyRequestLogCollection();
+          if (name === clientRequestLogCollection) return buildClientRequestLogCollection();
           throw new Error(`unexpected transaction collection ${name}`);
         }
       });
@@ -186,11 +220,15 @@ test('deleteTournament index removes tournament, records request log, and trigge
     }
   });
   assert.equal(state.removedCount, 1);
-  assert.equal(state.requestLogs.length, 1);
-  assert.equal(state.requestLogs[0].clientRequestId, 'req_delete_1');
-  assert.equal(state.requestLogs[0].tournamentId, 't_1');
-  assert.equal(state.requestLogs[0].operatorOpenId, 'u_admin');
-  assert.equal(state.requestLogs[0].status, 'deleted');
+  assert.equal(state.legacyRequestLogs.length, 0);
+  assert.equal(state.clientRequestLogs.length, 1);
+  assert.equal(state.clientRequestLogs[0].clientRequestId, 'req_delete_1');
+  assert.equal(state.clientRequestLogs[0].scope, 'delete_tournament');
+  assert.equal(state.clientRequestLogs[0].subjectKey, 'tournament:t_1');
+  assert.equal(state.clientRequestLogs[0].operatorOpenId, 'u_admin');
+  assert.equal(state.clientRequestLogs[0].status, 'succeeded');
+  assert.equal(state.clientRequestLogs[0].resourceType, 'tournament');
+  assert.equal(state.clientRequestLogs[0].resourceId, 't_1');
   assert.equal(state.scoreLockCleanupCount, 1);
   assert.equal(cleanupCalled, true);
 });
@@ -230,7 +268,8 @@ test('same clientRequestId retries should dedupe after successful delete', async
     alreadyDeleted: true
   });
   assert.equal(state.removedCount, 1);
-  assert.equal(state.requestLogs.length, 1);
+  assert.equal(state.clientRequestLogs.length, 1);
+  assert.equal(state.legacyRequestLogs.length, 0);
   assert.equal(cleanupCallCount, 2);
   assert.equal(state.scoreLockCleanupCount, 2);
 });
@@ -238,7 +277,7 @@ test('same clientRequestId retries should dedupe after successful delete', async
 test('different clientRequestId after deletion should follow business semantics', async () => {
   const { db } = createDeleteTournamentDb({
     tournament: null,
-    requestLogs: [{
+    legacyRequestLogs: [{
       tournamentId: 't_1',
       operatorOpenId: 'u_admin',
       clientRequestId: 'req_delete_old',
@@ -256,9 +295,9 @@ test('different clientRequestId after deletion should follow business semantics'
 });
 
 test('response should expose deduped and clientRequestId markers on retry', async () => {
-  const { db } = createDeleteTournamentDb({
+  const { db, state } = createDeleteTournamentDb({
     tournament: null,
-    requestLogs: [{
+    legacyRequestLogs: [{
       tournamentId: 't_1',
       operatorOpenId: 'u_admin',
       clientRequestId: 'req_delete_1',
@@ -283,4 +322,7 @@ test('response should expose deduped and clientRequestId markers on retry', asyn
     deduped: true,
     alreadyDeleted: true
   });
+  assert.equal(state.clientRequestLogs.length, 1);
+  assert.equal(state.clientRequestLogs[0].clientRequestId, 'req_delete_1');
+  assert.equal(state.clientRequestLogs[0].scope, 'delete_tournament');
 });

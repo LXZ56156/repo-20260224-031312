@@ -31,6 +31,20 @@ async function findDeleteRequestLog(tournamentId, operatorOpenId, clientRequestI
   return Array.isArray(res && res.data) && res.data[0] ? res.data[0] : null;
 }
 
+function buildDeleteRequestLogOptions(tournamentId, operatorOpenId, clientRequestId) {
+  return {
+    scope: 'delete_tournament',
+    subjectKey: `tournament:${String(tournamentId || '').trim()}`,
+    operatorOpenId,
+    clientRequestId
+  };
+}
+
+async function findCommonDeleteRequestLog(reader, tournamentId, operatorOpenId, clientRequestId) {
+  const options = buildDeleteRequestLogOptions(tournamentId, operatorOpenId, clientRequestId);
+  return common.getClientRequestLog(reader, options);
+}
+
 function buildDeleteResult(traceId, clientRequestId, extra = {}) {
   const result = {
     traceId,
@@ -42,19 +56,17 @@ function buildDeleteResult(traceId, clientRequestId, extra = {}) {
   return common.okResult('TOURNAMENT_DELETED', '已删除赛事', result);
 }
 
-async function recordDeleteRequest(transaction, payload = {}) {
+async function recordDeleteRequest(writer, payload = {}) {
   const clientRequestId = String(payload.clientRequestId || '').trim();
   if (!clientRequestId) return;
 
-  await transaction.collection(DELETE_REQUEST_LOG_COLLECTION).add({
-    data: common.assertNoReservedRootKeys({
-      tournamentId: String(payload.tournamentId || '').trim(),
-      operatorOpenId: String(payload.operatorOpenId || '').trim(),
-      clientRequestId,
-      status: 'deleted',
-      traceId: String(payload.traceId || '').trim(),
-      createdAt: db.serverDate()
-    }, ['_id'], '删除赛事请求日志')
+  await common.upsertClientRequestLog(writer, db, {
+    ...buildDeleteRequestLogOptions(payload.tournamentId, payload.operatorOpenId, clientRequestId),
+    status: 'succeeded',
+    resourceType: 'tournament',
+    resourceId: String(payload.tournamentId || '').trim(),
+    responseCode: 'TOURNAMENT_DELETED',
+    responseState: 'deleted'
   });
 }
 
@@ -63,8 +75,29 @@ async function cleanupScoreLocksBestEffort(tournamentId) {
 }
 
 async function buildDedupedDeleteResult(tournamentId, operatorOpenId, traceId, clientRequestId) {
+  const commonLog = await findCommonDeleteRequestLog(db, tournamentId, operatorOpenId, clientRequestId);
+  if (common.isSuccessfulClientRequestLog(commonLog)) {
+    await cleanupScoreLocksBestEffort(tournamentId);
+    return buildDeleteResult(traceId, clientRequestId, {
+      state: 'deduped',
+      deduped: true,
+      alreadyDeleted: true
+    });
+  }
+
   const requestLog = await findDeleteRequestLog(tournamentId, operatorOpenId, clientRequestId);
   if (!requestLog || String(requestLog.status || '').trim() !== 'deleted') return null;
+
+  try {
+    await recordDeleteRequest(db, {
+      tournamentId,
+      operatorOpenId,
+      clientRequestId,
+      traceId
+    });
+  } catch (err) {
+    console.warn('[deleteTournament] failed to migrate legacy request log', err);
+  }
 
   await cleanupScoreLocksBestEffort(tournamentId);
   return buildDeleteResult(traceId, clientRequestId, {
@@ -81,6 +114,9 @@ exports.main = async (event) => {
   const tournamentId = String((event && event.tournamentId) || '').trim();
   console.info('[deleteTournament]', traceId || '-', tournamentId || '-', OPENID || '-');
   if (!tournamentId) throw new Error('缺少 tournamentId');
+  if (clientRequestId) {
+    await common.ensureCollection(db, common.CLIENT_REQUEST_LOG_COLLECTION);
+  }
 
   const existingDeduped = await buildDedupedDeleteResult(tournamentId, OPENID, traceId, clientRequestId);
   if (existingDeduped) return existingDeduped;
@@ -93,6 +129,16 @@ exports.main = async (event) => {
       const latestRes = await transaction.collection('tournaments').doc(tournamentId).get();
       const t = common.assertTournamentExists(latestRes.data);
       common.assertCreator(t, OPENID);
+      if (clientRequestId) {
+        const requestLog = await findCommonDeleteRequestLog(transaction, tournamentId, OPENID, clientRequestId);
+        if (common.isSuccessfulClientRequestLog(requestLog)) {
+          return buildDeleteResult(traceId, clientRequestId, {
+            state: 'deduped',
+            deduped: true,
+            alreadyDeleted: true
+          });
+        }
+      }
 
       await transaction.collection('tournaments').doc(tournamentId).remove();
       await recordDeleteRequest(transaction, {

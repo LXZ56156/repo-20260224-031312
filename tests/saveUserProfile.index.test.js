@@ -81,7 +81,8 @@ test('saveUserProfile creates a new profile when none exists', async () => {
     traceId: '',
     profileId: 'profile_1',
     syncedTournamentCount: 0,
-    data: { profileId: 'profile_1', syncedTournamentCount: 0 }
+    syncTruncated: false,
+    data: { profileId: 'profile_1', syncedTournamentCount: 0, syncTruncated: false }
   });
   assert.equal(createCollectionName, 'user_profiles');
   assert.deepEqual(addPayload, {
@@ -141,7 +142,8 @@ test('saveUserProfile updates existing profile in place', async () => {
     traceId: '',
     profileId: 'profile_existing',
     syncedTournamentCount: 0,
-    data: { profileId: 'profile_existing', syncedTournamentCount: 0 }
+    syncTruncated: false,
+    data: { profileId: 'profile_existing', syncedTournamentCount: 0, syncTruncated: false }
   });
   assert.deepEqual(updatePayload, {
     nickname: '球友B',
@@ -331,6 +333,7 @@ test('saveUserProfile treats repeated clientRequestId as deduped success', async
   assert.equal(result.clientRequestId, 'req_profile_1');
   assert.equal(result.profileId, 'profile_existing');
   assert.equal(result.syncedTournamentCount, 1);
+  assert.equal(result.syncTruncated, false);
   assert.equal(updateCalled, false);
   assert.equal(tournamentUpdates.length, 1);
   assert.deepEqual(tournamentUpdates[0].query, { _id: 't_running', version: 3 });

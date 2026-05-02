@@ -49,9 +49,10 @@ function getUserProfile() {
 
 function setUserProfile(profile) {
   const sanitized = sanitizeUserProfile(profile);
-  set('userProfile', sanitized);
-  set('profile_completed', isProfileComplete(sanitized));
-  set('profile_updated_at', Date.now());
+  const profileOk = set('userProfile', sanitized);
+  const completedOk = set('profile_completed', isProfileComplete(sanitized));
+  const updatedAtOk = set('profile_updated_at', Date.now());
+  return profileOk && completedOk && updatedAtOk;
 }
 
 function getProfileCompleted() {
@@ -59,7 +60,7 @@ function getProfileCompleted() {
 }
 
 function setProfileCompleted(done = true) {
-  set('profile_completed', !!done);
+  return set('profile_completed', !!done);
 }
 
 function getProfileUpdatedAt() {

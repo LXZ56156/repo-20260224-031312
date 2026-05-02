@@ -146,6 +146,83 @@ test('cloud.call does not attach developer hint for invalid write shape errors',
   }
 });
 
+test('cloud.call retries network failures for idempotent client requests', async () => {
+  const originalWx = global.wx;
+  const payloads = [];
+
+  global.wx = {
+    cloud: {
+      callFunction(payload) {
+        payloads.push(payload);
+        if (payloads.length < 3) {
+          return Promise.reject(new Error('request:fail timeout'));
+        }
+        return Promise.resolve({ result: { ok: true, code: 'SUBMIT_SCORE_OK', state: 'updated' } });
+      }
+    }
+  };
+
+  try {
+    const result = await cloud.call('submitScore', {
+      tournamentId: 't_1',
+      clientRequestId: 'submit_req_1'
+    }, {
+      retryDelaysMs: [0, 0]
+    });
+
+    assert.equal(result.ok, true);
+    assert.equal(payloads.length, 3);
+    assert.equal(payloads[0].data.__traceId, payloads[1].data.__traceId);
+    assert.equal(payloads[1].data.__traceId, payloads[2].data.__traceId);
+  } finally {
+    global.wx = originalWx;
+  }
+});
+
+test('cloud.call does not retry business failures or non-idempotent writes without request id', async () => {
+  const originalWx = global.wx;
+  let conflictCalls = 0;
+  let networkCalls = 0;
+
+  global.wx = {
+    cloud: {
+      callFunction({ name }) {
+        if (name === 'updateSettings') {
+          conflictCalls += 1;
+          return Promise.resolve({
+            result: {
+              ok: false,
+              code: 'VERSION_CONFLICT',
+              message: '写入冲突，请重试',
+              state: 'conflict'
+            }
+          });
+        }
+        networkCalls += 1;
+        return Promise.reject(new Error('request:fail timeout'));
+      }
+    }
+  };
+
+  try {
+    const conflict = await cloud.call('updateSettings', {
+      tournamentId: 't_1',
+      clientRequestId: 'settings_req_1'
+    }, {
+      retryDelaysMs: [0, 0]
+    });
+    assert.equal(conflict.ok, false);
+    assert.equal(conflictCalls, 1);
+
+    await assert.rejects(async () => {
+      await cloud.call('createTournament', { name: '周末比赛' }, { retryDelaysMs: [0, 0] });
+    }, /timeout/);
+    assert.equal(networkCalls, 1);
+  } finally {
+    global.wx = originalWx;
+  }
+});
+
 test('writeErrorUi presents developer hint in UI layer when cloud metadata is available', () => {
   const originalWx = global.wx;
   const toastCalls = [];

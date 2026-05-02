@@ -15,15 +15,25 @@ function ensureControllers(ctx) {
 function releaseAndTeardown(ctx) {
   ensureControllers(ctx);
   pageTournamentSync.teardownTournamentSync(ctx);
-  ctx.scoreLockManager.releaseLockIfOwned().catch(() => {});
+  const releaseTask = ctx.scoreLockManager.releaseLockIfOwned(false, { retry: true });
   ctx.scoreLockManager.teardown({ resetState: true });
+  if (releaseTask && typeof releaseTask.catch === 'function') {
+    releaseTask.catch((err) => {
+      console.warn('score lock release task failed', err);
+    });
+  }
 }
 
 function releaseAndPause(ctx) {
   ensureControllers(ctx);
   pageTournamentSync.pauseTournamentSync(ctx);
-  ctx.scoreLockManager.releaseLockIfOwned().catch(() => {});
+  const releaseTask = ctx.scoreLockManager.releaseLockIfOwned(false, { retry: true });
   ctx.scoreLockManager.teardown({ resetState: true });
+  if (releaseTask && typeof releaseTask.catch === 'function') {
+    releaseTask.catch((err) => {
+      console.warn('score lock release task failed', err);
+    });
+  }
 }
 
 const matchSyncController = pageTournamentSync.createTournamentSyncMethods();

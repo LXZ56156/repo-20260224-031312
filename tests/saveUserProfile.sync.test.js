@@ -135,7 +135,9 @@ test('saveUserProfile syncs avatar into draft and running tournaments only', asy
 
   assert.equal(result.ok, true);
   assert.equal(result.syncedTournamentCount, 2);
+  assert.equal(result.syncTruncated, false);
   assert.equal(result.data.syncedTournamentCount, 2);
+  assert.equal(result.data.syncTruncated, false);
   assert.deepEqual(updates.map((item) => item.id).sort(), ['t_draft', 't_running']);
   for (const update of updates) {
     const player = update.data.players[0];
@@ -246,6 +248,7 @@ test('saveUserProfile retries avatar sync on version conflict using the latest t
 
   assert.equal(result.ok, true);
   assert.equal(result.syncedTournamentCount, 1);
+  assert.equal(result.syncTruncated, false);
   assert.equal(refetchCount, 1);
   assert.equal(updates.length, 2);
   assert.deepEqual(updates[0].query, { _id: 't_running', version: 3 });
@@ -253,4 +256,177 @@ test('saveUserProfile retries avatar sync on version conflict using the latest t
   assert.equal(updates[1].data.rounds[0].matches[0].scoreA, 21);
   assert.equal(updates[1].data.rounds[0].matches[0].scoreB, 19);
   assert.equal(updates[1].data.rounds[0].matches[0].teamA[0].avatar, 'cloud://avatar/new');
+});
+
+test('saveUserProfile paginates avatar sync beyond one cloud page', async () => {
+  const updates = [];
+  const pageSkips = [];
+  const tournaments = Array.from({ length: 101 }, (_, idx) => buildTournament(`t_${idx}`, 'running', ''));
+  const db = {
+    command: {
+      in(values) {
+        return { $in: values };
+      },
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    async createCollection() {},
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      if (name === 'user_profiles') {
+        return {
+          where() {
+            return {
+              limit() {
+                return {
+                  async get() {
+                    return { data: [{ _id: 'profile_existing' }] };
+                  }
+                };
+              }
+            };
+          },
+          doc() {
+            return {
+              async update() {}
+            };
+          }
+        };
+      }
+      assert.equal(name, 'tournaments');
+      return {
+        where(query) {
+          if (query && query.status) {
+            let pageSkip = 0;
+            let pageLimit = 100;
+            return {
+              skip(value) {
+                pageSkip = Number(value) || 0;
+                return this;
+              },
+              limit(value) {
+                pageLimit = Number(value) || 100;
+                return this;
+              },
+              async get() {
+                pageSkips.push(pageSkip);
+                return { data: tournaments.slice(pageSkip, pageSkip + pageLimit) };
+              }
+            };
+          }
+          return {
+            async update(payload) {
+              updates.push({ query, data: payload.data });
+              return { stats: { updated: 1 } };
+            }
+          };
+        },
+        doc() {
+          return {
+            async get() {
+              throw new Error('unexpected refetch');
+            }
+          };
+        }
+      };
+    }
+  };
+
+  const { main } = loadMain(db);
+  const result = await main({
+    nickname: '球友A',
+    avatar: 'cloud://avatar/new',
+    gender: 'female'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.syncedTournamentCount, 101);
+  assert.equal(result.syncTruncated, false);
+  assert.deepEqual(pageSkips, [0, 100]);
+  assert.equal(updates.length, 101);
+});
+
+test('saveUserProfile exposes syncTruncated when avatar sync hits query cap', async () => {
+  const pageSkips = [];
+  const tournaments = Array.from({ length: 1001 }, (_, idx) => buildTournament(`t_${idx}`, 'running', 'cloud://avatar/new'));
+  const db = {
+    command: {
+      in(values) {
+        return { $in: values };
+      },
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    async createCollection() {},
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      if (name === 'user_profiles') {
+        return {
+          where() {
+            return {
+              limit() {
+                return {
+                  async get() {
+                    return { data: [{ _id: 'profile_existing' }] };
+                  }
+                };
+              }
+            };
+          },
+          doc() {
+            return {
+              async update() {}
+            };
+          }
+        };
+      }
+      assert.equal(name, 'tournaments');
+      return {
+        where(query) {
+          if (query && query.status) {
+            let pageSkip = 0;
+            let pageLimit = 100;
+            return {
+              skip(value) {
+                pageSkip = Number(value) || 0;
+                return this;
+              },
+              limit(value) {
+                pageLimit = Number(value) || 100;
+                return this;
+              },
+              async get() {
+                pageSkips.push(pageSkip);
+                return { data: tournaments.slice(pageSkip, pageSkip + pageLimit) };
+              }
+            };
+          }
+          return {
+            async update() {
+              throw new Error('should not update unchanged avatar');
+            }
+          };
+        }
+      };
+    }
+  };
+
+  const { main } = loadMain(db);
+  const result = await main({
+    nickname: '球友A',
+    avatar: 'cloud://avatar/new',
+    gender: 'female'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.syncedTournamentCount, 0);
+  assert.equal(result.syncTruncated, true);
+  assert.equal(result.data.syncTruncated, true);
+  assert.equal(pageSkips.includes(1000), true);
 });

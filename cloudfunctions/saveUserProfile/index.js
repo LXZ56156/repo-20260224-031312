@@ -4,6 +4,8 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const common = require('./lib/common');
 const _ = db.command;
+const AVATAR_SYNC_PAGE_SIZE = 100;
+const AVATAR_SYNC_QUERY_CAP = 1000;
 
 function normalizeGender(gender) {
   const v = String(gender || '').trim().toLowerCase();
@@ -86,22 +88,52 @@ function syncAvatarInTournament(tournament, openid, avatar) {
   };
 }
 
+async function getAvatarSyncTournamentPage(where, skip, limit) {
+  let query = db.collection('tournaments').where(where);
+  if (query && typeof query.skip === 'function') query = query.skip(skip);
+  if (query && typeof query.limit === 'function') query = query.limit(limit);
+  const res = await query.get();
+  return Array.isArray(res && res.data) ? res.data : [];
+}
+
+async function listAvatarSyncTournaments(openid) {
+  const userId = String(openid || '').trim();
+  if (!userId || !db || !_) return { list: [], truncated: false };
+  const playerIdsQuery = typeof _.all === 'function' ? _.all([userId]) : userId;
+  const where = {
+    status: _.in(['draft', 'running']),
+    playerIds: playerIdsQuery
+  };
+
+  let list = [];
+  let skip = 0;
+  let truncated = false;
+  try {
+    while (list.length < AVATAR_SYNC_QUERY_CAP) {
+      const remaining = AVATAR_SYNC_QUERY_CAP - list.length;
+      const pageSize = Math.min(AVATAR_SYNC_PAGE_SIZE, remaining);
+      const page = await getAvatarSyncTournamentPage(where, skip, pageSize);
+      list.push(...page);
+      if (page.length < pageSize) break;
+      skip += page.length;
+      if (list.length >= AVATAR_SYNC_QUERY_CAP) {
+        const probe = await getAvatarSyncTournamentPage(where, skip, 1);
+        truncated = probe.length > 0;
+        break;
+      }
+    }
+  } catch (_) {
+    return { list: [], truncated: false };
+  }
+  return { list, truncated };
+}
+
 async function syncAvatarToTournaments(openid, avatar) {
   const userId = String(openid || '').trim();
   const avatarValue = String(avatar || '').trim();
-  if (!userId || !avatarValue || !db || !_) return 0;
-  const playerIdsQuery = typeof _.all === 'function' ? _.all([userId]) : userId;
-
-  let list = [];
-  try {
-    const res = await db.collection('tournaments').where({
-      status: _.in(['draft', 'running']),
-      playerIds: playerIdsQuery
-    }).get();
-    list = Array.isArray(res && res.data) ? res.data : [];
-  } catch (_) {
-    return 0;
-  }
+  if (!userId || !avatarValue || !db || !_) return { synced: 0, truncated: false };
+  const queryResult = await listAvatarSyncTournaments(userId);
+  const list = queryResult.list;
 
   let synced = 0;
   const tournaments = db.collection('tournaments');
@@ -132,7 +164,7 @@ async function syncAvatarToTournaments(openid, avatar) {
       if (!current) break;
     }
   }
-  return synced;
+  return { synced, truncated: queryResult.truncated };
 }
 
 async function findProfile(reader, openid) {
@@ -176,14 +208,17 @@ exports.main = async (event) => {
 
   const buildProfileSavedResult = async (meta = {}) => {
     const avatarToSync = String(meta.avatarToSync || '').trim();
-    const syncedTournamentCount = await syncAvatarToTournaments(OPENID, avatarToSync);
+    const syncResult = await syncAvatarToTournaments(OPENID, avatarToSync);
+    const syncedTournamentCount = Number(syncResult && syncResult.synced) || 0;
+    const syncTruncated = !!(syncResult && syncResult.truncated);
     return common.okResult('PROFILE_SAVED', '已保存资料', {
       traceId,
       state: meta.deduped ? 'deduped' : 'updated',
       ...(meta.deduped ? { deduped: true } : {}),
       ...(clientRequestId ? { clientRequestId } : {}),
       profileId: meta.profileId,
-      syncedTournamentCount
+      syncedTournamentCount,
+      syncTruncated
     });
   };
 
