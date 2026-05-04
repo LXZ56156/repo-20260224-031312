@@ -1,7 +1,7 @@
 /* preferences — 系统偏好设置 */
 
 .pref-page {
-  padding-bottom: 24rpx;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 24rpx);
 }
 
 /* Chips in preferences — use neutral palette */
@@ -25,8 +25,8 @@
 }
 
 .pref-tip {
-  margin-top: 10rpx;
-  margin-bottom: 12rpx;
+  margin-top: var(--space-tight);
+  margin-bottom: var(--space-inline);
 }
 
 /* Switch items */

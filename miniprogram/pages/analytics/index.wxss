@@ -3,19 +3,19 @@
    ============================================================ */
 
 .analytics-page {
-  padding-top: 24rpx;
+  padding-top: var(--space-page-y);
 }
 
 /* --- Hero: 战报感强化 --- */
 .analytics-hero {
-  padding: 24rpx;
+  padding: var(--space-hero-pad-y) var(--space-hero-pad-x);
 }
 
 .analytics-hero-top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16rpx;
+  gap: var(--space-section);
 }
 
 .analytics-hero-main {
@@ -30,7 +30,7 @@
 }
 
 .analytics-hero-headline {
-  margin-top: 18rpx;
+  margin-top: var(--space-section);
   font-size: 48rpx;
   line-height: 1.08;
   font-weight: 820;
@@ -39,14 +39,14 @@
 }
 
 .analytics-hero-stats {
-  margin-top: 18rpx;
+  margin-top: var(--space-section);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10rpx;
+  gap: var(--space-tight);
 }
 
 .analytics-hero-stat {
-  padding: 16rpx;
+  padding: var(--space-section);
   border-radius: 18rpx;
   background: rgba(255, 255, 255, 0.88);
   border: 1rpx solid rgba(15, 23, 42, 0.08);
@@ -69,7 +69,7 @@
 }
 
 .analytics-hero-actions {
-  margin-top: 18rpx;
+  margin-top: var(--space-section);
 }
 
 .analytics-hero-primary {
@@ -87,8 +87,8 @@
 }
 
 .report-headline {
-  margin-top: 14rpx;
-  padding: 16rpx 18rpx;
+  margin-top: var(--space-inline);
+  padding: var(--space-section) var(--space-card-pad);
   border-radius: 14rpx;
   border: 1rpx solid rgba(24, 179, 104, 0.14);
   background: linear-gradient(180deg, rgba(242, 253, 246, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
@@ -106,8 +106,8 @@
 }
 
 .analytics-text-actions {
-  margin-top: 16rpx;
-  padding-top: 14rpx;
+  margin-top: var(--space-section);
+  padding-top: var(--space-panel-pad);
   border-top: 1rpx solid var(--neutral-200);
 }
 
@@ -117,14 +117,14 @@
 
 /* --- Summary: metric-card 风格 --- */
 .summary-grid {
-  margin-top: 16rpx;
+  margin-top: var(--space-section);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12rpx;
+  gap: var(--space-inline);
 }
 
 .summary-item.metric-card {
-  padding: 16rpx;
+  padding: var(--space-section);
   border-radius: 16rpx;
   border: 1rpx solid rgba(15, 23, 42, 0.08);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(245, 250, 247, 0.94) 100%);
@@ -147,14 +147,14 @@
 
 /* --- TOP 3: 自适应列数卡片（2 或 3 人/队时自动伸缩） --- */
 .top-cards {
-  margin-top: 14rpx;
+  margin-top: var(--space-inline);
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-  gap: 10rpx;
+  gap: var(--space-tight);
 }
 
 .top-card {
-  padding: 16rpx 12rpx;
+  padding: var(--space-section) var(--space-inline);
   border-radius: 16rpx;
   background: rgba(255, 255, 255, 0.94);
   border: 1rpx solid rgba(15, 23, 42, 0.08);
@@ -241,7 +241,7 @@
 .ranking-toggle-group {
   display: flex;
   align-items: center;
-  gap: 10rpx;
+  gap: var(--space-tight);
 }
 
 .ranking-toggle-arrow {
@@ -256,11 +256,11 @@
 }
 
 .ranking-table-wrap {
-  margin-top: 8rpx;
+  margin-top: var(--space-tight);
 }
 
 .stats-head {
-  margin-top: 8rpx;
+  margin-top: var(--space-tight);
   border-top: 1rpx solid rgba(15, 23, 42, 0.08);
   border-bottom: 1rpx solid rgba(15, 23, 42, 0.08);
   background: rgba(248, 252, 249, 0.98);
@@ -270,7 +270,7 @@
   display: flex;
   align-items: center;
   gap: 6rpx;
-  padding: 10rpx 4rpx;
+  padding: var(--space-tight) 4rpx;
 }
 
 .stats-row + .stats-row {
@@ -308,11 +308,11 @@
 
 /* --- 更多看点 --- */
 .activity-block {
-  margin-top: 14rpx;
+  margin-top: var(--space-inline);
 }
 
 .activity-title {
-  margin-bottom: 8rpx;
+  margin-bottom: var(--space-tight);
   font-size: 25rpx;
   font-weight: 760;
   color: var(--neutral-950);
@@ -322,8 +322,8 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12rpx;
-  padding: 10rpx 0;
+  gap: var(--space-inline);
+  padding: var(--space-tight) 0;
   border-bottom: 1rpx solid var(--neutral-100);
 }
 
@@ -349,12 +349,12 @@
 
 /* --- 空态 / 重试 --- */
 .retry-box {
-  margin-top: 16rpx;
-  padding: 14rpx;
+  margin-top: var(--space-section);
+  padding: var(--space-panel-pad);
   border-radius: 16rpx;
   border: 1rpx solid rgba(15, 23, 42, 0.08);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12rpx;
+  gap: var(--space-inline);
 }

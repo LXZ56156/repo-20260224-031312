@@ -19,19 +19,19 @@
     <text class="sync-banner-action" bindtap="onRetry">{{syncStatusActionText}}</text>
   </view>
 
-  <view class="hero">
+  <view class="hero reveal reveal-1">
     <view class="hero-kicker">积分榜</view>
     <view class="hero-title">{{rankingTypeLabel}}</view>
     <view class="hero-sub">{{tournament.name}}</view>
   </view>
 
-  <view class="card panel panel-soft state-empty mt-md" wx:if="{{rankings.length===0}}">
+  <view class="card panel panel-soft state-empty mt-md reveal reveal-2" wx:if="{{rankings.length===0}}">
     <view class="state-empty-icon">🏆</view>
     <view class="state-empty-title">暂无数据</view>
     <view class="state-empty-desc">开赛并录入比分后会自动计算胜场与净胜分</view>
   </view>
 
-  <view class="card panel ranking-card {{idx < 3 ? 'ranking-card-top' : ''}} {{idx === 0 ? 'ranking-card-1st' : ''}} {{idx === 1 ? 'ranking-card-2nd' : ''}} {{idx === 2 ? 'ranking-card-3rd' : ''}}" wx:for="{{rankings}}" wx:for-item="r" wx:for-index="idx" wx:key="rankKey">
+  <view class="card panel ranking-card reveal {{idx < 3 ? 'ranking-card-top' : ''}} {{idx === 0 ? 'ranking-card-1st' : ''}} {{idx === 1 ? 'ranking-card-2nd' : ''}} {{idx === 2 ? 'ranking-card-3rd' : ''}}" style="animation-delay: {{idx < 6 ? 60 + idx * 24 : 204}}ms;" hover-class="list-card-press" hover-stay-time="80" wx:for="{{rankings}}" wx:for-item="r" wx:for-index="idx" wx:key="rankKey">
     <view class="ranking-row">
       <view class="ranking-left">
         <view class="rank-badge {{idx === 0 ? 'rank-1' : ''}} {{idx === 1 ? 'rank-2' : ''}} {{idx === 2 ? 'rank-3' : ''}}">{{idx + 1}}</view>

@@ -63,38 +63,38 @@
     <view wx:if="{{loading && !items.length}}" class="skeleton-list">
       <view class="skeleton-card-wrap reveal reveal-1">
         <view class="skeleton-card">
-          <view class="skeleton-row" style="margin-bottom: 16rpx;">
+          <view class="skeleton-row" style="margin-bottom: var(--space-inline);">
             <view class="skeleton-bone skeleton-line skeleton-line-medium" style="margin-bottom: 0;"></view>
             <view class="skeleton-bone skeleton-badge"></view>
           </view>
-          <view class="skeleton-row" style="gap: 10rpx;">
+          <view class="skeleton-row" style="gap: var(--space-tight);">
             <view class="skeleton-bone skeleton-pill"></view>
             <view class="skeleton-bone skeleton-pill"></view>
             <view class="skeleton-bone skeleton-pill"></view>
           </view>
-          <view class="skeleton-bone skeleton-line skeleton-line-short" style="margin-top: 14rpx;"></view>
+          <view class="skeleton-bone skeleton-line skeleton-line-short" style="margin-top: var(--space-inline);"></view>
         </view>
       </view>
       <view class="skeleton-card-wrap reveal reveal-2">
         <view class="skeleton-card">
-          <view class="skeleton-row" style="margin-bottom: 16rpx;">
+          <view class="skeleton-row" style="margin-bottom: var(--space-inline);">
             <view class="skeleton-bone skeleton-line skeleton-line-long" style="margin-bottom: 0;"></view>
             <view class="skeleton-bone skeleton-badge"></view>
           </view>
-          <view class="skeleton-row" style="gap: 10rpx;">
+          <view class="skeleton-row" style="gap: var(--space-tight);">
             <view class="skeleton-bone skeleton-pill"></view>
             <view class="skeleton-bone skeleton-pill"></view>
           </view>
-          <view class="skeleton-bone skeleton-line skeleton-line-short" style="margin-top: 14rpx;"></view>
+          <view class="skeleton-bone skeleton-line skeleton-line-short" style="margin-top: var(--space-inline);"></view>
         </view>
       </view>
       <view class="skeleton-card-wrap reveal reveal-3">
         <view class="skeleton-card">
-          <view class="skeleton-row" style="margin-bottom: 16rpx;">
+          <view class="skeleton-row" style="margin-bottom: var(--space-inline);">
             <view class="skeleton-bone skeleton-line skeleton-line-long" style="margin-bottom: 0;"></view>
             <view class="skeleton-bone skeleton-badge"></view>
           </view>
-          <view class="skeleton-row" style="gap: 10rpx;">
+          <view class="skeleton-row" style="gap: var(--space-tight);">
             <view class="skeleton-bone skeleton-pill"></view>
             <view class="skeleton-bone skeleton-pill"></view>
           </view>
@@ -106,9 +106,9 @@
     <block wx:if="{{visibleCount>0}}">
       <block wx:for="{{items}}" wx:key="_id">
         <block wx:if="{{filterStatus==='all' || item.status===filterStatus}}">
-          <view class="swipe-row card" data-idx="{{index}}" data-id="{{item._id}}"
+          <view class="swipe-row card reveal" style="animation-delay: {{index < 6 ? 60 + index * 24 : 204}}ms;" hover-class="list-card-press" hover-stay-time="80" data-idx="{{index}}" data-id="{{item._id}}"
             bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd">
-            <view class="swipe-actions">
+            <view class="swipe-actions {{item._offset < 0 ? 'is-open' : ''}}">
               <view class="del-btn" catchtap="onDeleteTap" data-id="{{item._id}}">删除</view>
             </view>
             <view class="swipe-content tone-{{item.status}}" style="transform: translateX({{item._offset}}rpx);" catchtap="onCardTap" data-id="{{item._id}}" data-idx="{{index}}">

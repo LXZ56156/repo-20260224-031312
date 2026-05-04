@@ -3,12 +3,12 @@
    ============================================================ */
 
 .launch-page {
-  padding-bottom: 40rpx;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 24rpx);
 }
 
 /* --- Hero --- */
 .launch-hero {
-  padding: 32rpx 24rpx 24rpx;
+  padding: var(--space-hero-pad-y) var(--space-hero-pad-x);
   border-radius: 24rpx;
   background:
     radial-gradient(circle at 88% 12%, rgba(24, 179, 104, 0.16) 0%, rgba(24, 179, 104, 0.04) 30%, transparent 56%),
@@ -34,7 +34,7 @@
 
 /* --- Mode Card --- */
 .launch-card {
-  margin-top: 16rpx;
+  margin-top: var(--space-section);
   position: relative;
   overflow: hidden;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(248, 251, 249, 0.98) 100%);
@@ -77,8 +77,8 @@
 
 .launch-row {
   align-items: flex-start;
-  gap: 12rpx;
-  padding-left: 8rpx;
+  gap: var(--space-inline);
+  padding-left: var(--space-tight);
 }
 
 .launch-title {
@@ -96,12 +96,12 @@
 }
 
 .launch-actions {
-  margin-top: 16rpx;
-  padding-left: 8rpx;
+  margin-top: var(--space-section);
+  padding-left: var(--space-tight);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16rpx;
+  gap: var(--space-section);
 }
 
 /* 规则说明 — text link 弱化 */

@@ -43,40 +43,43 @@
   </view>
 
   <!-- ==================== 比分舞台（统一容器） ==================== -->
-  <view class="card panel score-stage reveal reveal-3">
+  <view class="card panel score-stage {{canEdit ? 'score-stage-editing' : ''}} reveal reveal-3">
     <view class="row row-top">
       <view class="section-title">比分录入</view>
       <text class="score-badge">{{pointsPerGame}} 分制</text>
     </view>
 
-    <!-- 锁态面板 -->
-    <view class="lock-panel" wx:if="{{canUseScoreLock}}">
-      <view class="lock-icon-row">
-        <text class="lock-icon">🔒</text>
-        <view class="lock-hint">{{lockHintText}}</view>
+    <view class="score-entry-row" wx:if="{{userCanScore && !canEdit && canUseScoreLock && lockState==='idle'}}">
+      <button class="btn btn-primary btn-sm score-entry-btn" bindtap="onStartScoring" loading="{{lockBusy}}" disabled="{{lockBusy}}">{{lockActionText}}</button>
+    </view>
+
+    <view class="score-edit-status" wx:if="{{canEdit}}">
+      <view class="score-edit-status-main">
+        <text class="score-edit-dot"></text>
+        <text class="score-edit-text">{{lockHintText}}</text>
       </view>
-      <view class="lock-actions" wx:if="{{userCanScore && lockState==='idle'}}">
-        <button class="btn btn-primary btn-sm lock-btn-primary" bindtap="onStartScoring" loading="{{lockBusy}}" disabled="{{lockBusy}}">{{lockActionText}}</button>
-      </view>
-      <view class="lock-actions" wx:elif="{{userCanScore && lockState==='locked_by_other'}}">
-        <button class="btn btn-subtle btn-sm lock-btn" bindtap="onRefreshLock" loading="{{lockBusy}}" disabled="{{lockBusy}}">刷新状态</button>
-        <button class="btn btn-danger btn-sm lock-btn" wx:if="{{isAdmin}}" bindtap="onTakeOverScoring" loading="{{lockBusy}}" disabled="{{lockBusy}}">接管录分</button>
-      </view>
+      <text class="score-edit-meta">编辑中</text>
     </view>
 
     <!-- 快捷比分工具栏（编辑态） -->
     <view class="score-toolbar" wx:if="{{canEdit}}">
-      <view class="quick-scores">
-        <text
-          wx:for="{{quickScoreOptions}}"
-          wx:key="label"
-          class="quick-score-chip"
-          bindtap="onQuickScore"
-          data-a="{{item.a}}"
-          data-b="{{item.b}}"
-        >{{item.label}}</text>
+      <scroll-view class="quick-score-scroll" scroll-x="true" show-scrollbar="{{false}}">
+        <view class="quick-scores">
+          <text
+            wx:for="{{quickScoreOptions}}"
+            wx:key="label"
+            class="quick-score-chip"
+            bindtap="onQuickScore"
+            data-a="{{item.a}}"
+            data-b="{{item.b}}"
+          >{{item.label}}</text>
+        </view>
+      </scroll-view>
+      <view class="score-tools">
+        <button class="btn-mini score-tool" bindtap="onClearScores">清零</button>
+        <button class="btn-mini score-tool" bindtap="onSwapScores">交换</button>
+        <button class="btn-mini score-tool {{!canUndo ? 'disabled' : ''}}" bindtap="onUndoStep" disabled="{{!canUndo}}">撤销</button>
       </view>
-      <button class="btn-mini mode-undo {{!canUndo ? 'disabled' : ''}}" bindtap="onUndoStep" disabled="{{!canUndo}}">撤销</button>
     </view>
 
     <!-- 比分展示区 — 只读态 -->
@@ -108,10 +111,6 @@
         </picker>
       </view>
     </view>
-
-    <!-- 提示 -->
-    <view class="muted score-tip" wx:if="{{!userCanScore}}">仅管理员或参赛成员可录分。</view>
-    <view class="muted score-tip" wx:elif="{{!canEdit && match.status==='pending'}}">请先点击"开始录分"。</view>
   </view>
 
   <!-- 底部提交栏 — bottom-tray -->

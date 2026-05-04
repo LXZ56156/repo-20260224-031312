@@ -1,4 +1,4 @@
-<view id="share-invite" class="share-bar reveal reveal-5">
+<view id="share-invite" class="share-bar reveal reveal-3">
     <view class="share-bar-left">
       <view class="share-bar-title">{{shareCardTitle}}</view>
       <view class="share-bar-badge">{{shareCardBadge}}</view>

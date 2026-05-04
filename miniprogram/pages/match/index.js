@@ -291,6 +291,14 @@ Page({
     this.setEditableScores(a, b, { recordHistory: true, persist: true });
   },
 
+  onClearScores() {
+    this.setEditableScores(0, 0, { recordHistory: true, persist: true });
+  },
+
+  onSwapScores() {
+    this.setEditableScores(this.data.scoreB, this.data.scoreA, { recordHistory: true, persist: true });
+  },
+
   onPickScoreA(e) {
     const idx = clampScore(Number(e.detail.value));
     this.setEditableScores(idx, this.data.scoreB, { recordHistory: true, persist: true });

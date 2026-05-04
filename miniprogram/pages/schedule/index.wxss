@@ -1,7 +1,7 @@
 /* Schedule 页面样式 — 赛事中控台风 */
 
 .schedule-page {
-  padding-top: 24rpx;
+  padding-top: var(--space-page-y);
 }
 
 .schedule-page.with-filter-bar {
@@ -10,7 +10,7 @@
 
 /* --- Hero 重构：表面优先的赛事状态卡 --- */
 .schedule-page .hero {
-  padding: 24rpx;
+  padding: var(--space-hero-pad-y) var(--space-hero-pad-x);
   border-radius: 24rpx;
   border: 1rpx solid rgba(24, 179, 104, 0.12);
   background:
@@ -23,7 +23,7 @@
 .hero-head {
   display: flex;
   align-items: flex-start;
-  gap: 16rpx;
+  gap: var(--space-section);
 }
 
 .hero-main {
@@ -57,7 +57,7 @@
 .hero-status {
   display: inline-flex;
   align-items: center;
-  gap: 8rpx;
+  gap: var(--space-tight);
   min-height: 52rpx;
   padding: 0 16rpx;
   border-radius: 999rpx;
@@ -94,8 +94,8 @@
 }
 
 .hero-progress-card {
-  margin-top: 20rpx;
-  padding: 22rpx 20rpx 18rpx;
+  margin-top: var(--space-section);
+  padding: var(--space-card-pad-lg);
   border-radius: 20rpx;
   background: rgba(255, 255, 255, 0.84);
   border: 1rpx solid rgba(24, 179, 104, 0.1);
@@ -111,14 +111,14 @@
 }
 
 .hero-progress-note {
-  margin-top: 10rpx;
+  margin-top: var(--space-tight);
   font-size: 24rpx;
   line-height: 1.5;
   color: var(--neutral-700);
 }
 
 .hero-progress-track {
-  margin-top: 14rpx;
+  margin-top: var(--space-inline);
   height: 8rpx;
   border-radius: 999rpx;
   background: var(--neutral-100);
@@ -133,8 +133,8 @@
 }
 
 .hero-actions-panel {
-  margin-top: 18rpx;
-  padding: 14rpx;
+  margin-top: var(--space-section);
+  padding: var(--space-panel-pad);
   border-radius: 18rpx;
   background: rgba(255, 255, 255, 0.92);
   border: 1rpx solid rgba(15, 23, 42, 0.06);
@@ -158,8 +158,9 @@
 /* --- Round Card --- */
 .round-card {
   border-radius: 20rpx;
-  padding: 20rpx;
-  margin-top: 16rpx;
+  padding: var(--space-card-pad);
+  margin-top: var(--space-inline);
+  transition: transform 100ms ease, filter 100ms ease, border-color 120ms ease, box-shadow 120ms ease;
 }
 
 .round-card-current {
@@ -172,11 +173,11 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  padding: 4rpx 4rpx 12rpx;
+  padding: 2rpx 2rpx var(--space-tight);
 }
 
 .round-title {
-  font-size: 32rpx;
+  font-size: 30rpx;
   font-weight: 800;
   color: var(--neutral-950);
 }
@@ -190,11 +191,11 @@
 /* --- Match Card --- */
 .match-card {
   background: var(--neutral-100);
-  border-radius: 16rpx;
-  padding: 16rpx;
-  margin-bottom: 12rpx;
+  border-radius: 14rpx;
+  padding: var(--space-panel-pad);
+  margin-bottom: var(--space-tight);
   border: 1rpx solid var(--neutral-200);
-  transition: border-color 120ms ease, background 120ms ease;
+  transition: transform 100ms ease, filter 100ms ease, border-color 120ms ease, background 120ms ease;
 }
 
 .match-card:last-child {
@@ -210,7 +211,7 @@
 .match-card-main {
   display: flex;
   align-items: stretch;
-  gap: 12rpx;
+  gap: var(--space-inline);
 }
 
 .match-title {
@@ -233,11 +234,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8rpx;
+  gap: var(--space-tight);
 }
 
 .match-team-name-line {
-  margin-top: 16rpx;
+  margin-top: var(--space-section);
   width: 100%;
   text-align: center;
   color: var(--neutral-950);
@@ -304,13 +305,13 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  gap: 16rpx;
+  gap: var(--space-section);
 }
 
 .match-score-row {
   display: flex;
   align-items: baseline;
-  gap: 10rpx;
+  gap: var(--space-tight);
 }
 
 .match-score {
@@ -330,11 +331,11 @@
 }
 
 .match-card-foot {
-  margin-top: 12rpx;
+  margin-top: var(--space-tight);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12rpx;
+  gap: var(--space-tight);
 }
 
 .match-note {
@@ -395,7 +396,7 @@
   z-index: 80;
   display: flex;
   align-items: center;
-  gap: 16rpx;
+  gap: var(--space-section);
 }
 
 .schedule-filter-left {
@@ -403,7 +404,7 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 16rpx;
+  gap: var(--space-section);
 }
 
 .filter-trigger {
@@ -435,7 +436,7 @@
 .selected-player-list {
   display: inline-flex;
   align-items: center;
-  gap: 12rpx;
+  gap: var(--space-inline);
 }
 
 .selected-player-chip {
@@ -518,7 +519,7 @@
   background: linear-gradient(180deg, rgba(245, 251, 247, 0.98) 0%, rgba(255, 255, 255, 0.99) 24%, #ffffff 100%);
   border-top: 1rpx solid rgba(15, 23, 42, 0.06);
   border-radius: 28rpx 28rpx 0 0;
-  padding: 16rpx 32rpx calc(env(safe-area-inset-bottom) + 32rpx);
+  padding: var(--space-section) 32rpx calc(env(safe-area-inset-bottom) + 32rpx);
   z-index: 101;
   box-shadow: 0 -8rpx 30rpx rgba(15, 23, 42, 0.12);
 }
@@ -543,8 +544,8 @@
 }
 
 .filter-sheet-option {
-  margin-top: 20rpx;
-  padding: 22rpx 16rpx;
+  margin-top: var(--space-card-pad-lg);
+  padding: var(--space-card-pad-lg) var(--space-section);
   border-bottom: 1rpx solid rgba(15, 23, 42, 0.08);
   font-size: 28rpx;
   color: var(--neutral-900);
@@ -557,29 +558,32 @@
 }
 
 .filter-sheet-actions {
-  margin-top: 28rpx;
+  margin-top: var(--space-page-bottom);
   display: flex;
-  gap: 16rpx;
+  min-width: 0;
+  gap: var(--space-section);
 }
 
 .filter-sheet-actions .btn {
   flex: 1;
+  width: 0;
+  min-width: 0;
 }
 
 /* --- State Cards --- */
 .state-card {
-  margin-top: 16rpx;
+  margin-top: var(--space-section);
 }
 
 .state-title {
   font-size: 30rpx;
   font-weight: 700;
-  margin-bottom: 8rpx;
+  margin-bottom: var(--space-tight);
   color: var(--neutral-700);
 }
 
 .state-link {
-  margin-top: 12rpx;
+  margin-top: var(--space-inline);
   display: inline-flex;
   align-items: center;
   min-height: 48rpx;
@@ -591,8 +595,8 @@
 
 /* --- Skeleton 拟真化 --- */
 .skeleton-match-block {
-  margin-top: 16rpx;
-  padding: 14rpx;
+  margin-top: var(--space-tight);
+  padding: var(--space-panel-pad);
   border-radius: 16rpx;
   background: var(--neutral-100);
   border: 1rpx solid var(--neutral-200);

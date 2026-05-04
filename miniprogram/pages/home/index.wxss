@@ -3,13 +3,13 @@
    ============================================================ */
 
 .home-page {
-  padding: 20rpx 24rpx;
+  padding: var(--space-page-y) var(--space-page-x);
   padding-bottom: calc(env(safe-area-inset-bottom) + 24rpx);
 }
 
 /* sync-banner: 继承全局 app.wxss 基类, 仅覆盖页面间距 */
 .home-page > .sync-banner {
-  margin-bottom: 12rpx;
+  margin-bottom: var(--space-inline);
 }
 
 /* --- Hero 紧凑工作台卡片 --- */
@@ -26,7 +26,7 @@
 }
 
 .hero-grid {
-  padding: 22rpx;
+  padding: var(--space-card-pad-lg);
   display: flex;
   align-items: center;
   gap: 0;
@@ -62,8 +62,8 @@
 }
 
 .hero-task-strip {
-  margin-top: 14rpx;
-  padding: 18rpx 18rpx 16rpx;
+  margin-top: var(--space-inline);
+  padding: var(--space-card-pad);
   border-radius: 18rpx;
   background: rgba(255, 255, 255, 0.88);
   border: 1rpx solid rgba(15, 23, 42, 0.06);
@@ -101,10 +101,10 @@
 }
 
 .hero-progress-wrap {
-  margin-top: 10rpx;
+  margin-top: var(--space-tight);
   display: flex;
   align-items: center;
-  gap: 12rpx;
+  gap: var(--space-inline);
 }
 
 .hero-progress-bar {
@@ -130,24 +130,24 @@
 }
 
 .hero-task-btn {
-  margin-top: 14rpx;
+  margin-top: var(--space-inline);
   width: 100%;
   min-width: 0;
 }
 
 /* --- Section --- */
 .section {
-  margin-top: 16rpx;
+  margin-top: var(--space-section);
 }
 
 .section-head {
-  margin: 0 2rpx 10rpx;
+  margin: 0 2rpx var(--space-tight);
 }
 
 /* --- 排序/筛选工具栏 --- */
 .toolbar-row {
-  margin-top: 8rpx;
-  padding: 12rpx 14rpx;
+  margin-top: var(--space-tight);
+  padding: var(--space-inline) var(--space-panel-pad);
   background: linear-gradient(180deg, rgba(248, 252, 249, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
   border: 1rpx solid rgba(15, 23, 42, 0.07);
   border-radius: 18rpx;
@@ -158,7 +158,7 @@
 .sort-row {
   display: flex;
   align-items: center;
-  gap: 8rpx;
+  gap: var(--space-tight);
   flex-wrap: wrap;
 }
 
@@ -187,10 +187,10 @@
 }
 
 .filter-row {
-  margin-top: 8rpx;
+  margin-top: var(--space-tight);
   display: flex;
   flex-wrap: wrap;
-  gap: 8rpx;
+  gap: var(--space-tight);
 }
 
 .filter-chip {
@@ -216,14 +216,15 @@
   position: relative;
   overflow: hidden;
   border-radius: 20rpx;
-  margin-top: 12rpx;
+  margin-top: var(--space-tight);
   border: 1rpx solid rgba(15, 23, 42, 0.08);
   box-shadow: var(--shadow-soft);
+  transition: transform 100ms ease, filter 100ms ease;
 }
 
 .swipe-row.card {
   padding: 0;
-  margin-top: 12rpx;
+  margin-top: var(--space-tight);
 }
 
 .swipe-actions {
@@ -235,6 +236,14 @@
   display: flex;
   justify-content: flex-end;
   z-index: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 100ms ease;
+}
+
+.swipe-actions.is-open {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .del-btn {
@@ -251,8 +260,9 @@
 .swipe-content {
   position: relative;
   z-index: 1;
+  box-sizing: border-box;
   width: 100%;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(248, 251, 249, 0.98) 100%);
+  background: linear-gradient(180deg, #FFFFFF 0%, #F8FBF9 100%);
   will-change: transform;
   border-left: 6rpx solid transparent;
   transition: transform 100ms ease;
@@ -276,7 +286,7 @@
 }
 
 .t-card {
-  padding: 18rpx 18rpx 16rpx 20rpx;
+  padding: var(--space-panel-pad) var(--space-card-pad);
 }
 
 .t-top {
@@ -290,9 +300,9 @@
 }
 
 .t-stats {
-  margin-top: 10rpx;
+  margin-top: var(--space-tight);
   display: flex;
-  gap: 8rpx;
+  gap: var(--space-tight);
   flex-wrap: wrap;
 }
 
@@ -307,15 +317,15 @@
 }
 
 .t-time {
-  margin-top: 8rpx;
+  margin-top: var(--space-tight);
   color: var(--neutral-500, #64748B);
 }
 
 .t-actions {
-  margin-top: 10rpx;
+  margin-top: var(--space-tight);
   display: flex;
   justify-content: flex-end;
-  gap: 8rpx;
+  gap: var(--space-tight);
 }
 
 .t-copy-link,
@@ -338,11 +348,11 @@
 
 /* --- Skeleton 更拟真 --- */
 .skeleton-list {
-  margin-top: 8rpx;
+  margin-top: var(--space-tight);
 }
 
 .skeleton-card-wrap {
-  margin-top: 12rpx;
+  margin-top: var(--space-tight);
   border-radius: 20rpx;
   border: 1rpx solid var(--neutral-200, #E2E8F0);
   overflow: hidden;
@@ -350,6 +360,7 @@
 
 .skeleton-card-wrap .skeleton-card {
   margin-top: 0;
+  padding: var(--space-panel-pad) var(--space-card-pad);
   border: none;
   border-left: 6rpx solid var(--neutral-200, #E2E8F0);
 }
@@ -368,13 +379,21 @@
 }
 
 .profile-nudge-actions {
-  margin-top: 12rpx;
+  margin-top: var(--space-inline);
   display: flex;
   align-items: center;
-  gap: 14rpx;
+  gap: var(--space-inline);
+  min-width: 0;
+}
+
+.profile-nudge-actions .btn {
+  flex: 1;
+  width: 0;
+  min-width: 0;
 }
 
 .profile-nudge-later {
+  flex: none;
   font-size: 24rpx;
   color: var(--neutral-500, #64748B);
 }
@@ -385,10 +404,10 @@
 }
 
 .guide-step {
-  margin-top: 10rpx;
+  margin-top: var(--space-tight);
   display: flex;
   align-items: center;
-  gap: 12rpx;
+  gap: var(--space-inline);
 }
 
 .guide-index {
@@ -412,7 +431,7 @@
 }
 
 .onboarding-later {
-  margin-top: 12rpx;
+  margin-top: var(--space-inline);
   display: block;
   text-align: center;
   font-size: 24rpx;
@@ -421,15 +440,15 @@
 
 /* --- Retry Box --- */
 .retry-box {
-  margin-top: 16rpx;
-  padding: 14rpx 16rpx;
+  margin-top: var(--space-section);
+  padding: var(--space-panel-pad) var(--space-card-pad);
   border-radius: 16rpx;
   border: 1rpx solid rgba(15, 23, 42, 0.08);
   background: linear-gradient(180deg, rgba(248, 252, 249, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12rpx;
+  gap: var(--space-inline);
 }
 
 /* --- Responsive --- */

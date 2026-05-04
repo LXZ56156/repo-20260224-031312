@@ -58,14 +58,14 @@
       <view class="state-empty-desc">{{filterEmptyText ? '调整底部筛选条件后可恢复显示' : '赛程生成后将在此展示所有轮次与比赛'}}</view>
     </view>
 
-    <view class="round-card panel {{item.isCurrentRound ? 'round-card-current' : ''}}" wx:for="{{roundsUi}}" wx:key="roundIndex">
+    <view class="round-card panel reveal {{item.isCurrentRound ? 'round-card-current' : ''}}" style="animation-delay: {{index < 6 ? 60 + index * 28 : 228}}ms;" wx:for="{{roundsUi}}" wx:key="roundIndex">
       <view class="round-header">
         <view class="round-title">第{{item.roundIndex + 1}}轮</view>
         <text class="count-pill {{item.isCurrentRound ? 'count-pill-active' : ''}}" wx:if="{{item.isCurrentRound}}">当前待录分轮次</text>
         <text class="muted small" wx:else>{{item.matchesUi.length}} 场</text>
       </view>
 
-      <view class="match-card {{m.isFirstPending ? 'match-card-focus' : ''}}" wx:for="{{item.matchesUi}}" wx:for-item="m" wx:key="key" data-round="{{m.roundIndex}}" data-match="{{m.matchIndex}}" data-status="{{m.status}}" bindtap="openMatch">
+      <view class="match-card {{m.isFirstPending ? 'match-card-focus' : ''}}" hover-class="list-card-press" hover-stay-time="80" wx:for="{{item.matchesUi}}" wx:for-item="m" wx:key="key" data-round="{{m.roundIndex}}" data-match="{{m.matchIndex}}" data-status="{{m.status}}" bindtap="openMatch">
         <view class="match-card-main">
           <view class="match-team">
             <view class="match-team-avatars">

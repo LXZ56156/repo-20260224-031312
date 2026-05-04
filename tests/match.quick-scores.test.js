@@ -15,6 +15,12 @@ function readPage(relativePath) {
   return fs.readFileSync(path.join(__dirname, '..', relativePath), 'utf8');
 }
 
+function getCssRuleBody(source, selector) {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = source.match(new RegExp(`${escapedSelector}\\s*\\{([\\s\\S]*?)\\}`));
+  return match ? match[1] : '';
+}
+
 function loadMatchPageDefinition() {
   const originalPage = global.Page;
   let definition = null;
@@ -75,6 +81,9 @@ function createPageContext(definition) {
       },
       saveScoreDraft(scoreA, scoreB) {
         ctx._savedDraft = { scoreA, scoreB };
+      },
+      undo() {
+        return ctx._undoStack.pop() || null;
       },
       getUndoSize() {
         return ctx._undoStack.length;
@@ -159,7 +168,31 @@ test('match page renders dynamic quick score options instead of hardcoded score 
   assert.match(wxml, /wx:for=\"\{\{quickScoreOptions\}\}\"/);
   assert.match(wxml, /data-a=\"\{\{item\.a\}\}\"/);
   assert.match(wxml, /data-b=\"\{\{item\.b\}\}\"/);
+  assert.match(wxml, /class=\"score-edit-status\" wx:if=\"\{\{canEdit\}\}\"/);
+  assert.match(wxml, /bindtap=\"onClearScores\"/);
+  assert.match(wxml, /bindtap=\"onSwapScores\"/);
+  assert.match(wxml, /bindtap=\"onUndoStep\"/);
   assert.doesNotMatch(wxml, /data-a=\"21\" data-b=\"19\"/);
+  assert.doesNotMatch(wxml, /class=\"lock-panel\"/);
+  assert.doesNotMatch(wxml, /请先点击/);
+  assert.doesNotMatch(wxml, /刷新状态/);
+  assert.doesNotMatch(wxml, /接管录分/);
+});
+
+test('match score edit tools stay contained within the score panel', () => {
+  const wxss = readPage('miniprogram/pages/match/index.wxss');
+  const toolbarRule = getCssRuleBody(wxss, '.score-toolbar');
+  const toolsRule = getCssRuleBody(wxss, '.score-tools');
+  const toolRule = getCssRuleBody(wxss, '.score-tool');
+
+  assert.match(toolbarRule, /flex-direction:\s*column/);
+  assert.match(toolbarRule, /align-items:\s*stretch/);
+  assert.match(toolsRule, /width:\s*100%/);
+  assert.match(toolsRule, /display:\s*flex/);
+  assert.match(toolRule, /flex:\s*1/);
+  assert.match(toolRule, /width:\s*0/);
+  assert.match(toolRule, /min-width:\s*0/);
+  assert.match(toolRule, /box-sizing:\s*border-box/);
 });
 
 test('onQuickScore still overwrites scores and records undo plus draft from dynamic dataset', () => {
@@ -184,6 +217,31 @@ test('onQuickScore still overwrites scores and records undo plus draft from dyna
   assert.equal(ctx.data.canUndo, true);
   assert.deepEqual(ctx._undoStack, [{ a: 3, b: 6 }]);
   assert.deepEqual(ctx._savedDraft, { scoreA: 15, scoreB: 13 });
+
+  delete require.cache[matchPagePath];
+});
+
+test('score edit tools clear swap and undo through shared draft history', () => {
+  const definition = loadMatchPageDefinition();
+  const ctx = createPageContext(definition);
+
+  ctx.onSwapScores();
+  assert.equal(ctx.data.scoreA, 6);
+  assert.equal(ctx.data.scoreB, 3);
+  assert.deepEqual(ctx._undoStack, [{ a: 3, b: 6 }]);
+  assert.deepEqual(ctx._savedDraft, { scoreA: 6, scoreB: 3 });
+
+  ctx.onClearScores();
+  assert.equal(ctx.data.scoreA, 0);
+  assert.equal(ctx.data.scoreB, 0);
+  assert.deepEqual(ctx._undoStack, [{ a: 3, b: 6 }, { a: 6, b: 3 }]);
+  assert.deepEqual(ctx._savedDraft, { scoreA: 0, scoreB: 0 });
+
+  ctx.onUndoStep();
+  assert.equal(ctx.data.scoreA, 6);
+  assert.equal(ctx.data.scoreB, 3);
+  assert.equal(ctx.data.canUndo, true);
+  assert.deepEqual(ctx._savedDraft, { scoreA: 6, scoreB: 3 });
 
   delete require.cache[matchPagePath];
 });

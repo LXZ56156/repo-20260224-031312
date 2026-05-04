@@ -9,6 +9,7 @@ const shareMeta = require('../../core/shareMeta');
 const flow = require('../../core/uxFlow');
 const scheduleContract = require('../../core/scheduleContract');
 const avatarDisplay = require('../../core/avatarDisplay');
+const pageTimers = require('../../core/pageTimers');
 
 const PLAYER_FILTER_OPTIONS = [
   { value: 'contains', label: '含有' },
@@ -21,6 +22,9 @@ const STATUS_FILTER_OPTIONS = [
   { value: 'current', label: '比赛中' },
   { value: 'finished', label: '已结束' }
 ];
+
+const CURRENT_ROUND_SELECTOR = '.round-card-current';
+const CURRENT_ROUND_FOCUS_TIMER = 'currentRoundFocus';
 
 function asName(p) {
   if (!p) return '未知';
@@ -380,6 +384,7 @@ Page({
 
   onHide() {
     pageTournamentSync.pauseTournamentSync(this);
+    pageTimers.clearNamedTimer(this, CURRENT_ROUND_FOCUS_TIMER);
     if (this.data.showPlayerFilterSheet || this.data.showStatusFilterSheet) {
       this.setData({
         showPlayerFilterSheet: false,
@@ -401,6 +406,7 @@ Page({
 
   onUnload() {
     pageTournamentSync.teardownTournamentSync(this);
+    pageTimers.clearNamedTimer(this, CURRENT_ROUND_FOCUS_TIMER);
     if (typeof this._offNetwork === 'function') this._offNetwork();
     this._offNetwork = null;
     this._avatarResolveGen = Number(this._avatarResolveGen || 0) + 1;
@@ -474,7 +480,35 @@ Page({
       filterEmptyText,
       primaryNavItems: matchPrimaryNav.getPrimaryNavItems('schedule', this.data.tournamentId)
     });
+    this.scheduleCurrentRoundFocus(firstPending, roundsUi);
     this.refreshAvatarDisplays();
+  },
+
+  scheduleCurrentRoundFocus(firstPending, visibleRoundsUi) {
+    const roundIndex = firstPending ? Number(firstPending.roundIndex) : -1;
+    if (!Number.isFinite(roundIndex) || roundIndex < 0) {
+      this._lastAutoFocusedRoundIndex = -1;
+      pageTimers.clearNamedTimer(this, CURRENT_ROUND_FOCUS_TIMER);
+      return;
+    }
+    const hasVisibleCurrentRound = (Array.isArray(visibleRoundsUi) ? visibleRoundsUi : []).some((round) => {
+      return !!(round && round.isCurrentRound) && Number(round.roundIndex) === roundIndex;
+    });
+    if (!hasVisibleCurrentRound) return;
+    if (Number(this._lastAutoFocusedRoundIndex) === roundIndex) return;
+    if (typeof wx === 'undefined' || typeof wx.pageScrollTo !== 'function') return;
+    this._lastAutoFocusedRoundIndex = roundIndex;
+    pageTimers.setNamedTimer(this, CURRENT_ROUND_FOCUS_TIMER, () => {
+      const currentRound = Number(this.data.firstPendingRoundIndex);
+      const stillVisible = (Array.isArray(this.data.roundsUi) ? this.data.roundsUi : []).some((round) => {
+        return !!(round && round.isCurrentRound) && Number(round.roundIndex) === roundIndex;
+      });
+      if (currentRound !== roundIndex || !stillVisible) return;
+      wx.pageScrollTo({
+        selector: CURRENT_ROUND_SELECTOR,
+        duration: 220
+      });
+    }, 90);
   },
 
   ensureAvatarRuntime() {

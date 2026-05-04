@@ -100,6 +100,14 @@ function getVisibleMatchIndexes(roundsUi) {
   return (roundsUi || []).flatMap((round) => (round.matchesUi || []).map((match) => Number(match.matchIndex)));
 }
 
+function buildTournamentWithSecondRoundPending() {
+  const tournament = buildTournament();
+  tournament.rounds[0].matches[0].status = 'finished';
+  tournament.rounds[0].matches[0].scoreA = 21;
+  tournament.rounds[0].matches[0].scoreB = 19;
+  return tournament;
+}
+
 test('schedule page decorates match cards with avatar groups and inline member names', () => {
   const definition = loadSchedulePageDefinition();
   const ctx = createSchedulePageContext(definition);
@@ -113,6 +121,45 @@ test('schedule page decorates match cards with avatar groups and inline member n
     assert.equal(match.leftTeam.text, '甲一 / 乙二');
     assert.equal(match.filterStage, 'current');
   } finally {
+    delete require.cache[schedulePagePath];
+  }
+});
+
+test('schedule page auto-scrolls to the current pending round once by default', () => {
+  const definition = loadSchedulePageDefinition();
+  const ctx = createSchedulePageContext(definition);
+  const originalWx = global.wx;
+  const originalSetTimeout = global.setTimeout;
+  const originalClearTimeout = global.clearTimeout;
+  const scrollCalls = [];
+
+  global.wx = {
+    pageScrollTo(options) {
+      scrollCalls.push(options);
+    }
+  };
+  global.setTimeout = (fn) => {
+    fn();
+    return 1;
+  };
+  global.clearTimeout = () => {};
+
+  try {
+    ctx.applyTournament(buildTournamentWithSecondRoundPending());
+
+    assert.equal(ctx.data.firstPendingRoundIndex, 1);
+    assert.equal(ctx.data.roundsUi[1].isCurrentRound, true);
+    assert.deepEqual(scrollCalls, [{
+      selector: '.round-card-current',
+      duration: 220
+    }]);
+
+    ctx.applyTournament(buildTournamentWithSecondRoundPending());
+    assert.equal(scrollCalls.length, 1);
+  } finally {
+    global.wx = originalWx;
+    global.setTimeout = originalSetTimeout;
+    global.clearTimeout = originalClearTimeout;
     delete require.cache[schedulePagePath];
   }
 });

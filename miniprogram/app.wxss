@@ -62,6 +62,20 @@ page {
   --shadow-card: 0 10rpx 30rpx rgba(15, 23, 42, 0.06);
   --shadow-strong: 0 10rpx 28rpx rgba(24, 179, 104, 0.14);
 
+  /* Density 间距节奏 */
+  --space-page-x: 24rpx;
+  --space-page-y: 20rpx;
+  --space-page-bottom: 24rpx;
+  --space-section: 16rpx;
+  --space-card-pad: 18rpx;
+  --space-card-pad-lg: 20rpx;
+  --space-hero-pad-y: 24rpx;
+  --space-hero-pad-x: 24rpx;
+  --space-panel-pad: 14rpx;
+  --space-inline: 12rpx;
+  --space-tight: 8rpx;
+  --space-form: 16rpx;
+
   background: var(--bg-app);
   color: var(--text-1);
   font-size: 28rpx;
@@ -115,7 +129,7 @@ page {
 
 /* --- C. 间距系统 (8pt grid) --- */
 .container {
-  padding: 24rpx;
+  padding: var(--space-page-y) var(--space-page-x);
 }
 
 .gap-xs { gap: 8rpx; }
@@ -142,7 +156,7 @@ page {
     linear-gradient(180deg, rgba(244, 253, 247, 0.98) 0%, rgba(255, 255, 255, 0.98) 52%, #ffffff 100%);
   border: 1rpx solid var(--card-border-strong);
   border-radius: 24rpx;
-  padding: 28rpx 24rpx;
+  padding: var(--space-hero-pad-y) var(--space-hero-pad-x);
   color: var(--neutral-950);
   box-shadow: var(--shadow-card);
 }
@@ -166,8 +180,8 @@ page {
   background: linear-gradient(180deg, var(--surface-card) 0%, rgba(251, 253, 252, 0.98) 100%);
   border-radius: 20rpx;
   border: 1rpx solid var(--card-border);
-  padding: 20rpx;
-  margin-top: 16rpx;
+  padding: var(--space-card-pad);
+  margin-top: var(--space-section);
   box-shadow: var(--shadow-soft);
 }
 
@@ -194,7 +208,7 @@ page {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12rpx;
+  gap: var(--space-inline);
 }
 
 .section-title {
@@ -222,8 +236,14 @@ page {
 /* --- H. 按钮体系 --- */
 .btn {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin-left: 0;
+  margin-right: 0;
   border-radius: 16rpx;
   overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 30rpx;
   font-weight: 700;
@@ -285,26 +305,35 @@ button.btn:active {
 }
 
 .btn + .btn {
-  margin-top: 12rpx;
+  margin-top: var(--space-inline);
 }
 
 .btn-row {
+  width: 100%;
+  min-width: 0;
   display: flex;
-  gap: 12rpx;
+  gap: var(--space-inline);
+  align-items: stretch;
 }
 
 .btn-row .btn {
   margin-top: 0 !important;
-  width: auto;
+  width: 0;
+  min-width: 0;
   flex: 1;
 }
 
 .btn-inline {
   width: auto;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   padding: 0 24rpx;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .btn-sm {
@@ -315,6 +344,11 @@ button.btn:active {
 }
 
 .btn-mini {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin-left: 0;
+  margin-right: 0;
   height: 64rpx;
   line-height: 64rpx;
   padding: 0 18rpx;
@@ -326,6 +360,9 @@ button.btn:active {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   transition: transform 100ms ease, filter 100ms ease;
   border: 1rpx solid var(--card-border);
 }
@@ -521,14 +558,14 @@ button.btn-mini::after {
 }
 
 .field-error {
-  margin-top: 8rpx;
+  margin-top: var(--space-tight);
   color: var(--danger);
   font-size: 22rpx;
   font-weight: 500;
 }
 
 .form-item {
-  margin-top: 20rpx;
+  margin-top: var(--space-form);
 }
 
 .form-label {
@@ -760,24 +797,24 @@ button.btn-mini::after {
 }
 
 .state-error-actions {
-  margin-top: 8rpx;
+  margin-top: var(--space-tight);
   display: flex;
   flex-direction: column;
-  gap: 12rpx;
+  gap: var(--space-inline);
   width: 100%;
   max-width: 400rpx;
 }
 
 .retry-box {
-  margin-top: 16rpx;
-  padding: 14rpx 16rpx;
+  margin-top: var(--space-section);
+  padding: var(--space-panel-pad) var(--space-card-pad);
   border-radius: 16rpx;
   border: 1rpx solid var(--card-border);
   background: linear-gradient(180deg, rgba(248, 251, 249, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12rpx;
+  gap: var(--space-inline);
 }
 
 /* --- N. Skeleton --- */
@@ -804,8 +841,8 @@ button.btn-mini::after {
 }
 
 .skeleton-card {
-  margin-top: 16rpx;
-  padding: 20rpx;
+  margin-top: var(--space-section);
+  padding: var(--space-card-pad-lg);
   border-radius: 20rpx;
   border: 1rpx solid var(--neutral-200);
   background: var(--bg-surface);
@@ -832,7 +869,7 @@ button.btn-mini::after {
 
 .skeleton-row {
   display: flex;
-  gap: 16rpx;
+  gap: var(--space-section);
   align-items: center;
 }
 
@@ -866,6 +903,11 @@ button.btn-mini::after {
 .reveal-5 { animation-delay: 180ms; }
 .reveal-6 { animation-delay: 220ms; }
 .reveal-7 { animation-delay: 260ms; }
+
+.list-card-press {
+  filter: brightness(0.985);
+  transform: scale(0.992);
+}
 
 /* --- P. Utility --- */
 .row {
@@ -933,7 +975,7 @@ button.btn-mini::after {
 .divider {
   height: 1rpx;
   background: var(--neutral-200);
-  margin: 16rpx 0;
+  margin: var(--space-section) 0;
 }
 
 .safe-bottom {
@@ -963,8 +1005,8 @@ button.btn-mini::after {
 .pcolor-5 { background: #14b8a6; }
 
 .ad-breakpoint {
-  margin-top: 16rpx;
-  padding: 16rpx;
+  margin-top: var(--space-section);
+  padding: var(--space-section);
   border-radius: 18rpx;
   border: 1rpx dashed rgba(148, 163, 184, 0.26);
   background: linear-gradient(180deg, rgba(248, 252, 249, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
@@ -985,7 +1027,7 @@ button.btn-mini::after {
 
 /* --- R. List --- */
 .list-item {
-  padding: 14rpx 0;
+  padding: var(--space-panel-pad) 0;
   border-bottom: 1rpx solid var(--neutral-100);
 }
 
@@ -1035,12 +1077,13 @@ button.btn-mini::after {
 /* --- U. Profile / Actions --- */
 .profile-actions {
   display: flex;
-  gap: 12rpx;
+  gap: var(--space-inline);
   flex-wrap: wrap;
 }
 
 .profile-actions .btn-mini {
   flex: 1;
+  min-width: 0;
 }
 
 .profile-row {
@@ -1050,8 +1093,8 @@ button.btn-mini::after {
 
 /* --- V. Action Rail --- */
 .action-rail {
-  margin-top: 16rpx;
-  padding: 18rpx;
+  margin-top: var(--space-section);
+  padding: var(--space-card-pad);
   border-radius: 20rpx;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(247, 251, 248, 0.98) 100%);
   border: 1rpx solid var(--card-border);
@@ -1069,8 +1112,8 @@ button.btn-mini::after {
 .bottom-tray {
   position: sticky;
   bottom: calc(env(safe-area-inset-bottom) + 8rpx);
-  margin-top: 16rpx;
-  padding: 12rpx;
+  margin-top: var(--space-section);
+  padding: var(--space-inline);
   border-radius: 20rpx;
   border: 1rpx solid var(--card-border);
   background: rgba(255, 255, 255, 0.97);
@@ -1084,10 +1127,10 @@ button.btn-mini::after {
 
 /* --- X. Match Primary Nav (from inline import) --- */
 .match-primary-nav {
-  margin-bottom: 12rpx;
+  margin-bottom: var(--space-inline);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8rpx;
+  gap: var(--space-tight);
 }
 
 .match-primary-nav-item {
