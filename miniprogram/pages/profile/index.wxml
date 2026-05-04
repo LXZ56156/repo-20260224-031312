@@ -6,7 +6,7 @@
 
   <view class="card panel profile-form-card">
     <view class="profile-avatar-section">
-      <image class="profile-avatar" src="{{avatarDisplay}}" mode="aspectFill"></image>
+      <image class="profile-avatar" src="{{avatarDisplay}}" mode="aspectFill" binderror="onAvatarError"></image>
       <view class="avatar-actions">
         <button class="btn-mini" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">选择头像</button>
         <button class="btn-mini danger" wx:if="{{avatarUploadFailed}}" bindtap="onRetryAvatarUpload">重试上传</button>

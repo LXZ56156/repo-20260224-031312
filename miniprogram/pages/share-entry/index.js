@@ -126,7 +126,10 @@ Page({
         return '';
       }
     })();
-    this.openid = appOpenid || String(storage.get('openid', '') || '').trim() || this.openid;
+    const cachedOpenid = typeof wx !== 'undefined' && typeof wx.getStorageSync === 'function'
+      ? storage.get('openid', '')
+      : '';
+    this.openid = appOpenid || String(cachedOpenid || '').trim() || this.openid;
   },
 
   invalidateIdentityAttempt() {

@@ -1,4 +1,4 @@
-<view class="page home-page" wx:if="{{!loadError}}">
+<view class="page home-page {{uiPreferenceClass}}" wx:if="{{!loadError}}">
   <!-- sync-banner: 仅在离线/缓存/降级等异常态展示，健康态刷新静默处理 -->
   <view class="sync-banner sync-{{syncStatusTone}}" hidden="{{!syncStatusVisible}}">
     <view class="sync-banner-main">
@@ -124,11 +124,13 @@
                   <text class="pill">{{item.playersCount}}人</text>
                   <text class="pill">{{item.matchProgressText}}</text>
                 </view>
-                <view class="t-time muted small">更新 {{item.updatedAtText}}</view>
-                <view class="t-actions" wx:if="{{item.status!=='missing'}}">
-                  <text class="t-quick-action" catchtap="onQuickActionTap" data-id="{{item._id}}" data-status="{{item.status}}" wx:if="{{item.status==='finished'}}">查看复盘</text>
-                  <text class="t-copy-link" catchtap="onCloneTap" data-id="{{item._id}}" wx:if="{{item.status==='finished'}}">再办一场</text>
-                  <text class="t-quick-action" catchtap="onQuickActionTap" data-id="{{item._id}}" data-status="{{item.status}}" wx:elif="{{item.status==='running'}}">查看对阵</text>
+                <view class="t-meta-row">
+                  <view class="t-time muted small">更新 {{item.updatedAtText}}</view>
+                  <view class="t-actions" wx:if="{{item.status!=='missing'}}">
+                    <text class="t-quick-action" catchtap="onQuickActionTap" data-id="{{item._id}}" data-status="{{item.status}}" wx:if="{{item.status==='finished'}}">查看复盘</text>
+                    <text class="t-copy-link" catchtap="onCloneTap" data-id="{{item._id}}" wx:if="{{item.status==='finished'}}">再办一场</text>
+                    <text class="t-quick-action" catchtap="onQuickActionTap" data-id="{{item._id}}" data-status="{{item.status}}" wx:elif="{{item.status==='running'}}">查看对阵</text>
+                  </view>
                 </view>
               </view>
             </view>
@@ -178,7 +180,7 @@
 </view>
 
 <!-- 错误态: 统一 state-error 结构 -->
-<view class="container safe-bottom" wx:else>
+<view class="container safe-bottom home-page {{uiPreferenceClass}}" wx:else>
   <view class="state-error">
     <view class="state-error-icon">⚠️</view>
     <view class="state-error-title">加载失败</view>

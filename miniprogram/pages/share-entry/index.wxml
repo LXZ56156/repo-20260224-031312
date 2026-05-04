@@ -10,7 +10,7 @@
   <view class="share-hero hero reveal reveal-1">
     <view class="row hero-top">
       <view class="flex-1 minw0">
-        <view class="share-title">{{preview.tournamentName}}</view>
+        <view class="share-title ellipsis">{{preview.tournamentName}}</view>
         <view class="share-headline">{{preview.headline}}</view>
       </view>
       <view class="tag {{preview.statusClass}}">{{preview.statusText}}</view>

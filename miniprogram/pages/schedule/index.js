@@ -10,6 +10,7 @@ const flow = require('../../core/uxFlow');
 const scheduleContract = require('../../core/scheduleContract');
 const avatarDisplay = require('../../core/avatarDisplay');
 const pageTimers = require('../../core/pageTimers');
+const uiPreferences = require('../../core/uiPreferences');
 
 const PLAYER_FILTER_OPTIONS = [
   { value: 'contains', label: '含有' },
@@ -354,7 +355,12 @@ Page({
     syncStatusTone: 'info',
     syncStatusText: '',
     syncStatusMeta: '',
-    syncStatusActionText: '刷新'
+    syncStatusActionText: '刷新',
+    motionLevel: 'standard',
+    listDensity: 'comfortable',
+    uiMotionClass: 'motion-standard',
+    uiDensityClass: 'density-comfortable',
+    uiPreferenceClass: 'motion-standard density-comfortable'
   },
 
   ...scheduleSyncController,
@@ -366,7 +372,8 @@ Page({
     pageTournamentSync.initTournamentSync(this);
     this.setData({
       tournamentId: tid,
-      primaryNavItems: matchPrimaryNav.getPrimaryNavItems('schedule', tid)
+      primaryNavItems: matchPrimaryNav.getPrimaryNavItems('schedule', tid),
+      ...uiPreferences.readUiPreferencePatch()
     });
 
     const app = getApp();
@@ -396,12 +403,17 @@ Page({
   },
 
   onShow() {
+    this.refreshUiPreferences();
     const currentId = String(this.data.tournamentId || '').trim();
     if (this.data.heroActionBusy) this.setData({ heroActionBusy: false });
     nav.consumeRefreshFlag(currentId);
     // 兜底刷新：从录入比分页返回时，确保状态与比分是最新的
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
     if (this.data.tournamentId && !this.hasActiveWatch(this.data.tournamentId)) this.startWatch(this.data.tournamentId);
+  },
+
+  refreshUiPreferences() {
+    this.setData(uiPreferences.readUiPreferencePatch());
   },
 
   onUnload() {

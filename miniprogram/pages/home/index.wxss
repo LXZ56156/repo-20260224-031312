@@ -147,7 +147,7 @@
 /* --- 排序/筛选工具栏 --- */
 .toolbar-row {
   margin-top: var(--space-tight);
-  padding: var(--space-inline) var(--space-panel-pad);
+  padding: var(--space-tight) var(--space-panel-pad);
   background: linear-gradient(180deg, rgba(248, 252, 249, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
   border: 1rpx solid rgba(15, 23, 42, 0.07);
   border-radius: 18rpx;
@@ -169,7 +169,7 @@
 }
 
 .sort-chip {
-  padding: 5rpx 12rpx;
+  padding: 4rpx 10rpx;
   border-radius: 999rpx;
   border: 1rpx solid var(--neutral-200, #E2E8F0);
   background: var(--bg-surface, #FFFFFF);
@@ -194,7 +194,7 @@
 }
 
 .filter-chip {
-  padding: 5rpx 12rpx;
+  padding: 4rpx 10rpx;
   border-radius: 999rpx;
   border: 1rpx solid var(--neutral-200, #E2E8F0);
   background: var(--bg-surface, #FFFFFF);
@@ -316,13 +316,24 @@
   font-weight: 600;
 }
 
-.t-time {
+.t-meta-row {
   margin-top: var(--space-tight);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-tight);
+}
+
+.t-time {
+  min-width: 0;
+  flex: 1;
   color: var(--neutral-500, #64748B);
 }
 
 .t-actions {
-  margin-top: var(--space-tight);
+  min-width: 0;
+  max-width: 48%;
+  flex-shrink: 0;
   display: flex;
   justify-content: flex-end;
   gap: var(--space-tight);
@@ -330,14 +341,39 @@
 
 .t-copy-link,
 .t-quick-action {
-  padding: 6rpx 14rpx;
+  max-width: 100%;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5rpx 12rpx;
   border-radius: 999rpx;
   background: rgba(24, 179, 104, 0.08);
   border: 1rpx solid rgba(24, 179, 104, 0.14);
   color: var(--brand-700, #0A6F43);
   font-size: 22rpx;
   font-weight: 700;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   transition: background 100ms ease;
+}
+
+.home-page.density-comfortable .swipe-row,
+.home-page.density-comfortable .swipe-row.card,
+.home-page.density-comfortable .skeleton-card-wrap {
+  margin-top: var(--space-inline);
+}
+
+.home-page.density-comfortable .t-card,
+.home-page.density-comfortable .skeleton-card-wrap .skeleton-card {
+  padding: var(--space-card-pad-lg);
+}
+
+.home-page.density-comfortable .t-meta-row,
+.home-page.density-comfortable .t-stats {
+  margin-top: var(--space-inline);
 }
 
 .t-quick-action {

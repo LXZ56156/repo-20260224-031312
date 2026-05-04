@@ -1,7 +1,7 @@
 /* feedback — 轻对话式反馈页 */
 
 .feedback-page {
-  gap: 20rpx;
+  gap: var(--space-card-pad-lg);
 }
 
 .feedback-block {
@@ -10,16 +10,16 @@
 }
 
 .feedback-block .btn + .btn {
-  margin-top: 12rpx;
+  margin-top: var(--space-inline);
 }
 
 .feedback-block-title {
   font-size: 30rpx;
   font-weight: 740;
   color: var(--neutral-950);
-  margin-bottom: 10rpx;
+  margin-bottom: var(--space-tight);
 }
 
 .feedback-actions {
-  margin-top: 12rpx;
+  margin-top: var(--space-inline);
 }

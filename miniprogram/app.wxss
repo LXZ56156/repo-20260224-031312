@@ -87,7 +87,7 @@ page {
   font-size: 48rpx;
   font-weight: 820;
   line-height: 1.15;
-  letter-spacing: -0.5rpx;
+  letter-spacing: 0;
   color: var(--neutral-950);
 }
 
@@ -109,7 +109,7 @@ page {
   font-size: 36rpx;
   font-weight: 800;
   line-height: 1.15;
-  letter-spacing: -0.3rpx;
+  letter-spacing: 0;
   color: var(--neutral-950);
 }
 
@@ -625,6 +625,12 @@ button.btn-mini::after {
 }
 
 .chip {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 8rpx 16rpx;
   border-radius: 999rpx;
   background: var(--brand-50);
@@ -632,6 +638,9 @@ button.btn-mini::after {
   font-size: 24rpx;
   font-weight: 500;
   border: 1rpx solid var(--brand-100);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   transition: transform 100ms ease, filter 100ms ease, border-color 100ms ease, background 100ms ease;
 }
 
@@ -907,6 +916,20 @@ button.btn-mini::after {
 .list-card-press {
   filter: brightness(0.985);
   transform: scale(0.992);
+}
+
+.motion-light .reveal {
+  animation-duration: 120ms;
+}
+
+.motion-off .reveal {
+  opacity: 1;
+  animation: none !important;
+}
+
+.motion-off .start-pulse,
+.motion-light .start-pulse {
+  animation: none !important;
 }
 
 /* --- P. Utility --- */

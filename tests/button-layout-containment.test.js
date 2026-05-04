@@ -20,6 +20,7 @@ test('global button primitives stay inside flex and card containers', () => {
   const rowButtonRule = getCssRuleBody(appWxss, '.btn-row .btn');
   const inlineRule = getCssRuleBody(appWxss, '.btn-inline');
   const miniRule = getCssRuleBody(appWxss, '.btn-mini');
+  const chipRule = getCssRuleBody(appWxss, '.chip');
   const profileMiniRule = getCssRuleBody(appWxss, '.profile-actions .btn-mini');
 
   assert.match(buttonRule, /max-width:\s*100%/);
@@ -46,6 +47,13 @@ test('global button primitives stay inside flex and card containers', () => {
   assert.match(miniRule, /margin-left:\s*0/);
   assert.match(miniRule, /margin-right:\s*0/);
   assert.match(miniRule, /white-space:\s*nowrap/);
+
+  assert.match(chipRule, /max-width:\s*100%/);
+  assert.match(chipRule, /min-width:\s*0/);
+  assert.match(chipRule, /box-sizing:\s*border-box/);
+  assert.match(chipRule, /overflow:\s*hidden/);
+  assert.match(chipRule, /text-overflow:\s*ellipsis/);
+  assert.match(chipRule, /white-space:\s*nowrap/);
 
   assert.match(profileMiniRule, /flex:\s*1/);
   assert.match(profileMiniRule, /min-width:\s*0/);

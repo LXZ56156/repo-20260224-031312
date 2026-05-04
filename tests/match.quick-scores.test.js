@@ -182,17 +182,25 @@ test('match page renders dynamic quick score options instead of hardcoded score 
 test('match score edit tools stay contained within the score panel', () => {
   const wxss = readPage('miniprogram/pages/match/index.wxss');
   const toolbarRule = getCssRuleBody(wxss, '.score-toolbar');
+  const quickChipRule = getCssRuleBody(wxss, '.quick-score-chip');
   const toolsRule = getCssRuleBody(wxss, '.score-tools');
   const toolRule = getCssRuleBody(wxss, '.score-tool');
 
+  assert.match(toolbarRule, /display:\s*flex/);
   assert.match(toolbarRule, /flex-direction:\s*column/);
   assert.match(toolbarRule, /align-items:\s*stretch/);
+  assert.match(toolbarRule, /gap:\s*var\(--space-tight\)/);
+  assert.match(quickChipRule, /box-sizing:\s*border-box/);
+  assert.match(quickChipRule, /overflow:\s*hidden/);
   assert.match(toolsRule, /width:\s*100%/);
   assert.match(toolsRule, /display:\s*flex/);
+  assert.match(toolsRule, /gap:\s*var\(--space-tight\)/);
   assert.match(toolRule, /flex:\s*1/);
   assert.match(toolRule, /width:\s*0/);
   assert.match(toolRule, /min-width:\s*0/);
   assert.match(toolRule, /box-sizing:\s*border-box/);
+  assert.match(toolRule, /height:\s*56rpx/);
+  assert.match(toolRule, /font-size:\s*22rpx/);
 });
 
 test('onQuickScore still overwrites scores and records undo plus draft from dynamic dataset', () => {

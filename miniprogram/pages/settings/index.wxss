@@ -1,17 +1,17 @@
 /* settings — 比赛设置中心 */
 
 .settings-page {
-  padding-top: 20rpx;
+  padding-top: var(--space-page-y);
 }
 
 /* Panels */
 .settings-panel {
-  padding: 20rpx;
+  padding: var(--space-card-pad-lg);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(248, 251, 249, 0.98) 100%);
 }
 
 .context-panel {
-  padding: 20rpx;
+  padding: var(--space-card-pad-lg);
   background: linear-gradient(180deg, rgba(245, 252, 247, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
   border-color: rgba(24, 179, 104, 0.12);
 }
@@ -73,12 +73,12 @@
 }
 
 .settings-match-meta {
-  margin-top: 10rpx;
+  margin-top: var(--space-tight);
 }
 
 .settings-link-btn {
   display: inline-flex;
-  margin-top: 12rpx;
+  margin-top: var(--space-inline);
   color: var(--brand-600);
   font-size: 25rpx;
   font-weight: 700;
@@ -87,11 +87,11 @@
 }
 
 .settings-advanced-picker {
-  margin-top: 12rpx;
+  margin-top: var(--space-inline);
 }
 
 .settings-save {
-  margin-top: 20rpx;
+  margin-top: var(--space-card-pad-lg);
 }
 
 /* row-top in settings context */
@@ -108,12 +108,12 @@
 
 /* Referee section (if present) */
 .referee-current {
-  margin-top: 14rpx;
-  padding: 16rpx;
+  margin-top: var(--space-panel-pad);
+  padding: var(--space-section);
   border-radius: 16rpx;
   display: flex;
   align-items: center;
-  gap: 14rpx;
+  gap: var(--space-panel-pad);
 }
 
 .referee-current.set {
@@ -146,7 +146,7 @@
 .referee-actions {
   display: flex;
   align-items: center;
-  gap: 10rpx;
+  gap: var(--space-tight);
 }
 
 .referee-btn {
@@ -172,15 +172,15 @@ button.referee-btn::after {
 
 /* Players */
 .players {
-  margin-top: 14rpx;
+  margin-top: var(--space-panel-pad);
 }
 
 .player {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12rpx;
-  padding: 12rpx 0;
+  gap: var(--space-inline);
+  padding: var(--space-inline) 0;
   border-bottom: 1rpx solid var(--neutral-100);
 }
 
@@ -197,7 +197,7 @@ button.referee-btn::after {
 .player-main {
   display: flex;
   align-items: center;
-  gap: 10rpx;
+  gap: var(--space-tight);
   min-width: 0;
 }
 
@@ -215,13 +215,13 @@ button.referee-btn::after {
 
 /* Retry */
 .retry-box {
-  margin-top: 16rpx;
-  padding: 14rpx 16rpx;
+  margin-top: var(--space-section);
+  padding: var(--space-panel-pad) var(--space-section);
   border-radius: 16rpx;
   border: 1rpx solid rgba(15, 23, 42, 0.08);
   background: linear-gradient(180deg, rgba(248, 252, 249, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12rpx;
+  gap: var(--space-inline);
 }

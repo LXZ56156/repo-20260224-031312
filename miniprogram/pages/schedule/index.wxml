@@ -1,5 +1,5 @@
 <block wx:if="{{tournament}}">
-  <view class="container safe-bottom schedule-page {{showFilterBar ? 'with-filter-bar' : ''}}">
+  <view class="container safe-bottom schedule-page {{uiPreferenceClass}} {{showFilterBar ? 'with-filter-bar' : ''}}">
     <view class="match-primary-nav">
       <view
         class="match-primary-nav-item {{item.active ? 'active' : ''}}"
@@ -161,7 +161,7 @@
   </view>
 </block>
 
-<view class="container safe-bottom schedule-page" wx:elif="{{loadError}}">
+<view class="container safe-bottom schedule-page {{uiPreferenceClass}}" wx:elif="{{loadError}}">
   <view class="card panel state-error">
     <view class="state-error-icon">⚠️</view>
     <view class="state-error-title">加载失败</view>
@@ -173,7 +173,7 @@
   </view>
 </view>
 
-<view class="container safe-bottom schedule-page" wx:else>
+<view class="container safe-bottom schedule-page {{uiPreferenceClass}}" wx:else>
   <view class="skeleton-bone skeleton-hero reveal reveal-1"></view>
   <view class="skeleton-card reveal reveal-2">
     <view class="skeleton-row">

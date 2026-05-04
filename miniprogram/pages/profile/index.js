@@ -3,6 +3,7 @@ const actionGuard = require('../../core/actionGuard');
 const clientRequest = require('../../core/clientRequest');
 const profileCore = require('../../core/profile');
 const nav = require('../../core/nav');
+const avatarDisplay = require('../../core/avatarDisplay');
 
 Page({
   data: {
@@ -10,6 +11,7 @@ Page({
     nickname: '',
     gender: 'unknown',
     avatar: '',
+    avatarRaw: '',
     avatarDisplay: profileCore.DEFAULT_AVATAR,
     avatarLocalPreview: '',
     pendingAvatarTempPath: '',
@@ -73,15 +75,22 @@ Page({
   },
 
   applyProfile(profile) {
+    if (!this.avatarCache || typeof this.avatarCache !== 'object') this.avatarCache = {};
     const p = profile || {};
     const nickname = storage.getProfileNickName(p);
     const gender = storage.normalizeGender(p.gender);
     const avatar = String(p.avatar || p.avatarUrl || '').trim();
+    const avatarItem = avatarDisplay.buildAvatarDisplay({
+      id: 'profile',
+      name: nickname || '我',
+      avatar
+    }, this.avatarCache);
     this.setData({
       nickname,
       gender,
       avatar,
-      avatarDisplay: avatar || profileCore.DEFAULT_AVATAR,
+      avatarRaw: avatarItem.avatarRaw,
+      avatarDisplay: avatarItem.avatarDisplay || profileCore.DEFAULT_AVATAR,
       avatarLocalPreview: '',
       pendingAvatarTempPath: '',
       avatarUploading: false,
@@ -92,6 +101,25 @@ Page({
         avatar: ''
       }
     });
+    this.refreshAvatarDisplay();
+  },
+
+  async refreshAvatarDisplay() {
+    const avatarRaw = String(this.data.avatarRaw || '').trim();
+    if (!avatarRaw || !avatarRaw.startsWith('cloud://')) return;
+    if (!this.avatarCache || typeof this.avatarCache !== 'object') this.avatarCache = {};
+    const generation = Number(this._avatarResolveGen || 0) + 1;
+    this._avatarResolveGen = generation;
+    const result = await avatarDisplay.resolveCloudAvatarFileIds([avatarRaw], this.avatarCache);
+    if (!result.updated || Number(this._avatarResolveGen || 0) !== generation) return;
+    if (String(this.data.avatarRaw || '').trim() !== avatarRaw) return;
+    this.setData({ avatarDisplay: this.avatarCache[avatarRaw] || profileCore.DEFAULT_AVATAR });
+  },
+
+  onAvatarError() {
+    if (this.data.avatarDisplay !== profileCore.DEFAULT_AVATAR) {
+      this.setData({ avatarDisplay: profileCore.DEFAULT_AVATAR });
+    }
   },
 
   setFieldError(field, text) {
@@ -176,6 +204,7 @@ Page({
       this.setData({
         avatarDisplay: localPath,
         avatarLocalPreview: localPath,
+        avatarRaw: localPath,
         pendingAvatarTempPath: localPath,
         avatarUploadFailed: false
       });
@@ -199,10 +228,12 @@ Page({
       const fileID = await profileCore.uploadAvatarFromTemp(tempPath);
       this.setData({
         avatar: fileID,
-        avatarDisplay: this.data.avatarLocalPreview || fileID || profileCore.DEFAULT_AVATAR,
+        avatarRaw: fileID,
+        avatarDisplay: this.data.avatarLocalPreview || profileCore.DEFAULT_AVATAR,
         pendingAvatarTempPath: '',
         avatarUploadFailed: false
       });
+      if (!this.data.avatarLocalPreview) this.refreshAvatarDisplay();
       this.clearFieldError('avatar');
       return true;
     } catch (_) {

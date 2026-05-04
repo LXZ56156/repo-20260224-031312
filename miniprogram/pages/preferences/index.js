@@ -1,11 +1,8 @@
 const storage = require('../../core/storage');
+const uiPreferences = require('../../core/uiPreferences');
 
 const SCORE_AUTO_RETURN_KEY = 'score_auto_return';
 const SCORE_AUTO_NEXT_KEY = 'score_auto_next';
-const MOTION_LEVEL_KEY = 'motion_level';
-const LIST_DENSITY_KEY = 'list_density';
-const NOTIFY_START_KEY = 'notify_start';
-const NOTIFY_RESULT_KEY = 'notify_result';
 
 Page({
   data: {
@@ -17,8 +14,6 @@ Page({
     autoNext: true,
     motionLevel: 'standard',
     listDensity: 'comfortable',
-    notifyStart: true,
-    notifyResult: true,
     version: ''
   },
 
@@ -28,6 +23,7 @@ Page({
     const gender = storage.normalizeGender(profile.gender);
     const genderText = gender === 'male' ? '男' : (gender === 'female' ? '女' : '未设置');
     const profileStatusText = storage.isProfileComplete(profile) ? '已完善' : '待完善';
+    const ui = uiPreferences.readUiPreferences();
     this.setData({
       nickname,
       genderText,
@@ -35,10 +31,8 @@ Page({
       sortMode: storage.getHomeSortMode(),
       autoReturn: storage.get(SCORE_AUTO_RETURN_KEY, true) !== false,
       autoNext: storage.get(SCORE_AUTO_NEXT_KEY, true) !== false,
-      motionLevel: String(storage.get(MOTION_LEVEL_KEY, 'standard') || 'standard'),
-      listDensity: String(storage.get(LIST_DENSITY_KEY, 'comfortable') || 'comfortable'),
-      notifyStart: storage.get(NOTIFY_START_KEY, true) !== false,
-      notifyResult: storage.get(NOTIFY_RESULT_KEY, true) !== false
+      motionLevel: ui.motionLevel,
+      listDensity: ui.listDensity
     });
     this.loadVersion();
   },
@@ -77,27 +71,13 @@ Page({
   setMotionLevel(e) {
     const level = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.level) || '').trim();
     if (!level) return;
-    storage.set(MOTION_LEVEL_KEY, level);
-    this.setData({ motionLevel: level });
+    this.setData({ motionLevel: uiPreferences.saveMotionLevel(level) });
   },
 
   setListDensity(e) {
     const density = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.density) || '').trim();
     if (!density) return;
-    storage.set(LIST_DENSITY_KEY, density);
-    this.setData({ listDensity: density });
-  },
-
-  onNotifyStartChange(e) {
-    const value = !!(e && e.detail && e.detail.value);
-    storage.set(NOTIFY_START_KEY, value);
-    this.setData({ notifyStart: value });
-  },
-
-  onNotifyResultChange(e) {
-    const value = !!(e && e.detail && e.detail.value);
-    storage.set(NOTIFY_RESULT_KEY, value);
-    this.setData({ notifyResult: value });
+    this.setData({ listDensity: uiPreferences.saveListDensity(density) });
   },
 
   clearCache() {

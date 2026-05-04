@@ -54,7 +54,7 @@
 .hero-title {
   font-size: 40rpx;
   font-weight: 820;
-  letter-spacing: -0.3rpx;
+  letter-spacing: 0;
   line-height: 1.2;
   color: var(--neutral-950);
 }
@@ -154,7 +154,7 @@
 .hero-stat-value {
   font-size: 34rpx;
   font-weight: 800;
-  letter-spacing: -0.3rpx;
+  letter-spacing: 0;
   color: var(--neutral-950);
 }
 
@@ -237,7 +237,7 @@
 }
 
 .start-pulse {
-  animation: startPulse 1.6s ease-in-out infinite;
+  animation: startPulse 420ms ease-out 1;
 }
 
 @keyframes startPulse {

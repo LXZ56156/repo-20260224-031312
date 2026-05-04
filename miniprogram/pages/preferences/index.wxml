@@ -55,14 +55,6 @@
       <view class="form-label">录分后自动下一场</view>
       <switch checked="{{autoNext}}" color="#18B368" bindchange="onAutoNextChange"></switch>
     </view>
-    <view class="form-item switch-item">
-      <view class="form-label">开赛提醒</view>
-      <switch checked="{{notifyStart}}" color="#18B368" bindchange="onNotifyStartChange"></switch>
-    </view>
-    <view class="form-item switch-item">
-      <view class="form-label">结果提醒</view>
-      <switch checked="{{notifyResult}}" color="#18B368" bindchange="onNotifyResultChange"></switch>
-    </view>
   </view>
 
   <view class="card panel panel-soft">

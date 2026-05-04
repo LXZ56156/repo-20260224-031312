@@ -160,3 +160,21 @@
   margin-top: var(--space-tight);
   padding: var(--space-panel-pad) var(--space-card-pad);
 }
+
+.ranking-page.density-comfortable .ranking-card,
+.ranking-page.density-comfortable .ranking-skeleton-list .skeleton-card {
+  margin-top: var(--space-inline);
+  padding: var(--space-card-pad-lg);
+}
+
+.ranking-page.density-comfortable .ranking-row,
+.ranking-page.density-comfortable .ranking-left,
+.ranking-page.density-comfortable .ranking-avatar-group {
+  gap: var(--space-inline);
+}
+
+.ranking-page.density-comfortable .ranking-avatar,
+.ranking-page.density-comfortable .ranking-avatar-img {
+  width: 68rpx;
+  height: 68rpx;
+}

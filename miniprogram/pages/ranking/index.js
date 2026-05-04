@@ -5,6 +5,7 @@ const rankingCore = require('../../core/ranking');
 const flow = require('../../core/uxFlow');
 const matchPrimaryNav = require('../../core/matchPrimaryNav');
 const avatarDisplay = require('../../core/avatarDisplay');
+const uiPreferences = require('../../core/uiPreferences');
 
 const rankingSyncController = pageTournamentSync.createTournamentSyncMethods({
   loadErrorMessages: {
@@ -76,6 +77,11 @@ Page({
     syncStatusText: '',
     syncStatusMeta: '',
     syncStatusActionText: '刷新',
+    motionLevel: 'standard',
+    listDensity: 'comfortable',
+    uiMotionClass: 'motion-standard',
+    uiDensityClass: 'density-comfortable',
+    uiPreferenceClass: 'motion-standard density-comfortable',
     primaryNavCurrent: 'ranking',
     primaryNavItems: []
   },
@@ -88,7 +94,8 @@ Page({
     pageTournamentSync.initTournamentSync(this);
     this.setData({
       tournamentId: tid,
-      primaryNavItems: matchPrimaryNav.getPrimaryNavItems('ranking', tid)
+      primaryNavItems: matchPrimaryNav.getPrimaryNavItems('ranking', tid),
+      ...uiPreferences.readUiPreferencePatch()
     });
 
     const app = getApp();
@@ -109,11 +116,16 @@ Page({
   },
 
   onShow() {
+    this.refreshUiPreferences();
     const currentId = String(this.data.tournamentId || '').trim();
     nav.consumeRefreshFlag(currentId);
     // 兜底刷新：部分真机 onSnapshot 监听可能不稳定
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
     if (this.data.tournamentId && !this.hasActiveWatch(this.data.tournamentId)) this.startWatch(this.data.tournamentId);
+  },
+
+  refreshUiPreferences() {
+    this.setData(uiPreferences.readUiPreferencePatch());
   },
 
   onUnload() {

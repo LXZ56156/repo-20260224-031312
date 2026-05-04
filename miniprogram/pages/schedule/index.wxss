@@ -43,7 +43,7 @@
   font-size: 40rpx;
   font-weight: 800;
   line-height: 1.2;
-  letter-spacing: -0.3rpx;
+  letter-spacing: 0;
   color: var(--neutral-950);
 }
 
@@ -106,7 +106,7 @@
   font-size: 48rpx;
   font-weight: 820;
   line-height: 1.08;
-  letter-spacing: -0.6rpx;
+  letter-spacing: 0;
   color: var(--neutral-950);
 }
 
@@ -318,7 +318,7 @@
   font-size: 42rpx;
   font-weight: 780;
   color: var(--neutral-950);
-  letter-spacing: -0.4rpx;
+  letter-spacing: 0;
 }
 
 .match-score.score-win {
@@ -379,6 +379,21 @@
 
 .rest {
   padding: 4rpx 8rpx 0;
+}
+
+.schedule-page.density-comfortable .round-card {
+  margin-top: var(--space-section);
+  padding: var(--space-card-pad-lg);
+}
+
+.schedule-page.density-comfortable .match-card,
+.schedule-page.density-comfortable .skeleton-match-block {
+  margin-bottom: var(--space-inline);
+  padding: var(--space-card-pad);
+}
+
+.schedule-page.density-comfortable .match-card-foot {
+  margin-top: var(--space-inline);
 }
 
 /* --- Filter Bar --- */
@@ -600,4 +615,9 @@
   border-radius: 16rpx;
   background: var(--neutral-100);
   border: 1rpx solid var(--neutral-200);
+}
+
+.schedule-page.density-comfortable .skeleton-match-block {
+  margin-top: var(--space-inline);
+  padding: var(--space-card-pad);
 }

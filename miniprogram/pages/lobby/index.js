@@ -7,6 +7,7 @@ const pageTimers = require('../../core/pageTimers');
 const pageTournamentSync = require('../../core/pageTournamentSync');
 const retryAction = require('../../core/retryAction');
 const tournamentEntry = require('../../core/tournamentEntry');
+const uiPreferences = require('../../core/uiPreferences');
 const viewModel = require('./lobbyViewModel');
 const settingsViewModel = require('../settings/settingsViewModel');
 const { createLobbyDelegates } = require('./lobbyDelegates');
@@ -173,6 +174,8 @@ Page({
     syncStatusActionText: '刷新',
     canRetryAction: false,
     lastFailedActionText: '',
+    motionLevel: 'standard',
+    uiMotionClass: 'motion-standard',
     profileQuickFillLoading: false,
     profileNicknameFocus: false,
     profileAvatarUploading: false,
@@ -192,7 +195,8 @@ Page({
       tournamentId: tid,
       entryMode,
       viewOnlyJoinExpanded: false,
-      primaryNavItems: matchPrimaryNav.getPrimaryNavItems('match', tid)
+      primaryNavItems: matchPrimaryNav.getPrimaryNavItems('match', tid),
+      ...uiPreferences.readUiPreferencePatch()
     });
     this._fromCreate = String((options && options.fromCreate) || '') === '1';
     this._showShareHint = this._fromCreate && String((options && options.shareTip) || '') === '1';
@@ -246,6 +250,7 @@ Page({
   },
 
   onShow() {
+    this.refreshUiPreferences();
     const currentId = String(this.data.tournamentId || '').trim();
     const intentAction = nav.consumeLobbyIntent(currentId);
     if (intentAction) {
@@ -254,6 +259,14 @@ Page({
     nav.consumeRefreshFlag(currentId);
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
     if (this.data.tournamentId && !this.hasActiveWatch(this.data.tournamentId)) this.startWatch(this.data.tournamentId);
+  },
+
+  refreshUiPreferences() {
+    const prefs = uiPreferences.readUiPreferencePatch();
+    this.setData({
+      motionLevel: prefs.motionLevel,
+      uiMotionClass: prefs.uiMotionClass
+    });
   },
 
   onPrimaryNavTap(e) {

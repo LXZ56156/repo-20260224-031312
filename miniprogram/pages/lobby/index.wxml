@@ -1,4 +1,4 @@
-<view class="container safe-bottom lobby-page" wx:if="{{tournament}}">
+<view class="container safe-bottom lobby-page {{uiMotionClass}}" wx:if="{{tournament}}">
   <view class="match-primary-nav">
     <view
       class="match-primary-nav-item {{item.active ? 'active' : ''}}"
@@ -63,7 +63,7 @@
   </view>
 </view>
 
-<view class="container safe-bottom" wx:elif="{{loadError}}">
+<view class="container safe-bottom {{uiMotionClass}}" wx:elif="{{loadError}}">
   <view class="state-error">
     <view class="state-error-icon">⚠</view>
     <view class="state-error-title">{{loadErrorTitle}}</view>
@@ -75,7 +75,7 @@
   </view>
 </view>
 
-<view class="container lobby-page" wx:else>
+<view class="container lobby-page {{uiMotionClass}}" wx:else>
   <view class="skeleton-bone skeleton-hero reveal reveal-1"></view>
   <view class="skeleton-card reveal reveal-2">
     <view class="skeleton-bone skeleton-line skeleton-line-medium"></view>

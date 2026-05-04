@@ -1,6 +1,7 @@
 const storage = require('../../core/storage');
 const nav = require('../../core/nav');
 const profileCore = require('../../core/profile');
+const avatarDisplay = require('../../core/avatarDisplay');
 const { buildLocalPerformancePayload } = require('../../core/performanceStats');
 
 function formatWinRate(rate) {
@@ -15,19 +16,26 @@ function formatPointDiff(value) {
   return `${n}`;
 }
 
-function buildProfileViewState(profile = {}) {
+function buildProfileViewState(profile = {}, avatarCache = {}) {
   const nick = storage.getProfileNickName(profile);
   const avatar = String(profile.avatar || profile.avatarUrl || '').trim();
+  const avatarItem = avatarDisplay.buildAvatarDisplay({
+    id: 'mine',
+    name: nick || '我',
+    avatar
+  }, avatarCache);
   return {
     nickname: nick || '未设置昵称',
-    avatar: avatar || '/assets/avatar-default.png'
+    avatarRaw: avatarItem.avatarRaw,
+    avatar: avatarItem.avatarDisplay || profileCore.DEFAULT_AVATAR
   };
 }
 
 Page({
   data: {
     nickname: '未设置昵称',
-    avatar: '/assets/avatar-default.png',
+    avatar: profileCore.DEFAULT_AVATAR,
+    avatarRaw: '',
     tournamentsCompleted: 0,
     matchesPlayed: 0,
     wins: 0,
@@ -49,7 +57,27 @@ Page({
   },
 
   applyProfile(profile = {}) {
-    this.setData(buildProfileViewState(profile));
+    if (!this.avatarCache || typeof this.avatarCache !== 'object') this.avatarCache = {};
+    this.setData(buildProfileViewState(profile, this.avatarCache));
+    this.refreshAvatarDisplay();
+  },
+
+  async refreshAvatarDisplay() {
+    const avatarRaw = String(this.data.avatarRaw || '').trim();
+    if (!avatarRaw || !avatarRaw.startsWith('cloud://')) return;
+    if (!this.avatarCache || typeof this.avatarCache !== 'object') this.avatarCache = {};
+    const generation = Number(this._avatarResolveGen || 0) + 1;
+    this._avatarResolveGen = generation;
+    const result = await avatarDisplay.resolveCloudAvatarFileIds([avatarRaw], this.avatarCache);
+    if (!result.updated || Number(this._avatarResolveGen || 0) !== generation) return;
+    if (String(this.data.avatarRaw || '').trim() !== avatarRaw) return;
+    this.setData({ avatar: this.avatarCache[avatarRaw] || profileCore.DEFAULT_AVATAR });
+  },
+
+  onAvatarError() {
+    if (this.data.avatar !== profileCore.DEFAULT_AVATAR) {
+      this.setData({ avatar: profileCore.DEFAULT_AVATAR });
+    }
   },
 
   async loadStats() {

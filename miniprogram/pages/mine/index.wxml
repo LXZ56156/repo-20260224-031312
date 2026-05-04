@@ -2,7 +2,7 @@
   <view class="hero mine-hero">
     <view class="mine-dashboard">
       <view class="row mine-profile-row">
-        <image class="profile-avatar" src="{{avatar}}" mode="aspectFill"></image>
+        <image class="profile-avatar" src="{{avatar}}" mode="aspectFill" binderror="onAvatarError"></image>
         <view class="flex-1 minw0 profile-main">
           <view class="mine-nickname ellipsis">{{nickname}}</view>
         </view>

@@ -34,7 +34,7 @@
   font-size: 48rpx;
   line-height: 1.08;
   font-weight: 820;
-  letter-spacing: -0.5rpx;
+  letter-spacing: 0;
   color: var(--neutral-950);
 }
 
@@ -64,7 +64,7 @@
 .analytics-hero-stat-value {
   font-size: 34rpx;
   font-weight: 800;
-  letter-spacing: -0.3rpx;
+  letter-spacing: 0;
   color: var(--neutral-950);
 }
 
@@ -141,7 +141,7 @@
 .summary-value.metric-card-value {
   font-size: 36rpx;
   font-weight: 800;
-  letter-spacing: -0.3rpx;
+  letter-spacing: 0;
   color: var(--neutral-950);
 }
 

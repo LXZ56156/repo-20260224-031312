@@ -34,7 +34,7 @@ test('mine page promotes profile and settings into the service grid', () => {
   assert.match(mineCss, /\.service-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\);/);
 });
 
-test('preferences page removes unimplemented theme mode controls', () => {
+test('preferences page removes unimplemented preference controls', () => {
   const pref = read('miniprogram/pages/preferences/index.wxml');
   const prefJs = read('miniprogram/pages/preferences/index.js');
 
@@ -44,6 +44,14 @@ test('preferences page removes unimplemented theme mode controls', () => {
   assert.equal(prefJs.includes('THEME_MODE_KEY'), false);
   assert.equal(prefJs.includes('themeMode:'), false);
   assert.equal(prefJs.includes('setThemeMode('), false);
+  assert.equal(pref.includes('开赛提醒'), false);
+  assert.equal(pref.includes('结果提醒'), false);
+  assert.equal(pref.includes('onNotifyStartChange'), false);
+  assert.equal(pref.includes('onNotifyResultChange'), false);
+  assert.equal(prefJs.includes('notify_start'), false);
+  assert.equal(prefJs.includes('notify_result'), false);
+  assert.equal(prefJs.includes('notifyStart'), false);
+  assert.equal(prefJs.includes('notifyResult'), false);
 });
 
 test('home page collapses create fallback into the hero action', () => {

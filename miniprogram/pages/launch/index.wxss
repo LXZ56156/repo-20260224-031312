@@ -22,7 +22,7 @@
   font-size: 40rpx;
   font-weight: 800;
   line-height: 1.2;
-  letter-spacing: -0.3rpx;
+  letter-spacing: 0;
 }
 
 .launch-hero-sub {
@@ -100,12 +100,16 @@
   padding-left: var(--space-tight);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-section);
+  justify-content: flex-end;
+  gap: var(--space-inline);
 }
 
 /* 规则说明 — text link 弱化 */
 .launch-rule-link {
+  min-height: 64rpx;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8rpx;
   color: var(--neutral-500);
   font-size: 24rpx;
   font-weight: 500;

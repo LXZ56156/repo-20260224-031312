@@ -5,7 +5,7 @@
    ============================================================ */
 
 .share-entry-page {
-  padding-bottom: calc(env(safe-area-inset-bottom) + 32rpx);
+  padding-bottom: calc(env(safe-area-inset-bottom) + var(--space-card-pad-lg));
 }
 
 /* --- Sync Banner (hidden 替代 wx:if, 无 layout shift) --- */
@@ -14,20 +14,21 @@
 /* --- Hero: 绿色渐变赛事 Hero --- */
 .share-hero {
   margin-top: 0;
-  padding: 24rpx;
+  padding: var(--space-hero-pad-y) var(--space-hero-pad-x);
 }
 
 .share-hero .hero-top {
-  gap: 16rpx;
+  gap: var(--space-section);
   align-items: flex-start;
 }
 
 .share-title {
+  min-width: 0;
   font-size: 40rpx;
   font-weight: 820;
   color: var(--neutral-950);
   line-height: 1.2;
-  letter-spacing: -0.3rpx;
+  letter-spacing: 0;
 }
 
 .share-headline {
@@ -39,10 +40,10 @@
 }
 
 .share-pills {
-  margin-top: 16rpx;
+  margin-top: var(--space-section);
   display: flex;
   flex-wrap: wrap;
-  gap: 8rpx;
+  gap: var(--space-tight);
 }
 
 .share-pill {
@@ -57,20 +58,20 @@
 
 /* --- Action Rail: 固定中间区域 --- */
 .share-decision {
-  margin-top: 16rpx;
-  padding: 18rpx;
+  margin-top: var(--space-section);
+  padding: var(--space-card-pad);
 }
 
 /* --- Availability 状态指示 --- */
 .share-availability {
-  margin-top: 16rpx;
-  padding: 16rpx;
+  margin-top: var(--space-section);
+  padding: var(--space-section);
   border-radius: 16rpx;
   background: linear-gradient(180deg, rgba(248, 252, 249, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
   border: 1rpx solid rgba(15, 23, 42, 0.08);
   display: flex;
   align-items: flex-start;
-  gap: 12rpx;
+  gap: var(--space-inline);
 }
 
 .share-availability.is-pending {
@@ -136,8 +137,8 @@
 
 /* --- Squad Chooser --- */
 .card-inline-squad {
-  margin-top: 16rpx;
-  padding: 14rpx;
+  margin-top: var(--space-section);
+  padding: var(--space-panel-pad);
   border-radius: 16rpx;
   border: 1rpx solid rgba(15, 23, 42, 0.07);
   background: rgba(255, 255, 255, 0.78);
@@ -149,7 +150,7 @@
 
 /* --- Action Buttons --- */
 .share-actions {
-  margin-top: 16rpx;
+  margin-top: var(--space-section);
 }
 
 .share-actions .btn + .btn {
@@ -162,14 +163,14 @@
 
 /* --- Info Card: 2-col 紧凑网格 --- */
 .share-info {
-  margin-top: 16rpx;
+  margin-top: var(--space-section);
 }
 
 .share-facts {
-  margin-top: 16rpx;
+  margin-top: var(--space-section);
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8rpx;
+  gap: var(--space-tight);
 }
 
 .share-fact {
@@ -199,7 +200,7 @@
 
 /* --- Error / Invalid State --- */
 .share-error-panel {
-  margin-top: 16rpx;
+  margin-top: var(--space-section);
 }
 
 .share-error-panel .state-error {

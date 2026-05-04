@@ -6,6 +6,7 @@
 ## Status: completed
 
 ## Last Completed
+- 2026-05-04 Codex: 完成全局 UI 视觉优先级修复。新增 `core/uiPreferences`，复用现有 `motion_level` / `list_density` storage key，让首页、赛程、排名真实接入 `motion-*` / `density-*` 根 class；大厅接入 motion class 并把 `start-pulse` 从无限循环改成一次性强调；首页赛事列表、赛程轮次/比赛卡、排名行接入紧凑密度、轻量 reveal/press 与按钮边界兜底；`mine` / `profile` 头像展示链路会把 cloud fileID 转 temp URL，并在加载失败时回默认头像；录分页编辑态恢复整行大按钮工具区，清零/交换/撤销和快捷比分 chip 均有边界兜底；发起页操作行改为主次按钮组；偏好页移除未生效的“开赛提醒/结果提醒”开关；`settings/profile/feedback/share-entry` 局部 spacing token 化，`share-entry` 长标题 ellipsis，全局负 `letter-spacing` 清零。MCP 验收覆盖 home、launch、running/draft lobby、schedule、match 编辑态、ranking、mine、profile、preferences、settings、share-entry；控制台日志为空。验证：`git diff --check`、`npm run check`、`node --test tests/*.test.js` 全部通过（860 pass / 0 fail）。
 - 2026-05-02 Codex: 完成稳定性优先级修复。`match` 页隐藏/卸载释放 score lock 改为捕获 payload 后立即 teardown，并对 release 做一次 best-effort retry 与 warn 日志；`storage/base` 读写删失败会 warn，写/删返回 boolean，资料、草稿比分、本地赛事缓存链路透传写入结果；`saveUserProfile` 头像同步改为分页查询 `PAGE_SIZE=100 / QUERY_CAP=1000` 并返回 `syncTruncated`；本地 completed snapshot 上限从 500 降到 100，新写入不再写 legacy 单项 snapshot，仍保留 legacy 读取和迁移清理；`cloud.call()` 对只读调用和带 `clientRequestId` 的幂等写默认做网络/超时重试（300ms/900ms），业务 `ok:false` 不重试；`deleteTournament` 新成功日志迁移到通用 `client_request_logs`，保留旧 `delete_tournament_requests` 读取兼容并在命中旧日志时迁移。未启用 referee，未实现离线 outbox。验证：聚焦回归通过；`bash scripts/check-cloud-common.sh` 通过；`node --test tests/*.test.js` => `840 pass / 0 fail`；`npm run check` 通过。注意：技能文档提到的 `scripts/run-cloud-contract-checks.sh` 当前仓库不存在，本轮用聚焦云函数测试与全量测试覆盖。
 - 2026-04-16 Codex: 使用微信 MCP 对本轮后端审计收口涉及的页面做运行时检查。已验证 `pages/create/index`、`pages/feedback/index`、`pages/lobby/index`、`pages/match/index` 的加载与关键失败路径无新增报错；`lobby` 的管理员面板和 quick import 区域可正常展开渲染；`match` 页真实录分可进入 `locked_by_me`，batch 模式的 `occupied` 会跳下一场，非 batch 占用态会停留当前页，`canceled` 可稳定落到现有只读结束态。受微信 MCP 能力限制，本轮主要确认页面状态落点与无异常日志，未逐字校验 toast 文案。
 - 2026-04-16 Codex: 完成后端审计最后一项 `scoreLock` / `submitScore` 状态语义收口。`scoreLock` 逻辑层不再把 `canceled` 折叠成 `finished`；云端返回已拆分为 `occupied` / `expired` / `finished` / `canceled`，并新增 `MATCH_CANCELED` code；`submitScore` 失败 state 与 score-entry 语义对齐，不再把 `LOCK_OCCUPIED` / `LOCK_EXPIRED` / `MATCH_FINISHED` 折叠成 `conflict`。客户端 `miniprogram/core/cloud.js` 新增 score-entry 细粒度分类，`describeWriteError()` 对这些状态统一走 toast，不再误入 conflict modal；match 页消费侧已吸收 `MATCH_CANCELED`，页面内部 `lockState` 仍保持现状。验证结果：score-entry 聚焦回归 `43 pass / 0 fail`，`node --test tests/*.test.js` => `793 pass / 0 fail`，`npm run check` 通过。
@@ -27,23 +28,20 @@
 - 无。
 
 ## What Changed (未提交)
-- 2026-05-02 当前未提交范围：`cloudfunctions/deleteTournament/index.js`、`cloudfunctions/saveUserProfile/index.js`、`miniprogram/core/cloud.js`、`miniprogram/core/storage/*`、`miniprogram/pages/match/*`、`docs/notes/learnings.md`，以及对应聚焦测试更新/新增 `tests/storage-base.test.js`。
-- `cloudfunctions/scoreLock/logic.js`、`scoreLock/index.js`、`submitScore/index.js` 已拆分 `occupied` / `expired` / `finished` / `canceled` 失败语义；新增 `MATCH_CANCELED`，并保持 `VERSION_CONFLICT` 继续使用 `state: 'conflict'`。
-- `miniprogram/core/cloud.js` 已新增 score-entry 细粒度解析与分类，`occupied` / `expired` / `finished` / `canceled` 在 release 下仍保留结构化 message，且不会触发通用 conflict modal。
-- `miniprogram/pages/match/matchLockController.js`、`matchSubmitService.js` 已吸收 `MATCH_CANCELED`；页面内部仍维持现有 `lockState` 模型，不新增 `canceled` 页面态。
-- 回归测试：更新 `tests/scoreLock.logic.test.js`、`scoreLock.index.test.js`、`submitScore.index.test.js`、`match.lock-state-messaging.test.js`、`match.submit-recover.test.js`、`cloud.error-matrix.test.js`、`cloud.classify-error-edge.test.js`。
-- 云函数失败契约：`cloudfunctions/createTournament/index.js`、`feedbackSubmit/index.js`、`cloneTournament/index.js`、`saveUserProfile/index.js`、`addPlayers/index.js`、`setReferee/index.js`、`scoreLock/index.js` 已统一结构化失败返回；其中 `TOURNAMENT_NOT_FOUND` 使用 `state: 'not_found'`，`MATCH_NOT_FOUND` 维持 `state: 'invalid'`。
-- 读链路与前端消费：`cloudfunctions/getUserProfile/index.js` 不再吞真实数据库异常；`miniprogram/core/profile.js` 会把 `getUserProfile` 的 `ok:false` 当失败处理并回退到本地资料；`miniprogram/pages/create/index.js`、`feedback/index.js`、`lobby/lobbyImportActions.js` 已改为显式 `assertWriteResult()`。
-- 错误分类与低风险尾项：`miniprogram/core/cloud.js` 新增 `not_found` 分类；`scripts/scheduler-scenario-common.js` 已按 `effectiveCourts` 推导审计口径；`cloudfunctions/getMyPerformanceStats/index.js` 返回新增 `truncated` 与 `queryCap`。
-- 回归测试：更新 `tests/createTournament.index.test.js`、`feedbackSubmit.index.test.js`、`addPlayers.index.test.js`、`setReferee.index.test.js`、`cloneTournament.index.test.js`、`saveUserProfile.index.test.js`、`scoreLock.index.test.js`、`getUserProfile.index.test.js`、`cloud.error-matrix.test.js`、`getMyPerformanceStats.index.test.js`、`scheduler.scenarios.test.js`、`profile.test.js`，并新增 `tests/cloud.write-result-consumers.test.js`。
+- 当前未提交范围为本轮 UI 修复：`miniprogram/app.wxss`、`miniprogram/core/uiPreferences.js`、首页/赛程/排名/大厅/录分/个人中心/资料/偏好/设置/反馈/分享入口相关 WXML/WXSS/JS，以及 UI contract、偏好入口、头像偏好测试。
+- 未触碰云函数 contract、页面路由、storage key、业务 CTA 语义；未修改 `cloudfunctions/`。
+- 新增测试：`tests/ui-preferences.test.js`、`tests/profile.avatar-display.test.js`；扩展 `tests/list-density-motion.test.js`、`tests/button-layout-containment.test.js`、`tests/match.quick-scores.test.js`、`tests/mine.render-before-sync.test.js`。
 
 ## Next Steps
-- 后端审计项已收口完成；如要继续迭代，可单独评估是否把 `MATCH_NOT_FOUND` 从 `invalid` 升级为独立客户端分类，以及是否为“已取消比赛”引入独立用户可见文案。
+- 可在真机上补一次手动视觉验收，重点看 iOS/Android 实机字体渲染、微信头像临时 URL 加载速度、长赛事名和底部 safe-area。
 
 ## Blockers
 - 无。
 
 ## Verified Subset Output
+- 2026-05-04 静态与项目检查：`git diff --check` => pass；`npm run check` => pass。
+- 2026-05-04 全量测试：`node --test tests/*.test.js` => `860 pass / 0 fail`。
+- 2026-05-04 微信 MCP：已确认 preview mirror 同步并重启开发者工具预览；覆盖 `home`、`launch`、`lobby` 草稿/进行中、`schedule`、`match` 编辑态（仅本地 `setData`，未提交比分）、`ranking`、`mine`、`profile`、`preferences`、`settings`、`share-entry`。重点项通过：偏好 class 接入、列表紧凑密度、当前轮聚焦 class/scroll、一次性 start pulse、头像 temp URL 展示、按钮/胶囊 `border-box` 与 ellipsis、分享标题 ellipsis、控制台日志为空。
 - 2026-05-02 聚焦回归：`node --test tests/match.lock-lifecycle.test.js tests/storage-base.test.js tests/saveUserProfile.index.test.js tests/saveUserProfile.sync.test.js tests/local-completed-snapshots.test.js tests/retry.action.test.js tests/deleteTournament.index.test.js tests/role-permission-matrix-score-entry.test.js` => `41 pass / 0 fail`
 - 2026-05-02 全量测试：首跑 `node --test tests/*.test.js` 遇到既有 `tests/rotation.performance.test.js` long-tail 排阵超时；单独复跑 `node --test tests/rotation.performance.test.js` => `14 pass / 0 fail`；最终复跑全量 `node --test tests/*.test.js` => `840 pass / 0 fail`
 - 2026-05-02 静态检查：`npm run check` => pass；`bash scripts/check-cloud-common.sh` => pass

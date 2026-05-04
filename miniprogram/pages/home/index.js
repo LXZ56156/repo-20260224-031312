@@ -14,6 +14,7 @@ const flow = require('../../core/uxFlow');
 const scheduleContract = require('../../core/scheduleContract');
 const systemInfo = require('../../core/systemInfo');
 const envConfig = require('../../config/env');
+const uiPreferences = require('../../core/uiPreferences');
 const { buildHomeHeroCardState } = require('./heroCardState');
 
 function pad2(n) {
@@ -168,6 +169,11 @@ Page({
     syncStatusText: '',
     syncStatusMeta: '',
     syncStatusActionText: '刷新',
+    motionLevel: 'standard',
+    listDensity: 'comfortable',
+    uiMotionClass: 'motion-standard',
+    uiDensityClass: 'density-comfortable',
+    uiPreferenceClass: 'motion-standard density-comfortable',
     visibleCount: 0,
     statusCountRunning: 0,
     statusCountDraft: 0,
@@ -188,7 +194,8 @@ Page({
       showOnboarding: !storage.isOnboardingDone(),
       showProfileNudge: this.shouldShowProfileNudge(),
       sortMode: storage.getHomeSortMode(),
-      filterStatus: storage.getHomeFilterStatus()
+      filterStatus: storage.getHomeFilterStatus(),
+      ...uiPreferences.readUiPreferencePatch()
     }));
     const runtimeEnv = (app && app.globalData && app.globalData.runtimeEnv) || envConfig.resolveRuntimeEnv();
     this.setData({
@@ -213,6 +220,7 @@ Page({
   },
 
   onShow() {
+    this.refreshUiPreferences();
     this.refreshProfileNudgeState();
     this.refreshHomeAdSlot();
     this.loadRecents();
@@ -259,6 +267,10 @@ Page({
   dismissOnboarding() {
     storage.setOnboardingDone(true);
     this.setData({ showOnboarding: false });
+  },
+
+  refreshUiPreferences() {
+    this.setData(uiPreferences.readUiPreferencePatch());
   },
 
   onChangeSortMode(e) {
