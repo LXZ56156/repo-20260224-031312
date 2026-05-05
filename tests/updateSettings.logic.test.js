@@ -70,6 +70,25 @@ test('validateSettings rejects target_wins when derived scheduled matches exceed
   );
 });
 
+test('validateSettings rejects total_rounds when effective scheduled matches exceed max', () => {
+  assert.throws(
+    () => logic.validateSettings(
+      makeSquadPlayers(4, 4),
+      1,
+      2,
+      'squad_doubles',
+      [],
+      {
+        resolvedTotalMatches: 1,
+        resolvedCourts: 2,
+        endConditionType: 'total_rounds',
+        endConditionTarget: 106
+      }
+    ),
+    /结束条件会产生 212 场，不能超过最大可选 210 场/
+  );
+});
+
 test('validateSettings builds patch and sets settingsConfigured only when both present', () => {
   const partial = logic.validateSettings(makePlayers(8), 5, null);
   assert.equal(partial.patch.totalMatches, 5);
@@ -95,6 +114,23 @@ test('validateSettings returns derived scheduledMatches for target_wins', () => 
     }
   );
   assert.equal(out.scheduledMatches, 5);
+});
+
+test('validateSettings returns effective scheduledMatches for total_rounds', () => {
+  const out = logic.validateSettings(
+    makeSquadPlayers(5, 4),
+    1,
+    3,
+    'squad_doubles',
+    [],
+    {
+      resolvedTotalMatches: 1,
+      resolvedCourts: 3,
+      endConditionType: 'total_rounds',
+      endConditionTarget: 6
+    }
+  );
+  assert.equal(out.scheduledMatches, 12);
 });
 
 test('validateSettings uses 10-cycle cap for fixed pair round robin', () => {

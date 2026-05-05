@@ -109,3 +109,16 @@ test('rotation 14p/12m/4c uses effectiveCourts to derive totalRounds', () => {
   assert.equal(result.effectiveCourts, 3);
   assert.equal(result.totalRounds, Math.ceil(result.scenario.targetMatches / result.effectiveCourts));
 });
+
+test('scheduler audit matrix includes squad total_rounds quality cases', () => {
+  const scenarios = scenarioCommon.buildAuditScenarios();
+  const scenario = scenarios.find((item) => item.name === 'squad equal 6v6/6m/2c total_rounds');
+
+  assert.ok(scenario, 'squad total_rounds scenario should exist');
+  assert.equal(scenario.kind, 'squad_total_rounds_audit');
+
+  const result = scenarioCommon.runScenario(scenario);
+  assert.equal(result.actualMatches, scenario.targetMatches);
+  assert.equal(result.executionProfile, 'beam-quality');
+  assert.equal(result.playSpreadExcess, 0);
+});

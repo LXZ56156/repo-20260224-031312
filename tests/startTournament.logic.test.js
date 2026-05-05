@@ -85,6 +85,21 @@ test('validateBeforeGenerate rejects target_wins when derived scheduled matches 
   );
 });
 
+test('validateBeforeGenerate rejects total_rounds when effective scheduled matches exceed max', () => {
+  assert.throws(
+    () => logic.validateBeforeGenerate({
+      players: makeSquadPlayers(4, 4),
+      totalMatches: 1,
+      courts: 2,
+      mode: 'squad_doubles',
+      rules: {
+        endCondition: { type: 'total_rounds', target: 106 }
+      }
+    }),
+    /结束条件会产生 212 场，不能超过最大可选 210 场/
+  );
+});
+
 test('validateBeforeGenerate returns normalized values', () => {
   const out = logic.validateBeforeGenerate({ players: makePlayers(6), totalMatches: 5, courts: 99 });
   assert.equal(out.players.length, 6);
@@ -106,6 +121,22 @@ test('validateBeforeGenerate derives scheduledMatches for target_wins', () => {
   assert.equal(out.totalMatches, 1);
   assert.equal(out.scheduledMatches, 5);
   assert.deepEqual(out.rules.endCondition, { type: 'target_wins', target: 3 });
+});
+
+test('validateBeforeGenerate derives scheduledMatches for total_rounds using effective courts', () => {
+  const out = logic.validateBeforeGenerate({
+    players: makeSquadPlayers(5, 4),
+    totalMatches: 1,
+    courts: 3,
+    mode: 'squad_doubles',
+    rules: {
+      endCondition: { type: 'total_rounds', target: 6 }
+    }
+  });
+  assert.equal(out.totalMatches, 1);
+  assert.equal(out.courts, 3);
+  assert.equal(out.scheduledMatches, 12);
+  assert.deepEqual(out.rules.endCondition, { type: 'total_rounds', target: 6 });
 });
 
 test('validateBeforeGenerate accepts doubles alias and maps to multi_rotate', () => {

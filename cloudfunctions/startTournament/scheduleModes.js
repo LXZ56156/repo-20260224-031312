@@ -246,8 +246,7 @@ function pickPair(
 
 // squad_doubles 贪心 fallback（v2 实现），用于：
 // 1. beam search 超时或失败时
-// 2. total_rounds 结束条件（beam 仅处理 target matches）
-// 3. 测试强制降级路径
+// 2. 测试强制降级路径
 function runSquadGreedyFallback(idsA, idsB, targetMatches, courts, endConditionType, targetRounds) {
   const allIds = idsA.concat(idsB);
   const playCount = {};
@@ -555,7 +554,7 @@ function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
   const endConditionType = scheduleContract.normalizeEndConditionType(rules.endCondition && rules.endCondition.type);
   const endConditionTarget = Math.max(1, Number(rules.endCondition && rules.endCondition.target) || totalMatches);
   const targetRounds = endConditionType === 'total_rounds' ? Math.max(1, endConditionTarget) : 0;
-  const targetMatches = scheduleContract.deriveScheduledMatches(totalMatches, {
+  const configuredTargetMatches = scheduleContract.deriveScheduledMatches(totalMatches, {
     type: endConditionType,
     target: endConditionTarget
   });
@@ -564,12 +563,13 @@ function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
     Math.floor(idsA.length / 2),
     Math.floor(idsB.length / 2)
   ));
+  const targetMatches = endConditionType === 'total_rounds'
+    ? targetRounds * effectiveCourts
+    : configuredTargetMatches;
 
-  // Beam search 仅处理 target matches 场景，total_rounds 直接走贪心
+  // total_rounds 先换算成确定场数，再复用与 total_matches 相同的质量路径。
   const forceFallback = rules._debugForceFallback === true;
-  const deterministicTargetMatches = endConditionType === 'total_rounds'
-    ? (targetRounds * effectiveCourts)
-    : targetMatches;
+  const deterministicTargetMatches = targetMatches;
   if (
     !forceFallback
     && idsA.length === 4
@@ -607,7 +607,7 @@ function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
       endConditionTarget
     });
   }
-  const canUseBeam = !forceFallback && endConditionType !== 'total_rounds';
+  const canUseBeam = !forceFallback;
   const searchStartedAtMs = Date.now();
 
   if (canUseBeam) {
@@ -691,9 +691,7 @@ function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
 
   // Greedy fallback 路径
   const greedy = runSquadGreedyFallback(idsA, idsB, targetMatches, courts, endConditionType, targetRounds);
-  const fallbackReason = forceFallback
-    ? 'debug_force_fallback'
-    : (endConditionType === 'total_rounds' ? 'total_rounds_greedy_mode' : 'beam_no_complete_schedule');
+  const fallbackReason = forceFallback ? 'debug_force_fallback' : 'beam_no_complete_schedule';
   return {
     rounds: greedy.rounds,
     fairnessScore: greedy.fairnessScore,
@@ -707,8 +705,8 @@ function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
       endConditionTarget,
       executionProfile: forceFallback
         ? 'greedy-debug-fallback'
-        : (endConditionType === 'total_rounds' ? 'greedy-total-rounds' : 'greedy-fallback'),
-      timeoutGuardTriggered: !forceFallback && endConditionType !== 'total_rounds',
+        : 'greedy-fallback',
+      timeoutGuardTriggered: !forceFallback,
       fallbackReason,
       searchElapsedMs: Date.now() - searchStartedAtMs,
       fairnessVersion: 'v2',

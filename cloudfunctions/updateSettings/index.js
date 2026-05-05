@@ -74,6 +74,7 @@ exports.main = async (event) => {
         ? currentRules.endCondition
         : {};
       const resolvedTotalMatches = totalMatches !== null ? totalMatches : (Number(t.totalMatches) || 1);
+      const resolvedCourts = courts !== null ? courts : (Number(t.courts) || 1);
       const resolvedEndConditionType = mode === 'squad_doubles'
         ? (endConditionTypeInput || normalizeEndConditionType(currentEndCondition.type))
         : 'total_matches';
@@ -85,6 +86,7 @@ exports.main = async (event) => {
         );
       const checked = validateSettings(players, totalMatches, courts, mode, t.pairTeams || [], {
         resolvedTotalMatches,
+        resolvedCourts,
         endConditionType: resolvedEndConditionType,
         endConditionTarget: resolvedEndConditionTarget
       });

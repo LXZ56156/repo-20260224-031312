@@ -192,6 +192,20 @@ test('scheduler scenario result exposes exact repeat metrics for 4v4 single-cour
   });
 });
 
+test('scheduler scenario result covers total_rounds squad quality path', () => {
+  const scenario = scenarioCommon
+    .buildSquadTotalRoundsAuditScenarios()
+    .find((item) => item.name === 'squad equal 6v6/6m/2c total_rounds');
+  const result = scenarioCommon.runScenario(scenario);
+
+  assert.equal(result.actualMatches, 6);
+  assert.equal(result.totalRounds, 3);
+  assert.equal(result.executionProfile, 'beam-quality');
+  assert.equal(result.playSpread, 0);
+  assert.equal(result.playSpreadExcess, 0);
+  assert.equal(result.exactRepeatExcess, 0);
+});
+
 test('scheduler stability matrix summarizes multi-seed ranges and worst seed', () => {
   const rows = scenarioCommon.runExtendedStabilityMatrix([
     {

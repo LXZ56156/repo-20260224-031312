@@ -857,6 +857,25 @@ function buildSquadUnevenAuditScenarios() {
   ];
 }
 
+function buildSquadTotalRoundsAuditScenarios() {
+  return buildSquadEqualAuditScenarios()
+    .concat(buildSquadUnevenAuditScenarios())
+    .map((scenario) => {
+      const logicalRounds = Number(scenario.logicalRounds)
+        || Math.ceil((Number(scenario.totalMatches) || 0) / Math.max(1, Number(scenario.courts) || 1));
+      return {
+        ...scenario,
+        id: `${scenario.id}-total-rounds`,
+        name: `${scenario.name} total_rounds`,
+        kind: 'squad_total_rounds_audit',
+        rules: {
+          ...(scenario.rules || {}),
+          endCondition: { type: 'total_rounds', target: logicalRounds }
+        }
+      };
+    });
+}
+
 function buildRepresentativeScenarios() {
   return [
     ...buildRotationRepresentativeScenarios(),
@@ -870,7 +889,8 @@ function buildAuditScenarios() {
     ...buildRotationTemplateAuditScenarios(),
     ...buildRotationLongTailAuditScenarios(),
     ...buildSquadEqualAuditScenarios(),
-    ...buildSquadUnevenAuditScenarios()
+    ...buildSquadUnevenAuditScenarios(),
+    ...buildSquadTotalRoundsAuditScenarios()
   ];
 }
 
@@ -1320,7 +1340,7 @@ function evaluateScenario(result) {
       });
     }
     if (
-      scenario.kind === 'squad_equal_audit'
+      (scenario.kind === 'squad_equal_audit' || scenario.kind === 'squad_total_rounds_audit')
       && result.executionProfile === 'greedy-fallback'
       && !getCoverageFirstExceptionMeta(scenario.coverageFirstExceptionId)
     ) {
@@ -1527,6 +1547,7 @@ module.exports = {
   buildRotationLongTailAuditScenarios,
   buildSquadEqualAuditScenarios,
   buildSquadUnevenAuditScenarios,
+  buildSquadTotalRoundsAuditScenarios,
   buildRepresentativeScenarios,
   buildAuditScenarios,
   buildExtendedStabilityScenarios,

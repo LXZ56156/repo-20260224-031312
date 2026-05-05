@@ -7,6 +7,7 @@ const {
   buildRecommendationAuditRows,
   buildRecommendationAuditIssues
 } = require('../scripts/rotation-match-options-common');
+const report = require('../scripts/generate-scheduler-full-audit');
 
 test('multi_rotate recommendation audit has no rationality issues', () => {
   const rows = buildRecommendationAuditRows(matchOptions.cases);
@@ -62,4 +63,24 @@ test('multi_rotate large-roster presets stay close to capacity suggested matches
       `${players}p-${courts}c balanced=${row.balancedMatch} suggested=${recommendation.suggestedMatches}`
     );
   }
+});
+
+test('multi_rotate default presets keep audited coverage and fairness guardrails', () => {
+  const rows = report.buildMultiRotatePresetQualityRows();
+  const smallRows = rows.filter((row) => row.players >= 4 && row.players <= 10);
+
+  assert.equal(rows.length, Object.keys(matchOptions.cases).length);
+  assert.equal(smallRows.length, 10);
+  assert.deepEqual(
+    rows.filter((row) => row.defaultExactRepeatExcess > 0).map((row) => row.key),
+    []
+  );
+  assert.deepEqual(
+    rows.filter((row) => row.defaultPlaySpreadExcess > 0).map((row) => row.key),
+    []
+  );
+  assert.deepEqual(
+    smallRows.filter((row) => row.defaultAllPartnerPairsCovered !== true).map((row) => row.key),
+    []
+  );
 });

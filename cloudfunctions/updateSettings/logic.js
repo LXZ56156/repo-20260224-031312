@@ -69,6 +69,36 @@ function calcMaxMatchesMixed(maleCount, femaleCount, unknownCount) {
   return Math.floor((mx + mm + ff) * 3);
 }
 
+function countSquadPlayers(players) {
+  const result = { aCount: 0, bCount: 0 };
+  (Array.isArray(players) ? players : []).forEach((player) => {
+    const squad = String(player && player.squad || '').trim().toUpperCase();
+    if (squad === 'A') result.aCount += 1;
+    if (squad === 'B') result.bCount += 1;
+  });
+  return result;
+}
+
+function resolveSquadEffectiveCourts(players, courts) {
+  const requested = Math.max(1, Math.min(10, Number(courts) || 1));
+  const { aCount, bCount } = countSquadPlayers(players);
+  if (aCount < 2 || bCount < 2) return requested;
+  return Math.max(1, Math.min(requested, Math.floor(aCount / 2), Math.floor(bCount / 2)));
+}
+
+function deriveEffectiveScheduledMatches(totalMatches, endCondition, context = {}) {
+  const normalizedType = normalizeEndConditionType(endCondition && endCondition.type);
+  const target = parseTargetInt(endCondition && endCondition.target, totalMatches);
+  if (normalizedType === 'total_rounds' && context.mode === 'squad_doubles') {
+    const effectiveCourts = resolveSquadEffectiveCourts(context.players, context.courts);
+    return Math.max(1, target * effectiveCourts);
+  }
+  return scheduleContract.deriveScheduledMatches(totalMatches, {
+    type: normalizedType,
+    target
+  });
+}
+
 function validateSettings(players, totalMatches, courts, mode = 'multi_rotate', pairTeams = [], options = {}) {
   const list = Array.isArray(players) ? players : [];
   scheduleContract.assertValidRosterPlayers(list);
@@ -87,9 +117,17 @@ function validateSettings(players, totalMatches, courts, mode = 'multi_rotate', 
     options && options.endConditionTarget,
     resolvedTotalMatches
   );
-  const scheduledMatches = scheduleContract.deriveScheduledMatches(resolvedTotalMatches, {
+  const resolvedCourts = Math.max(
+    1,
+    Math.min(10, Math.floor(Number(options && options.resolvedCourts) || Number(courts) || 1))
+  );
+  const scheduledMatches = deriveEffectiveScheduledMatches(resolvedTotalMatches, {
     type: normalizedEndConditionType,
     target: normalizedEndConditionTarget
+  }, {
+    mode: normalizedMode,
+    players: list,
+    courts: resolvedCourts
   });
 
   if (totalMatches !== null || normalizedEndConditionType !== 'total_matches') {
@@ -120,6 +158,7 @@ module.exports = {
   normalizeTournamentName,
   normalizePoints,
   normalizeEndConditionType,
+  deriveEffectiveScheduledMatches,
   countGender,
   validateSettings
 };

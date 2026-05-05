@@ -70,6 +70,25 @@ test('scheduler full audit recommendation appendix covers all multi_rotate cases
   assert.equal(rowMap['10p-2c'].coverageMatch, '23');
 });
 
+test('scheduler full audit summarizes multi_rotate default preset quality', () => {
+  const rows = report.buildMultiRotatePresetQualityRows();
+  const expectedCases = matchOptions && matchOptions.cases ? matchOptions.cases : {};
+  const rowMap = Object.fromEntries(rows.map((row) => [row.key, row]));
+  const summary = report.buildMultiRotatePresetQualitySummaryRows(rows, [])[0];
+
+  assert.equal(rows.length, Object.keys(expectedCases).length);
+  assert.equal(summary.presetRowCount, 180);
+  assert.equal(summary.smallDefaultAllPartnerCoverage, '10/10');
+  assert.equal(summary.defaultExactRepeatExcessCount, 0);
+  assert.equal(summary.defaultPlaySpreadExcessCount, 0);
+  assert.equal(summary.defaultIsBestCoverage, '36/60');
+  assert.equal(summary.defaultNotBestCoverage, '24/60');
+
+  assert.equal(rowMap['6p-1c'].defaultPartnerCoverage, '15/15 (100%)');
+  assert.equal(rowMap['9p-2c'].defaultAllPartnerPairsCovered, true);
+  assert.equal(rowMap['24p-1c'].defaultIsBestCoverage, false);
+});
+
 test('scheduler full audit markdown renders required sections and none placeholders', () => {
   const markdown = report.renderSchedulerFullAuditMarkdown({
     metadata: {
@@ -138,6 +157,7 @@ test('scheduler full audit markdown renders required sections and none placehold
       { key: '20p-3c', players: 20, courts: 3, horizonMatches: 18, highestPreset: 18, balancedMatch: 18, capacitySuggested: 18 }
     ],
     recommendationAuditIssues: [],
+    multiRotatePresetQualityRows: report.buildMultiRotatePresetQualityRows().slice(0, 3),
     recommendationRows: report.buildMultiRotateRecommendationRows().slice(0, 3),
     coverageRows: report.buildCoverageAppendixRows(report.buildMultiRotateRecommendationRows()).slice(0, 2),
     stabilityRows: [
@@ -175,6 +195,7 @@ test('scheduler full audit markdown renders required sections and none placehold
   assert.match(markdown, /^## 执行摘要$/m);
   assert.match(markdown, /^## multi_rotate 审计$/m);
   assert.match(markdown, /^## multi_rotate 推荐合理性$/m);
+  assert.match(markdown, /^## multi_rotate 默认\/可选场次质量$/m);
   assert.match(markdown, /^## squad_doubles 审计$/m);
   assert.match(markdown, /^## fixed_pair_rr 摘要$/m);
   assert.match(markdown, /^## 附录 A：multi_rotate 当前推荐场数$/m);
@@ -250,6 +271,7 @@ test('scheduler full audit report writer persists markdown even with failures pr
     recommendationAuditIssues: [
       { key: '24p-3c', code: 'large_roster_shortfall', message: 'balanced=18 capacitySuggested=21' }
     ],
+    multiRotatePresetQualityRows: [],
     recommendationRows: report.buildMultiRotateRecommendationRows().slice(0, 1),
     coverageRows: []
   });

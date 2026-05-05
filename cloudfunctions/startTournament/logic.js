@@ -40,6 +40,36 @@ function calcMaxMatchesMixed(maleCount, femaleCount, unknownCount) {
   return Math.floor((mx + mm + ff) * 3);
 }
 
+function countSquadPlayers(players) {
+  const result = { aCount: 0, bCount: 0 };
+  (Array.isArray(players) ? players : []).forEach((player) => {
+    const squad = String(player && player.squad || '').trim().toUpperCase();
+    if (squad === 'A') result.aCount += 1;
+    if (squad === 'B') result.bCount += 1;
+  });
+  return result;
+}
+
+function resolveSquadEffectiveCourts(players, courts) {
+  const requested = Math.max(1, Math.min(10, Number(courts) || 1));
+  const { aCount, bCount } = countSquadPlayers(players);
+  if (aCount < 2 || bCount < 2) return requested;
+  return Math.max(1, Math.min(requested, Math.floor(aCount / 2), Math.floor(bCount / 2)));
+}
+
+function deriveEffectiveScheduledMatches(totalMatches, endCondition, context = {}) {
+  const normalizedType = scheduleContract.normalizeEndConditionType(endCondition && endCondition.type);
+  const target = Math.max(1, Number(endCondition && endCondition.target) || totalMatches);
+  if (normalizedType === 'total_rounds' && context.mode === 'squad_doubles') {
+    const effectiveCourts = resolveSquadEffectiveCourts(context.players, context.courts);
+    return Math.max(1, Math.floor(target) * effectiveCourts);
+  }
+  return scheduleContract.deriveScheduledMatches(totalMatches, {
+    type: normalizedType,
+    target
+  });
+}
+
 function buildPairTeamsInvalidError(validation) {
   return new Error(`START_PAIR_TEAMS_INVALID:${fixedPair.getFixedPairInvalidMessage(validation)}`);
 }
@@ -70,16 +100,19 @@ function validateBeforeGenerate(tournament) {
     pairTeams = validation.teams;
   }
   if (mode === 'squad_doubles') {
-    const aCount = players.filter((item) => String(item && item.squad || '').toUpperCase() === 'A').length;
-    const bCount = players.filter((item) => String(item && item.squad || '').toUpperCase() === 'B').length;
+    const { aCount, bCount } = countSquadPlayers(players);
     if (aCount < 2 || bCount < 2) throw new Error('小队转需要 A/B 队至少各 2 人');
     maxMatches = calcMaxMatches(players.length);
   }
   const normalizedEndConditionType = scheduleContract.normalizeEndConditionType(endCondition.type);
   const normalizedEndConditionTarget = Math.max(1, Number(endCondition.target) || totalMatches);
-  const scheduledMatches = scheduleContract.deriveScheduledMatches(totalMatches, {
+  const scheduledMatches = deriveEffectiveScheduledMatches(totalMatches, {
     type: normalizedEndConditionType,
     target: normalizedEndConditionTarget
+  }, {
+    mode,
+    players,
+    courts
   });
   if (maxMatches > 0 && scheduledMatches > maxMatches) {
     if (scheduledMatches !== totalMatches) {
@@ -116,5 +149,6 @@ module.exports = {
   normalizeGender,
   countGender,
   buildPairTeamsInvalidError,
+  deriveEffectiveScheduledMatches,
   validateBeforeGenerate
 };

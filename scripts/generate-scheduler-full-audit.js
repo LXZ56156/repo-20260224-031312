@@ -36,6 +36,7 @@ const COVERAGE_EXPLANATIONS = {
   '10p-1c': '23 场完成 45 对搭档覆盖，作为默认均衡档；30 场为加量档。',
   '10p-2c': '23 场完成 45 对搭档覆盖，作为默认均衡档；30 场为加量档。'
 };
+const MULTI_ROTATE_PRESET_QUALITY_CACHE = new Map();
 
 function formatNumber(value) {
   return Number.isFinite(value) ? String(value) : '';
@@ -578,6 +579,218 @@ function buildCoverageAppendixRows(recommendationRows) {
     }));
 }
 
+function countComb(n, k) {
+  const nn = Math.max(0, Math.floor(Number(n) || 0));
+  const kk = Math.max(0, Math.floor(Number(k) || 0));
+  if (kk < 0 || kk > nn) return 0;
+  if (kk === 0 || kk === nn) return 1;
+  const limit = Math.min(kk, nn - kk);
+  let numerator = 1;
+  let denominator = 1;
+  for (let i = 1; i <= limit; i += 1) {
+    numerator *= (nn - limit + i);
+    denominator *= i;
+  }
+  return Math.round(numerator / denominator);
+}
+
+function formatCoverageCell(uniqueCount, totalCount) {
+  const unique = Math.max(0, Number(uniqueCount) || 0);
+  const total = Math.max(0, Number(totalCount) || 0);
+  const pct = total ? Math.round((unique / total) * 100) : 0;
+  return `${unique}/${total} (${pct}%)`;
+}
+
+function readPrefixMetric(templateCase, matches) {
+  if (!templateCase || !templateCase.prefixMetrics) return null;
+  return templateCase.prefixMetrics[String(matches)] || null;
+}
+
+function readMultiRotatePresetQualityMetric(key, caseData, matches, templateCase) {
+  const prefixMetric = readPrefixMetric(templateCase, matches);
+  if (prefixMetric) {
+    return {
+      metric: prefixMetric,
+      exactRepeatExcess: null,
+      playSpreadExcess: null
+    };
+  }
+
+  const players = Number(caseData && caseData.players) || 0;
+  const effectiveCourts = Number(caseData && caseData.effectiveCourts) || 1;
+  const normalizedMatches = Number(matches) || 0;
+  const cacheKey = `${key}:${normalizedMatches}`;
+  if (MULTI_ROTATE_PRESET_QUALITY_CACHE.has(cacheKey)) {
+    return MULTI_ROTATE_PRESET_QUALITY_CACHE.get(cacheKey);
+  }
+
+  const result = scenarioCommon.runScenario({
+    id: `rotation-option-${key}-${normalizedMatches}`,
+    name: `rotation option ${key}@${normalizedMatches}`,
+    mode: 'rotation',
+    kind: 'rotation_option_audit',
+    caseKey: key,
+    playersCount: players,
+    totalMatches: normalizedMatches,
+    targetMatches: normalizedMatches,
+    courts: effectiveCourts,
+    maxElapsedMs: 3000
+  });
+  const totalPartnerPairs = countComb(players, 2);
+  const partnerCoverageCount = Number(result.uniquePartnerPairs) || 0;
+  const playSpreadExcess = Math.max(0, Number(result.playSpreadExcess) || 0);
+  const quality = {
+    metric: {
+      uniqueExactMatchupCount: Number(result.uniqueExactMatchupCount) || 0,
+      playSpread: Number(result.playSpread) || 0,
+      theoreticalPlaySpread: Math.max(0, (Number(result.playSpread) || 0) - playSpreadExcess),
+      partnerCoverageCount,
+      totalPartnerPairs,
+      allPartnerPairsCovered: partnerCoverageCount >= totalPartnerPairs
+    },
+    exactRepeatExcess: Math.max(0, Number(result.exactRepeatExcess) || 0),
+    playSpreadExcess
+  };
+  MULTI_ROTATE_PRESET_QUALITY_CACHE.set(cacheKey, quality);
+  return quality;
+}
+
+function buildMultiRotatePresetQualityRows() {
+  const cases = matchOptions && matchOptions.cases ? matchOptions.cases : {};
+  const templateCases = templateLibrary && templateLibrary.cases ? templateLibrary.cases : {};
+
+  return sortCaseEntries(Object.entries(cases)).map(([key, caseData]) => {
+    const players = Number(caseData && caseData.players) || 0;
+    const effectiveCourts = Number(caseData && caseData.effectiveCourts) || 0;
+    const presetMatches = Array.isArray(caseData && caseData.presetMatches)
+      ? caseData.presetMatches.slice().sort((left, right) => left - right)
+      : [];
+    const balancedMatch = Number(caseData && caseData.balancedMatch) || 0;
+    const templateCase = templateCases[key] || {};
+    const defaultQuality = readMultiRotatePresetQualityMetric(key, caseData, balancedMatch, templateCase);
+    const defaultMetric = defaultQuality.metric || {};
+    const totalPartnerPairs = Number(defaultMetric.totalPartnerPairs) || countComb(players, 2);
+    const defaultPartnerCoverageCount = Number(defaultMetric.partnerCoverageCount) || 0;
+    const scoredPresets = presetMatches
+      .map((matches) => ({
+        matches,
+        metric: readMultiRotatePresetQualityMetric(key, caseData, matches, templateCase).metric
+      }))
+      .filter((entry) => entry.metric);
+    const highestCoverage = scoredPresets
+      .slice()
+      .sort((left, right) => {
+        const leftCoverage = Number(left.metric.partnerCoverageCount) || 0;
+        const rightCoverage = Number(right.metric.partnerCoverageCount) || 0;
+        if (leftCoverage !== rightCoverage) return rightCoverage - leftCoverage;
+        return left.matches - right.matches;
+      })[0] || null;
+    const highestCoverageCount = highestCoverage ? Number(highestCoverage.metric.partnerCoverageCount) || 0 : 0;
+    const exactRepeatCount = Math.max(
+      0,
+      balancedMatch - (Number(defaultMetric.uniqueExactMatchupCount) || 0)
+    );
+    const exactRepeatBaseline = Math.max(0, balancedMatch - (countComb(players, 4) * 3));
+    const playSpreadExcess = typeof defaultQuality.playSpreadExcess === 'number'
+      ? defaultQuality.playSpreadExcess
+      : Math.max(
+        0,
+        (Number(defaultMetric.playSpread) || 0) - (Number(defaultMetric.theoreticalPlaySpread) || 0)
+      );
+
+    return {
+      key,
+      players,
+      effectiveCourts,
+      presetMatches: presetMatches.join(' / '),
+      balancedMatch,
+      defaultPartnerCoverage: formatCoverageCell(defaultPartnerCoverageCount, totalPartnerPairs),
+      defaultPartnerCoverageCount,
+      totalPartnerPairs,
+      defaultAllPartnerPairsCovered: defaultMetric.allPartnerPairsCovered === true,
+      defaultExactRepeatExcess: typeof defaultQuality.exactRepeatExcess === 'number'
+        ? defaultQuality.exactRepeatExcess
+        : Math.max(0, exactRepeatCount - exactRepeatBaseline),
+      defaultPlaySpreadExcess: playSpreadExcess,
+      highestCoveragePreset: highestCoverage ? highestCoverage.matches : '',
+      highestCoverage: formatCoverageCell(highestCoverageCount, totalPartnerPairs),
+      highestCoverageCount,
+      defaultIsBestCoverage: defaultPartnerCoverageCount >= highestCoverageCount
+    };
+  });
+}
+
+function buildMultiRotatePresetQualitySummaryRows(rows, optionIssues = []) {
+  const qualityRows = Array.isArray(rows) ? rows : [];
+  const smallRows = qualityRows.filter((row) => Number(row.players) >= 4 && Number(row.players) <= 10);
+  const smallCovered = smallRows.filter((row) => row.defaultAllPartnerPairsCovered === true).length;
+  const defaultBestCoverage = qualityRows.filter((row) => row.defaultIsBestCoverage === true).length;
+  return [{
+    caseCount: qualityRows.length,
+    presetRowCount: qualityRows.reduce((sum, row) => {
+      const presets = String(row.presetMatches || '').split('/').map((item) => item.trim()).filter(Boolean);
+      return sum + presets.length;
+    }, 0),
+    optionIssues: Array.isArray(optionIssues) ? optionIssues.length : 0,
+    smallDefaultAllPartnerCoverage: `${smallCovered}/${smallRows.length}`,
+    defaultExactRepeatExcessCount: qualityRows.filter((row) => Number(row.defaultExactRepeatExcess) > 0).length,
+    defaultPlaySpreadExcessCount: qualityRows.filter((row) => Number(row.defaultPlaySpreadExcess) > 0).length,
+    defaultIsBestCoverage: `${defaultBestCoverage}/${qualityRows.length}`,
+    defaultNotBestCoverage: `${Math.max(0, qualityRows.length - defaultBestCoverage)}/${qualityRows.length}`
+  }];
+}
+
+function buildMultiRotatePresetQualitySection(report) {
+  const rows = Array.isArray(report.multiRotatePresetQualityRows)
+    ? report.multiRotatePresetQualityRows
+    : [];
+  const issues = Array.isArray(report.recommendationAuditIssues) ? report.recommendationAuditIssues : [];
+  const summaryRows = buildMultiRotatePresetQualitySummaryRows(rows, issues);
+  const notBestRows = rows
+    .filter((row) => row.defaultIsBestCoverage !== true)
+    .map((row) => ({
+      case: row.key,
+      balancedMatch: row.balancedMatch,
+      defaultPartnerCoverage: row.defaultPartnerCoverage,
+      highestCoveragePreset: row.highestCoveragePreset,
+      highestCoverage: row.highestCoverage,
+      defaultExactRepeatExcess: row.defaultExactRepeatExcess,
+      defaultPlaySpreadExcess: row.defaultPlaySpreadExcess
+    }));
+
+  return [
+    '## multi_rotate 默认/可选场次质量',
+    '',
+    renderMarkdownTable(
+      [
+        { key: 'caseCount', label: 'caseCount' },
+        { key: 'presetRowCount', label: 'presetRowCount' },
+        { key: 'optionIssues', label: 'optionIssues' },
+        { key: 'smallDefaultAllPartnerCoverage', label: '4-10p default coverage' },
+        { key: 'defaultExactRepeatExcessCount', label: 'defaultExactRepeatExcessCount' },
+        { key: 'defaultPlaySpreadExcessCount', label: 'defaultPlaySpreadExcessCount' },
+        { key: 'defaultIsBestCoverage', label: 'defaultIsBestCoverage' },
+        { key: 'defaultNotBestCoverage', label: 'defaultNotBestCoverage' }
+      ],
+      summaryRows
+    ),
+    '',
+    renderNamedTable(
+      '默认不是最高覆盖 preset',
+      [
+        { key: 'case', label: 'case' },
+        { key: 'balancedMatch', label: 'balancedMatch' },
+        { key: 'defaultPartnerCoverage', label: 'defaultPartnerCoverage' },
+        { key: 'highestCoveragePreset', label: 'highestCoveragePreset' },
+        { key: 'highestCoverage', label: 'highestCoverage' },
+        { key: 'defaultExactRepeatExcess', label: 'defaultExactRepeatExcess' },
+        { key: 'defaultPlaySpreadExcess', label: 'defaultPlaySpreadExcess' }
+      ],
+      notBestRows
+    )
+  ].join('\n');
+}
+
 function buildRecommendationRationalitySection(report) {
   const rows = Array.isArray(report.recommendationAuditRows) ? report.recommendationAuditRows : [];
   const issues = Array.isArray(report.recommendationAuditIssues) ? report.recommendationAuditIssues : [];
@@ -751,10 +964,11 @@ function buildRotationSection(audit, representative) {
 function buildSquadSection(audit, representative) {
   const equalResults = audit.results.filter((result) => result.scenario.kind === 'squad_equal_audit');
   const unevenResults = audit.results.filter((result) => result.scenario.kind === 'squad_uneven_audit');
+  const totalRoundsResults = audit.results.filter((result) => result.scenario.kind === 'squad_total_rounds_audit');
   const warnings = audit.warnings.filter((item) => item.mode === 'squad');
   const failures = audit.failures.filter((item) => item.mode === 'squad');
   const representativeResults = representative.results.filter((result) => result.scenario.mode === 'squad');
-  const allResults = representativeResults.concat(equalResults, unevenResults);
+  const allResults = representativeResults.concat(equalResults, unevenResults, totalRoundsResults);
 
   return [
     '## squad_doubles 审计',
@@ -781,14 +995,32 @@ function buildSquadSection(audit, representative) {
         summarizeResultGroup(
           'equal matrix',
           equalResults,
-          warnings.filter((item) => String(item.scenario || '').startsWith('squad equal') || item.scenario === 'squad equal matrix'),
-          failures.filter((item) => String(item.scenario || '').startsWith('squad equal'))
+          warnings.filter((item) => (
+            (String(item.scenario || '').startsWith('squad equal') || item.scenario === 'squad equal matrix')
+            && !String(item.scenario || '').includes('total_rounds')
+          )),
+          failures.filter((item) => (
+            String(item.scenario || '').startsWith('squad equal')
+            && !String(item.scenario || '').includes('total_rounds')
+          ))
         ),
         summarizeResultGroup(
           'uneven matrix',
           unevenResults,
-          warnings.filter((item) => String(item.scenario || '').startsWith('squad uneven')),
-          failures.filter((item) => String(item.scenario || '').startsWith('squad uneven'))
+          warnings.filter((item) => (
+            String(item.scenario || '').startsWith('squad uneven')
+            && !String(item.scenario || '').includes('total_rounds')
+          )),
+          failures.filter((item) => (
+            String(item.scenario || '').startsWith('squad uneven')
+            && !String(item.scenario || '').includes('total_rounds')
+          ))
+        ),
+        summarizeResultGroup(
+          'total_rounds matrix',
+          totalRoundsResults,
+          warnings.filter((item) => String(item.scenario || '').includes('total_rounds')),
+          failures.filter((item) => String(item.scenario || '').includes('total_rounds'))
         )
       ]
     ),
@@ -975,6 +1207,8 @@ function renderSchedulerFullAuditMarkdown(report) {
     '',
     buildRecommendationRationalitySection(report),
     '',
+    buildMultiRotatePresetQualitySection(report),
+    '',
     buildSquadSection(report.audit, report.representative),
     '',
     buildFixedPairSection(),
@@ -1041,6 +1275,7 @@ function buildReportData() {
 
   const recommendationAuditRows = buildRecommendationAuditRows(matchOptions && matchOptions.cases);
   const recommendationAuditIssues = buildRecommendationAuditIssues(recommendationAuditRows);
+  const multiRotatePresetQualityRows = buildMultiRotatePresetQualityRows();
   const stabilityRows = scenarioCommon.runExtendedStabilityMatrix();
   const rotationPrefixCurveRows = buildRotationPrefixCurveRows(auditMatrix.results);
 
@@ -1061,6 +1296,7 @@ function buildReportData() {
     }),
     recommendationAuditRows,
     recommendationAuditIssues,
+    multiRotatePresetQualityRows,
     recommendationRows: buildMultiRotateRecommendationRows(),
     coverageRows: buildCoverageAppendixRows(buildMultiRotateRecommendationRows()),
     stabilityRows,
@@ -1094,6 +1330,9 @@ module.exports = {
   OUTPUT_PATH,
   findCoverageMatch,
   buildMultiRotateRecommendationRows,
+  buildMultiRotatePresetQualityRows,
+  buildMultiRotatePresetQualitySummaryRows,
+  buildMultiRotatePresetQualitySection,
   buildCoverageAppendixRows,
   buildCoverageFirstExceptionRows,
   buildCoverageFirstExceptionSection,
