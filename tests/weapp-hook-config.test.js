@@ -27,7 +27,7 @@ test('codex hooks enable preflight and stop hooks for the Windows weapp workflow
   const configToml = fs.readFileSync(path.join(REPO_DIR, '.codex/config.toml'), 'utf8');
   const hooks = JSON.parse(fs.readFileSync(path.join(REPO_DIR, '.codex/hooks.json'), 'utf8'));
 
-  assert.match(configToml, /\[features\][\s\S]*codex_hooks = true/);
+  assert.match(configToml, /\[features\][\s\S]*hooks = true/);
   assert.ok(hooks.hooks.UserPromptSubmit, '缺少 Codex UserPromptSubmit hook');
   assert.ok(hooks.hooks.Stop, '缺少 Codex Stop hook');
   assert.match(hooks.hooks.UserPromptSubmit[0].hooks[0].command, /\.codex\/hooks\/user_prompt_sync_windows_mirror\.py/);
