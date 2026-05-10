@@ -77,37 +77,31 @@ function getModeRuleLines(mode, presetKey) {
   const preset = value === MODE_MULTI_ROTATE ? resolveRotationPreset(presetKey) : null;
   if (preset) {
     return [
-      `固定 ${preset.playerLimit} 人参赛，开赛前必须正好 ${preset.playerLimit} 人`,
-      `创建后默认 ${preset.defaultTotalMatches} 场、1 场地，可直接邀请成员`,
-      `${preset.label}最多 ${preset.playerLimit} 人加入，导入超出名额会整批拒绝`,
-      preset.playerLimit === 8 ? '可在草稿阶段选择 1 或 2 场地' : '草稿阶段固定 1 场地',
-      '可在草稿阶段修改总场次，赛制标签和人数限制会保留'
+      `固定 ${preset.playerLimit} 人参赛，满员后开赛`,
+      '系统自动轮换搭档，每人轮流与不同队友组队双打',
+      '按个人胜场、净胜分、总得分排名'
     ];
   }
   if (value === MODE_SQUAD_DOUBLES) {
     return [
-      '报名时选择 A 队或 B 队',
-      '每场固定 A 队双打对阵 B 队双打',
-      '同轮同人最多上场 1 次',
-      '胜队 +1 胜场，按胜场优先排名',
-      '结束条件支持总场数/总轮数/目标胜场'
+      '报名时选择 A 队或 B 队，每场固定 A 队 vs B 队双打',
+      '同轮每人最多上场 1 次',
+      '按队伍胜场排名，支持总场数/总轮数/目标胜场结束条件'
     ];
   }
   if (value === MODE_FIXED_PAIR_RR) {
     return [
       '以双打队伍为单位报名（管理员组队）',
-      '每支队伍与其他队伍各交手 1 次',
-      '奇数队时每轮有 1 支队伍轮空',
-      '本期固定一局定胜',
+      '每队与其他队伍各交手 1 次，奇数队时每轮 1 队轮空',
+      '按胜场、净胜分排名',
       '未完场次由管理员判定录入'
     ];
   }
   return [
-    '以个人为单位报名',
-    '系统轮换搭档进行双打',
-    '同轮同人最多上场 1 次',
+    '以个人为单位报名，系统自动轮换搭档双打',
+    '同轮每人最多上场 1 次',
     '按胜场、净胜分、总得分排名',
-    '先邀请成员，满 4 人后再配置参数并开赛'
+    '满 4 人后可配置参数开赛'
   ];
 }
 

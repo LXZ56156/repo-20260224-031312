@@ -36,8 +36,9 @@ test('flow labels and rule lines prefer fixed rotation preset keys', () => {
     mode: flow.MODE_MULTI_ROTATE,
     presetKey: 'rotation_7'
   }), '7人转');
-  assert.match(flow.getModeRuleLines(flow.MODE_MULTI_ROTATE, 'rotation_7').join('\n'), /默认 11 场/);
-  assert.match(flow.getModeRuleLines(flow.MODE_MULTI_ROTATE, 'rotation_7').join('\n'), /正好 7 人/);
+  const ruleLines = flow.getModeRuleLines(flow.MODE_MULTI_ROTATE, 'rotation_7').join('\n');
+  assert.match(ruleLines, /固定 7 人参赛，满员后开赛/);
+  assert.match(ruleLines, /按个人胜场、净胜分、总得分排名/);
 });
 
 test('pickNextAction selects join for draft users not joined', () => {
