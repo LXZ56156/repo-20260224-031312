@@ -272,3 +272,58 @@ test('quickImportPlayers sends parsed relay players to addPlayers', async () => 
     nav.markRefreshFlag = originalMarkRefreshFlag;
   }
 });
+
+test('quickImportPlayers rejects locally when fixed rotation import exceeds remaining quota', async () => {
+  const originalWx = global.wx;
+  const originalCall = cloud.call;
+  const toastCalls = [];
+  const calls = [];
+  global.wx = {
+    showToast(options = {}) {
+      toastCalls.push(options);
+    },
+    showLoading() {
+      throw new Error('should not call cloud when quota check fails');
+    },
+    hideLoading() {},
+    pageScrollTo() {}
+  };
+
+  try {
+    cloud.call = async (name, payload) => {
+      calls.push({ name, payload });
+      return { ok: true };
+    };
+    const ctx = createContext(importActions, {
+      tournamentId: 't_rotation_6',
+      isAdmin: true,
+      tournament: {
+        status: 'draft',
+        presetKey: 'rotation_6',
+        playerLimit: 6,
+        players: [
+          { id: 'u_admin', name: '管理员' },
+          { id: 'u_1', name: '球友1' },
+          { id: 'u_2', name: '球友2' },
+          { id: 'u_3', name: '球友3' },
+          { id: 'u_4', name: '球友4' }
+        ]
+      },
+      quickImportText: '新球友A 新球友B'
+    });
+    ctx.fetchTournament = async () => {};
+    ctx.handleWriteError = () => {};
+    ctx.clearLastFailedAction = () => {};
+    ctx.setLastFailedAction = () => {};
+
+    await ctx.quickImportPlayers();
+
+    assert.equal(calls.length, 0);
+    assert.equal(ctx.data.importResultText, '剩余名额 1 人，本次导入 2 人，未导入');
+    assert.equal(toastCalls[0].title, '剩余名额 1 人，本次导入 2 人，未导入');
+  } finally {
+    actionGuard.clear('lobby:addPlayers:t_rotation_6');
+    global.wx = originalWx;
+    cloud.call = originalCall;
+  }
+});

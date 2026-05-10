@@ -123,6 +123,14 @@ function buildTournament() {
   };
 }
 
+function buildPlayers(count) {
+  return Array.from({ length: count }, (_, index) => ({
+    id: `p${index + 1}`,
+    name: `P${index + 1}`,
+    gender: index % 2 === 0 ? 'male' : 'female'
+  }));
+}
+
 function buildStartedTournament() {
   return {
     ...buildTournament(),
@@ -285,6 +293,155 @@ test('startTournament rejects generated schedules with duplicate players in one 
   assert.equal(result.state, 'invalid');
   assert.match(result.message, /重复成员/);
   assert.equal(updateCalled, false);
+});
+
+test('startTournament maps fixed rotation underfilled roster to structured validation failure', async () => {
+  let updateCalled = false;
+  const realLogic = require('../cloudfunctions/startTournament/logic');
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      },
+      remove() {
+        return { $remove: true };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      assert.equal(name, 'tournaments');
+      return {
+        doc() {
+          return {
+            async get() {
+              return {
+                data: {
+                  ...buildTournament(),
+                  presetKey: 'rotation_6',
+                  playerLimit: 6,
+                  totalMatches: 8,
+                  courts: 1,
+                  players: buildPlayers(5)
+                }
+              };
+            }
+          };
+        },
+        where() {
+          updateCalled = true;
+          return {
+            async update() {
+              return { stats: { updated: 1 } };
+            }
+          };
+        }
+      };
+    }
+  };
+  const { main } = loadMain(db, { logic: realLogic });
+
+  const result = await main({ tournamentId: 't_1' });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'START_VALIDATION_FAILED');
+  assert.equal(result.state, 'invalid');
+  assert.equal(result.message, '6人转需要正好 6 人参赛，当前 5 人');
+  assert.equal(updateCalled, false);
+});
+
+test('startTournament uses multi_rotate scheduling for 8-player fixed rotation with two courts', async () => {
+  let scheduledCourts = 0;
+  let writtenData = null;
+  const realLogic = require('../cloudfunctions/startTournament/logic');
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      },
+      remove() {
+        return { $remove: true };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      assert.equal(name, 'tournaments');
+      return {
+        doc() {
+          return {
+            async get() {
+              return {
+                data: {
+                  ...buildTournament(),
+                  presetKey: 'rotation_8',
+                  playerLimit: 8,
+                  totalMatches: 14,
+                  courts: 2,
+                  players: buildPlayers(8)
+                }
+              };
+            }
+          };
+        },
+        where() {
+          return {
+            async update(payload) {
+              writtenData = payload.data;
+              return { stats: { updated: 1 } };
+            }
+          };
+        }
+      };
+    }
+  };
+  const { main } = loadMain(db, {
+    logic: realLogic,
+    rotation: {
+      generateSchedule(_players, _matches, courts) {
+        scheduledCourts = courts;
+        return {
+          seed: 456,
+          fairnessScore: 0.9,
+          fairness: {},
+          playerStats: {},
+          schedulerMeta: { source: 'fixed-rotation-test' },
+          rounds: [{
+            roundIndex: 0,
+            matches: [{
+              matchIndex: 0,
+              matchType: 'doubles',
+              logicalRound: 0,
+              teamA: ['p1', 'p2'],
+              teamB: ['p3', 'p4']
+            }, {
+              matchIndex: 1,
+              matchType: 'doubles',
+              logicalRound: 0,
+              teamA: ['p5', 'p6'],
+              teamB: ['p7', 'p8']
+            }],
+            restPlayers: []
+          }]
+        };
+      },
+      selectSchedulerPolicy() {
+        return { selectedEpsilon: 1.2, selectedSearchSeeds: 4 };
+      },
+      computeEffectiveCourts() {
+        return 2;
+      }
+    }
+  });
+
+  const result = await main({ tournamentId: 't_1' });
+
+  assert.equal(result.ok, true);
+  assert.equal(scheduledCourts, 2);
+  assert.equal(writtenData.mode, 'multi_rotate');
+  assert.equal(writtenData.scheduledMatches, 2);
 });
 
 test('startTournament returns TOURNAMENT_ID_REQUIRED before reading the database', async () => {

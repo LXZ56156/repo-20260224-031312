@@ -8,11 +8,11 @@ Page({
   },
 
   async onStart(e) {
-    const mode = flow.normalizeMode(
-      e && e.currentTarget && e.currentTarget.dataset
-        ? e.currentTarget.dataset.mode
-        : flow.MODE_MULTI_ROTATE
-    );
+    const dataset = e && e.currentTarget && e.currentTarget.dataset
+      ? e.currentTarget.dataset
+      : {};
+    const mode = flow.normalizeMode(dataset.mode || flow.MODE_MULTI_ROTATE);
+    const presetKey = flow.normalizePresetKey(dataset.presetKey);
     const gate = await profileCore.ensureProfileForAction('create', '/pages/create/index');
     if (!gate.ok) {
       if (gate.reason === 'login_failed') {
@@ -20,17 +20,20 @@ Page({
       }
       return;
     }
-    wx.navigateTo({ url: nav.buildUrl('/pages/create/index', { mode }) });
+    wx.navigateTo({ url: nav.buildUrl('/pages/create/index', {
+      mode,
+      presetKey: presetKey === 'custom' ? '' : presetKey
+    }) });
   },
 
   onShowRules(e) {
-    const mode = flow.normalizeMode(
-      e && e.currentTarget && e.currentTarget.dataset
-        ? e.currentTarget.dataset.mode
-        : flow.MODE_MULTI_ROTATE
-    );
-    const title = `${flow.getModeLabel(mode)}规则`;
-    const content = flow.getModeRuleLines(mode).join('\n');
+    const dataset = e && e.currentTarget && e.currentTarget.dataset
+      ? e.currentTarget.dataset
+      : {};
+    const mode = flow.normalizeMode(dataset.mode || flow.MODE_MULTI_ROTATE);
+    const presetKey = flow.normalizePresetKey(dataset.presetKey);
+    const title = `${flow.getModeDisplayLabel(mode, presetKey)}规则`;
+    const content = flow.getModeRuleLines(mode, presetKey).join('\n');
     wx.showModal({
       title,
       content,

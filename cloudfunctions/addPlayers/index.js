@@ -4,6 +4,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 const common = require('./lib/common');
+const modeHelper = require('./lib/mode');
 
 function normalizeGender(gender) {
   const v = String(gender || '').trim().toLowerCase();
@@ -177,6 +178,19 @@ exports.main = async (event) => {
           duplicateNames,
           invalidNames
         };
+      }
+      const playerLimit = modeHelper.getRotationPlayerLimit(t);
+      if (playerLimit > 0 && players.length + toAdd.length > playerLimit) {
+        const remaining = Math.max(0, playerLimit - players.length);
+        return common.failResult('PLAYER_LIMIT_EXCEEDED', `该赛制剩余名额 ${remaining} 人，本次导入 ${toAdd.length} 人，未导入`, {
+          traceId,
+          state: 'invalid',
+          ...(clientRequestId ? { clientRequestId } : {}),
+          playerLimit,
+          playersCount: players.length,
+          importCount: toAdd.length,
+          remaining
+        });
       }
       const nextPlayers = players.concat(toAdd);
       const nextPlayerIds = Array.from(new Set(nextPlayers.map((item) => String(item && item.id || '').trim()).filter(Boolean)));

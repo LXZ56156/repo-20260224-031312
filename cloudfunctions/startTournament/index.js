@@ -345,6 +345,8 @@ function mapStartTournamentFailure(err, traceId = '') {
   }
   if (
     message.includes('参赛人数不足') ||
+    message.includes('人参赛') ||
+    message.includes('正好') ||
     message.includes('总场次不能超过') ||
     message.includes('至少') ||
     message.includes('场地') ||

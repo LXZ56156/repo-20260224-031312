@@ -139,6 +139,10 @@ Page({
     if (!t) return;
     this.ensureAvatarRuntime();
     t = normalize.normalizeTournament(t);
+    const tournamentName = flow.getTournamentDisplayName(t, '未命名赛事');
+    if (tournamentName !== String(t.name || '').trim()) {
+      t = { ...t, name: tournamentName };
+    }
     const mode = flow.normalizeMode(t.mode || flow.MODE_MULTI_ROTATE);
     const isTeamMode = mode === flow.MODE_SQUAD_DOUBLES || mode === flow.MODE_FIXED_PAIR_RR;
     const rankingTypeLabel = isTeamMode ? '队伍榜' : '个人榜';

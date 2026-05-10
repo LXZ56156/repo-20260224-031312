@@ -53,15 +53,18 @@
 }
 
 /* 不同模式的色彩暗示 */
-.launch-card-multi_rotate .launch-card-accent {
+.launch-card-rotation_6 .launch-card-accent,
+.launch-card-rotation_7 .launch-card-accent,
+.launch-card-rotation_8 .launch-card-accent,
+.launch-card-multi .launch-card-accent {
   background: var(--brand-500);
 }
 
-.launch-card-squad_doubles .launch-card-accent {
+.launch-card-squad .launch-card-accent {
   background: var(--info-500);
 }
 
-.launch-card-fixed_pair_rr .launch-card-accent {
+.launch-card-fixed .launch-card-accent {
   background: #F59E0B;
 }
 

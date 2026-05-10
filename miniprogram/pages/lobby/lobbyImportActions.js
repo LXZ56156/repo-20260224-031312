@@ -2,6 +2,7 @@ const cloud = require('../../core/cloud');
 const actionGuard = require('../../core/actionGuard');
 const clientRequest = require('../../core/clientRequest');
 const nav = require('../../core/nav');
+const flow = require('../../core/uxFlow');
 
 const FLOWER_MARK_RE = /[🌺🌸]/g;
 const CIRCLED_INDEX_MARKS = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳';
@@ -281,6 +282,31 @@ module.exports = {
     if (players.length > 60) {
       wx.showToast({ title: '一次最多添加 60 人', icon: 'none' });
       return;
+    }
+    const playerLimit = flow.getRotationPlayerLimit(tournament);
+    if (playerLimit > 0) {
+      const existingNames = new Set((Array.isArray(tournament.players) ? tournament.players : [])
+        .map((player) => String(player && player.name || '').trim().toLowerCase())
+        .filter(Boolean));
+      const batchNames = new Set();
+      let newCount = 0;
+      players.forEach((player) => {
+        const key = String(player && player.name || '').trim().toLowerCase();
+        if (!key || existingNames.has(key) || batchNames.has(key)) return;
+        batchNames.add(key);
+        newCount += 1;
+      });
+      const currentCount = Array.isArray(tournament.players) ? tournament.players.length : 0;
+      const remaining = Math.max(0, playerLimit - currentCount);
+      if (newCount > remaining) {
+        const text = `剩余名额 ${remaining} 人，本次导入 ${newCount} 人，未导入`;
+        this.setData({
+          importResultText: text,
+          importResultDetail: ''
+        });
+        wx.showToast({ title: text, icon: 'none' });
+        return;
+      }
     }
 
     const actionKey = `lobby:addPlayers:${this.data.tournamentId}`;

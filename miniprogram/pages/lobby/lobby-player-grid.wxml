@@ -3,7 +3,7 @@
       <view class="section-title">参赛名单</view>
       <view class="row-right">
         <text class="player-roster-hint" wx:if="{{playerRosterHint}}">{{playerRosterHint}}</text>
-        <text class="count-pill">{{tournament.players.length}} 人</text>
+        <text class="count-pill">{{playerCountText}}</text>
         <text class="link-btn" wx:if="{{tournament.players.length>12}}" bindtap="togglePlayers">{{showAllPlayers?'收起':'展开'}}</text>
       </view>
     </view>

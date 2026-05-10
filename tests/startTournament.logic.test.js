@@ -31,6 +31,50 @@ test('validateBeforeGenerate rejects insufficient players', () => {
   );
 });
 
+test('validateBeforeGenerate requires fixed rotation player count to be exact', () => {
+  assert.throws(
+    () => logic.validateBeforeGenerate({
+      mode: 'multi_rotate',
+      presetKey: 'rotation_6',
+      playerLimit: 6,
+      settingsConfigured: true,
+      players: makePlayers(5),
+      totalMatches: 8,
+      courts: 1
+    }),
+    /6人转需要正好 6 人参赛，当前 5 人/
+  );
+  assert.throws(
+    () => logic.validateBeforeGenerate({
+      mode: 'multi_rotate',
+      presetKey: 'rotation_6',
+      playerLimit: 6,
+      settingsConfigured: true,
+      players: makePlayers(7),
+      totalMatches: 8,
+      courts: 1
+    }),
+    /6人转需要正好 6 人参赛，当前 7 人/
+  );
+});
+
+test('validateBeforeGenerate allows 8-player rotation on two courts', () => {
+  const out = logic.validateBeforeGenerate({
+    mode: 'multi_rotate',
+    presetKey: 'rotation_8',
+    playerLimit: 8,
+    settingsConfigured: true,
+    players: makePlayers(8),
+    totalMatches: 14,
+    courts: 2
+  });
+
+  assert.equal(out.mode, 'multi_rotate');
+  assert.equal(out.players.length, 8);
+  assert.equal(out.courts, 2);
+  assert.equal(out.totalMatches, 14);
+});
+
 test('validateBeforeGenerate rejects duplicate player ids', () => {
   assert.throws(
     () => logic.validateBeforeGenerate({

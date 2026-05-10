@@ -6,6 +6,7 @@
 ## Status: completed
 
 ## Last Completed
+- 2026-05-07 Codex: 完成 `6人转` / `7人转` / `8人转` 固定人数转入口及后续名称同步收口。固定入口仍使用 `mode=multi_rotate`，通过 `presetKey=rotation_6/7/8` 与 `playerLimit=6/7/8` 持久化；创建、加入、导入、开赛、设置写路径均保留固定人数 contract；创建页、首页、大厅、分享入口及赛程/排名/录分/复盘等页面通过 `presetKey` 优先显示固定人数转标签。补充名称同步规则：固定人数转的赛事名称由赛制同步为 `6人转` / `7人转` / `8人转`，创建和修改写入会在云端兜底，创建页/设置页/大厅快捷参数禁用固定人数转名称编辑；普通赛制仍保留自定义赛事名称。验证：`bash scripts/check-cloud-common.sh`、`git diff --check`、`npm run check`、`node --test tests/*.test.js` 全部通过（897 pass / 0 fail）。
 - 2026-05-04 Codex: 完成全局 UI 视觉优先级修复。新增 `core/uiPreferences`，复用现有 `motion_level` / `list_density` storage key，让首页、赛程、排名真实接入 `motion-*` / `density-*` 根 class；大厅接入 motion class 并把 `start-pulse` 从无限循环改成一次性强调；首页赛事列表、赛程轮次/比赛卡、排名行接入紧凑密度、轻量 reveal/press 与按钮边界兜底；`mine` / `profile` 头像展示链路会把 cloud fileID 转 temp URL，并在加载失败时回默认头像；录分页编辑态恢复整行大按钮工具区，清零/交换/撤销和快捷比分 chip 均有边界兜底；发起页操作行改为主次按钮组；偏好页移除未生效的“开赛提醒/结果提醒”开关；`settings/profile/feedback/share-entry` 局部 spacing token 化，`share-entry` 长标题 ellipsis，全局负 `letter-spacing` 清零。MCP 验收覆盖 home、launch、running/draft lobby、schedule、match 编辑态、ranking、mine、profile、preferences、settings、share-entry；控制台日志为空。验证：`git diff --check`、`npm run check`、`node --test tests/*.test.js` 全部通过（860 pass / 0 fail）。
 - 2026-05-02 Codex: 完成稳定性优先级修复。`match` 页隐藏/卸载释放 score lock 改为捕获 payload 后立即 teardown，并对 release 做一次 best-effort retry 与 warn 日志；`storage/base` 读写删失败会 warn，写/删返回 boolean，资料、草稿比分、本地赛事缓存链路透传写入结果；`saveUserProfile` 头像同步改为分页查询 `PAGE_SIZE=100 / QUERY_CAP=1000` 并返回 `syncTruncated`；本地 completed snapshot 上限从 500 降到 100，新写入不再写 legacy 单项 snapshot，仍保留 legacy 读取和迁移清理；`cloud.call()` 对只读调用和带 `clientRequestId` 的幂等写默认做网络/超时重试（300ms/900ms），业务 `ok:false` 不重试；`deleteTournament` 新成功日志迁移到通用 `client_request_logs`，保留旧 `delete_tournament_requests` 读取兼容并在命中旧日志时迁移。未启用 referee，未实现离线 outbox。验证：聚焦回归通过；`bash scripts/check-cloud-common.sh` 通过；`node --test tests/*.test.js` => `840 pass / 0 fail`；`npm run check` 通过。注意：技能文档提到的 `scripts/run-cloud-contract-checks.sh` 当前仓库不存在，本轮用聚焦云函数测试与全量测试覆盖。
 - 2026-04-16 Codex: 使用微信 MCP 对本轮后端审计收口涉及的页面做运行时检查。已验证 `pages/create/index`、`pages/feedback/index`、`pages/lobby/index`、`pages/match/index` 的加载与关键失败路径无新增报错；`lobby` 的管理员面板和 quick import 区域可正常展开渲染；`match` 页真实录分可进入 `locked_by_me`，batch 模式的 `occupied` 会跳下一场，非 batch 占用态会停留当前页，`canceled` 可稳定落到现有只读结束态。受微信 MCP 能力限制，本轮主要确认页面状态落点与无异常日志，未逐字校验 toast 文案。
@@ -28,12 +29,12 @@
 - 无。
 
 ## What Changed (未提交)
-- 当前未提交范围为本轮 UI 修复：`miniprogram/app.wxss`、`miniprogram/core/uiPreferences.js`、首页/赛程/排名/大厅/录分/个人中心/资料/偏好/设置/反馈/分享入口相关 WXML/WXSS/JS，以及 UI contract、偏好入口、头像偏好测试。
-- 未触碰云函数 contract、页面路由、storage key、业务 CTA 语义；未修改 `cloudfunctions/`。
-- 新增测试：`tests/ui-preferences.test.js`、`tests/profile.avatar-display.test.js`；扩展 `tests/list-density-motion.test.js`、`tests/button-layout-containment.test.js`、`tests/match.quick-scores.test.js`、`tests/mine.render-before-sync.test.js`。
+- 当前未提交范围为 `6/7/8 人转` 固定人数模板和名称同步：`miniprogram/core/mode.js` / `uxFlow.js`、创建/发起/首页/大厅/设置/赛程/排名/录分/复盘/分享入口页面、`createTournament` / `joinTournament` / `addPlayers` / `startTournament` / `updateSettings` 等云函数写路径，以及同步后的 `cloudfunctions/*/lib/mode.js`。
+- 共享库源为 `scripts/mode-common.template.js`，已运行 `bash scripts/sync-cloud-common.sh` 并通过 `bash scripts/check-cloud-common.sh`。
+- 新增测试：`tests/rotation-fixed-preset-page.test.js`；扩展固定人数转创建、设置、加入、导入、开赛、分享、首页/大厅视图、录分/复盘名称同步与 mode common 一致性测试。
 
 ## Next Steps
-- 可在真机上补一次手动视觉验收，重点看 iOS/Android 实机字体渲染、微信头像临时 URL 加载速度、长赛事名和底部 safe-area。
+- 通过微信开发者工具上传涉及运行逻辑的云函数：`createTournament`、`joinTournament`、`addPlayers`、`startTournament`、`updateSettings`。如需验证真实分享链路，可在真机上补一次 6/7/8 人转创建、分享加入、满员开赛 smoke。
 
 ## Blockers
 - 无。

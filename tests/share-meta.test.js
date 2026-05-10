@@ -117,6 +117,11 @@ test('shareMeta builds lifecycle-agnostic share copy', () => {
   const draftShare = shareMeta.buildShareMessage(buildTournament('draft'));
   const runningShare = shareMeta.buildShareMessage(buildTournament('running'));
   const finishedShare = shareMeta.buildShareMessage(buildTournament('finished'));
+  const fixedRotationShare = shareMeta.buildShareMessage(buildTournament('draft', {
+    name: '周末自定义赛',
+    presetKey: 'rotation_8',
+    playerLimit: 8
+  }));
 
   assert.equal(draftShare.title, '周末友谊赛 · 查看比赛');
   assert.equal(draftShare.intent, 'view');
@@ -125,4 +130,5 @@ test('shareMeta builds lifecycle-agnostic share copy', () => {
   assert.equal(runningShare.path, '/pages/share-entry/index?tournamentId=t_1');
   assert.equal(finishedShare.title, '周末友谊赛 · 查看比赛');
   assert.equal(finishedShare.panelTitle, '转发比赛');
+  assert.equal(fixedRotationShare.title, '8人转 · 查看比赛');
 });

@@ -104,7 +104,7 @@ function resolveCurrentRoundText(rounds, lifecycle = 'draft') {
 
 function buildShareMessage(tournament) {
   const t = tournament && typeof tournament === 'object' ? normalize.normalizeTournament(tournament) : null;
-  const tournamentName = String(t && t.name || '').trim() || '羽毛球比赛';
+  const tournamentName = flow.getTournamentDisplayName(t, '羽毛球比赛');
   return {
     title: `${tournamentName} · 查看比赛`,
     intent: 'view',
@@ -124,7 +124,7 @@ function buildPrimaryAction({ lifecycle, joined, joinAllowed }) {
   }
   if (joined) return { key: 'enter', text: '进入比赛' };
   if (joinAllowed) return { key: 'join', text: '加入比赛' };
-  if (lifecycle === 'draft') return { key: 'retry', text: '重新加载' };
+  if (lifecycle === 'draft') return { key: 'view', text: '查看比赛' };
   return { key: 'view', text: '查看比赛' };
 }
 
@@ -145,16 +145,18 @@ function buildStatusClass(lifecycle) {
 function buildPreviewMode({ lifecycle, joined, joinAllowed }) {
   if (joined) return 'joined-entry';
   if (joinAllowed) return 'join-preview';
-  if (lifecycle === 'running' || lifecycle === 'finished') return 'join-closed';
+  if (lifecycle === 'draft' || lifecycle === 'running' || lifecycle === 'finished') return 'join-closed';
   return 'invalid-match';
 }
 
-function buildAvailabilityText({ lifecycle, joined, joinAllowed }) {
+function buildAvailabilityText({ lifecycle, joined, joinAllowed, playerLimit = 0, playersCount = 0 }) {
   if (lifecycle === 'finished' && joined) return '比赛已结束，可查看最终结果。';
   if (lifecycle === 'finished') return '比赛已结束，可查看比赛结果。';
   if (joined && lifecycle === 'running') return '你已在名单中，可查看赛程和排名。';
   if (joined) return '你已在名单中，可直接进入比赛。';
+  if (joinAllowed && playerLimit > 0) return `还剩 ${Math.max(0, playerLimit - playersCount)} 个名额，确认后才会加入比赛名单。`;
   if (joinAllowed) return '确认后才会加入比赛名单。';
+  if (lifecycle === 'draft' && playerLimit > 0 && playersCount >= playerLimit) return '名额已满，可先查看比赛信息。';
   if (lifecycle === 'running') return '当前不可加入，可先查看比赛信息。';
   return '当前无法打开这场比赛，请稍后重试。';
 }
@@ -228,8 +230,6 @@ function buildShareEntryViewModel({ tournament, openid = '' }) {
   }
 
   const joined = playerUtils.isParticipantInTournament(normalizedTournament, openid);
-  const joinAllowed = lifecycle === 'draft';
-  const previewMode = buildPreviewMode({ lifecycle, joined, joinAllowed });
   const viewModeLabelMap = {
     'join-preview': '未加入',
     'joined-entry': '已加入',
@@ -240,8 +240,12 @@ function buildShareEntryViewModel({ tournament, openid = '' }) {
   const rankingsPreview = lifecycle === 'draft' ? [] : buildRankingPreview(normalizedTournament);
   const organizerName = resolveOrganizerName(normalizedTournament);
   const mode = flow.normalizeMode(normalizedTournament.mode || flow.MODE_MULTI_ROTATE);
+  const tournamentName = flow.getTournamentDisplayName(normalizedTournament, '羽毛球比赛');
   const players = Array.isArray(normalizedTournament.players) ? normalizedTournament.players : [];
   const playersCount = players.length || (Array.isArray(normalizedTournament.playerIds) ? normalizedTournament.playerIds.length : 0);
+  const playerLimit = flow.getRotationPlayerLimit(normalizedTournament);
+  const joinAllowed = lifecycle === 'draft' && (playerLimit <= 0 || playersCount < playerLimit);
+  const previewMode = buildPreviewMode({ lifecycle, joined, joinAllowed });
 
   const venueText = pickFirstText(normalizedTournament, ['venue', 'location', 'place', 'address', 'site']) || '未设置';
   const timeText = pickFirstText(normalizedTournament, ['scheduledAt', 'startAt', 'startsAt', 'time']) || '';
@@ -261,13 +265,14 @@ function buildShareEntryViewModel({ tournament, openid = '' }) {
     secondaryAction: null,
     joinAllowed,
     joined,
-    availabilityText: buildAvailabilityText({ lifecycle, joined, joinAllowed }),
-    tournamentName: String(normalizedTournament.name || '').trim() || '羽毛球比赛',
+    availabilityText: buildAvailabilityText({ lifecycle, joined, joinAllowed, playerLimit, playersCount }),
+    tournamentName,
     organizerName,
     mode,
-    modeLabel: flow.getModeLabel(mode),
+    modeLabel: flow.getModeDisplayLabel(mode, normalizedTournament.presetKey),
     playersCount,
-    playersCountText: `${playersCount} 人`,
+    playerLimit,
+    playersCountText: playerLimit > 0 ? `已报名 ${playersCount}/${playerLimit} 人` : `${playersCount} 人`,
     venueText,
     timeText: timeText ? formatDateTime(timeText) : '未设置',
     progressText,

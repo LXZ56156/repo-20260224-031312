@@ -100,6 +100,90 @@ test('createTournament writes normalized tournament document with default creato
   });
 });
 
+test('createTournament applies fixed rotation preset defaults without adding real modes', async () => {
+  const expected = [
+    { presetKey: 'rotation_6', playerLimit: 6, totalMatches: 8 },
+    { presetKey: 'rotation_7', playerLimit: 7, totalMatches: 11 },
+    { presetKey: 'rotation_8', playerLimit: 8, totalMatches: 14 }
+  ];
+
+  for (const item of expected) {
+    let addedData = null;
+    const db = {
+      async createCollection() {},
+      serverDate() {
+        return { $serverDate: true };
+      },
+      collection(name) {
+        assert.equal(name, 'tournaments');
+        return {
+          async add(payload) {
+            addedData = payload.data;
+            return { _id: `t_${item.playerLimit}` };
+          }
+        };
+      }
+    };
+    const { main } = loadMain(db);
+
+    const result = await main({
+      name: '周末自定义赛',
+      nickname: '组织者',
+      mode: 'squad_doubles',
+      presetKey: item.presetKey
+    });
+
+    assert.equal(result.ok, true);
+    assert.equal(addedData.name, `${item.playerLimit}人转`);
+    assert.equal(addedData.mode, 'multi_rotate');
+    assert.equal(addedData.presetKey, item.presetKey);
+    assert.equal(addedData.playerLimit, item.playerLimit);
+    assert.equal(addedData.settingsConfigured, true);
+    assert.equal(addedData.totalMatches, item.totalMatches);
+    assert.equal(addedData.courts, 1);
+    assert.equal(addedData.rules.pointsPerGame, 21);
+    assert.deepEqual(addedData.rules.endCondition, {
+      type: 'total_matches',
+      target: item.totalMatches
+    });
+    assert.equal(addedData.players.length, 1);
+  }
+});
+
+test('createTournament falls back unknown presetKey to custom without auto configuration', async () => {
+  let addedData = null;
+  const db = {
+    async createCollection() {},
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      assert.equal(name, 'tournaments');
+      return {
+        async add(payload) {
+          addedData = payload.data;
+          return { _id: 't_custom' };
+        }
+      };
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    name: '未知模板',
+    mode: 'multi_rotate',
+    presetKey: 'rotation_9'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(addedData.mode, 'multi_rotate');
+  assert.equal(addedData.presetKey, 'custom');
+  assert.equal(Object.prototype.hasOwnProperty.call(addedData, 'playerLimit'), false);
+  assert.equal(addedData.settingsConfigured, false);
+  assert.equal(addedData.totalMatches, 0);
+  assert.equal(addedData.courts, 0);
+});
+
 test('createTournament returns structured invalid result for empty tournament name', async () => {
   const db = {
     async createCollection() {},

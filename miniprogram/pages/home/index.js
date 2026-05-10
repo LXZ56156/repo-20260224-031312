@@ -105,10 +105,10 @@ function buildHomeItem(raw, fallbackId = '') {
 
   return {
     _id: t._id || String(fallbackId || '').trim(),
-    name: t.name || '未命名赛事',
+    name: flow.getTournamentDisplayName(t, '未命名赛事'),
     status: t.status || 'unknown',
     mode: flow.normalizeMode(t.mode || flow.MODE_MULTI_ROTATE),
-    modeLabel: flow.getModeLabel(t.mode || flow.MODE_MULTI_ROTATE),
+    modeLabel: flow.getModeDisplayLabel(t.mode || flow.MODE_MULTI_ROTATE, t.presetKey),
     statusLabel: statusLabel(t.status),
     statusClass: statusClass(t.status),
     playersCount: players.length,

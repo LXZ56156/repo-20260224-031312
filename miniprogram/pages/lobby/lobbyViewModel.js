@@ -474,6 +474,10 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
 
   const players = Array.isArray(t.players) ? t.players : [];
   const playersCount = players.length;
+  const playerLimit = flow.getRotationPlayerLimit(t);
+  const quotaRemaining = playerLimit > 0 ? Math.max(0, playerLimit - playersCount) : 0;
+  const quotaFull = playerLimit > 0 && playersCount >= playerLimit;
+  const playerCountText = playerLimit > 0 ? `${playersCount}/${playerLimit} 人` : `${playersCount} 人`;
   const isAdmin = perm.isAdmin(t, openid);
   const myPlayer = openid ? players.find((player) => player && player.id === openid) : null;
   const myJoined = !!myPlayer;
@@ -483,13 +487,19 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
     && String(data.entryMode || '').trim().toLowerCase() === 'view_only'
     && !data.viewOnlyJoinExpanded;
   const showViewOnlyJoinPrompt = isViewOnlyEntry;
-  const showJoin = status === 'draft' && !myJoined && !showViewOnlyJoinPrompt;
+  const showJoin = status === 'draft' && !myJoined && !showViewOnlyJoinPrompt && !quotaFull;
   const showMyProfile = status === 'draft' && myJoined;
   const showAllPlayers = !!data.showAllPlayers;
   const displayPlayers = buildDisplayPlayers(showAllPlayers ? players : players.slice(0, 12), avatarCache);
-  const playerRosterHint = status === 'draft' && playersCount > 0
+  let playerRosterHint = status === 'draft' && playersCount > 0
     ? (isAdmin ? '长按成员可移除' : (myJoined ? '长按自己可退出' : ''))
     : '';
+  if (status === 'draft' && playerLimit > 0) {
+    const quotaHint = playersCount < playerLimit
+      ? `还差 ${quotaRemaining} 人`
+      : (playersCount === playerLimit ? '名额已满' : `超出 ${playersCount - playerLimit} 人`);
+    playerRosterHint = playerRosterHint ? `${playerRosterHint} · ${quotaHint}` : quotaHint;
+  }
 
   const createdAtText = (() => {
     try {
@@ -503,8 +513,12 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
   })();
 
   const mode = flow.normalizeMode(t.mode || flow.MODE_MULTI_ROTATE);
-  const modeLabel = flow.getModeLabel(mode);
-  const modeRules = flow.getModeRuleLines(mode);
+  const modeLabel = flow.getModeDisplayLabel(mode, t.presetKey);
+  const tournamentName = flow.getTournamentDisplayName(t, '未命名赛事');
+  const displayTournament = tournamentName === String(t.name || '').trim()
+    ? t
+    : { ...t, name: tournamentName };
+  const modeRules = flow.getModeRuleLines(mode, t.presetKey);
   const configuredTotalMatches = Number(t.totalMatches) || 0;
   const displayTotalMatches = scheduleContract.resolveDisplayTotalMatches(t, configuredTotalMatches);
   const courts = Number(t.courts) || 0;
@@ -544,9 +558,10 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
   const quickConfigMDigitRange = settingsFormState.mDigitRange;
   const quickConfigMDigitValue = settingsFormState.mDigitValue;
   const quickConfigCIndex = settingsFormState.courtIndex;
+  const playersCountForOptions = playerLimit || playersCount;
   const quickMatchSelectionState = settingsViewModel.buildMatchSelectionUiState({
     mode,
-    playersCount,
+    playersCount: playersCountForOptions,
     maxMatches,
     currentMatches: quickConfigM,
     courts: quickConfigC,
@@ -556,7 +571,7 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
     ? buildQuickMatchShortcutOptions({
       mode,
       players,
-      playersCount,
+      playersCount: playersCountForOptions,
       pairTeams,
       maxMatches,
       currentMatches: quickConfigM,
@@ -654,7 +669,15 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       }
     } else {
       // multi_rotate
-      if (playersCount < 4) {
+      if (playerLimit > 0 && playersCount < playerLimit) {
+        primaryTaskKey = 'share';
+        primaryTaskTitle = '转发比赛';
+        primaryTaskSummary = `还差 ${playerLimit - playersCount} 人，人齐后可直接开赛`;
+      } else if (playerLimit > 0 && playersCount > playerLimit) {
+        primaryTaskKey = 'share';
+        primaryTaskTitle = '调整名单';
+        primaryTaskSummary = `最多 ${playerLimit} 人，当前 ${playersCount} 人`;
+      } else if (playersCount < 4) {
         primaryTaskKey = 'share';
         primaryTaskTitle = '转发比赛';
         primaryTaskSummary = '先邀请成员，满 4 人后再设置参数';
@@ -724,17 +747,17 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
     nextActionText: activeRoleCard.actionText
   });
   const checklistLayout = buildChecklistLayout(checklistItems, activeRoleCard.actionKey);
-  const shareMessage = shareMeta.buildShareMessage(t);
+  const shareMessage = shareMeta.buildShareMessage(displayTournament);
 
   return {
-    tournament: t,
+    tournament: displayTournament,
     meta: {
       showMyProfile,
       myPlayer
     },
     patch: {
       loadError: false,
-      tournament: t,
+      tournament: displayTournament,
       statusText,
       statusClass,
       heroGradientClass: status === 'draft' ? 'hero-draft' : (status === 'finished' ? 'hero-finished' : ''),
@@ -746,20 +769,26 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       playerRosterHint,
       createdAtText,
       kpiReady,
-      kpiPlayers: kpiReady ? String(playersCount) : '—',
+      kpiPlayers: kpiReady ? (playerLimit > 0 ? `${playersCount}/${playerLimit}` : String(playersCount)) : '—',
       kpiMatches: kpiReady ? String(displayTotalMatches) : '—',
       kpiCourts: kpiReady ? String(courts) : '—',
       mode,
       modeLabel,
       modeRules,
+      playerLimit,
+      playerCountText,
+      quotaFull,
+      quotaRemaining,
       pointsPerGame,
       genderSummaryText: `男 ${genderCount.maleCount} · 女 ${genderCount.femaleCount} · 未设 ${genderCount.unknownCount}`,
       matchInfoText: kpiReady ? `${modeLabel} · ${pointsPerGame}分制 · 总 ${displayTotalMatches} 场 · 每轮最多 ${courts} 场` : '未设置',
       quickConfigName,
+      quickCanEditTournamentName: settingsFormState.canEditTournamentName,
       quickConfigGateHint: String(settingsFormState.settingsGateHint || ''),
       quickSettingsBusy: !!data.quickSettingsBusy,
       quickConfigM,
       quickConfigC,
+      quickConfigCOptions: settingsFormState.courtOptions,
       useSimpleQuickMPicker,
       quickConfigMOptions,
       quickConfigMIndex,

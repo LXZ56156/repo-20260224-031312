@@ -31,7 +31,7 @@ module.exports = {
     }
     const selectionState = settingsViewModel.buildMatchSelectionUiState({
       mode,
-      playersCount: players.length,
+      playersCount: flow.getRotationPlayerLimit(tournament) || players.length,
       maxMatches: this.data.maxMatches,
       currentMatches: this.data.quickConfigM,
       courts: this.data.quickConfigC,
@@ -39,7 +39,7 @@ module.exports = {
     });
     const advancedSelectionState = settingsViewModel.buildMatchSelectionUiState({
       mode,
-      playersCount: players.length,
+      playersCount: flow.getRotationPlayerLimit(tournament) || players.length,
       maxMatches: this.data.maxMatches,
       currentMatches: this.data.quickConfigM,
       courts: this.data.quickConfigC,
@@ -133,6 +133,17 @@ module.exports = {
   },
 
   onQuickConfigNameInput(e) {
+    if (!this.data.quickCanEditTournamentName) {
+      const tournament = this.data.tournament || {};
+      this.setData({
+        quickConfigName: flow.getSynchronizedTournamentName(
+          this.data.quickConfigName,
+          tournament.mode || this.data.mode,
+          tournament.presetKey
+        )
+      });
+      return;
+    }
     this.setData({ quickConfigName: String((e && e.detail && e.detail.value) || '') });
   },
 
@@ -202,7 +213,7 @@ module.exports = {
   refreshQuickRecommendations() {
     const tournament = this.data.tournament || {};
     const players = Array.isArray(tournament.players) ? tournament.players : [];
-    const playersCount = players.length;
+    const playersCount = flow.getRotationPlayerLimit(tournament) || players.length;
     const mode = flow.normalizeMode(tournament.mode || flow.MODE_MULTI_ROTATE);
     const { recommendation } = settingsViewModel.buildRecommendationState({
       mode,
@@ -235,7 +246,11 @@ module.exports = {
       return;
     }
 
-    const name = String(this.data.quickConfigName || '').trim();
+    const name = flow.getSynchronizedTournamentName(
+      this.data.quickConfigName,
+      tournament.mode || this.data.mode,
+      tournament.presetKey
+    );
     if (!name) {
       wx.showToast({ title: '请输入赛事名称', icon: 'none' });
       return;

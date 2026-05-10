@@ -18,7 +18,13 @@
 
     <view class="form-block">
       <view class="field-label">赛事名称</view>
-      <input class="input" placeholder="赛事名称（例如：周末比赛）" bindinput="onName" value="{{name}}" />
+      <input
+        class="input {{canEditTournamentName ? '' : 'disabled'}}"
+        placeholder="赛事名称（例如：周末比赛）"
+        bindinput="onName"
+        value="{{name}}"
+        disabled="{{!canEditTournamentName}}"
+      />
     </view>
 
     <view class="form-block">
@@ -32,8 +38,7 @@
       <view class="section-title">创建后流程</view>
       <text class="count-pill">2 步</text>
     </view>
-    <view class="create-flow-item">1. 先邀请成员或导入名单</view>
-    <view class="create-flow-item">2. 满 4 人后在比赛大厅设置参数并开赛</view>
+    <view class="create-flow-item" wx:for="{{createFlowSteps}}" wx:key="*this">{{item}}</view>
   </view>
 
   <view class="retry-box panel-soft" wx:if="{{canRetryAction}}">

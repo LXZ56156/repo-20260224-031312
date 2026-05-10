@@ -428,9 +428,13 @@ Page({
     if (!t) return;
     this.ensureAvatarRuntime();
     t = normalize.normalizeTournament(t);
+    const tournamentName = flow.getTournamentDisplayName(t, '未命名赛事');
+    if (tournamentName !== String(t.name || '').trim()) {
+      t = { ...t, name: tournamentName };
+    }
 
     const status = t.status || 'draft';
-    const modeLabel = flow.getModeLabel(t.mode || flow.MODE_MULTI_ROTATE);
+    const modeLabel = flow.getModeDisplayLabel(t.mode || flow.MODE_MULTI_ROTATE, t.presetKey);
     let statusText = '尚未开始';
     let statusClass = 'hero-status-draft';
     if (status === 'running') { statusText = '进行中'; statusClass = 'hero-status-running'; }

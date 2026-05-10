@@ -125,6 +125,230 @@ test('joinTournament adds player with normalized profile fallback and squad choi
   assert.deepEqual(writtenData.players[1], result.player);
 });
 
+test('joinTournament rejects new members once fixed rotation quota is full', async () => {
+  let writeCalled = false;
+  const db = {
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      assert.equal(name, 'user_profiles');
+      return {
+        where() {
+          return {
+            limit() {
+              return {
+                async get() {
+                  return { data: [] };
+                }
+              };
+            }
+          };
+        }
+      };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return {
+                    data: {
+                      ...buildTournament(),
+                      mode: 'multi_rotate',
+                      presetKey: 'rotation_6',
+                      playerLimit: 6,
+                      players: Array.from({ length: 6 }, (_, index) => ({
+                        id: index === 0 ? 'u_admin' : `u_${index}`,
+                        name: `球友${index}`,
+                        avatar: `cloud://avatar/${index}`,
+                        gender: index % 2 === 0 ? 'male' : 'female'
+                      }))
+                    }
+                  };
+                },
+                async update() {
+                  writeCalled = true;
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    nickname: '新球友',
+    avatar: 'cloud://avatar/new',
+    gender: 'female'
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'PLAYER_LIMIT_REACHED');
+  assert.equal(result.state, 'invalid');
+  assert.equal(result.message, '该赛制最多 6 人参赛');
+  assert.equal(writeCalled, false);
+});
+
+test('joinTournament still allows existing member profile update when quota is full', async () => {
+  let writtenData = null;
+  const db = {
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      assert.equal(name, 'user_profiles');
+      return {
+        where() {
+          return {
+            limit() {
+              return {
+                async get() {
+                  return { data: [] };
+                }
+              };
+            }
+          };
+        }
+      };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return {
+                    data: {
+                      ...buildTournament(),
+                      mode: 'multi_rotate',
+                      presetKey: 'rotation_6',
+                      playerLimit: 6,
+                      version: 8,
+                      players: [
+                        { id: 'u_admin', name: '管理员', avatar: 'cloud://avatar/admin', gender: 'male' },
+                        { id: 'u_join', name: '旧昵称', avatar: 'cloud://avatar/old', gender: 'female' },
+                        { id: 'u_2', name: '球友2', avatar: 'cloud://avatar/2', gender: 'male' },
+                        { id: 'u_3', name: '球友3', avatar: 'cloud://avatar/3', gender: 'female' },
+                        { id: 'u_4', name: '球友4', avatar: 'cloud://avatar/4', gender: 'male' },
+                        { id: 'u_5', name: '球友5', avatar: 'cloud://avatar/5', gender: 'female' }
+                      ],
+                      playerIds: ['u_admin', 'u_join', 'u_2', 'u_3', 'u_4', 'u_5']
+                    }
+                  };
+                },
+                async update(payload) {
+                  writtenData = payload.data;
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    nickname: '新昵称',
+    avatar: 'cloud://avatar/new',
+    gender: 'male'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.code, 'JOIN_UPDATED');
+  assert.equal(writtenData.players.length, 6);
+  assert.equal(writtenData.players[1].name, '新昵称');
+  assert.equal(writtenData.players[1].gender, 'male');
+});
+
+test('joinTournament still allows claiming a guest because roster size does not grow', async () => {
+  let writtenData = null;
+  const db = {
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      assert.equal(name, 'user_profiles');
+      return {
+        where() {
+          return {
+            limit() {
+              return {
+                async get() {
+                  return { data: [] };
+                }
+              };
+            }
+          };
+        }
+      };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return {
+                    data: {
+                      ...buildTournament(),
+                      mode: 'multi_rotate',
+                      presetKey: 'rotation_6',
+                      playerLimit: 6,
+                      version: 4,
+                      players: [
+                        { id: 'u_admin', name: '管理员', avatar: 'cloud://avatar/admin', gender: 'male' },
+                        { id: 'guest_1', name: '待认领', type: 'guest', gender: 'female' },
+                        { id: 'u_2', name: '球友2', avatar: 'cloud://avatar/2', gender: 'male' },
+                        { id: 'u_3', name: '球友3', avatar: 'cloud://avatar/3', gender: 'female' },
+                        { id: 'u_4', name: '球友4', avatar: 'cloud://avatar/4', gender: 'male' },
+                        { id: 'u_5', name: '球友5', avatar: 'cloud://avatar/5', gender: 'female' }
+                      ],
+                      playerIds: ['u_admin', 'guest_1', 'u_2', 'u_3', 'u_4', 'u_5'],
+                      rounds: [],
+                      rankings: [],
+                      pairTeams: []
+                    }
+                  };
+                },
+                async update(payload) {
+                  writtenData = payload.data;
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    nickname: '待认领',
+    avatar: 'cloud://avatar/claimed',
+    gender: 'female'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.claimed, true);
+  assert.equal(writtenData.players.length, 6);
+  assert.equal(writtenData.players.some((item) => item.id === 'guest_1'), false);
+  assert.equal(writtenData.players.some((item) => item.id === 'u_join'), true);
+});
+
 test('joinTournament omits empty clientRequestId on successful join', async () => {
   const db = {
     serverDate() {

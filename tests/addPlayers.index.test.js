@@ -131,6 +131,143 @@ test('addPlayers imports unique valid players and returns detailed counts', asyn
   }
 });
 
+test('addPlayers respects fixed rotation quota after ignoring existing and batch duplicates', async () => {
+  let writtenData = null;
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return {
+                    data: {
+                      ...buildTournament(),
+                      presetKey: 'rotation_6',
+                      playerLimit: 6,
+                      players: [
+                        { id: 'u_admin', name: '管理员', gender: 'male' },
+                        { id: 'u_1', name: '已在名单', gender: 'female' },
+                        { id: 'u_2', name: '球友2', gender: 'male' },
+                        { id: 'u_3', name: '球友3', gender: 'female' }
+                      ]
+                    }
+                  };
+                }
+              };
+            },
+            where() {
+              return {
+                async update(payload) {
+                  writtenData = payload.data;
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db, {
+    crypto: {
+      randomBytes() {
+        return Buffer.from('1234567890abcdef', 'hex');
+      }
+    }
+  });
+
+  const result = await main({
+    tournamentId: 't_1',
+    players: [
+      { name: '已在名单', gender: 'male' },
+      { name: '新球友A', gender: 'male' },
+      { name: '新球友A', gender: 'female' },
+      { name: '新球友B', gender: 'female' }
+    ]
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.addedCount, 2);
+  assert.equal(result.duplicateCount, 2);
+  assert.equal(writtenData.players.length, 6);
+});
+
+test('addPlayers rejects the whole import when fixed rotation quota would be exceeded', async () => {
+  let updateCalled = false;
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return {
+                    data: {
+                      ...buildTournament(),
+                      presetKey: 'rotation_6',
+                      playerLimit: 6,
+                      players: [
+                        { id: 'u_admin', name: '管理员', gender: 'male' },
+                        { id: 'u_1', name: '球友1', gender: 'female' },
+                        { id: 'u_2', name: '球友2', gender: 'male' },
+                        { id: 'u_3', name: '球友3', gender: 'female' },
+                        { id: 'u_4', name: '球友4', gender: 'male' }
+                      ]
+                    }
+                  };
+                }
+              };
+            },
+            where() {
+              updateCalled = true;
+              return {
+                async update() {
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    players: [
+      { name: '新球友A', gender: 'male' },
+      { name: '新球友B', gender: 'female' }
+    ],
+    __traceId: 'trace-add-limit'
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'PLAYER_LIMIT_EXCEEDED');
+  assert.equal(result.state, 'invalid');
+  assert.equal(result.message, '该赛制剩余名额 1 人，本次导入 2 人，未导入');
+  assert.equal(updateCalled, false);
+});
+
 test('addPlayers returns structured invalid result for missing tournamentId', async () => {
   const db = {
     command: {

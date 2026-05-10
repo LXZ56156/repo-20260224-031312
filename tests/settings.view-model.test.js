@@ -84,6 +84,48 @@ test('settings view model exposes fixed fair presets for multi_rotate', () => {
   assert.equal(state.coveragePriorityNote, '');
 });
 
+test('settings view model keeps fixed rotation label, quota and court options', () => {
+  const six = viewModel.buildSettingsViewState({
+    _id: 't_rotation_6',
+    name: '周末自定义赛',
+    status: 'draft',
+    creatorId: 'u_1',
+    mode: flow.MODE_MULTI_ROTATE,
+    presetKey: 'rotation_6',
+    playerLimit: 6,
+    settingsConfigured: true,
+    players: [{ id: 'u_1', name: '组织者' }],
+    totalMatches: 8,
+    courts: 1
+  }, { openid: 'u_1' });
+
+  assert.equal(six.modeLabel, '6人转');
+  assert.equal(six.name, '6人转');
+  assert.equal(six.canEditTournamentName, false);
+  assert.equal(six.playerLimit, 6);
+  assert.equal(six.canConfigureSettings, true);
+  assert.deepEqual(six.courtOptions, [1]);
+  assert.equal(six.editM, 8);
+  assert.equal(six.settingsGateHint, '');
+
+  const eight = viewModel.buildSettingsViewState({
+    _id: 't_rotation_8',
+    status: 'draft',
+    creatorId: 'u_1',
+    mode: flow.MODE_MULTI_ROTATE,
+    presetKey: 'rotation_8',
+    playerLimit: 8,
+    settingsConfigured: true,
+    players: [{ id: 'u_1', name: '组织者' }],
+    totalMatches: 14,
+    courts: 2
+  }, { openid: 'u_1' });
+
+  assert.equal(eight.modeLabel, '8人转');
+  assert.deepEqual(eight.courtOptions, [1, 2]);
+  assert.equal(eight.courtIndex, 1);
+});
+
 test('settings view model defaults small multi_rotate rosters to partner coverage preset', () => {
   const eightSingleCourt = viewModel.buildSettingsViewState({
     _id: 't_8p_1c',

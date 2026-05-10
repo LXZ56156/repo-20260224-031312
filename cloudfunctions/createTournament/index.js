@@ -42,10 +42,12 @@ exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
   const traceId = String((event && event.__traceId) || '').trim();
   const clientRequestId = String((event && event.clientRequestId) || '').trim();
-  const name = String((event && event.name) || '').trim();
   const nickname = String((event && event.nickname) || '').trim();
   const avatar = String((event && (event.avatar || event.avatarUrl)) || '').trim();
-  const mode = modeHelper.normalizeMode(event && event.mode);
+  const preset = modeHelper.resolveRotationPreset(event && event.presetKey);
+  const presetKey = preset ? preset.key : 'custom';
+  const mode = preset ? modeHelper.MODE_MULTI_ROTATE : modeHelper.normalizeMode(event && event.mode);
+  const name = modeHelper.getSynchronizedTournamentName(event && event.name, mode, presetKey);
   const creatorGender = normalizeGender(event && event.creatorGender);
   if (!name) {
     return common.failResult('SETTINGS_INVALID', '赛事名称不能为空', {
@@ -67,12 +69,13 @@ exports.main = async (event) => {
     clientRequestId
   };
 
+  const defaultTotalMatches = preset ? preset.defaultTotalMatches : 1;
   const rules = {
     gamesPerMatch: 1,
     pointsPerGame: normalizePoints(21),
     endCondition: {
       type: normalizeEndConditionType('total_matches'),
-      target: 1
+      target: defaultTotalMatches
     },
     unfinishedPolicy: 'admin_decide'
   };
@@ -108,10 +111,11 @@ exports.main = async (event) => {
         creatorId: OPENID,
         mode,
         refereeId: '',
-        presetKey: 'custom',
-        settingsConfigured: false,
-        totalMatches: 0,
-        courts: 0,
+        presetKey,
+        ...(preset ? { playerLimit: preset.playerLimit } : {}),
+        settingsConfigured: !!preset,
+        totalMatches: preset ? preset.defaultTotalMatches : 0,
+        courts: preset ? preset.defaultCourts : 0,
         rules,
         players: [creatorPlayer],
         playerIds: [OPENID],

@@ -53,3 +53,25 @@ test('analytics page model promotes concise hero and remaining rankings', () => 
   assert.equal(pageModel.fullRankings[0].rank, 1);
   assert.ok(pageModel.focusFacts.length >= 3);
 });
+
+test('analytics model syncs fixed rotation tournament name with preset label', () => {
+  const analytics = analyticsLogic.computeAnalytics({
+    name: '周末自定义赛',
+    mode: 'multi_rotate',
+    presetKey: 'rotation_6',
+    status: 'finished',
+    players: [
+      { id: 'u1', name: 'A' },
+      { id: 'u2', name: 'B' },
+      { id: 'u3', name: 'C' },
+      { id: 'u4', name: 'D' },
+      { id: 'u5', name: 'E' },
+      { id: 'u6', name: 'F' }
+    ],
+    rounds: []
+  });
+  const report = analyticsLogic.buildBattleReport(analytics);
+
+  assert.equal(analytics.tournament.name, '6人转');
+  assert.match(report.shareText, /^6人转战报/);
+});

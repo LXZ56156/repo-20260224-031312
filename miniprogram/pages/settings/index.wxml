@@ -30,11 +30,11 @@
       <view class="form-label">赛事名称</view>
       <view class="form-field">
         <input
-          class="picker input-like {{isAdmin && tournament.status==='draft' && canConfigureSettings ? '' : 'disabled'}}"
+          class="picker input-like {{isAdmin && tournament.status==='draft' && canConfigureSettings && canEditTournamentName ? '' : 'disabled'}}"
           placeholder="请输入赛事名称"
           value="{{name}}"
           bindinput="onNameInput"
-          disabled="{{!(isAdmin && tournament.status==='draft' && canConfigureSettings)}}"
+          disabled="{{!(isAdmin && tournament.status==='draft' && canConfigureSettings && canEditTournamentName)}}"
         />
       </view>
     </view>

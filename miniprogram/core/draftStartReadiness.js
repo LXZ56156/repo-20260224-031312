@@ -13,6 +13,7 @@ function buildDraftStartReadiness(tournament) {
   const validPairTeamsCount = pairTeamValidation.validTeamsCount;
   const invalidPairTeamsCount = pairTeamValidation.invalidTeamsCount;
   const rosterValidation = scheduleContract.validateRosterPlayers(players);
+  const playerLimit = flow.getRotationPlayerLimit(t);
 
   let checkPlayersOk = playersCount >= 4 && !rosterValidation.hasInvalid;
   let playersChecklistHint = playersCount >= 4 ? '人数已达标' : '至少 4 人';
@@ -21,7 +22,16 @@ function buildDraftStartReadiness(tournament) {
     playersChecklistHint = scheduleContract.getRosterValidationMessage(rosterValidation);
   }
 
-  if (!rosterValidation.hasInvalid && mode === flow.MODE_SQUAD_DOUBLES) {
+  if (!rosterValidation.hasInvalid && playerLimit > 0 && mode === flow.MODE_MULTI_ROTATE) {
+    checkPlayersOk = playersCount === playerLimit;
+    if (playersCount < playerLimit) {
+      playersChecklistHint = `还差 ${playerLimit - playersCount} 人`;
+    } else if (playersCount > playerLimit) {
+      playersChecklistHint = `最多 ${playerLimit} 人，当前 ${playersCount} 人`;
+    } else {
+      playersChecklistHint = `${playersCount}/${playerLimit} 人`;
+    }
+  } else if (!rosterValidation.hasInvalid && mode === flow.MODE_SQUAD_DOUBLES) {
     checkPlayersOk = playersCount >= 4 && aCount >= 2 && bCount >= 2;
     playersChecklistHint = checkPlayersOk
       ? `A队 ${aCount} / B队 ${bCount}`
@@ -42,6 +52,7 @@ function buildDraftStartReadiness(tournament) {
     bCount,
     validPairTeamsCount,
     invalidPairTeamsCount,
+    playerLimit,
     checkPlayersOk,
     playersChecklistHint,
     checkSettingsOk,

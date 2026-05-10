@@ -11,7 +11,13 @@ Page({
   data: {
     name: '',
     mode: flow.MODE_MULTI_ROTATE,
+    presetKey: 'custom',
     modeLabel: flow.getModeLabel(flow.MODE_MULTI_ROTATE),
+    canEditTournamentName: true,
+    createFlowSteps: [
+      '1. 先邀请成员或导入名单',
+      '2. 满 4 人后在比赛大厅设置参数并开赛'
+    ],
     networkOffline: false,
     createBusy: false,
     canRetryAction: false,
@@ -38,11 +44,27 @@ Page({
     }
 
     const mode = flow.normalizeMode(options.mode || storage.getDefaultMode());
-    const modeLabel = flow.getModeLabel(mode);
+    const presetKey = mode === flow.MODE_MULTI_ROTATE
+      ? flow.normalizePresetKey(options.presetKey)
+      : 'custom';
+    const preset = flow.resolveRotationPreset(presetKey);
+    const modeLabel = flow.getModeDisplayLabel(mode, presetKey);
+    const canEditTournamentName = flow.canEditTournamentName(mode, presetKey);
     this.setData({
-      name: modeLabel,
+      name: flow.getSynchronizedTournamentName(modeLabel, mode, presetKey) || modeLabel,
       mode,
-      modeLabel
+      presetKey,
+      modeLabel,
+      canEditTournamentName,
+      createFlowSteps: preset
+        ? [
+          `1. 邀请或导入至 ${preset.playerLimit} 人`,
+          '2. 人齐后可直接开赛'
+        ]
+        : [
+          '1. 先邀请成员或导入名单',
+          '2. 满 4 人后在比赛大厅设置参数并开赛'
+        ]
     });
   },
 
@@ -52,11 +74,21 @@ Page({
   },
 
   onName(e) {
+    if (!this.data.canEditTournamentName) {
+      this.setData({
+        name: flow.getSynchronizedTournamentName(this.data.name, this.data.mode, this.data.presetKey)
+      });
+      return;
+    }
     this.setData({ name: e.detail.value });
   },
 
   async handleCreate(options = {}) {
-    const name = String(this.data.name || '').trim();
+    const name = flow.getSynchronizedTournamentName(
+      this.data.name,
+      this.data.mode,
+      this.data.presetKey
+    );
     if (!name) {
       wx.showToast({ title: '请输入赛事名称', icon: 'none' });
       return;
@@ -82,6 +114,7 @@ Page({
           nickname: storage.getProfileNickName(profile),
           avatar: String(profile.avatar || profile.avatarUrl || '').trim(),
           mode: this.data.mode,
+          presetKey: this.data.presetKey === 'custom' ? '' : this.data.presetKey,
           creatorGender: storage.normalizeGender(profile.gender),
           clientRequestId
         }), '创建失败');

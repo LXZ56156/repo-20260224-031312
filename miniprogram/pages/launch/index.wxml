@@ -5,7 +5,7 @@
   </view>
 
   <view
-    class="card panel launch-card launch-card-{{item.mode}} {{index === 0 ? 'is-default' : ''}} reveal reveal-{{index + 2}}"
+    class="card panel launch-card launch-card-{{item.key}} {{index === 0 ? 'is-default' : ''}} reveal reveal-{{index + 2}}"
     wx:for="{{modeCards}}"
     wx:key="key"
   >
@@ -18,8 +18,8 @@
       <text class="count-pill" wx:if="{{item.badge}}">{{item.badge}}</text>
     </view>
     <view class="launch-actions">
-      <text class="launch-rule-link" data-mode="{{item.mode}}" bindtap="onShowRules">规则说明</text>
-      <button class="btn btn-primary btn-sm btn-inline launch-btn" data-mode="{{item.mode}}" bindtap="onStart">发起</button>
+      <text class="launch-rule-link" data-mode="{{item.mode}}" data-preset-key="{{item.presetKey}}" bindtap="onShowRules">规则说明</text>
+      <button class="btn btn-primary btn-sm btn-inline launch-btn" data-mode="{{item.mode}}" data-preset-key="{{item.presetKey}}" bindtap="onStart">发起</button>
     </view>
   </view>
 </view>

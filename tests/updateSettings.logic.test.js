@@ -40,6 +40,22 @@ test('validateSettings rejects totalMatches over max', () => {
   );
 });
 
+test('validateSettings constrains courts for fixed rotation presets', () => {
+  assert.throws(
+    () => logic.validateSettings(makePlayers(6), 8, 2, 'multi_rotate', [], {
+      presetKey: 'rotation_6',
+      playerLimit: 6
+    }),
+    /6人转只能使用 1 场地/
+  );
+
+  const out = logic.validateSettings(makePlayers(8), 14, 2, 'multi_rotate', [], {
+    presetKey: 'rotation_8',
+    playerLimit: 8
+  });
+  assert.equal(out.patch.courts, 2);
+});
+
 test('validateSettings rejects duplicate player ids', () => {
   assert.throws(
     () => logic.validateSettings([

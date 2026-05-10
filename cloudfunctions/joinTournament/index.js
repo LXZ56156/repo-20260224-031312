@@ -233,6 +233,15 @@ exports.main = async (event, context) => {
         });
       }
 
+      const playerLimit = modeHelper.getRotationPlayerLimit(t);
+      if (idx < 0 && !claimedGuestId && playerLimit > 0 && players.length >= playerLimit) {
+        return fail(traceId, clientRequestId, 'PLAYER_LIMIT_REACHED', `该赛制最多 ${playerLimit} 人参赛`, {
+          state: 'invalid',
+          playerLimit,
+          playersCount: players.length
+        });
+      }
+
       // 去重
       nickname = uniqueName(nickname, players, claimedGuestId || openid) || (idx >= 0 ? String(players[idx].name || '') : '');
       const nextVersion = (Number(t.version) || 1) + 1;

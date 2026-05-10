@@ -97,7 +97,11 @@ function buildRankingRows(tournament) {
 }
 
 function computeAnalytics(tournament) {
-  const t = normalize.normalizeTournament(tournament || {});
+  let t = normalize.normalizeTournament(tournament || {});
+  const tournamentName = modeHelper.getTournamentDisplayName(t, '羽毛球比赛');
+  if (tournamentName !== String(t.name || '').trim()) {
+    t = { ...t, name: tournamentName };
+  }
   const players = Array.isArray(t.players) ? t.players : [];
   const rounds = Array.isArray(t.rounds) ? t.rounds : [];
   const isTeamMode = modeHelper.isTeamMode(t.mode);
@@ -240,7 +244,7 @@ function buildBattleReport(analytics) {
     ? `榜首 ${top[0].name}，当前完赛率 ${summary.completionRate || '0%'}`
     : `当前完赛率 ${summary.completionRate || '0%'}，已完赛 ${summary.finishedMatches || 0} 场`;
   const briefText = [lines[0], lines[1], lines[2]].filter(Boolean).join('\n');
-  const shareText = `${tournament.name || '羽毛球比赛'}战报\n${lines.join('\n')}`;
+  const shareText = `${modeHelper.getTournamentDisplayName(tournament, '羽毛球比赛')}战报\n${lines.join('\n')}`;
   return { lines, shareText, headline, briefText };
 }
 
@@ -265,7 +269,7 @@ function buildAnalyticsPageModel(analytics, report) {
   const duelHot = Array.isArray(data.duelHot) ? data.duelHot : [];
   const topLeader = top3[0] || null;
 
-  const modeLabel = modeHelper.getModeLabel(tournament.mode);
+  const modeLabel = modeHelper.getModeDisplayLabel(tournament.mode, tournament.presetKey);
   const statusLabel = getStatusLabel(tournament.status);
   const finishedMatches = Number(summary.finishedMatches) || 0;
   const totalMatches = Number(summary.totalMatches) || 0;

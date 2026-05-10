@@ -88,6 +88,15 @@ function validateBeforeGenerate(tournament) {
   const courts = Math.max(1, Math.min(10, Number(t.courts) || 1));
   if (totalMatches < 1) throw new Error('M 必须 >= 1');
   if (courts < 1) throw new Error('C 必须 >= 1');
+  const rotationPreset = mode === 'multi_rotate' ? modeHelper.resolveRotationPreset(t.presetKey) : null;
+  if (rotationPreset) {
+    if (players.length !== rotationPreset.playerLimit) {
+      throw new Error(`${rotationPreset.label}需要正好 ${rotationPreset.playerLimit} 人参赛，当前 ${players.length} 人`);
+    }
+    if (!rotationPreset.allowedCourts.includes(courts)) {
+      throw new Error(`${rotationPreset.label}只能使用 ${rotationPreset.allowedCourts.join(' 或 ')} 场地`);
+    }
+  }
 
   const { maleCount, femaleCount, unknownCount } = countGender(players);
   let maxMatches = calcMaxMatches(players.length);

@@ -155,7 +155,8 @@ test('updateSettings writes normalized settings and rules through the direct ind
   });
 });
 
-test('updateSettings returns SETTINGS_INVALID when provided name is blank', async () => {
+test('updateSettings rejects invalid courts for 6-player fixed rotation', async () => {
+  let updateCalled = false;
   const db = {
     command: {
       inc(value) {
@@ -165,8 +166,206 @@ test('updateSettings returns SETTINGS_INVALID when provided name is blank', asyn
     serverDate() {
       return { $serverDate: true };
     },
-    async runTransaction() {
-      throw new Error('should not start transaction');
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return {
+                    data: {
+                      ...buildTournament(),
+                      presetKey: 'rotation_6',
+                      playerLimit: 6,
+                      players: Array.from({ length: 6 }, (_, index) => ({
+                        id: `p${index + 1}`,
+                        name: `P${index + 1}`
+                      }))
+                    }
+                  };
+                }
+              };
+            },
+            where() {
+              updateCalled = true;
+              return {
+                async update() {
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    totalMatches: 8,
+    courts: 2
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'SETTINGS_INVALID');
+  assert.equal(result.state, 'invalid');
+  assert.equal(result.message, '6人转只能使用 1 场地');
+  assert.equal(updateCalled, false);
+});
+
+test('updateSettings allows two courts for 8-player fixed rotation', async () => {
+  let writtenData = null;
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return {
+                    data: {
+                      ...buildTournament(),
+                      presetKey: 'rotation_8',
+                      playerLimit: 8,
+                      players: Array.from({ length: 8 }, (_, index) => ({
+                        id: `p${index + 1}`,
+                        name: `P${index + 1}`
+                      }))
+                    }
+                  };
+                }
+              };
+            },
+            where() {
+              return {
+                async update(payload) {
+                  writtenData = payload.data;
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    totalMatches: 14,
+    courts: 2
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(writtenData.courts, 2);
+  assert.equal(writtenData.totalMatches, 14);
+  assert.equal(writtenData.settingsConfigured, true);
+});
+
+test('updateSettings syncs fixed rotation tournament name with preset label', async () => {
+  let writtenData = null;
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return {
+                    data: {
+                      ...buildTournament(),
+                      presetKey: 'rotation_7',
+                      playerLimit: 7,
+                      players: Array.from({ length: 7 }, (_, index) => ({
+                        id: `p${index + 1}`,
+                        name: `P${index + 1}`
+                      }))
+                    }
+                  };
+                }
+              };
+            },
+            where() {
+              return {
+                async update(payload) {
+                  writtenData = payload.data;
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    name: '周末自定义赛',
+    totalMatches: 11,
+    courts: 1
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(writtenData.name, '7人转');
+  assert.equal(writtenData.totalMatches, 11);
+});
+
+test('updateSettings returns SETTINGS_INVALID when provided name is blank', async () => {
+  let updateCalled = false;
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return { data: buildTournament() };
+                }
+              };
+            },
+            where() {
+              updateCalled = true;
+              return {
+                async update() {
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
     }
   };
   const { main } = loadMain(db);
@@ -180,6 +379,7 @@ test('updateSettings returns SETTINGS_INVALID when provided name is blank', asyn
   assert.equal(result.code, 'SETTINGS_INVALID');
   assert.equal(result.state, 'invalid');
   assert.equal(result.message, '赛事名称不能为空');
+  assert.equal(updateCalled, false);
 });
 
 test('updateSettings treats repeated clientRequestId as deduped success', async () => {

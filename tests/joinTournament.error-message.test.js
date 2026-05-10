@@ -35,3 +35,14 @@ test('joinTournament error helper keeps conflicts stable and explicit', () => {
   assert.equal(err.joinCode, 'VERSION_CONFLICT');
   assert.equal(joinError.resolveJoinFailureMessage(err), '并发冲突，请重试');
 });
+
+test('joinTournament error helper preserves fixed rotation quota copy from backend', () => {
+  const err = joinError.normalizeJoinFailure({
+    ok: false,
+    code: 'PLAYER_LIMIT_REACHED',
+    message: '该赛制最多 6 人参赛'
+  });
+
+  assert.equal(err.joinCode, 'PLAYER_LIMIT_REACHED');
+  assert.equal(joinError.resolveJoinFailureMessage(err), '该赛制最多 6 人参赛');
+});

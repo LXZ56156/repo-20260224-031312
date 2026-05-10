@@ -31,19 +31,59 @@ function normalizeMode(mode) {
   return modeHelper.normalizeMode(mode);
 }
 
-function getModeLabel(mode) {
-  return modeHelper.getModeLabel(mode);
+function normalizePresetKey(presetKey) {
+  return modeHelper.normalizePresetKey(presetKey);
 }
 
-function getModeIntro(mode) {
+function resolveRotationPreset(presetKey) {
+  return modeHelper.resolveRotationPreset(presetKey);
+}
+
+function getModeDisplayLabel(mode, presetKey) {
+  return modeHelper.getModeDisplayLabel(mode, presetKey);
+}
+
+function getModeLabel(mode, presetKey) {
+  return modeHelper.getModeLabel(mode, presetKey);
+}
+
+function getSynchronizedTournamentName(name, mode, presetKey) {
+  return modeHelper.getSynchronizedTournamentName(name, mode, presetKey);
+}
+
+function getTournamentDisplayName(tournament, fallback) {
+  return modeHelper.getTournamentDisplayName(tournament, fallback);
+}
+
+function canEditTournamentName(mode, presetKey) {
+  return modeHelper.canEditTournamentName(mode, presetKey);
+}
+
+function getRotationPlayerLimit(tournament) {
+  return modeHelper.getRotationPlayerLimit(tournament);
+}
+
+function getModeIntro(mode, presetKey) {
   const value = normalizeMode(mode);
+  const preset = value === MODE_MULTI_ROTATE ? resolveRotationPreset(presetKey) : null;
+  if (preset) return `${preset.label}固定 ${preset.playerLimit} 人，默认 ${preset.defaultTotalMatches} 场。`;
   if (value === MODE_SQUAD_DOUBLES) return '个人报名后选A/B队，固定 A 队对 B 队。';
   if (value === MODE_FIXED_PAIR_RR) return '双打队伍单循环交手，按胜场与净胜分排名。';
   return '个人轮换搭档上场，按个人成绩排名。';
 }
 
-function getModeRuleLines(mode) {
+function getModeRuleLines(mode, presetKey) {
   const value = normalizeMode(mode);
+  const preset = value === MODE_MULTI_ROTATE ? resolveRotationPreset(presetKey) : null;
+  if (preset) {
+    return [
+      `固定 ${preset.playerLimit} 人参赛，开赛前必须正好 ${preset.playerLimit} 人`,
+      `创建后默认 ${preset.defaultTotalMatches} 场、1 场地，可直接邀请成员`,
+      `${preset.label}最多 ${preset.playerLimit} 人加入，导入超出名额会整批拒绝`,
+      preset.playerLimit === 8 ? '可在草稿阶段选择 1 或 2 场地' : '草稿阶段固定 1 场地',
+      '可在草稿阶段修改总场次，赛制标签和人数限制会保留'
+    ];
+  }
   if (value === MODE_SQUAD_DOUBLES) {
     return [
       '报名时选择 A 队或 B 队',
@@ -74,8 +114,33 @@ function getModeRuleLines(mode) {
 function getLaunchModes() {
   return [
     {
+      key: 'rotation_6',
+      mode: MODE_MULTI_ROTATE,
+      presetKey: 'rotation_6',
+      name: '6人转',
+      summary: '默认 8 场 · 满 6 人开赛',
+      badge: ''
+    },
+    {
+      key: 'rotation_7',
+      mode: MODE_MULTI_ROTATE,
+      presetKey: 'rotation_7',
+      name: '7人转',
+      summary: '默认 11 场 · 满 7 人开赛',
+      badge: ''
+    },
+    {
+      key: 'rotation_8',
+      mode: MODE_MULTI_ROTATE,
+      presetKey: 'rotation_8',
+      name: '8人转',
+      summary: '默认 14 场 · 可选 1/2 场地',
+      badge: ''
+    },
+    {
       key: 'multi',
       mode: MODE_MULTI_ROTATE,
+      presetKey: 'custom',
       name: '多人转',
       summary: '个人轮换搭档上场，按个人成绩排名，4~30 人可用。',
       badge: ''
@@ -83,6 +148,7 @@ function getLaunchModes() {
     {
       key: 'squad',
       mode: MODE_SQUAD_DOUBLES,
+      presetKey: 'custom',
       name: '小队转',
       summary: '个人报名先选 A/B 队，每场 A 队双打对阵 B 队双打，按队伍胜场累计。',
       badge: ''
@@ -90,6 +156,7 @@ function getLaunchModes() {
     {
       key: 'fixed',
       mode: MODE_FIXED_PAIR_RR,
+      presetKey: 'custom',
       name: '固搭循环赛',
       summary: '以双打队伍报名，单循环依次交手，按胜场与净胜分排名。',
       badge: ''
@@ -134,6 +201,13 @@ module.exports = {
   ...capacity,
   ...gender,
   normalizeMode,
+  normalizePresetKey,
+  resolveRotationPreset,
+  getModeDisplayLabel,
+  getSynchronizedTournamentName,
+  getTournamentDisplayName,
+  canEditTournamentName,
+  getRotationPlayerLimit,
   getModeLabel,
   getModeIntro,
   getModeRuleLines,

@@ -24,11 +24,11 @@
           <view class="quick-settings-field">
             <view class="quick-config-label">赛事名称</view>
             <input
-              class="input quick-settings-input {{canConfigureSettings ? '' : 'disabled'}}"
+              class="input quick-settings-input {{canConfigureSettings && quickCanEditTournamentName ? '' : 'disabled'}}"
               placeholder="请输入赛事名称"
               value="{{quickConfigName}}"
               bindinput="onQuickConfigNameInput"
-              disabled="{{!canConfigureSettings}}"
+              disabled="{{!(canConfigureSettings && quickCanEditTournamentName)}}"
             />
           </view>
 

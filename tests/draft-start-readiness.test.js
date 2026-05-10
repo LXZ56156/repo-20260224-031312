@@ -26,6 +26,40 @@ test('draft start readiness marks multi rotate ready after 4 players and saved s
   assert.equal(out.playersChecklistHint, '人数已达标');
 });
 
+test('draft start readiness requires fixed rotation rosters to be exactly full', () => {
+  const almost = startReadiness.buildDraftStartReadiness({
+    mode: flow.MODE_MULTI_ROTATE,
+    presetKey: 'rotation_6',
+    playerLimit: 6,
+    settingsConfigured: true,
+    players: buildPlayers(5)
+  });
+  assert.equal(almost.checkPlayersOk, false);
+  assert.equal(almost.checkStartReady, false);
+  assert.equal(almost.playersChecklistHint, '还差 1 人');
+
+  const ready = startReadiness.buildDraftStartReadiness({
+    mode: flow.MODE_MULTI_ROTATE,
+    presetKey: 'rotation_6',
+    playerLimit: 6,
+    settingsConfigured: true,
+    players: buildPlayers(6)
+  });
+  assert.equal(ready.checkPlayersOk, true);
+  assert.equal(ready.checkStartReady, true);
+  assert.equal(ready.playersChecklistHint, '6/6 人');
+
+  const overflow = startReadiness.buildDraftStartReadiness({
+    mode: flow.MODE_MULTI_ROTATE,
+    presetKey: 'rotation_6',
+    playerLimit: 6,
+    settingsConfigured: true,
+    players: buildPlayers(7)
+  });
+  assert.equal(overflow.checkPlayersOk, false);
+  assert.equal(overflow.playersChecklistHint, '最多 6 人，当前 7 人');
+});
+
 test('draft start readiness requires both squads to have at least two players', () => {
   const out = startReadiness.buildDraftStartReadiness({
     mode: flow.MODE_SQUAD_DOUBLES,

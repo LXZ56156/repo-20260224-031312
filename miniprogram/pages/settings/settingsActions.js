@@ -30,6 +30,13 @@ module.exports = {
   },
 
   onNameInput(e) {
+    if (!this.data.canEditTournamentName) {
+      const tournament = this.data.tournament || {};
+      this.setData({
+        name: flow.getSynchronizedTournamentName(this.data.name, tournament.mode || this.data.mode, tournament.presetKey)
+      });
+      return;
+    }
     this.setData({ name: String((e && e.detail && e.detail.value) || '') });
   },
 
@@ -223,10 +230,11 @@ module.exports = {
   refreshRecommendations() {
     const tournament = this.data.tournament || {};
     const players = Array.isArray(tournament.players) ? tournament.players : [];
+    const playerLimit = flow.getRotationPlayerLimit(tournament);
     const { recommendation } = viewModel.buildRecommendationState({
       mode: this.data.mode,
       players,
-      playersCount: players.length,
+      playersCount: playerLimit || players.length,
       courts: this.data.editC,
       pairTeams: tournament.pairTeams
     });
@@ -250,7 +258,11 @@ module.exports = {
       return;
     }
 
-    const name = String(this.data.name || '').trim();
+    const name = flow.getSynchronizedTournamentName(
+      this.data.name,
+      this.data.tournament.mode || this.data.mode,
+      this.data.tournament.presetKey
+    );
     if (!name) {
       wx.showToast({ title: '请输入赛事名称', icon: 'none' });
       return;

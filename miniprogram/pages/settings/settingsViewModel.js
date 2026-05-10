@@ -225,21 +225,30 @@ function buildSettingsFormState(tournament, options = {}) {
 
   const players = Array.isArray(t.players) ? t.players : [];
   const playersCount = readiness.playersCount;
-  const canConfigureSettings = playersCount >= 4;
   const mode = readiness.mode;
-  const modeLabel = flow.getModeLabel(mode);
+  const rotationPreset = mode === flow.MODE_MULTI_ROTATE ? flow.resolveRotationPreset(t.presetKey) : null;
+  const playerLimit = rotationPreset ? rotationPreset.playerLimit : 0;
+  const playersCountForOptions = playerLimit || playersCount;
+  const canConfigureSettings = rotationPreset ? true : playersCount >= 4;
+  const modeLabel = flow.getModeDisplayLabel(mode, t.presetKey);
   const pairTeamValidation = fixedPair.validateFixedPairTeams(t.pairTeams, players);
 
-  let maxMatches = flow.calcMaxMatchesByPlayers(playersCount);
+  let maxMatches = flow.calcMaxMatchesByPlayers(playersCountForOptions);
   if (mode === flow.MODE_FIXED_PAIR_RR) {
     maxMatches = fixedPair.calcFixedPairMaxMatches(pairTeamValidation.validTeamsCount);
   }
 
-  const courtsForRecommendation = Math.max(1, Math.min(10, Number(t.courts) || 1));
+  const courtOptions = rotationPreset
+    ? rotationPreset.allowedCourts.slice()
+    : Array.from({ length: 10 }, (_, i) => i + 1);
+  const savedCourts = Math.max(1, Math.min(10, Number(t.courts) || (rotationPreset ? rotationPreset.defaultCourts : 1)));
+  const courtsForRecommendation = courtOptions.includes(savedCourts)
+    ? savedCourts
+    : (courtOptions[0] || 1);
   const { recommendation } = buildRecommendationState({
     mode,
     players,
-    playersCount,
+    playersCount: playersCountForOptions,
     courts: courtsForRecommendation,
     pairTeams: pairTeamValidation.teams
   });
@@ -253,7 +262,7 @@ function buildSettingsFormState(tournament, options = {}) {
 
   let matchSelectionState = buildMatchSelectionUiState({
     mode,
-    playersCount,
+    playersCount: playersCountForOptions,
     maxMatches,
     currentMatches: editM,
     courts: courtsForRecommendation,
@@ -281,7 +290,7 @@ function buildSettingsFormState(tournament, options = {}) {
     ? buildMatchShortcutOptions({
       mode,
       players,
-      playersCount,
+      playersCount: playersCountForOptions,
       pairTeams: pairTeamValidation.teams,
       maxMatches
     })
@@ -311,7 +320,8 @@ function buildSettingsFormState(tournament, options = {}) {
   const fallbackTarget = suggestEndConditionTarget(endConditionType, editM, editC);
   const endConditionTarget = clampTarget(rawEndCondition.target || fallbackTarget, endConditionTargetOptions);
   const endConditionUi = buildEndConditionUi(endConditionType, endConditionTarget);
-  const safeName = String(t.name || '').trim() || modeLabel;
+  const safeName = flow.getSynchronizedTournamentName(t.name || modeLabel, mode, t.presetKey) || modeLabel;
+  const canEditTournamentName = flow.canEditTournamentName(mode, t.presetKey);
 
   return {
     mode,
@@ -319,7 +329,9 @@ function buildSettingsFormState(tournament, options = {}) {
     isAdmin,
     isDraft,
     playersCount,
+    playerLimit,
     canConfigureSettings,
+    canEditTournamentName,
     settingsGateHint: canConfigureSettings ? '' : `满 4 人后可设置参数（当前 ${playersCount} 人）`,
     name: safeName,
     maxMatches,
@@ -349,7 +361,8 @@ function buildSettingsFormState(tournament, options = {}) {
     mIndex,
     mDigitRange: buildDigitRange(digitLen),
     mDigitValue: valueToDigitValue(editM, digitLen),
-    courtIndex: Math.max(0, Math.min(9, editC - 1)),
+    courtOptions,
+    courtIndex: Math.max(0, courtOptions.indexOf(editC)),
     pointsOptions: POINT_OPTIONS,
     pointsPerGame,
     pointsIndex,

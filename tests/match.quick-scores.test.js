@@ -162,6 +162,28 @@ test('match quick score presets follow tournament pointsPerGame order including 
   ]);
 });
 
+test('match view model syncs fixed rotation tournament name with preset label', () => {
+  const viewState = buildTournamentViewState({
+    ...buildTournament(21),
+    name: '周末自定义赛',
+    mode: 'multi_rotate',
+    presetKey: 'rotation_8'
+  }, {
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    openid: 'user_1',
+    lockState: 'locked_by_me',
+    currentScoreA: 0,
+    currentScoreB: 0,
+    draft: null,
+    undoSize: 0
+  });
+
+  assert.equal(viewState.tournament.name, '8人转');
+  assert.equal(viewState.data.tournamentName, '8人转');
+});
+
 test('match page renders dynamic quick score options instead of hardcoded score chips', () => {
   const wxml = readPage('miniprogram/pages/match/index.wxml');
 

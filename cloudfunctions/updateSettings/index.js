@@ -3,6 +3,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 const common = require('./lib/common');
+const modeHelper = require('./lib/mode');
 const {
   parsePosInt,
   parseTargetInt,
@@ -38,10 +39,6 @@ exports.main = async (event) => {
   if (!tournamentId) {
     return common.failResult('TOURNAMENT_ID_REQUIRED', '缺少 tournamentId', { traceId, state: 'invalid' });
   }
-  if (nameProvided && !normalizedName) {
-    return common.failResult('SETTINGS_INVALID', '赛事名称不能为空', { traceId, state: 'invalid' });
-  }
-
   try {
     return await db.runTransaction(async (transaction) => {
       const docRes = await transaction.collection('tournaments').doc(tournamentId).get();
@@ -59,12 +56,19 @@ exports.main = async (event) => {
       }
 
       const players = Array.isArray(t.players) ? t.players : [];
+      const fixedRotationPreset = modeHelper.resolveRotationPreset(t.presetKey);
+      const syncedName = nameProvided
+        ? modeHelper.getSynchronizedTournamentName(normalizedName, t.mode || modeHelper.MODE_MULTI_ROTATE, t.presetKey)
+        : '';
+      if (nameProvided && !syncedName) {
+        throw new Error('赛事名称不能为空');
+      }
       const wantsParamConfig = totalMatches !== null
         || courts !== null
         || pointsPerGame !== null
         || endConditionTypeInput !== null
         || endConditionTargetInput !== null;
-      if (wantsParamConfig && players.length < 4) {
+      if (wantsParamConfig && players.length < 4 && !fixedRotationPreset) {
         throw new Error('满 4 人后才可设置比赛参数');
       }
       const mode = String(t.mode || 'multi_rotate').trim().toLowerCase();
@@ -88,7 +92,9 @@ exports.main = async (event) => {
         resolvedTotalMatches,
         resolvedCourts,
         endConditionType: resolvedEndConditionType,
-        endConditionTarget: resolvedEndConditionTarget
+        endConditionTarget: resolvedEndConditionTarget,
+        presetKey: t.presetKey,
+        playerLimit: t.playerLimit
       });
       const nextRules = {
         ...currentRules,
@@ -104,7 +110,7 @@ exports.main = async (event) => {
       const data = { updatedAt: db.serverDate(), version: _.inc(1) };
       Object.assign(data, checked.patch);
       if (clientRequestId) data.lastClientRequestId = clientRequestId;
-      if (nameProvided) data.name = normalizedName;
+      if (nameProvided) data.name = syncedName;
       if (nameProvided || pointsPerGame !== null || endConditionTypeInput !== null || endConditionTargetInput !== null || totalMatches !== null) {
         data.rules = nextRules;
       }

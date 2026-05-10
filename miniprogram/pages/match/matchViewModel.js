@@ -1,5 +1,6 @@
 const perm = require('../../permission/permission');
 const { normalizeTournament, safePlayerName } = require('../../core/normalize');
+const modeHelper = require('../../core/mode');
 
 const SCORE_MAX = 60;
 const DEFAULT_POINTS_PER_GAME = 21;
@@ -155,7 +156,11 @@ function buildInitialData() {
 
 function buildTournamentViewState(tournament, options = {}) {
   if (!tournament) return null;
-  const nt = normalizeTournament(tournament);
+  let nt = normalizeTournament(tournament);
+  const tournamentName = modeHelper.getTournamentDisplayName(nt, '未命名赛事');
+  if (tournamentName !== String(nt.name || '').trim()) {
+    nt = { ...nt, name: tournamentName };
+  }
   const roundIndex = Number(options.roundIndex) || 0;
   const matchIndex = Number(options.matchIndex) || 0;
   const lockState = normalizeLockState(options.lockState);
@@ -194,7 +199,7 @@ function buildTournamentViewState(tournament, options = {}) {
       lockSyncKey: '',
       data: {
         loadError: false,
-        tournamentName: nt.name,
+        tournamentName,
         match: null,
         userCanScore,
         isAdmin,
@@ -265,7 +270,7 @@ function buildTournamentViewState(tournament, options = {}) {
     lockSyncKey: buildMatchKey(options.tournamentId, roundIndex, matchIndex),
     data: {
       loadError: false,
-      tournamentName: nt.name,
+      tournamentName,
       match,
       matchStatusText,
       pointsPerGame,

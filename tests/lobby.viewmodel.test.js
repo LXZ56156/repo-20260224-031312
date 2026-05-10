@@ -173,6 +173,67 @@ test('lobby view model promotes start card when admin draft is ready to begin', 
   );
 });
 
+test('lobby view model keeps fixed rotation label and quota state when not full', () => {
+  const result = viewModel.buildLobbyViewModel({
+    tournament: buildTournament({
+      name: '周末自定义赛',
+      presetKey: 'rotation_6',
+      playerLimit: 6,
+      settingsConfigured: true,
+      totalMatches: 8,
+      courts: 1,
+      players: [
+        { id: 'u_admin', name: '组织者', gender: 'male' },
+        { id: 'u_1', name: '球友1', gender: 'male' },
+        { id: 'u_2', name: '球友2', gender: 'female' },
+        { id: 'u_3', name: '球友3', gender: 'female' },
+        { id: 'u_4', name: '球友4', gender: 'male' }
+      ]
+    }),
+    openid: 'u_admin',
+    data: {}
+  });
+
+  assert.equal(result.patch.modeLabel, '6人转');
+  assert.equal(result.patch.tournament.name, '6人转');
+  assert.equal(result.patch.quickConfigName, '6人转');
+  assert.equal(result.patch.quickCanEditTournamentName, false);
+  assert.equal(result.patch.kpiPlayers, '5/6');
+  assert.equal(result.patch.playerCountText, '5/6 人');
+  assert.equal(result.patch.playerLimit, 6);
+  assert.equal(result.patch.checkPlayersOk, false);
+  assert.equal(result.patch.checkSettingsOk, true);
+  assert.equal(result.patch.checkStartReady, false);
+  assert.equal(result.patch.playersChecklistHint, '还差 1 人');
+  assert.equal(result.patch.primaryTaskKey, 'share');
+  assert.match(result.patch.primaryTaskSummary, /还差 1 人/);
+});
+
+test('lobby view model lets full fixed rotation draft go straight to start', () => {
+  const result = viewModel.buildLobbyViewModel({
+    tournament: buildTournament({
+      presetKey: 'rotation_8',
+      playerLimit: 8,
+      settingsConfigured: true,
+      totalMatches: 14,
+      courts: 2,
+      players: Array.from({ length: 8 }, (_, index) => ({
+        id: index === 0 ? 'u_admin' : `u_${index}`,
+        name: `球友${index}`,
+        gender: index % 2 === 0 ? 'male' : 'female'
+      }))
+    }),
+    openid: 'u_admin',
+    data: {}
+  });
+
+  assert.equal(result.patch.modeLabel, '8人转');
+  assert.equal(result.patch.kpiPlayers, '8/8');
+  assert.equal(result.patch.checkStartReady, true);
+  assert.equal(result.patch.primaryTaskKey, 'start');
+  assert.equal(result.patch.featuredChecklistItem.key, 'start');
+});
+
 test('lobby view model hides quick match shortcuts before 4 players', () => {
   const result = viewModel.buildLobbyViewModel({
     tournament: buildTournament(),

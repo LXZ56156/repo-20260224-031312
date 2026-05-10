@@ -103,6 +103,9 @@ function validateSettings(players, totalMatches, courts, mode = 'multi_rotate', 
   const list = Array.isArray(players) ? players : [];
   scheduleContract.assertValidRosterPlayers(list);
   const normalizedMode = modeHelper.normalizeMode(mode);
+  const rotationPreset = normalizedMode === 'multi_rotate'
+    ? modeHelper.resolveRotationPreset(options && options.presetKey)
+    : null;
   let maxMatches = calcMaxMatches(list.length);
   if (normalizedMode === 'fixed_pair_rr') {
     const validation = fixedPair.validateFixedPairTeams(pairTeams, list);
@@ -121,6 +124,9 @@ function validateSettings(players, totalMatches, courts, mode = 'multi_rotate', 
     1,
     Math.min(10, Math.floor(Number(options && options.resolvedCourts) || Number(courts) || 1))
   );
+  if (rotationPreset && !rotationPreset.allowedCourts.includes(resolvedCourts)) {
+    throw new Error(`${rotationPreset.label}只能使用 ${rotationPreset.allowedCourts.join(' 或 ')} 场地`);
+  }
   const scheduledMatches = deriveEffectiveScheduledMatches(resolvedTotalMatches, {
     type: normalizedEndConditionType,
     target: normalizedEndConditionTarget
