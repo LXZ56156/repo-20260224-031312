@@ -6,6 +6,7 @@
 ## Status: completed
 
 ## Last Completed
+- 2026-05-13 Codex: 新增本地 We 分析 / datacube 拉取脚本 `scripts/fetch-we-analysis.js`，支持 `.env.local` 读取 `WX_APPID/WX_APPSECRET`、stable_token 获取、`.cache/wechat-access-token.json` 本地缓存、5 分钟提前刷新、40001/40014/42001 强制刷新重试、JSON/CSV 输出到 `data/we-analysis/`。新增 `.env.local.example`、`docs/we-analysis-local-script.md` 和 `tests/fetch-we-analysis.test.js`，并更新 `.gitignore` 忽略本地密钥、缓存和数据输出。验证：`node --check scripts/fetch-we-analysis.js`、`node --test tests/fetch-we-analysis.test.js`、`git diff --check`、`npm run check` 通过；`node --test tests/*.test.js` 全量在排阵/审计性能文件中出现 12 个既有波动失败，相关失败文件单独复跑均通过。
 - 2026-05-07 Codex: 完成 `6人转` / `7人转` / `8人转` 固定人数转入口及后续名称同步收口。固定入口仍使用 `mode=multi_rotate`，通过 `presetKey=rotation_6/7/8` 与 `playerLimit=6/7/8` 持久化；创建、加入、导入、开赛、设置写路径均保留固定人数 contract；创建页、首页、大厅、分享入口及赛程/排名/录分/复盘等页面通过 `presetKey` 优先显示固定人数转标签。补充名称同步规则：固定人数转的赛事名称由赛制同步为 `6人转` / `7人转` / `8人转`，创建和修改写入会在云端兜底，创建页/设置页/大厅快捷参数禁用固定人数转名称编辑；普通赛制仍保留自定义赛事名称。验证：`bash scripts/check-cloud-common.sh`、`git diff --check`、`npm run check`、`node --test tests/*.test.js` 全部通过（897 pass / 0 fail）。
 - 2026-05-04 Codex: 完成全局 UI 视觉优先级修复。新增 `core/uiPreferences`，复用现有 `motion_level` / `list_density` storage key，让首页、赛程、排名真实接入 `motion-*` / `density-*` 根 class；大厅接入 motion class 并把 `start-pulse` 从无限循环改成一次性强调；首页赛事列表、赛程轮次/比赛卡、排名行接入紧凑密度、轻量 reveal/press 与按钮边界兜底；`mine` / `profile` 头像展示链路会把 cloud fileID 转 temp URL，并在加载失败时回默认头像；录分页编辑态恢复整行大按钮工具区，清零/交换/撤销和快捷比分 chip 均有边界兜底；发起页操作行改为主次按钮组；偏好页移除未生效的“开赛提醒/结果提醒”开关；`settings/profile/feedback/share-entry` 局部 spacing token 化，`share-entry` 长标题 ellipsis，全局负 `letter-spacing` 清零。MCP 验收覆盖 home、launch、running/draft lobby、schedule、match 编辑态、ranking、mine、profile、preferences、settings、share-entry；控制台日志为空。验证：`git diff --check`、`npm run check`、`node --test tests/*.test.js` 全部通过（860 pass / 0 fail）。
 - 2026-05-02 Codex: 完成稳定性优先级修复。`match` 页隐藏/卸载释放 score lock 改为捕获 payload 后立即 teardown，并对 release 做一次 best-effort retry 与 warn 日志；`storage/base` 读写删失败会 warn，写/删返回 boolean，资料、草稿比分、本地赛事缓存链路透传写入结果；`saveUserProfile` 头像同步改为分页查询 `PAGE_SIZE=100 / QUERY_CAP=1000` 并返回 `syncTruncated`；本地 completed snapshot 上限从 500 降到 100，新写入不再写 legacy 单项 snapshot，仍保留 legacy 读取和迁移清理；`cloud.call()` 对只读调用和带 `clientRequestId` 的幂等写默认做网络/超时重试（300ms/900ms），业务 `ok:false` 不重试；`deleteTournament` 新成功日志迁移到通用 `client_request_logs`，保留旧 `delete_tournament_requests` 读取兼容并在命中旧日志时迁移。未启用 referee，未实现离线 outbox。验证：聚焦回归通过；`bash scripts/check-cloud-common.sh` 通过；`node --test tests/*.test.js` => `840 pass / 0 fail`；`npm run check` 通过。注意：技能文档提到的 `scripts/run-cloud-contract-checks.sh` 当前仓库不存在，本轮用聚焦云函数测试与全量测试覆盖。
@@ -29,17 +30,20 @@
 - 无。
 
 ## What Changed (未提交)
-- 当前未提交范围为 `6/7/8 人转` 固定人数模板和名称同步：`miniprogram/core/mode.js` / `uxFlow.js`、创建/发起/首页/大厅/设置/赛程/排名/录分/复盘/分享入口页面、`createTournament` / `joinTournament` / `addPlayers` / `startTournament` / `updateSettings` 等云函数写路径，以及同步后的 `cloudfunctions/*/lib/mode.js`。
-- 共享库源为 `scripts/mode-common.template.js`，已运行 `bash scripts/sync-cloud-common.sh` 并通过 `bash scripts/check-cloud-common.sh`。
-- 新增测试：`tests/rotation-fixed-preset-page.test.js`；扩展固定人数转创建、设置、加入、导入、开赛、分享、首页/大厅视图、录分/复盘名称同步与 mode common 一致性测试。
+- 无。
 
 ## Next Steps
-- 通过微信开发者工具上传涉及运行逻辑的云函数：`createTournament`、`joinTournament`、`addPlayers`、`startTournament`、`updateSettings`。如需验证真实分享链路，可在真机上补一次 6/7/8 人转创建、分享加入、满员开赛 smoke。
+- 如需真实拉取数据，先按 `.env.local.example` 创建本地 `.env.local`，再运行 `node scripts/fetch-we-analysis.js <type> <begin_date> <end_date>`。
+- 本轮不涉及云函数、小程序前端或微信开发者工具上传。
 
 ## Blockers
 - 无。
 
 ## Verified Subset Output
+- 2026-05-13 本地脚本聚焦验证：`node --check scripts/fetch-we-analysis.js` => pass；`node --test tests/fetch-we-analysis.test.js` => `4 pass / 0 fail`；`git diff --check` => pass。
+- 2026-05-13 静态检查：`npm run check` => pass。
+- 2026-05-13 全量测试：`node --test tests/*.test.js` => `889 pass / 12 fail`，失败集中在既有排阵/审计性能测试；单独复跑 `tests/multi-rotate-recommendation-rationality.test.js`、`tests/scheduler-full-audit-report.test.js`、`tests/squad.beam.performance.test.js`、`tests/squad.fairness.test.js` 均通过。
+- 2026-05-13 真实 API 拉取验证：`dailyVisitTrend 20260511-20260511` => JSON + CSV (1 row, session_cnt=39/visit_uv=17)；`visitPage 20260511-20260511` => JSON + CSV (10 rows, 10 个页面)；`dailySummary 20260511-20260511` => JSON + CSV (1 row)。当日数据（20260512）返回 `61503 计算中` 属正常现象。token 缓存、CSV 输出、错误重试均正常；输出文件不含 AppSecret 或 access_token。
 - 2026-05-04 静态与项目检查：`git diff --check` => pass；`npm run check` => pass。
 - 2026-05-04 全量测试：`node --test tests/*.test.js` => `860 pass / 0 fail`。
 - 2026-05-04 微信 MCP：已确认 preview mirror 同步并重启开发者工具预览；覆盖 `home`、`launch`、`lobby` 草稿/进行中、`schedule`、`match` 编辑态（仅本地 `setData`，未提交比分）、`ranking`、`mine`、`profile`、`preferences`、`settings`、`share-entry`。重点项通过：偏好 class 接入、列表紧凑密度、当前轮聚焦 class/scroll、一次性 start pulse、头像 temp URL 展示、按钮/胶囊 `border-box` 与 ellipsis、分享标题 ellipsis、控制台日志为空。

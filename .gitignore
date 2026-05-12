@@ -8,6 +8,7 @@ build/
 .tmp/
 .cache/
 coverage/
+data/we-analysis/
 
 # WeChat DevTools
 .miniprogram/
@@ -30,6 +31,8 @@ pnpm-debug.log*
 # env
 .env
 .env.*
+!.env.local.example
+*.secret.*
 
 # local private config
 project.private.config.json
@@ -60,6 +63,7 @@ tmp/
 docs/*
 !docs/scheduler-full-audit.md
 !docs/backend-audit-2026-04-16.md
+!docs/we-analysis-local-script.md
 !docs/context/
 !docs/tasks/
 !docs/notes/
