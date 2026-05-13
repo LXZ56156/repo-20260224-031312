@@ -56,7 +56,7 @@ test('profile page resolves cloud avatar display and keeps raw file id for savin
 
     assert.equal(ctx.data.avatar, 'cloud://avatar/profile');
     assert.equal(ctx.data.avatarRaw, 'cloud://avatar/profile');
-    assert.equal(ctx.data.avatarDisplay, profileCore.DEFAULT_AVATAR);
+    assert.equal(ctx.data.avatarDisplay, 'cloud://avatar/profile');
 
     await Promise.resolve();
     await Promise.resolve();

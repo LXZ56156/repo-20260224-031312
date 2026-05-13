@@ -186,7 +186,7 @@ module.exports = {
           if (this.avatarCache && this.avatarCache[raw]) {
             list[i].avatarDisplay = this.avatarCache[raw];
           } else {
-            list[i].avatarDisplay = '';
+            list[i].avatarDisplay = raw;
             need.push(raw);
             mapIdx[raw] = mapIdx[raw] || [];
             mapIdx[raw].push(i);

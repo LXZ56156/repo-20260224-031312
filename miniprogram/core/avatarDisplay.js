@@ -35,7 +35,8 @@ function buildAvatarDisplay(player, avatarCache = {}) {
   let avatarDisplay = '';
   if (avatarRaw) {
     if (avatarRaw.startsWith('cloud://')) {
-      avatarDisplay = hasOwn(avatarCache, avatarRaw) ? (avatarCache[avatarRaw] || '') : '';
+      const cached = hasOwn(avatarCache, avatarRaw) ? String(avatarCache[avatarRaw] || '').trim() : '';
+      avatarDisplay = cached || avatarRaw;
     } else {
       avatarDisplay = avatarRaw;
     }
@@ -81,7 +82,10 @@ function collectCloudAvatarFileIds(value, avatarCache = {}, output = [], seen = 
 
 async function resolveCloudAvatarFileIds(fileIds, avatarCache = {}) {
   const need = Array.from(new Set((Array.isArray(fileIds) ? fileIds : []).map((item) => String(item || '').trim()).filter(Boolean)))
-    .filter((fileId) => fileId.startsWith('cloud://') && !hasOwn(avatarCache, fileId));
+    .filter((fileId) => {
+      const cached = hasOwn(avatarCache, fileId) ? String(avatarCache[fileId] || '').trim() : '';
+      return fileId.startsWith('cloud://') && (!hasOwn(avatarCache, fileId) || !cached);
+    });
   if (!need.length) {
     return { updated: false, requested: [] };
   }

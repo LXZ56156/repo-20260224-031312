@@ -125,6 +125,24 @@ test('schedule page decorates match cards with avatar groups and inline member n
   }
 });
 
+test('schedule page uses cloud avatar file id before temp url cache resolves', () => {
+  const definition = loadSchedulePageDefinition();
+  const ctx = createSchedulePageContext(definition);
+
+  try {
+    ctx.avatarCache = {};
+    ctx.applyTournament(buildTournament());
+
+    const match = ctx.data.roundsUi[0].matchesUi[0];
+    assert.equal(match.leftTeam.avatarItems[0].avatarRaw, 'cloud://avatar/u_1');
+    assert.equal(match.leftTeam.avatarItems[0].avatarDisplay, 'cloud://avatar/u_1');
+    assert.equal(match.leftTeam.avatarItems[1].avatarDisplay, 'cloud://avatar/u_2');
+    assert.equal(match.rightTeam.avatarItems[0].avatarDisplay, 'cloud://avatar/u_3');
+  } finally {
+    delete require.cache[schedulePagePath];
+  }
+});
+
 test('schedule page auto-scrolls to the current pending round once by default', () => {
   const definition = loadSchedulePageDefinition();
   const ctx = createSchedulePageContext(definition);

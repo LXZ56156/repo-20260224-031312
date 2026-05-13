@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const profileActions = require('../miniprogram/pages/lobby/lobbyProfileActions');
+const viewModel = require('../miniprogram/pages/lobby/lobbyViewModel');
 
 function createDeferred() {
   let resolve;
@@ -12,6 +13,61 @@ function createDeferred() {
   });
   return { promise, resolve, reject };
 }
+
+test('lobby display players use cloud avatar file id before temp url cache resolves', () => {
+  const players = viewModel.buildDisplayPlayers([{
+    id: 'p_a',
+    name: '球友A',
+    avatar: 'cloud://avatar/a',
+    gender: 'female'
+  }], {});
+
+  assert.equal(players[0].avatarRaw, 'cloud://avatar/a');
+  assert.equal(players[0].avatarDisplay, 'cloud://avatar/a');
+  assert.equal(players[0].initial, '球');
+});
+
+test('lobby avatar resolution keeps cloud file id visible if temp url request fails', async () => {
+  const originalWx = global.wx;
+  global.wx = {
+    cloud: {
+      async getTempFileURL() {
+        throw new Error('network failed');
+      }
+    }
+  };
+
+  const ctx = {
+    data: {
+      displayPlayers: [
+        { id: 'p_a', name: '球友A', avatarRaw: 'cloud://avatar/a', avatarDisplay: '' }
+      ]
+    },
+    avatarCache: {},
+    setData(update) {
+      this.data = { ...this.data, ...(update || {}) };
+    },
+    applyLobbyPatch(update) {
+      this.setData(update);
+      return update;
+    }
+  };
+
+  try {
+    await profileActions.resolveDisplayPlayersAvatars.call(ctx);
+
+    assert.deepEqual(ctx.data.displayPlayers, [
+      {
+        id: 'p_a',
+        name: '球友A',
+        avatarRaw: 'cloud://avatar/a',
+        avatarDisplay: 'cloud://avatar/a'
+      }
+    ]);
+  } finally {
+    global.wx = originalWx;
+  }
+});
 
 test('lobby avatar resolution ignores stale async write-back from an older player list', async () => {
   const originalWx = global.wx;

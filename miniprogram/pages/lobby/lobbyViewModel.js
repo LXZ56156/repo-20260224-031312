@@ -90,7 +90,8 @@ function buildDisplayPlayers(list, avatarCache = {}) {
     let avatarDisplay = '';
     if (raw) {
       if (raw.startsWith('cloud://')) {
-        avatarDisplay = avatarCache[raw] || '';
+        const cached = String(avatarCache[raw] || '').trim();
+        avatarDisplay = cached || raw;
       } else {
         avatarDisplay = raw;
       }

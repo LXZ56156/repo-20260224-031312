@@ -20,6 +20,18 @@ test('buildAvatarDisplay prefers cached cloud avatar url and keeps initial fallb
   assert.match(item.colorClass, /^pcolor-[0-5]$/);
 });
 
+test('buildAvatarDisplay uses cloud avatar file id when temp url is not cached yet', () => {
+  const item = avatarDisplay.buildAvatarDisplay({
+    id: 'u_1',
+    name: '球友A',
+    avatar: 'cloud://avatar/u_1'
+  }, {});
+
+  assert.equal(item.avatarRaw, 'cloud://avatar/u_1');
+  assert.equal(item.avatarDisplay, 'cloud://avatar/u_1');
+  assert.equal(item.initial, '球');
+});
+
 test('collectCloudAvatarFileIds retries cloud avatars when cached value is empty', () => {
   const pending = avatarDisplay.collectCloudAvatarFileIds({
     rows: [
@@ -36,12 +48,16 @@ test('collectCloudAvatarFileIds retries cloud avatars when cached value is empty
 
 test('resolveCloudAvatarFileIds caches returned temp urls but does not persist empty results', async () => {
   const originalWx = global.wx;
-  const cache = {};
+  const cache = {
+    'cloud://avatar/a': ''
+  };
+  let requested = [];
 
   try {
     global.wx = {
       cloud: {
-        async getTempFileURL() {
+        async getTempFileURL({ fileList }) {
+          requested = fileList;
           return {
             fileList: [
               { fileID: 'cloud://avatar/a', tempFileURL: 'https://temp/avatar/a.png' },
@@ -55,6 +71,7 @@ test('resolveCloudAvatarFileIds caches returned temp urls but does not persist e
     const result = await avatarDisplay.resolveCloudAvatarFileIds(['cloud://avatar/a', 'cloud://avatar/b'], cache);
 
     assert.equal(result.updated, true);
+    assert.deepEqual(requested, ['cloud://avatar/a', 'cloud://avatar/b']);
     assert.equal(cache['cloud://avatar/a'], 'https://temp/avatar/a.png');
     assert.equal(Object.prototype.hasOwnProperty.call(cache, 'cloud://avatar/b'), false);
   } finally {
