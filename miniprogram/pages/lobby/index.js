@@ -160,10 +160,6 @@ Page({
     featuredChecklistItem: null,
     secondaryChecklistItems: [],
 
-    sharePulse: false,
-    shareCardTitle: '转发比赛',
-    shareCardBadge: '比赛',
-    shareButtonText: '转发',
     networkOffline: false,
     showStaleSyncHint: false,
     syncRefreshing: false,
@@ -203,7 +199,6 @@ Page({
       ...uiPreferences.readUiPreferencePatch()
     });
     this._fromCreate = String((options && options.fromCreate) || '') === '1';
-    this._showShareHint = this._fromCreate && String((options && options.shareTip) || '') === '1';
     if (this._fromCreate) this.setData({ adminPanelExpanded: true });
     this._pendingIntentAction = '';
 
@@ -241,8 +236,6 @@ Page({
   onHide() {
     pageTournamentSync.pauseTournamentSync(this);
     pageTimers.clearNamedTimer(this, 'startNavigation');
-    pageTimers.clearNamedTimer(this, 'sharePulse');
-    if (this.data.sharePulse) this.setData({ sharePulse: false });
   },
 
   onUnload() {
@@ -311,13 +304,6 @@ Page({
     this.setData({ adminPanelExpanded: !this.data.adminPanelExpanded });
   },
 
-  pulseShareHint(duration = 1800) {
-    this.setData({ sharePulse: true });
-    pageTimers.setNamedTimer(this, 'sharePulse', () => {
-      this.setData({ sharePulse: false });
-    }, duration);
-  },
-
   applyLobbyPatch(nextPatch) {
     const patch = viewModel.diffLobbyPatch(this.data, nextPatch);
     if (Object.keys(patch).length) this.setData(patch);
@@ -335,11 +321,6 @@ Page({
     });
 
     this.applyLobbyPatch(next.patch);
-
-    if (this._showShareHint) {
-      this._showShareHint = false;
-      this.pulseShareHint(2200);
-    }
 
     if (next.meta.showMyProfile && next.meta.myPlayer) {
       const name = String(next.meta.myPlayer.name || '').trim();

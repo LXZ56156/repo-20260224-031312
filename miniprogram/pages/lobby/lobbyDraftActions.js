@@ -84,14 +84,14 @@ const draftActions = {
       quickImport: () => this.focusQuickImportArea(),
       import_players: () => this.focusQuickImportArea(),
       build_pair_teams: () => this.scrollToPairTeamSection(),
-      assign_squads: () => this.focusShareInviteArea(),
+      assign_squads: () => this.focusPlayerRosterArea(),
       focus_start: () => this.focusStartAction(),
       sync_settings: () => this.saveAndStart(),
       start: () => this.handleStart(),
       batch: () => this.goBatchScoring(),
       analytics: () => this.goAnalytics(),
       clone: () => this.cloneCurrentTournament(),
-      share: () => this.focusShareInviteArea()
+      share: () => this.focusPlayerRosterArea()
     };
     const fn = handlers[key];
     if (typeof fn === 'function') return fn();
@@ -121,7 +121,7 @@ const draftActions = {
   goEditTournament() {
     if (!this.data.canConfigureSettings) {
       wx.showToast({ title: '满 4 人后再设置参数', icon: 'none' });
-      this.focusShareInviteArea();
+      this.focusPlayerRosterArea();
       return;
     }
     if (!this.data.adminPanelExpanded) {
@@ -140,13 +140,12 @@ const draftActions = {
     nav.redirectOrNavigate(nav.buildTournamentUrl('/pages/analytics/index', this.data.tournamentId));
   },
 
-  focusShareInviteArea() {
+  focusPlayerRosterArea() {
     try {
-      wx.pageScrollTo({ selector: '#share-invite', duration: 220 });
+      wx.pageScrollTo({ selector: '#player-roster', duration: 220 });
     } catch (_) {
       // ignore
     }
-    this.pulseShareHint(2200);
   },
 
   focusStartAction() {
@@ -167,13 +166,13 @@ const draftActions = {
       return;
     }
     if (key === 'players') {
-      this.focusShareInviteArea();
+      this.focusPlayerRosterArea();
       return;
     }
     if (key === 'start') {
       if (this.data.checkStartReady) return;
       if (!this.data.checkSettingsOk) this.goEditTournament();
-      else this.focusShareInviteArea();
+      else this.focusPlayerRosterArea();
     }
   },
 

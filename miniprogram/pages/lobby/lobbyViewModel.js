@@ -1,7 +1,6 @@
 const perm = require('../../permission/permission');
 const normalize = require('../../core/normalize');
 const matchPrimaryNav = require('../../core/matchPrimaryNav');
-const shareMeta = require('../../core/shareMeta');
 const flow = require('../../core/uxFlow');
 const draftStartReadiness = require('../../core/draftStartReadiness');
 const scheduleContract = require('../../core/scheduleContract');
@@ -747,8 +746,6 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
     nextActionText: activeRoleCard.actionText
   });
   const checklistLayout = buildChecklistLayout(checklistItems, activeRoleCard.actionKey);
-  const shareMessage = shareMeta.buildShareMessage(displayTournament);
-
   return {
     tournament: displayTournament,
     meta: {
@@ -862,9 +859,6 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       showDraftRules: status === 'draft',
       showDraftAdminPanel: isAdmin && status === 'draft',
       showViewOnlyJoinPrompt,
-      shareCardTitle: String(shareMessage.panelTitle || '转发比赛'),
-      shareCardBadge: String(shareMessage.badgeText || statusText),
-      shareButtonText: String(shareMessage.buttonText || '转发'),
       joinSquadChoice: String((myPlayer && myPlayer.squad) || data.joinSquadChoice || 'A').trim().toUpperCase() === 'B' ? 'B' : 'A',
       primaryNavItems: matchPrimaryNav.getPrimaryNavItems('match', t._id)
     }

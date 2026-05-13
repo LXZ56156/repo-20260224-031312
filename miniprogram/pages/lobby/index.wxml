@@ -34,8 +34,6 @@
     <view class="join-trigger-bar reveal reveal-3" wx:if="{{(showJoin || showMyProfile) && !showJoinSheet}}">
       <button class="btn btn-primary join-trigger-btn" bindtap="openJoinSheet">{{showJoin ? '立即加入' : '编辑我的资料'}}</button>
     </view>
-
-    <include src="./lobby-share-bar.wxml"/>
   </view>
 
   <view class="sheet-mask" wx:if="{{showJoinSheet}}" bindtap="closeJoinSheet"></view>
