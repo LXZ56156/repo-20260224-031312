@@ -13,14 +13,14 @@ const MATCH_OPTION_OVERRIDES = Object.freeze({
     reason: 'coverage-first small-roster preset: balanced match covers every partner pair once'
   }),
   '6p-1c': Object.freeze({
-    presetMatches: [8, 13, 18],
-    balancedMatch: 8,
-    reason: 'coverage-first small-roster preset: balanced match covers every partner pair once'
+    presetMatches: [9, 15, 18],
+    balancedMatch: 9,
+    reason: 'equal-play small-roster preset: balanced match covers every partner pair and equalizes total plays'
   }),
   '7p-1c': Object.freeze({
-    presetMatches: [11, 16, 18],
-    balancedMatch: 11,
-    reason: 'coverage-first small-roster preset: balanced match covers every partner pair once'
+    presetMatches: [14, 21],
+    balancedMatch: 14,
+    reason: 'equal-play small-roster preset: balanced match covers every partner pair and equalizes total plays'
   }),
   '8p-1c': Object.freeze({
     horizonMatches: 16,
@@ -167,8 +167,8 @@ const MATCH_OPTION_OVERRIDES = Object.freeze({
 
 const MATCH_OPTION_COVERAGE_PRIORITY_NOTES = Object.freeze({
   '6p-1c': Object.freeze({
-    coveragePriorityPresetMatches: [8, 13, 18],
-    coveragePriorityNote: 'coverage-first: 8 场覆盖 15 对搭档，后续两档沿长赛事带加量。'
+    coveragePriorityPresetMatches: [9, 15, 18],
+    coveragePriorityNote: '等场默认: 9 场覆盖 15 对搭档且每人 6 场，15 / 18 场继续等场加量。'
   }),
   '9p-2c': Object.freeze({
     coveragePriorityPresetMatches: [18],

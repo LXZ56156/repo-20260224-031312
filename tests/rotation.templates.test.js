@@ -24,7 +24,7 @@ const HANDCRAFTED_CASES = [
   ['4p-1c', 4, 1, 3],
   ['5p-1c', 5, 1, 15],
   ['6p-1c', 6, 1, 18],
-  ['7p-1c', 7, 1, 18]
+  ['7p-1c', 7, 1, 21]
 ];
 
 const BANDED_CASES = [
@@ -155,7 +155,7 @@ test('templated coverage milestones are flagged for representative cases', () =>
     '4p-1c': 3,
     '5p-1c': 5,
     '6p-1c': 8,
-    '7p-1c': 11,
+    '7p-1c': 12,
     '8p-1c': 14,
     '8p-2c': 14,
     '9p-1c': 18,

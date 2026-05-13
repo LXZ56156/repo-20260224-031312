@@ -15,8 +15,8 @@ const COVERAGE_FIRST_EXCEPTION_META = Object.freeze({
     id: 'rotation-6p-1c',
     mode: 'multi_rotate',
     case: '6p-1c',
-    scope: 'coverage-first 默认档 8；审计例外区间 5-18 场',
-    note: '8 场完成 15 对搭档覆盖；为保持当前 repeat 水平，模板允许 maxConsecutivePlay=4。'
+    scope: '6p-1c 长赛程审计例外区间 5-18 场',
+    note: '9 场为等场默认且完成 15 对搭档覆盖；长赛程为保持当前 repeat 水平，模板允许 maxConsecutivePlay=4。'
   }),
   'rotation-9p-2c': Object.freeze({
     id: 'rotation-9p-2c',

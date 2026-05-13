@@ -180,7 +180,7 @@ test('lobby view model keeps fixed rotation label and quota state when not full'
       presetKey: 'rotation_6',
       playerLimit: 6,
       settingsConfigured: true,
-      totalMatches: 8,
+      totalMatches: 9,
       courts: 1,
       players: [
         { id: 'u_admin', name: '组织者', gender: 'male' },

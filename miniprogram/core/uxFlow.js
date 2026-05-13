@@ -112,7 +112,7 @@ function getLaunchModes() {
       mode: MODE_MULTI_ROTATE,
       presetKey: 'rotation_6',
       name: '6人转',
-      summary: '默认 8 场 · 满 6 人开赛',
+      summary: '默认 9 场 · 满 6 人开赛',
       badge: ''
     },
     {
@@ -120,7 +120,7 @@ function getLaunchModes() {
       mode: MODE_MULTI_ROTATE,
       presetKey: 'rotation_7',
       name: '7人转',
-      summary: '默认 11 场 · 满 7 人开赛',
+      summary: '默认 14 场 · 满 7 人开赛',
       badge: ''
     },
     {

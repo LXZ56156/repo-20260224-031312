@@ -11,7 +11,7 @@ const ROTATION_PRESETS = {
     key: 'rotation_6',
     label: '6人转',
     playerLimit: 6,
-    defaultTotalMatches: 8,
+    defaultTotalMatches: 9,
     defaultCourts: 1,
     allowedCourts: [1]
   },
@@ -19,7 +19,7 @@ const ROTATION_PRESETS = {
     key: 'rotation_7',
     label: '7人转',
     playerLimit: 7,
-    defaultTotalMatches: 11,
+    defaultTotalMatches: 14,
     defaultCourts: 1,
     allowedCourts: [1]
   },

@@ -321,7 +321,7 @@ test('startTournament maps fixed rotation underfilled roster to structured valid
                   ...buildTournament(),
                   presetKey: 'rotation_6',
                   playerLimit: 6,
-                  totalMatches: 8,
+                  totalMatches: 9,
                   courts: 1,
                   players: buildPlayers(5)
                 }

@@ -95,7 +95,7 @@ test('settings view model keeps fixed rotation label, quota and court options', 
     playerLimit: 6,
     settingsConfigured: true,
     players: [{ id: 'u_1', name: '组织者' }],
-    totalMatches: 8,
+    totalMatches: 9,
     courts: 1
   }, { openid: 'u_1' });
 
@@ -105,7 +105,7 @@ test('settings view model keeps fixed rotation label, quota and court options', 
   assert.equal(six.playerLimit, 6);
   assert.equal(six.canConfigureSettings, true);
   assert.deepEqual(six.courtOptions, [1]);
-  assert.equal(six.editM, 8);
+  assert.equal(six.editM, 9);
   assert.equal(six.settingsGateHint, '');
 
   const eight = viewModel.buildSettingsViewState({
@@ -195,7 +195,7 @@ test('settings view model exposes expanded large-roster presets for multi_rotate
   assert.equal(state.currentCustomMatchLabel, '');
 });
 
-test('settings view model surfaces coverage-first recommendation notes when presets accept the tradeoff', () => {
+test('settings view model surfaces equal-play recommendation notes when presets accept the tradeoff', () => {
   const state = viewModel.buildSettingsViewState({
     _id: 't_6p',
     status: 'draft',
@@ -207,9 +207,26 @@ test('settings view model surfaces coverage-first recommendation notes when pres
 
   assert.deepEqual(
     state.matchShortcutOptions.map((item) => item.value),
-    [8, 13, 18]
+    [9, 15, 18]
   );
-  assert.match(state.coveragePriorityNote, /coverage-first/);
+  assert.match(state.coveragePriorityNote, /每人 6 场/);
+});
+
+test('settings view model keeps two recommendation slots for 7p rotation', () => {
+  const state = viewModel.buildSettingsViewState({
+    _id: 't_7p',
+    status: 'draft',
+    creatorId: 'u_1',
+    mode: flow.MODE_MULTI_ROTATE,
+    players: Array.from({ length: 7 }, (_, i) => ({ id: `u_${i}`, name: String(i) })),
+    courts: 1
+  }, { openid: 'u_1' });
+
+  assert.deepEqual(
+    state.matchShortcutOptions.map((item) => item.value),
+    [14, 21]
+  );
+  assert.equal(state.editM, 14);
 });
 
 test('settings view model falls back to custom flow when no fixed fair presets exist', () => {

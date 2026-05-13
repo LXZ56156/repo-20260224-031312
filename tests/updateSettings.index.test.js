@@ -204,7 +204,7 @@ test('updateSettings rejects invalid courts for 6-player fixed rotation', async 
 
   const result = await main({
     tournamentId: 't_1',
-    totalMatches: 8,
+    totalMatches: 9,
     courts: 2
   });
 
@@ -324,13 +324,13 @@ test('updateSettings syncs fixed rotation tournament name with preset label', as
   const result = await main({
     tournamentId: 't_1',
     name: '周末自定义赛',
-    totalMatches: 11,
+    totalMatches: 14,
     courts: 1
   });
 
   assert.equal(result.ok, true);
   assert.equal(writtenData.name, '7人转');
-  assert.equal(writtenData.totalMatches, 11);
+  assert.equal(writtenData.totalMatches, 14);
 });
 
 test('updateSettings returns SETTINGS_INVALID when provided name is blank', async () => {

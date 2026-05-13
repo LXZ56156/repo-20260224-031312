@@ -918,9 +918,10 @@ module.exports = {
       }
     },
     "7p-1c": {
+      "key": "7p-1c",
       "players": 7,
       "courts": 1,
-      "horizonMatches": 18,
+      "horizonMatches": 21,
       "totalUniqueMatchups": 105,
       "variants": [
         {
@@ -945,137 +946,39 @@ module.exports = {
                 {
                   "teamA": [
                     1,
-                    3
-                  ],
-                  "teamB": [
-                    2,
-                    7
-                  ]
-                }
-              ]
-            },
-            {
-              "matches": [
-                {
-                  "teamA": [
-                    3,
-                    4
-                  ],
-                  "teamB": [
-                    5,
-                    6
-                  ]
-                }
-              ]
-            },
-            {
-              "matches": [
-                {
-                  "teamA": [
-                    1,
-                    7
-                  ],
-                  "teamB": [
-                    2,
-                    6
-                  ]
-                }
-              ]
-            },
-            {
-              "matches": [
-                {
-                  "teamA": [
-                    2,
-                    4
-                  ],
-                  "teamB": [
-                    3,
-                    5
-                  ]
-                }
-              ]
-            },
-            {
-              "matches": [
-                {
-                  "teamA": [
-                    1,
-                    6
-                  ],
-                  "teamB": [
-                    4,
-                    7
-                  ]
-                }
-              ]
-            },
-            {
-              "matches": [
-                {
-                  "teamA": [
-                    1,
-                    5
-                  ],
-                  "teamB": [
-                    2,
-                    3
-                  ]
-                }
-              ]
-            },
-            {
-              "matches": [
-                {
-                  "teamA": [
-                    3,
-                    7
-                  ],
-                  "teamB": [
-                    4,
-                    6
-                  ]
-                }
-              ]
-            },
-            {
-              "matches": [
-                {
-                  "teamA": [
-                    1,
-                    4
-                  ],
-                  "teamB": [
-                    2,
-                    5
-                  ]
-                }
-              ]
-            },
-            {
-              "matches": [
-                {
-                  "teamA": [
-                    3,
-                    6
-                  ],
-                  "teamB": [
-                    5,
-                    7
-                  ]
-                }
-              ]
-            },
-            {
-              "matches": [
-                {
-                  "teamA": [
-                    1,
                     2
                   ],
                   "teamB": [
                     3,
-                    4
+                    7
+                  ]
+                }
+              ]
+            },
+            {
+              "matches": [
+                {
+                  "teamA": [
+                    3,
+                    5
+                  ],
+                  "teamB": [
+                    4,
+                    6
+                  ]
+                }
+              ]
+            },
+            {
+              "matches": [
+                {
+                  "teamA": [
+                    1,
+                    6
+                  ],
+                  "teamB": [
+                    2,
+                    7
                   ]
                 }
               ]
@@ -1086,6 +989,118 @@ module.exports = {
                   "teamA": [
                     2,
                     5
+                  ],
+                  "teamB": [
+                    3,
+                    4
+                  ]
+                }
+              ]
+            },
+            {
+              "matches": [
+                {
+                  "teamA": [
+                    1,
+                    7
+                  ],
+                  "teamB": [
+                    5,
+                    6
+                  ]
+                }
+              ]
+            },
+            {
+              "matches": [
+                {
+                  "teamA": [
+                    1,
+                    3
+                  ],
+                  "teamB": [
+                    2,
+                    4
+                  ]
+                }
+              ]
+            },
+            {
+              "matches": [
+                {
+                  "teamA": [
+                    3,
+                    6
+                  ],
+                  "teamB": [
+                    5,
+                    7
+                  ]
+                }
+              ]
+            },
+            {
+              "matches": [
+                {
+                  "teamA": [
+                    1,
+                    4
+                  ],
+                  "teamB": [
+                    2,
+                    6
+                  ]
+                }
+              ]
+            },
+            {
+              "matches": [
+                {
+                  "teamA": [
+                    2,
+                    3
+                  ],
+                  "teamB": [
+                    5,
+                    7
+                  ]
+                }
+              ]
+            },
+            {
+              "matches": [
+                {
+                  "teamA": [
+                    1,
+                    6
+                  ],
+                  "teamB": [
+                    4,
+                    7
+                  ]
+                }
+              ]
+            },
+            {
+              "matches": [
+                {
+                  "teamA": [
+                    1,
+                    5
+                  ],
+                  "teamB": [
+                    2,
+                    3
+                  ]
+                }
+              ]
+            },
+            {
+              "matches": [
+                {
+                  "teamA": [
+                    3,
+                    4
                   ],
                   "teamB": [
                     6,
@@ -1099,6 +1114,62 @@ module.exports = {
                 {
                   "teamA": [
                     1,
+                    2
+                  ],
+                  "teamB": [
+                    4,
+                    5
+                  ]
+                }
+              ]
+            },
+            {
+              "matches": [
+                {
+                  "teamA": [
+                    2,
+                    6
+                  ],
+                  "teamB": [
+                    3,
+                    7
+                  ]
+                }
+              ]
+            },
+            {
+              "matches": [
+                {
+                  "teamA": [
+                    1,
+                    4
+                  ],
+                  "teamB": [
+                    3,
+                    5
+                  ]
+                }
+              ]
+            },
+            {
+              "matches": [
+                {
+                  "teamA": [
+                    2,
+                    7
+                  ],
+                  "teamB": [
+                    5,
+                    6
+                  ]
+                }
+              ]
+            },
+            {
+              "matches": [
+                {
+                  "teamA": [
+                    1,
                     3
                   ],
                   "teamB": [
@@ -1112,50 +1183,8 @@ module.exports = {
               "matches": [
                 {
                   "teamA": [
-                    1,
-                    2
-                  ],
-                  "teamB": [
-                    5,
-                    6
-                  ]
-                }
-              ]
-            },
-            {
-              "matches": [
-                {
-                  "teamA": [
                     2,
-                    4
-                  ],
-                  "teamB": [
-                    3,
-                    7
-                  ]
-                }
-              ]
-            },
-            {
-              "matches": [
-                {
-                  "teamA": [
-                    1,
                     5
-                  ],
-                  "teamB": [
-                    3,
-                    6
-                  ]
-                }
-              ]
-            },
-            {
-              "matches": [
-                {
-                  "teamA": [
-                    2,
-                    7
                   ],
                   "teamB": [
                     4,
@@ -1173,7 +1202,21 @@ module.exports = {
                   ],
                   "teamB": [
                     3,
+                    6
+                  ]
+                }
+              ]
+            },
+            {
+              "matches": [
+                {
+                  "teamA": [
+                    1,
                     5
+                  ],
+                  "teamB": [
+                    2,
+                    4
                   ]
                 }
               ]
@@ -1199,13 +1242,16 @@ module.exports = {
         "15": "main",
         "16": "main",
         "17": "main",
-        "18": "main"
+        "18": "main",
+        "19": "main",
+        "20": "main",
+        "21": "main"
       },
       "prefixMetrics": {
         "1": {
           "uniqueExactMatchupCount": 1,
           "playSpread": 1,
-          "maxConsecutivePlay": 1,
+          "maxConsecutivePlay": 2,
           "theoreticalPlaySpread": 1,
           "partnerCoverageCount": 2,
           "totalPartnerPairs": 21,
@@ -1288,7 +1334,7 @@ module.exports = {
           "playSpread": 1,
           "maxConsecutivePlay": 2,
           "theoreticalPlaySpread": 1,
-          "partnerCoverageCount": 20,
+          "partnerCoverageCount": 19,
           "totalPartnerPairs": 21,
           "allPartnerPairsCovered": false
         },
@@ -1297,9 +1343,9 @@ module.exports = {
           "playSpread": 1,
           "maxConsecutivePlay": 2,
           "theoreticalPlaySpread": 1,
-          "partnerCoverageCount": 21,
+          "partnerCoverageCount": 20,
           "totalPartnerPairs": 21,
-          "allPartnerPairsCovered": true
+          "allPartnerPairsCovered": false
         },
         "12": {
           "uniqueExactMatchupCount": 12,
@@ -1360,6 +1406,33 @@ module.exports = {
           "playSpread": 1,
           "maxConsecutivePlay": 2,
           "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 21,
+          "totalPartnerPairs": 21,
+          "allPartnerPairsCovered": true
+        },
+        "19": {
+          "uniqueExactMatchupCount": 19,
+          "playSpread": 1,
+          "maxConsecutivePlay": 2,
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 21,
+          "totalPartnerPairs": 21,
+          "allPartnerPairsCovered": true
+        },
+        "20": {
+          "uniqueExactMatchupCount": 20,
+          "playSpread": 1,
+          "maxConsecutivePlay": 2,
+          "theoreticalPlaySpread": 1,
+          "partnerCoverageCount": 21,
+          "totalPartnerPairs": 21,
+          "allPartnerPairsCovered": true
+        },
+        "21": {
+          "uniqueExactMatchupCount": 21,
+          "playSpread": 0,
+          "maxConsecutivePlay": 2,
+          "theoreticalPlaySpread": 0,
           "partnerCoverageCount": 21,
           "totalPartnerPairs": 21,
           "allPartnerPairsCovered": true

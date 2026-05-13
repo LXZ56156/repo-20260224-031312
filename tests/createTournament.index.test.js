@@ -102,8 +102,8 @@ test('createTournament writes normalized tournament document with default creato
 
 test('createTournament applies fixed rotation preset defaults without adding real modes', async () => {
   const expected = [
-    { presetKey: 'rotation_6', playerLimit: 6, totalMatches: 8 },
-    { presetKey: 'rotation_7', playerLimit: 7, totalMatches: 11 },
+    { presetKey: 'rotation_6', playerLimit: 6, totalMatches: 9 },
+    { presetKey: 'rotation_7', playerLimit: 7, totalMatches: 14 },
     { presetKey: 'rotation_8', playerLimit: 8, totalMatches: 14 }
   ];
 

@@ -6,6 +6,8 @@
 ## Status: completed
 
 ## Last Completed
+- 2026-05-14 Codex: 完成固定 `6人转` / `7人转` / `8人转` 推荐档等场化与 `7p-1c@21` 模板补齐。推荐档固定为 `6人转=9/15/18`、`7人转=14/21`、`8人转=8/14/16`，默认档保持 `6人转=9`、`7人转=14`、`8人转=14`；`7人转 21场` 已模板化，运行时 `schedulerMeta.engine=template`、`templateKey=7p-1c`、`playSpread=0`。`presetMatches` 测试约束改为允许 2 或 3 个选项，并明确 `7p-1c` 为 2 档。刷新 scheduler full audit 报告。验证：`node scripts/generate-scheduler-full-audit.js` => `warnings=0 / failures=0`；计划内聚焦测试 `64 pass / 0 fail`；`git diff --check`、`npm run check`、`node --test tests/*.test.js` 全部通过（901 pass / 0 fail）。
+- 2026-05-14 Codex: 完成 `6人转` / `7人转` 默认场次最小上调，使固定人数转默认总出场次数可均分到每个参赛人。`rotation_6` 默认总场次从 8 调整为 9，每人默认 6 场；`rotation_7` 默认总场次从 11 调整为 14，每人默认 8 场；`rotation_8` 保持 14 场，每人 7 场。同步更新前端 `mode` 配置、发起页摘要、多人转推荐档 `balancedMatch/presetMatches`、云函数共享 `mode` 模板及所有云函数派生 `lib/mode.js`，并刷新 scheduler audit 报告。验证：`node scripts/generate-scheduler-full-audit.js` => `warnings=0 / failures=0`；聚焦测试、scheduler/report 测试、`bash scripts/check-cloud-common.sh`、`git diff --check`、`npm run check`、`node --test tests/*.test.js` 全部通过（901 pass / 0 fail）。
 - 2026-05-13 Codex: 新增本地 We 分析 / datacube 拉取脚本 `scripts/fetch-we-analysis.js`，支持 `.env.local` 读取 `WX_APPID/WX_APPSECRET`、stable_token 获取、`.cache/wechat-access-token.json` 本地缓存、5 分钟提前刷新、40001/40014/42001 强制刷新重试、JSON/CSV 输出到 `data/we-analysis/`。新增 `.env.local.example`、`docs/we-analysis-local-script.md` 和 `tests/fetch-we-analysis.test.js`，并更新 `.gitignore` 忽略本地密钥、缓存和数据输出。验证：`node --check scripts/fetch-we-analysis.js`、`node --test tests/fetch-we-analysis.test.js`、`git diff --check`、`npm run check` 通过；`node --test tests/*.test.js` 全量在排阵/审计性能文件中出现 12 个既有波动失败，相关失败文件单独复跑均通过。
 - 2026-05-07 Codex: 完成 `6人转` / `7人转` / `8人转` 固定人数转入口及后续名称同步收口。固定入口仍使用 `mode=multi_rotate`，通过 `presetKey=rotation_6/7/8` 与 `playerLimit=6/7/8` 持久化；创建、加入、导入、开赛、设置写路径均保留固定人数 contract；创建页、首页、大厅、分享入口及赛程/排名/录分/复盘等页面通过 `presetKey` 优先显示固定人数转标签。补充名称同步规则：固定人数转的赛事名称由赛制同步为 `6人转` / `7人转` / `8人转`，创建和修改写入会在云端兜底，创建页/设置页/大厅快捷参数禁用固定人数转名称编辑；普通赛制仍保留自定义赛事名称。验证：`bash scripts/check-cloud-common.sh`、`git diff --check`、`npm run check`、`node --test tests/*.test.js` 全部通过（897 pass / 0 fail）。
 - 2026-05-04 Codex: 完成全局 UI 视觉优先级修复。新增 `core/uiPreferences`，复用现有 `motion_level` / `list_density` storage key，让首页、赛程、排名真实接入 `motion-*` / `density-*` 根 class；大厅接入 motion class 并把 `start-pulse` 从无限循环改成一次性强调；首页赛事列表、赛程轮次/比赛卡、排名行接入紧凑密度、轻量 reveal/press 与按钮边界兜底；`mine` / `profile` 头像展示链路会把 cloud fileID 转 temp URL，并在加载失败时回默认头像；录分页编辑态恢复整行大按钮工具区，清零/交换/撤销和快捷比分 chip 均有边界兜底；发起页操作行改为主次按钮组；偏好页移除未生效的“开赛提醒/结果提醒”开关；`settings/profile/feedback/share-entry` 局部 spacing token 化，`share-entry` 长标题 ellipsis，全局负 `letter-spacing` 清零。MCP 验收覆盖 home、launch、running/draft lobby、schedule、match 编辑态、ranking、mine、profile、preferences、settings、share-entry；控制台日志为空。验证：`git diff --check`、`npm run check`、`node --test tests/*.test.js` 全部通过（860 pass / 0 fail）。
@@ -30,16 +32,20 @@
 - 无。
 
 ## What Changed (未提交)
-- 无。
+- `6人转` 默认总场次上调为 9，`7人转` 默认总场次上调为 14；相关前端配置、云函数共享模板和测试已同步。
+- 固定推荐档已调整为 `6人转=9/15/18`、`7人转=14/21`、`8人转=8/14/16`；`7p-1c` 模板 horizon 扩到 21，`7人转 21场` 不再走 `beam-guarded`。
 
 ## Next Steps
-- 如需真实拉取数据，先按 `.env.local.example` 创建本地 `.env.local`，再运行 `node scripts/fetch-we-analysis.js <type> <begin_date> <end_date>`。
-- 本轮不涉及云函数、小程序前端或微信开发者工具上传。
+- 如需上线，通过微信开发者工具上传 `startTournament`（包含 `rotation.templates.js`），并同步部署已更新 `lib/mode.js` 的云函数。
 
 ## Blockers
 - 无。
 
 ## Verified Subset Output
+- 2026-05-14 推荐档等场化聚焦验证：`node --test tests/multi-rotate-match-options.test.js tests/settings.view-model.test.js tests/multi-rotate-recommendation-rationality.test.js tests/rotation.templates.test.js tests/rotation.template-script.test.js tests/rotation.performance.test.js tests/scheduler-full-audit-report.test.js` => `64 pass / 0 fail`。
+- 2026-05-14 默认场次上调聚焦验证：`node --test tests/createTournament.index.test.js tests/settings.view-model.test.js tests/updateSettings.index.test.js tests/startTournament.index.test.js tests/startTournament.logic.test.js tests/lobby.viewmodel.test.js tests/multi-rotate-match-options.test.js tests/mode-common.consistency.test.js tests/multi-rotate-recommendation-rationality.test.js` => `76 pass / 0 fail`。
+- 2026-05-14 scheduler/report 聚焦验证：`node --test tests/scheduler-full-audit-report.test.js tests/scheduler.coverage-priority.test.js tests/scheduler.multidimensional-audit.test.js tests/rotation.templates.test.js tests/rotation.template-script.test.js tests/rotation.performance.test.js tests/rotation.policy.test.js` => `56 pass / 0 fail`。
+- 2026-05-14 报告与全量验证：`node scripts/generate-scheduler-full-audit.js` => `scenarios=1041 warnings=0 failures=0`；`git diff --check` => pass；`npm run check` => pass；`node --test tests/*.test.js` => `901 pass / 0 fail`。
 - 2026-05-13 本地脚本聚焦验证：`node --check scripts/fetch-we-analysis.js` => pass；`node --test tests/fetch-we-analysis.test.js` => `4 pass / 0 fail`；`git diff --check` => pass。
 - 2026-05-13 静态检查：`npm run check` => pass。
 - 2026-05-13 全量测试：`node --test tests/*.test.js` => `889 pass / 12 fail`，失败集中在既有排阵/审计性能测试；单独复跑 `tests/multi-rotate-recommendation-rationality.test.js`、`tests/scheduler-full-audit-report.test.js`、`tests/squad.beam.performance.test.js`、`tests/squad.fairness.test.js` 均通过。

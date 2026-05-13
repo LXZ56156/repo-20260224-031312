@@ -654,29 +654,28 @@ const MATCH_OPTION_LIBRARY = {
       "effectiveCourts": 1,
       "horizonMatches": 18,
       "presetMatches": [
-        8,
-        13,
+        9,
+        15,
         18
       ],
-      "balancedMatch": 8,
+      "balancedMatch": 9,
       "coveragePriorityPresetMatches": [
-        8,
-        13,
+        9,
+        15,
         18
       ],
-      "coveragePriorityNote": "coverage-first: 8 场覆盖 15 对搭档，后续两档沿长赛事带加量。",
+      "coveragePriorityNote": "等场默认: 9 场覆盖 15 对搭档且每人 6 场，15 / 18 场继续等场加量。",
       "supportsAdvancedCustom": true
     },
     "7p-1c": {
       "players": 7,
       "effectiveCourts": 1,
-      "horizonMatches": 18,
+      "horizonMatches": 21,
       "presetMatches": [
-        11,
-        16,
-        18
+        14,
+        21
       ],
-      "balancedMatch": 11,
+      "balancedMatch": 14,
       "supportsAdvancedCustom": true
     },
     "8p-1c": {

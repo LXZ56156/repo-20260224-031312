@@ -33,7 +33,7 @@ const HANDCRAFTED_CASES = [
   { players: 4, courts: 1, horizonMatches: 3, seed: 1 },
   { players: 5, courts: 1, horizonMatches: 15, seed: 1 },
   { players: 6, courts: 1, horizonMatches: 18, seed: 11 },
-  { players: 7, courts: 1, horizonMatches: 18, seed: 19 }
+  { players: 7, courts: 1, horizonMatches: 21, seed: 19 }
 ];
 
 const DERIVED_SINGLE_COURT_CASES = Object.freeze({

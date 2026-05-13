@@ -61,7 +61,7 @@ test('scheduler full audit recommendation appendix covers all multi_rotate cases
   }
 
   assert.equal(rowMap['6p-1c'].coverageMatch, '8');
-  assert.equal(rowMap['7p-1c'].coverageMatch, '11');
+  assert.equal(rowMap['7p-1c'].coverageMatch, '12');
   assert.equal(rowMap['8p-1c'].coverageMatch, '14');
   assert.equal(rowMap['8p-2c'].coverageMatch, '14');
   assert.equal(rowMap['9p-1c'].coverageMatch, '18');
@@ -77,7 +77,7 @@ test('scheduler full audit summarizes multi_rotate default preset quality', () =
   const summary = report.buildMultiRotatePresetQualitySummaryRows(rows, [])[0];
 
   assert.equal(rows.length, Object.keys(expectedCases).length);
-  assert.equal(summary.presetRowCount, 180);
+  assert.equal(summary.presetRowCount, 179);
   assert.equal(summary.smallDefaultAllPartnerCoverage, '10/10');
   assert.equal(summary.defaultExactRepeatExcessCount, 0);
   assert.equal(summary.defaultPlaySpreadExcessCount, 0);

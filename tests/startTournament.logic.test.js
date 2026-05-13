@@ -39,7 +39,7 @@ test('validateBeforeGenerate requires fixed rotation player count to be exact', 
       playerLimit: 6,
       settingsConfigured: true,
       players: makePlayers(5),
-      totalMatches: 8,
+      totalMatches: 9,
       courts: 1
     }),
     /6人转需要正好 6 人参赛，当前 5 人/
@@ -51,7 +51,7 @@ test('validateBeforeGenerate requires fixed rotation player count to be exact', 
       playerLimit: 6,
       settingsConfigured: true,
       players: makePlayers(7),
-      totalMatches: 8,
+      totalMatches: 9,
       courts: 1
     }),
     /6人转需要正好 6 人参赛，当前 7 人/
