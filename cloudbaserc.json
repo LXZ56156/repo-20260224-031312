@@ -1,0 +1,67 @@
+{
+  "$schema": "https://static.cloudbase.net/cli/cloudbaserc.schema.json",
+  "envId": "cloud1-1ghmqjyt6428702b",
+  "functionRoot": "./cloudfunctions",
+  "functions": [
+    {
+      "name": "addPlayers"
+    },
+    {
+      "name": "cloneTournament"
+    },
+    {
+      "name": "createTournament"
+    },
+    {
+      "name": "deleteTournament"
+    },
+    {
+      "name": "feedbackSubmit"
+    },
+    {
+      "name": "getMyPerformanceStats"
+    },
+    {
+      "name": "getUserProfile"
+    },
+    {
+      "name": "joinTournament"
+    },
+    {
+      "name": "login"
+    },
+    {
+      "name": "managePairTeams"
+    },
+    {
+      "name": "rebuildRankings"
+    },
+    {
+      "name": "removePlayer"
+    },
+    {
+      "name": "resetTournament"
+    },
+    {
+      "name": "saveUserProfile"
+    },
+    {
+      "name": "scoreLock"
+    },
+    {
+      "name": "setPlayerSquad"
+    },
+    {
+      "name": "setReferee"
+    },
+    {
+      "name": "startTournament"
+    },
+    {
+      "name": "submitScore"
+    },
+    {
+      "name": "updateSettings"
+    }
+  ]
+}

@@ -8,6 +8,10 @@
     "report:scheduler-full-audit": "node scripts/generate-scheduler-full-audit.js",
     "check:cloud-common": "bash scripts/check-cloud-common.sh",
     "check:deprecated-wx-api": "bash scripts/check-deprecated-wx-api.sh",
-    "check": "npm run check:deprecated-wx-api && npm run check:cloud-common"
+    "check": "npm run check:deprecated-wx-api && npm run check:cloud-common",
+    "deploy:cloud": "bash scripts/deploy-cloudfunctions.sh",
+    "deploy:cloud:all": "bash scripts/deploy-cloudfunctions.sh --all",
+    "deploy:cloud:changed": "bash scripts/deploy-changed-cloudfunctions.sh",
+    "hooks:install-cloud-deploy": "bash scripts/install-cloud-deploy-hook.sh"
   }
 }
