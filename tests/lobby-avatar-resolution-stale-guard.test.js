@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 
 const profileActions = require('../miniprogram/pages/lobby/lobbyProfileActions');
 const viewModel = require('../miniprogram/pages/lobby/lobbyViewModel');
+const avatarDisplay = require('../miniprogram/core/avatarDisplay');
 
 function createDeferred() {
   let resolve;
@@ -14,7 +15,7 @@ function createDeferred() {
   return { promise, resolve, reject };
 }
 
-test('lobby display players use cloud avatar file id before temp url cache resolves', () => {
+test('lobby display players keep initials visible before temp url cache resolves', () => {
   const players = viewModel.buildDisplayPlayers([{
     id: 'p_a',
     name: '球友A',
@@ -23,11 +24,11 @@ test('lobby display players use cloud avatar file id before temp url cache resol
   }], {});
 
   assert.equal(players[0].avatarRaw, 'cloud://avatar/a');
-  assert.equal(players[0].avatarDisplay, 'cloud://avatar/a');
+  assert.equal(players[0].avatarDisplay, '');
   assert.equal(players[0].initial, '球');
 });
 
-test('lobby avatar resolution keeps cloud file id visible if temp url request fails', async () => {
+test('lobby avatar resolution keeps initials visible if temp url request fails', async () => {
   const originalWx = global.wx;
   global.wx = {
     cloud: {
@@ -61,7 +62,7 @@ test('lobby avatar resolution keeps cloud file id visible if temp url request fa
         id: 'p_a',
         name: '球友A',
         avatarRaw: 'cloud://avatar/a',
-        avatarDisplay: 'cloud://avatar/a'
+        avatarDisplay: ''
       }
     ]);
   } finally {
@@ -130,8 +131,7 @@ test('lobby avatar resolution ignores stale async write-back from an older playe
         avatarDisplay: 'https://tmp.example/b.png'
       }
     ]);
-    assert.equal(ctx.avatarCache['cloud://avatar/b'], 'https://tmp.example/b.png');
-    assert.equal(ctx.avatarCache['cloud://avatar/a'], undefined);
+    assert.equal(avatarDisplay.getCachedAvatarUrl(ctx.avatarCache, 'cloud://avatar/b'), 'https://tmp.example/b.png');
   } finally {
     global.wx = originalWx;
   }

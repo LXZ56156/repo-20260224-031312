@@ -106,17 +106,20 @@ Page({
 
   async refreshAvatarDisplay() {
     const avatarRaw = String(this.data.avatarRaw || '').trim();
-    if (!avatarRaw || !avatarRaw.startsWith('cloud://')) return;
+    if (!avatarDisplay.isCloudAvatar(avatarRaw)) return;
     if (!this.avatarCache || typeof this.avatarCache !== 'object') this.avatarCache = {};
     const generation = Number(this._avatarResolveGen || 0) + 1;
     this._avatarResolveGen = generation;
     const result = await avatarDisplay.resolveCloudAvatarFileIds([avatarRaw], this.avatarCache);
     if (!result.updated || Number(this._avatarResolveGen || 0) !== generation) return;
     if (String(this.data.avatarRaw || '').trim() !== avatarRaw) return;
-    this.setData({ avatarDisplay: this.avatarCache[avatarRaw] || profileCore.DEFAULT_AVATAR });
+    this.setData({ avatarDisplay: avatarDisplay.getCachedAvatarUrl(this.avatarCache, avatarRaw) || profileCore.DEFAULT_AVATAR });
   },
 
   onAvatarError() {
+    const avatarRaw = String(this.data.avatarRaw || '').trim();
+    if (!this.avatarCache || typeof this.avatarCache !== 'object') this.avatarCache = {};
+    if (avatarDisplay.isCloudAvatar(avatarRaw)) avatarDisplay.markAvatarUrlFailed(this.avatarCache, avatarRaw);
     if (this.data.avatarDisplay !== profileCore.DEFAULT_AVATAR) {
       this.setData({ avatarDisplay: profileCore.DEFAULT_AVATAR });
     }

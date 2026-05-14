@@ -37,7 +37,7 @@
         <view class="rank-badge {{idx === 0 ? 'rank-1' : ''}} {{idx === 1 ? 'rank-2' : ''}} {{idx === 2 ? 'rank-3' : ''}}">{{idx + 1}}</view>
         <view class="ranking-avatar-group {{r.avatarItems.length > 1 ? 'pair' : ''}}" wx:if="{{r.avatarItems.length}}">
           <view class="ranking-avatar {{item.colorClass}}" wx:for="{{r.avatarItems}}" wx:key="id">
-            <image class="ranking-avatar-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill"></image>
+            <image class="ranking-avatar-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill" data-avatar-raw="{{item.avatarRaw}}" binderror="onAvatarImageError"></image>
             <text class="ranking-avatar-initial" wx:else>{{item.initial}}</text>
           </view>
         </view>

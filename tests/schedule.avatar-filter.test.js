@@ -125,7 +125,7 @@ test('schedule page decorates match cards with avatar groups and inline member n
   }
 });
 
-test('schedule page uses cloud avatar file id before temp url cache resolves', () => {
+test('schedule page keeps initials visible before cloud avatar temp url resolves', () => {
   const definition = loadSchedulePageDefinition();
   const ctx = createSchedulePageContext(definition);
 
@@ -135,9 +135,26 @@ test('schedule page uses cloud avatar file id before temp url cache resolves', (
 
     const match = ctx.data.roundsUi[0].matchesUi[0];
     assert.equal(match.leftTeam.avatarItems[0].avatarRaw, 'cloud://avatar/u_1');
-    assert.equal(match.leftTeam.avatarItems[0].avatarDisplay, 'cloud://avatar/u_1');
-    assert.equal(match.leftTeam.avatarItems[1].avatarDisplay, 'cloud://avatar/u_2');
-    assert.equal(match.rightTeam.avatarItems[0].avatarDisplay, 'cloud://avatar/u_3');
+    assert.equal(match.leftTeam.avatarItems[0].avatarDisplay, '');
+    assert.equal(match.leftTeam.avatarItems[1].avatarDisplay, '');
+    assert.equal(match.rightTeam.avatarItems[0].avatarDisplay, '');
+  } finally {
+    delete require.cache[schedulePagePath];
+  }
+});
+
+test('schedule page restores initial fallback when avatar image fails to load', () => {
+  const definition = loadSchedulePageDefinition();
+  const ctx = createSchedulePageContext(definition);
+
+  try {
+    ctx.applyTournament(buildTournament());
+    assert.equal(ctx.data.roundsUi[0].matchesUi[0].leftTeam.avatarItems[0].avatarDisplay, 'https://temp/avatar/u_1.png');
+
+    ctx.onAvatarImageError({ currentTarget: { dataset: { avatarRaw: 'cloud://avatar/u_1' } } });
+
+    assert.equal(ctx.data.roundsUi[0].matchesUi[0].leftTeam.avatarItems[0].avatarDisplay, '');
+    assert.equal(ctx.data.roundsUi[0].matchesUi[0].leftTeam.avatarItems[0].initial, '甲');
   } finally {
     delete require.cache[schedulePagePath];
   }

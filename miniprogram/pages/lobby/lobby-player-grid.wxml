@@ -10,7 +10,7 @@
     <view class="player-grid" wx:if="{{displayPlayers.length}}">
       <view class="player-cell" wx:for="{{displayPlayers}}" wx:key="id" data-player="{{item.id}}" data-name="{{item.name}}" bindtap="onTogglePlayerSquad" bindlongpress="onPlayerLongPress">
         <view class="player-avatar {{item.colorClass}}">
-          <image class="player-avatar-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill"></image>
+          <image class="player-avatar-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill" data-avatar-raw="{{item.avatarRaw}}" binderror="onDisplayPlayerAvatarError"></image>
           <text class="player-initial" wx:else>{{item.initial}}</text>
         </view>
         <view class="player-name ellipsis">{{item.name}}</view>

@@ -218,6 +218,16 @@ Page({
     if (sourceTournament) this.applyTournament(sourceTournament);
   },
 
+  onAvatarImageError(e) {
+    this.ensureAvatarRuntime();
+    const raw = String(e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.avatarRaw || '').trim();
+    if (avatarDisplay.isCloudAvatar(raw)) {
+      avatarDisplay.markAvatarUrlFailed(this.avatarCache, raw);
+      const tournament = this._latestTournament || this.data.tournament;
+      if (tournament) this.applyTournament(tournament);
+    }
+  },
+
   onPrimaryNavTap(e) {
     const key = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.key) || '').trim();
     matchPrimaryNav.navigateToPrimary(key, this.data.tournamentId, 'ranking');

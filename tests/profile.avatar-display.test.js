@@ -56,7 +56,7 @@ test('profile page resolves cloud avatar display and keeps raw file id for savin
 
     assert.equal(ctx.data.avatar, 'cloud://avatar/profile');
     assert.equal(ctx.data.avatarRaw, 'cloud://avatar/profile');
-    assert.equal(ctx.data.avatarDisplay, 'cloud://avatar/profile');
+    assert.equal(ctx.data.avatarDisplay, profileCore.DEFAULT_AVATAR);
 
     await Promise.resolve();
     await Promise.resolve();
@@ -72,7 +72,10 @@ test('profile page avatar error falls back to default image', () => {
   const definition = loadProfilePageDefinition();
   const ctx = createProfilePageContext(definition);
 
-  ctx.setData({ avatarDisplay: 'https://broken/avatar.png' });
+  ctx.avatarCache = {
+    'cloud://avatar/profile': 'https://broken/avatar.png'
+  };
+  ctx.setData({ avatarRaw: 'cloud://avatar/profile', avatarDisplay: 'https://broken/avatar.png' });
   ctx.onAvatarError();
 
   assert.equal(ctx.data.avatarDisplay, profileCore.DEFAULT_AVATAR);

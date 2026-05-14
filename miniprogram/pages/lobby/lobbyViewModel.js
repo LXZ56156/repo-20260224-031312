@@ -5,6 +5,7 @@ const flow = require('../../core/uxFlow');
 const draftStartReadiness = require('../../core/draftStartReadiness');
 const scheduleContract = require('../../core/scheduleContract');
 const settingsViewModel = require('../settings/settingsViewModel');
+const avatarDisplayCore = require('../../core/avatarDisplay');
 
 function findFirstPendingPosition(rounds) {
   const list = Array.isArray(rounds) ? rounds : [];
@@ -89,9 +90,8 @@ function buildDisplayPlayers(list, avatarCache = {}) {
 
     let avatarDisplay = '';
     if (raw) {
-      if (raw.startsWith('cloud://')) {
-        const cached = String(avatarCache[raw] || '').trim();
-        avatarDisplay = cached || raw;
+      if (avatarDisplayCore.isCloudAvatar(raw)) {
+        avatarDisplay = avatarDisplayCore.getCachedAvatarUrl(avatarCache, raw);
       } else {
         avatarDisplay = raw;
       }

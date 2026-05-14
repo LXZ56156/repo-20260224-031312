@@ -6,6 +6,7 @@
 ## Status: completed
 
 ## Last Completed
+- 2026-05-14 Codex: 完成头像显示链路彻底修复。`avatarRaw` 继续保存原始头像值，`avatarDisplay` 只保存真正可赋给 `image src` 的临时 URL / HTTP URL / 本地路径；未解析 `cloud://` 时保持首字或默认头像兜底，不再把云文件 ID 直接塞进列表头像图片导致纯色空头像。`core/avatarDisplay` 统一处理 `getTempFileURL`、官方 50 个批量限制、临时 URL TTL、失败重试冷却和坏缓存清理；排阵页、参赛名单页、排名页、我的页、资料页统一接入，并给列表头像增加 `binderror` 回退。未改云函数和数据结构。验证：头像聚焦回归 `27 pass / 0 fail`；`git diff --check`、`npm run check` 通过；`node --test tests/*.test.js` => `916 pass / 0 fail`。
 - 2026-05-14 Codex: 完成 CloudBase CLI 云函数提交后自动部署工作流。新增 `cloudbaserc.json`（envId `cloud1-1ghmqjyt6428702b` / 20 个真实云函数）、`scripts/deploy-cloudfunctions.sh` 强化版（支持 `--force`、部署后 `tcb fn detail` 验证）、`scripts/deploy-changed-cloudfunctions.sh`（按 commit/range/files dry-run 推导变更函数，模板变更扩展为全量，拒绝直接改 `cloudfunctions/*/lib/*`）、版本化 `post-commit` hook 入口与安装脚本，并已安装本地 `.git/hooks/post-commit`。新增 dry-run 单测覆盖直接函数、`startTournament` 内部、多函数去重、共享模板全量、非云函数跳过和 lib 直改拒绝。验证：脚本 `bash -n` 全部通过；聚焦测试 `8 pass / 0 fail`；`git diff --check`、`npm run check` 通过；`node --test tests/*.test.js` 首跑 1 个既有 scheduler 审计超时，失败文件单独复跑通过，第二次全量通过（907 pass / 0 fail）。
 - 2026-05-14 Codex: 完成固定 `6人转` / `7人转` / `8人转` 推荐档等场化与 `7p-1c@21` 模板补齐。推荐档固定为 `6人转=9/15/18`、`7人转=14/21`、`8人转=8/14/16`，默认档保持 `6人转=9`、`7人转=14`、`8人转=14`；`7人转 21场` 已模板化，运行时 `schedulerMeta.engine=template`、`templateKey=7p-1c`、`playSpread=0`。`presetMatches` 测试约束改为允许 2 或 3 个选项，并明确 `7p-1c` 为 2 档。刷新 scheduler full audit 报告。验证：`node scripts/generate-scheduler-full-audit.js` => `warnings=0 / failures=0`；计划内聚焦测试 `64 pass / 0 fail`；`git diff --check`、`npm run check`、`node --test tests/*.test.js` 全部通过（901 pass / 0 fail）。
 - 2026-05-14 Codex: 完成 `6人转` / `7人转` 默认场次最小上调，使固定人数转默认总出场次数可均分到每个参赛人。`rotation_6` 默认总场次从 8 调整为 9，每人默认 6 场；`rotation_7` 默认总场次从 11 调整为 14，每人默认 8 场；`rotation_8` 保持 14 场，每人 7 场。同步更新前端 `mode` 配置、发起页摘要、多人转推荐档 `balancedMatch/presetMatches`、云函数共享 `mode` 模板及所有云函数派生 `lib/mode.js`，并刷新 scheduler audit 报告。验证：`node scripts/generate-scheduler-full-audit.js` => `warnings=0 / failures=0`；聚焦测试、scheduler/report 测试、`bash scripts/check-cloud-common.sh`、`git diff --check`、`npm run check`、`node --test tests/*.test.js` 全部通过（901 pass / 0 fail）。
@@ -33,16 +34,17 @@
 - 无。
 
 ## What Changed (未提交)
-- `6人转` 默认总场次上调为 9，`7人转` 默认总场次上调为 14；相关前端配置、云函数共享模板和测试已同步。
-- 固定推荐档已调整为 `6人转=9/15/18`、`7人转=14/21`、`8人转=8/14/16`；`7p-1c` 模板 horizon 扩到 21，`7人转 21场` 不再走 `beam-guarded`。
+- 无。
 
 ## Next Steps
-- 如需上线，通过微信开发者工具上传 `startTournament`（包含 `rotation.templates.js`），并同步部署已更新 `lib/mode.js` 的云函数。
+- 本轮未改云函数，不需要上传云函数；上线后重点真机复测排阵页和参赛名单页头像从首字兜底切换到真实头像的路径。
 
 ## Blockers
 - 无。
 
 ## Verified Subset Output
+- 2026-05-14 头像链路聚焦验证：`node --test tests/avatar-display.test.js tests/lobby-avatar-resolution-stale-guard.test.js tests/schedule.avatar-filter.test.js tests/ranking.avatar-display.test.js tests/profile.avatar-display.test.js tests/mine.render-before-sync.test.js` => `27 pass / 0 fail`。
+- 2026-05-14 头像链路全量验证：`git diff --check` => pass；`npm run check` => pass；`node --test tests/*.test.js` => `916 pass / 0 fail`。
 - 2026-05-14 推荐档等场化聚焦验证：`node --test tests/multi-rotate-match-options.test.js tests/settings.view-model.test.js tests/multi-rotate-recommendation-rationality.test.js tests/rotation.templates.test.js tests/rotation.template-script.test.js tests/rotation.performance.test.js tests/scheduler-full-audit-report.test.js` => `64 pass / 0 fail`。
 - 2026-05-14 默认场次上调聚焦验证：`node --test tests/createTournament.index.test.js tests/settings.view-model.test.js tests/updateSettings.index.test.js tests/startTournament.index.test.js tests/startTournament.logic.test.js tests/lobby.viewmodel.test.js tests/multi-rotate-match-options.test.js tests/mode-common.consistency.test.js tests/multi-rotate-recommendation-rationality.test.js` => `76 pass / 0 fail`。
 - 2026-05-14 scheduler/report 聚焦验证：`node --test tests/scheduler-full-audit-report.test.js tests/scheduler.coverage-priority.test.js tests/scheduler.multidimensional-audit.test.js tests/rotation.templates.test.js tests/rotation.template-script.test.js tests/rotation.performance.test.js tests/rotation.policy.test.js` => `56 pass / 0 fail`。

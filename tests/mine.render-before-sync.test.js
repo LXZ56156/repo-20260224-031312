@@ -91,7 +91,7 @@ test('mine page renders local profile before cloud sync resolves', async () => {
   }
 });
 
-test('mine page renders cloud avatar file id then resolves temp url', async () => {
+test('mine page renders default avatar before cloud temp url resolves', async () => {
   const originalGetApp = global.getApp;
   const originalWx = global.wx;
   const originalGetUserProfile = storage.getUserProfile;
@@ -132,7 +132,7 @@ test('mine page renders cloud avatar file id then resolves temp url', async () =
     const ctx = createMinePageContext(definition);
 
     ctx.onShow();
-    assert.equal(ctx.data.avatar, 'cloud://avatar/u_1');
+    assert.equal(ctx.data.avatar, profileCore.DEFAULT_AVATAR);
 
     await Promise.resolve();
     await Promise.resolve();

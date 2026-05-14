@@ -5,7 +5,7 @@
       <text class="count-pill">{{showJoin ? '草稿可加入' : '草稿可修改'}}</text>
     </view>
     <view class="profile-col">
-      <image class="avatar-img profile-avatar" src="{{showJoin ? joinAvatarDisplay : myAvatarDisplay}}" mode="aspectFill"></image>
+      <image class="avatar-img profile-avatar" src="{{showJoin ? joinAvatarDisplay : myAvatarDisplay}}" mode="aspectFill" data-avatar="{{showJoin ? joinAvatar : myAvatar}}" binderror="onProfileAvatarImageError"></image>
       <input
         class="input profile-input {{profileFieldError ? 'input-error' : ''}}"
         type="nickname"

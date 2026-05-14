@@ -6,6 +6,7 @@ const loading = require('../../core/loading');
 const storage = require('../../core/storage');
 const profileCore = require('../../core/profile');
 const nav = require('../../core/nav');
+const avatarDisplay = require('../../core/avatarDisplay');
 
 module.exports = {
   onProfileNickInput(e) {
@@ -145,25 +146,47 @@ module.exports = {
     const fallback = '/assets/avatar-default.png';
     const value = String(avatar || '').trim();
     if (!value) return fallback;
-    if (value.startsWith('cloud://')) {
-      if (this.avatarCache && this.avatarCache[value]) return this.avatarCache[value];
-      try {
-        const res = await wx.cloud.getTempFileURL({ fileList: [value] });
-        const url = res && res.fileList && res.fileList[0] && res.fileList[0].tempFileURL;
-        if (url) {
-          this.avatarCache[value] = url;
-          return url;
-        }
-      } catch (_) {
-        return fallback;
-      }
-      return fallback;
+    if (avatarDisplay.isCloudAvatar(value)) {
+      if (!this.avatarCache || typeof this.avatarCache !== 'object') this.avatarCache = {};
+      const cached = avatarDisplay.getCachedAvatarUrl(this.avatarCache, value);
+      if (cached) return cached;
+      await avatarDisplay.resolveCloudAvatarFileIds([value], this.avatarCache);
+      return avatarDisplay.getCachedAvatarUrl(this.avatarCache, value) || fallback;
     }
     return value;
   },
 
+  onProfileAvatarImageError(e) {
+    const raw = String(e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.avatar || '').trim();
+    if (!this.avatarCache || typeof this.avatarCache !== 'object') this.avatarCache = {};
+    if (avatarDisplay.isCloudAvatar(raw)) avatarDisplay.markAvatarUrlFailed(this.avatarCache, raw);
+    const fallback = '/assets/avatar-default.png';
+    if (this.data.showJoin) {
+      if (this.data.joinAvatarDisplay !== fallback) this.setData({ joinAvatarDisplay: fallback });
+    } else if (this.data.myAvatarDisplay !== fallback) {
+      this.setData({ myAvatarDisplay: fallback });
+    }
+  },
+
+  onDisplayPlayerAvatarError(e) {
+    const raw = String(e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.avatarRaw || '').trim();
+    if (!raw) return;
+    if (!this.avatarCache || typeof this.avatarCache !== 'object') this.avatarCache = {};
+    if (avatarDisplay.isCloudAvatar(raw)) avatarDisplay.markAvatarUrlFailed(this.avatarCache, raw);
+    const list = (Array.isArray(this.data.displayPlayers) ? this.data.displayPlayers : []).map((player) => {
+      if (String(player && player.avatarRaw || '').trim() !== raw) return player;
+      return { ...player, avatarDisplay: '' };
+    });
+    if (typeof this.applyLobbyPatch === 'function') {
+      this.applyLobbyPatch({ displayPlayers: list });
+      return;
+    }
+    this.setData({ displayPlayers: list });
+  },
+
   async resolveDisplayPlayersAvatars() {
     try {
+      if (!this.avatarCache || typeof this.avatarCache !== 'object') this.avatarCache = {};
       const generation = Number(this._displayPlayersAvatarGen || 0) + 1;
       this._displayPlayersAvatarGen = generation;
       const applyPatch = (patch) => {
@@ -182,14 +205,17 @@ module.exports = {
           list[i].avatarDisplay = '';
           continue;
         }
-        if (raw.startsWith('cloud://')) {
-          if (this.avatarCache && this.avatarCache[raw]) {
-            list[i].avatarDisplay = this.avatarCache[raw];
+        if (avatarDisplay.isCloudAvatar(raw)) {
+          const cached = avatarDisplay.getCachedAvatarUrl(this.avatarCache, raw);
+          if (cached) {
+            list[i].avatarDisplay = cached;
           } else {
-            list[i].avatarDisplay = raw;
-            need.push(raw);
-            mapIdx[raw] = mapIdx[raw] || [];
-            mapIdx[raw].push(i);
+            list[i].avatarDisplay = '';
+            if (avatarDisplay.shouldResolveCloudAvatarFileId(raw, this.avatarCache)) {
+              need.push(raw);
+              mapIdx[raw] = mapIdx[raw] || [];
+              mapIdx[raw].push(i);
+            }
           }
         } else {
           list[i].avatarDisplay = raw;
@@ -199,14 +225,11 @@ module.exports = {
       applyPatch({ displayPlayers: list });
 
       if (!need.length) return;
-      const res = await wx.cloud.getTempFileURL({ fileList: need });
+      await avatarDisplay.resolveCloudAvatarFileIds(need, this.avatarCache);
       if (this._displayPlayersAvatarGen !== generation) return;
-      const fileList = (res && res.fileList) || [];
-      for (const item of fileList) {
-        const fileID = item && item.fileID;
-        const url = item && item.tempFileURL;
-        if (!fileID || !url) continue;
-        this.avatarCache[fileID] = url;
+      for (const fileID of Object.keys(mapIdx)) {
+        const url = avatarDisplay.getCachedAvatarUrl(this.avatarCache, fileID);
+        if (!url) continue;
         const idxs = mapIdx[fileID] || [];
         for (const idx of idxs) {
           if (list[idx]) list[idx].avatarDisplay = url;

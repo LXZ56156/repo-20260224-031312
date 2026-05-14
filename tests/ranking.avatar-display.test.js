@@ -64,6 +64,64 @@ test('ranking page decorates personal rankings with a single avatar item', () =>
   }
 });
 
+test('ranking page keeps initials visible before cloud avatar temp url resolves', () => {
+  const definition = loadRankingPageDefinition();
+  const ctx = createRankingPageContext(definition);
+
+  try {
+    ctx.applyTournament({
+      _id: 't_rank_avatar',
+      status: 'running',
+      mode: 'multi_rotate',
+      players: [
+        { id: 'u_1', nickName: '球友A', avatar: 'cloud://avatar/u_1' }
+      ],
+      rounds: [],
+      rankings: [
+        { playerId: 'u_1', wins: 1, losses: 0, played: 1, pointsFor: 21, pointsAgainst: 18, pointDiff: 3 }
+      ]
+    });
+
+    const first = ctx.data.rankings[0];
+    assert.equal(first.avatarItems[0].avatarRaw, 'cloud://avatar/u_1');
+    assert.equal(first.avatarItems[0].avatarDisplay, '');
+    assert.equal(first.avatarItems[0].initial, '球');
+  } finally {
+    delete require.cache[rankingPagePath];
+  }
+});
+
+test('ranking page restores initial fallback when avatar image fails to load', () => {
+  const definition = loadRankingPageDefinition();
+  const ctx = createRankingPageContext(definition);
+
+  try {
+    ctx.avatarCache = {
+      'cloud://avatar/u_1': 'https://temp/avatar/u_1.png'
+    };
+    ctx.applyTournament({
+      _id: 't_rank_avatar',
+      status: 'running',
+      mode: 'multi_rotate',
+      players: [
+        { id: 'u_1', nickName: '球友A', avatar: 'cloud://avatar/u_1' }
+      ],
+      rounds: [],
+      rankings: [
+        { playerId: 'u_1', wins: 1, losses: 0, played: 1, pointsFor: 21, pointsAgainst: 18, pointDiff: 3 }
+      ]
+    });
+    assert.equal(ctx.data.rankings[0].avatarItems[0].avatarDisplay, 'https://temp/avatar/u_1.png');
+
+    ctx.onAvatarImageError({ currentTarget: { dataset: { avatarRaw: 'cloud://avatar/u_1' } } });
+
+    assert.equal(ctx.data.rankings[0].avatarItems[0].avatarDisplay, '');
+    assert.equal(ctx.data.rankings[0].avatarItems[0].initial, '球');
+  } finally {
+    delete require.cache[rankingPagePath];
+  }
+});
+
 test('ranking page decorates fixed pair rows with side-by-side avatars', () => {
   const definition = loadRankingPageDefinition();
   const ctx = createRankingPageContext(definition);

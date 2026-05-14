@@ -70,7 +70,7 @@
           <view class="match-team">
             <view class="match-team-avatars">
               <view class="match-avatar {{item.colorClass}}" wx:for="{{m.leftTeam.avatarItems}}" wx:key="id" data-player-id="{{item.id}}" catchtap="onMatchPlayerAvatarTap">
-                <image class="match-avatar-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill"></image>
+                <image class="match-avatar-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill" data-avatar-raw="{{item.avatarRaw}}" binderror="onAvatarImageError"></image>
                 <text class="match-avatar-initial" wx:else>{{item.initial}}</text>
               </view>
             </view>
@@ -84,7 +84,7 @@
           <view class="match-team">
             <view class="match-team-avatars">
               <view class="match-avatar {{item.colorClass}}" wx:for="{{m.rightTeam.avatarItems}}" wx:key="id" data-player-id="{{item.id}}" catchtap="onMatchPlayerAvatarTap">
-                <image class="match-avatar-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill"></image>
+                <image class="match-avatar-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill" data-avatar-raw="{{item.avatarRaw}}" binderror="onAvatarImageError"></image>
                 <text class="match-avatar-initial" wx:else>{{item.initial}}</text>
               </view>
             </view>
@@ -120,7 +120,7 @@
           <view class="selected-player-list">
             <view class="selected-player-chip" wx:for="{{selectedPlayersUi}}" wx:key="id" data-player-id="{{item.id}}" catchtap="onSelectedPlayerTap">
               <view class="selected-player-avatar {{item.colorClass}}">
-                <image class="selected-player-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill"></image>
+                <image class="selected-player-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill" data-avatar-raw="{{item.avatarRaw}}" binderror="onAvatarImageError"></image>
                 <text class="selected-player-initial" wx:else>{{item.initial}}</text>
                 <text class="selected-player-remove">×</text>
               </view>
