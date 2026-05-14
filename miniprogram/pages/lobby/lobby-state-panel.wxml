@@ -24,6 +24,22 @@
           </view>
         </button>
         <view
+          wx:elif="{{featuredChecklistItem.key==='players'}}"
+          class="prep-featured prep-static {{featuredChecklistItem.cardClass}}"
+        >
+          <view class="prep-featured-top">
+            <view class="prep-badge">{{featuredChecklistItem.badgeText}}</view>
+            <text class="prep-jump prep-jump-featured">{{featuredChecklistItem.actionText}}</text>
+          </view>
+          <view class="prep-featured-main">
+            <text class="prep-indicator prep-indicator-lg {{featuredChecklistItem.indicatorClass}}"></text>
+            <view class="prep-main">
+              <view class="prep-title prep-title-featured">{{featuredChecklistItem.title}}</view>
+              <view class="prep-sub prep-sub-featured">{{featuredChecklistItem.summary}}</view>
+            </view>
+          </view>
+        </view>
+        <view
           wx:else
           class="prep-featured {{featuredChecklistItem.cardClass}}"
           data-key="{{featuredChecklistItem.key}}"
@@ -59,6 +75,20 @@
             </view>
             <text class="prep-jump">{{item.actionText}}</text>
           </button>
+          <view
+            wx:elif="{{item.key==='players'}}"
+            class="prep-tile prep-static {{item.cardClass}}"
+          >
+            <view class="prep-secondary-head">
+              <text class="prep-indicator {{item.indicatorClass}}"></text>
+              <view class="prep-badge prep-badge-subtle" wx:if="{{item.badgeText}}">{{item.badgeText}}</view>
+            </view>
+            <view class="prep-main prep-main-secondary">
+              <view class="prep-title">{{item.title}}</view>
+              <view class="prep-sub">{{item.summary}}</view>
+            </view>
+            <text class="prep-jump">{{item.actionText}}</text>
+          </view>
           <view
             wx:else
             class="prep-tile {{item.cardClass}}"

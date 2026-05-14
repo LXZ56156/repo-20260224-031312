@@ -76,9 +76,9 @@ const draftActions = {
     const key = String(rawKey || '').trim();
     if (!key) return;
     const handlers = {
-      join: () => this.handleJoin(),
-      profile_join: () => this.submitProfile(),
-      profile_save: () => this.submitProfile(),
+      join: () => this.openJoinSheet(),
+      profile_join: () => this.openJoinSheet(),
+      profile_save: () => this.openJoinSheet(),
       view_only_join: () => this.enterJoinFromViewOnly(),
       settings: () => this.goEditTournament(),
       quickImport: () => this.focusQuickImportArea(),

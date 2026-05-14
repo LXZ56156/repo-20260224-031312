@@ -25,24 +25,25 @@ test('lobby index includes split partials and keeps hero/admin sections in their
   assert.doesNotMatch(wxml, /<template is=/);
   assert.match(hero, /class="tag \{\{statusClass\}\} hero-status-tag"/);
   assert.equal((wxml.match(/bindtap="goEditTournament"/g) || []).length, 0);
-  assert.equal((admin.match(/bindtap="goEditTournament"/g) || []).length, 1);
+  assert.equal((admin.match(/bindtap="goEditTournament"/g) || []).length, 0);
 });
 
-test('lobby index layers action entry before roster and admin tools', () => {
+test('lobby index goes from state panel directly to sheet, roster and admin tools', () => {
   const wxml = readLobbyFile('index.wxml');
   const stateIndex = wxml.indexOf('<include src="./lobby-state-panel.wxml"/>');
-  const actionIndex = wxml.indexOf('class="lobby-action-layer"');
+  const sheetIndex = wxml.indexOf('<include src="./lobby-join-sheet.wxml"/>');
   const playerIndex = wxml.indexOf('<include src="./lobby-player-grid.wxml"/>');
   const adminIndex = wxml.indexOf('<include src="./lobby-admin-panel.wxml"/>');
   const infoIndex = wxml.indexOf('class="card panel panel-soft info-panel');
 
   assert.notEqual(stateIndex, -1);
-  assert.notEqual(actionIndex, -1);
+  assert.notEqual(sheetIndex, -1);
   assert.notEqual(playerIndex, -1);
   assert.notEqual(adminIndex, -1);
   assert.notEqual(infoIndex, -1);
-  assert.ok(stateIndex < actionIndex);
-  assert.ok(actionIndex < playerIndex);
+  assert.equal(wxml.indexOf('class="lobby-action-layer"'), -1);
+  assert.ok(stateIndex < sheetIndex);
+  assert.ok(sheetIndex < playerIndex);
   assert.ok(playerIndex < adminIndex);
   assert.ok(adminIndex < infoIndex);
 });

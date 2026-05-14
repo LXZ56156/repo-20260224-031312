@@ -239,7 +239,7 @@ function buildChecklistItems({ checkSettingsOk, checkPlayersOk, checkStartReady,
       title: '2. 转发比赛',
       done: !!checkPlayersOk,
       summary: String(playersChecklistHint || '').trim() || '优先转发比赛，导入名单作备用',
-      actionText: checkPlayersOk ? '查看' : '去转发'
+      actionText: checkPlayersOk ? '已就绪' : '待邀请'
     },
     {
       key: 'start',
@@ -349,7 +349,7 @@ function buildRoleCards(ctx) {
   let joinedSummary = '你已在名单中，可继续跟进比赛安排。';
   if (status === 'draft') {
     joinedActionKey = 'profile_save';
-    joinedActionText = showMyProfile ? '保存我的信息' : '查看我的资料';
+    joinedActionText = '编辑我的资料';
     joinedSummary = '你已加入比赛，草稿阶段仍可补充昵称和头像。';
   } else if (status === 'running' && canEditScore && hasPending) {
     joinedActionKey = 'batch';
@@ -364,7 +364,7 @@ function buildRoleCards(ctx) {
   let viewerSummary = '当前以观赛身份查看，不会自动加入名单。';
   if (status === 'draft') {
     viewerActionKey = showViewOnlyJoinPrompt ? 'view_only_join' : 'share';
-    viewerActionText = showViewOnlyJoinPrompt ? '我要加入' : '继续观赛';
+    viewerActionText = showViewOnlyJoinPrompt ? '立即加入' : '继续观赛';
     viewerSummary = '可以先看比赛信息，确定后再显式加入。';
   } else if (status === 'finished') {
     viewerSummary = '比赛已结束，可通过顶部切换查看比赛、排名或对阵。';
@@ -381,7 +381,7 @@ function buildRoleCards(ctx) {
       buildRoleCard('admin', '管理员', adminSummary, adminActionKey, adminActionText, activeRoleKey === 'admin'),
       buildRoleCard('joined', '已加入用户', joinedSummary, joinedActionKey, joinedActionText, activeRoleKey === 'joined'),
       buildRoleCard('viewer', '观赛用户', viewerSummary, viewerActionKey, viewerActionText, activeRoleKey === 'viewer'),
-      buildRoleCard('profile_pending', '待补资料用户', pendingSummary, 'profile_join', '确认加入', activeRoleKey === 'profile_pending')
+      buildRoleCard('profile_pending', '待补资料用户', pendingSummary, 'profile_join', '立即加入', activeRoleKey === 'profile_pending')
     ]
   };
 }

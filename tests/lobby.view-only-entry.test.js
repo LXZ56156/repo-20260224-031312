@@ -59,7 +59,7 @@ test('lobby view model keeps draft share visitors in read-only mode until they o
   assert.equal(result.patch.showViewOnlyJoinPrompt, true);
   assert.equal(result.patch.showJoin, false);
   assert.equal(result.patch.nextActionKey, 'view_only_join');
-  assert.equal(result.patch.nextActionText, '我要加入');
+  assert.equal(result.patch.nextActionText, '立即加入');
 });
 
 test('lobby view-only prompt can expand into the normal join form', () => {
@@ -75,6 +75,9 @@ test('lobby view-only prompt can expand into the normal join form', () => {
     ctx.enterJoinFromViewOnly();
 
     assert.equal(ctx.data.viewOnlyJoinExpanded, true);
+    assert.equal(ctx.data.showViewOnlyJoinPrompt, false);
+    assert.equal(ctx.data.showJoin, true);
+    assert.equal(ctx.data.showJoinSheet, true);
     assert.equal(ctx.data.profileNicknameFocus, true);
   } finally {
     delete require.cache[lobbyPagePath];

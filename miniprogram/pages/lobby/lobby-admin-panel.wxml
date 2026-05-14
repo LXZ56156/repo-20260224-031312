@@ -9,7 +9,6 @@
 
     <view class="admin-collapse-body" wx:if="{{adminPanelExpanded}}">
       <view class="admin-manage-actions">
-        <button class="btn btn-subtle" bindtap="goEditTournament">修改比赛</button>
         <button class="btn btn-danger" bindtap="cancelTournament">取消比赛</button>
       </view>
 

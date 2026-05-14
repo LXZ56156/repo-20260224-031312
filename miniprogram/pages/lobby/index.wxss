@@ -219,20 +219,6 @@
   box-shadow: 0 -4rpx 18rpx rgba(24, 179, 104, 0.08);
 }
 
-/* --- Action Layer: join/share before roster --- */
-.lobby-action-layer {
-  margin-top: var(--space-section);
-}
-
-.lobby-action-layer .profile-panel,
-.lobby-action-layer .join-trigger-bar {
-  margin-top: 0;
-}
-
-.lobby-action-layer .profile-panel + .join-trigger-bar {
-  margin-top: var(--space-inline);
-}
-
 .start-pulse {
   animation: startPulse 420ms ease-out 1;
 }
@@ -271,6 +257,10 @@
 .prep-featured:active,
 .prep-tile:active {
   transform: translateY(1rpx);
+}
+
+.prep-static:active {
+  transform: none;
 }
 
 .prep-secondary-grid {
@@ -555,17 +545,6 @@
 /* --- Join trigger bar --- */
 .join-trigger-bar {
   margin-bottom: 0;
-}
-
-.join-trigger-btn {
-  margin-top: 0 !important;
-  width: 78%;
-  min-width: 0;
-  margin-left: auto !important;
-  margin-right: auto !important;
-  border-radius: 18rpx;
-  background: linear-gradient(135deg, #29C977 0%, #18B368 52%, #0E8F55 100%) !important;
-  box-shadow: 0 12rpx 24rpx rgba(24, 179, 104, 0.22);
 }
 
 /* --- Bottom-sheet --- */

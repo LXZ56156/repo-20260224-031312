@@ -47,7 +47,7 @@ test('lobby view model partitions admin role flow and promotes share before back
     result.patch.roleCards.map((item) => item.key),
     ['admin', 'joined', 'viewer', 'profile_pending']
   );
-  assert.equal(result.patch.checklistItems[1].actionText, '去转发');
+  assert.equal(result.patch.checklistItems[1].actionText, '待邀请');
   assert.equal(result.patch.stateSecondaryActions, undefined);
 });
 
@@ -95,11 +95,32 @@ test('lobby view model keeps unjoined draft visitors in pending-profile role onc
   assert.equal(result.patch.showJoin, true);
   assert.equal(result.patch.currentRoleKey, 'profile_pending');
   assert.equal(result.patch.nextActionKey, 'profile_join');
-  assert.equal(result.patch.nextActionText, '确认加入');
+  assert.equal(result.patch.nextActionText, '立即加入');
   assert.match(result.patch.nextActionDetail, /先补昵称和头像/);
   assert.equal(result.patch.statePanelTitle, '加入前确认');
   assert.equal(result.patch.statePrimaryActionKey, 'profile_join');
   assert.equal(result.patch.showDraftAdminPanel, false);
+});
+
+test('lobby view model uses edit-copy for joined draft profile entry', () => {
+  const result = viewModel.buildLobbyViewModel({
+    tournament: buildTournament({
+      players: [
+        { id: 'u_admin', name: '组织者', gender: 'male' },
+        { id: 'u_1', name: '球友1', gender: 'male' },
+        { id: 'u_2', name: '球友2', gender: 'female' },
+        { id: 'u_3', name: '球友3', gender: 'female' }
+      ]
+    }),
+    openid: 'u_1',
+    data: {}
+  });
+
+  assert.equal(result.patch.showMyProfile, true);
+  assert.equal(result.patch.currentRoleKey, 'joined');
+  assert.equal(result.patch.nextActionKey, 'profile_save');
+  assert.equal(result.patch.nextActionText, '编辑我的资料');
+  assert.equal(result.patch.statePrimaryActionText, '编辑我的资料');
 });
 
 test('lobby view model turns finished state into summary-only actions and keeps three-item nav', () => {

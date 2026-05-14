@@ -22,20 +22,6 @@
   <include src="./lobby-hero.wxml"/>
   <include src="./lobby-state-panel.wxml"/>
 
-  <view class="lobby-action-layer">
-    <view class="card panel profile-panel reveal reveal-3" wx:if="{{showViewOnlyJoinPrompt}}">
-      <view class="section-head">
-        <view class="section-title">先看比赛信息</view>
-        <text class="count-pill">不会自动加入</text>
-      </view>
-      <button class="btn btn-primary" bindtap="enterJoinFromViewOnly">我要加入</button>
-    </view>
-
-    <view class="join-trigger-bar reveal reveal-3" wx:if="{{(showJoin || showMyProfile) && !showJoinSheet}}">
-      <button class="btn btn-primary join-trigger-btn" bindtap="openJoinSheet">{{showJoin ? '立即加入' : '编辑我的资料'}}</button>
-    </view>
-  </view>
-
   <view class="sheet-mask" wx:if="{{showJoinSheet}}" bindtap="closeJoinSheet"></view>
   <include src="./lobby-join-sheet.wxml"/>
   <include src="./lobby-player-grid.wxml"/>

@@ -287,6 +287,8 @@ Page({
   enterJoinFromViewOnly() {
     this.setData({
       viewOnlyJoinExpanded: true,
+      showViewOnlyJoinPrompt: false,
+      showJoin: true,
       showJoinSheet: true,
       profileNicknameFocus: true
     });
