@@ -454,6 +454,16 @@
   gap: var(--space-inline);
 }
 
+.selected-player-empty-hint {
+  display: inline-flex;
+  align-items: center;
+  min-height: 64rpx;
+  color: var(--neutral-400);
+  font-size: 24rpx;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .selected-player-chip {
   position: relative;
   display: inline-flex;

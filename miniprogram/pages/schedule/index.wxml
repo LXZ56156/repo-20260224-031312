@@ -118,6 +118,7 @@
         <view class="filter-trigger" bindtap="openPlayerFilterSheet">{{avatarFilterLabel}}<text class="filter-arrow">▼</text></view>
         <scroll-view class="selected-player-scroll" scroll-x="true">
           <view class="selected-player-list">
+            <view class="selected-player-empty-hint" wx:if="{{!selectedPlayersUi.length}}">点击头像可筛选</view>
             <view class="selected-player-chip" wx:for="{{selectedPlayersUi}}" wx:key="id" data-player-id="{{item.id}}" catchtap="onSelectedPlayerTap">
               <view class="selected-player-avatar {{item.colorClass}}">
                 <image class="selected-player-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill" data-avatar-raw="{{item.avatarRaw}}" binderror="onAvatarImageError"></image>

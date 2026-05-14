@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const schedulePagePath = require.resolve('../miniprogram/pages/schedule/index.js');
 
@@ -107,6 +109,17 @@ function buildTournamentWithSecondRoundPending() {
   tournament.rounds[0].matches[0].scoreB = 19;
   return tournament;
 }
+
+test('schedule page shows a hint that tapping avatars filters matches', () => {
+  const wxml = fs.readFileSync(
+    path.join(__dirname, '..', 'miniprogram/pages/schedule/index.wxml'),
+    'utf8'
+  );
+
+  assert.match(wxml, /selected-player-empty-hint/);
+  assert.match(wxml, /wx:if="\{\{!selectedPlayersUi\.length\}\}"/);
+  assert.match(wxml, />点击头像可筛选</);
+});
 
 test('schedule page decorates match cards with avatar groups and inline member names', () => {
   const definition = loadSchedulePageDefinition();
