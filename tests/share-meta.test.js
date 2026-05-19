@@ -113,22 +113,24 @@ test('shareMeta can build retryable sync failure state separately from invalid l
   assert.equal(preview.secondaryAction.text, '返回首页');
 });
 
-test('shareMeta builds lifecycle-agnostic share copy', () => {
+test('shareMeta builds search-oriented share copy by lifecycle', () => {
   const draftShare = shareMeta.buildShareMessage(buildTournament('draft'));
   const runningShare = shareMeta.buildShareMessage(buildTournament('running'));
   const finishedShare = shareMeta.buildShareMessage(buildTournament('finished'));
+  const fallbackShare = shareMeta.buildShareMessage(buildTournament('unknown'));
   const fixedRotationShare = shareMeta.buildShareMessage(buildTournament('draft', {
     name: '周末自定义赛',
     presetKey: 'rotation_8',
     playerLimit: 8
   }));
 
-  assert.equal(draftShare.title, '周末友谊赛 · 查看比赛');
+  assert.equal(draftShare.title, '周末友谊赛，加入羽毛球比赛');
   assert.equal(draftShare.intent, 'view');
   assert.equal(draftShare.buttonText, '转发');
-  assert.equal(runningShare.title, '周末友谊赛 · 查看比赛');
+  assert.equal(runningShare.title, '周末友谊赛 赛程对阵已生成');
   assert.equal(runningShare.path, '/pages/share-entry/index?tournamentId=t_1');
-  assert.equal(finishedShare.title, '周末友谊赛 · 查看比赛');
+  assert.equal(finishedShare.title, '周末友谊赛 赛事排名已出炉');
   assert.equal(finishedShare.panelTitle, '转发比赛');
-  assert.equal(fixedRotationShare.title, '8人转 · 查看比赛');
+  assert.equal(fallbackShare.title, '周末友谊赛 · 羽球轮转助手');
+  assert.equal(fixedRotationShare.title, '8人转，加入羽毛球比赛');
 });

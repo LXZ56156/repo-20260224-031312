@@ -2,6 +2,83 @@
   "rules": [
     {
       "action": "allow",
+      "page": "pages/home/index",
+      "priority": 10
+    },
+    {
+      "action": "allow",
+      "page": "pages/launch/index",
+      "priority": 9
+    },
+    {
+      "action": "allow",
+      "page": "pages/create/index",
+      "priority": 9
+    },
+    {
+      "action": "allow",
+      "page": "pages/lobby/index",
+      "params": ["tournamentId"],
+      "matching": "inclusive",
+      "priority": 8
+    },
+    {
+      "action": "allow",
+      "page": "pages/schedule/index",
+      "params": ["tournamentId"],
+      "matching": "inclusive",
+      "priority": 7
+    },
+    {
+      "action": "allow",
+      "page": "pages/ranking/index",
+      "params": ["tournamentId"],
+      "matching": "inclusive",
+      "priority": 6
+    },
+    {
+      "action": "allow",
+      "page": "pages/share-entry/index",
+      "params": ["tournamentId"],
+      "matching": "inclusive",
+      "priority": 6
+    },
+    {
+      "action": "allow",
+      "page": "pages/analytics/index",
+      "params": ["tournamentId"],
+      "matching": "inclusive",
+      "priority": 5
+    },
+    {
+      "action": "allow",
+      "page": "pages/match/index",
+      "params": ["tournamentId", "matchIndex"],
+      "matching": "inclusive",
+      "priority": 4
+    },
+    {
+      "action": "disallow",
+      "page": "pages/mine/index"
+    },
+    {
+      "action": "disallow",
+      "page": "pages/profile/index"
+    },
+    {
+      "action": "disallow",
+      "page": "pages/preferences/index"
+    },
+    {
+      "action": "disallow",
+      "page": "pages/settings/index"
+    },
+    {
+      "action": "disallow",
+      "page": "pages/feedback/index"
+    },
+    {
+      "action": "disallow",
       "page": "*"
     }
   ]

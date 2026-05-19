@@ -1,4 +1,5 @@
 const pageTournamentSync = require('../../core/pageTournamentSync');
+const pageTitle = require('../../core/pageTitle');
 const retryAction = require('../../core/retryAction');
 const storage = require('../../core/storage');
 const nav = require('../../core/nav');
@@ -147,6 +148,7 @@ Page({
     if (!viewState) return;
 
     this._latestTournament = viewState.tournament;
+    pageTitle.setTournamentPageTitle(this, '录入比分', viewState.tournament);
 
     if (this.data.batchMode && viewState.tournament) {
       let batchTotal = 0;

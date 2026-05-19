@@ -3,6 +3,7 @@ const normalize = require('../../core/normalize');
 const playerUtils = require('../../core/playerUtils');
 const perm = require('../../permission/permission');
 const nav = require('../../core/nav');
+const pageTitle = require('../../core/pageTitle');
 const pageTournamentSync = require('../../core/pageTournamentSync');
 const matchPrimaryNav = require('../../core/matchPrimaryNav');
 const shareMeta = require('../../core/shareMeta');
@@ -432,6 +433,7 @@ Page({
     if (tournamentName !== String(t.name || '').trim()) {
       t = { ...t, name: tournamentName };
     }
+    pageTitle.setTournamentPageTitle(this, '赛程对阵', t);
 
     const status = t.status || 'draft';
     const modeLabel = flow.getModeDisplayLabel(t.mode || flow.MODE_MULTI_ROTATE, t.presetKey);

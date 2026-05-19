@@ -47,7 +47,7 @@ test('schedule page shares current tournament through the unified transfer contr
     });
 
     const share = ctx.onShareAppMessage();
-    assert.equal(share.title, '周末赛 · 查看比赛');
+    assert.equal(share.title, '周末赛 赛程对阵已生成');
     assert.equal(share.path, '/pages/share-entry/index?tournamentId=t_1');
   } finally {
     delete require.cache[schedulePagePath];

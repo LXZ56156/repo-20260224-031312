@@ -105,8 +105,17 @@ function resolveCurrentRoundText(rounds, lifecycle = 'draft') {
 function buildShareMessage(tournament) {
   const t = tournament && typeof tournament === 'object' ? normalize.normalizeTournament(tournament) : null;
   const tournamentName = flow.getTournamentDisplayName(t, '羽毛球比赛');
+  const lifecycle = normalizeLifecycleStatus(t && t.status);
+  const players = t && Array.isArray(t.players) ? t.players : [];
+  const playersCount = players.length || (t && Array.isArray(t.playerIds) ? t.playerIds.length : 0);
+  const playerLimit = flow.getRotationPlayerLimit(t);
+  const joinAllowed = lifecycle === 'draft' && (playerLimit <= 0 || playersCount < playerLimit);
+  let title = `${tournamentName} · 羽球轮转助手`;
+  if (joinAllowed) title = `${tournamentName}，加入羽毛球比赛`;
+  else if (lifecycle === 'running') title = `${tournamentName} 赛程对阵已生成`;
+  else if (lifecycle === 'finished') title = `${tournamentName} 赛事排名已出炉`;
   return {
-    title: `${tournamentName} · 查看比赛`,
+    title,
     intent: 'view',
     panelTitle: '转发比赛',
     badgeText: '比赛',

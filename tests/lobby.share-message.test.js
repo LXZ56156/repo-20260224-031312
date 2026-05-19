@@ -40,11 +40,11 @@ test('lobby page uses a unified transfer contract across lifecycle states', () =
     const runningShare = runningCtx.onShareAppMessage();
     const finishedShare = finishedCtx.onShareAppMessage();
 
-    assert.equal(draftShare.title, '周末比赛 · 查看比赛');
+    assert.equal(draftShare.title, '周末比赛，加入羽毛球比赛');
     assert.equal(draftShare.path, '/pages/share-entry/index?tournamentId=t_1');
-    assert.equal(runningShare.title, '周末比赛 · 查看比赛');
+    assert.equal(runningShare.title, '周末比赛 赛程对阵已生成');
     assert.equal(runningShare.path, '/pages/share-entry/index?tournamentId=t_1');
-    assert.equal(finishedShare.title, '周末比赛 · 查看比赛');
+    assert.equal(finishedShare.title, '周末比赛 赛事排名已出炉');
     assert.equal(finishedShare.path, '/pages/share-entry/index?tournamentId=t_1');
   } finally {
     delete require.cache[lobbyPagePath];

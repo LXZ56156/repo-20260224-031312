@@ -4,6 +4,7 @@ const clientRequest = require('../../core/clientRequest');
 const joinTournamentCore = require('../../core/joinTournament');
 const loading = require('../../core/loading');
 const nav = require('../../core/nav');
+const pageTitle = require('../../core/pageTitle');
 const pageTournamentSync = require('../../core/pageTournamentSync');
 const pageTimers = require('../../core/pageTimers');
 const shareMeta = require('../../core/shareMeta');
@@ -206,6 +207,7 @@ Page({
       tournament,
       preview
     });
+    pageTitle.setTournamentPageTitle(this, preview.joinAllowed && !preview.joined ? '加入比赛' : '查看比赛', tournament);
   },
 
   onRetry() {

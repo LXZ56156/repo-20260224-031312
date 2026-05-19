@@ -1,4 +1,5 @@
 const storage = require('../../core/storage');
+const pageTitle = require('../../core/pageTitle');
 const shareMeta = require('../../core/shareMeta');
 const flow = require('../../core/uxFlow');
 const nav = require('../../core/nav');
@@ -323,6 +324,7 @@ Page({
     });
 
     this.applyLobbyPatch(next.patch);
+    pageTitle.setTournamentPageTitle(this, '赛事大厅', next.tournament);
 
     if (next.meta.showMyProfile && next.meta.myPlayer) {
       const name = String(next.meta.myPlayer.name || '').trim();

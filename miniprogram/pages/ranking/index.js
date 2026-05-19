@@ -1,5 +1,6 @@
 const normalize = require('../../core/normalize');
 const nav = require('../../core/nav');
+const pageTitle = require('../../core/pageTitle');
 const pageTournamentSync = require('../../core/pageTournamentSync');
 const rankingCore = require('../../core/ranking');
 const flow = require('../../core/uxFlow');
@@ -143,6 +144,7 @@ Page({
     if (tournamentName !== String(t.name || '').trim()) {
       t = { ...t, name: tournamentName };
     }
+    pageTitle.setTournamentPageTitle(this, '赛事排名', t);
     const mode = flow.normalizeMode(t.mode || flow.MODE_MULTI_ROTATE);
     const isTeamMode = mode === flow.MODE_SQUAD_DOUBLES || mode === flow.MODE_FIXED_PAIR_RR;
     const rankingTypeLabel = isTeamMode ? '队伍榜' : '个人榜';

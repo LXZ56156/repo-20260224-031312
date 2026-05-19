@@ -7,6 +7,7 @@ const writeErrorUi = require('../../core/writeErrorUi');
 const retryAction = require('../../core/retryAction');
 const nav = require('../../core/nav');
 const adGuard = require('../../core/adGuard');
+const pageTitle = require('../../core/pageTitle');
 const shareMeta = require('../../core/shareMeta');
 const analyticsLogic = require('./logic');
 
@@ -113,6 +114,7 @@ Page({
     const report = analyticsLogic.buildBattleReport(analytics);
     const pageModel = analyticsLogic.buildAnalyticsPageModel(analytics, report);
     const fullRankings = Array.isArray(pageModel.fullRankings) ? pageModel.fullRankings : [];
+    pageTitle.setTournamentPageTitle(this, '赛事复盘', analytics.tournament);
     this.setData({
       loadError: false,
       tournament: analytics.tournament,
