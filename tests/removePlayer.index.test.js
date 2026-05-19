@@ -4,6 +4,8 @@ const Module = require('node:module');
 
 const mainPath = require.resolve('../cloudfunctions/removePlayer/index.js');
 const commonPath = require.resolve('../cloudfunctions/removePlayer/lib/common.js');
+const modePath = require.resolve('../cloudfunctions/removePlayer/lib/mode.js');
+const shareActivityPath = require.resolve('../cloudfunctions/removePlayer/lib/share-activity.js');
 
 function buildTournament(extra = {}) {
   return {
@@ -26,7 +28,9 @@ function buildTournament(extra = {}) {
   };
 }
 
-function loadMain(db, openid = 'u_admin') {
+function loadMain(db, openidOrOptions = 'u_admin') {
+  const options = openidOrOptions && typeof openidOrOptions === 'object' ? openidOrOptions : {};
+  const openid = typeof openidOrOptions === 'string' ? openidOrOptions : String(options.openid || 'u_admin');
   const originalLoad = Module._load;
   const mockSdk = {
     init() {},
@@ -36,11 +40,14 @@ function loadMain(db, openid = 'u_admin') {
     getWXContext() {
       return { OPENID: openid };
     },
+    openapi: options.openapi ? { updatableMessage: options.openapi } : undefined,
     DYNAMIC_CURRENT_ENV: 'test-env'
   };
 
   delete require.cache[mainPath];
   delete require.cache[commonPath];
+  delete require.cache[modePath];
+  delete require.cache[shareActivityPath];
 
   Module._load = function patchedLoad(request, parent, isMain) {
     if (request === 'wx-server-sdk') return mockSdk;
@@ -113,6 +120,68 @@ test('removePlayer updates player roster, referee and pair teams in one transact
   assert.equal(writtenData.players.length, 3);
   assert.deepEqual(writtenData.pairTeams, [
     { id: 'team_keep', playerIds: ['p_keep', 'p_other'] }
+  ]);
+});
+
+test('removePlayer refreshes draft updatable share count after successful removal', async () => {
+  const openapiCalls = [];
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return {
+                    data: buildTournament({
+                      playerLimit: 8,
+                      shareActivityId: 'act_remove',
+                      shareActivityExpireAtMs: Date.now() + 120_000,
+                      shareActivityState: 0
+                    })
+                  };
+                }
+              };
+            },
+            where() {
+              return {
+                async update() {
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db, {
+    openapi: {
+      async setUpdatableMsg(payload) {
+        openapiCalls.push(payload);
+      }
+    }
+  });
+
+  const result = await main({
+    tournamentId: 't_1',
+    playerId: 'p_remove'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(openapiCalls.length, 1);
+  assert.deepEqual(openapiCalls[0].templateInfo.parameterList, [
+    { name: 'member_count', value: '3' },
+    { name: 'room_limit', value: '8' }
   ]);
 });
 

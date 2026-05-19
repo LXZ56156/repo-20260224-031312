@@ -4,9 +4,11 @@ const Module = require('node:module');
 
 const mainPath = require.resolve('../cloudfunctions/updateSettings/index.js');
 const commonPath = require.resolve('../cloudfunctions/updateSettings/lib/common.js');
+const modePath = require.resolve('../cloudfunctions/updateSettings/lib/mode.js');
 const logicPath = require.resolve('../cloudfunctions/updateSettings/logic.js');
+const shareActivityPath = require.resolve('../cloudfunctions/updateSettings/lib/share-activity.js');
 
-function loadMain(db) {
+function loadMain(db, options = {}) {
   const originalLoad = Module._load;
   const mockSdk = {
     init() {},
@@ -16,12 +18,15 @@ function loadMain(db) {
     getWXContext() {
       return { OPENID: 'u_admin' };
     },
+    openapi: options.openapi ? { updatableMessage: options.openapi } : undefined,
     DYNAMIC_CURRENT_ENV: 'test-env'
   };
 
   delete require.cache[mainPath];
   delete require.cache[commonPath];
+  delete require.cache[modePath];
   delete require.cache[logicPath];
+  delete require.cache[shareActivityPath];
 
   Module._load = function patchedLoad(request, parent, isMain) {
     if (request === 'wx-server-sdk') return mockSdk;
@@ -153,6 +158,69 @@ test('updateSettings writes normalized settings and rules through the direct ind
     type: 'total_matches',
     target: 3
   });
+});
+
+test('updateSettings refreshes draft updatable share count after successful settings save', async () => {
+  const openapiCalls = [];
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return {
+                    data: {
+                      ...buildTournament(),
+                      playerLimit: 8,
+                      shareActivityId: 'act_settings',
+                      shareActivityExpireAtMs: Date.now() + 120_000,
+                      shareActivityState: 0
+                    }
+                  };
+                }
+              };
+            },
+            where() {
+              return {
+                async update() {
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db, {
+    openapi: {
+      async setUpdatableMsg(payload) {
+        openapiCalls.push(payload);
+      }
+    }
+  });
+
+  const result = await main({
+    tournamentId: 't_1',
+    totalMatches: 3
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(openapiCalls.length, 1);
+  assert.deepEqual(openapiCalls[0].templateInfo.parameterList, [
+    { name: 'member_count', value: '4' },
+    { name: 'room_limit', value: '8' }
+  ]);
 });
 
 test('updateSettings rejects invalid courts for 6-player fixed rotation', async () => {

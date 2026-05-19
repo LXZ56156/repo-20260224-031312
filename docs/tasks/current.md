@@ -6,6 +6,7 @@
 ## Status: completed
 
 ## Last Completed
+- 2026-05-19 Codex: 完成共享卡片动态消息实现。新增 `manageActivityId` 云函数，只为草稿态且固定人数上限赛事创建/复用有效 `activityId`，并用事务避免并发 orphan id 返回前端；新增共享 `share-activity` helper 模板并同步到云函数 `lib`。大厅分享保持同步返回普通分享字段，通过 `promise` 准备动态消息，非草稿/无上限/失败路径降级普通分享并 best-effort 关闭动态分享残留；后续补齐 `onHide/onUnload` 生命周期清理和 pending prepare token，避免离页后异步准备完成又把 `isUpdatableMessage` 设回 `true`。`joinTournament` / `addPlayers` / `removePlayer` / `updateSettings` 在成功变更人数或上限后刷新状态 0；`startTournament` 切状态 1 并跳赛程页；`submitScore` 在本次提交完赛时切状态 2；`resetTournament` 对已开始/已结束/过期 activity 清空分享字段。新增/更新 openapi config 与回归测试。验证：`bash scripts/sync-cloud-common.sh`、`bash scripts/check-cloud-common.sh`、聚焦测试、`git diff --check`、`npm run check`、`node --test tests/*.test.js` 全部通过（943 pass / 0 fail）。
 - 2026-05-14 Codex: 完成 lobby 流程入口收口优化。`pages/lobby/index` 移除下方重复 action layer，状态面板成为唯一主入口；未加入/只读访客与已加入成员点击主按钮只打开 join/profile sheet，真正写入仍在 sheet 内「确认加入 / 保存我的信息」触发；管理员拉人阶段保留状态面板底部 native share 主按钮，并按用户反馈恢复未完成「2. 转发比赛」清单卡片点击转发能力，已完成玩家项仍为静态 `已就绪`；管理员面板删除顶部自跳转「修改比赛」，参数区保留。顺手修正只读入口展开后本地 `showJoin` 状态，避免 sheet 按“我的资料”渲染。未改云函数和数据结构。验证：lobby 聚焦 `66 pass / 0 fail`；`git diff --check`、`npm run check` 通过；`node --test tests/*.test.js` 首跑 5 个既有排阵/审计性能波动失败，失败文件单独复跑通过，第二次全量通过（918 pass / 0 fail）；恢复清单卡片转发后复跑全量通过（918 pass / 0 fail）。
 - 2026-05-14 Codex: 完成头像显示链路彻底修复。`avatarRaw` 继续保存原始头像值，`avatarDisplay` 只保存真正可赋给 `image src` 的临时 URL / HTTP URL / 本地路径；未解析 `cloud://` 时保持首字或默认头像兜底，不再把云文件 ID 直接塞进列表头像图片导致纯色空头像。`core/avatarDisplay` 统一处理 `getTempFileURL`、官方 50 个批量限制、临时 URL TTL、失败重试冷却和坏缓存清理；排阵页、参赛名单页、排名页、我的页、资料页统一接入，并给列表头像增加 `binderror` 回退。未改云函数和数据结构。验证：头像聚焦回归 `27 pass / 0 fail`；`git diff --check`、`npm run check` 通过；`node --test tests/*.test.js` => `916 pass / 0 fail`。
 - 2026-05-14 Codex: 完成 CloudBase CLI 云函数提交后自动部署工作流。新增 `cloudbaserc.json`（envId `cloud1-1ghmqjyt6428702b` / 20 个真实云函数）、`scripts/deploy-cloudfunctions.sh` 强化版（支持 `--force`、部署后 `tcb fn detail` 验证）、`scripts/deploy-changed-cloudfunctions.sh`（按 commit/range/files dry-run 推导变更函数，模板变更扩展为全量，拒绝直接改 `cloudfunctions/*/lib/*`）、版本化 `post-commit` hook 入口与安装脚本，并已安装本地 `.git/hooks/post-commit`。新增 dry-run 单测覆盖直接函数、`startTournament` 内部、多函数去重、共享模板全量、非云函数跳过和 lib 直改拒绝。验证：脚本 `bash -n` 全部通过；聚焦测试 `8 pass / 0 fail`；`git diff --check`、`npm run check` 通过；`node --test tests/*.test.js` 首跑 1 个既有 scheduler 审计超时，失败文件单独复跑通过，第二次全量通过（907 pass / 0 fail）。
@@ -35,15 +36,17 @@
 - 无。
 
 ## What Changed (未提交)
-- lobby 流程入口收口优化及对应测试更新；未涉及云函数。
+- 共享卡片动态消息实现及测试更新；涉及 `manageActivityId` 与加入/导入/移除/设置/开赛/录分/重置相关云函数。
 
 ## Next Steps
-- 本轮未改云函数，不需要上传云函数；上线前建议真机快速复测 lobby 草稿态的管理员分享、普通访客加入、只读分享入口加入、已加入成员编辑资料四条路径。
+- 通过微信开发者工具上传/部署 `manageActivityId`、`joinTournament`、`addPlayers`、`removePlayer`、`updateSettings`、`startTournament`、`submitScore`、`resetTournament`。
+- 上线前建议真机复测草稿固定人数赛事分享到群、加入后卡片人数刷新、开赛后卡片跳赛程页、完赛后卡片状态更新、无上限赛事普通分享。
 
 ## Blockers
 - 无。
 
 ## Verified Subset Output
+- 2026-05-19 共享卡片动态消息验证：`bash scripts/sync-cloud-common.sh` => pass；`bash scripts/check-cloud-common.sh` => pass；聚焦 `node --test tests/manageActivityId.index.test.js tests/lobby.share-message.test.js tests/joinTournament.index.test.js tests/addPlayers.index.test.js tests/removePlayer.index.test.js tests/updateSettings.index.test.js tests/startTournament.index.test.js tests/submitScore.index.test.js tests/resetTournament.index.test.js tests/deploy-changed-cloudfunctions.test.js` => `65 pass / 0 fail`；计划聚焦 `node --test tests/manageActivityId*.test.js tests/lobby.share-message.test.js tests/joinTournament*.test.js tests/startTournament*.test.js tests/submitScore*.test.js` => `82 pass / 0 fail`；生命周期 follow-up `node --test tests/lobby.share-message.test.js` => `4 pass / 0 fail`，`node --test tests/lobby*.test.js tests/lobby-*.test.js` => `69 pass / 0 fail`；`git diff --check` => pass；`npm run check` => pass；`node --test tests/*.test.js` => `943 pass / 0 fail`。
 - 2026-05-14 lobby 流程入口收口聚焦验证：`node --test tests/lobby*.test.js tests/lobby-*.test.js` => `66 pass / 0 fail`。
 - 2026-05-14 lobby 流程入口收口全量验证：`git diff --check` => pass；`npm run check` => pass；`node --test tests/*.test.js` 首跑 5 个既有排阵/审计性能波动失败，失败文件单独复跑 `node --test tests/rotation.performance.test.js tests/rotation.quality.test.js tests/scheduler-full-audit-report.test.js tests/squad.fairness.test.js` => `49 pass / 0 fail`，第二次全量 `node --test tests/*.test.js` => `918 pass / 0 fail`；恢复清单卡片转发后再次 `node --test tests/lobby*.test.js tests/lobby-*.test.js` => `66 pass / 0 fail`，`git diff --check` / `npm run check` 通过，`node --test tests/*.test.js` => `918 pass / 0 fail`。
 - 2026-05-14 头像链路聚焦验证：`node --test tests/avatar-display.test.js tests/lobby-avatar-resolution-stale-guard.test.js tests/schedule.avatar-filter.test.js tests/ranking.avatar-display.test.js tests/profile.avatar-display.test.js tests/mine.render-before-sync.test.js` => `27 pass / 0 fail`。

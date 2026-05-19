@@ -6,6 +6,7 @@ const common = require('./lib/common');
 const permission = require('./lib/permission');
 const playerUtils = require('./lib/player');
 const scoreUtils = require('./lib/score');
+const shareActivity = require('./lib/share-activity');
 const { buildSubmitResult, buildIdempotentRetryResult } = require('./logic');
 
 function safePlayerName(player) {
@@ -72,6 +73,7 @@ exports.main = async (event) => {
     return createCodeResult('SCORE_OUT_OF_RANGE', `比分不能超过 ${scoreUtils.SCORE_ABSOLUTE_MAX} 分`, { traceId });
   }
 
+  let shareFinishTournament = null;
   try {
     const docRes = await db.collection('tournaments').doc(tournamentId).get();
     const t = common.assertTournamentExists(docRes.data);
@@ -127,14 +129,21 @@ exports.main = async (event) => {
       scoredAt: new Date().toISOString()
     });
 
+    const updateNow = db.serverDate();
+    const updateData = {
+      rounds: computed.rounds,
+      rankings: computed.rankings,
+      status: computed.nextStatus,
+      updatedAt: updateNow,
+      version: _.inc(1)
+    };
+    if (computed.finished && shareActivity.getActivity(t, { allowedStates: [0, 1] })) {
+      Object.assign(updateData, shareActivity.buildStatePatch(2, updateNow));
+      shareFinishTournament = t;
+    }
+
     const updRes = await db.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({
-      data: common.assertNoReservedRootKeys({
-        rounds: computed.rounds,
-        rankings: computed.rankings,
-        status: computed.nextStatus,
-        updatedAt: db.serverDate(),
-        version: _.inc(1)
-      }, ['_id'], '比分提交写入数据')
+      data: common.assertNoReservedRootKeys(updateData, ['_id'], '比分提交写入数据')
     });
 
     if (!updRes || !updRes.stats || Number(updRes.stats.updated || 0) <= 0) {
@@ -142,6 +151,13 @@ exports.main = async (event) => {
     }
 
     db.collection('score_locks').doc(lockId).remove().catch(() => {});
+    if (shareFinishTournament) {
+      await shareActivity.updateFinishedMessageBestEffort(cloud, shareFinishTournament, console, {
+        source: 'submitScore',
+        tournamentId,
+        traceId
+      });
+    }
     return common.okResult('SCORE_SUBMITTED', '比分已提交', {
       traceId,
       state: computed.finished ? 'finished' : 'submitted',

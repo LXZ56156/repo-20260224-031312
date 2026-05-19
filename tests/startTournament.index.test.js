@@ -5,6 +5,7 @@ const Module = require('node:module');
 const mainPath = require.resolve('../cloudfunctions/startTournament/index.js');
 const commonPath = require.resolve('../cloudfunctions/startTournament/lib/common.js');
 const modePath = require.resolve('../cloudfunctions/startTournament/lib/mode.js');
+const shareActivityPath = require.resolve('../cloudfunctions/startTournament/lib/share-activity.js');
 
 function loadMain(db, overrides = {}) {
   const originalLoad = Module._load;
@@ -16,6 +17,7 @@ function loadMain(db, overrides = {}) {
     getWXContext() {
       return { OPENID: 'u_admin' };
     },
+    openapi: overrides.openapi ? { updatableMessage: overrides.openapi } : undefined,
     DYNAMIC_CURRENT_ENV: 'test-env'
   };
   const mockRotation = overrides.rotation || {
@@ -82,6 +84,7 @@ function loadMain(db, overrides = {}) {
   delete require.cache[mainPath];
   delete require.cache[commonPath];
   delete require.cache[modePath];
+  delete require.cache[shareActivityPath];
 
   Module._load = function patchedLoad(request, parent, isMain) {
     if (request === 'wx-server-sdk') return mockSdk;
@@ -211,6 +214,75 @@ test('startTournament writes generated rounds and running state through the dire
   assert.equal(writtenData.mode, 'multi_rotate');
   assert.equal(writtenData.fairnessScore, 0.88);
   assert.deepEqual(writtenData.version, { $inc: 1 });
+});
+
+test('startTournament marks and updates active share activity as started', async () => {
+  const openapiCalls = [];
+  let writtenData = null;
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      },
+      remove() {
+        return { $remove: true };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection() {
+      return {
+        doc() {
+          return {
+            async get() {
+              return {
+                data: {
+                  ...buildTournament(),
+                  shareActivityId: 'act_start',
+                  shareActivityExpireAtMs: Date.now() + 120_000,
+                  shareActivityState: 0,
+                  shareActivityVersionType: 'trial'
+                }
+              };
+            }
+          };
+        },
+        where() {
+          return {
+            async update(payload) {
+              writtenData = payload.data;
+              return { stats: { updated: 1 } };
+            }
+          };
+        }
+      };
+    }
+  };
+  const { main } = loadMain(db, {
+    openapi: {
+      async setUpdatableMsg(payload) {
+        openapiCalls.push(payload);
+      }
+    }
+  });
+
+  const result = await main({ tournamentId: 't_1' });
+
+  assert.equal(result.ok, true);
+  assert.equal(writtenData.shareActivityState, 1);
+  assert.deepEqual(writtenData.shareActivityUpdatedAt, { $serverDate: true });
+  assert.equal(openapiCalls.length, 1);
+  assert.deepEqual(openapiCalls[0], {
+    activityId: 'act_start',
+    targetState: 1,
+    templateInfo: {
+      parameterList: [
+        { name: 'path', value: 'pages/schedule/index?tournamentId=t_1' },
+        { name: 'version_type', value: 'trial' }
+      ]
+    }
+  });
 });
 
 test('startTournament rejects generated schedules with duplicate players in one match', async () => {

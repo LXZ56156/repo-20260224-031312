@@ -4,6 +4,7 @@ const db = cloud.database();
 const _ = db.command;
 const common = require('./lib/common');
 const logic = require('./logic');
+const shareActivity = require('./lib/share-activity');
 
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
@@ -18,9 +19,15 @@ exports.main = async (event) => {
     common.assertCreator(t, OPENID);
 
     const oldVersion = Number(t.version) || 1;
+    const removals = {
+      ...logic.buildResetTournamentRemovals(_.remove())
+    };
+    if (shareActivity.shouldClearOnReset(t)) {
+      Object.assign(removals, shareActivity.buildClearPatch(_.remove()));
+    }
     const data = common.assertNoReservedRootKeys({
       ...logic.buildResetTournamentPatch(t),
-      ...logic.buildResetTournamentRemovals(_.remove()),
+      ...removals,
       updatedAt: db.serverDate(),
       version: _.inc(1)
     }, ['_id'], '赛事重置写入数据');

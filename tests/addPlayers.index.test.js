@@ -4,6 +4,8 @@ const Module = require('node:module');
 
 const mainPath = require.resolve('../cloudfunctions/addPlayers/index.js');
 const commonPath = require.resolve('../cloudfunctions/addPlayers/lib/common.js');
+const modePath = require.resolve('../cloudfunctions/addPlayers/lib/mode.js');
+const shareActivityPath = require.resolve('../cloudfunctions/addPlayers/lib/share-activity.js');
 
 function loadMain(db, stubs = {}) {
   const originalLoad = Module._load;
@@ -15,11 +17,14 @@ function loadMain(db, stubs = {}) {
     getWXContext() {
       return { OPENID: 'u_admin' };
     },
+    openapi: stubs.openapi ? { updatableMessage: stubs.openapi } : undefined,
     DYNAMIC_CURRENT_ENV: 'test-env'
   };
 
   delete require.cache[mainPath];
   delete require.cache[commonPath];
+  delete require.cache[modePath];
+  delete require.cache[shareActivityPath];
 
   Module._load = function patchedLoad(request, parent, isMain) {
     if (request === 'wx-server-sdk') return mockSdk;
@@ -125,6 +130,81 @@ test('addPlayers imports unique valid players and returns detailed counts', asyn
       'u_admin',
       'guest_1700000000000_0_1234567890abcdef',
       'guest_1700000000000_1_1234567890abcdef'
+    ]);
+  } finally {
+    Date.now = originalNow;
+  }
+});
+
+test('addPlayers refreshes draft updatable share count after successful import', async () => {
+  const originalNow = Date.now;
+  const openapiCalls = [];
+  Date.now = () => 1700000000000;
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return {
+                    data: {
+                      ...buildTournament(),
+                      playerLimit: 8,
+                      shareActivityId: 'act_add',
+                      shareActivityExpireAtMs: Date.now() + 120_000,
+                      shareActivityState: 0
+                    }
+                  };
+                }
+              };
+            },
+            where() {
+              return {
+                async update() {
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db, {
+    crypto: {
+      randomBytes() {
+        return Buffer.from('1234567890abcdef', 'hex');
+      }
+    },
+    openapi: {
+      async setUpdatableMsg(payload) {
+        openapiCalls.push(payload);
+      }
+    }
+  });
+
+  try {
+    const result = await main({
+      tournamentId: 't_1',
+      players: [{ name: '球友A', gender: 'male' }]
+    });
+
+    assert.equal(result.ok, true);
+    assert.equal(result.addedCount, 1);
+    assert.equal(openapiCalls.length, 1);
+    assert.deepEqual(openapiCalls[0].templateInfo.parameterList, [
+      { name: 'member_count', value: '2' },
+      { name: 'room_limit', value: '8' }
     ]);
   } finally {
     Date.now = originalNow;

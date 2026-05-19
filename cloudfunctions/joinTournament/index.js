@@ -4,6 +4,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const common = require('./lib/common');
 const modeHelper = require('./lib/mode');
+const shareActivity = require('./lib/share-activity');
 
 function normalizeName(name) {
   let s = String(name || '').replace(/[\r\n\t]+/g, ' ').trim();
@@ -183,8 +184,9 @@ exports.main = async (event, context) => {
     // ignore profile read errors; join logic remains available
   }
 
+  let shareUpdateTournament = null;
   try {
-    return await db.runTransaction(async (transaction) => {
+    const result = await db.runTransaction(async (transaction) => {
       let t;
       try {
         const docRes = await transaction.collection('tournaments').doc(tournamentId).get();
@@ -262,6 +264,7 @@ exports.main = async (event, context) => {
           normalizeGender(cur.gender) === nextGender &&
           (mode !== 'squad_doubles' || normalizeSquadChoice(cur.squad) === nextSquad)
         ) {
+          shareUpdateTournament = t;
           return ok(traceId, clientRequestId, 'JOIN_DEDUPED', '参赛信息已同步', {
             state: 'deduped',
             deduped: true,
@@ -293,6 +296,11 @@ exports.main = async (event, context) => {
           }, ['_id'], '赛事加入更新数据')
         });
 
+        shareUpdateTournament = {
+          ...t,
+          players: nextPlayers,
+          playerIds: nextPlayerIds
+        };
         return ok(traceId, clientRequestId, 'JOIN_UPDATED', '已更新参赛信息', {
           state: 'updated',
           updated: true,
@@ -323,6 +331,14 @@ exports.main = async (event, context) => {
           }, ['_id'], '赛事认领 guest 写入数据')
         });
 
+        shareUpdateTournament = {
+          ...t,
+          players: rewritten.players,
+          playerIds: rewritten.playerIds,
+          pairTeams: rewritten.pairTeams,
+          rounds: rewritten.rounds,
+          rankings: rewritten.rankings
+        };
         return ok(traceId, clientRequestId, 'JOINED', '已加入比赛', {
           state: 'joined',
           added: true,
@@ -345,6 +361,11 @@ exports.main = async (event, context) => {
         }, ['_id'], '赛事加入写入数据')
       });
 
+      shareUpdateTournament = {
+        ...t,
+        players: nextPlayers,
+        playerIds: nextPlayerIds
+      };
       return ok(traceId, clientRequestId, 'JOINED', '已加入比赛', {
         state: 'joined',
         added: true,
@@ -352,6 +373,14 @@ exports.main = async (event, context) => {
         player
       });
     });
+    if (result && result.ok && shareUpdateTournament) {
+      await shareActivity.updateDraftMessageBestEffort(cloud, shareUpdateTournament, modeHelper, console, {
+        source: 'joinTournament',
+        tournamentId,
+        traceId
+      });
+    }
+    return result;
   } catch (err) {
     if (common.isCollectionNotExists(err)) {
       throw new Error('数据库集合 tournaments 不存在：请在云开发控制台创建 tournaments 后再试。');

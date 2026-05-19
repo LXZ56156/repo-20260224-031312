@@ -3,6 +3,8 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 const common = require('./lib/common');
+const modeHelper = require('./lib/mode');
+const shareActivity = require('./lib/share-activity');
 
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
@@ -17,8 +19,9 @@ exports.main = async (event) => {
     return common.failResult('PLAYER_ID_REQUIRED', '缺少 playerId', { traceId, state: 'invalid', clientRequestId });
   }
 
+  let shareUpdateTournament = null;
   try {
-    return await db.runTransaction(async (transaction) => {
+    const result = await db.runTransaction(async (transaction) => {
       const docRes = await transaction.collection('tournaments').doc(tournamentId).get();
       const t = common.assertTournamentExists(docRes.data);
       common.assertDraft(t, '非草稿阶段不可移除');
@@ -67,6 +70,13 @@ exports.main = async (event) => {
         }, ['_id'], '移除参赛成员写入数据')
       });
       common.assertOptimisticUpdate(updRes, '写入冲突，请重试');
+      shareUpdateTournament = {
+        ...t,
+        players,
+        playerIds,
+        refereeId,
+        pairTeams
+      };
       return common.okResult('PLAYER_REMOVED', '已移除参赛成员', {
         traceId,
         state: 'removed',
@@ -74,6 +84,14 @@ exports.main = async (event) => {
         playerId
       });
     });
+    if (result && result.ok && shareUpdateTournament) {
+      await shareActivity.updateDraftMessageBestEffort(cloud, shareUpdateTournament, modeHelper, console, {
+        source: 'removePlayer',
+        tournamentId,
+        traceId
+      });
+    }
+    return result;
   } catch (err) {
     const message = common.errMsg(err);
     if (message.includes('赛事不存在')) {

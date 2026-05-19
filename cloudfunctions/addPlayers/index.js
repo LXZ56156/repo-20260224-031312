@@ -5,6 +5,7 @@ const db = cloud.database();
 const _ = db.command;
 const common = require('./lib/common');
 const modeHelper = require('./lib/mode');
+const shareActivity = require('./lib/share-activity');
 
 function normalizeGender(gender) {
   const v = String(gender || '').trim().toLowerCase();
@@ -93,8 +94,9 @@ exports.main = async (event) => {
     });
   }
 
+  let shareUpdateTournament = null;
   try {
-    return await db.runTransaction(async (transaction) => {
+    const result = await db.runTransaction(async (transaction) => {
       let t = null;
       try {
         const docRes = await transaction.collection('tournaments').doc(tournamentId).get();
@@ -216,6 +218,11 @@ exports.main = async (event) => {
       const maleCount = toAdd.filter((p) => p.gender === 'male').length;
       const femaleCount = toAdd.filter((p) => p.gender === 'female').length;
       const unknownCount = toAdd.length - maleCount - femaleCount;
+      shareUpdateTournament = {
+        ...t,
+        players: nextPlayers,
+        playerIds: nextPlayerIds
+      };
       return {
         ok: true,
         ...(clientRequestId ? { clientRequestId } : {}),
@@ -230,6 +237,14 @@ exports.main = async (event) => {
         invalidNames
       };
     });
+    if (result && result.ok && shareUpdateTournament) {
+      await shareActivity.updateDraftMessageBestEffort(cloud, shareUpdateTournament, modeHelper, console, {
+        source: 'addPlayers',
+        tournamentId,
+        traceId
+      });
+    }
+    return result;
   } catch (err) {
     if (common.isDocNotExists(err) || String((err && err.message) || '').includes('赛事不存在')) {
       return common.failResult('TOURNAMENT_NOT_FOUND', '赛事不存在', {

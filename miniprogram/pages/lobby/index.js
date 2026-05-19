@@ -1,6 +1,8 @@
 const storage = require('../../core/storage');
+const cloudApi = require('../../core/cloud');
 const pageTitle = require('../../core/pageTitle');
 const shareMeta = require('../../core/shareMeta');
+const shareActivity = require('../../core/shareActivity');
 const flow = require('../../core/uxFlow');
 const nav = require('../../core/nav');
 const matchPrimaryNav = require('../../core/matchPrimaryNav');
@@ -235,11 +237,13 @@ Page({
   },
 
   onHide() {
+    this.disablePageDynamicShare();
     pageTournamentSync.pauseTournamentSync(this);
     pageTimers.clearNamedTimer(this, 'startNavigation');
   },
 
   onUnload() {
+    this.disablePageDynamicShare();
     pageTournamentSync.teardownTournamentSync(this);
     pageTimers.clearAllTimers(this);
     this._pendingIntentAction = '';
@@ -359,9 +363,66 @@ Page({
 
   onShareAppMessage() {
     const meta = shareMeta.buildShareMessage(this.data.tournament);
-    return {
+    const message = {
       title: meta.title,
       path: meta.path
+    };
+    const tournament = this.data.tournament;
+    if (!shareActivity.shouldUseDynamicShare(tournament)) {
+      this.disablePageDynamicShare();
+      return message;
+    }
+
+    const sharePrepareToken = this.nextDynamicSharePrepareToken();
+    const promise = this.prepareDynamicShareMessage(tournament, sharePrepareToken).then(() => message).catch(() => {
+      if (this.isCurrentDynamicSharePrepareToken(sharePrepareToken)) {
+        shareActivity.disableDynamicShareBestEffort();
+      }
+      return message;
+    });
+    return {
+      ...message,
+      promise
+    };
+  },
+
+  nextDynamicSharePrepareToken() {
+    this._dynamicSharePrepareToken = Number(this._dynamicSharePrepareToken || 0) + 1;
+    return this._dynamicSharePrepareToken;
+  },
+
+  isCurrentDynamicSharePrepareToken(token) {
+    return Number(token || 0) === Number(this._dynamicSharePrepareToken || 0);
+  },
+
+  disablePageDynamicShare() {
+    this.nextDynamicSharePrepareToken();
+    shareActivity.disableDynamicShareBestEffort();
+  },
+
+  async prepareDynamicShareMessage(tournament, sharePrepareToken) {
+    const tid = String(tournament && tournament._id || this.data.tournamentId || '').trim();
+    if (!tid) throw new Error('missing tournamentId');
+    const runtimeEnv = cloudApi.getRuntimeEnv();
+    const versionType = String(runtimeEnv && runtimeEnv.envVersion || 'release').trim() || 'release';
+    const res = await cloudApi.call('manageActivityId', {
+      action: 'getOrCreate',
+      tournamentId: tid,
+      versionType
+    }, { retry: true });
+    if (!res || res.ok === false) throw new Error(String(res && res.message || '动态分享准备失败'));
+    const data = res.data && typeof res.data === 'object' ? res.data : {};
+    const activityId = String(res.activityId || data.activityId || '').trim();
+    if (!activityId) throw new Error('missing activityId');
+    if (!this.isCurrentDynamicSharePrepareToken(sharePrepareToken)) throw new Error('dynamic share prepare canceled');
+    await shareActivity.updateShareMenu({
+      withShareTicket: true,
+      isUpdatableMessage: true,
+      activityId,
+      templateInfo: shareActivity.buildShareMenuTemplateInfo(tournament)
+    });
+    return {
+      activityId
     };
   }
 });

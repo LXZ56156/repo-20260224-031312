@@ -5,6 +5,7 @@ const _ = db.command;
 const common = require('./lib/common');
 const modeHelper = require('./lib/mode');
 const playerUtils = require('./lib/player');
+const shareActivity = require('./lib/share-activity');
 
 const { generateSchedule, selectSchedulerPolicy, computeEffectiveCourts } = require('./rotation');
 const { validateBeforeGenerate } = require('./logic');
@@ -96,8 +97,9 @@ exports.main = async (event) => {
     clientRequestId
   };
 
+  let shareStartTournament = null;
   try {
-    return await common.runTransactionCompat(db, async (transaction) => {
+    const result = await common.runTransactionCompat(db, async (transaction) => {
       const tournaments = transaction.collection('tournaments');
       const docRes = await tournaments.doc(tournamentId).get();
       const t = common.assertTournamentExists(docRes.data);
@@ -211,6 +213,7 @@ exports.main = async (event) => {
       const rankings = modeHelper.buildInitialRankings(mode, players, pairTeams);
       const scheduledMatches = countRoundMatches(rounds);
 
+      const updateNow = db.serverDate();
       const updateData = {
         status: 'running',
         rounds,
@@ -227,9 +230,13 @@ exports.main = async (event) => {
         // Clean legacy fields if they exist.
         fairness: _.remove(),
         playerStats: _.remove(),
-        updatedAt: db.serverDate(),
+        updatedAt: updateNow,
         version: _.inc(1)
       };
+      if (shareActivity.getActivity(t, { allowedStates: [0] })) {
+        Object.assign(updateData, shareActivity.buildStatePatch(1, updateNow));
+        shareStartTournament = t;
+      }
       const materializeMs = Date.now() - materializeStartedAtMs;
       console.info('[startTournament:timing]', JSON.stringify({
         traceId,
@@ -289,6 +296,14 @@ exports.main = async (event) => {
         version: oldVersion + 1
       });
     });
+    if (result && result.ok && shareStartTournament) {
+      await shareActivity.updateStartedMessageBestEffort(cloud, tournamentId, shareStartTournament, console, {
+        source: 'startTournament',
+        tournamentId,
+        traceId
+      });
+    }
+    return result;
   } catch (err) {
     if (clientRequestId) {
       const requestLog = await common.getClientRequestLog(db, requestLogOptions);

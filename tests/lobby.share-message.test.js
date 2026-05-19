@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const lobbyPagePath = require.resolve('../miniprogram/pages/lobby/index.js');
+const cloudCorePath = require.resolve('../miniprogram/core/cloud.js');
 
 function loadLobbyPageDefinition() {
   const originalPage = global.Page;
@@ -47,6 +48,163 @@ test('lobby page uses a unified transfer contract across lifecycle states', () =
     assert.equal(finishedShare.title, '周末比赛 赛事排名已出炉');
     assert.equal(finishedShare.path, '/pages/share-entry/index?tournamentId=t_1');
   } finally {
+    delete require.cache[lobbyPagePath];
+  }
+});
+
+test('lobby draft fixed-limit share prepares updatable message through promise', async () => {
+  const cloudCore = require(cloudCorePath);
+  const originalCall = cloudCore.call;
+  const originalGetRuntimeEnv = cloudCore.getRuntimeEnv;
+  const originalWx = global.wx;
+  const updateCalls = [];
+  const cloudCalls = [];
+  global.wx = {
+    updateShareMenu(options) {
+      updateCalls.push(options);
+      if (typeof options.success === 'function') options.success({ ok: true });
+    }
+  };
+  cloudCore.getRuntimeEnv = () => ({ envVersion: 'trial' });
+  cloudCore.call = async (name, data, options) => {
+    cloudCalls.push({ name, data, options });
+    return {
+      ok: true,
+      activityId: 'act_1',
+      data: { activityId: 'act_1' }
+    };
+  };
+  const definition = loadLobbyPageDefinition();
+
+  try {
+    const ctx = createLobbyPageContext(definition, {
+      _id: 't_1',
+      name: '周末比赛',
+      status: 'draft',
+      playerLimit: 8,
+      players: [{ id: 'u_admin' }, { id: 'u_2' }]
+    });
+    const share = ctx.onShareAppMessage();
+
+    assert.equal(share.title, '周末比赛，加入羽毛球比赛');
+    assert.equal(share.path, '/pages/share-entry/index?tournamentId=t_1');
+    assert.equal(typeof share.promise.then, 'function');
+
+    const resolved = await share.promise;
+    assert.deepEqual(resolved, {
+      title: '周末比赛，加入羽毛球比赛',
+      path: '/pages/share-entry/index?tournamentId=t_1'
+    });
+    assert.equal(cloudCalls.length, 1);
+    assert.equal(cloudCalls[0].name, 'manageActivityId');
+    assert.deepEqual(cloudCalls[0].data, {
+      action: 'getOrCreate',
+      tournamentId: 't_1',
+      versionType: 'trial'
+    });
+    assert.deepEqual(cloudCalls[0].options, { retry: true });
+    assert.equal(updateCalls.length, 1);
+    assert.equal(updateCalls[0].isUpdatableMessage, true);
+    assert.equal(updateCalls[0].activityId, 'act_1');
+    assert.equal(updateCalls[0].templateInfo.templateId, '21B034D08C5615B9889CE362BB957B1EE69A584B');
+    assert.deepEqual(updateCalls[0].templateInfo.parameterList, [
+      { name: 'member_count', value: '2' },
+      { name: 'room_limit', value: '8' }
+    ]);
+  } finally {
+    cloudCore.call = originalCall;
+    cloudCore.getRuntimeEnv = originalGetRuntimeEnv;
+    global.wx = originalWx;
+    delete require.cache[lobbyPagePath];
+  }
+});
+
+test('lobby share degrades to ordinary message when dynamic share is unavailable', async () => {
+  const cloudCore = require(cloudCorePath);
+  const originalCall = cloudCore.call;
+  const originalWx = global.wx;
+  const updateCalls = [];
+  global.wx = {
+    updateShareMenu(options) {
+      updateCalls.push(options);
+      if (typeof options.success === 'function') options.success({ ok: true });
+    }
+  };
+  cloudCore.call = async () => {
+    throw new Error('network failed');
+  };
+  const definition = loadLobbyPageDefinition();
+
+  try {
+    const ctx = createLobbyPageContext(definition, {
+      _id: 't_1',
+      name: '周末比赛',
+      status: 'draft',
+      playerLimit: 8,
+      players: []
+    });
+    const share = ctx.onShareAppMessage();
+    const resolved = await share.promise;
+
+    assert.equal(resolved.title, '周末比赛，加入羽毛球比赛');
+    assert.equal(resolved.path, '/pages/share-entry/index?tournamentId=t_1');
+    assert.equal(updateCalls.length, 1);
+    assert.deepEqual(updateCalls[0].isUpdatableMessage, false);
+  } finally {
+    cloudCore.call = originalCall;
+    global.wx = originalWx;
+    delete require.cache[lobbyPagePath];
+  }
+});
+
+test('lobby onHide cancels pending dynamic share preparation and clears share menu state', async () => {
+  const cloudCore = require(cloudCorePath);
+  const originalCall = cloudCore.call;
+  const originalWx = global.wx;
+  const updateCalls = [];
+  let resolveCloudCall = null;
+  const pendingCloudCall = new Promise((resolve) => {
+    resolveCloudCall = resolve;
+  });
+  global.wx = {
+    updateShareMenu(options) {
+      updateCalls.push(options);
+      if (typeof options.success === 'function') options.success({ ok: true });
+    }
+  };
+  cloudCore.call = async () => pendingCloudCall;
+  const definition = loadLobbyPageDefinition();
+
+  try {
+    const ctx = createLobbyPageContext(definition, {
+      _id: 't_1',
+      name: '周末比赛',
+      status: 'draft',
+      playerLimit: 8,
+      players: [{ id: 'u_admin' }]
+    });
+    const share = ctx.onShareAppMessage();
+
+    ctx.onHide();
+    assert.equal(updateCalls.length, 1);
+    assert.equal(updateCalls[0].isUpdatableMessage, false);
+
+    resolveCloudCall({
+      ok: true,
+      activityId: 'act_late',
+      data: { activityId: 'act_late' }
+    });
+    const resolved = await share.promise;
+
+    assert.deepEqual(resolved, {
+      title: '周末比赛，加入羽毛球比赛',
+      path: '/pages/share-entry/index?tournamentId=t_1'
+    });
+    assert.equal(updateCalls.length, 1);
+    assert.equal(updateCalls.some((call) => call.isUpdatableMessage === true), false);
+  } finally {
+    cloudCore.call = originalCall;
+    global.wx = originalWx;
     delete require.cache[lobbyPagePath];
   }
 });

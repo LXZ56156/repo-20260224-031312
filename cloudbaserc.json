@@ -31,6 +31,9 @@
       "name": "login"
     },
     {
+      "name": "manageActivityId"
+    },
+    {
       "name": "managePairTeams"
     },
     {

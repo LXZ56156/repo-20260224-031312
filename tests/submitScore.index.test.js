@@ -10,6 +10,7 @@ const submitScorePlayerPath = require.resolve('../cloudfunctions/submitScore/lib
 const submitScoreModePath = require.resolve('../cloudfunctions/submitScore/lib/mode.js');
 const submitScoreRankingCorePath = require.resolve('../cloudfunctions/submitScore/lib/rankingCore.js');
 const submitScoreScorePath = require.resolve('../cloudfunctions/submitScore/lib/score.js');
+const submitScoreShareActivityPath = require.resolve('../cloudfunctions/submitScore/lib/share-activity.js');
 
 function buildTournament() {
   return {
@@ -46,6 +47,7 @@ function loadSubmitScoreMain(db, options = {}) {
     getWXContext() {
       return { OPENID: openid };
     },
+    openapi: options.openapi ? { updatableMessage: options.openapi } : undefined,
     DYNAMIC_CURRENT_ENV: 'test-env'
   };
 
@@ -57,6 +59,7 @@ function loadSubmitScoreMain(db, options = {}) {
   delete require.cache[submitScoreModePath];
   delete require.cache[submitScoreRankingCorePath];
   delete require.cache[submitScoreScorePath];
+  delete require.cache[submitScoreShareActivityPath];
 
   Module._load = function patchedLoad(request, parent, isMain) {
     if (request === 'wx-server-sdk') return mockSdk;
@@ -319,6 +322,49 @@ test('submitScore lets participants overwrite a finished score when they hold th
   assert.deepEqual(writtenMatch.score, { teamA: 18, teamB: 21 });
   assert.equal(writtenMatch.scorerId, 'u_b');
   assert.equal(writtenMatch.scorerName, '球友B');
+});
+
+test('submitScore marks and updates active share activity when tournament finishes', async () => {
+  const openapiCalls = [];
+  const { db, calls } = createDbHarness(async () => ({
+    data: {
+      ownerId: 'u_admin',
+      ownerName: '管理员',
+      expireAt: Date.now() + 60_000
+    }
+  }), {
+    tournamentFactory: () => ({
+      ...buildTournament(),
+      shareActivityId: 'act_finish',
+      shareActivityExpireAtMs: Date.now() + 120_000,
+      shareActivityState: 1,
+      shareActivityVersionType: 'release'
+    })
+  });
+  const { main } = loadSubmitScoreMain(db, {
+    openapi: {
+      async setUpdatableMsg(payload) {
+        openapiCalls.push(payload);
+      }
+    }
+  });
+
+  const result = await main({
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    scoreA: 21,
+    scoreB: 19
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.finished, true);
+  assert.equal(calls.updatePayloads[0].data.shareActivityState, 2);
+  assert.deepEqual(calls.updatePayloads[0].data.shareActivityUpdatedAt, { $serverDate: true });
+  assert.deepEqual(openapiCalls, [{
+    activityId: 'act_finish',
+    targetState: 2
+  }]);
 });
 
 test('submitScore keeps canceled matches non-editable', async () => {

@@ -4,6 +4,7 @@ const db = cloud.database();
 const _ = db.command;
 const common = require('./lib/common');
 const modeHelper = require('./lib/mode');
+const shareActivity = require('./lib/share-activity');
 const {
   parsePosInt,
   parseTargetInt,
@@ -39,8 +40,9 @@ exports.main = async (event) => {
   if (!tournamentId) {
     return common.failResult('TOURNAMENT_ID_REQUIRED', '缺少 tournamentId', { traceId, state: 'invalid' });
   }
+  let shareUpdateTournament = null;
   try {
-    return await db.runTransaction(async (transaction) => {
+    const result = await db.runTransaction(async (transaction) => {
       const docRes = await transaction.collection('tournaments').doc(tournamentId).get();
       const t = common.assertTournamentExists(docRes.data);
       common.assertCreator(t, OPENID);
@@ -127,6 +129,11 @@ exports.main = async (event) => {
 
       const updRes = await transaction.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({ data });
       common.assertOptimisticUpdate(updRes, '写入冲突，请重试');
+      shareUpdateTournament = {
+        ...t,
+        ...data,
+        players: data.players || players
+      };
       return common.okResult('SETTINGS_UPDATED', '已保存比赛参数', {
         traceId,
         state: 'updated',
@@ -134,6 +141,14 @@ exports.main = async (event) => {
         version: oldVersion + 1
       });
     });
+    if (result && result.ok && shareUpdateTournament) {
+      await shareActivity.updateDraftMessageBestEffort(cloud, shareUpdateTournament, modeHelper, console, {
+        source: 'updateSettings',
+        tournamentId,
+        traceId
+      });
+    }
+    return result;
   } catch (err) {
     const mapped = mapUpdateSettingsFailure(err, traceId);
     if (mapped) return mapped;

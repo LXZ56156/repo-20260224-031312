@@ -5,8 +5,11 @@ const Module = require('node:module');
 const mainPath = require.resolve('../cloudfunctions/joinTournament/index.js');
 const commonPath = require.resolve('../cloudfunctions/joinTournament/lib/common.js');
 const modePath = require.resolve('../cloudfunctions/joinTournament/lib/mode.js');
+const shareActivityPath = require.resolve('../cloudfunctions/joinTournament/lib/share-activity.js');
 
-function loadMain(db, openid = 'u_join') {
+function loadMain(db, openidOrOptions = 'u_join') {
+  const options = openidOrOptions && typeof openidOrOptions === 'object' ? openidOrOptions : {};
+  const openid = typeof openidOrOptions === 'string' ? openidOrOptions : String(options.openid || 'u_join');
   const originalLoad = Module._load;
   const mockSdk = {
     init() {},
@@ -16,12 +19,14 @@ function loadMain(db, openid = 'u_join') {
     getWXContext() {
       return { OPENID: openid };
     },
+    openapi: options.openapi ? { updatableMessage: options.openapi } : undefined,
     DYNAMIC_CURRENT_ENV: 'test-env'
   };
 
   delete require.cache[mainPath];
   delete require.cache[commonPath];
   delete require.cache[modePath];
+  delete require.cache[shareActivityPath];
 
   Module._load = function patchedLoad(request, parent, isMain) {
     if (request === 'wx-server-sdk') return mockSdk;
@@ -123,6 +128,91 @@ test('joinTournament adds player with normalized profile fallback and squad choi
   assert.deepEqual(writtenData.playerIds, ['u_admin', 'u_join']);
   assert.equal(writtenData.players.length, 2);
   assert.deepEqual(writtenData.players[1], result.player);
+});
+
+test('joinTournament refreshes draft updatable share count after successful join', async () => {
+  const openapiCalls = [];
+  const db = {
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      assert.equal(name, 'user_profiles');
+      return {
+        where() {
+          return {
+            limit() {
+              return {
+                async get() {
+                  return {
+                    data: [{
+                      nickName: '球友A',
+                      avatar: 'cloud://avatar/a.png',
+                      gender: 'female'
+                    }]
+                  };
+                }
+              };
+            }
+          };
+        }
+      };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection(name) {
+          assert.equal(name, 'tournaments');
+          return {
+            doc() {
+              return {
+                async get() {
+                  return {
+                    data: {
+                      ...buildTournament(),
+                      playerLimit: 8,
+                      shareActivityId: 'act_join',
+                      shareActivityExpireAtMs: Date.now() + 120_000,
+                      shareActivityState: 0,
+                      shareActivityVersionType: 'release'
+                    }
+                  };
+                },
+                async update() {
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db, {
+    openapi: {
+      async setUpdatableMsg(payload) {
+        openapiCalls.push(payload);
+      }
+    }
+  });
+
+  const result = await main({
+    tournamentId: 't_1',
+    squadChoice: 'b'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.code, 'JOINED');
+  assert.equal(openapiCalls.length, 1);
+  assert.deepEqual(openapiCalls[0], {
+    activityId: 'act_join',
+    targetState: 0,
+    templateInfo: {
+      parameterList: [
+        { name: 'member_count', value: '2' },
+        { name: 'room_limit', value: '8' }
+      ]
+    }
+  });
 });
 
 test('joinTournament rejects new members once fixed rotation quota is full', async () => {
