@@ -90,7 +90,7 @@ Page({
   ...rankingSyncController,
 
   onLoad(options) {
-    const tid = options.tournamentId;
+    const tid = String((options && options.tournamentId) || '').trim();
     this.ensureAvatarRuntime();
     pageTournamentSync.initTournamentSync(this);
     this.setData({

@@ -367,7 +367,7 @@ Page({
   ...scheduleSyncController,
 
   onLoad(options) {
-    const tid = options.tournamentId;
+    const tid = String((options && options.tournamentId) || '').trim();
     this.openid = (getApp().globalData.openid || storage.get('openid', ''));
     this.ensureAvatarRuntime();
     pageTournamentSync.initTournamentSync(this);

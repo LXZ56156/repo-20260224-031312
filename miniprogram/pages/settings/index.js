@@ -88,7 +88,7 @@ Page({
   ...retryAction.createRetryMethods(),
 
   onLoad(options) {
-    const tid = options.tournamentId;
+    const tid = String((options && options.tournamentId) || '').trim();
     const section = String((options && options.section) || '').trim().toLowerCase();
     this._initialSection = section;
     this.openid = (getApp().globalData.openid || storage.get('openid', ''));
