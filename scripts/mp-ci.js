@@ -50,6 +50,14 @@ function gitShortHash() {
   }
 }
 
+function gitLastCommitSubject() {
+  try {
+    return execSync('git log -1 --pretty=%s', { encoding: 'utf8', cwd: ROOT }).trim();
+  } catch (_) {
+    return '';
+  }
+}
+
 function pkgVersion() {
   try {
     const p = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
@@ -162,7 +170,7 @@ async function main() {
 
   // resolve version
   const version = process.env.MP_VERSION || `${pkgVersion()}-${gitShortHash()}`;
-  const desc = process.env.MP_DESC || gitShortHash();
+  const desc = process.env.MP_DESC || gitLastCommitSubject() || gitShortHash();
   const robot = parseInt(process.env.MP_ROBOT || '1', 10);
 
   // resolve key path for WSL
