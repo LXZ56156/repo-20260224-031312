@@ -15,9 +15,7 @@
     "deploy:cloud:changed": "bash scripts/deploy-changed-cloudfunctions.sh",
     "hooks:install-cloud-deploy": "bash scripts/install-cloud-deploy-hook.sh",
     "mp:preview": "node scripts/mp-ci.js preview",
-    "mp:upload": "node scripts/mp-ci.js upload",
-    "mp:preview:mirror": "set MP_PROJECT_PATH=D:\\projects\\badminton-miniapp-preview&& node scripts/mp-ci.js preview",
-    "mp:upload:mirror": "set MP_PROJECT_PATH=D:\\projects\\badminton-miniapp-preview&& node scripts/mp-ci.js upload"
+    "mp:upload": "node scripts/mp-ci.js upload"
   },
   "devDependencies": {
     "miniprogram-ci": "^2.1.31"
