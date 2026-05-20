@@ -8,6 +8,48 @@ const profileCore = require('../../core/profile');
 const nav = require('../../core/nav');
 const avatarDisplay = require('../../core/avatarDisplay');
 
+function buildLobbyProfile(profile = {}, fallback = {}) {
+  const incoming = profile && typeof profile === 'object' ? profile : {};
+  const base = fallback && typeof fallback === 'object' ? fallback : {};
+  const incomingGender = storage.normalizeGender(incoming.gender);
+  const fallbackGender = storage.normalizeGender(base.gender);
+  return {
+    nickName: storage.getProfileNickName(incoming) || storage.getProfileNickName(base),
+    avatar: String(incoming.avatar || incoming.avatarUrl || base.avatar || base.avatarUrl || '').trim(),
+    gender: incomingGender !== 'unknown' ? incomingGender : fallbackGender
+  };
+}
+
+function getPlayerFromJoinResult(result = {}) {
+  if (result && result.player && typeof result.player === 'object') return result.player;
+  if (result && result.data && result.data.player && typeof result.data.player === 'object') return result.data.player;
+  return {};
+}
+
+function buildLobbyProfileFromJoinPayload(payload = {}, player = {}) {
+  const payloadGender = storage.normalizeGender(payload.gender);
+  const playerGender = storage.normalizeGender(player.gender);
+  return {
+    nickName: String(payload.nickname || player.name || player.nickName || '').trim(),
+    avatar: String(payload.avatar || player.avatar || player.avatarUrl || '').trim(),
+    gender: payloadGender !== 'unknown' ? payloadGender : playerGender
+  };
+}
+
+function cacheLobbyProfile(profile = {}) {
+  const incoming = { ...(profile && typeof profile === 'object' ? profile : {}) };
+  if (storage.normalizeGender(incoming.gender) === 'unknown') delete incoming.gender;
+  const merged = profileCore.mergeProfile(storage.getUserProfile() || {}, incoming);
+  storage.setUserProfile(merged);
+  return buildLobbyProfile(merged);
+}
+
+function isCompleteLobbyProfile(profile = {}) {
+  return !!storage.getProfileNickName(profile) &&
+    !!String(profile.avatar || profile.avatarUrl || '').trim() &&
+    storage.normalizeGender(profile.gender) !== 'unknown';
+}
+
 module.exports = {
   onProfileNickInput(e) {
     const value = e && e.detail ? e.detail.value : '';
@@ -119,8 +161,7 @@ module.exports = {
         this.setData({ myAvatar: fileID });
         await this.setMyAvatarDisplay(fileID);
       }
-      const old = storage.getUserProfile() || {};
-      storage.setUserProfile({ ...old, avatar: fileID });
+      cacheLobbyProfile({ avatar: fileID });
       return true;
     } catch (_) {
       this.setData({ profileFieldError: '头像上传失败，可重试' });
@@ -277,8 +318,7 @@ module.exports = {
       }
 
       if (nickname || avatar) {
-        const old = storage.getUserProfile() || {};
-        storage.setUserProfile({ ...old, nickName: nickname, avatar });
+        cacheLobbyProfile({ nickName: nickname, avatar, gender });
       }
 
       try {
@@ -290,12 +330,14 @@ module.exports = {
           mode: this.data.mode,
           squadChoice: this.data.joinSquadChoice
         });
-        await loading.withLoading('加入中...', () => joinTournamentCore.callJoinTournament(joinPayload, {
+        const joinResult = await loading.withLoading('加入中...', () => joinTournamentCore.callJoinTournament(joinPayload, {
           action: 'join',
           fallbackMessage: '加入失败，请稍后重试',
           clientRequestId
         }));
-        this.clearLastFailedAction();
+        const player = getPlayerFromJoinResult(joinResult);
+        const profileSaved = await this.saveLobbyCloudProfile(buildLobbyProfileFromJoinPayload(joinPayload, player), { clientRequestId });
+        if (profileSaved) this.clearLastFailedAction();
         wx.showToast({ title: '已加入', icon: 'success' });
         nav.markRefreshFlag(tid);
         this.fetchTournament(tid);
@@ -335,22 +377,16 @@ module.exports = {
           mode: this.data.mode,
           squadChoice: this.data.joinSquadChoice
         });
-        await loading.withLoading('保存中...', () => joinTournamentCore.callJoinTournament(savePayload, {
+        const saveResult = await loading.withLoading('保存中...', () => joinTournamentCore.callJoinTournament(savePayload, {
           action: 'profile_update',
           fallbackMessage: '保存失败，请稍后重试',
           clientRequestId
         }));
-        this.clearLastFailedAction();
+        const player = getPlayerFromJoinResult(saveResult);
+        const profileSaved = await this.saveLobbyCloudProfile(buildLobbyProfileFromJoinPayload(savePayload, player), { clientRequestId });
+        if (profileSaved) this.clearLastFailedAction();
         wx.showToast({ title: '已更新', icon: 'success' });
         nav.markRefreshFlag(this.data.tournamentId);
-
-        const old = storage.getUserProfile() || {};
-        storage.setUserProfile({
-          ...old,
-          nickName: nickname || storage.getProfileNickName(old),
-          avatarUrl: old.avatarUrl || '',
-          avatar: avatar || old.avatar || ''
-        });
 
         this.fetchTournament(this.data.tournamentId);
       } catch (err) {
@@ -359,5 +395,24 @@ module.exports = {
         this.handleWriteError(normalizedError, joinError.resolveJoinFailureMessage(normalizedError, '保存失败，请稍后重试', { action: 'profile_update' }), () => this.fetchTournament(this.data.tournamentId));
       }
     });
+  },
+
+  async saveLobbyCloudProfile(profile = {}, options = {}) {
+    const actionKey = `lobby:saveUserProfile:${this.data.tournamentId}`;
+    const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'profile');
+    const localProfile = cacheLobbyProfile(profile);
+    const payload = buildLobbyProfile(profile, localProfile);
+    if (!isCompleteLobbyProfile(payload)) return true;
+
+    try {
+      await profileCore.saveCloudProfile(payload, { clientRequestId });
+      if (typeof this.clearLastFailedAction === 'function') this.clearLastFailedAction();
+      return true;
+    } catch (_) {
+      if (typeof this.setLastFailedAction === 'function') {
+        this.setLastFailedAction('保存我的信息', () => this.saveLobbyCloudProfile(payload, { clientRequestId }), { actionKey });
+      }
+      return false;
+    }
   }
 };

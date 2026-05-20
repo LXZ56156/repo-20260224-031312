@@ -1,5 +1,6 @@
 {
   "name": "badminton-miniapp",
+  "version": "6.1.2",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js",
@@ -12,6 +13,13 @@
     "deploy:cloud": "bash scripts/deploy-cloudfunctions.sh",
     "deploy:cloud:all": "bash scripts/deploy-cloudfunctions.sh --all",
     "deploy:cloud:changed": "bash scripts/deploy-changed-cloudfunctions.sh",
-    "hooks:install-cloud-deploy": "bash scripts/install-cloud-deploy-hook.sh"
+    "hooks:install-cloud-deploy": "bash scripts/install-cloud-deploy-hook.sh",
+    "mp:preview": "node scripts/mp-ci.js preview",
+    "mp:upload": "node scripts/mp-ci.js upload",
+    "mp:preview:mirror": "set MP_PROJECT_PATH=D:\\projects\\badminton-miniapp-preview&& node scripts/mp-ci.js preview",
+    "mp:upload:mirror": "set MP_PROJECT_PATH=D:\\projects\\badminton-miniapp-preview&& node scripts/mp-ci.js upload"
+  },
+  "devDependencies": {
+    "miniprogram-ci": "^2.1.31"
   }
 }

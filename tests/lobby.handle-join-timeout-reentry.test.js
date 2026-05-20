@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const actionGuard = require('../miniprogram/core/actionGuard');
 const joinTournamentCore = require('../miniprogram/core/joinTournament');
 const nav = require('../miniprogram/core/nav');
+const profileCore = require('../miniprogram/core/profile');
 const storage = require('../miniprogram/core/storage');
 const flow = require('../miniprogram/core/uxFlow');
 const lobbyProfileActions = require('../miniprogram/pages/lobby/lobbyProfileActions');
@@ -24,6 +25,7 @@ test('lobby handleJoin keeps profileSaving true after timeout while request is p
   const originalMarkRefreshFlag = nav.markRefreshFlag;
   const originalGetUserProfile = storage.getUserProfile;
   const originalSetUserProfile = storage.setUserProfile;
+  const originalSaveCloudProfile = profileCore.saveCloudProfile;
 
   const deferred = createDeferred();
   const wxBox = createWxStub();
@@ -73,6 +75,7 @@ test('lobby handleJoin keeps profileSaving true after timeout while request is p
     nav.markRefreshFlag = () => {};
     storage.getUserProfile = () => null;
     storage.setUserProfile = () => {};
+    profileCore.saveCloudProfile = async () => ({ ok: true });
 
     const first = ctx.handleJoin();
     tasks.push(first);
@@ -109,5 +112,6 @@ test('lobby handleJoin keeps profileSaving true after timeout while request is p
     nav.markRefreshFlag = originalMarkRefreshFlag;
     storage.getUserProfile = originalGetUserProfile;
     storage.setUserProfile = originalSetUserProfile;
+    profileCore.saveCloudProfile = originalSaveCloudProfile;
   }
 });

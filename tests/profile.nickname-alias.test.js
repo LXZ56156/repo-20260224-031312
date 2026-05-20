@@ -59,6 +59,16 @@ test('mergeProfile prefers canonical nickName and removes legacy nickname alias'
   assert.equal(Object.prototype.hasOwnProperty.call(merged, 'nickname'), false);
 });
 
+test('mergeProfile keeps avatar and avatarUrl aligned when incoming avatar changes', () => {
+  const merged = profileCore.mergeProfile(
+    { nickName: '旧昵称', avatar: 'cloud://avatar-old', avatarUrl: 'cloud://avatar-old', gender: 'male' },
+    { avatar: 'cloud://avatar-new' }
+  );
+
+  assert.equal(merged.avatar, 'cloud://avatar-new');
+  assert.equal(merged.avatarUrl, 'cloud://avatar-new');
+});
+
 test('getProfileNickName keeps backward-compatible reads and filters placeholder nickname', () => {
   assert.equal(storage.getProfileNickName({ nickName: '球友B' }), '球友B');
   assert.equal(storage.getProfileNickName({ nickname: '  球友C  ' }), '球友C');

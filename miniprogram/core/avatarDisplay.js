@@ -58,6 +58,14 @@ function markAvatarUrlFailed(avatarCache = {}, fileId = '', options = {}) {
   return true;
 }
 
+function markAvatarResolveFailed(avatarCache = {}, failed = [], fileId = '') {
+  const key = String(fileId || '').trim();
+  if (!key) return false;
+  markAvatarUrlFailed(avatarCache, key);
+  if (Array.isArray(failed) && !failed.includes(key)) failed.push(key);
+  return true;
+}
+
 function shouldResolveCloudAvatarFileId(fileId = '', avatarCache = {}, options = {}) {
   const key = String(fileId || '').trim();
   if (!isCloudAvatar(key)) return false;
@@ -165,29 +173,38 @@ async function resolveCloudAvatarFileIds(fileIds, avatarCache = {}) {
 
   let updated = false;
   const failed = [];
+  const unresolved = new Set(need);
   try {
     for (const batch of chunkList(need, TEMP_URL_BATCH_SIZE)) {
       const res = await wx.cloud.getTempFileURL({ fileList: batch });
       const fileList = (res && res.fileList) || [];
+      const returned = new Set();
       for (const item of fileList) {
         const fileID = String(item && item.fileID || '').trim();
         if (!fileID) continue;
+        returned.add(fileID);
         const url = String(item && item.tempFileURL || '').trim();
         const status = item && item.status;
         const statusOk = status === undefined || status === null || Number(status) === 0;
         if (url && statusOk) {
           updated = setCachedAvatarUrl(avatarCache, fileID, url) || updated;
+          unresolved.delete(fileID);
         } else {
-          failed.push(fileID);
-          if (hasOwn(avatarCache, fileID) && !getCachedAvatarUrl(avatarCache, fileID)) {
-            delete avatarCache[fileID];
-          }
+          markAvatarResolveFailed(avatarCache, failed, fileID);
+          unresolved.delete(fileID);
         }
       }
+      batch.forEach((fileID) => {
+        if (!returned.has(fileID)) {
+          markAvatarResolveFailed(avatarCache, failed, fileID);
+          unresolved.delete(fileID);
+        }
+      });
     }
     return { updated, requested: need, failed };
   } catch (_) {
-    return { updated: false, requested: need };
+    unresolved.forEach((fileID) => markAvatarResolveFailed(avatarCache, failed, fileID));
+    return { updated, requested: need, failed };
   }
 }
 

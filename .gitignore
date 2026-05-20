@@ -36,6 +36,9 @@ pnpm-debug.log*
 
 # local private config
 project.private.config.json
+private.*.key
+.keys/
+.secrets/
 
 # Claude Code
 .claude/settings*.json

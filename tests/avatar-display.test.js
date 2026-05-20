@@ -46,7 +46,7 @@ test('collectCloudAvatarFileIds retries cloud avatars when cached value is empty
   assert.deepEqual(pending, ['cloud://avatar/a']);
 });
 
-test('resolveCloudAvatarFileIds caches returned temp urls but does not persist empty results', async () => {
+test('resolveCloudAvatarFileIds caches returned temp urls and cools down failed results', async () => {
   const originalWx = global.wx;
   const cache = {};
   let requested = [];
@@ -70,8 +70,46 @@ test('resolveCloudAvatarFileIds caches returned temp urls but does not persist e
 
     assert.equal(result.updated, true);
     assert.deepEqual(requested, ['cloud://avatar/a', 'cloud://avatar/b']);
+    assert.deepEqual(result.failed, ['cloud://avatar/b']);
     assert.equal(avatarDisplay.getCachedAvatarUrl(cache, 'cloud://avatar/a'), 'https://temp/avatar/a.png');
-    assert.equal(Object.prototype.hasOwnProperty.call(cache, 'cloud://avatar/b'), false);
+    assert.equal(avatarDisplay.getCachedAvatarUrl(cache, 'cloud://avatar/b'), '');
+    assert.equal(avatarDisplay.shouldResolveCloudAvatarFileId('cloud://avatar/b', cache), false);
+  } finally {
+    global.wx = originalWx;
+  }
+});
+
+test('resolveCloudAvatarFileIds cools down missing file ids and request failures', async () => {
+  const originalWx = global.wx;
+  const cache = {};
+  let calls = 0;
+
+  try {
+    global.wx = {
+      cloud: {
+        async getTempFileURL() {
+          calls += 1;
+          if (calls === 1) {
+            return {
+              fileList: [
+                { fileID: 'cloud://avatar/a', tempFileURL: 'https://temp/avatar/a.png', status: 0 }
+              ]
+            };
+          }
+          throw new Error('network failed');
+        }
+      }
+    };
+
+    const missingResult = await avatarDisplay.resolveCloudAvatarFileIds(['cloud://avatar/a', 'cloud://avatar/missing'], cache);
+    assert.equal(missingResult.updated, true);
+    assert.deepEqual(missingResult.failed, ['cloud://avatar/missing']);
+    assert.equal(avatarDisplay.shouldResolveCloudAvatarFileId('cloud://avatar/missing', cache), false);
+
+    const failedResult = await avatarDisplay.resolveCloudAvatarFileIds(['cloud://avatar/error'], cache);
+    assert.equal(failedResult.updated, false);
+    assert.deepEqual(failedResult.failed, ['cloud://avatar/error']);
+    assert.equal(avatarDisplay.shouldResolveCloudAvatarFileId('cloud://avatar/error', cache), false);
   } finally {
     global.wx = originalWx;
   }
@@ -106,6 +144,41 @@ test('resolveCloudAvatarFileIds chunks temp url requests at official batch limit
     assert.equal(calls[0].length, 50);
     assert.equal(calls[1].length, 1);
     assert.equal(avatarDisplay.getCachedAvatarUrl(cache, 'cloud://avatar/50'), 'https://temp/avatar/50.png');
+  } finally {
+    global.wx = originalWx;
+  }
+});
+
+test('resolveCloudAvatarFileIds keeps earlier batch successes when a later batch fails', async () => {
+  const originalWx = global.wx;
+  const cache = {};
+  let calls = 0;
+
+  try {
+    global.wx = {
+      cloud: {
+        async getTempFileURL({ fileList }) {
+          calls += 1;
+          if (calls > 1) throw new Error('later batch failed');
+          return {
+            fileList: fileList.map((fileID) => ({
+              fileID,
+              tempFileURL: `https://temp/${fileID.slice('cloud://'.length)}.png`,
+              status: 0
+            }))
+          };
+        }
+      }
+    };
+
+    const fileIds = Array.from({ length: 51 }, (_, index) => `cloud://avatar/${index}`);
+    const result = await avatarDisplay.resolveCloudAvatarFileIds(fileIds, cache);
+
+    assert.equal(result.updated, true);
+    assert.equal(avatarDisplay.getCachedAvatarUrl(cache, 'cloud://avatar/0'), 'https://temp/avatar/0.png');
+    assert.equal(avatarDisplay.shouldResolveCloudAvatarFileId('cloud://avatar/0', cache), false);
+    assert.deepEqual(result.failed, ['cloud://avatar/50']);
+    assert.equal(avatarDisplay.shouldResolveCloudAvatarFileId('cloud://avatar/50', cache), false);
   } finally {
     global.wx = originalWx;
   }

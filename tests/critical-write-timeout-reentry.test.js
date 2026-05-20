@@ -891,6 +891,7 @@ test('lobby saveMyProfile stays guarded after timeout while request is pending',
   const originalSetUserProfile = storage.setUserProfile;
   const originalMarkRefreshFlag = nav.markRefreshFlag;
   const originalCallJoinTournament = joinTournamentCore.callJoinTournament;
+  const originalSaveCloudProfile = profileCore.saveCloudProfile;
 
   const deferred = createDeferred();
   const wxBox = createWxStub();
@@ -908,6 +909,7 @@ test('lobby saveMyProfile stays guarded after timeout while request is pending',
       await deferred.promise;
       return { ok: true };
     };
+    profileCore.saveCloudProfile = async () => ({ ok: true });
 
     const ctx = createContext(lobbyProfileActions, {
       tournamentId: 't_profile_join',
@@ -955,6 +957,7 @@ test('lobby saveMyProfile stays guarded after timeout while request is pending',
     storage.setUserProfile = originalSetUserProfile;
     nav.markRefreshFlag = originalMarkRefreshFlag;
     joinTournamentCore.callJoinTournament = originalCallJoinTournament;
+    profileCore.saveCloudProfile = originalSaveCloudProfile;
   }
 });
 

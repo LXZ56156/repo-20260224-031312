@@ -551,9 +551,11 @@ test('lobby saveMyProfile retry reuses the same clientRequestId', async () => {
   const originalSetUserProfile = storage.setUserProfile;
   const originalMarkRefreshFlag = nav.markRefreshFlag;
   const originalCallJoinTournament = joinTournamentCore.callJoinTournament;
+  const originalSaveCloudProfile = profileCore.saveCloudProfile;
 
   const wxBox = createWxStub();
   const requestIds = [];
+  const profileRequestIds = [];
   let callCount = 0;
   let retryFn = null;
 
@@ -567,6 +569,10 @@ test('lobby saveMyProfile retry reuses the same clientRequestId', async () => {
       requestIds.push(options.clientRequestId);
       callCount += 1;
       if (callCount === 1) throw new Error('network timeout');
+      return { ok: true };
+    };
+    profileCore.saveCloudProfile = async (_profile, options = {}) => {
+      profileRequestIds.push(options.clientRequestId);
       return { ok: true };
     };
 
@@ -595,11 +601,156 @@ test('lobby saveMyProfile retry reuses the same clientRequestId', async () => {
     assert.equal(requestIds.length, 2);
     assert.equal(requestIds[0], requestIds[1]);
     assert.match(String(requestIds[0] || ''), /^join_profile_/);
+    assert.deepEqual(profileRequestIds, [requestIds[1]]);
   } finally {
     global.wx = originalWx;
     storage.getUserProfile = originalGetUserProfile;
     storage.setUserProfile = originalSetUserProfile;
     nav.markRefreshFlag = originalMarkRefreshFlag;
     joinTournamentCore.callJoinTournament = originalCallJoinTournament;
+    profileCore.saveCloudProfile = originalSaveCloudProfile;
+  }
+});
+
+test('lobby handleJoin saves joined profile to cloud profile with the join request id', async () => {
+  const originalWx = global.wx;
+  const originalGetUserProfile = storage.getUserProfile;
+  const originalSetUserProfile = storage.setUserProfile;
+  const originalMarkRefreshFlag = nav.markRefreshFlag;
+  const originalBuildTournamentUrl = nav.buildTournamentUrl;
+  const originalEnsureJoinProfile = joinTournamentCore.ensureJoinProfile;
+  const originalCallJoinTournament = joinTournamentCore.callJoinTournament;
+  const originalSaveCloudProfile = profileCore.saveCloudProfile;
+
+  const wxBox = createWxStub();
+  const savedProfiles = [];
+  const requestIds = [];
+
+  global.wx = wxBox.api;
+
+  try {
+    storage.getUserProfile = () => ({ gender: 'female', nickName: '旧昵称', avatar: 'cloud://avatar/old' });
+    storage.setUserProfile = () => {};
+    nav.markRefreshFlag = () => {};
+    nav.buildTournamentUrl = (path, tournamentId) => `${path}?tournamentId=${tournamentId}`;
+    joinTournamentCore.ensureJoinProfile = async () => ({
+      ok: true,
+      profile: { nickName: '加入昵称', avatar: 'cloud://avatar/join', gender: 'male' }
+    });
+    joinTournamentCore.callJoinTournament = async (_payload, options = {}) => {
+      requestIds.push(options.clientRequestId);
+      return {
+        ok: true,
+        player: { id: 'u_join', name: '加入昵称', avatar: 'cloud://avatar/join', gender: 'male' }
+      };
+    };
+    profileCore.saveCloudProfile = async (profile, options = {}) => {
+      savedProfiles.push({ profile, clientRequestId: options.clientRequestId });
+      return { ok: true };
+    };
+
+    const ctx = createContext(lobbyProfileActions, {
+      tournamentId: 't_join_profile',
+      mode: flow.MODE_MULTI_ROTATE,
+      joinSquadChoice: 'A',
+      nickname: '',
+      joinAvatar: '',
+      profileSaving: false,
+      profileAvatarUploading: false,
+      profileQuickFillLoading: false
+    });
+    ctx.fetchTournament = async () => {};
+    ctx.clearLastFailedAction = () => {};
+    ctx.setLastFailedAction = () => {};
+    ctx.handleWriteError = () => {};
+
+    await ctx.handleJoin();
+
+    assert.equal(savedProfiles.length, 1);
+    assert.equal(savedProfiles[0].clientRequestId, requestIds[0]);
+    assert.deepEqual(savedProfiles[0].profile, {
+      nickName: '加入昵称',
+      avatar: 'cloud://avatar/join',
+      gender: 'male'
+    });
+  } finally {
+    global.wx = originalWx;
+    storage.getUserProfile = originalGetUserProfile;
+    storage.setUserProfile = originalSetUserProfile;
+    nav.markRefreshFlag = originalMarkRefreshFlag;
+    nav.buildTournamentUrl = originalBuildTournamentUrl;
+    joinTournamentCore.ensureJoinProfile = originalEnsureJoinProfile;
+    joinTournamentCore.callJoinTournament = originalCallJoinTournament;
+    profileCore.saveCloudProfile = originalSaveCloudProfile;
+  }
+});
+
+test('lobby profile cloud save failure keeps the tournament write successful and retryable', async () => {
+  const originalWx = global.wx;
+  const originalGetUserProfile = storage.getUserProfile;
+  const originalSetUserProfile = storage.setUserProfile;
+  const originalMarkRefreshFlag = nav.markRefreshFlag;
+  const originalCallJoinTournament = joinTournamentCore.callJoinTournament;
+  const originalSaveCloudProfile = profileCore.saveCloudProfile;
+
+  const wxBox = createWxStub();
+  const profileRequestIds = [];
+  let retryFn = null;
+  let writeErrors = 0;
+  let saveAttempts = 0;
+
+  global.wx = wxBox.api;
+
+  try {
+    storage.getUserProfile = () => ({ gender: 'male', nickName: '旧昵称', avatar: 'cloud://avatar/old' });
+    storage.setUserProfile = () => {};
+    nav.markRefreshFlag = () => {};
+    joinTournamentCore.callJoinTournament = async () => ({
+      ok: true,
+      player: { id: 'u_profile', name: '新昵称', avatar: 'cloud://avatar/new', gender: 'male' }
+    });
+    profileCore.saveCloudProfile = async (_profile, options = {}) => {
+      profileRequestIds.push(options.clientRequestId);
+      saveAttempts += 1;
+      if (saveAttempts === 1) throw new Error('profile save timeout');
+      return { ok: true };
+    };
+
+    const ctx = createContext(lobbyProfileActions, {
+      tournamentId: 't_profile_join',
+      tournament: { status: 'draft' },
+      mode: flow.MODE_MULTI_ROTATE,
+      joinSquadChoice: 'A',
+      myNickname: '新昵称',
+      myAvatar: 'cloud://avatar/new',
+      profileSaving: false,
+      profileAvatarUploading: false,
+      profileQuickFillLoading: false
+    });
+    ctx.fetchTournament = async () => {};
+    ctx.clearLastFailedAction = () => {};
+    ctx.setLastFailedAction = (text, fn) => {
+      assert.equal(text, '保存我的信息');
+      retryFn = fn;
+    };
+    ctx.handleWriteError = () => {
+      writeErrors += 1;
+    };
+
+    await ctx.saveMyProfile();
+
+    assert.equal(writeErrors, 0);
+    assert.equal(typeof retryFn, 'function');
+    await retryFn();
+    assert.equal(profileRequestIds.length, 2);
+    assert.equal(profileRequestIds[0], profileRequestIds[1]);
+    assert.match(String(profileRequestIds[0] || ''), /^join_profile_/);
+  } finally {
+    global.wx = originalWx;
+    storage.getUserProfile = originalGetUserProfile;
+    storage.setUserProfile = originalSetUserProfile;
+    nav.markRefreshFlag = originalMarkRefreshFlag;
+    joinTournamentCore.callJoinTournament = originalCallJoinTournament;
+    profileCore.saveCloudProfile = originalSaveCloudProfile;
   }
 });
