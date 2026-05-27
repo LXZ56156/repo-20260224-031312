@@ -1,6 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
+const storage = require('../miniprogram/core/storage');
+
 const lobbyPagePath = require.resolve('../miniprogram/pages/lobby/index.js');
 const cloudCorePath = require.resolve('../miniprogram/core/cloud.js');
 
@@ -22,7 +24,14 @@ function createLobbyPageContext(definition, tournament) {
       ...JSON.parse(JSON.stringify(definition.data)),
       tournamentId: 't_1',
       tournament
-    }
+    },
+    openid: 'u_admin',
+    avatarCache: {},
+    _pendingIntentAction: '',
+    setData(update) {
+      this.data = { ...this.data, ...(update || {}) };
+    },
+    resolveDisplayPlayersAvatars() {}
   };
   for (const [key, value] of Object.entries(definition || {})) {
     if (typeof value === 'function') ctx[key] = value;
@@ -52,10 +61,12 @@ test('lobby page uses a unified transfer contract across lifecycle states', () =
   }
 });
 
-test('lobby draft fixed-limit share prepares updatable message through promise', async () => {
+test('lobby setTournament preheats draft fixed-limit updatable share before onShareAppMessage', async () => {
   const cloudCore = require(cloudCorePath);
   const originalCall = cloudCore.call;
   const originalGetRuntimeEnv = cloudCore.getRuntimeEnv;
+  const originalAddRecentTournamentId = storage.addRecentTournamentId;
+  const originalGetApp = global.getApp;
   const originalWx = global.wx;
   const updateCalls = [];
   const cloudCalls = [];
@@ -65,6 +76,8 @@ test('lobby draft fixed-limit share prepares updatable message through promise',
       if (typeof options.success === 'function') options.success({ ok: true });
     }
   };
+  global.getApp = () => ({ globalData: { openid: 'u_admin' } });
+  storage.addRecentTournamentId = () => {};
   cloudCore.getRuntimeEnv = () => ({ envVersion: 'trial' });
   cloudCore.call = async (name, data, options) => {
     cloudCalls.push({ name, data, options });
@@ -77,24 +90,19 @@ test('lobby draft fixed-limit share prepares updatable message through promise',
   const definition = loadLobbyPageDefinition();
 
   try {
-    const ctx = createLobbyPageContext(definition, {
+    const tournament = {
       _id: 't_1',
       name: '周末比赛',
       status: 'draft',
+      version: 3,
+      mode: 'multi_rotate',
       playerLimit: 8,
       players: [{ id: 'u_admin' }, { id: 'u_2' }]
-    });
-    const share = ctx.onShareAppMessage();
+    };
+    const ctx = createLobbyPageContext(definition, tournament);
+    ctx.setTournament(tournament);
+    await ctx._dynamicShareInflightPromise;
 
-    assert.equal(share.title, '周末比赛，加入羽毛球比赛');
-    assert.equal(share.path, '/pages/share-entry/index?tournamentId=t_1');
-    assert.equal(typeof share.promise.then, 'function');
-
-    const resolved = await share.promise;
-    assert.deepEqual(resolved, {
-      title: '周末比赛，加入羽毛球比赛',
-      path: '/pages/share-entry/index?tournamentId=t_1'
-    });
     assert.equal(cloudCalls.length, 1);
     assert.equal(cloudCalls[0].name, 'manageActivityId');
     assert.deepEqual(cloudCalls[0].data, {
@@ -111,17 +119,29 @@ test('lobby draft fixed-limit share prepares updatable message through promise',
       { name: 'member_count', value: '2' },
       { name: 'room_limit', value: '8' }
     ]);
+
+    const share = ctx.onShareAppMessage();
+
+    assert.equal(share.title, '周末比赛，加入羽毛球比赛');
+    assert.equal(share.path, '/pages/share-entry/index?tournamentId=t_1');
+    assert.equal(Object.prototype.hasOwnProperty.call(share, 'promise'), false);
+    assert.equal(cloudCalls.length, 1);
+    assert.equal(updateCalls.length, 1);
   } finally {
     cloudCore.call = originalCall;
     cloudCore.getRuntimeEnv = originalGetRuntimeEnv;
+    storage.addRecentTournamentId = originalAddRecentTournamentId;
+    global.getApp = originalGetApp;
     global.wx = originalWx;
     delete require.cache[lobbyPagePath];
   }
 });
 
-test('lobby share degrades to ordinary message when dynamic share is unavailable', async () => {
+test('lobby dynamic share preheat failure degrades to ordinary share without promise', async () => {
   const cloudCore = require(cloudCorePath);
   const originalCall = cloudCore.call;
+  const originalAddRecentTournamentId = storage.addRecentTournamentId;
+  const originalGetApp = global.getApp;
   const originalWx = global.wx;
   const updateCalls = [];
   global.wx = {
@@ -130,6 +150,8 @@ test('lobby share degrades to ordinary message when dynamic share is unavailable
       if (typeof options.success === 'function') options.success({ ok: true });
     }
   };
+  global.getApp = () => ({ globalData: { openid: 'u_admin' } });
+  storage.addRecentTournamentId = () => {};
   cloudCore.call = async () => {
     throw new Error('network failed');
   };
@@ -140,39 +162,49 @@ test('lobby share degrades to ordinary message when dynamic share is unavailable
       _id: 't_1',
       name: '周末比赛',
       status: 'draft',
+      version: 1,
       playerLimit: 8,
       players: []
     });
-    const share = ctx.onShareAppMessage();
-    const resolved = await share.promise;
+    ctx.setTournament(ctx.data.tournament);
+    await ctx._dynamicShareInflightPromise;
 
-    assert.equal(resolved.title, '周末比赛，加入羽毛球比赛');
-    assert.equal(resolved.path, '/pages/share-entry/index?tournamentId=t_1');
+    const share = ctx.onShareAppMessage();
+
+    assert.equal(share.title, '周末比赛，加入羽毛球比赛');
+    assert.equal(share.path, '/pages/share-entry/index?tournamentId=t_1');
+    assert.equal(Object.prototype.hasOwnProperty.call(share, 'promise'), false);
     assert.equal(updateCalls.length, 1);
     assert.deepEqual(updateCalls[0].isUpdatableMessage, false);
   } finally {
     cloudCore.call = originalCall;
+    storage.addRecentTournamentId = originalAddRecentTournamentId;
+    global.getApp = originalGetApp;
     global.wx = originalWx;
     delete require.cache[lobbyPagePath];
   }
 });
 
-test('lobby onHide cancels pending dynamic share preparation and clears share menu state', async () => {
+test('lobby keeps preheated dynamic share through onHide and clears it on unload', async () => {
   const cloudCore = require(cloudCorePath);
   const originalCall = cloudCore.call;
+  const originalAddRecentTournamentId = storage.addRecentTournamentId;
+  const originalGetApp = global.getApp;
   const originalWx = global.wx;
   const updateCalls = [];
-  let resolveCloudCall = null;
-  const pendingCloudCall = new Promise((resolve) => {
-    resolveCloudCall = resolve;
-  });
   global.wx = {
     updateShareMenu(options) {
       updateCalls.push(options);
       if (typeof options.success === 'function') options.success({ ok: true });
     }
   };
-  cloudCore.call = async () => pendingCloudCall;
+  global.getApp = () => ({ globalData: { openid: 'u_admin' } });
+  storage.addRecentTournamentId = () => {};
+  cloudCore.call = async () => ({
+    ok: true,
+    activityId: 'act_ready',
+    data: { activityId: 'act_ready' }
+  });
   const definition = loadLobbyPageDefinition();
 
   try {
@@ -180,30 +212,141 @@ test('lobby onHide cancels pending dynamic share preparation and clears share me
       _id: 't_1',
       name: '周末比赛',
       status: 'draft',
+      version: 1,
       playerLimit: 8,
       players: [{ id: 'u_admin' }]
     });
-    const share = ctx.onShareAppMessage();
+    ctx.setTournament(ctx.data.tournament);
+    await ctx._dynamicShareInflightPromise;
+    assert.equal(updateCalls.length, 1);
+    assert.equal(updateCalls[0].isUpdatableMessage, true);
 
     ctx.onHide();
     assert.equal(updateCalls.length, 1);
-    assert.equal(updateCalls[0].isUpdatableMessage, false);
 
-    resolveCloudCall({
-      ok: true,
-      activityId: 'act_late',
-      data: { activityId: 'act_late' }
-    });
-    const resolved = await share.promise;
-
-    assert.deepEqual(resolved, {
-      title: '周末比赛，加入羽毛球比赛',
-      path: '/pages/share-entry/index?tournamentId=t_1'
-    });
-    assert.equal(updateCalls.length, 1);
-    assert.equal(updateCalls.some((call) => call.isUpdatableMessage === true), false);
+    ctx.onUnload();
+    assert.equal(updateCalls.length, 2);
+    assert.equal(updateCalls[1].isUpdatableMessage, false);
   } finally {
     cloudCore.call = originalCall;
+    storage.addRecentTournamentId = originalAddRecentTournamentId;
+    global.getApp = originalGetApp;
+    global.wx = originalWx;
+    delete require.cache[lobbyPagePath];
+  }
+});
+
+test('lobby avoids repeated dynamic share preheat for unchanged tournament snapshot', async () => {
+  const cloudCore = require(cloudCorePath);
+  const originalCall = cloudCore.call;
+  const originalAddRecentTournamentId = storage.addRecentTournamentId;
+  const originalGetApp = global.getApp;
+  const originalWx = global.wx;
+  const updateCalls = [];
+  let cloudCallCount = 0;
+  global.wx = {
+    updateShareMenu(options) {
+      updateCalls.push(options);
+      if (typeof options.success === 'function') options.success({ ok: true });
+    }
+  };
+  global.getApp = () => ({ globalData: { openid: 'u_admin' } });
+  storage.addRecentTournamentId = () => {};
+  cloudCore.call = async () => {
+    cloudCallCount += 1;
+    return {
+      ok: true,
+      activityId: 'act_deduped',
+      data: { activityId: 'act_deduped' }
+    };
+  };
+  const definition = loadLobbyPageDefinition();
+
+  try {
+    const tournament = {
+      _id: 't_1',
+      name: '周末比赛',
+      status: 'draft',
+      version: 7,
+      playerLimit: 8,
+      players: [{ id: 'u_admin' }, { id: 'u_2' }]
+    };
+    const ctx = createLobbyPageContext(definition, tournament);
+    ctx.setTournament(tournament);
+    await ctx._dynamicShareInflightPromise;
+    ctx.setTournament(JSON.parse(JSON.stringify(tournament)));
+
+    assert.equal(cloudCallCount, 1);
+    assert.equal(updateCalls.length, 1);
+    assert.equal(ctx._dynamicShareReadyKey, 't_1|7|draft|2|8|act_deduped');
+  } finally {
+    cloudCore.call = originalCall;
+    storage.addRecentTournamentId = originalAddRecentTournamentId;
+    global.getApp = originalGetApp;
+    global.wx = originalWx;
+    delete require.cache[lobbyPagePath];
+  }
+});
+
+test('lobby clears stale dynamic share menu before preheating changed tournament snapshot', async () => {
+  const cloudCore = require(cloudCorePath);
+  const originalCall = cloudCore.call;
+  const originalAddRecentTournamentId = storage.addRecentTournamentId;
+  const originalGetApp = global.getApp;
+  const originalWx = global.wx;
+  const updateCalls = [];
+  let cloudCallCount = 0;
+  global.wx = {
+    updateShareMenu(options) {
+      updateCalls.push(options);
+      if (typeof options.success === 'function') options.success({ ok: true });
+    }
+  };
+  global.getApp = () => ({ globalData: { openid: 'u_admin' } });
+  storage.addRecentTournamentId = () => {};
+  cloudCore.call = async () => {
+    cloudCallCount += 1;
+    return {
+      ok: true,
+      activityId: 'act_same',
+      data: { activityId: 'act_same' }
+    };
+  };
+  const definition = loadLobbyPageDefinition();
+
+  try {
+    const first = {
+      _id: 't_1',
+      name: '周末比赛',
+      status: 'draft',
+      version: 7,
+      playerLimit: 8,
+      players: [{ id: 'u_admin' }]
+    };
+    const second = {
+      ...first,
+      version: 8,
+      players: [{ id: 'u_admin' }, { id: 'u_2' }]
+    };
+    const ctx = createLobbyPageContext(definition, first);
+    ctx.setTournament(first);
+    await ctx._dynamicShareInflightPromise;
+    ctx.setTournament(second);
+    await ctx._dynamicShareInflightPromise;
+
+    assert.equal(cloudCallCount, 2);
+    assert.equal(updateCalls.length, 3);
+    assert.equal(updateCalls[0].isUpdatableMessage, true);
+    assert.equal(updateCalls[1].isUpdatableMessage, false);
+    assert.equal(updateCalls[2].isUpdatableMessage, true);
+    assert.deepEqual(updateCalls[2].templateInfo.parameterList, [
+      { name: 'member_count', value: '2' },
+      { name: 'room_limit', value: '8' }
+    ]);
+  } finally {
+    cloudCore.call = originalCall;
+    storage.addRecentTournamentId = originalAddRecentTournamentId;
+    global.getApp = originalGetApp;
     global.wx = originalWx;
     delete require.cache[lobbyPagePath];
   }

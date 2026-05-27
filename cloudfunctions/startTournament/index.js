@@ -298,6 +298,7 @@ exports.main = async (event) => {
     });
     if (result && result.ok && shareStartTournament) {
       await shareActivity.updateStartedMessageBestEffort(cloud, tournamentId, shareStartTournament, console, {
+        db,
         source: 'startTournament',
         tournamentId,
         traceId

@@ -10,6 +10,7 @@
           wx:if="{{featuredChecklistItem.key==='players' && !featuredChecklistItem.done}}"
           class="prep-featured prep-share-action {{featuredChecklistItem.cardClass}}"
           open-type="share"
+          bindtouchstart="onShareButtonTouchStart"
         >
           <view class="prep-featured-top">
             <view class="prep-badge">{{featuredChecklistItem.badgeText}}</view>
@@ -64,6 +65,7 @@
             wx:if="{{item.key==='players' && !item.done}}"
             class="prep-tile prep-share-action {{item.cardClass}}"
             open-type="share"
+            bindtouchstart="onShareButtonTouchStart"
           >
             <view class="prep-secondary-head">
               <text class="prep-indicator {{item.indicatorClass}}"></text>
@@ -114,6 +116,7 @@
         wx:if="{{primaryTaskKey==='share' && primaryTaskTitle==='转发比赛'}}"
         class="btn btn-primary state-primary-btn"
         open-type="share"
+        bindtouchstart="onShareButtonTouchStart"
       >{{primaryTaskTitle || statePrimaryActionText}}</button>
       <button
         wx:else

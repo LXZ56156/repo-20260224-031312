@@ -79,13 +79,18 @@ function createDbHarness(lockGetImpl, options = {}) {
     tournamentGet: 0,
     lockGet: 0,
     update: 0,
+    diagnosticUpdate: 0,
     remove: 0,
-    updatePayloads: []
+    updatePayloads: [],
+    diagnosticUpdatePayloads: []
   };
   const db = {
     command: {
       inc(value) {
         return { $inc: value };
+      },
+      remove() {
+        return { $remove: true };
       }
     },
     serverDate() {
@@ -97,12 +102,17 @@ function createDbHarness(lockGetImpl, options = {}) {
           doc(id) {
             assert.equal(id, 't_1');
             return {
-              async get() {
-                calls.tournamentGet += 1;
-                return { data: tournamentFactory() };
-              }
-            };
-          },
+            async get() {
+              calls.tournamentGet += 1;
+              return { data: tournamentFactory() };
+            },
+            async update(payload) {
+              calls.diagnosticUpdate += 1;
+              calls.diagnosticUpdatePayloads.push(payload);
+              return { stats: { updated: 1 } };
+            }
+          };
+        },
           where(query) {
             const expectedVersion = Number(tournamentFactory().version) || 1;
             assert.deepEqual(query, { _id: 't_1', version: expectedVersion });
@@ -365,6 +375,68 @@ test('submitScore marks and updates active share activity when tournament finish
     activityId: 'act_finish',
     targetState: 2
   }]);
+  assert.equal(calls.diagnosticUpdate, 1);
+  assert.deepEqual(calls.diagnosticUpdatePayloads[0].data, {
+    shareActivityLastError: { $remove: true },
+    shareActivityLastErrorCode: { $remove: true },
+    shareActivityLastErrorMsg: { $remove: true },
+    shareActivityLastErrorAt: { $remove: true }
+  });
+});
+
+test('submitScore records share activity diagnostics when finished update is rejected by openapi', async () => {
+  const warnings = [];
+  const originalWarn = console.warn;
+  console.warn = (...args) => warnings.push(args);
+  const { db, calls } = createDbHarness(async () => ({
+    data: {
+      ownerId: 'u_admin',
+      ownerName: '管理员',
+      expireAt: Date.now() + 60_000
+    }
+  }), {
+    tournamentFactory: () => ({
+      ...buildTournament(),
+      shareActivityId: 'act_finish',
+      shareActivityExpireAtMs: Date.now() + 120_000,
+      shareActivityState: 1,
+      shareActivityVersionType: 'release'
+    })
+  });
+  const { main } = loadSubmitScoreMain(db, {
+    openapi: {
+      async setUpdatableMsg() {
+        const err = new Error('updatableMessage.setUpdatableMsg:fail 47502 invalid target_state');
+        err.errCode = 47502;
+        throw err;
+      }
+    }
+  });
+
+  try {
+    const result = await main({
+      tournamentId: 't_1',
+      roundIndex: 0,
+      matchIndex: 0,
+      scoreA: 21,
+      scoreB: 19
+    });
+
+    assert.equal(result.ok, true);
+    assert.equal(result.finished, true);
+    assert.equal(calls.updatePayloads[0].data.shareActivityState, 2);
+    assert.equal(calls.diagnosticUpdate, 1);
+    assert.deepEqual(calls.diagnosticUpdatePayloads[0].data, {
+      shareActivityLastError: 'updatableMessage.setUpdatableMsg:fail 47502 invalid target_state',
+      shareActivityLastErrorCode: '47502',
+      shareActivityLastErrorMsg: 'updatableMessage.setUpdatableMsg:fail 47502 invalid target_state',
+      shareActivityLastErrorAt: { $serverDate: true }
+    });
+    assert.equal(warnings.length, 1);
+    assert.match(String(warnings[0][0]), /setUpdatableMsg failed/);
+  } finally {
+    console.warn = originalWarn;
+  }
 });
 
 test('submitScore keeps canceled matches non-editable', async () => {

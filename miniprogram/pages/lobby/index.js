@@ -237,7 +237,6 @@ Page({
   },
 
   onHide() {
-    this.disablePageDynamicShare();
     pageTournamentSync.pauseTournamentSync(this);
     pageTimers.clearNamedTimer(this, 'startNavigation');
   },
@@ -342,6 +341,7 @@ Page({
 
     this.resolveDisplayPlayersAvatars();
     storage.addRecentTournamentId(next.tournament._id);
+    this.ensureDynamicShareReady(next.tournament);
 
     if (this._pendingIntentAction) {
       const action = this._pendingIntentAction;
@@ -367,23 +367,12 @@ Page({
       title: meta.title,
       path: meta.path
     };
-    const tournament = this.data.tournament;
-    if (!shareActivity.shouldUseDynamicShare(tournament)) {
-      this.disablePageDynamicShare();
-      return message;
-    }
+    this.ensureDynamicShareReady(this.data.tournament);
+    return message;
+  },
 
-    const sharePrepareToken = this.nextDynamicSharePrepareToken();
-    const promise = this.prepareDynamicShareMessage(tournament, sharePrepareToken).then(() => message).catch(() => {
-      if (this.isCurrentDynamicSharePrepareToken(sharePrepareToken)) {
-        shareActivity.disableDynamicShareBestEffort();
-      }
-      return message;
-    });
-    return {
-      ...message,
-      promise
-    };
+  onShareButtonTouchStart() {
+    this.ensureDynamicShareReady(this.data.tournament);
   },
 
   nextDynamicSharePrepareToken() {
@@ -397,7 +386,75 @@ Page({
 
   disablePageDynamicShare() {
     this.nextDynamicSharePrepareToken();
+    this._dynamicShareReadyKey = '';
+    this._dynamicShareReadyBaseKey = '';
+    this._dynamicShareReadyActivityId = '';
+    this._dynamicShareInflightBaseKey = '';
+    this._dynamicShareInflightPromise = null;
     shareActivity.disableDynamicShareBestEffort();
+  },
+
+  buildDynamicShareBaseKey(tournament) {
+    const t = tournament && typeof tournament === 'object' ? tournament : {};
+    return [
+      String(t._id || this.data.tournamentId || '').trim(),
+      String(Number(t.version) || 0),
+      String(t.status || '').trim(),
+      String(shareActivity.countPlayers(t)),
+      String(shareActivity.resolveRoomLimit(t))
+    ].join('|');
+  },
+
+  buildDynamicShareReadyKey(tournament, activityId) {
+    return `${this.buildDynamicShareBaseKey(tournament)}|${String(activityId || '').trim()}`;
+  },
+
+  ensureDynamicShareReady(tournament) {
+    const t = tournament && typeof tournament === 'object' ? tournament : this.data.tournament;
+    if (!shareActivity.shouldUseDynamicShare(t)) {
+      this.disablePageDynamicShare();
+      return Promise.resolve(false);
+    }
+
+    const baseKey = this.buildDynamicShareBaseKey(t);
+    if (
+      (this._dynamicShareReadyBaseKey && this._dynamicShareReadyBaseKey !== baseKey) ||
+      (this._dynamicShareInflightBaseKey && this._dynamicShareInflightBaseKey !== baseKey)
+    ) {
+      this.disablePageDynamicShare();
+    }
+    if (this._dynamicShareReadyBaseKey === baseKey && this._dynamicShareReadyActivityId) {
+      return Promise.resolve(true);
+    }
+    if (this._dynamicShareInflightBaseKey === baseKey && this._dynamicShareInflightPromise) {
+      return this._dynamicShareInflightPromise;
+    }
+
+    const sharePrepareToken = this.nextDynamicSharePrepareToken();
+    this._dynamicShareInflightBaseKey = baseKey;
+    const promise = this.prepareDynamicShareMessage(t, sharePrepareToken).then((res) => {
+      if (!this.isCurrentDynamicSharePrepareToken(sharePrepareToken)) return false;
+      const activityId = String(res && res.activityId || '').trim();
+      this._dynamicShareReadyBaseKey = baseKey;
+      this._dynamicShareReadyActivityId = activityId;
+      this._dynamicShareReadyKey = this.buildDynamicShareReadyKey(t, activityId);
+      return true;
+    }).catch(() => {
+      if (this.isCurrentDynamicSharePrepareToken(sharePrepareToken)) {
+        this._dynamicShareReadyKey = '';
+        this._dynamicShareReadyBaseKey = '';
+        this._dynamicShareReadyActivityId = '';
+        shareActivity.disableDynamicShareBestEffort();
+      }
+      return false;
+    }).finally(() => {
+      if (this._dynamicShareInflightBaseKey === baseKey) {
+        this._dynamicShareInflightBaseKey = '';
+        this._dynamicShareInflightPromise = null;
+      }
+    });
+    this._dynamicShareInflightPromise = promise;
+    return promise;
   },
 
   async prepareDynamicShareMessage(tournament, sharePrepareToken) {

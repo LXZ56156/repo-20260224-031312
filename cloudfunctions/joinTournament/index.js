@@ -375,6 +375,7 @@ exports.main = async (event, context) => {
     });
     if (result && result.ok && shareUpdateTournament) {
       await shareActivity.updateDraftMessageBestEffort(cloud, shareUpdateTournament, modeHelper, console, {
+        db,
         source: 'joinTournament',
         tournamentId,
         traceId

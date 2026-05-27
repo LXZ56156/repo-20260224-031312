@@ -21,6 +21,7 @@ test('lobby draft share is available from the primary CTA and pending player che
   assert.match(statePanelWxml, /featuredChecklistItem\.key==='players' && !featuredChecklistItem\.done[\s\S]*open-type="share"/);
   assert.match(statePanelWxml, /item\.key==='players' && !item\.done[\s\S]*open-type="share"/);
   assert.equal((statePanelWxml.match(/open-type="share"/g) || []).length, 3);
+  assert.equal((statePanelWxml.match(/bindtouchstart="onShareButtonTouchStart"/g) || []).length, 3);
   assert.match(statePanelWxml, /prep-share-action/);
   assert.match(adminWxml, /id="quick-import"/);
   assert.doesNotMatch(scheduleWxml, /open-type="share"/);

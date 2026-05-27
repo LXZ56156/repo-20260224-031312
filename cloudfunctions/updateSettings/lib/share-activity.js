@@ -178,12 +178,74 @@ function withTimeout(promise, timeoutMs = UPDATE_TIMEOUT_MS) {
   ]);
 }
 
+function pickErrorMessage(err) {
+  const message = String((err && (err.errMsg || err.message)) || err || '').trim();
+  return message.slice(0, 300);
+}
+
+function pickErrorCode(err) {
+  const direct = err && (err.errCode || err.errcode || err.errorCode || err.code);
+  const normalized = String(direct || '').trim();
+  if (normalized) return normalized;
+  const message = pickErrorMessage(err);
+  const matched = message.match(/\b[0-9]{4,}\b/);
+  return matched ? matched[0] : 'UNKNOWN';
+}
+
+function getRemoveToken(db) {
+  const command = db && db.command;
+  if (command && typeof command.remove === 'function') return command.remove();
+  return undefined;
+}
+
+async function writeDiagnosticPatchBestEffort(db, tournamentId, patch, logger = console, context = {}) {
+  const tid = String(tournamentId || '').trim();
+  if (!db || !tid || !patch || typeof patch !== 'object') return false;
+  try {
+    const docRef = db.collection('tournaments').doc(tid);
+    if (!docRef || typeof docRef.update !== 'function') return false;
+    await docRef.update({ data: patch });
+    return true;
+  } catch (err) {
+    warn(logger, '[shareActivity] diagnostic write failed', {
+      tournamentId: tid,
+      ...context
+    }, err);
+    return false;
+  }
+}
+
+async function recordShareActivityErrorBestEffort(db, tournamentId, err, logger = console, context = {}) {
+  const message = pickErrorMessage(err) || 'setUpdatableMsg failed';
+  const patch = {
+    shareActivityLastError: message,
+    shareActivityLastErrorCode: pickErrorCode(err),
+    shareActivityLastErrorMsg: message,
+    shareActivityLastErrorAt: db && typeof db.serverDate === 'function' ? db.serverDate() : Date.now()
+  };
+  return writeDiagnosticPatchBestEffort(db, tournamentId, patch, logger, context);
+}
+
+async function clearShareActivityErrorBestEffort(db, tournamentId, logger = console, context = {}) {
+  const removeToken = getRemoveToken(db);
+  if (removeToken === undefined) return false;
+  return writeDiagnosticPatchBestEffort(db, tournamentId, {
+    shareActivityLastError: removeToken,
+    shareActivityLastErrorCode: removeToken,
+    shareActivityLastErrorMsg: removeToken,
+    shareActivityLastErrorAt: removeToken
+  }, logger, context);
+}
+
 async function setUpdatableMessageBestEffort(cloud, payload, logger = console, context = {}) {
   if (!payload || !payload.activityId) return false;
   const api = cloud && cloud.openapi && cloud.openapi.updatableMessage;
   if (!api || typeof api.setUpdatableMsg !== 'function') return false;
+  const db = context && context.db;
+  const tournamentId = context && context.tournamentId;
   try {
     await withTimeout(api.setUpdatableMsg(payload));
+    await clearShareActivityErrorBestEffort(db, tournamentId, logger, context);
     return true;
   } catch (err) {
     warn(logger, '[shareActivity] setUpdatableMsg failed', {
@@ -191,6 +253,7 @@ async function setUpdatableMessageBestEffort(cloud, payload, logger = console, c
       targetState: payload.targetState,
       ...context
     }, err);
+    await recordShareActivityErrorBestEffort(db, tournamentId, err, logger, context);
     return false;
   }
 }
@@ -248,6 +311,8 @@ module.exports = {
   buildDraftShareMenuTemplateInfo,
   buildStartedTemplateInfo,
   buildSetPayload,
+  pickErrorMessage,
+  pickErrorCode,
   setUpdatableMessageBestEffort,
   updateDraftMessageBestEffort,
   updateStartedMessageBestEffort,

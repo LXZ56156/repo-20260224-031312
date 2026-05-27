@@ -153,6 +153,7 @@ exports.main = async (event) => {
     db.collection('score_locks').doc(lockId).remove().catch(() => {});
     if (shareFinishTournament) {
       await shareActivity.updateFinishedMessageBestEffort(cloud, shareFinishTournament, console, {
+        db,
         source: 'submitScore',
         tournamentId,
         traceId
