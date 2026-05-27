@@ -51,6 +51,7 @@ test('share-entry only joins after explicit primary action tap', async () => {
   const originalGetApp = global.getApp;
   const originalCloudCall = cloud.call;
   const originalEnsureProfileForAction = profileCore.ensureProfileForAction;
+  const originalSaveCloudProfile = profileCore.saveCloudProfile;
   const originalFetchTournament = tournamentSync.fetchTournament;
   const originalStartWatch = tournamentSync.startWatch;
   const originalMarkRefreshFlag = nav.markRefreshFlag;
@@ -61,7 +62,12 @@ test('share-entry only joins after explicit primary action tap', async () => {
     showLoading() {},
     hideLoading() {},
     showToast() {},
-    navigateTo() {}
+    navigateTo() {},
+    getStorageSync() {
+      return undefined;
+    },
+    setStorageSync() {},
+    removeStorageSync() {}
   };
   global.getApp = () => ({
     globalData: { openid: 'u_viewer' }
@@ -79,6 +85,7 @@ test('share-entry only joins after explicit primary action tap', async () => {
       gender: 'unknown'
     }
   });
+  profileCore.saveCloudProfile = async () => ({ ok: true });
   tournamentSync.fetchTournament = async () => ({
     ok: true,
     source: 'remote',
@@ -108,6 +115,7 @@ test('share-entry only joins after explicit primary action tap', async () => {
     global.getApp = originalGetApp;
     cloud.call = originalCloudCall;
     profileCore.ensureProfileForAction = originalEnsureProfileForAction;
+    profileCore.saveCloudProfile = originalSaveCloudProfile;
     tournamentSync.fetchTournament = originalFetchTournament;
     tournamentSync.startWatch = originalStartWatch;
     nav.markRefreshFlag = originalMarkRefreshFlag;

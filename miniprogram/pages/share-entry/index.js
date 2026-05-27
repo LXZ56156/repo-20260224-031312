@@ -7,12 +7,17 @@ const nav = require('../../core/nav');
 const pageTitle = require('../../core/pageTitle');
 const pageTournamentSync = require('../../core/pageTournamentSync');
 const pageTimers = require('../../core/pageTimers');
+const profileCore = require('../../core/profile');
 const shareMeta = require('../../core/shareMeta');
 const storage = require('../../core/storage');
 const writeErrorUi = require('../../core/writeErrorUi');
 const flow = require('./flow');
 
 const IDENTITY_TIMEOUT_MS = 2500;
+
+function warnCloudProfileSaveFailure(err) {
+  console.warn('[share-entry] saveCloudProfile failed after join', err);
+}
 
 const shareEntrySyncController = pageTournamentSync.createTournamentSyncMethods({
   buildLoadErrorState(result) {
@@ -242,6 +247,19 @@ Page({
     nav.goHome();
   },
 
+  saveCloudProfileBestEffort(payload, clientRequestId) {
+    try {
+      const task = profileCore.saveCloudProfile({
+        nickName: payload.nickname,
+        avatar: payload.avatar,
+        gender: payload.gender
+      }, { clientRequestId });
+      if (task && typeof task.catch === 'function') task.catch(warnCloudProfileSaveFailure);
+    } catch (err) {
+      warnCloudProfileSaveFailure(err);
+    }
+  },
+
   async handleJoin(options = {}) {
     if (this.data.joinBusy) return;
     const tournamentId = String(this.data.tournamentId || '').trim();
@@ -278,6 +296,7 @@ Page({
         }));
         nav.markRefreshFlag(tournamentId);
         storage.setUserProfile({ nickName: payload.nickname, avatar: payload.avatar, gender: payload.gender });
+        this.saveCloudProfileBestEffort(payload, clientRequestId);
         wx.showToast({ title: '已加入比赛', icon: 'success' });
         await this.fetchTournament(tournamentId);
         const lifecycle = String((this.data.tournament && this.data.tournament.status) || '').trim();

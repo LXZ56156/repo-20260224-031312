@@ -29,9 +29,17 @@ function createAnalyticsPageContext(definition) {
 }
 
 test('analytics page shares current tournament through the unified transfer contract', () => {
+  const originalWx = global.wx;
   const definition = loadAnalyticsPageDefinition();
   const ctx = createAnalyticsPageContext(definition);
+  const showCalls = [];
 
+  global.wx = {
+    showShareMenu(options = {}) {
+      showCalls.push(options);
+      if (typeof options.success === 'function') options.success({});
+    }
+  };
   try {
     ctx.setData({
       tournamentId: 't_1',
@@ -49,7 +57,46 @@ test('analytics page shares current tournament through the unified transfer cont
     const share = ctx.onShareAppMessage();
     assert.equal(share.title, '周末赛 赛事排名已出炉');
     assert.equal(share.path, '/pages/share-entry/index?tournamentId=t_1');
+    assert.equal(showCalls.length, 1);
+    assert.equal(showCalls[0].withShareTicket, true);
   } finally {
+    global.wx = originalWx;
+    delete require.cache[analyticsPagePath];
+  }
+});
+
+test('analytics page preheats share menu on load', () => {
+  const originalWx = global.wx;
+  const originalGetApp = global.getApp;
+  const definition = loadAnalyticsPageDefinition();
+  const ctx = createAnalyticsPageContext(definition);
+  const showCalls = [];
+
+  global.wx = {
+    showShareMenu(options = {}) {
+      showCalls.push(options);
+      if (typeof options.success === 'function') options.success({});
+    }
+  };
+  global.getApp = () => ({
+    globalData: {
+      networkOffline: false
+    },
+    subscribeNetworkChange() {
+      return () => {};
+    }
+  });
+  ctx.fetchTournament = () => {};
+  ctx.startWatch = () => {};
+
+  try {
+    ctx.onLoad({ tournamentId: 't_1' });
+
+    assert.equal(showCalls.length, 1);
+    assert.equal(showCalls[0].withShareTicket, true);
+  } finally {
+    global.wx = originalWx;
+    global.getApp = originalGetApp;
     delete require.cache[analyticsPagePath];
   }
 });

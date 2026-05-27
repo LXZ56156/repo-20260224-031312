@@ -8,6 +8,7 @@ const retryAction = require('../../core/retryAction');
 const nav = require('../../core/nav');
 const adGuard = require('../../core/adGuard');
 const pageTitle = require('../../core/pageTitle');
+const shareActivity = require('../../core/shareActivity');
 const shareMeta = require('../../core/shareMeta');
 const analyticsLogic = require('./logic');
 
@@ -69,6 +70,7 @@ Page({
     this.setData(pageTournamentSync.composePageSyncPatch(this, {
       networkOffline: !!(app && app.globalData && app.globalData.networkOffline)
     }));
+    shareActivity.showShareMenuBestEffort();
     if (app && typeof app.subscribeNetworkChange === 'function') {
       this._offNetwork = app.subscribeNetworkChange((offline) => {
         this.handleNetworkChange(offline);
@@ -191,6 +193,7 @@ Page({
   },
 
   onShareAppMessage() {
+    shareActivity.showShareMenuBestEffort();
     const meta = shareMeta.buildShareMessage(this.data.tournament);
     return {
       title: meta.title,

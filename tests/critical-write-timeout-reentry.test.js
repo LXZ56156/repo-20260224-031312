@@ -226,6 +226,7 @@ test('share-entry handleJoin keeps joinBusy true after timeout while request is 
   const originalCallJoinTournament = joinTournamentCore.callJoinTournament;
   const originalMarkRefreshFlag = nav.markRefreshFlag;
   const originalSetUserProfile = storage.setUserProfile;
+  const originalSaveCloudProfile = profileCore.saveCloudProfile;
 
   const deferred = createDeferred();
   const wxBox = createWxStub();
@@ -263,6 +264,7 @@ test('share-entry handleJoin keeps joinBusy true after timeout while request is 
     };
     nav.markRefreshFlag = () => {};
     storage.setUserProfile = () => {};
+    profileCore.saveCloudProfile = async () => ({ ok: true });
 
     const first = ctx.handleJoin();
     tasks.push(first);
@@ -296,6 +298,7 @@ test('share-entry handleJoin keeps joinBusy true after timeout while request is 
     joinTournamentCore.callJoinTournament = originalCallJoinTournament;
     nav.markRefreshFlag = originalMarkRefreshFlag;
     storage.setUserProfile = originalSetUserProfile;
+    profileCore.saveCloudProfile = originalSaveCloudProfile;
     delete require.cache[shareEntryPagePath];
   }
 });

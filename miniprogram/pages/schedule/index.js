@@ -6,6 +6,7 @@ const nav = require('../../core/nav');
 const pageTitle = require('../../core/pageTitle');
 const pageTournamentSync = require('../../core/pageTournamentSync');
 const matchPrimaryNav = require('../../core/matchPrimaryNav');
+const shareActivity = require('../../core/shareActivity');
 const shareMeta = require('../../core/shareMeta');
 const flow = require('../../core/uxFlow');
 const scheduleContract = require('../../core/scheduleContract');
@@ -380,6 +381,7 @@ Page({
     const app = getApp();
     const initialOffline = !!(app && app.globalData && app.globalData.networkOffline);
     this.setData(pageTournamentSync.composePageSyncPatch(this, { networkOffline: initialOffline }));
+    shareActivity.showShareMenuBestEffort();
     if (app && typeof app.subscribeNetworkChange === 'function') {
       this._offNetwork = app.subscribeNetworkChange((offline) => {
         this.handleNetworkChange(offline);
@@ -707,6 +709,7 @@ Page({
   },
 
   onShareAppMessage() {
+    shareActivity.showShareMenuBestEffort();
     const meta = shareMeta.buildShareMessage(this.data.tournament);
     return {
       title: meta.title,
