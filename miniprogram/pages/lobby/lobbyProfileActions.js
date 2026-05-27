@@ -400,8 +400,10 @@ module.exports = {
   async saveLobbyCloudProfile(profile = {}, options = {}) {
     const actionKey = `lobby:saveUserProfile:${this.data.tournamentId}`;
     const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'profile');
-    const localProfile = cacheLobbyProfile(profile);
-    const payload = buildLobbyProfile(profile, localProfile);
+    const incoming = { ...(profile && typeof profile === 'object' ? profile : {}) };
+    if (storage.normalizeGender(incoming.gender) === 'unknown') delete incoming.gender;
+    const mergedProfile = profileCore.mergeProfile(storage.getUserProfile() || {}, incoming);
+    const payload = buildLobbyProfile(profile, mergedProfile);
     if (!isCompleteLobbyProfile(payload)) return true;
 
     try {

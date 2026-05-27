@@ -695,6 +695,7 @@ test('lobby profile cloud save failure keeps the tournament write successful and
 
   const wxBox = createWxStub();
   const profileRequestIds = [];
+  const profileWrites = [];
   let retryFn = null;
   let writeErrors = 0;
   let saveAttempts = 0;
@@ -703,7 +704,10 @@ test('lobby profile cloud save failure keeps the tournament write successful and
 
   try {
     storage.getUserProfile = () => ({ gender: 'male', nickName: '旧昵称', avatar: 'cloud://avatar/old' });
-    storage.setUserProfile = () => {};
+    storage.setUserProfile = (profile) => {
+      profileWrites.push(profile);
+      return true;
+    };
     nav.markRefreshFlag = () => {};
     joinTournamentCore.callJoinTournament = async () => ({
       ok: true,
@@ -740,6 +744,7 @@ test('lobby profile cloud save failure keeps the tournament write successful and
     await ctx.saveMyProfile();
 
     assert.equal(writeErrors, 0);
+    assert.deepEqual(profileWrites, []);
     assert.equal(typeof retryFn, 'function');
     await retryFn();
     assert.equal(profileRequestIds.length, 2);
