@@ -44,6 +44,12 @@ function normalizeAvatar(avatar) {
   return String(avatar || '').trim();
 }
 
+function normalizeAction(action) {
+  const value = String(action || '').trim().toLowerCase();
+  if (value === 'profile_update') return 'profile_update';
+  return 'join';
+}
+
 function isGuestPlayer(player) {
   if (!player || typeof player !== 'object') return false;
   const type = String(player.type || '').trim().toLowerCase();
@@ -164,6 +170,7 @@ exports.main = async (event, context) => {
   const openid = wxContext.OPENID;
   const traceId = String((event && event.__traceId) || '').trim();
   const clientRequestId = String((event && event.clientRequestId) || '').trim();
+  const action = normalizeAction(event && event.action);
   const tournamentId = event.tournamentId;
   console.info('[joinTournament]', traceId || '-', String(tournamentId || '').trim() || '-', openid || '-');
   const rawNickname = event.nickname;
@@ -212,7 +219,12 @@ exports.main = async (event, context) => {
       const mode = modeHelper.normalizeMode(t.mode);
       const idx = players.findIndex(p => p && p.id === openid);
       const currentPlayer = idx >= 0 ? (players[idx] || {}) : null;
-      const matchedGuests = idx >= 0
+      if (action === 'profile_update' && idx < 0) {
+        return fail(traceId, clientRequestId, 'PLAYER_NOT_JOINED', '请先加入比赛后再更新参赛信息', {
+          state: 'not_joined'
+        });
+      }
+      const matchedGuests = idx >= 0 || action === 'profile_update'
         ? []
         : players.filter((player) => isGuestPlayer(player) && normalizeName(player && player.name) === normalizeName(rawNickname || resolveProfileNickName(profileData)));
       const claimableGuest = matchedGuests.length === 1 ? matchedGuests[0] : null;

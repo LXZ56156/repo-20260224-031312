@@ -430,3 +430,171 @@ test('saveUserProfile exposes syncTruncated when avatar sync hits query cap', as
   assert.equal(result.data.syncTruncated, true);
   assert.equal(pageSkips.includes(1000), true);
 });
+
+test('saveUserProfile does not sync avatar to guest player references', async () => {
+  const updates = [];
+  const guestTournament = {
+    _id: 't_guest',
+    status: 'draft',
+    version: 3,
+    playerIds: ['u_profile'],
+    players: [
+      { id: 'u_profile', type: 'guest', name: 'guest选手', avatar: '', gender: 'male' }
+    ],
+    rounds: [
+      {
+        roundIndex: 0,
+        matches: [
+          {
+            matchIndex: 0,
+            teamA: [{ id: 'u_profile', type: 'guest', name: 'guest选手', avatar: '' }],
+            teamB: [{ id: 'u_other', name: '球友B', avatar: 'cloud://avatar/other' }]
+          }
+        ],
+        restPlayers: []
+      }
+    ]
+  };
+  const db = {
+    command: {
+      in(values) {
+        return { $in: values };
+      },
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    async createCollection() {},
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      if (name === 'user_profiles') {
+        return {
+          where() {
+            return {
+              limit() {
+                return {
+                  async get() {
+                    return { data: [{ _id: 'profile_existing' }] };
+                  }
+                };
+              }
+            };
+          },
+          doc() {
+            return {
+              async update() {}
+            };
+          }
+        };
+      }
+      assert.equal(name, 'tournaments');
+      return {
+        where(query) {
+          if (query && query.status) {
+            return {
+              async get() {
+                return { data: [guestTournament] };
+              }
+            };
+          }
+          return {
+            async update() {
+              throw new Error('should not update guest player');
+            }
+          };
+        }
+      };
+    }
+  };
+
+  const { main } = loadMain(db);
+  const result = await main({
+    nickname: '球友A',
+    avatar: 'cloud://avatar/new',
+    gender: 'female'
+  });
+
+  assert.equal(result.ok, true);
+  // guest player should not be synced → syncedTournamentCount is 0
+  assert.equal(result.syncedTournamentCount, 0);
+});
+
+test('saveUserProfile does not sync when tournament has no playerIds (known boundary)', async () => {
+  const tournamentNoPlayerIds = {
+    _id: 't_no_playerids',
+    status: 'draft',
+    version: 3,
+    players: [
+      { id: 'u_profile', type: 'user', name: '球友A', avatar: '', gender: 'female' }
+    ],
+    rounds: []
+  };
+  const db = {
+    command: {
+      in(values) {
+        return { $in: values };
+      },
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    async createCollection() {},
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      if (name === 'user_profiles') {
+        return {
+          where() {
+            return {
+              limit() {
+                return {
+                  async get() {
+                    return { data: [{ _id: 'profile_existing' }] };
+                  }
+                };
+              }
+            };
+          },
+          doc() {
+            return {
+              async update() {}
+            };
+          }
+        };
+      }
+      assert.equal(name, 'tournaments');
+      return {
+        where(query) {
+          if (query && query.status) {
+            return {
+              async get() {
+                // tournament without playerIds won't match playerIds: _.all([openid])
+                return { data: [] };
+              }
+            };
+          }
+          return {
+            async update() {
+              throw new Error('should not update');
+            }
+          };
+        }
+      };
+    }
+  };
+
+  const { main } = loadMain(db);
+  const result = await main({
+    nickname: '球友A',
+    avatar: 'cloud://avatar/new',
+    gender: 'female'
+  });
+
+  assert.equal(result.ok, true);
+  // tournament without playerIds won't be found → sync count is 0
+  assert.equal(result.syncedTournamentCount, 0);
+  // This is a known boundary: old tournaments without playerIds need separate data migration
+});

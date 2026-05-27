@@ -358,7 +358,7 @@ Page({
     const players = tournament && Array.isArray(tournament.players) ? tournament.players : [];
     this.applyLobbyPatch({
       showAllPlayers: next,
-      displayPlayers: viewModel.buildDisplayPlayers(next ? players : players.slice(0, 12), this.avatarCache || {})
+      displayPlayers: viewModel.buildDisplayPlayers(next ? players : players.slice(0, 12), this.avatarCache || {}, this.data.displayPlayers)
     });
     this.resolveDisplayPlayersAvatars();
   },

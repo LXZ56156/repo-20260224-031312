@@ -361,6 +361,146 @@ test('joinTournament still allows existing member profile update when quota is f
   assert.equal(writtenData.players[1].gender, 'male');
 });
 
+test('joinTournament profile_update updates an existing member without growing roster', async () => {
+  let writtenData = null;
+  const db = {
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      assert.equal(name, 'user_profiles');
+      return {
+        where() {
+          return {
+            limit() {
+              return {
+                async get() {
+                  return { data: [] };
+                }
+              };
+            }
+          };
+        }
+      };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return {
+                    data: {
+                      ...buildTournament(),
+                      version: 9,
+                      players: [
+                        { id: 'u_admin', name: '管理员', avatar: 'cloud://avatar/admin', gender: 'male', squad: 'A' },
+                        { id: 'u_join', name: '旧昵称', avatar: 'cloud://avatar/old', gender: 'female', squad: 'B' }
+                      ],
+                      playerIds: ['u_admin', 'u_join']
+                    }
+                  };
+                },
+                async update(payload) {
+                  writtenData = payload.data;
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    action: 'profile_update',
+    tournamentId: 't_1',
+    nickname: '新昵称',
+    avatar: 'cloud://avatar/new',
+    gender: 'male',
+    squadChoice: 'a'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.code, 'JOIN_UPDATED');
+  assert.equal(result.state, 'updated');
+  assert.equal(writtenData.players.length, 2);
+  assert.equal(writtenData.players[1].name, '新昵称');
+  assert.equal(writtenData.players[1].avatar, 'cloud://avatar/new');
+  assert.equal(writtenData.players[1].gender, 'male');
+  assert.equal(writtenData.players[1].squad, 'A');
+});
+
+test('joinTournament profile_update rejects non-member without adding or claiming guest', async () => {
+  let writeCalled = false;
+  const db = {
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      assert.equal(name, 'user_profiles');
+      return {
+        where() {
+          return {
+            limit() {
+              return {
+                async get() {
+                  return { data: [] };
+                }
+              };
+            }
+          };
+        }
+      };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return {
+                    data: {
+                      ...buildTournament(),
+                      players: [
+                        { id: 'u_admin', name: '管理员', avatar: 'cloud://avatar/admin', gender: 'male' },
+                        { id: 'guest_1', name: '待认领', type: 'guest', gender: 'female' }
+                      ],
+                      playerIds: ['u_admin', 'guest_1']
+                    }
+                  };
+                },
+                async update() {
+                  writeCalled = true;
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    action: 'profile_update',
+    tournamentId: 't_1',
+    nickname: '待认领',
+    avatar: 'cloud://avatar/new',
+    gender: 'female'
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'PLAYER_NOT_JOINED');
+  assert.equal(result.state, 'not_joined');
+  assert.equal(writeCalled, false);
+});
+
 test('joinTournament still allows claiming a guest because roster size does not grow', async () => {
   let writtenData = null;
   const db = {

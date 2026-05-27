@@ -55,6 +55,31 @@ test('joinTournament core retries version conflicts once and returns success', a
     });
     assert.deepEqual(result, { ok: true });
     assert.equal(calls.length, 2);
+    assert.equal(calls[0].action, 'join');
+    assert.equal(calls[1].action, 'join');
+  } finally {
+    cloud.call = originalCall;
+  }
+});
+
+test('joinTournament core forwards profile_update action to cloud function', async () => {
+  const originalCall = cloud.call;
+  const calls = [];
+
+  cloud.call = async (_name, payload) => {
+    calls.push(payload);
+    return { ok: true };
+  };
+
+  try {
+    const result = await joinTournamentCore.callJoinTournament({ tournamentId: 't_1' }, {
+      action: 'profile_update',
+      fallbackMessage: '保存失败'
+    });
+    assert.deepEqual(result, { ok: true });
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].action, 'profile_update');
+    assert.match(calls[0].clientRequestId, /^join_profile_/);
   } finally {
     cloud.call = originalCall;
   }

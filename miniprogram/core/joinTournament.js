@@ -50,6 +50,7 @@ async function callJoinTournament(payload, options = {}) {
   );
   const requestPayload = {
     ...(payload && typeof payload === 'object' ? payload : {}),
+    action,
     clientRequestId
   };
   if (actionGuard.isBusy(guardKey)) return { ok: true, deduped: true, clientRequestId };

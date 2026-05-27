@@ -1,8 +1,13 @@
 const playerUtils = require('./playerUtils');
 
-const TEMP_URL_TTL_MS = 9 * 60 * 1000;
+const TEMP_URL_TTL_MS = 50 * 60 * 1000;
 const TEMP_URL_BATCH_SIZE = 50;
 const FAILED_RETRY_DELAY_MS = 60 * 1000;
+const STORAGE_KEY = 'avatar_temp_url_cache_v1';
+const PERSIST_THROTTLE_MS = 2000;
+
+let _persistTimer = null;
+let _persistDirty = false;
 
 function hasOwn(obj, key) {
   return !!obj && Object.prototype.hasOwnProperty.call(obj, key);
@@ -17,6 +22,62 @@ function isCloudAvatar(value) {
   return String(value || '').trim().startsWith('cloud://');
 }
 
+function loadPersistentCache() {
+  try {
+    if (typeof wx === 'undefined' || typeof wx.getStorageSync !== 'function') return {};
+    const raw = wx.getStorageSync(STORAGE_KEY);
+    if (!raw || typeof raw !== 'object') return {};
+    const now = nowMs();
+    const result = {};
+    for (const key of Object.keys(raw)) {
+      if (!String(key || '').trim().startsWith('cloud://')) continue;
+      const entry = raw[key];
+      if (!entry || typeof entry !== 'object') continue;
+      const expiresAt = Number(entry.expiresAt) || 0;
+      const url = String(entry.url || '').trim();
+      if (url && expiresAt > now) {
+        result[key] = { url, expiresAt, updatedAt: Number(entry.updatedAt) || 0 };
+      }
+    }
+    return result;
+  } catch (_) {
+    return {};
+  }
+}
+
+function persistCache(avatarCache) {
+  try {
+    if (typeof wx === 'undefined' || typeof wx.setStorageSync !== 'function') return;
+    const now = nowMs();
+    const payload = {};
+    const keys = Object.keys(avatarCache || {});
+    for (const key of keys) {
+      if (!String(key || '').trim().startsWith('cloud://')) continue;
+      const entry = avatarCache[key];
+      if (!entry || typeof entry !== 'object') continue;
+      const url = String(entry.url || '').trim();
+      const expiresAt = Number(entry.expiresAt) || 0;
+      if (url && expiresAt > now && entry.failureType !== 'image') {
+        payload[key] = { url, expiresAt, updatedAt: now };
+      }
+    }
+    wx.setStorageSync(STORAGE_KEY, payload);
+  } catch (_) {
+    // storage write failure is non-critical
+  }
+}
+
+function schedulePersist(avatarCache) {
+  _persistDirty = true;
+  if (_persistTimer) return;
+  _persistTimer = setTimeout(() => {
+    _persistTimer = null;
+    if (!_persistDirty) return;
+    _persistDirty = false;
+    persistCache(avatarCache);
+  }, PERSIST_THROTTLE_MS);
+}
+
 function getSharedAvatarCache(fallback = {}) {
   const local = fallback && typeof fallback === 'object' ? fallback : {};
   try {
@@ -25,7 +86,8 @@ function getSharedAvatarCache(fallback = {}) {
     if (!app || typeof app !== 'object') return local;
     if (!app.globalData || typeof app.globalData !== 'object') app.globalData = {};
     if (!app.globalData._avatarCache || typeof app.globalData._avatarCache !== 'object') {
-      app.globalData._avatarCache = local;
+      const persisted = loadPersistentCache();
+      app.globalData._avatarCache = { ...persisted, ...local };
     }
     return app.globalData._avatarCache;
   } catch (_) {
@@ -42,12 +104,24 @@ function getCachedAvatarUrl(avatarCache = {}, fileId = '', options = {}) {
 
   const now = nowMs(options);
   const retryAt = Number(entry.retryAt) || 0;
-  if (retryAt > now) return '';
-
   const url = String(entry.url || entry.tempFileURL || '').trim();
   const expiresAt = Number(entry.expiresAt) || 0;
-  if (url && (!expiresAt || expiresAt > now)) return url;
-  if ((url && expiresAt && expiresAt <= now) || (retryAt && retryAt <= now)) {
+
+  if (retryAt > now) {
+    if (url && expiresAt > now) return url;
+    return '';
+  }
+
+  if (url && (!expiresAt || expiresAt > now)) {
+    const clearRetryState = options.clearRetryState !== false;
+    if (clearRetryState && retryAt && retryAt <= now && entry.failureType !== 'resolve') {
+      delete entry.failedAt;
+      delete entry.retryAt;
+      delete entry.failureType;
+    }
+    return url;
+  }
+  if (url && expiresAt && expiresAt <= now) {
     delete avatarCache[key];
   }
   return '';
@@ -61,23 +135,43 @@ function setCachedAvatarUrl(avatarCache = {}, fileId = '', url = '', options = {
     url: value,
     expiresAt: nowMs(options) + (Number(options.ttlMs) || TEMP_URL_TTL_MS)
   };
+  schedulePersist(avatarCache);
   return true;
 }
 
 function markAvatarUrlFailed(avatarCache = {}, fileId = '', options = {}) {
   const key = String(fileId || '').trim();
   if (!key) return false;
-  avatarCache[key] = {
-    failedAt: nowMs(options),
-    retryAt: nowMs(options) + (Number(options.retryDelayMs) || FAILED_RETRY_DELAY_MS)
-  };
+  const preserveUrl = options.preserveUrl === true;
+  const prev = avatarCache[key];
+  const prevUrl = (prev && typeof prev === 'object')
+    ? String(prev.url || prev.tempFileURL || '').trim()
+    : (typeof prev === 'string' ? prev : '');
+  const prevExpiresAt = (prev && typeof prev === 'object')
+    ? Number(prev.expiresAt) || 0
+    : 0;
+  const now = nowMs(options);
+  const retryAt = now + (Number(options.retryDelayMs) || FAILED_RETRY_DELAY_MS);
+  if (preserveUrl && prevUrl && prevExpiresAt > now) {
+    avatarCache[key] = { url: prevUrl, expiresAt: prevExpiresAt, failedAt: now, retryAt, failureType: 'resolve' };
+  } else if (preserveUrl) {
+    avatarCache[key] = { failedAt: now, retryAt, failureType: 'resolve' };
+  } else {
+    avatarCache[key] = {
+      failedAt: now,
+      retryAt,
+      failureType: 'image',
+      ...(prevUrl ? { badUrl: prevUrl } : {})
+    };
+    schedulePersist(avatarCache);
+  }
   return true;
 }
 
 function markAvatarResolveFailed(avatarCache = {}, failed = [], fileId = '') {
   const key = String(fileId || '').trim();
   if (!key) return false;
-  markAvatarUrlFailed(avatarCache, key);
+  markAvatarUrlFailed(avatarCache, key, { preserveUrl: true });
   if (Array.isArray(failed) && !failed.includes(key)) failed.push(key);
   return true;
 }
@@ -85,12 +179,17 @@ function markAvatarResolveFailed(avatarCache = {}, failed = [], fileId = '') {
 function shouldResolveCloudAvatarFileId(fileId = '', avatarCache = {}, options = {}) {
   const key = String(fileId || '').trim();
   if (!isCloudAvatar(key)) return false;
-  if (getCachedAvatarUrl(avatarCache, key, options)) return false;
+  const entry = avatarCache && typeof avatarCache === 'object' ? avatarCache[key] : null;
+  const now = nowMs(options);
+  const retryAt = entry && typeof entry === 'object' ? Number(entry.retryAt) || 0 : 0;
+  const cached = getCachedAvatarUrl(avatarCache, key, { ...options, clearRetryState: false });
+  if (cached) {
+    return !!(entry && typeof entry === 'object' && entry.failureType === 'resolve' && retryAt && retryAt <= now);
+  }
   if (!hasOwn(avatarCache, key)) return true;
-  const entry = avatarCache[key];
   if (entry && typeof entry === 'object') {
-    const retryAt = Number(entry.retryAt) || 0;
-    if (retryAt > nowMs(options)) return false;
+    if (entry.failureType === 'image') return true;
+    if (retryAt > now) return false;
   }
   return true;
 }

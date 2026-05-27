@@ -2,6 +2,7 @@ const storage = require('../../core/storage');
 const actionGuard = require('../../core/actionGuard');
 const clientRequest = require('../../core/clientRequest');
 const profileCore = require('../../core/profile');
+const joinTournamentCore = require('../../core/joinTournament');
 const nav = require('../../core/nav');
 const avatarDisplay = require('../../core/avatarDisplay');
 
@@ -238,6 +239,7 @@ Page({
       });
       if (!this.data.avatarLocalPreview) this.refreshAvatarDisplay();
       this.clearFieldError('avatar');
+      this.preWarmAvatarUrl(fileID);
       return true;
     } catch (_) {
       this.setData({ avatarUploadFailed: true });
@@ -279,6 +281,37 @@ Page({
     return { ok, nickname, gender, avatar };
   },
 
+  parseTournamentIdFromReturnUrl(returnUrl) {
+    const raw = String(returnUrl || '').trim();
+    if (!raw) return '';
+    const match = raw.match(/[?&]tournamentId=([^&#]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
+  },
+
+  async syncProfileToTournament(tournamentId, nickname, avatar, gender) {
+    try {
+      const payload = joinTournamentCore.buildJoinPayload({
+        tournamentId,
+        nickname,
+        avatar,
+        gender
+      });
+      await joinTournamentCore.callJoinTournament(payload, { action: 'profile_update' });
+      nav.markRefreshFlag(tournamentId);
+    } catch (_) {
+      // 非关键路径：profile 已保存成功，赛事同步失败不影响主流程
+    }
+  },
+
+  async preWarmAvatarUrl(fileID) {
+    try {
+      this.avatarCache = avatarDisplay.getSharedAvatarCache(this.avatarCache);
+      await avatarDisplay.resolveCloudAvatarFileIds([fileID], this.avatarCache);
+    } catch (_) {
+      // 预热失败不阻断保存流程
+    }
+  },
+
   async onSave(options = {}) {
     if (this.data.saving) return;
     const actionKey = 'profile:saveUserProfile';
@@ -317,6 +350,10 @@ Page({
         wx.hideLoading();
         wx.showToast({ title: '已保存', icon: 'success' });
         const returnUrl = String(this.data.returnUrl || '').trim();
+        const tournamentId = this.parseTournamentIdFromReturnUrl(returnUrl);
+        if (tournamentId) {
+          await this.syncProfileToTournament(tournamentId, nickname, avatar, gender);
+        }
         this.schedulePostSaveNavigation(returnUrl);
       } catch (e) {
         wx.hideLoading();

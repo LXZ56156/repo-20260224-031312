@@ -162,6 +162,7 @@ module.exports = {
         await this.setMyAvatarDisplay(fileID);
       }
       cacheLobbyProfile({ avatar: fileID });
+      this.preWarmAvatarUrl(fileID);
       return true;
     } catch (_) {
       this.setData({ profileFieldError: '头像上传失败，可重试' });
@@ -213,16 +214,32 @@ module.exports = {
     const raw = String(e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.avatarRaw || '').trim();
     if (!raw) return;
     this.avatarCache = avatarDisplay.getSharedAvatarCache(this.avatarCache);
-    if (avatarDisplay.isCloudAvatar(raw)) avatarDisplay.markAvatarUrlFailed(this.avatarCache, raw);
-    const list = (Array.isArray(this.data.displayPlayers) ? this.data.displayPlayers : []).map((player) => {
-      if (String(player && player.avatarRaw || '').trim() !== raw) return player;
-      return { ...player, avatarDisplay: '' };
-    });
-    if (typeof this.applyLobbyPatch === 'function') {
-      this.applyLobbyPatch({ displayPlayers: list });
-      return;
+    if (avatarDisplay.isCloudAvatar(raw)) {
+      avatarDisplay.markAvatarUrlFailed(this.avatarCache, raw);
+      const preservedUrl = avatarDisplay.getCachedAvatarUrl(this.avatarCache, raw);
+      const list = (Array.isArray(this.data.displayPlayers) ? this.data.displayPlayers : []).map((player) => {
+        if (String(player && player.avatarRaw || '').trim() !== raw) return player;
+        if (preservedUrl) return { ...player, avatarDisplay: preservedUrl };
+        return { ...player, avatarDisplay: '' };
+      });
+      if (typeof this.applyLobbyPatch === 'function') {
+        this.applyLobbyPatch({ displayPlayers: list });
+        if (typeof this.resolveDisplayPlayersAvatars === 'function') this.resolveDisplayPlayersAvatars();
+        return;
+      }
+      this.setData({ displayPlayers: list });
+      if (typeof this.resolveDisplayPlayersAvatars === 'function') this.resolveDisplayPlayersAvatars();
+    } else {
+      const list = (Array.isArray(this.data.displayPlayers) ? this.data.displayPlayers : []).map((player) => {
+        if (String(player && player.avatarRaw || '').trim() !== raw) return player;
+        return { ...player, avatarDisplay: '' };
+      });
+      if (typeof this.applyLobbyPatch === 'function') {
+        this.applyLobbyPatch({ displayPlayers: list });
+        return;
+      }
+      this.setData({ displayPlayers: list });
     }
-    this.setData({ displayPlayers: list });
   },
 
   async resolveDisplayPlayersAvatars() {
@@ -248,15 +265,17 @@ module.exports = {
         }
         if (avatarDisplay.isCloudAvatar(raw)) {
           const cached = avatarDisplay.getCachedAvatarUrl(this.avatarCache, raw);
+          const shouldResolve = avatarDisplay.shouldResolveCloudAvatarFileId(raw, this.avatarCache);
           if (cached) {
             list[i].avatarDisplay = cached;
-          } else {
+          }
+          if (shouldResolve) {
+            if (!list[i].avatarDisplay) list[i].avatarDisplay = '';
+            need.push(raw);
+            mapIdx[raw] = mapIdx[raw] || [];
+            mapIdx[raw].push(i);
+          } else if (!list[i].avatarDisplay) {
             list[i].avatarDisplay = '';
-            if (avatarDisplay.shouldResolveCloudAvatarFileId(raw, this.avatarCache)) {
-              need.push(raw);
-              mapIdx[raw] = mapIdx[raw] || [];
-              mapIdx[raw].push(i);
-            }
           }
         } else {
           list[i].avatarDisplay = raw;
@@ -395,6 +414,15 @@ module.exports = {
         this.handleWriteError(normalizedError, joinError.resolveJoinFailureMessage(normalizedError, '保存失败，请稍后重试', { action: 'profile_update' }), () => this.fetchTournament(this.data.tournamentId));
       }
     });
+  },
+
+  async preWarmAvatarUrl(fileID) {
+    try {
+      this.avatarCache = avatarDisplay.getSharedAvatarCache(this.avatarCache);
+      await avatarDisplay.resolveCloudAvatarFileIds([fileID], this.avatarCache);
+    } catch (_) {
+      // 预热失败不阻断上传流程
+    }
   },
 
   async saveLobbyCloudProfile(profile = {}, options = {}) {

@@ -265,6 +265,28 @@ test('lobby view model hides quick match shortcuts before 4 players', () => {
   assert.deepEqual(result.patch.quickMatchShortcutOptions, []);
 });
 
+test('lobby view model inherits previous avatar display on main build path', () => {
+  const result = viewModel.buildLobbyViewModel({
+    tournament: buildTournament({
+      players: [
+        { id: 'u_admin', name: '组织者', gender: 'male' },
+        { id: 'u_1', name: '球友1', avatar: 'cloud://avatar/u_1', gender: 'male' }
+      ]
+    }),
+    openid: 'u_admin',
+    data: {
+      displayPlayers: [
+        { id: 'u_1', name: '球友1', avatarRaw: 'cloud://avatar/u_1', avatarDisplay: 'https://tmp.example/u_1.png' }
+      ]
+    },
+    avatarCache: {}
+  });
+
+  const player = result.patch.displayPlayers.find((item) => item.id === 'u_1');
+  assert.equal(player.avatarRaw, 'cloud://avatar/u_1');
+  assert.equal(player.avatarDisplay, 'https://tmp.example/u_1.png');
+});
+
 test('lobby view model exposes optimized fixed fair presets for multi_rotate', () => {
   const players = Array.from({ length: 8 }, (_, index) => ({
     id: `u_${index}`,

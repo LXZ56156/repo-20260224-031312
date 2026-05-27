@@ -76,8 +76,13 @@ function hashString(s) {
   return Math.abs(h);
 }
 
-function buildDisplayPlayers(list, avatarCache = {}) {
+function buildDisplayPlayers(list, avatarCache = {}, prevDisplayPlayers = []) {
   const players = Array.isArray(list) ? list : [];
+  const prevMap = {};
+  const prevList = Array.isArray(prevDisplayPlayers) ? prevDisplayPlayers : [];
+  for (const prev of prevList) {
+    if (prev && prev.avatarRaw) prevMap[prev.avatarRaw] = prev.avatarDisplay;
+  }
   return players.map((player) => {
     const id = String((player && (player.id || player._id)) || '').trim();
     const name = String((player && player.name) || '').trim();
@@ -92,6 +97,7 @@ function buildDisplayPlayers(list, avatarCache = {}) {
     if (raw) {
       if (avatarDisplayCore.isCloudAvatar(raw)) {
         avatarDisplay = avatarDisplayCore.getCachedAvatarUrl(avatarCache, raw);
+        if (!avatarDisplay && prevMap[raw]) avatarDisplay = prevMap[raw];
       } else {
         avatarDisplay = raw;
       }
@@ -490,7 +496,7 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
   const showJoin = status === 'draft' && !myJoined && !showViewOnlyJoinPrompt && !quotaFull;
   const showMyProfile = status === 'draft' && myJoined;
   const showAllPlayers = !!data.showAllPlayers;
-  const displayPlayers = buildDisplayPlayers(showAllPlayers ? players : players.slice(0, 12), avatarCache);
+  const displayPlayers = buildDisplayPlayers(showAllPlayers ? players : players.slice(0, 12), avatarCache, data.displayPlayers);
   let playerRosterHint = status === 'draft' && playersCount > 0
     ? (isAdmin ? '长按成员可移除' : (myJoined ? '长按自己可退出' : ''))
     : '';
