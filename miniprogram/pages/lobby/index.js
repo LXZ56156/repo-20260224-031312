@@ -11,6 +11,7 @@ const pageTournamentSync = require('../../core/pageTournamentSync');
 const retryAction = require('../../core/retryAction');
 const tournamentEntry = require('../../core/tournamentEntry');
 const uiPreferences = require('../../core/uiPreferences');
+const avatarDisplay = require('../../core/avatarDisplay');
 const viewModel = require('./lobbyViewModel');
 const settingsViewModel = require('../settings/settingsViewModel');
 const { createLobbyDelegates } = require('./lobbyDelegates');
@@ -218,7 +219,8 @@ Page({
     this.openid = getApp().globalData.openid || storage.get('openid', '');
     pageTournamentSync.initTournamentSync(this);
 
-    this.avatarCache = {};
+    this.avatarCache = avatarDisplay.getSharedAvatarCache(this.avatarCache);
+    shareActivity.showShareMenuBestEffort();
 
     const profile = storage.getUserProfile();
     if (profile && typeof profile === 'object') {
@@ -372,6 +374,7 @@ Page({
   },
 
   onShareButtonTouchStart() {
+    shareActivity.showShareMenuBestEffort();
     this.ensureDynamicShareReady(this.data.tournament);
   },
 
@@ -472,6 +475,7 @@ Page({
     const activityId = String(res.activityId || data.activityId || '').trim();
     if (!activityId) throw new Error('missing activityId');
     if (!this.isCurrentDynamicSharePrepareToken(sharePrepareToken)) throw new Error('dynamic share prepare canceled');
+    await shareActivity.showShareMenuBestEffort();
     await shareActivity.updateShareMenu({
       withShareTicket: true,
       isUpdatableMessage: true,

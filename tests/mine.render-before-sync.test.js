@@ -91,6 +91,64 @@ test('mine page renders local profile before cloud sync resolves', async () => {
   }
 });
 
+test('mine page uses shared avatar cache on first render', async () => {
+  const originalGetApp = global.getApp;
+  const originalWx = global.wx;
+  const originalGetUserProfile = storage.getUserProfile;
+  const originalGet = storage.get;
+  const originalGetSnapshots = storage.getLocalCompletedTournamentSnapshots;
+  const originalSyncCloudProfile = profileCore.syncCloudProfile;
+  const app = {
+    globalData: {
+      openid: 'u_1',
+      _avatarCache: {
+        'cloud://avatar/u_1': 'https://temp/avatar/u_1.png'
+      }
+    }
+  };
+
+  global.getApp = () => app;
+  global.wx = {
+    cloud: {
+      async getTempFileURL() {
+        throw new Error('shared cache should be used');
+      }
+    }
+  };
+  storage.getUserProfile = () => ({
+    nickName: '云头像',
+    avatar: 'cloud://avatar/u_1'
+  });
+  storage.get = (key, fallback) => {
+    if (key === 'openid') return 'u_1';
+    return fallback;
+  };
+  storage.getLocalCompletedTournamentSnapshots = () => [];
+  profileCore.syncCloudProfile = async () => ({
+    nickName: '云头像',
+    avatar: 'cloud://avatar/u_1'
+  });
+
+  try {
+    const definition = loadMinePageDefinition();
+    const ctx = createMinePageContext(definition);
+
+    ctx.onShow();
+
+    assert.equal(ctx.avatarCache, app.globalData._avatarCache);
+    assert.equal(ctx._updates[0].avatarRaw, 'cloud://avatar/u_1');
+    assert.equal(ctx._updates[0].avatar, 'https://temp/avatar/u_1.png');
+  } finally {
+    global.getApp = originalGetApp;
+    global.wx = originalWx;
+    storage.getUserProfile = originalGetUserProfile;
+    storage.get = originalGet;
+    storage.getLocalCompletedTournamentSnapshots = originalGetSnapshots;
+    profileCore.syncCloudProfile = originalSyncCloudProfile;
+    delete require.cache[minePagePath];
+  }
+});
+
 test('mine page renders default avatar before cloud temp url resolves', async () => {
   const originalGetApp = global.getApp;
   const originalWx = global.wx;

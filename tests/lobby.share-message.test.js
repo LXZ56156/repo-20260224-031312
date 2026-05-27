@@ -69,10 +69,18 @@ test('lobby setTournament preheats draft fixed-limit updatable share before onSh
   const originalGetApp = global.getApp;
   const originalWx = global.wx;
   const updateCalls = [];
+  const showCalls = [];
+  const shareEvents = [];
   const cloudCalls = [];
   global.wx = {
+    showShareMenu(options) {
+      showCalls.push(options);
+      shareEvents.push('show');
+      if (typeof options.success === 'function') options.success({ ok: true });
+    },
     updateShareMenu(options) {
       updateCalls.push(options);
+      shareEvents.push('update');
       if (typeof options.success === 'function') options.success({ ok: true });
     }
   };
@@ -111,8 +119,13 @@ test('lobby setTournament preheats draft fixed-limit updatable share before onSh
       versionType: 'trial'
     });
     assert.deepEqual(cloudCalls[0].options, { retry: true });
+    assert.equal(showCalls.length, 1);
+    assert.equal(showCalls[0].withShareTicket, true);
+    assert.equal(shareEvents[0], 'show');
+    assert.equal(shareEvents[1], 'update');
     assert.equal(updateCalls.length, 1);
     assert.equal(updateCalls[0].isUpdatableMessage, true);
+    assert.equal(updateCalls[0].withShareTicket, true);
     assert.equal(updateCalls[0].activityId, 'act_1');
     assert.equal(updateCalls[0].templateInfo.templateId, '21B034D08C5615B9889CE362BB957B1EE69A584B');
     assert.deepEqual(updateCalls[0].templateInfo.parameterList, [
@@ -127,6 +140,7 @@ test('lobby setTournament preheats draft fixed-limit updatable share before onSh
     assert.equal(Object.prototype.hasOwnProperty.call(share, 'promise'), false);
     assert.equal(cloudCalls.length, 1);
     assert.equal(updateCalls.length, 1);
+    assert.equal(showCalls.length, 1);
   } finally {
     cloudCore.call = originalCall;
     cloudCore.getRuntimeEnv = originalGetRuntimeEnv;
@@ -176,6 +190,7 @@ test('lobby dynamic share preheat failure degrades to ordinary share without pro
     assert.equal(Object.prototype.hasOwnProperty.call(share, 'promise'), false);
     assert.equal(updateCalls.length, 1);
     assert.deepEqual(updateCalls[0].isUpdatableMessage, false);
+    assert.equal(Object.prototype.hasOwnProperty.call(updateCalls[0], 'withShareTicket'), false);
   } finally {
     cloudCore.call = originalCall;
     storage.addRecentTournamentId = originalAddRecentTournamentId;

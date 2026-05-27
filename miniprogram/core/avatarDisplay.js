@@ -17,6 +17,22 @@ function isCloudAvatar(value) {
   return String(value || '').trim().startsWith('cloud://');
 }
 
+function getSharedAvatarCache(fallback = {}) {
+  const local = fallback && typeof fallback === 'object' ? fallback : {};
+  try {
+    if (typeof getApp !== 'function') return local;
+    const app = getApp();
+    if (!app || typeof app !== 'object') return local;
+    if (!app.globalData || typeof app.globalData !== 'object') app.globalData = {};
+    if (!app.globalData._avatarCache || typeof app.globalData._avatarCache !== 'object') {
+      app.globalData._avatarCache = local;
+    }
+    return app.globalData._avatarCache;
+  } catch (_) {
+    return local;
+  }
+}
+
 function getCachedAvatarUrl(avatarCache = {}, fileId = '', options = {}) {
   const key = String(fileId || '').trim();
   if (!key || !hasOwn(avatarCache, key)) return '';
@@ -214,6 +230,7 @@ module.exports = {
   getColorClass,
   getAvatarRaw,
   isCloudAvatar,
+  getSharedAvatarCache,
   getCachedAvatarUrl,
   setCachedAvatarUrl,
   markAvatarUrlFailed,

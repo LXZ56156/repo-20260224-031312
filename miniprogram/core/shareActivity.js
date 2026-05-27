@@ -58,6 +58,33 @@ function updateShareMenu(options = {}) {
   });
 }
 
+function showShareMenuBestEffort() {
+  if (typeof wx === 'undefined' || !wx || typeof wx.showShareMenu !== 'function') {
+    return Promise.resolve(false);
+  }
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (ok) => {
+      if (settled) return;
+      settled = true;
+      resolve(!!ok);
+    };
+    const payload = {
+      withShareTicket: true,
+      success: () => finish(true),
+      fail: () => finish(false)
+    };
+    try {
+      const maybePromise = wx.showShareMenu(payload);
+      if (maybePromise && typeof maybePromise.then === 'function') {
+        maybePromise.then(() => finish(true), () => finish(false));
+      }
+    } catch (_) {
+      finish(false);
+    }
+  });
+}
+
 function disableDynamicShareBestEffort() {
   updateShareMenu({ isUpdatableMessage: false }).catch(() => {});
 }
@@ -69,5 +96,6 @@ module.exports = {
   shouldUseDynamicShare,
   buildShareMenuTemplateInfo,
   updateShareMenu,
+  showShareMenuBestEffort,
   disableDynamicShareBestEffort
 };

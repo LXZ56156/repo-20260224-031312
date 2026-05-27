@@ -204,7 +204,7 @@ Page({
   },
 
   ensureAvatarRuntime() {
-    if (!this.avatarCache || typeof this.avatarCache !== 'object') this.avatarCache = {};
+    this.avatarCache = avatarDisplay.getSharedAvatarCache(this.avatarCache);
     if (!Number.isFinite(this._avatarResolveGen)) this._avatarResolveGen = 0;
   },
 

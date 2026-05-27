@@ -188,7 +188,7 @@ module.exports = {
     const value = String(avatar || '').trim();
     if (!value) return fallback;
     if (avatarDisplay.isCloudAvatar(value)) {
-      if (!this.avatarCache || typeof this.avatarCache !== 'object') this.avatarCache = {};
+      this.avatarCache = avatarDisplay.getSharedAvatarCache(this.avatarCache);
       const cached = avatarDisplay.getCachedAvatarUrl(this.avatarCache, value);
       if (cached) return cached;
       await avatarDisplay.resolveCloudAvatarFileIds([value], this.avatarCache);
@@ -199,7 +199,7 @@ module.exports = {
 
   onProfileAvatarImageError(e) {
     const raw = String(e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.avatar || '').trim();
-    if (!this.avatarCache || typeof this.avatarCache !== 'object') this.avatarCache = {};
+    this.avatarCache = avatarDisplay.getSharedAvatarCache(this.avatarCache);
     if (avatarDisplay.isCloudAvatar(raw)) avatarDisplay.markAvatarUrlFailed(this.avatarCache, raw);
     const fallback = '/assets/avatar-default.png';
     if (this.data.showJoin) {
@@ -212,7 +212,7 @@ module.exports = {
   onDisplayPlayerAvatarError(e) {
     const raw = String(e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.avatarRaw || '').trim();
     if (!raw) return;
-    if (!this.avatarCache || typeof this.avatarCache !== 'object') this.avatarCache = {};
+    this.avatarCache = avatarDisplay.getSharedAvatarCache(this.avatarCache);
     if (avatarDisplay.isCloudAvatar(raw)) avatarDisplay.markAvatarUrlFailed(this.avatarCache, raw);
     const list = (Array.isArray(this.data.displayPlayers) ? this.data.displayPlayers : []).map((player) => {
       if (String(player && player.avatarRaw || '').trim() !== raw) return player;
@@ -227,7 +227,7 @@ module.exports = {
 
   async resolveDisplayPlayersAvatars() {
     try {
-      if (!this.avatarCache || typeof this.avatarCache !== 'object') this.avatarCache = {};
+      this.avatarCache = avatarDisplay.getSharedAvatarCache(this.avatarCache);
       const generation = Number(this._displayPlayersAvatarGen || 0) + 1;
       this._displayPlayersAvatarGen = generation;
       const applyPatch = (patch) => {

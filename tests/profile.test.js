@@ -132,6 +132,40 @@ test('syncCloudProfile keeps local profile when cloud returns structured failure
   }
 });
 
+test('saveCloudProfile does not write local profile when cloud save fails', async () => {
+  const localProfile = { nickName: '旧昵称', avatar: 'cloud://avatar/old', gender: 'male' };
+  const incomingProfile = { nickName: '新昵称', avatar: 'cloud://avatar/new', gender: 'female' };
+  const originalGet = storage.getUserProfile;
+  const originalSet = storage.setUserProfile;
+  const originalCall = cloud.call;
+  const writes = [];
+
+  storage.getUserProfile = () => localProfile;
+  storage.setUserProfile = (value) => {
+    writes.push(value);
+    return true;
+  };
+  cloud.call = async () => ({
+    ok: false,
+    code: 'PROFILE_SAVE_FAILED',
+    message: '保存失败',
+    state: 'network',
+    data: {}
+  });
+
+  try {
+    await assert.rejects(
+      () => profile.saveCloudProfile(incomingProfile, { clientRequestId: 'profile-rid' }),
+      /保存失败/
+    );
+    assert.deepEqual(writes, []);
+  } finally {
+    storage.getUserProfile = originalGet;
+    storage.setUserProfile = originalSet;
+    cloud.call = originalCall;
+  }
+});
+
 // --- normalizeQuickFillInput ---
 
 test('normalizeQuickFillInput extracts avatarTempPath and nickName', () => {

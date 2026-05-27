@@ -75,7 +75,7 @@ Page({
   },
 
   applyProfile(profile) {
-    if (!this.avatarCache || typeof this.avatarCache !== 'object') this.avatarCache = {};
+    this.avatarCache = avatarDisplay.getSharedAvatarCache(this.avatarCache);
     const p = profile || {};
     const nickname = storage.getProfileNickName(p);
     const gender = storage.normalizeGender(p.gender);
@@ -107,7 +107,7 @@ Page({
   async refreshAvatarDisplay() {
     const avatarRaw = String(this.data.avatarRaw || '').trim();
     if (!avatarDisplay.isCloudAvatar(avatarRaw)) return;
-    if (!this.avatarCache || typeof this.avatarCache !== 'object') this.avatarCache = {};
+    this.avatarCache = avatarDisplay.getSharedAvatarCache(this.avatarCache);
     const generation = Number(this._avatarResolveGen || 0) + 1;
     this._avatarResolveGen = generation;
     const result = await avatarDisplay.resolveCloudAvatarFileIds([avatarRaw], this.avatarCache);
@@ -118,7 +118,7 @@ Page({
 
   onAvatarError() {
     const avatarRaw = String(this.data.avatarRaw || '').trim();
-    if (!this.avatarCache || typeof this.avatarCache !== 'object') this.avatarCache = {};
+    this.avatarCache = avatarDisplay.getSharedAvatarCache(this.avatarCache);
     if (avatarDisplay.isCloudAvatar(avatarRaw)) avatarDisplay.markAvatarUrlFailed(this.avatarCache, avatarRaw);
     if (this.data.avatarDisplay !== profileCore.DEFAULT_AVATAR) {
       this.setData({ avatarDisplay: profileCore.DEFAULT_AVATAR });
