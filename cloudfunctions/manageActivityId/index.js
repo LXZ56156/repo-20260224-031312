@@ -5,6 +5,12 @@ const db = cloud.database();
 const common = require('./lib/common');
 const modeHelper = require('./lib/mode');
 const shareActivity = require('./lib/share-activity');
+const playerHelper = require('./lib/player');
+
+const ACTIVITY_ID_MIN_LENGTH = 10;
+const ACTIVITY_ID_MAX_LENGTH = 512;
+const EXPIRY_MIN_SAFETY_MS = 60 * 1000;
+const EXPIRY_MAX_WINDOW_MS = 48 * 60 * 60 * 1000;
 
 function ok(traceId, code, message, extra = {}) {
   return common.okResult(code, message, {
@@ -63,6 +69,53 @@ function ensureCreatable(traceId, tournament) {
   return null;
 }
 
+function canPrepareDynamicShare(tournament, openid) {
+  const oid = String(openid || '').trim();
+  if (!oid || !tournament || typeof tournament !== 'object') return false;
+  if (String(tournament.creatorId || '').trim() === oid) return true;
+  return playerHelper.isParticipantInTournament(tournament, oid);
+}
+
+function ensureCanPrepare(traceId, tournament, openid) {
+  if (canPrepareDynamicShare(tournament, openid)) return null;
+  return fail(traceId, 'PERMISSION_DENIED', '仅创建者或已加入的玩家可准备动态分享', {
+    state: 'forbidden'
+  });
+}
+
+function validateClientActivityId(traceId, activityId) {
+  if (!activityId) {
+    return fail(traceId, 'ACTIVITY_ID_REQUIRED', '缺少 activityId', {
+      state: 'invalid'
+    });
+  }
+  if (activityId.length < ACTIVITY_ID_MIN_LENGTH || activityId.length > ACTIVITY_ID_MAX_LENGTH) {
+    return fail(traceId, 'ACTIVITY_ID_INVALID', 'activityId 长度不合法', {
+      state: 'invalid'
+    });
+  }
+  if (/[\s\x00-\x1F\x7F]/.test(activityId)) {
+    return fail(traceId, 'ACTIVITY_ID_INVALID', 'activityId 含空白或控制字符', {
+      state: 'invalid'
+    });
+  }
+  return null;
+}
+
+function validateExpireAtMs(traceId, expireAtMs, now) {
+  if (!expireAtMs || expireAtMs <= now + EXPIRY_MIN_SAFETY_MS) {
+    return fail(traceId, 'EXPIRATION_INVALID', '过期时间已过期或即将过期', {
+      state: 'invalid'
+    });
+  }
+  if (expireAtMs > now + EXPIRY_MAX_WINDOW_MS) {
+    return fail(traceId, 'EXPIRATION_INVALID', '过期时间超出合理范围', {
+      state: 'invalid'
+    });
+  }
+  return null;
+}
+
 async function createActivityId() {
   const api = cloud && cloud.openapi && cloud.openapi.updatableMessage;
   if (!api || typeof api.createActivityId !== 'function') {
@@ -85,7 +138,7 @@ exports.main = async (event) => {
       state: 'invalid'
     });
   }
-  if (action !== 'getOrCreate') {
+  if (action !== 'getOrCreate' && action !== 'checkOnly' && action !== 'store') {
     return fail(traceId, 'ACTION_INVALID', 'action 不合法', {
       state: 'invalid'
     });
@@ -95,6 +148,63 @@ exports.main = async (event) => {
     const current = await readTournament(tournamentId);
     const unavailable = ensureCreatable(traceId, current);
     if (unavailable) return unavailable;
+
+    if (action === 'checkOnly') {
+      const forbidden = ensureCanPrepare(traceId, current, openid);
+      if (forbidden) return forbidden;
+      if (shareActivity.isActivityUsable(current, { allowedStates: [0] })) {
+        return buildReadyResult(traceId, current);
+      }
+      return fail(traceId, 'SHARE_ACTIVITY_NOT_READY', '动态分享未就绪，需要创建 activityId', {
+        state: 'not_ready'
+      });
+    }
+
+    if (action === 'store') {
+      const clientActivityId = String((event && event.activityId) || '').trim();
+      const invalidActivityId = validateClientActivityId(traceId, clientActivityId);
+      if (invalidActivityId) return invalidActivityId;
+      const expirationTime = event && event.expirationTime;
+      const now = Date.now();
+      const normalizedExpireAtMs = shareActivity.normalizeExpireAtMs(expirationTime, now);
+      const invalidExpire = validateExpireAtMs(traceId, normalizedExpireAtMs, now);
+      if (invalidExpire) return invalidExpire;
+      const forbidden = ensureCanPrepare(traceId, current, openid);
+      if (forbidden) return forbidden;
+
+      const committed = await db.runTransaction(async (transaction) => {
+        const docRef = transaction.collection('tournaments').doc(tournamentId);
+        const docRes = await docRef.get();
+        const t = common.assertTournamentExists(docRes.data);
+        const blocked = ensureCreatable(traceId, t);
+        if (blocked) return blocked;
+        const latestForbidden = ensureCanPrepare(traceId, t, openid);
+        if (latestForbidden) return latestForbidden;
+        if (shareActivity.isActivityUsable(t, { allowedStates: [0] })) {
+          return buildReadyResult(traceId, t);
+        }
+        const patch = shareActivity.buildCreatedPatch(
+          clientActivityId,
+          normalizedExpireAtMs,
+          versionType,
+          db.serverDate()
+        );
+        await docRef.update({
+          data: common.assertNoReservedRootKeys(patch, ['_id'], '动态分享 activity 写入数据')
+        });
+        return ok(traceId, 'SHARE_ACTIVITY_STORED', '动态分享 activityId 已存储', {
+          state: 'ready',
+          activityId: clientActivityId,
+          activityExpireTime: normalizedExpireAtMs
+        });
+      });
+
+      return committed;
+    }
+
+    // action === 'getOrCreate' — 服务端创建 activityId（向后兼容）
+    const forbidden = ensureCanPrepare(traceId, current, openid);
+    if (forbidden) return forbidden;
     if (shareActivity.isActivityUsable(current, { allowedStates: [0] })) {
       return buildReadyResult(traceId, current);
     }
@@ -113,6 +223,8 @@ exports.main = async (event) => {
       const t = common.assertTournamentExists(docRes.data);
       const blocked = ensureCreatable(traceId, t);
       if (blocked) return blocked;
+      const latestForbidden = ensureCanPrepare(traceId, t, openid);
+      if (latestForbidden) return latestForbidden;
       if (shareActivity.isActivityUsable(t, { allowedStates: [0] })) {
         return buildReadyResult(traceId, t);
       }
@@ -128,7 +240,7 @@ exports.main = async (event) => {
       return ok(traceId, 'SHARE_ACTIVITY_READY', '动态分享已准备', {
         state: 'ready',
         activityId: createdActivityId,
-        activityExpireTime: shareActivity.normalizeExpireAtMs(expireAtMs)
+        activityExpireTime: expireAtMs
       });
     });
 

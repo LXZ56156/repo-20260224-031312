@@ -442,7 +442,8 @@ Page({
       this._dynamicShareReadyActivityId = activityId;
       this._dynamicShareReadyKey = this.buildDynamicShareReadyKey(t, activityId);
       return true;
-    }).catch(() => {
+    }).catch((err) => {
+      console.error('[dynamicShare] prepareDynamicShareMessage failed', err);
       if (this.isCurrentDynamicSharePrepareToken(sharePrepareToken)) {
         this._dynamicShareReadyKey = '';
         this._dynamicShareReadyBaseKey = '';
@@ -465,23 +466,56 @@ Page({
     if (!tid) throw new Error('missing tournamentId');
     const runtimeEnv = cloudApi.getRuntimeEnv();
     const versionType = String(runtimeEnv && runtimeEnv.envVersion || 'release').trim() || 'release';
-    const res = await cloudApi.call('manageActivityId', {
-      action: 'getOrCreate',
-      tournamentId: tid,
-      versionType
+
+    const checkRes = await cloudApi.call('manageActivityId', {
+      action: 'checkOnly',
+      tournamentId: tid
     }, { retry: true });
-    if (!res || res.ok === false) throw new Error(String(res && res.message || '动态分享准备失败'));
-    const data = res.data && typeof res.data === 'object' ? res.data : {};
-    const activityId = String(res.activityId || data.activityId || '').trim();
-    if (!activityId) throw new Error('missing activityId');
+
+    let activityId;
+    if (checkRes && checkRes.ok && checkRes.activityId) {
+      activityId = checkRes.activityId;
+    } else if (checkRes && (checkRes.code === 'SHARE_ACTIVITY_NOT_READY' || checkRes.state === 'not_ready')) {
+      let created;
+      try {
+        created = await shareActivity.createActivityId();
+      } catch (err) {
+        console.error('[dynamicShare] wx.createActivityId failed', err);
+        throw new Error('客户端创建活动ID失败');
+      }
+      activityId = String(created && created.activityId || '').trim();
+      if (!activityId) throw new Error('wx.createActivityId returned empty activityId');
+
+      const storeRes = await cloudApi.call('manageActivityId', {
+        action: 'store',
+        tournamentId: tid,
+        activityId,
+        expirationTime: created.expirationTime,
+        versionType
+      });
+      if (!storeRes || storeRes.ok === false) {
+        console.error('[dynamicShare] manageActivityId store failed', storeRes);
+        throw new Error(String(storeRes && storeRes.message || '存储活动ID失败'));
+      }
+      const winnerId = String(storeRes.activityId || (storeRes.data && storeRes.data.activityId) || '').trim();
+      if (winnerId) activityId = winnerId;
+    } else {
+      throw new Error(checkRes ? String(checkRes.message || '赛事不支持动态分享') : '动态分享检查失败');
+    }
+
     if (!this.isCurrentDynamicSharePrepareToken(sharePrepareToken)) throw new Error('dynamic share prepare canceled');
     await shareActivity.showShareMenuBestEffort();
-    await shareActivity.updateShareMenu({
-      withShareTicket: true,
-      isUpdatableMessage: true,
-      activityId,
-      templateInfo: shareActivity.buildShareMenuTemplateInfo(tournament)
-    });
+    try {
+      await shareActivity.updateShareMenu({
+        withShareTicket: true,
+        isUpdatableMessage: true,
+        activityId,
+        templateInfo: shareActivity.buildShareMenuTemplateInfo(tournament)
+      });
+    } catch (err) {
+      console.error('[dynamicShare] wx.updateShareMenu failed', err);
+      throw err;
+    }
     return {
       activityId
     };
