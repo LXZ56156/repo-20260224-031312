@@ -4,7 +4,7 @@ const clientRequest = require('../../core/clientRequest');
 const nav = require('../../core/nav');
 const flow = require('../../core/uxFlow');
 
-const FLOWER_MARK_RE = /[🌺🌸]/g;
+const FLOWER_MARK_RE = /[🌺🌸]/gu;
 const CIRCLED_INDEX_MARKS = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳';
 
 function normalizeGenderMark(mark) {

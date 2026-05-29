@@ -3,6 +3,7 @@
   "version": "6.1.2",
   "private": true,
   "scripts": {
+    "lint": "ESLINT_USE_FLAT_CONFIG=true eslint 'miniprogram/**/*.js' 'cloudfunctions/**/*.js' 'tests/**/*.js' 'scripts/**/*.js'",
     "test": "node --test tests/*.test.js",
     "test:ranking": "node --test tests/ranking-core.consistency.test.js",
     "audit:scheduler-scenarios": "node scripts/audit-scheduler-scenarios.js",
@@ -18,6 +19,10 @@
     "mp:upload": "node scripts/mp-ci.js upload"
   },
   "devDependencies": {
+    "eslint": "^8.57.1",
     "miniprogram-ci": "^2.1.31"
+  },
+  "dependencies": {
+    "canvas": "^3.2.3"
   }
 }
