@@ -230,6 +230,7 @@ Page({
     if (showLoading) wx.showLoading({ title: '上传头像...' });
     try {
       const fileID = await profileCore.uploadAvatarFromTemp(tempPath);
+      this.seedLocalAvatarPreview(fileID, tempPath);
       this.setData({
         avatar: fileID,
         avatarRaw: fileID,
@@ -250,6 +251,18 @@ Page({
       if (showLoading) wx.hideLoading();
       this.setData({ avatarUploading: false });
     }
+  },
+
+  seedLocalAvatarPreview(fileID, localPath) {
+    const cloudId = String(fileID || '').trim();
+    const previewPath = String(localPath || '').trim();
+    if (!avatarDisplay.isCloudAvatar(cloudId) || !previewPath) return false;
+    this.avatarCache = avatarDisplay.getSharedAvatarCache(this.avatarCache);
+    return avatarDisplay.setCachedAvatarUrl(this.avatarCache, cloudId, previewPath, {
+      ttlMs: 5 * 60 * 1000,
+      localPreview: true,
+      persist: false
+    });
   },
 
   validateProfile() {

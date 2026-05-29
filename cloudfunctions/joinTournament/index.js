@@ -17,8 +17,25 @@ function normalizeName(name) {
   return s;
 }
 
+function getPlayerId(player) {
+  if (!player) return '';
+  if (typeof player === 'string') return String(player || '').trim();
+  return String((player.id || player.playerId || player._id) || '').trim();
+}
+
+function playerHasId(player, targetId) {
+  const tid = String(targetId || '').trim();
+  if (!tid) return false;
+  if (typeof player === 'string') return String(player || '').trim() === tid;
+  if (!player || typeof player !== 'object') return false;
+  const canonicalId = String(player.id || '').trim();
+  if (canonicalId) return canonicalId === tid;
+  return [player.playerId, player._id]
+    .some((id) => String(id || '').trim() === tid);
+}
+
 function uniqueName(base, players, selfId) {
-  const exists = (n) => players.some(p => p && p.id !== selfId && String(p.name) === String(n));
+  const exists = (n) => players.some(p => p && !playerHasId(p, selfId) && String(p.name) === String(n));
   if (!base) return '';
   if (!exists(base)) return base;
   for (let i = 2; i <= 99; i++) {
@@ -54,7 +71,7 @@ function isGuestPlayer(player) {
   if (!player || typeof player !== 'object') return false;
   const type = String(player.type || '').trim().toLowerCase();
   if (type === 'guest') return true;
-  const id = String(player.id || '').trim().toLowerCase();
+  const id = getPlayerId(player).toLowerCase();
   return id.startsWith('guest_');
 }
 
@@ -97,7 +114,7 @@ function replaceIdList(ids, oldId, nextId) {
 
 function buildPairTeamName(team, players) {
   if (!team || typeof team !== 'object') return '';
-  const playerMap = Object.fromEntries((Array.isArray(players) ? players : []).map((player) => [String(player && player.id || '').trim(), player]));
+  const playerMap = Object.fromEntries((Array.isArray(players) ? players : []).map((player) => [getPlayerId(player), player]));
   const ids = Array.isArray(team.playerIds) ? team.playerIds.map((id) => String(id || '').trim()).filter(Boolean) : [];
   const names = ids.map((id) => modeHelper.safePlayerName(playerMap[id] || { id })).filter(Boolean);
   return names.length ? names.join(' / ') : String(team.name || '').trim();
@@ -106,7 +123,7 @@ function buildPairTeamName(team, players) {
 function rewriteClaimedGuestTournament(tournament, oldId, nextPlayer) {
   const players = (Array.isArray(tournament && tournament.players) ? tournament.players : []).map((player) => {
     if (!player || typeof player !== 'object') return player;
-    if (String(player.id || '').trim() !== oldId) return player;
+    if (!playerHasId(player, oldId)) return player;
     return {
       ...player,
       id: nextPlayer.id,
@@ -217,7 +234,7 @@ exports.main = async (event, context) => {
 
       const players = Array.isArray(t.players) ? t.players : [];
       const mode = modeHelper.normalizeMode(t.mode);
-      const idx = players.findIndex(p => p && p.id === openid);
+      const idx = players.findIndex(p => playerHasId(p, openid));
       const currentPlayer = idx >= 0 ? (players[idx] || {}) : null;
       if (action === 'profile_update' && idx < 0) {
         return fail(traceId, clientRequestId, 'PLAYER_NOT_JOINED', '请先加入比赛后再更新参赛信息', {
@@ -228,7 +245,7 @@ exports.main = async (event, context) => {
         ? []
         : players.filter((player) => isGuestPlayer(player) && normalizeName(player && player.name) === normalizeName(rawNickname || resolveProfileNickName(profileData)));
       const claimableGuest = matchedGuests.length === 1 ? matchedGuests[0] : null;
-      const claimedGuestId = claimableGuest ? String(claimableGuest.id || '').trim() : '';
+      const claimedGuestId = claimableGuest ? getPlayerId(claimableGuest) : '';
 
       let nickname = normalizeName(rawNickname) || normalizeName(currentPlayer && currentPlayer.name);
       if (!avatar && currentPlayer) avatar = normalizeAvatar(currentPlayer.avatar || currentPlayer.avatarUrl);
@@ -270,7 +287,9 @@ exports.main = async (event, context) => {
         const nextSquad = mode === 'squad_doubles'
           ? (squadChoice || normalizeSquadChoice(cur.squad) || 'A')
           : '';
+        const needsCanonicalPlayerId = String(cur.id || '').trim() !== openid;
         if (
+          !needsCanonicalPlayerId &&
           String(cur.name || '') === String(nextName || '') &&
           normalizeAvatar(cur.avatar || cur.avatarUrl) === nextAvatar &&
           normalizeGender(cur.gender) === nextGender &&
@@ -283,6 +302,7 @@ exports.main = async (event, context) => {
             version: Number(t.version) || 1,
             player: {
               ...cur,
+              id: openid,
               name: nextName,
               avatar: nextAvatar,
               gender: nextGender,
@@ -290,6 +310,8 @@ exports.main = async (event, context) => {
             }
           });
         }
+        cur.id = openid;
+        if (Object.prototype.hasOwnProperty.call(cur, 'playerId')) cur.playerId = openid;
         cur.name = nextName;
         if (nextAvatar) cur.avatar = nextAvatar;
         cur.gender = nextGender;
@@ -297,7 +319,7 @@ exports.main = async (event, context) => {
           cur.squad = nextSquad;
         }
         nextPlayers[idx] = cur;
-        const nextPlayerIds = Array.from(new Set(nextPlayers.map((item) => String(item && item.id || '').trim()).filter(Boolean)));
+        const nextPlayerIds = Array.from(new Set(nextPlayers.map((item) => getPlayerId(item)).filter(Boolean)));
 
         await transaction.collection('tournaments').doc(tournamentId).update({
           data: common.assertNoReservedRootKeys({
@@ -362,7 +384,7 @@ exports.main = async (event, context) => {
       }
 
       const nextPlayers = players.concat(player);
-      const nextPlayerIds = Array.from(new Set(nextPlayers.map((item) => String(item && item.id || '').trim()).filter(Boolean)));
+      const nextPlayerIds = Array.from(new Set(nextPlayers.map((item) => getPlayerId(item)).filter(Boolean)));
 
       await transaction.collection('tournaments').doc(tournamentId).update({
         data: common.assertNoReservedRootKeys({

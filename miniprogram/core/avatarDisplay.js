@@ -57,7 +57,7 @@ function persistCache(avatarCache) {
       if (!entry || typeof entry !== 'object') continue;
       const url = String(entry.url || '').trim();
       const expiresAt = Number(entry.expiresAt) || 0;
-      if (url && expiresAt > now && entry.failureType !== 'image') {
+      if (url && expiresAt > now && entry.failureType !== 'image' && entry.localPreview !== true) {
         payload[key] = { url, expiresAt, updatedAt: now };
       }
     }
@@ -133,9 +133,10 @@ function setCachedAvatarUrl(avatarCache = {}, fileId = '', url = '', options = {
   if (!key || !value) return false;
   avatarCache[key] = {
     url: value,
-    expiresAt: nowMs(options) + (Number(options.ttlMs) || TEMP_URL_TTL_MS)
+    expiresAt: nowMs(options) + (Number(options.ttlMs) || TEMP_URL_TTL_MS),
+    ...(options.localPreview === true ? { localPreview: true } : {})
   };
-  schedulePersist(avatarCache);
+  if (options.persist !== false && options.localPreview !== true) schedulePersist(avatarCache);
   return true;
 }
 
@@ -183,6 +184,7 @@ function shouldResolveCloudAvatarFileId(fileId = '', avatarCache = {}, options =
   const now = nowMs(options);
   const retryAt = entry && typeof entry === 'object' ? Number(entry.retryAt) || 0 : 0;
   const cached = getCachedAvatarUrl(avatarCache, key, { ...options, clearRetryState: false });
+  if (cached && entry && typeof entry === 'object' && entry.localPreview === true) return true;
   if (cached) {
     return !!(entry && typeof entry === 'object' && entry.failureType === 'resolve' && retryAt && retryAt <= now);
   }

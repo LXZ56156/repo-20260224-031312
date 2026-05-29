@@ -434,6 +434,147 @@ test('joinTournament profile_update updates an existing member without growing r
   assert.equal(writtenData.players[1].squad, 'A');
 });
 
+test('joinTournament profile_update matches legacy playerId member and canonicalizes id', async () => {
+  let writtenData = null;
+  const db = {
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      assert.equal(name, 'user_profiles');
+      return {
+        where() {
+          return {
+            limit() {
+              return {
+                async get() {
+                  return { data: [] };
+                }
+              };
+            }
+          };
+        }
+      };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return {
+                    data: {
+                      ...buildTournament(),
+                      mode: 'multi_rotate',
+                      version: 10,
+                      players: [
+                        { id: 'u_admin', name: '管理员', avatar: 'cloud://avatar/admin', gender: 'male' },
+                        { playerId: 'u_join', name: '旧昵称', avatar: 'cloud://avatar/old', gender: 'female' }
+                      ],
+                      playerIds: ['u_admin', 'u_join']
+                    }
+                  };
+                },
+                async update(payload) {
+                  writtenData = payload.data;
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    action: 'profile_update',
+    tournamentId: 't_1',
+    nickname: '旧昵称',
+    avatar: 'cloud://avatar/new',
+    gender: 'female'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.code, 'JOIN_UPDATED');
+  assert.equal(writtenData.players.length, 2);
+  assert.equal(writtenData.players[1].id, 'u_join');
+  assert.equal(writtenData.players[1].playerId, 'u_join');
+  assert.equal(writtenData.players[1].name, '旧昵称');
+  assert.equal(writtenData.players[1].avatar, 'cloud://avatar/new');
+  assert.deepEqual(writtenData.playerIds, ['u_admin', 'u_join']);
+});
+
+test('joinTournament profile_update does not let stale playerId override canonical id', async () => {
+  let writeCalled = false;
+  const db = {
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      assert.equal(name, 'user_profiles');
+      return {
+        where() {
+          return {
+            limit() {
+              return {
+                async get() {
+                  return { data: [] };
+                }
+              };
+            }
+          };
+        }
+      };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return {
+                    data: {
+                      ...buildTournament(),
+                      mode: 'multi_rotate',
+                      version: 10,
+                      players: [
+                        { id: 'u_admin', name: '管理员', avatar: 'cloud://avatar/admin', gender: 'male' },
+                        { id: 'u_other', playerId: 'u_join', name: '其他人', avatar: 'cloud://avatar/other', gender: 'female' }
+                      ],
+                      playerIds: ['u_admin', 'u_other']
+                    }
+                  };
+                },
+                async update() {
+                  writeCalled = true;
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    action: 'profile_update',
+    tournamentId: 't_1',
+    nickname: '新昵称',
+    avatar: 'cloud://avatar/new',
+    gender: 'female'
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'PLAYER_NOT_JOINED');
+  assert.equal(writeCalled, false);
+});
+
 test('joinTournament profile_update rejects non-member without adding or claiming guest', async () => {
   let writeCalled = false;
   const db = {

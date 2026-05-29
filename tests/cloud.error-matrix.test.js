@@ -189,6 +189,22 @@ test('cloud getUnifiedErrorMessage returns generic message for unknown errors in
   }
 });
 
+test('cloud treats PLAYER_NOT_JOINED as structured param error in release env', () => {
+  const originalGetApp = global.getApp;
+  global.getApp = () => ({ globalData: { runtimeEnv: { envVersion: 'release' } } });
+  try {
+    const msg = cloud.getUnifiedErrorMessage({
+      ok: false,
+      code: 'PLAYER_NOT_JOINED',
+      state: 'not_joined',
+      message: '请刷新比赛后重试'
+    }, '保存失败');
+    assert.equal(msg, '请刷新比赛后重试');
+  } finally {
+    global.getApp = originalGetApp;
+  }
+});
+
 test('cloud normalizeCloudResult preserves legacy extras at root and in data', () => {
   const normalized = cloud.normalizeCloudResult({
     feedbackId: 'fb_1',

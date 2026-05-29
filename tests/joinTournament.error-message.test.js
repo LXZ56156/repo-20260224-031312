@@ -46,3 +46,15 @@ test('joinTournament error helper preserves fixed rotation quota copy from backe
   assert.equal(err.joinCode, 'PLAYER_LIMIT_REACHED');
   assert.equal(joinError.resolveJoinFailureMessage(err), '该赛制最多 6 人参赛');
 });
+
+test('joinTournament error helper maps not-joined profile update to refresh guidance', () => {
+  const err = joinError.normalizeJoinFailure({
+    ok: false,
+    code: 'PLAYER_NOT_JOINED',
+    state: 'not_joined',
+    message: '请先加入比赛后再更新参赛信息'
+  }, '保存失败，请稍后重试', { action: 'profile_update' });
+
+  assert.equal(err.joinCode, 'PLAYER_NOT_JOINED');
+  assert.equal(joinError.resolveJoinFailureMessage(err, '保存失败，请稍后重试', { action: 'profile_update' }), '请刷新比赛后重试');
+});

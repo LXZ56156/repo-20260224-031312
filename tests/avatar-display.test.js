@@ -326,6 +326,24 @@ test('setCachedAvatarUrl with same fileId updates url and clears failure state',
   assert.equal(entry.retryAt || 0, 0);
 });
 
+test('local preview cache displays immediately but still requests cloud temp url', () => {
+  const cache = {};
+  avatarDisplay.setCachedAvatarUrl(cache, 'cloud://avatar/local-preview', 'wxfile://tmp/avatar.jpg', {
+    now: 1000,
+    ttlMs: 300000,
+    localPreview: true,
+    persist: false
+  });
+
+  const entry = cache['cloud://avatar/local-preview'];
+  assert.equal(entry.localPreview, true);
+  assert.equal(
+    avatarDisplay.getCachedAvatarUrl(cache, 'cloud://avatar/local-preview', { now: 1100 }),
+    'wxfile://tmp/avatar.jpg'
+  );
+  assert.equal(avatarDisplay.shouldResolveCloudAvatarFileId('cloud://avatar/local-preview', cache, { now: 1100 }), true);
+});
+
 test('persistCache only writes valid non-expired cloud urls', () => {
   const originalWx = global.wx;
   const persistedData = {};
