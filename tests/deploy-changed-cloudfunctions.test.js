@@ -17,7 +17,7 @@ function runDeployPlan(files) {
 function deployedFunctions(output) {
   return output
     .split('\n')
-    .filter((line) => /^  [A-Za-z0-9_-]+$/.test(line))
+    .filter((line) => /^ {2}[A-Za-z0-9_-]+$/.test(line))
     .map((line) => line.trim());
 }
 
