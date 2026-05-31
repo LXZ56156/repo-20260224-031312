@@ -112,7 +112,7 @@ exports.main = async (event) => {
   const traceId = String((event && event.__traceId) || '').trim();
   const clientRequestId = String((event && event.clientRequestId) || '').trim();
   const tournamentId = String((event && event.tournamentId) || '').trim();
-  console.info('[deleteTournament]', traceId || '-', tournamentId || '-', OPENID || '-');
+  console.info('[deleteTournament]', traceId || '-', tournamentId || '-');
   if (!tournamentId) throw new Error('缺少 tournamentId');
   if (clientRequestId) {
     await common.ensureCollection(db, common.CLIENT_REQUEST_LOG_COLLECTION);

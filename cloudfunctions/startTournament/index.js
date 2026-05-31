@@ -82,7 +82,7 @@ exports.main = async (event) => {
   const clientRequestId = String((event && event.clientRequestId) || '').trim();
   const tournamentId = String((event && event.tournamentId) || '').trim();
   const startedAtMs = Date.now();
-  console.info('[startTournament]', traceId || '-', tournamentId || '-', OPENID || '-');
+  console.info('[startTournament]', traceId || '-', tournamentId || '-');
   if (!tournamentId) {
     return common.failResult('TOURNAMENT_ID_REQUIRED', '缺少 tournamentId', { traceId, state: 'invalid' });
   }

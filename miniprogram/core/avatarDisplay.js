@@ -22,6 +22,15 @@ function isCloudAvatar(value) {
   return String(value || '').trim().startsWith('cloud://');
 }
 
+function logAvatarDiagnostic(level, message, context) {
+  try {
+    if (typeof console === 'undefined' || typeof console[level] !== 'function') return;
+    console[level](message, context);
+  } catch (_) {
+    // diagnostics must not break avatar fallback
+  }
+}
+
 function loadPersistentCache() {
   try {
     if (typeof wx === 'undefined' || typeof wx.getStorageSync !== 'function') return {};
@@ -284,7 +293,9 @@ async function resolveCloudAvatarFileIds(fileIds, avatarCache = {}) {
   if (!need.length) {
     return { updated: false, requested: [] };
   }
+  logAvatarDiagnostic('info', '[avatar] getTempFileURL request', { fileIDs: need });
   if (typeof wx === 'undefined' || !wx.cloud || typeof wx.cloud.getTempFileURL !== 'function') {
+    logAvatarDiagnostic('warn', '[avatar] getTempFileURL unavailable', { fileIDs: need });
     return { updated: false, requested: need };
   }
 
@@ -295,6 +306,7 @@ async function resolveCloudAvatarFileIds(fileIds, avatarCache = {}) {
     for (const batch of chunkList(need, TEMP_URL_BATCH_SIZE)) {
       const res = await wx.cloud.getTempFileURL({ fileList: batch });
       const fileList = (res && res.fileList) || [];
+      logAvatarDiagnostic('info', '[avatar] getTempFileURL response', { fileList });
       const returned = new Set();
       for (const item of fileList) {
         const fileID = String(item && item.fileID || '').trim();
@@ -307,19 +319,32 @@ async function resolveCloudAvatarFileIds(fileIds, avatarCache = {}) {
           updated = setCachedAvatarUrl(avatarCache, fileID, url) || updated;
           unresolved.delete(fileID);
         } else {
+          logAvatarDiagnostic('warn', '[avatar] getTempFileURL failed', {
+            fileID,
+            status,
+            errMsg: String(item && item.errMsg || '').trim(),
+            tempFileURL: url
+          });
           markAvatarResolveFailed(avatarCache, failed, fileID);
           unresolved.delete(fileID);
         }
       }
       batch.forEach((fileID) => {
         if (!returned.has(fileID)) {
+          logAvatarDiagnostic('warn', '[avatar] getTempFileURL failed', {
+            fileID,
+            status: 'missing',
+            errMsg: 'fileID missing from getTempFileURL response',
+            tempFileURL: ''
+          });
           markAvatarResolveFailed(avatarCache, failed, fileID);
           unresolved.delete(fileID);
         }
       });
     }
     return { updated, requested: need, failed };
-  } catch (_) {
+  } catch (err) {
+    logAvatarDiagnostic('warn', '[avatar] resolveCloudAvatarFileIds error', err);
     unresolved.forEach((fileID) => markAvatarResolveFailed(avatarCache, failed, fileID));
     return { updated, requested: need, failed };
   }

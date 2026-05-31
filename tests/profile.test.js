@@ -192,6 +192,56 @@ test('saveCloudProfile does not write local profile when cloud save fails', asyn
   }
 });
 
+test('chooseAvatar temp path is uploaded before saveUserProfile receives the avatar', async () => {
+  const originalWx = global.wx;
+  const originalGetApp = global.getApp;
+  const originalGet = storage.getUserProfile;
+  const originalSet = storage.setUserProfile;
+  const originalCall = cloud.call;
+  const uploadCalls = [];
+  const saveCalls = [];
+
+  global.getApp = () => ({ globalData: { openid: 'u_avatar' } });
+  global.wx = {
+    ...originalWx,
+    cloud: {
+      ...(originalWx && originalWx.cloud),
+      async uploadFile(options) {
+        uploadCalls.push(options);
+        return { fileID: 'cloud://avatar/u_avatar.png' };
+      }
+    }
+  };
+  storage.getUserProfile = () => null;
+  storage.setUserProfile = () => true;
+  cloud.call = async (name, payload) => {
+    if (name === 'saveUserProfile') saveCalls.push(payload);
+    return { ok: true };
+  };
+
+  try {
+    const fileID = await profile.uploadAvatarFromTemp('wxfile://tmp/choose-avatar.png');
+    await profile.saveCloudProfile({
+      nickName: '球友A',
+      avatar: fileID,
+      gender: 'male'
+    });
+
+    assert.equal(uploadCalls.length, 1);
+    assert.equal(uploadCalls[0].filePath, 'wxfile://tmp/choose-avatar.png');
+    assert.match(uploadCalls[0].cloudPath, /^avatars\/u_avatar_[0-9]+\.png$/);
+    assert.equal(saveCalls.length, 1);
+    assert.equal(saveCalls[0].avatar, 'cloud://avatar/u_avatar.png');
+    assert.notEqual(saveCalls[0].avatar, 'wxfile://tmp/choose-avatar.png');
+  } finally {
+    global.wx = originalWx;
+    global.getApp = originalGetApp;
+    storage.getUserProfile = originalGet;
+    storage.setUserProfile = originalSet;
+    cloud.call = originalCall;
+  }
+});
+
 // --- normalizeQuickFillInput ---
 
 test('normalizeQuickFillInput extracts avatarTempPath and nickName', () => {

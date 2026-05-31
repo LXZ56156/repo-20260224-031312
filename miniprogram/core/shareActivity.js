@@ -20,6 +20,12 @@ function shouldUseDynamicShare(tournament) {
   return String(tournament && tournament.status || '').trim() === 'draft' && resolveRoomLimit(tournament) > 0;
 }
 
+function resolveDynamicShareUnavailableReason(tournament) {
+  if (String(tournament && tournament.status || '').trim() !== 'draft') return 'not_draft';
+  if (resolveRoomLimit(tournament) <= 0) return 'player_limit_required';
+  return '';
+}
+
 function buildShareMenuTemplateInfo(tournament) {
   return {
     templateId: START_TEMPLATE_ID,
@@ -30,8 +36,30 @@ function buildShareMenuTemplateInfo(tournament) {
   };
 }
 
+function validateShareMenuTemplateInfo(templateInfo) {
+  const source = templateInfo && typeof templateInfo === 'object' ? templateInfo : {};
+  if (!String(source.templateId || '').trim()) return false;
+  const params = Array.isArray(source.parameterList) ? source.parameterList : [];
+  const values = {};
+  params.forEach((item) => {
+    const name = String(item && item.name || '').trim();
+    if (name) values[name] = item && item.value;
+  });
+  return typeof values.member_count === 'string' &&
+    typeof values.room_limit === 'string' &&
+    Number(values.room_limit) > 0;
+}
+
+function isShowShareMenuSupported() {
+  return typeof wx !== 'undefined' && !!wx && typeof wx.showShareMenu === 'function';
+}
+
+function isUpdateShareMenuSupported() {
+  return typeof wx !== 'undefined' && !!wx && typeof wx.updateShareMenu === 'function';
+}
+
 function updateShareMenu(options = {}) {
-  if (typeof wx === 'undefined' || !wx || typeof wx.updateShareMenu !== 'function') {
+  if (!isUpdateShareMenuSupported()) {
     return Promise.resolve(false);
   }
   return new Promise((resolve, reject) => {
@@ -59,7 +87,7 @@ function updateShareMenu(options = {}) {
 }
 
 function showShareMenuBestEffort() {
-  if (typeof wx === 'undefined' || !wx || typeof wx.showShareMenu !== 'function') {
+  if (!isShowShareMenuSupported()) {
     return Promise.resolve(false);
   }
   return new Promise((resolve) => {
@@ -89,60 +117,17 @@ function disableDynamicShareBestEffort() {
   updateShareMenu({ isUpdatableMessage: false }).catch(() => {});
 }
 
-const DEFAULT_ACTIVITY_TTL_MS = 24 * 60 * 60 * 1000;
-
-function normalizeCreateResult(res) {
-  const raw = res && typeof res === 'object' ? res : {};
-  const activityId = String(raw.activityId || raw.activity_id || '').trim();
-  const expirationTime = Number(raw.expirationTime || raw.expiration_time) || (Date.now() + DEFAULT_ACTIVITY_TTL_MS);
-  return { activityId, expirationTime };
-}
-
-const CREATE_ACTIVITY_TIMEOUT_MS = 1500;
-
-function createActivityId() {
-  if (typeof wx === 'undefined' || !wx || typeof wx.createActivityId !== 'function') {
-    return Promise.reject(new Error('wx.createActivityId unavailable'));
-  }
-  const promise = new Promise((resolve, reject) => {
-    let settled = false;
-    const finish = (ok, value) => {
-      if (settled) return;
-      settled = true;
-      if (ok) resolve(value);
-      else reject(value);
-    };
-    try {
-      const maybePromise = wx.createActivityId({
-        success: (res) => finish(true, normalizeCreateResult(res)),
-        fail: (err) => finish(false, err)
-      });
-      if (maybePromise && typeof maybePromise.then === 'function') {
-        maybePromise.then(
-          (res) => finish(true, normalizeCreateResult(res)),
-          (err) => finish(false, err)
-        );
-      }
-    } catch (err) {
-      finish(false, err);
-    }
-  });
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('wx.createActivityId timeout')), CREATE_ACTIVITY_TIMEOUT_MS);
-    })
-  ]);
-}
-
 module.exports = {
   START_TEMPLATE_ID,
   resolveRoomLimit,
   countPlayers,
   shouldUseDynamicShare,
+  resolveDynamicShareUnavailableReason,
   buildShareMenuTemplateInfo,
+  validateShareMenuTemplateInfo,
+  isShowShareMenuSupported,
+  isUpdateShareMenuSupported,
   updateShareMenu,
   showShareMenuBestEffort,
-  disableDynamicShareBestEffort,
-  createActivityId
+  disableDynamicShareBestEffort
 };

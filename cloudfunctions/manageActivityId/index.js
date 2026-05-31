@@ -131,7 +131,7 @@ exports.main = async (event) => {
   const action = String((event && event.action) || 'getOrCreate').trim();
   const tournamentId = String((event && event.tournamentId) || '').trim();
   const versionType = shareActivity.normalizeVersionType(event && event.versionType);
-  console.info('[manageActivityId]', traceId || '-', action || '-', tournamentId || '-', openid || '-');
+  console.info('[manageActivityId]', traceId || '-', action || '-', tournamentId || '-');
 
   if (!tournamentId) {
     return fail(traceId, 'TOURNAMENT_ID_REQUIRED', '缺少 tournamentId', {

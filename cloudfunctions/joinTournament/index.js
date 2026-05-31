@@ -189,7 +189,7 @@ exports.main = async (event, context) => {
   const clientRequestId = String((event && event.clientRequestId) || '').trim();
   const action = normalizeAction(event && event.action);
   const tournamentId = event.tournamentId;
-  console.info('[joinTournament]', traceId || '-', String(tournamentId || '').trim() || '-', openid || '-');
+  console.info('[joinTournament]', traceId || '-', String(tournamentId || '').trim() || '-');
   const rawNickname = event.nickname;
   let avatar = normalizeAvatar(event.avatar);
   let gender = normalizeGender(event.gender);

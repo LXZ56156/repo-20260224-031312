@@ -59,7 +59,7 @@ exports.main = async (event) => {
   const roundIndex = Number(event && event.roundIndex);
   const matchIndex = Number(event && event.matchIndex);
   const clientRequestId = String((event && event.clientRequestId) || '').trim();
-  console.info('[submitScore]', traceId || '-', tournamentId || '-', roundIndex, matchIndex, OPENID || '-');
+  console.info('[submitScore]', traceId || '-', tournamentId || '-', roundIndex, matchIndex);
 
   const scorePair = scoreUtils.extractScorePairAny(event);
   const a = scorePair.a;

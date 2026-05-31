@@ -115,6 +115,71 @@ test('resolveCloudAvatarFileIds cools down missing file ids and request failures
   }
 });
 
+test('resolveCloudAvatarFileIds logs request, response, failed item, and thrown error diagnostics', async () => {
+  const originalWx = global.wx;
+  const originalInfo = console.info;
+  const originalWarn = console.warn;
+  const infoLogs = [];
+  const warnLogs = [];
+  const cache = {};
+  let calls = 0;
+
+  try {
+    console.info = (...args) => infoLogs.push(args);
+    console.warn = (...args) => warnLogs.push(args);
+    global.wx = {
+      cloud: {
+        async getTempFileURL() {
+          calls += 1;
+          if (calls === 1) {
+            return {
+              fileList: [
+                {
+                  fileID: 'cloud://avatar/fail',
+                  tempFileURL: '',
+                  status: -1,
+                  errMsg: 'file not found'
+                }
+              ]
+            };
+          }
+          throw new Error('network failed');
+        }
+      }
+    };
+
+    await avatarDisplay.resolveCloudAvatarFileIds(['cloud://avatar/fail'], cache);
+    await avatarDisplay.resolveCloudAvatarFileIds(['cloud://avatar/error'], cache);
+
+    assert.equal(infoLogs.some(([message, context]) => (
+      message === '[avatar] getTempFileURL request' &&
+      Array.isArray(context.fileIDs) &&
+      context.fileIDs[0] === 'cloud://avatar/fail'
+    )), true);
+    assert.equal(infoLogs.some(([message, context]) => (
+      message === '[avatar] getTempFileURL response' &&
+      Array.isArray(context.fileList) &&
+      context.fileList[0].fileID === 'cloud://avatar/fail'
+    )), true);
+    assert.equal(warnLogs.some(([message, context]) => (
+      message === '[avatar] getTempFileURL failed' &&
+      context.fileID === 'cloud://avatar/fail' &&
+      context.status === -1 &&
+      context.errMsg === 'file not found' &&
+      context.tempFileURL === ''
+    )), true);
+    assert.equal(warnLogs.some(([message, err]) => (
+      message === '[avatar] resolveCloudAvatarFileIds error' &&
+      err &&
+      err.message === 'network failed'
+    )), true);
+  } finally {
+    global.wx = originalWx;
+    console.info = originalInfo;
+    console.warn = originalWarn;
+  }
+});
+
 test('resolveCloudAvatarFileIds chunks temp url requests at official batch limit', async () => {
   const originalWx = global.wx;
   const cache = {};

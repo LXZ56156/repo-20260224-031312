@@ -35,6 +35,32 @@ const lobbySyncController = pageTournamentSync.createTournamentSyncMethods({
 
 const lobbyPageDelegates = createLobbyDelegates(lobbySyncController);
 
+function getDynamicShareErrorMessage(value, fallback = '动态分享准备失败') {
+  const raw = value && typeof value === 'object'
+    ? (value.errMsg || value.message)
+    : value;
+  return String(raw || fallback).trim() || fallback;
+}
+
+function getDynamicShareFailureReason(value, fallback = 'manage_activity_id_failed') {
+  const explicit = String(value && value.dynamicShareReason || '').trim();
+  if (explicit) return explicit;
+  const code = String(value && (value.code || value.errCode) || '').trim().toUpperCase();
+  const message = getDynamicShareErrorMessage(value, '');
+  if (code === 'PERMISSION_DENIED') return 'permission_denied';
+  if (code === 'SHARE_ACTIVITY_DRAFT_ONLY') return 'not_draft';
+  if (code === 'SHARE_ACTIVITY_LIMIT_REQUIRED') return 'player_limit_required';
+  if (message.includes('createActivityId')) return 'create_activity_id_failed';
+  return fallback;
+}
+
+function createDynamicShareError(reason, value, fallback) {
+  const message = getDynamicShareErrorMessage(value, fallback);
+  const error = value instanceof Error ? value : new Error(message);
+  error.dynamicShareReason = String(reason || '').trim() || 'manage_activity_id_failed';
+  return error;
+}
+
 Page({
   data: {
     tournamentId: '',
@@ -185,6 +211,10 @@ Page({
     profileAvatarUploading: false,
     profileSaving: false,
     profileFieldError: '',
+    dynamicSharePreparing: false,
+    dynamicShareReady: false,
+    dynamicShareError: '',
+    dynamicShareUnavailableReason: '',
     loadErrorTitle: '加载失败',
     loadErrorMessage: '请检查网络或分享链接是否有效。',
     showLoadErrorHome: false
@@ -387,13 +417,34 @@ Page({
     return Number(token || 0) === Number(this._dynamicSharePrepareToken || 0);
   },
 
-  disablePageDynamicShare() {
+  setDynamicShareState(patch = {}) {
+    const next = {
+      dynamicSharePreparing: !!patch.dynamicSharePreparing,
+      dynamicShareReady: !!patch.dynamicShareReady,
+      dynamicShareError: String(patch.dynamicShareError || ''),
+      dynamicShareUnavailableReason: String(patch.dynamicShareUnavailableReason || '')
+    };
+    const changed = {};
+    Object.keys(next).forEach((key) => {
+      if (this.data[key] !== next[key]) changed[key] = next[key];
+    });
+    if (Object.keys(changed).length) this.setData(changed);
+    return changed;
+  },
+
+  disablePageDynamicShare(options = {}) {
     this.nextDynamicSharePrepareToken();
     this._dynamicShareReadyKey = '';
     this._dynamicShareReadyBaseKey = '';
     this._dynamicShareReadyActivityId = '';
     this._dynamicShareInflightBaseKey = '';
     this._dynamicShareInflightPromise = null;
+    this.setDynamicShareState({
+      dynamicSharePreparing: false,
+      dynamicShareReady: false,
+      dynamicShareError: options.error,
+      dynamicShareUnavailableReason: options.reason
+    });
     shareActivity.disableDynamicShareBestEffort();
   },
 
@@ -414,8 +465,14 @@ Page({
 
   ensureDynamicShareReady(tournament) {
     const t = tournament && typeof tournament === 'object' ? tournament : this.data.tournament;
-    if (!shareActivity.shouldUseDynamicShare(t)) {
-      this.disablePageDynamicShare();
+    const unavailableReason = shareActivity.resolveDynamicShareUnavailableReason(t);
+    if (unavailableReason) {
+      console.warn('[dynamicShare] unavailable', {
+        reason: unavailableReason,
+        status: String(t && t.status || '').trim(),
+        roomLimit: shareActivity.resolveRoomLimit(t)
+      });
+      this.disablePageDynamicShare({ reason: unavailableReason });
       return Promise.resolve(false);
     }
 
@@ -427,6 +484,9 @@ Page({
       this.disablePageDynamicShare();
     }
     if (this._dynamicShareReadyBaseKey === baseKey && this._dynamicShareReadyActivityId) {
+      this.setDynamicShareState({
+        dynamicShareReady: true
+      });
       return Promise.resolve(true);
     }
     if (this._dynamicShareInflightBaseKey === baseKey && this._dynamicShareInflightPromise) {
@@ -435,20 +495,29 @@ Page({
 
     const sharePrepareToken = this.nextDynamicSharePrepareToken();
     this._dynamicShareInflightBaseKey = baseKey;
+    this.setDynamicShareState({
+      dynamicSharePreparing: true
+    });
     const promise = this.prepareDynamicShareMessage(t, sharePrepareToken).then((res) => {
       if (!this.isCurrentDynamicSharePrepareToken(sharePrepareToken)) return false;
       const activityId = String(res && res.activityId || '').trim();
       this._dynamicShareReadyBaseKey = baseKey;
       this._dynamicShareReadyActivityId = activityId;
       this._dynamicShareReadyKey = this.buildDynamicShareReadyKey(t, activityId);
+      this.setDynamicShareState({
+        dynamicShareReady: true
+      });
       return true;
     }).catch((err) => {
-      console.error('[dynamicShare] prepareDynamicShareMessage failed', err);
+      const reason = getDynamicShareFailureReason(err);
+      const message = getDynamicShareErrorMessage(err);
+      console.warn('[dynamicShare] prepareDynamicShareMessage failed', {
+        reason,
+        message,
+        errCode: err && err.errCode
+      });
       if (this.isCurrentDynamicSharePrepareToken(sharePrepareToken)) {
-        this._dynamicShareReadyKey = '';
-        this._dynamicShareReadyBaseKey = '';
-        this._dynamicShareReadyActivityId = '';
-        shareActivity.disableDynamicShareBestEffort();
+        this.disablePageDynamicShare({ reason, error: message });
       }
       return false;
     }).finally(() => {
@@ -467,54 +536,60 @@ Page({
     const runtimeEnv = cloudApi.getRuntimeEnv();
     const versionType = String(runtimeEnv && runtimeEnv.envVersion || 'release').trim() || 'release';
 
-    const checkRes = await cloudApi.call('manageActivityId', {
-      action: 'checkOnly',
-      tournamentId: tid
-    }, { retry: true });
-
-    let activityId;
-    if (checkRes && checkRes.ok && checkRes.activityId) {
-      activityId = checkRes.activityId;
-    } else if (checkRes && (checkRes.code === 'SHARE_ACTIVITY_NOT_READY' || checkRes.state === 'not_ready')) {
-      let created;
-      try {
-        created = await shareActivity.createActivityId();
-      } catch (err) {
-        console.error('[dynamicShare] wx.createActivityId failed', err);
-        throw new Error('客户端创建活动ID失败');
-      }
-      activityId = String(created && created.activityId || '').trim();
-      if (!activityId) throw new Error('wx.createActivityId returned empty activityId');
-
-      const storeRes = await cloudApi.call('manageActivityId', {
-        action: 'store',
-        tournamentId: tid,
-        activityId,
-        expirationTime: created.expirationTime,
-        versionType
-      });
-      if (!storeRes || storeRes.ok === false) {
-        console.error('[dynamicShare] manageActivityId store failed', storeRes);
-        throw new Error(String(storeRes && storeRes.message || '存储活动ID失败'));
-      }
-      const winnerId = String(storeRes.activityId || (storeRes.data && storeRes.data.activityId) || '').trim();
-      if (winnerId) activityId = winnerId;
-    } else {
-      throw new Error(checkRes ? String(checkRes.message || '赛事不支持动态分享') : '动态分享检查失败');
+    if (!shareActivity.isShowShareMenuSupported()) {
+      throw createDynamicShareError('api_unsupported', null, 'wx.showShareMenu unavailable');
+    }
+    if (!shareActivity.isUpdateShareMenuSupported()) {
+      throw createDynamicShareError('api_unsupported', null, 'wx.updateShareMenu unavailable');
+    }
+    const templateInfo = shareActivity.buildShareMenuTemplateInfo(tournament);
+    if (!shareActivity.validateShareMenuTemplateInfo(templateInfo)) {
+      throw createDynamicShareError('template_info_invalid', null, 'dynamic share templateInfo invalid');
+    }
+    const shareMenuShown = await shareActivity.showShareMenuBestEffort();
+    if (!shareMenuShown) {
+      throw createDynamicShareError('show_share_menu_failed', null, 'wx.showShareMenu failed');
     }
 
+    const activityRes = await cloudApi.call('manageActivityId', {
+      action: 'getOrCreate',
+      tournamentId: tid,
+      versionType
+    }, { retry: true });
+    if (!activityRes || activityRes.ok === false) {
+      throw createDynamicShareError(
+        getDynamicShareFailureReason(activityRes),
+        activityRes,
+        '动态分享准备失败'
+      );
+    }
+    const activityData = activityRes.data && typeof activityRes.data === 'object' ? activityRes.data : {};
+    const activityId = String(activityRes.activityId || activityData.activityId || '').trim();
+    if (!activityId) throw new Error('manageActivityId returned empty activityId');
+
     if (!this.isCurrentDynamicSharePrepareToken(sharePrepareToken)) throw new Error('dynamic share prepare canceled');
-    await shareActivity.showShareMenuBestEffort();
     try {
-      await shareActivity.updateShareMenu({
+      const updated = await shareActivity.updateShareMenu({
         withShareTicket: true,
         isUpdatableMessage: true,
         activityId,
-        templateInfo: shareActivity.buildShareMenuTemplateInfo(tournament)
+        templateInfo
       });
+      if (updated === false) {
+        throw createDynamicShareError('api_unsupported', null, 'wx.updateShareMenu unavailable');
+      }
     } catch (err) {
-      console.error('[dynamicShare] wx.updateShareMenu failed', err);
-      throw err;
+      const normalized = createDynamicShareError(
+        getDynamicShareFailureReason(err, 'update_share_menu_failed'),
+        err,
+        'wx.updateShareMenu failed'
+      );
+      console.warn('[dynamicShare] wx.updateShareMenu failed', {
+        reason: normalized.dynamicShareReason,
+        errCode: err && err.errCode,
+        errMsg: getDynamicShareErrorMessage(err)
+      });
+      throw normalized;
     }
     return {
       activityId
