@@ -32,6 +32,34 @@ test('buildAvatarDisplay keeps cloud avatar hidden until temp url is cached', ()
   assert.equal(item.initial, '球');
 });
 
+test('buildAvatarDisplay hides persisted local temp and unsupported avatar paths', () => {
+  const wxfile = avatarDisplay.buildAvatarDisplay({
+    id: 'u_wxfile',
+    name: '临时头像',
+    avatar: 'wxfile://tmp/avatar.png'
+  });
+  const devtoolsTemp = avatarDisplay.buildAvatarDisplay({
+    id: 'u_tmp',
+    name: '开发工具临时头像',
+    avatar: 'http://tmp/avatar.png'
+  });
+  const unsupported = avatarDisplay.buildAvatarDisplay({
+    id: 'u_local',
+    name: '旧本地头像',
+    avatar: 'local-avatar.png'
+  });
+  const remote = avatarDisplay.buildAvatarDisplay({
+    id: 'u_remote',
+    name: '远程头像',
+    avatar: 'https://avatar.example/u_remote.png'
+  });
+
+  assert.equal(wxfile.avatarDisplay, '');
+  assert.equal(devtoolsTemp.avatarDisplay, '');
+  assert.equal(unsupported.avatarDisplay, '');
+  assert.equal(remote.avatarDisplay, 'https://avatar.example/u_remote.png');
+});
+
 test('collectCloudAvatarFileIds retries cloud avatars when cached value is empty', () => {
   const pending = avatarDisplay.collectCloudAvatarFileIds({
     rows: [

@@ -3,6 +3,7 @@ const clientRequest = require('./clientRequest');
 const cloud = require('./cloud');
 const nav = require('./nav');
 const storage = require('./storage');
+const avatarPolicy = require('./avatarPolicy');
 
 const DEFAULT_AVATAR = '/assets/avatar-default.png';
 
@@ -44,6 +45,14 @@ async function syncCloudProfile() {
 
 async function saveCloudProfile(profile, options = {}) {
   const merged = mergeProfile(readLocalProfile(), profile);
+  const avatar = avatarPolicy.normalizePersistableAvatar(merged.avatar);
+  if (merged.avatar && !avatar) {
+    const err = new Error('头像地址无效，请重新上传');
+    err.code = 'PROFILE_AVATAR_INVALID';
+    throw err;
+  }
+  merged.avatar = avatar;
+  merged.avatarUrl = avatar;
   const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'profile');
   cloud.assertWriteResult(await cloud.call('saveUserProfile', {
     nickname: merged.nickName,

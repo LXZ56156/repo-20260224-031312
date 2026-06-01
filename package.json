@@ -8,6 +8,7 @@
     "test:ranking": "node --test tests/ranking-core.consistency.test.js",
     "audit:scheduler-scenarios": "node scripts/audit-scheduler-scenarios.js",
     "report:scheduler-full-audit": "node scripts/generate-scheduler-full-audit.js",
+    "audit:avatars": "node scripts/audit-avatar-data.js",
     "check:cloud-common": "bash scripts/check-cloud-common.sh",
     "check:deprecated-wx-api": "bash scripts/check-deprecated-wx-api.sh",
     "check": "npm run check:deprecated-wx-api && npm run check:cloud-common",

@@ -130,6 +130,29 @@ test('joinTournament adds player with normalized profile fallback and squad choi
   assert.deepEqual(writtenData.players[1], result.player);
 });
 
+test('joinTournament rejects wxfile avatar before writing player data', async () => {
+  const db = {
+    collection() {
+      throw new Error('should not read or write player data');
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    nickname: '球友A',
+    avatar: 'wxfile://tmp/avatar.png',
+    gender: 'female',
+    __traceId: 'trace-join-avatar'
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'PROFILE_AVATAR_INVALID');
+  assert.equal(result.message, '头像地址无效，请重新上传');
+  assert.equal(result.state, 'invalid');
+  assert.equal(result.traceId, 'trace-join-avatar');
+});
+
 test('joinTournament refreshes draft updatable share count after successful join', async () => {
   const openapiCalls = [];
   const db = {

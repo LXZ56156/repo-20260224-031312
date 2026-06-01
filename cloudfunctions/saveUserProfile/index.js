@@ -13,6 +13,14 @@ function normalizeGender(gender) {
   return 'unknown';
 }
 
+function normalizeAvatar(avatar) {
+  const value = String(avatar || '').trim();
+  if (!value) return '';
+  if (/^(?:wxfile:\/\/|file:\/\/|blob:|https?:\/\/tmp(?:\/|$)|\/?tmp\/)/i.test(value)) return '';
+  if (value.startsWith('cloud://') || /^https?:\/\//i.test(value)) return value;
+  return '';
+}
+
 async function ensureCollection(name) {
   await common.ensureCollection(db, name);
 }
@@ -177,7 +185,8 @@ exports.main = async (event) => {
   const traceId = String((event && event.__traceId) || '').trim();
   const clientRequestId = String((event && event.clientRequestId) || '').trim();
   const nickname = String(event && event.nickname || '').trim();
-  const avatar = String(event && event.avatar || '').trim();
+  const rawAvatar = String(event && event.avatar || '').trim();
+  const avatar = normalizeAvatar(rawAvatar);
   const gender = normalizeGender(event && event.gender);
   if (!nickname) {
     return common.failResult('PROFILE_NICKNAME_REQUIRED', '昵称不能为空', {
@@ -188,6 +197,13 @@ exports.main = async (event) => {
   }
   if (gender === 'unknown') {
     return common.failResult('PROFILE_GENDER_REQUIRED', '性别不能为空', {
+      traceId,
+      state: 'invalid',
+      ...(clientRequestId ? { clientRequestId } : {})
+    });
+  }
+  if (rawAvatar && !avatar) {
+    return common.failResult('PROFILE_AVATAR_INVALID', '头像地址无效，请重新上传', {
       traceId,
       state: 'invalid',
       ...(clientRequestId ? { clientRequestId } : {})

@@ -208,7 +208,7 @@ module.exports = {
       await avatarDisplay.resolveCloudAvatarFileIds([value], this.avatarCache);
       return avatarDisplay.getCachedAvatarUrl(this.avatarCache, value) || fallback;
     }
-    return value;
+    return avatarDisplay.isPersistableAvatar(value) ? value : fallback;
   },
 
   onProfileAvatarImageError(e) {
@@ -290,8 +290,10 @@ module.exports = {
           } else if (!list[i].avatarDisplay) {
             list[i].avatarDisplay = '';
           }
-        } else {
+        } else if (avatarDisplay.isPersistableAvatar(raw)) {
           list[i].avatarDisplay = raw;
+        } else {
+          list[i].avatarDisplay = '';
         }
       }
 

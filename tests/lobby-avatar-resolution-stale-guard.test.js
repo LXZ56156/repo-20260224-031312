@@ -28,6 +28,17 @@ test('lobby display players keep initials visible before temp url cache resolves
   assert.equal(players[0].initial, '球');
 });
 
+test('lobby display players hide persisted wxfile avatar paths from other users', () => {
+  const players = viewModel.buildDisplayPlayers([{
+    id: 'p_tmp',
+    name: '球友A',
+    avatar: 'wxfile://tmp/avatar.png'
+  }], {});
+
+  assert.equal(players[0].avatarRaw, 'wxfile://tmp/avatar.png');
+  assert.equal(players[0].avatarDisplay, '');
+});
+
 test('lobby avatar resolution keeps initials visible if temp url request fails', async () => {
   const originalWx = global.wx;
   global.wx = {

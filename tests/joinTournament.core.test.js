@@ -36,6 +36,29 @@ test('joinTournament core builds payload from profile and local fallback consist
   }
 });
 
+test('joinTournament core never forwards persisted wxfile avatar paths', () => {
+  const originalGetUserProfile = storage.getUserProfile;
+  storage.getUserProfile = () => ({
+    nickName: '本地昵称',
+    avatar: 'wxfile://tmp/local.png',
+    gender: 'female'
+  });
+
+  try {
+    const payload = joinTournamentCore.buildJoinPayload({
+      tournamentId: 't_1',
+      avatar: 'http://tmp/devtools.png',
+      profile: {
+        avatar: 'https://avatar.example/profile.png'
+      }
+    });
+
+    assert.equal(payload.avatar, 'https://avatar.example/profile.png');
+  } finally {
+    storage.getUserProfile = originalGetUserProfile;
+  }
+});
+
 test('joinTournament core retries version conflicts once and returns success', async () => {
   const originalCall = cloud.call;
   const calls = [];

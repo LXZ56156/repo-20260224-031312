@@ -12,6 +12,7 @@ const retryAction = require('../../core/retryAction');
 const tournamentEntry = require('../../core/tournamentEntry');
 const uiPreferences = require('../../core/uiPreferences');
 const avatarDisplay = require('../../core/avatarDisplay');
+const avatarDiagnostics = require('../../core/avatarDiagnostics');
 const viewModel = require('./lobbyViewModel');
 const settingsViewModel = require('../settings/settingsViewModel');
 const { createLobbyDelegates } = require('./lobbyDelegates');
@@ -358,6 +359,7 @@ Page({
       avatarCache: this.avatarCache || {}
     });
 
+    this.ensureDynamicShareReady(next.tournament);
     this.applyLobbyPatch(next.patch);
     pageTitle.setTournamentPageTitle(this, '赛事大厅', next.tournament);
 
@@ -372,8 +374,8 @@ Page({
     }
 
     this.resolveDisplayPlayersAvatars();
+    this.runDevelopmentAvatarDiagnostics(next.tournament);
     storage.addRecentTournamentId(next.tournament._id);
-    this.ensureDynamicShareReady(next.tournament);
 
     if (this._pendingIntentAction) {
       const action = this._pendingIntentAction;
@@ -406,6 +408,17 @@ Page({
   onShareButtonTouchStart() {
     shareActivity.showShareMenuBestEffort();
     this.ensureDynamicShareReady(this.data.tournament);
+  },
+
+  runDevelopmentAvatarDiagnostics(tournament) {
+    const runtimeEnv = cloudApi.getRuntimeEnv();
+    if (String(runtimeEnv && runtimeEnv.envVersion || 'release').trim() === 'release') return;
+    const key = avatarDiagnostics.buildTournamentDiagnosticKey(tournament);
+    if (!key || this._avatarDiagnosticKey === key) return;
+    this._avatarDiagnosticKey = key;
+    avatarDiagnostics.diagnoseTournamentAvatars(tournament).catch((err) => {
+      console.warn('[avatar] tournament diagnostic failed', err);
+    });
   },
 
   nextDynamicSharePrepareToken() {

@@ -4,17 +4,24 @@
       <text class="count-pill">{{stateStageBadge}} · {{statePanelRoleLabel}}</text>
     </view>
     <view class="state-panel-summary">{{statePanelSummary}}</view>
+    <view class="dynamic-share-status muted small" wx:if="{{dynamicSharePreparing || dynamicShareReady || dynamicShareError || dynamicShareUnavailableReason}}">
+      <text wx:if="{{dynamicSharePreparing}}">正在准备动态分享...</text>
+      <text wx:elif="{{dynamicShareReady}}">动态分享已准备好</text>
+      <text wx:elif="{{dynamicShareError}}">动态分享不可用，使用普通分享</text>
+      <text wx:else>普通分享</text>
+    </view>
     <view class="state-checklist panel-soft" wx:if="{{showStateChecklist}}">
       <block wx:if="{{featuredChecklistItem && featuredChecklistItem.key}}">
         <button
           wx:if="{{featuredChecklistItem.key==='players' && !featuredChecklistItem.done}}"
           class="prep-featured prep-share-action {{featuredChecklistItem.cardClass}}"
           open-type="share"
+          disabled="{{dynamicSharePreparing || (!dynamicShareReady && !dynamicShareError && !dynamicShareUnavailableReason)}}"
           bindtouchstart="onShareButtonTouchStart"
         >
           <view class="prep-featured-top">
             <view class="prep-badge">{{featuredChecklistItem.badgeText}}</view>
-            <text class="prep-jump prep-jump-featured">{{featuredChecklistItem.actionText}}</text>
+            <text class="prep-jump prep-jump-featured">{{dynamicSharePreparing ? '准备中' : (dynamicShareReady ? '动态分享' : '普通分享')}}</text>
           </view>
           <view class="prep-featured-main">
             <text class="prep-indicator prep-indicator-lg {{featuredChecklistItem.indicatorClass}}"></text>
@@ -65,6 +72,7 @@
             wx:if="{{item.key==='players' && !item.done}}"
             class="prep-tile prep-share-action {{item.cardClass}}"
             open-type="share"
+            disabled="{{dynamicSharePreparing || (!dynamicShareReady && !dynamicShareError && !dynamicShareUnavailableReason)}}"
             bindtouchstart="onShareButtonTouchStart"
           >
             <view class="prep-secondary-head">
@@ -75,7 +83,7 @@
               <view class="prep-title">{{item.title}}</view>
               <view class="prep-sub">{{item.summary}}</view>
             </view>
-            <text class="prep-jump">{{item.actionText}}</text>
+            <text class="prep-jump">{{dynamicSharePreparing ? '准备中' : (dynamicShareReady ? '动态分享' : '普通分享')}}</text>
           </button>
           <view
             wx:elif="{{item.key==='players'}}"
@@ -116,8 +124,9 @@
         wx:if="{{primaryTaskKey==='share' && primaryTaskTitle==='转发比赛'}}"
         class="btn btn-primary state-primary-btn"
         open-type="share"
+        disabled="{{dynamicSharePreparing || (!dynamicShareReady && !dynamicShareError && !dynamicShareUnavailableReason)}}"
         bindtouchstart="onShareButtonTouchStart"
-      >{{primaryTaskTitle || statePrimaryActionText}}</button>
+      >{{dynamicSharePreparing ? '正在准备分享...' : (dynamicShareReady ? '动态分享比赛' : '普通分享比赛')}}</button>
       <button
         wx:else
         class="btn btn-primary state-primary-btn {{(nextActionKey==='start' || primaryTaskKey==='start' || primaryTaskKey==='sync_settings') ? 'start-pulse' : ''}}"

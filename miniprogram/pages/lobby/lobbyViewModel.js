@@ -98,7 +98,7 @@ function buildDisplayPlayers(list, avatarCache = {}, prevDisplayPlayers = []) {
       if (avatarDisplayCore.isCloudAvatar(raw)) {
         avatarDisplay = avatarDisplayCore.getCachedAvatarUrl(avatarCache, raw);
         if (!avatarDisplay && prevMap[raw]) avatarDisplay = prevMap[raw];
-      } else {
+      } else if (avatarDisplayCore.isPersistableAvatar(raw)) {
         avatarDisplay = raw;
       }
     }

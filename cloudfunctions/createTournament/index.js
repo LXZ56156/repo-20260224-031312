@@ -26,6 +26,14 @@ function normalizeGender(gender) {
   return 'unknown';
 }
 
+function normalizeAvatar(avatar) {
+  const value = String(avatar || '').trim();
+  if (!value) return '';
+  if (/^(?:wxfile:\/\/|file:\/\/|blob:|https?:\/\/tmp(?:\/|$)|\/?tmp\/)/i.test(value)) return '';
+  if (value.startsWith('cloud://') || /^https?:\/\//i.test(value)) return value;
+  return '';
+}
+
 function normalizePoints(points) {
   const p = Number(points);
   if (p === 11 || p === 15 || p === 21) return p;
@@ -43,7 +51,8 @@ exports.main = async (event) => {
   const traceId = String((event && event.__traceId) || '').trim();
   const clientRequestId = String((event && event.clientRequestId) || '').trim();
   const nickname = String((event && event.nickname) || '').trim();
-  const avatar = String((event && (event.avatar || event.avatarUrl)) || '').trim();
+  const rawAvatar = String((event && (event.avatar || event.avatarUrl)) || '').trim();
+  const avatar = normalizeAvatar(rawAvatar);
   const preset = modeHelper.resolveRotationPreset(event && event.presetKey);
   const presetKey = preset ? preset.key : 'custom';
   const mode = preset ? modeHelper.MODE_MULTI_ROTATE : modeHelper.normalizeMode(event && event.mode);
@@ -51,6 +60,13 @@ exports.main = async (event) => {
   const creatorGender = normalizeGender(event && event.creatorGender);
   if (!name) {
     return common.failResult('SETTINGS_INVALID', '赛事名称不能为空', {
+      traceId,
+      state: 'invalid',
+      ...(clientRequestId ? { clientRequestId } : {})
+    });
+  }
+  if (rawAvatar && !avatar) {
+    return common.failResult('PROFILE_AVATAR_INVALID', '头像地址无效，请重新上传', {
       traceId,
       state: 'invalid',
       ...(clientRequestId ? { clientRequestId } : {})

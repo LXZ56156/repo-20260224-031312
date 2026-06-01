@@ -215,6 +215,31 @@ test('saveUserProfile returns structured invalid result for unknown gender', asy
   });
 });
 
+test('saveUserProfile rejects wxfile avatar before any long-term write', async () => {
+  const db = {
+    collection() {
+      throw new Error('should not query profile');
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    nickname: '球友A',
+    avatar: 'wxfile://tmp/avatar.png',
+    gender: 'female',
+    __traceId: 'trace-profile-avatar'
+  });
+
+  assert.deepEqual(result, {
+    ok: false,
+    code: 'PROFILE_AVATAR_INVALID',
+    message: '头像地址无效，请重新上传',
+    state: 'invalid',
+    traceId: 'trace-profile-avatar',
+    data: {}
+  });
+});
+
 test('saveUserProfile treats repeated clientRequestId as deduped success', async () => {
   let updateCalled = false;
   const tournamentUpdates = [];

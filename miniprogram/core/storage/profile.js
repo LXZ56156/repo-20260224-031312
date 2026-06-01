@@ -1,4 +1,5 @@
 const { get, set, del } = require('./base');
+const avatarPolicy = require('../avatarPolicy');
 
 function normalizeGender(gender) {
   const value = String(gender || '').trim().toLowerCase();
@@ -18,8 +19,8 @@ function sanitizeUserProfile(profile) {
   if (!profile || typeof profile !== 'object') return null;
   const nickName = getProfileNickName(profile);
 
-  const rawAvatarUrl = String(profile.avatarUrl || profile.avatarURL || '').trim();
-  const rawAvatar = String(profile.avatar || '').trim();
+  const rawAvatarUrl = avatarPolicy.normalizePersistableAvatar(profile.avatarUrl || profile.avatarURL);
+  const rawAvatar = avatarPolicy.normalizePersistableAvatar(profile.avatar);
   let avatarUrl = rawAvatarUrl;
   let avatar = rawAvatar;
   if (!avatarUrl && avatar && /^https?:\/\//i.test(avatar)) avatarUrl = avatar;
@@ -35,7 +36,7 @@ function sanitizeUserProfile(profile) {
 function isProfileComplete(profile) {
   if (!profile || typeof profile !== 'object') return false;
   const nickname = getProfileNickName(profile);
-  const avatar = String(profile.avatar || profile.avatarUrl || '').trim();
+  const avatar = avatarPolicy.normalizePersistableAvatar(profile.avatar || profile.avatarUrl);
   const gender = normalizeGender(profile.gender);
   return !!nickname && !!avatar && gender !== 'unknown';
 }

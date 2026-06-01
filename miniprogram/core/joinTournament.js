@@ -4,6 +4,7 @@ const clientRequest = require('./clientRequest');
 const joinError = require('./joinTournamentError');
 const storage = require('./storage');
 const profileCore = require('./profile');
+const avatarPolicy = require('./avatarPolicy');
 
 function buildJoinPayload(options = {}) {
   const profile = options.profile && typeof options.profile === 'object' ? options.profile : {};
@@ -13,9 +14,13 @@ function buildJoinPayload(options = {}) {
   const nickname = String(options.nickname || '').trim()
     || storage.getProfileNickName(profile)
     || storage.getProfileNickName(localProfile);
-  const avatar = String(options.avatar || '').trim()
-    || String(profile.avatar || profile.avatarUrl || '').trim()
-    || String(localProfile.avatar || localProfile.avatarUrl || '').trim();
+  const avatar = [
+    options.avatar,
+    profile.avatar,
+    profile.avatarUrl,
+    localProfile.avatar,
+    localProfile.avatarUrl
+  ].map(avatarPolicy.normalizePersistableAvatar).find(Boolean) || '';
   const gender = storage.normalizeGender(
     options.gender || profile.gender || localProfile.gender || 'unknown'
   );

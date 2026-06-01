@@ -100,6 +100,29 @@ test('createTournament writes normalized tournament document with default creato
   });
 });
 
+test('createTournament rejects wxfile avatar before creating a tournament', async () => {
+  const db = {
+    collection() {
+      throw new Error('should not write tournament');
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    name: '周五夜场',
+    avatar: 'wxfile://tmp/avatar.png',
+    mode: 'multi_rotate',
+    creatorGender: 'female',
+    __traceId: 'trace-create-avatar'
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'PROFILE_AVATAR_INVALID');
+  assert.equal(result.message, '头像地址无效，请重新上传');
+  assert.equal(result.state, 'invalid');
+  assert.equal(result.traceId, 'trace-create-avatar');
+});
+
 test('createTournament applies fixed rotation preset defaults without adding real modes', async () => {
   const expected = [
     { presetKey: 'rotation_6', playerLimit: 6, totalMatches: 9 },

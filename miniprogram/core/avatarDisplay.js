@@ -1,4 +1,5 @@
 const playerUtils = require('./playerUtils');
+const avatarPolicy = require('./avatarPolicy');
 
 const TEMP_URL_TTL_MS = 50 * 60 * 1000;
 const TEMP_URL_BATCH_SIZE = 50;
@@ -19,7 +20,7 @@ function nowMs(options = {}) {
 }
 
 function isCloudAvatar(value) {
-  return String(value || '').trim().startsWith('cloud://');
+  return avatarPolicy.isCloudAvatar(value);
 }
 
 function logAvatarDiagnostic(level, message, context) {
@@ -245,7 +246,7 @@ function buildAvatarDisplay(player, avatarCache = {}) {
   if (avatarRaw) {
     if (isCloudAvatar(avatarRaw)) {
       avatarDisplay = getCachedAvatarUrl(avatarCache, avatarRaw);
-    } else {
+    } else if (avatarPolicy.isPersistableAvatar(avatarRaw)) {
       avatarDisplay = avatarRaw;
     }
   }
@@ -296,7 +297,8 @@ async function resolveCloudAvatarFileIds(fileIds, avatarCache = {}) {
   logAvatarDiagnostic('info', '[avatar] getTempFileURL request', { fileIDs: need });
   if (typeof wx === 'undefined' || !wx.cloud || typeof wx.cloud.getTempFileURL !== 'function') {
     logAvatarDiagnostic('warn', '[avatar] getTempFileURL unavailable', { fileIDs: need });
-    return { updated: false, requested: need };
+    need.forEach((fileID) => markAvatarResolveFailed(avatarCache, [], fileID));
+    return { updated: false, requested: need, failed: need };
   }
 
   let updated = false;
@@ -356,6 +358,11 @@ module.exports = {
   getColorClass,
   getAvatarRaw,
   isCloudAvatar,
+  isHttpAvatar: avatarPolicy.isHttpAvatar,
+  isLocalTempAvatar: avatarPolicy.isLocalTempAvatar,
+  isPersistableAvatar: avatarPolicy.isPersistableAvatar,
+  normalizePersistableAvatar: avatarPolicy.normalizePersistableAvatar,
+  classifyAvatar: avatarPolicy.classifyAvatar,
   getSharedAvatarCache,
   getCachedAvatarUrl,
   setCachedAvatarUrl,

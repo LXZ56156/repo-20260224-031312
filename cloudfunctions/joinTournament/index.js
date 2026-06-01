@@ -58,7 +58,11 @@ function normalizeSquadChoice(choice) {
 }
 
 function normalizeAvatar(avatar) {
-  return String(avatar || '').trim();
+  const value = String(avatar || '').trim();
+  if (!value) return '';
+  if (/^(?:wxfile:\/\/|file:\/\/|blob:|https?:\/\/tmp(?:\/|$)|\/?tmp\/)/i.test(value)) return '';
+  if (value.startsWith('cloud://') || /^https?:\/\//i.test(value)) return value;
+  return '';
 }
 
 function normalizeAction(action) {
@@ -191,11 +195,15 @@ exports.main = async (event, context) => {
   const tournamentId = event.tournamentId;
   console.info('[joinTournament]', traceId || '-', String(tournamentId || '').trim() || '-');
   const rawNickname = event.nickname;
-  let avatar = normalizeAvatar(event.avatar);
+  const rawAvatar = String(event && event.avatar || '').trim();
+  let avatar = normalizeAvatar(rawAvatar);
   let gender = normalizeGender(event.gender);
   const squadChoice = normalizeSquadChoice(event && event.squadChoice);
 
   if (!tournamentId) return fail(traceId, clientRequestId, 'TOURNAMENT_ID_REQUIRED', '缺少赛事ID', {
+    state: 'invalid'
+  });
+  if (rawAvatar && !avatar) return fail(traceId, clientRequestId, 'PROFILE_AVATAR_INVALID', '头像地址无效，请重新上传', {
     state: 'invalid'
   });
 

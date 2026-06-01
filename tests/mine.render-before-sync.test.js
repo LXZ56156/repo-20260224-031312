@@ -47,7 +47,7 @@ test('mine page renders local profile before cloud sync resolves', async () => {
   });
   storage.getUserProfile = () => ({
     nickName: '本地球友',
-    avatar: 'local-avatar.png'
+    avatar: 'https://avatar.example/local.png'
   });
   storage.get = (key, fallback) => {
     if (key === 'openid') return 'u_1';
@@ -66,21 +66,21 @@ test('mine page renders local profile before cloud sync resolves', async () => {
 
     assert.deepEqual(ctx._updates[0], {
       nickname: '本地球友',
-      avatarRaw: 'local-avatar.png',
-      avatar: 'local-avatar.png'
+      avatarRaw: 'https://avatar.example/local.png',
+      avatar: 'https://avatar.example/local.png'
     });
     assert.equal(ctx.data.nickname, '本地球友');
-    assert.equal(ctx.data.avatar, 'local-avatar.png');
+    assert.equal(ctx.data.avatar, 'https://avatar.example/local.png');
 
     resolveSync({
       nickName: '云端球友',
-      avatar: 'cloud-avatar.png'
+      avatar: 'https://avatar.example/cloud.png'
     });
     await Promise.resolve();
 
     assert.equal(ctx.data.nickname, '云端球友');
-    assert.equal(ctx.data.avatar, 'cloud-avatar.png');
-    assert.equal(ctx.data.avatarRaw, 'cloud-avatar.png');
+    assert.equal(ctx.data.avatar, 'https://avatar.example/cloud.png');
+    assert.equal(ctx.data.avatarRaw, 'https://avatar.example/cloud.png');
   } finally {
     global.getApp = originalGetApp;
     storage.getUserProfile = originalGetUserProfile;

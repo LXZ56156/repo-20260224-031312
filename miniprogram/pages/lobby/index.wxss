@@ -195,6 +195,10 @@
   margin-top: var(--space-section);
 }
 
+.dynamic-share-status {
+  margin-top: var(--space-tight);
+}
+
 .state-primary-btn {
   margin-top: 0 !important;
   width: 78%;
