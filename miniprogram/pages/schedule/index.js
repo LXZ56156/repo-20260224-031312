@@ -544,10 +544,8 @@ Page({
       selectedPlayersUi: this.data.selectedPlayersUi
     }, this.avatarCache);
     if (!pending.length) return;
-    const generation = Number(this._avatarResolveGen || 0) + 1;
-    this._avatarResolveGen = generation;
     const result = await avatarDisplay.resolveCloudAvatarFileIds(pending, this.avatarCache);
-    if (!result.updated || this._avatarResolveGen !== generation) return;
+    if (!result.updated) return;
     if (sourceTournament) this.applyTournament(sourceTournament);
   },
 

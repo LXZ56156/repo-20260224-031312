@@ -258,8 +258,6 @@ module.exports = {
   async resolveDisplayPlayersAvatars() {
     try {
       this.avatarCache = avatarDisplay.getSharedAvatarCache(this.avatarCache);
-      const generation = Number(this._displayPlayersAvatarGen || 0) + 1;
-      this._displayPlayersAvatarGen = generation;
       const applyPatch = (patch) => {
         if (typeof this.applyLobbyPatch === 'function') return this.applyLobbyPatch(patch);
         this.setData(patch);
@@ -301,16 +299,21 @@ module.exports = {
 
       if (!need.length) return;
       await avatarDisplay.resolveCloudAvatarFileIds(need, this.avatarCache);
-      if (this._displayPlayersAvatarGen !== generation) return;
+      // 基于当前数据应用解析结果，避免竞态导致 setData 被丢弃
+      const currentList = Array.isArray(this.data.displayPlayers) ? this.data.displayPlayers.slice() : [];
+      let changed = false;
       for (const fileID of Object.keys(mapIdx)) {
         const url = avatarDisplay.getCachedAvatarUrl(this.avatarCache, fileID);
         if (!url) continue;
         const idxs = mapIdx[fileID] || [];
         for (const idx of idxs) {
-          if (list[idx]) list[idx].avatarDisplay = url;
+          if (currentList[idx] && currentList[idx].avatarRaw === fileID && currentList[idx].avatarDisplay !== url) {
+            currentList[idx].avatarDisplay = url;
+            changed = true;
+          }
         }
       }
-      applyPatch({ displayPlayers: list });
+      if (changed) applyPatch({ displayPlayers: currentList });
     } catch (_) {
       // ignore
     }
