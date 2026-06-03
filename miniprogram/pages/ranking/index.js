@@ -97,7 +97,7 @@ Page({
   ...rankingSyncController,
 
   onLoad(options) {
-    const tid = tournamentEntry.parseTournamentIdFromOptions(options || {});
+    const tid = tournamentEntry.parseTournamentIdFromPageOptions(options || {});
     this.ensureAvatarRuntime();
     pageTournamentSync.initTournamentSync(this);
     this.openid = (getApp().globalData.openid || '');

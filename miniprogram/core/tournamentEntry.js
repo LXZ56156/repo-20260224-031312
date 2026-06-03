@@ -1,18 +1,28 @@
+function safeDecode(value) {
+  const raw = String(value || '');
+  try {
+    return decodeURIComponent(raw);
+  } catch (_) {
+    return raw;
+  }
+}
+
 function parseQueryString(raw = '') {
-  const qs = String(raw || '').trim();
+  const qs = String(raw || '').trim().replace(/^\?/, '');
   if (!qs) return {};
   const result = {};
   const pairs = qs.split('&');
   for (const pair of pairs) {
+    if (!pair) continue;
     const idx = pair.indexOf('=');
     if (idx === -1) {
-      const key = decodeURIComponent(pair);
-      if (key && !result[key]) result[key] = '';
-    } else {
-      const key = decodeURIComponent(pair.slice(0, idx));
-      const value = decodeURIComponent(pair.slice(idx + 1));
-      if (key && !(key in result)) result[key] = value;
+      const key = safeDecode(pair);
+      if (key && !(key in result)) result[key] = '';
+      continue;
     }
+    const key = safeDecode(pair.slice(0, idx));
+    const value = safeDecode(pair.slice(idx + 1));
+    if (key && !(key in result)) result[key] = value;
   }
   return result;
 }
@@ -73,6 +83,21 @@ function parseTournamentIdFromOptions(options = {}) {
   return '';
 }
 
+function parseTournamentIdFromPageOptions(options = {}) {
+  let tid = parseTournamentIdFromOptions(options);
+  if (tid) return tid;
+
+  try {
+    const app = getApp();
+    return parseTournamentIdFromOptions(
+      app && app.globalData && app.globalData.lastEnterOptions
+    );
+  } catch (_) {
+    return '';
+  }
+}
+
 module.exports = {
-  parseTournamentIdFromOptions
+  parseTournamentIdFromOptions,
+  parseTournamentIdFromPageOptions
 };

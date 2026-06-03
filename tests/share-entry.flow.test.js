@@ -78,6 +78,52 @@ test('parseTournamentId preference order: direct props > query object > query st
   assert.equal(tournamentEntry.parseTournamentIdFromOptions(opts), 'direct_val');
 });
 
+test('parseTournamentId tolerates malformed encoded query values', () => {
+  assert.equal(
+    tournamentEntry.parseTournamentIdFromOptions({ query: 'tournamentId=%E0%A4%A' }),
+    '%E0%A4%A'
+  );
+});
+
+test('parseTournamentId supports query string with leading question mark', () => {
+  assert.equal(
+    tournamentEntry.parseTournamentIdFromOptions({ query: '?tournamentId=tid_qmark' }),
+    'tid_qmark'
+  );
+});
+
+test('parseTournamentIdFromPageOptions falls back to app lastEnterOptions', () => {
+  const origGetApp = global.getApp;
+  try {
+    global.getApp = () => ({
+      globalData: {
+        lastEnterOptions: { tournamentId: 'from_last_enter' }
+      }
+    });
+    assert.equal(
+      tournamentEntry.parseTournamentIdFromPageOptions({}),
+      'from_last_enter'
+    );
+    assert.equal(
+      tournamentEntry.parseTournamentIdFromPageOptions({ tournamentId: 'direct' }),
+      'direct'
+    );
+  } finally {
+    if (origGetApp === undefined) {
+      delete global.getApp;
+    } else {
+      global.getApp = origGetApp;
+    }
+  }
+});
+
+test('parseTournamentIdFromPageOptions survives missing getApp', () => {
+  assert.equal(
+    tournamentEntry.parseTournamentIdFromPageOptions({}),
+    ''
+  );
+});
+
 test('share-entry flow builders keep links compatible with old params', () => {
   assert.equal(flow.normalizeIntent('join'), 'join');
   assert.equal(flow.normalizeIntent('unknown'), 'view');

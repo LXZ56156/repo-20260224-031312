@@ -67,7 +67,7 @@ Page({
   ...retryAction.createRetryMethods(),
 
   onLoad(options) {
-    const tid = tournamentEntry.parseTournamentIdFromOptions(options || {});
+    const tid = tournamentEntry.parseTournamentIdFromPageOptions(options || {});
     pageTournamentSync.initTournamentSync(this);
     this.setData({ tournamentId: tid });
     this.openid = (getApp().globalData.openid || '');
