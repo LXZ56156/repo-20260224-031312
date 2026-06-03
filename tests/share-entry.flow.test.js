@@ -13,6 +13,71 @@ test('parseTournamentId supports direct options and scene payload', () => {
   assert.equal(flow.parseTournamentId({ scene: encodeURIComponent('tournamentId=tid_5') }), 'tid_5');
 });
 
+test('parseTournamentId supports tid / id / tournament_id aliases', () => {
+  assert.equal(tournamentEntry.parseTournamentIdFromOptions({ tid: 'alias_tid' }), 'alias_tid');
+  assert.equal(tournamentEntry.parseTournamentIdFromOptions({ id: 'alias_id' }), 'alias_id');
+  assert.equal(tournamentEntry.parseTournamentIdFromOptions({ tournament_id: 'alias_tournament_id' }), 'alias_tournament_id');
+  assert.equal(tournamentEntry.parseTournamentIdFromOptions({ tournamentId: 'direct' }), 'direct');
+});
+
+test('parseTournamentId supports options.query as object', () => {
+  assert.equal(
+    tournamentEntry.parseTournamentIdFromOptions({ query: { tournamentId: 'q_obj_tid' } }),
+    'q_obj_tid'
+  );
+  assert.equal(
+    tournamentEntry.parseTournamentIdFromOptions({ query: { tid: 'q_obj_tid2' } }),
+    'q_obj_tid2'
+  );
+  assert.equal(
+    tournamentEntry.parseTournamentIdFromOptions({ query: {} }),
+    ''
+  );
+});
+
+test('parseTournamentId supports options.query as string', () => {
+  assert.equal(
+    tournamentEntry.parseTournamentIdFromOptions({ query: 'tournamentId=q_str_tid&from=timeline' }),
+    'q_str_tid'
+  );
+  assert.equal(
+    tournamentEntry.parseTournamentIdFromOptions({ query: 'tid=q_str_tid2' }),
+    'q_str_tid2'
+  );
+  assert.equal(
+    tournamentEntry.parseTournamentIdFromOptions({ query: 'other=1' }),
+    ''
+  );
+});
+
+test('parseTournamentId supports scene as query string with multiple params', () => {
+  assert.equal(
+    tournamentEntry.parseTournamentIdFromOptions({ scene: encodeURIComponent('tournamentId=scene_tid&from=timeline&foo=bar') }),
+    'scene_tid'
+  );
+  assert.equal(
+    tournamentEntry.parseTournamentIdFromOptions({ scene: encodeURIComponent('id=scene_id_param') }),
+    'scene_id_param'
+  );
+});
+
+test('parseTournamentId returns empty for missing / empty options', () => {
+  assert.equal(tournamentEntry.parseTournamentIdFromOptions({}), '');
+  assert.equal(tournamentEntry.parseTournamentIdFromOptions(), '');
+  assert.equal(tournamentEntry.parseTournamentIdFromOptions(null), '');
+  assert.equal(tournamentEntry.parseTournamentIdFromOptions({ other: 'x' }), '');
+});
+
+test('parseTournamentId preference order: direct props > query object > query string > scene', () => {
+  const opts = {
+    tournamentId: 'direct_val',
+    tid: 'should_not_win',
+    query: { tournamentId: 'should_not_win_either' },
+    scene: encodeURIComponent('tournamentId=also_should_not')
+  };
+  assert.equal(tournamentEntry.parseTournamentIdFromOptions(opts), 'direct_val');
+});
+
 test('share-entry flow builders keep links compatible with old params', () => {
   assert.equal(flow.normalizeIntent('join'), 'join');
   assert.equal(flow.normalizeIntent('unknown'), 'view');

@@ -14,6 +14,7 @@ const shareCard = require('../../core/shareCard');
 const shareCardPreheat = require('../../core/shareCardPreheat');
 const shareCardStats = require('../../core/shareCardStats');
 const shareCode = require('../../core/shareCode');
+const tournamentEntry = require('../../core/tournamentEntry');
 const analyticsLogic = require('./logic');
 
 const analyticsSyncController = pageTournamentSync.createTournamentSyncMethods();
@@ -66,7 +67,7 @@ Page({
   ...retryAction.createRetryMethods(),
 
   onLoad(options) {
-    const tid = String((options && options.tournamentId) || '').trim();
+    const tid = tournamentEntry.parseTournamentIdFromOptions(options || {});
     pageTournamentSync.initTournamentSync(this);
     this.setData({ tournamentId: tid });
     this.openid = (getApp().globalData.openid || '');
@@ -79,6 +80,16 @@ Page({
       this._offNetwork = app.subscribeNetworkChange((offline) => {
         this.handleNetworkChange(offline);
       });
+    }
+
+    if (!tid) {
+      this.setData({
+        loadError: true,
+        loadErrorTitle: '链接无效',
+        loadErrorMessage: '请确认比赛链接是否完整。',
+        showLoadErrorHome: true
+      });
+      return;
     }
 
     this.fetchTournament(tid);
@@ -202,6 +213,10 @@ Page({
         writeErrorUi.presentWriteError({ err: e, fallbackMessage: '复制失败' });
       }
     });
+  },
+
+  goHome() {
+    nav.goHome();
   },
 
   onShareAppMessage() {

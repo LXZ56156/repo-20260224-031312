@@ -10,10 +10,13 @@ App({
     lobbyIntentTournamentId: '',
     lobbyIntentAction: '',
     adSessionExposureCount: 0,
-    runtimeEnv: envConfig.resolveRuntimeEnv('release')
+    runtimeEnv: envConfig.resolveRuntimeEnv('release'),
+    lastEnterOptions: null
   },
 
-  async onLaunch() {
+  async onLaunch(options) {
+    this.globalData.lastEnterOptions = options || null;
+
     if (!wx.cloud) {
       console.error('请升级微信基础库以支持云开发');
       return;
@@ -56,6 +59,10 @@ App({
         }
       }
     });
+  },
+
+  onShow(options) {
+    this.globalData.lastEnterOptions = options || null;
   },
 
   subscribeNetworkChange(fn) {

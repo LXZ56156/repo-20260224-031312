@@ -152,10 +152,11 @@
   <view class="card panel reveal reveal-1">
     <view class="state-error">
       <view class="state-error-icon">⚠️</view>
-      <view class="state-error-title">加载失败</view>
-      <view class="state-error-desc">请检查网络后重试</view>
+      <view class="state-error-title">{{loadErrorTitle}}</view>
+      <view class="state-error-desc">{{loadErrorMessage}}</view>
       <view class="state-error-actions">
         <button class="btn btn-subtle" bindtap="onRetry">重新加载</button>
+        <button class="btn btn-subtle" bindtap="goHome" wx:if="{{showLoadErrorHome}}">返回首页</button>
       </view>
     </view>
   </view>

@@ -13,6 +13,7 @@ const shareCard = require('../../core/shareCard');
 const shareCardPreheat = require('../../core/shareCardPreheat');
 const shareCardStats = require('../../core/shareCardStats');
 const shareCode = require('../../core/shareCode');
+const tournamentEntry = require('../../core/tournamentEntry');
 
 const rankingSyncController = pageTournamentSync.createTournamentSyncMethods({
   loadErrorMessages: {
@@ -96,7 +97,7 @@ Page({
   ...rankingSyncController,
 
   onLoad(options) {
-    const tid = String((options && options.tournamentId) || '').trim();
+    const tid = tournamentEntry.parseTournamentIdFromOptions(options || {});
     this.ensureAvatarRuntime();
     pageTournamentSync.initTournamentSync(this);
     this.openid = (getApp().globalData.openid || '');
@@ -113,6 +114,16 @@ Page({
       this._offNetwork = app.subscribeNetworkChange((offline) => {
         this.handleNetworkChange(offline);
       });
+    }
+
+    if (!tid) {
+      this.setData({
+        loadError: true,
+        loadErrorTitle: '链接无效',
+        loadErrorMessage: '请确认比赛链接是否完整。',
+        showLoadErrorHome: true
+      });
+      return;
     }
 
     this.fetchTournament(tid);
