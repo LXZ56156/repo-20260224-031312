@@ -538,7 +538,6 @@ Page({
 
   async refreshAvatarDisplays() {
     this.ensureAvatarRuntime();
-    const sourceTournament = this._latestTournament || this.data.tournament;
     const pending = avatarDisplay.collectCloudAvatarFileIds({
       roundsUi: this.data.roundsUi,
       selectedPlayersUi: this.data.selectedPlayersUi
@@ -546,7 +545,8 @@ Page({
     if (!pending.length) return;
     const result = await avatarDisplay.resolveCloudAvatarFileIds(pending, this.avatarCache);
     if (!result.updated) return;
-    if (sourceTournament) this.applyTournament(sourceTournament);
+    const latestTournament = this._latestTournament || this.data.tournament;
+    if (latestTournament) this.applyTournament(latestTournament);
   },
 
   onAvatarImageError(e) {
