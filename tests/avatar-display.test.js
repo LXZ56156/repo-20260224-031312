@@ -156,6 +156,9 @@ test('resolveCloudAvatarFileIds logs request, response, failed item, and thrown 
     console.info = (...args) => infoLogs.push(args);
     console.warn = (...args) => warnLogs.push(args);
     global.wx = {
+      getAccountInfoSync() {
+        return { miniProgram: { envVersion: 'develop' } };
+      },
       cloud: {
         async getTempFileURL() {
           calls += 1;
@@ -205,6 +208,39 @@ test('resolveCloudAvatarFileIds logs request, response, failed item, and thrown 
     global.wx = originalWx;
     console.info = originalInfo;
     console.warn = originalWarn;
+  }
+});
+
+test('resolveCloudAvatarFileIds suppresses success-path info logs in release', async () => {
+  const originalWx = global.wx;
+  const originalInfo = console.info;
+  const infoLogs = [];
+
+  try {
+    console.info = (...args) => infoLogs.push(args);
+    global.wx = {
+      getAccountInfoSync() {
+        return { miniProgram: { envVersion: 'release' } };
+      },
+      cloud: {
+        async getTempFileURL({ fileList }) {
+          return {
+            fileList: fileList.map((fileID) => ({
+              fileID,
+              tempFileURL: 'https://temp/avatar/release.png',
+              status: 0
+            }))
+          };
+        }
+      }
+    };
+
+    await avatarDisplay.resolveCloudAvatarFileIds(['cloud://avatar/release'], {});
+
+    assert.deepEqual(infoLogs, []);
+  } finally {
+    global.wx = originalWx;
+    console.info = originalInfo;
   }
 });
 

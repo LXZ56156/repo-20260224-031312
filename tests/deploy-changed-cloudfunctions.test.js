@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 function runDeployPlan(files) {
@@ -52,8 +54,9 @@ test('deploy changed cloudfunctions expands shared template changes to all confi
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Shared common template changed/);
-  assert.equal(functions.length, 21);
+  assert.equal(functions.length, 22);
   assert.equal(functions[0], 'addPlayers');
+  assert.equal(functions.includes('generateShareCode'), true);
   assert.equal(functions.at(-1), 'updateSettings');
 });
 
@@ -71,4 +74,29 @@ test('deploy changed cloudfunctions rejects direct lib changes without template 
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /cloudfunctions\/\*\/lib\/\*/);
   assert.match(result.stderr, /scripts\/\*-common\.template\.js/);
+});
+
+test('deploy changed cloudfunctions allows initial lib files for a new configured function', () => {
+  const result = runDeployPlan([
+    'cloudfunctions/generateShareCode/index.js',
+    'cloudfunctions/generateShareCode/package.json',
+    'cloudfunctions/generateShareCode/lib/common.js'
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(deployedFunctions(result.stdout), ['generateShareCode']);
+});
+
+test('configured cloudfunctions install declared wx-server-sdk dependencies in the cloud', () => {
+  const config = JSON.parse(fs.readFileSync('cloudbaserc.json', 'utf8'));
+
+  assert.ok(Array.isArray(config.functions));
+  for (const item of config.functions) {
+    assert.equal(typeof item, 'object');
+    assert.equal(item.installDependency, true, `${item.name} must enable cloud dependency installation`);
+
+    const packageJsonPath = path.join('cloudfunctions', item.name, 'package.json');
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+    assert.equal(packageJson.dependencies['wx-server-sdk'], '2.6.3', `${item.name} must declare wx-server-sdk`);
+  }
 });

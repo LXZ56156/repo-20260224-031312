@@ -300,6 +300,9 @@ schedule_debounced_sync() {
 watch_with_inotify() {
   local watch_paths=()
   local relative_path
+  local inotify_fd
+  local source_dir_regex
+  local inotify_exclude_regex
 
   for relative_path in "${WATCH_ROOT_FILES[@]}" "${WATCH_ROOT_DIRS[@]}"; do
     if [[ -e "${SOURCE_DIR}/${relative_path}" ]]; then
@@ -308,17 +311,26 @@ watch_with_inotify() {
   done
 
   (( ${#watch_paths[@]} > 0 )) || fail "未找到可监听路径"
+  source_dir_regex="$(node -e 'process.stdout.write(process.argv[1].replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));' "$SOURCE_DIR")"
+  inotify_exclude_regex="^${source_dir_regex}/(.*/)?(\.git|node_modules|\.idea|\.vscode|dist|coverage|tmp)(/|$)|(\.tmp$|\.swp$|\.swo$|\.cache$|\.log$|\.DS_Store$)"
 
   log "使用 inotifywait 监听源码变更，防抖 ${DEBOUNCE_MILLISECONDS}ms"
-  while IFS= read -r _event; do
-    schedule_debounced_sync
-  done < <(
+  exec {inotify_fd}< <(
     inotifywait -m -r --quiet \
       --format '%w%f' \
       -e modify -e create -e delete -e move \
-      --exclude '(^|/)(\.git|node_modules|\.idea|\.vscode|dist|coverage|tmp)(/|$)|(\.tmp$|\.swp$|\.swo$|\.cache$|\.log$|\.DS_Store$)' \
+      --exclude "$inotify_exclude_regex" \
       "${watch_paths[@]}"
   )
+
+  # Establish file watches before publishing the initial manifest. Otherwise a
+  # source edit can land between the first sync and the inotify listener startup.
+  sleep "$POLL_INTERVAL_SECONDS"
+  perform_sync "初始同步"
+
+  while IFS= read -r _event <&"$inotify_fd"; do
+    schedule_debounced_sync
+  done
 }
 
 watch_with_polling() {
@@ -376,11 +388,10 @@ main() {
       log "预览目录：$PREVIEW_DIR"
       log "PID 文件：$PID_FILE"
       log "同步清单：$SYNC_MANIFEST_PATH"
-      perform_sync "初始同步"
-
       if command -v inotifywait >/dev/null 2>&1; then
         watch_with_inotify
       else
+        perform_sync "初始同步"
         watch_with_polling
       fi
       ;;

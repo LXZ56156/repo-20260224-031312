@@ -1,3 +1,4 @@
+<canvas type="2d" id="shareCardCanvas" style="position:fixed;left:100vw;width:250px;height:250px;"></canvas>
 <view class="container safe-bottom ranking-page {{uiPreferenceClass}}" wx:if="{{tournament}}">
   <view class="match-primary-nav">
     <view

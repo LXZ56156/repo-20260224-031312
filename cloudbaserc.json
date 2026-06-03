@@ -4,67 +4,92 @@
   "functionRoot": "./cloudfunctions",
   "functions": [
     {
-      "name": "addPlayers"
+      "name": "addPlayers",
+      "installDependency": true
     },
     {
-      "name": "cloneTournament"
+      "name": "cloneTournament",
+      "installDependency": true
     },
     {
-      "name": "createTournament"
+      "name": "createTournament",
+      "installDependency": true
     },
     {
-      "name": "deleteTournament"
+      "name": "deleteTournament",
+      "installDependency": true
     },
     {
-      "name": "feedbackSubmit"
+      "name": "feedbackSubmit",
+      "installDependency": true
     },
     {
-      "name": "getMyPerformanceStats"
+      "name": "generateShareCode",
+      "installDependency": true
     },
     {
-      "name": "getUserProfile"
+      "name": "getMyPerformanceStats",
+      "installDependency": true
     },
     {
-      "name": "joinTournament"
+      "name": "getUserProfile",
+      "installDependency": true
     },
     {
-      "name": "login"
+      "name": "joinTournament",
+      "installDependency": true
     },
     {
-      "name": "manageActivityId"
+      "name": "login",
+      "installDependency": true
     },
     {
-      "name": "managePairTeams"
+      "name": "manageActivityId",
+      "installDependency": true
     },
     {
-      "name": "rebuildRankings"
+      "name": "managePairTeams",
+      "installDependency": true
     },
     {
-      "name": "removePlayer"
+      "name": "rebuildRankings",
+      "installDependency": true
     },
     {
-      "name": "resetTournament"
+      "name": "removePlayer",
+      "installDependency": true
     },
     {
-      "name": "saveUserProfile"
+      "name": "resetTournament",
+      "installDependency": true
     },
     {
-      "name": "scoreLock"
+      "name": "saveUserProfile",
+      "installDependency": true
     },
     {
-      "name": "setPlayerSquad"
+      "name": "scoreLock",
+      "installDependency": true
     },
     {
-      "name": "setReferee"
+      "name": "setPlayerSquad",
+      "installDependency": true
     },
     {
-      "name": "startTournament"
+      "name": "setReferee",
+      "installDependency": true
     },
     {
-      "name": "submitScore"
+      "name": "startTournament",
+      "installDependency": true
     },
     {
-      "name": "updateSettings"
+      "name": "submitScore",
+      "installDependency": true
+    },
+    {
+      "name": "updateSettings",
+      "installDependency": true
     }
   ]
 }

@@ -23,7 +23,13 @@ exports.main = async (event) => {
       ...logic.buildResetTournamentRemovals(_.remove())
     };
     if (shareActivity.shouldClearOnReset(t)) {
-      Object.assign(removals, shareActivity.buildClearPatch(_.remove()));
+      const removeToken = _.remove();
+      Object.assign(removals, shareActivity.buildClearPatch(removeToken), {
+        shareActivityLastError: removeToken,
+        shareActivityLastErrorCode: removeToken,
+        shareActivityLastErrorMsg: removeToken,
+        shareActivityLastErrorAt: removeToken
+      });
     }
     const data = common.assertNoReservedRootKeys({
       ...logic.buildResetTournamentPatch(t),

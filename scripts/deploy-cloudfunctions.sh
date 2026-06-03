@@ -29,6 +29,7 @@ Examples:
 
 Notes:
   The script checks that tcb is installed, cloudbaserc.json exists, and tcb is logged in.
+  Node.js functions with package dependencies must declare installDependency: true.
   It deploys functions one by one so a batch failure can report the failed function name.
   If the installed CloudBase CLI supports --yes for fn deploy, the script adds it automatically.
 EOF
@@ -119,6 +120,53 @@ require_function_dir() {
   fi
 }
 
+require_dependency_install_config() {
+  local function_name="$1"
+  local function_dir="${FUNCTION_ROOT%/}/$function_name"
+  local package_json="$function_dir/package.json"
+
+  if ! node - "$CONFIG_FILE" "$function_name" "$package_json" <<'NODE'
+const fs = require('node:fs')
+
+const [configPath, functionName, packagePath] = process.argv.slice(2)
+if (!fs.existsSync(packagePath)) {
+  console.error(`Cloud function package.json not found: ${packagePath}`)
+  process.exit(1)
+}
+
+let config
+let packageJson
+try {
+  config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+  packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'))
+} catch (error) {
+  console.error(`Failed to read cloud dependency config for ${functionName}: ${error.message}`)
+  process.exit(1)
+}
+
+const functions = Array.isArray(config.functions) ? config.functions : []
+const functionConfig = functions.find((item) => {
+  if (typeof item === 'string') return item === functionName
+  return item && item.name === functionName
+})
+if (!functionConfig) {
+  console.error(`Cloud function is not configured: ${functionName}`)
+  process.exit(1)
+}
+
+const dependencies = packageJson && typeof packageJson.dependencies === 'object'
+  ? Object.keys(packageJson.dependencies)
+  : []
+if (dependencies.length > 0 && functionConfig.installDependency !== true) {
+  console.error(`Cloud function ${functionName} declares dependencies but installDependency is not true`)
+  process.exit(1)
+}
+NODE
+  then
+    fail "Cloud dependency configuration is invalid for: $function_name"
+  fi
+}
+
 require_login() {
   local status
 
@@ -174,16 +222,23 @@ detect_deploy_flags() {
 verify_one() {
   local function_name="$1"
   local detail_output
+  local verify_output
+  local verify_status
+  local attempt=1
+  local verify_attempts="${CLOUD_DEPLOY_VERIFY_ATTEMPTS:-60}"
+  local verify_sleep_seconds="${CLOUD_DEPLOY_VERIFY_SLEEP_SECONDS:-2}"
 
   echo "Verifying cloud function: $function_name"
 
-  if ! detail_output="$(tcb fn detail "$function_name" --json 2>&1)"; then
-    echo "$detail_output" >&2
-    echo "ERROR: Verification failed for cloud function: $function_name" >&2
-    exit 1
-  fi
+  while [ "$attempt" -le "$verify_attempts" ]; do
+    if ! detail_output="$(tcb fn detail "$function_name" --json 2>&1)"; then
+      echo "$detail_output" >&2
+      echo "ERROR: Verification failed for cloud function: $function_name" >&2
+      exit 1
+    fi
 
-  if ! printf '%s\n' "$detail_output" | FUNCTION_NAME="$function_name" node -e '
+    set +e
+    verify_output="$(printf '%s\n' "$detail_output" | FUNCTION_NAME="$function_name" node -e '
 const fn = process.env.FUNCTION_NAME;
 let input = "";
 
@@ -209,20 +264,40 @@ process.stdin.on("end", () => {
   const data = payload.data || payload.Data || {};
   const status = data.Status || data.status || "";
   const availableStatus = data.AvailableStatus || data.availableStatus || "";
+  const installDependency = data.InstallDependency ?? data.installDependency;
 
-  if (status && status !== "Active") {
-    console.error(`ERROR: ${fn} status is ${status}, expected Active`);
-    process.exit(1);
+  if (
+    status !== "Active"
+    || availableStatus !== "Available"
+    || (installDependency !== "TRUE" && installDependency !== true)
+  ) {
+    console.log(`Waiting for cloud function: ${fn} (${status || "unknown"}/${availableStatus || "unknown"}, installDependency=${installDependency ?? "unknown"})`);
+    process.exit(2);
   }
 
-  if (availableStatus && availableStatus !== "Available") {
-    console.error(`ERROR: ${fn} available status is ${availableStatus}, expected Available`);
-    process.exit(1);
-  }
-
-  console.log(`Verified cloud function: ${fn} (${status || "unknown"}/${availableStatus || "unknown"})`);
+  console.log(`Verified cloud function: ${fn} (${status}/${availableStatus}, installDependency=TRUE)`);
 });
-'; then
+')"
+    verify_status=$?
+    set -e
+
+    if [ "$verify_status" -eq 0 ]; then
+      echo "$verify_output"
+      return 0
+    fi
+
+    if [ "$verify_status" -ne 2 ]; then
+      echo "$verify_output" >&2
+      echo "ERROR: Verification failed for cloud function: $function_name" >&2
+      exit 1
+    fi
+
+    echo "$verify_output"
+    sleep "$verify_sleep_seconds"
+    attempt=$((attempt + 1))
+  done
+
+  if [ "$attempt" -gt "$verify_attempts" ]; then
     echo "ERROR: Verification failed for cloud function: $function_name" >&2
     exit 1
   fi
@@ -232,6 +307,7 @@ deploy_one() {
   local function_name="$1"
 
   require_function_dir "$function_name"
+  require_dependency_install_config "$function_name"
   echo "Deploying cloud function: $function_name"
 
   if ! tcb fn deploy "$function_name" "${YES_FLAG[@]}" "${FORCE_FLAG[@]}"; then

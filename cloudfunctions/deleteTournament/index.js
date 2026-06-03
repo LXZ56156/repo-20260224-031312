@@ -3,6 +3,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const common = require('./lib/common');
 const logic = require('./logic');
+const shareActivity = require('./lib/share-activity');
 
 const DELETE_REQUEST_LOG_COLLECTION = 'delete_tournament_requests';
 
@@ -148,6 +149,10 @@ exports.main = async (event) => {
         traceId
       });
       return buildDeleteResult(traceId, clientRequestId, { state: 'deleted', deduped: false });
+    });
+    await shareActivity.updateFinishedMessageBestEffort(cloud, tournament, console, {
+      source: 'deleteTournament',
+      traceId
     });
     await cleanupScoreLocksBestEffort(tournamentId);
     return result;

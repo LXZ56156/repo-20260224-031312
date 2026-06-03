@@ -202,4 +202,8 @@ test('resetTournament clears started share activity fields so next draft share c
   assert.equal(writtenData.shareActivityState, removeToken);
   assert.equal(writtenData.shareActivityVersionType, removeToken);
   assert.equal(writtenData.shareActivityUpdatedAt, removeToken);
+  assert.equal(writtenData.shareActivityLastError, removeToken);
+  assert.equal(writtenData.shareActivityLastErrorCode, removeToken);
+  assert.equal(writtenData.shareActivityLastErrorMsg, removeToken);
+  assert.equal(writtenData.shareActivityLastErrorAt, removeToken);
 });

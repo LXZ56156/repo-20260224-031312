@@ -1,4 +1,5 @@
 const flow = require('./uxFlow');
+const systemInfo = require('./systemInfo');
 
 const START_TEMPLATE_ID = '21B034D08C5615B9889CE362BB957B1EE69A584B';
 
@@ -86,7 +87,17 @@ function updateShareMenu(options = {}) {
   });
 }
 
-function showShareMenuBestEffort() {
+function buildShowShareMenuPayload(options = {}) {
+  const payload = {
+    withShareTicket: true,
+    ...(options && typeof options === 'object' ? options : {})
+  };
+  const platform = String(systemInfo.getDeviceBaseInfo().platform || '').trim().toLowerCase();
+  if (platform !== 'android') delete payload.menus;
+  return payload;
+}
+
+function showShareMenuBestEffort(options = {}) {
   if (!isShowShareMenuSupported()) {
     return Promise.resolve(false);
   }
@@ -98,7 +109,7 @@ function showShareMenuBestEffort() {
       resolve(!!ok);
     };
     const payload = {
-      withShareTicket: true,
+      ...buildShowShareMenuPayload(options),
       success: () => finish(true),
       fail: () => finish(false)
     };
@@ -128,6 +139,7 @@ module.exports = {
   isShowShareMenuSupported,
   isUpdateShareMenuSupported,
   updateShareMenu,
+  buildShowShareMenuPayload,
   showShareMenuBestEffort,
   disableDynamicShareBestEffort
 };

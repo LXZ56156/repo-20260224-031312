@@ -10,6 +10,10 @@ const adGuard = require('../../core/adGuard');
 const pageTitle = require('../../core/pageTitle');
 const shareActivity = require('../../core/shareActivity');
 const shareMeta = require('../../core/shareMeta');
+const shareCard = require('../../core/shareCard');
+const shareCardPreheat = require('../../core/shareCardPreheat');
+const shareCardStats = require('../../core/shareCardStats');
+const shareCode = require('../../core/shareCode');
 const analyticsLogic = require('./logic');
 
 const analyticsSyncController = pageTournamentSync.createTournamentSyncMethods();
@@ -65,12 +69,12 @@ Page({
     const tid = String((options && options.tournamentId) || '').trim();
     pageTournamentSync.initTournamentSync(this);
     this.setData({ tournamentId: tid });
+    this.openid = (getApp().globalData.openid || '');
 
     const app = getApp();
     this.setData(pageTournamentSync.composePageSyncPatch(this, {
       networkOffline: !!(app && app.globalData && app.globalData.networkOffline)
     }));
-    shareActivity.showShareMenuBestEffort();
     if (app && typeof app.subscribeNetworkChange === 'function') {
       this._offNetwork = app.subscribeNetworkChange((offline) => {
         this.handleNetworkChange(offline);
@@ -79,6 +83,7 @@ Page({
 
     this.fetchTournament(tid);
     this.startWatch(tid);
+    this._ensureShareMenu();
   },
 
   onShow() {
@@ -89,12 +94,18 @@ Page({
     if (this.data.tournamentId && !this.hasActiveWatch(this.data.tournamentId)) this.startWatch(this.data.tournamentId);
   },
 
+  onReady() {
+    this._shareCardReady = true;
+    this._preheatShareCardWhenReady(this.data.tournament);
+  },
+
   onHide() {
     pageTournamentSync.pauseTournamentSync(this);
   },
 
   onUnload() {
     pageTournamentSync.teardownTournamentSync(this);
+    shareCardPreheat.clearPreparedShareCard(this);
     if (typeof this._offNetwork === 'function') this._offNetwork();
     this._offNetwork = null;
   },
@@ -144,6 +155,7 @@ Page({
       showAllRankings: false
     });
     this.clearLastFailedAction();
+    this._preheatShareCardWhenReady(analytics.tournament);
   },
 
   toggleRankingRows() {
@@ -194,10 +206,110 @@ Page({
 
   onShareAppMessage() {
     shareActivity.showShareMenuBestEffort();
-    const meta = shareMeta.buildShareMessage(this.data.tournament);
+    var meta = shareMeta.buildShareMessage(this.data.tournament);
     return {
       title: meta.title,
       path: meta.path
     };
+  },
+
+  onShareTimeline() {
+    var tournament = this.data.tournament;
+    if (!tournament) return { title: '羽球轮转助手' };
+    var eventName = tournament.name || '羽毛球比赛';
+    var defaultTitle = eventName + ' 赛事排名已出炉';
+    var tid = String(tournament._id || '');
+    var ctx = this;
+    var promise = ctx._getPreparedShareCard(tournament).then(function (imageUrl) {
+      return { title: eventName, query: 'tournamentId=' + tid, imageUrl: imageUrl };
+    }).catch(function () {
+      return { title: defaultTitle, query: 'tournamentId=' + tid };
+    });
+    return { title: defaultTitle, query: 'tournamentId=' + tid, promise: promise };
+  },
+
+  _buildShareCardData: function (tournament) {
+    var openid = this.openid || (getApp().globalData.openid || '');
+    var playerStats = this.data.playerStats || [];
+    var currentPlayer = null;
+    for (var i = 0; i < playerStats.length; i++) {
+      if (String(playerStats[i].playerId || playerStats[i].entityId || '') === openid) {
+        currentPlayer = playerStats[i];
+        break;
+      }
+    }
+    if (!currentPlayer) {
+      if (playerStats.length) currentPlayer = playerStats[0];
+      else throw new Error('no player data');
+    }
+    var players = Array.isArray(tournament.players) ? tournament.players : [];
+    var playerRecord = players.find(function (p) { return String(p.id || '') === String(currentPlayer.playerId || currentPlayer.entityId || ''); }) || {};
+    var cardStats = shareCardStats.buildShareCardStats(tournament, currentPlayer);
+    return {
+      userName: currentPlayer.name || '球员',
+      eventName: tournament.name || '羽毛球比赛',
+      mode: this.data.modeLabel || '',
+      wins: currentPlayer.wins || 0,
+      losses: currentPlayer.losses || 0,
+      winRate: cardStats.winRate,
+      totalMatches: cardStats.totalMatches,
+      maxWinStreak: cardStats.maxWinStreak,
+      avgScore: cardStats.avgScore,
+      rank: Number(currentPlayer.rank) || 1,
+      avatarUrl: String(playerRecord.avatar || playerRecord.avatarUrl || ''),
+      appName: '羽球轮转助手'
+    };
+  },
+
+  _buildShareCard: function (tournament, preparedData) {
+    var ctx = this;
+    var cardData = preparedData || ctx._buildShareCardData(tournament);
+    var qrCodePromise = shareCard.getBgPath(cardData.rank)
+      ? shareCode.getTournamentShareCode(tournament && tournament._id).catch(function () { return ''; })
+      : Promise.resolve('');
+    return Promise.all([ctx._getShareCardCanvas(), qrCodePromise]).then(function (values) {
+      cardData.qrCodeUrl = values[1];
+      return shareCard.drawShareCard(values[0], cardData);
+    });
+  },
+
+  _getPreparedShareCard: function (tournament) {
+    return shareCardPreheat.getPreparedShareCard(this, tournament);
+  },
+
+  _preheatShareCardWhenReady: function (tournament) {
+    var ctx = this;
+    if (!ctx._shareCardReady || !tournament) return;
+    ctx._getShareCardCanvas().then(function (canvas) {
+      if (canvas) shareCardPreheat.preheatShareCard(ctx, tournament);
+    });
+  },
+
+  _getShareCardCanvas: function () {
+    var ctx = this;
+    if (ctx._shareCardCanvas) return Promise.resolve(ctx._shareCardCanvas);
+    if (ctx._shareCardCanvasPromise) return ctx._shareCardCanvasPromise;
+    if (typeof wx !== 'undefined' && typeof wx.createSelectorQuery === 'function') {
+      ctx._shareCardCanvasPromise = new Promise(function (resolve) {
+        try {
+          var query = wx.createSelectorQuery();
+          query.select('#shareCardCanvas').fields({ node: true }).exec(function (res) {
+            var canvas = res && res[0] && res[0].node;
+            if (canvas) ctx._shareCardCanvas = canvas;
+            resolve(canvas || null);
+          });
+        } catch (err) {
+          resolve(null);
+        }
+      }).finally(function () {
+        ctx._shareCardCanvasPromise = null;
+      });
+      return ctx._shareCardCanvasPromise;
+    }
+    return Promise.resolve(null);
+  },
+
+  _ensureShareMenu: function () {
+    shareActivity.showShareMenuBestEffort({ menus: ['shareAppMessage', 'shareTimeline'] });
   }
 });

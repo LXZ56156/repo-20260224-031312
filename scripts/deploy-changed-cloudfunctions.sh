@@ -85,6 +85,64 @@ function_exists() {
   return 1
 }
 
+changed_files_include() {
+  local target="$1"
+  local changed_file
+
+  for changed_file in "${CHANGED_FILES[@]}"; do
+    if [ "$changed_file" = "$target" ]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+function_existed_before_change() {
+  local function_name="$1"
+  local base_ref
+
+  if [ -n "$FILES_FROM" ]; then
+    return 2
+  fi
+
+  if [ -n "$RANGE" ]; then
+    base_ref="${RANGE%%..*}"
+  else
+    base_ref="$COMMIT^"
+  fi
+
+  if git cat-file -e "$base_ref:cloudfunctions/$function_name" 2>/dev/null; then
+    return 0
+  fi
+
+  return 1
+}
+
+changed_set_looks_like_new_function() {
+  local function_name="$1"
+
+  changed_files_include "cloudfunctions/$function_name/index.js" || return 1
+  changed_files_include "cloudfunctions/$function_name/package.json" || return 1
+
+  return 0
+}
+
+lib_change_allowed_for_function() {
+  local function_name="$1"
+
+  if function_existed_before_change "$function_name"; then
+    return 1
+  fi
+
+  local existed_status=$?
+  if [ "$existed_status" -eq 1 ]; then
+    return 0
+  fi
+
+  changed_set_looks_like_new_function "$function_name"
+}
+
 read_changed_files() {
   if [ -n "$FILES_FROM" ]; then
     if [ "$FILES_FROM" = "-" ]; then
@@ -128,9 +186,9 @@ require_clean_deploy_worktree() {
 
 resolve_changed_functions() {
   COMMON_CHANGED=false
-  LIB_CHANGED_WITHOUT_TEMPLATE=false
   SELECTED_FUNCTIONS=()
   declare -gA SELECTED_FUNCTION_SET=()
+  declare -gA LIB_CHANGED_FUNCTION_SET=()
 
   local changed_file
   for changed_file in "${CHANGED_FILES[@]}"; do
@@ -150,7 +208,7 @@ resolve_changed_functions() {
 
         case "$changed_file" in
           cloudfunctions/*/lib/*)
-            LIB_CHANGED_WITHOUT_TEMPLATE=true
+            LIB_CHANGED_FUNCTION_SET["$function_name"]=1
             ;;
         esac
         ;;
@@ -159,15 +217,21 @@ resolve_changed_functions() {
 
   if [ "$COMMON_CHANGED" = true ]; then
     SELECTED_FUNCTIONS=("${FUNCTIONS[@]}")
-    LIB_CHANGED_WITHOUT_TEMPLATE=false
     return 0
   fi
 
-  if [ "$LIB_CHANGED_WITHOUT_TEMPLATE" = true ]; then
-    fail "cloudfunctions/*/lib/* changed without a shared template change. Update scripts/*-common.template.js and run scripts/sync-cloud-common.sh instead."
+  local -a blocked_lib_functions=()
+  local function_name
+  for function_name in "${FUNCTIONS[@]}"; do
+    if [ "${LIB_CHANGED_FUNCTION_SET[$function_name]+set}" = set ] && ! lib_change_allowed_for_function "$function_name"; then
+      blocked_lib_functions+=("$function_name")
+    fi
+  done
+
+  if [ "${#blocked_lib_functions[@]}" -gt 0 ]; then
+    fail "cloudfunctions/*/lib/* changed without a shared template change: ${blocked_lib_functions[*]}. Update scripts/*-common.template.js and run scripts/sync-cloud-common.sh instead."
   fi
 
-  local function_name
   for function_name in "${FUNCTIONS[@]}"; do
     if [ "${SELECTED_FUNCTION_SET[$function_name]+set}" = set ]; then
       SELECTED_FUNCTIONS+=("$function_name")

@@ -1,5 +1,6 @@
 const playerUtils = require('./playerUtils');
 const avatarPolicy = require('./avatarPolicy');
+const envConfig = require('../config/env');
 
 const TEMP_URL_TTL_MS = 50 * 60 * 1000;
 const TEMP_URL_BATCH_SIZE = 50;
@@ -25,6 +26,7 @@ function isCloudAvatar(value) {
 
 function logAvatarDiagnostic(level, message, context) {
   try {
+    if (level === 'info' && envConfig.getRuntimeEnvVersion() === 'release') return;
     if (typeof console === 'undefined' || typeof console[level] !== 'function') return;
     console[level](message, context);
   } catch (_) {

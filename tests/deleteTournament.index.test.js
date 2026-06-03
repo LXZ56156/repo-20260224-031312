@@ -11,6 +11,7 @@ function loadMain(db, stubs = {}) {
   const originalLoad = Module._load;
   const mockSdk = {
     init() {},
+    ...(stubs.openapi ? { openapi: { updatableMessage: stubs.openapi } } : {}),
     database() {
       return db;
     },
@@ -231,6 +232,39 @@ test('deleteTournament index removes tournament, records request log, and trigge
   assert.equal(state.clientRequestLogs[0].resourceId, 't_1');
   assert.equal(state.scoreLockCleanupCount, 1);
   assert.equal(cleanupCalled, true);
+});
+
+test('deleteTournament ends an active share activity after the tournament is removed', async () => {
+  const openapiCalls = [];
+  const { db, state } = createDeleteTournamentDb({
+    tournament: {
+      shareActivityId: 'act_delete',
+      shareActivityExpireAtMs: Date.now() + 120_000,
+      shareActivityState: 0,
+      shareActivityVersionType: 'release'
+    }
+  });
+  const { main } = loadMain(db, {
+    openapi: {
+      async setUpdatableMsg(payload) {
+        openapiCalls.push(payload);
+      }
+    },
+    logic: {
+      async cleanupScoreLocksBestEffort(cleanupFn) {
+        await cleanupFn();
+      }
+    }
+  });
+
+  const result = await main({ tournamentId: 't_1' });
+
+  assert.equal(result.ok, true);
+  assert.equal(state.removedCount, 1);
+  assert.deepEqual(openapiCalls, [{
+    activityId: 'act_delete',
+    targetState: 2
+  }]);
 });
 
 test('same clientRequestId retries should dedupe after successful delete', async () => {

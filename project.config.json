@@ -39,6 +39,14 @@
       {
         "value": "**/node_modules/**/*",
         "type": "glob"
+      },
+      {
+        "value": "assets/share-bg-*.png",
+        "type": "glob"
+      },
+      {
+        "value": "miniprogram/assets/share-bg-*.png",
+        "type": "glob"
       }
     ],
     "include": []
