@@ -1,4 +1,5 @@
 <canvas type="2d" id="shareCardCanvas" style="position:fixed;left:100vw;width:250px;height:250px;"></canvas>
+<canvas type="2d" id="posterCanvas" style="position:fixed;left:200vw;width:250px;height:250px;"></canvas>
 <view class="container safe-bottom ranking-page {{uiPreferenceClass}}" wx:if="{{tournament}}">
   <view class="match-primary-nav">
     <view
@@ -24,6 +25,9 @@
     <view class="hero-kicker">积分榜</view>
     <view class="hero-title">{{rankingTypeLabel}}</view>
     <view class="hero-sub">{{tournament.name}}</view>
+    <view class="hero-actions">
+      <button class="btn btn-outline btn-sm" bindtap="onGeneratePoster">生成战绩海报</button>
+    </view>
   </view>
 
   <view class="card panel panel-soft state-empty mt-md reveal reveal-2" wx:if="{{rankings.length===0}}">
@@ -86,5 +90,16 @@
         </view>
       </view>
     </view>
+  </view>
+</view>
+
+<view class="poster-overlay" wx:if="{{showPosterPreview}}" bindtap="onClosePosterPreview">
+  <view class="poster-preview" catchtap="">
+    <image class="poster-image" src="{{posterImageUrl}}" mode="widthFix" show-menu-by-longpress="{{true}}"></image>
+    <view class="poster-actions">
+      <button class="btn btn-primary" bindtap="onSavePoster">保存到相册</button>
+      <button class="btn btn-subtle" bindtap="onCopyPosterText">复制分享文案</button>
+    </view>
+    <view class="poster-close" bindtap="onClosePosterPreview">✕</view>
   </view>
 </view>

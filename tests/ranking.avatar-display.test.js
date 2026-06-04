@@ -6,6 +6,7 @@ const path = require('node:path');
 const rankingPagePath = require.resolve('../miniprogram/pages/ranking/index.js');
 const shareCard = require('../miniprogram/core/shareCard');
 const shareCode = require('../miniprogram/core/shareCode');
+const shareTimelineCard = require('../miniprogram/core/shareTimelineCard');
 
 function loadRankingPageDefinition() {
   const originalPage = global.Page;
@@ -203,8 +204,7 @@ test('ranking page renders pair display names on one ellipsized title line', () 
 test('ranking timeline share waits for the canvas node before drawing', async () => {
   const originalWx = global.wx;
   const originalGetApp = global.getApp;
-  const originalDrawShareCard = shareCard.drawShareCard;
-  const originalGetTournamentShareCode = shareCode.getTournamentShareCode;
+  const originalDrawTimelineCard = shareTimelineCard.drawTimelineCard;
   const canvasNode = { id: 'ranking-share-card-canvas' };
   const tournament = {
     _id: 't_rank_share',
@@ -238,17 +238,12 @@ test('ranking timeline share waits for the canvas node before drawing', async ()
     }
   };
   global.getApp = () => ({ globalData: { openid: 'u_1' } });
-  shareCode.getTournamentShareCode = async (tournamentId) => {
-    assert.equal(tournamentId, 't_rank_share');
-    return 'cloud://test/share-codes/t_rank_share.png';
-  };
-  shareCard.drawShareCard = async (canvas, data) => {
+  shareTimelineCard.drawTimelineCard = async (canvas, data) => {
     drawnCanvas = canvas;
     assert.equal(data.rank, 2);
-    assert.equal(data.qrCodeUrl, 'cloud://test/share-codes/t_rank_share.png');
     assert.equal(data.maxWinStreak, 2);
     assert.equal(data.avgScore, 18);
-    return '/tmp/ranking-share-card.png';
+    return '/tmp/ranking-timeline-card.png';
   };
 
   try {
@@ -265,11 +260,10 @@ test('ranking timeline share waits for the canvas node before drawing', async ()
     const resolved = await share.promise;
 
     assert.equal(drawnCanvas, canvasNode);
-    assert.equal(resolved.imageUrl, '/tmp/ranking-share-card.png');
+    assert.equal(resolved.imageUrl, '/tmp/ranking-timeline-card.png');
     assert.equal(resolved.query, 'tournamentId=t_rank_share');
   } finally {
-    shareCard.drawShareCard = originalDrawShareCard;
-    shareCode.getTournamentShareCode = originalGetTournamentShareCode;
+    shareTimelineCard.drawTimelineCard = originalDrawTimelineCard;
     global.wx = originalWx;
     global.getApp = originalGetApp;
     delete require.cache[rankingPagePath];
@@ -278,8 +272,7 @@ test('ranking timeline share waits for the canvas node before drawing', async ()
 
 test('ranking timeline share reuses the card exported after onReady preheat', async () => {
   const originalGetApp = global.getApp;
-  const originalDrawShareCard = shareCard.drawShareCard;
-  const originalGetTournamentShareCode = shareCode.getTournamentShareCode;
+  const originalDrawTimelineCard = shareTimelineCard.drawTimelineCard;
   const tournament = {
     _id: 't_rank_preheat',
     name: '周末赛',
@@ -290,15 +283,14 @@ test('ranking timeline share reuses the card exported after onReady preheat', as
   let drawCalls = 0;
 
   global.getApp = () => ({ globalData: { openid: 'u_1' } });
-  shareCode.getTournamentShareCode = async () => 'cloud://test/share-codes/t_rank_preheat.png';
-  shareCard.drawShareCard = async () => {
+  shareTimelineCard.drawTimelineCard = async () => {
     drawCalls += 1;
     return '/tmp/ranking-preheated-card.png';
   };
 
   try {
     ctx.openid = 'u_1';
-    ctx._getShareCardCanvas = async () => ({ id: 'ranking-preheat-canvas' });
+    ctx._getCanvas = async () => ({ id: 'ranking-preheat-canvas' });
     ctx.setData({
       tournament,
       rankings: [{ playerId: 'u_1', name: '球友A', wins: 2, losses: 1, played: 3, rank: 1 }]
@@ -312,8 +304,7 @@ test('ranking timeline share reuses the card exported after onReady preheat', as
     assert.equal(resolved.imageUrl, '/tmp/ranking-preheated-card.png');
     assert.equal(drawCalls, 1);
   } finally {
-    shareCard.drawShareCard = originalDrawShareCard;
-    shareCode.getTournamentShareCode = originalGetTournamentShareCode;
+    shareTimelineCard.drawTimelineCard = originalDrawTimelineCard;
     global.getApp = originalGetApp;
     delete require.cache[rankingPagePath];
   }
