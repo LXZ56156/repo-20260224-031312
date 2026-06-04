@@ -109,6 +109,62 @@ test('shareCard center-crops rectangular avatars before drawing', () => {
   assert.deepEqual(calls[1], [{ width: 120, height: 240 }, 0, 60, 120, 120, 19, 14, 41, 41]);
 });
 
+test('shareCard draws with 5:4 aspect ratio for chat card', async () => {
+  const bgDataUrl = makeDataUrl();
+  const canvas = createCanvas(shareCard.DRAW_SIZE.width, 400);
+  let exportedSize = null;
+
+  await shareCard.drawShareCard(canvas, {
+    userName: '林夏',
+    eventName: '周三羽毛球夜赛',
+    mode: '个人榜',
+    wins: 8,
+    losses: 2,
+    winRate: '80%',
+    totalMatches: 10,
+    maxWinStreak: 5,
+    avgScore: 18.2,
+    rank: 1,
+    avatarUrl: makeDataUrl()
+  }, {
+    dpr: 1,
+    aspectRatio: '5:4',
+    loadImage,
+    resolveImageSource(src) {
+      if (shareCard._private.isCloudPath(src)) return bgDataUrl;
+      return undefined;
+    },
+    exportCanvas(targetCanvas, size) {
+      exportedSize = size;
+      return 'chat-card.png';
+    }
+  });
+
+  assert.equal(exportedSize.width, 500);
+  assert.equal(exportedSize.height, 400);
+});
+
+test('shareCard handles very long event names gracefully', async () => {
+  const canvas = createCanvas(shareCard.DRAW_SIZE.width, shareCard.DRAW_SIZE.height);
+  const longName = '2026年第三届深圳市高校羽毛球联赛暨大湾区邀请赛决赛阶段';
+  const result = await shareCard.drawShareCard(canvas, {
+    userName: '林夏',
+    eventName: longName,
+    mode: '个人榜',
+    wins: 3,
+    losses: 1,
+    winRate: '75%',
+    totalMatches: 4,
+    rank: 2,
+    avatarUrl: ''
+  }, {
+    dpr: 1,
+    loadImage,
+    exportCanvas() { return 'long-name.png'; }
+  });
+  assert.equal(result, 'long-name.png');
+});
+
 test('shareCard draws a visible fallback avatar when no avatar image is available', () => {
   const canvas = createCanvas(80, 80);
   const ctx = canvas.getContext('2d');
