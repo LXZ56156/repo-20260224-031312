@@ -1,4 +1,5 @@
 <canvas type="2d" id="shareCardCanvas" style="position:fixed;left:100vw;width:250px;height:250px;"></canvas>
+<canvas type="2d" id="posterCanvas" style="position:fixed;left:200vw;width:250px;height:250px;"></canvas>
 <view class="container safe-bottom analytics-page" wx:if="{{tournament}}">
   <!-- sync-banner: 仅在离线/缓存/降级等异常态展示，健康态刷新静默处理 -->
   <view class="sync-banner sync-{{syncStatusTone}}" hidden="{{!syncStatusVisible}}">
@@ -27,6 +28,7 @@
     </view>
     <view class="analytics-hero-actions">
       <button class="btn btn-primary btn-sm analytics-hero-primary" bindtap="cloneCurrentTournament">再办一场</button>
+      <button class="btn btn-outline btn-sm" bindtap="onGeneratePoster">生成战绩海报</button>
     </view>
   </view>
 
@@ -177,5 +179,16 @@
       <view class="skeleton-bone skeleton-pill"></view>
       <view class="skeleton-bone skeleton-pill"></view>
     </view>
+  </view>
+</view>
+
+<view class="poster-overlay" wx:if="{{showPosterPreview}}" bindtap="onClosePosterPreview">
+  <view class="poster-preview" catchtap="">
+    <image class="poster-image" src="{{posterImageUrl}}" mode="widthFix" show-menu-by-longpress="{{true}}"></image>
+    <view class="poster-actions">
+      <button class="btn btn-primary" bindtap="onSavePoster">保存到相册</button>
+      <button class="btn btn-subtle" bindtap="onCopyPosterText">复制分享文案</button>
+    </view>
+    <view class="poster-close" bindtap="onClosePosterPreview">✕</view>
   </view>
 </view>
