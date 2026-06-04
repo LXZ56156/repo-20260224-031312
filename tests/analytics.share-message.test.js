@@ -176,9 +176,10 @@ test('analytics timeline share waits for the canvas node before drawing', async 
   }
 });
 
-test('analytics timeline share falls back to text for a non-medal rank', async () => {
+test('analytics timeline share draws a card for a non-medal rank with fallback background', async () => {
   const originalGetApp = global.getApp;
   const originalGetTournamentShareCode = shareCode.getTournamentShareCode;
+  const originalDrawShareCard = shareCard.drawShareCard;
   const tournament = {
     _id: 't_4',
     name: '周末赛',
@@ -187,11 +188,16 @@ test('analytics timeline share falls back to text for a non-medal rank', async (
   const definition = loadAnalyticsPageDefinition();
   const ctx = createAnalyticsPageContext(definition);
   let shareCodeCalls = 0;
+  let drawCallData = null;
 
   global.getApp = () => ({ globalData: { openid: 'u_4' } });
   shareCode.getTournamentShareCode = async () => {
     shareCodeCalls += 1;
     return 'cloud://test/share-codes/t_4.png';
+  };
+  shareCard.drawShareCard = async (_canvas, data) => {
+    drawCallData = data;
+    return 'non-medal-share-card.png';
   };
   try {
     ctx.openid = 'u_4';
@@ -203,12 +209,14 @@ test('analytics timeline share falls back to text for a non-medal rank', async (
 
     const resolved = await ctx.onShareTimeline().promise;
 
-    assert.equal(resolved.title, '周末赛 赛事排名已出炉');
+    assert.equal(resolved.title, '周末赛');
     assert.equal(resolved.query, 'tournamentId=t_4');
-    assert.equal(Object.prototype.hasOwnProperty.call(resolved, 'imageUrl'), false);
-    assert.equal(shareCodeCalls, 0);
+    assert.equal(resolved.imageUrl, 'non-medal-share-card.png');
+    assert.equal(shareCodeCalls, 1);
+    assert.equal(drawCallData && drawCallData.rank, 4);
   } finally {
     shareCode.getTournamentShareCode = originalGetTournamentShareCode;
+    shareCard.drawShareCard = originalDrawShareCard;
     global.getApp = originalGetApp;
     delete require.cache[analyticsPagePath];
   }

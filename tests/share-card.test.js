@@ -37,19 +37,30 @@ test('shareCard keeps zero-value summary pills visible', () => {
   }, 0), ['共0场', '连胜0场', '场均得分0.0']);
 });
 
-test('shareCard only uses medal backgrounds for top three ranks', () => {
+test('shareCard uses medal backgrounds for top three and fallback color for others', () => {
   assert.equal(shareCard.getBgPath(1), shareCard.BG_CLOUD_PATHS[1]);
   assert.equal(shareCard.getBgPath(2), shareCard.BG_CLOUD_PATHS[2]);
   assert.equal(shareCard.getBgPath(3), shareCard.BG_CLOUD_PATHS[3]);
-  assert.equal(shareCard.getBgPath(4), '');
+  assert.equal(shareCard.getBgPath(4), shareCard.NORMAL_BG_COLOR);
+  assert.equal(shareCard.getBgPath(0), shareCard.NORMAL_BG_COLOR);
 });
 
-test('shareCard rejects non-medal ranks instead of showing a wrong badge', async () => {
+test('shareCard draws non-medal ranks with fallback color instead of rejecting', async () => {
   const canvas = createCanvas(shareCard.DRAW_SIZE.width, shareCard.DRAW_SIZE.height);
-  await assert.rejects(
-    () => shareCard.drawShareCard(canvas, { rank: 4 }, { dpr: 1, loadImage }),
-    /top three ranks/
-  );
+  let drawnBg = false;
+  const result = await shareCard.drawShareCard(canvas, { rank: 4, userName: '测试', eventName: '测试赛' }, {
+    dpr: 1,
+    loadImage,
+    exportCanvas(targetCanvas) {
+      // Verify the background was filled with NORMAL_BG_COLOR
+      const pixel = targetCanvas.getContext('2d').getImageData(250, 250, 1, 1).data;
+      assert.deepEqual(Array.from(pixel), [12, 90, 59, 255]); // #0C5A3B
+      drawnBg = true;
+      return 'test.png';
+    }
+  });
+  assert.equal(result, 'test.png');
+  assert.equal(drawnBg, true);
 });
 
 test('shareCard resolves cloud and network image sources to local paths', async () => {

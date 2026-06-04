@@ -15,12 +15,14 @@ var BG_CLOUD_PATHS = {
   3: 'cloud://cloud1-1ghmqjyt6428702b.636c-cloud1-1ghmqjyt6428702b-1403446496/share-cards/share-bg-bronze.png'
 };
 
+var NORMAL_BG_COLOR = '#0C5A3B';
+
 var imagePathCache = {};
 
 function getBgPath(rank) {
   var value = Number(rank);
-  if (!Number.isInteger(value) || value < 1 || value > 3) return '';
-  return BG_CLOUD_PATHS[value] || '';
+  if (!Number.isInteger(value) || value < 1) return NORMAL_BG_COLOR;
+  return BG_CLOUD_PATHS[value] || NORMAL_BG_COLOR;
 }
 
 function nowMs(options) {
@@ -273,9 +275,10 @@ function getPixelRatio(options) {
   return 2;
 }
 
-function exportCanvas(canvas, options) {
+function exportCanvas(canvas, designH, options) {
+  designH = designH || DESIGN_H;
   if (options && typeof options.exportCanvas === 'function') {
-    return Promise.resolve(options.exportCanvas(canvas, { width: DESIGN_W, height: DESIGN_H }));
+    return Promise.resolve(options.exportCanvas(canvas, { width: DESIGN_W, height: designH }));
   }
 
   var wxApi = getWxApi(options);
@@ -287,7 +290,7 @@ function exportCanvas(canvas, options) {
     wxApi.canvasToTempFilePath({
       canvas: canvas,
       width: DESIGN_W,
-      height: DESIGN_H,
+      height: designH,
       destWidth: canvas.width,
       destHeight: canvas.height,
       fileType: 'png',
@@ -304,12 +307,16 @@ async function drawShareCard(canvas, data, options) {
     throw new Error('share card canvas is not ready');
   }
 
+  var aspectRatio = String(options.aspectRatio || '1:1').trim();
+  var designH = aspectRatio === '5:4' ? 400 : DESIGN_H;
+  var heightRatio = designH / DESIGN_H;
+
   var ctx = canvas.getContext('2d');
   var dpr = getPixelRatio(options);
   canvas.width = Math.round(DESIGN_W * dpr);
-  canvas.height = Math.round(DESIGN_H * dpr);
-  ctx.scale(canvas.width / DESIGN_W, canvas.height / DESIGN_H);
-  ctx.clearRect(0, 0, DESIGN_W, DESIGN_H);
+  canvas.height = Math.round(designH * dpr);
+  ctx.scale(canvas.width / DESIGN_W, canvas.height / designH);
+  ctx.clearRect(0, 0, DESIGN_W, designH);
   ctx.textBaseline = 'middle';
 
   var d = {
@@ -330,11 +337,20 @@ async function drawShareCard(canvas, data, options) {
 
   var rank = Number(d.rank);
   var bgPath = getBgPath(rank);
-  if (!bgPath) throw new Error('share card only supports top three ranks');
 
-  // 1. 背景图
-  var bg = await loadImage(canvas, bgPath, options);
-  ctx.drawImage(bg, 0, 0, DESIGN_W, DESIGN_H);
+  // 1. 背景
+  if (bgPath === NORMAL_BG_COLOR) {
+    ctx.fillStyle = NORMAL_BG_COLOR;
+    ctx.fillRect(0, 0, DESIGN_W, designH);
+  } else {
+    try {
+      var bg = await loadImage(canvas, bgPath, options);
+      ctx.drawImage(bg, 0, 0, DESIGN_W, designH);
+    } catch (e) {
+      ctx.fillStyle = NORMAL_BG_COLOR;
+      ctx.fillRect(0, 0, DESIGN_W, designH);
+    }
+  }
 
   // 2. 头像：首字占位确保空头像和加载失败时仍有完整视觉
   drawAvatarPlaceholder(ctx, d.userName);
@@ -358,12 +374,12 @@ async function drawShareCard(canvas, data, options) {
   ctx.font = (700) + ' ' + uf.size + 'px sans-serif';
   ctx.fillStyle = '#1D2420';
   ctx.textAlign = 'left';
-  ctx.fillText(uf.text, 78, 37);
+  ctx.fillText(uf.text, 78, 37 * heightRatio);
   var nameW = ctx.measureText(uf.text).width;
 
   ctx.font = '400 14px sans-serif';
   ctx.fillStyle = '#6F7B74';
-  ctx.fillText('的比赛战绩', 78 + nameW + 10, 37);
+  ctx.fillText('的比赛战绩', 78 + nameW + 10, 37 * heightRatio);
 
   // 4. 赛事名（按长度分级 24~32px，最大宽度340，底线24px截断）
   var eventName = String(d.eventName || '羽毛球比赛');
@@ -372,7 +388,7 @@ async function drawShareCard(canvas, data, options) {
   ctx.font = '800 ' + evf.size + 'px sans-serif';
   ctx.fillStyle = '#00462E';
   ctx.textAlign = 'center';
-  ctx.fillText(evf.text, DESIGN_W / 2, 75);
+  ctx.fillText(evf.text, DESIGN_W / 2, 75 * heightRatio);
 
   // 5. 模式标签（胶囊中心250,115，14→11px，最大宽度104）
   var modeText = String(d.mode || '');
@@ -380,7 +396,7 @@ async function drawShareCard(canvas, data, options) {
   ctx.font = '500 ' + mf.size + 'px sans-serif';
   ctx.fillStyle = '#0C5A3B';
   ctx.textAlign = 'center';
-  ctx.fillText(mf.text, DESIGN_W / 2, 115);
+  ctx.fillText(mf.text, DESIGN_W / 2, 115 * heightRatio);
 
   // 6. 战绩三列
   var winRateText = fmtWinRate(d.winRate, winsNum, total);
@@ -397,13 +413,13 @@ async function drawShareCard(canvas, data, options) {
   ctx.textAlign = 'center';
   columns.forEach(function (c) {
     ctx.font = '800 ' + c.sz + 'px sans-serif';
-    ctx.fillText(c.val, c.cx, 266);
+    ctx.fillText(c.val, c.cx, 266 * heightRatio);
   });
 
   ctx.font = '500 15px sans-serif';
   ctx.fillStyle = '#587367';
   columns.forEach(function (c) {
-    ctx.fillText(c.label, c.cx, 295);
+    ctx.fillText(c.label, c.cx, 295 * heightRatio);
   });
 
   // 7. 小标签（12→11px 自适应）
@@ -419,29 +435,30 @@ async function drawShareCard(canvas, data, options) {
     if (!p.text) return;
     var pf = fitText(ctx, p.text, p.maxW, 12, 10, 500, 1);
     ctx.font = '500 ' + pf.size + 'px sans-serif';
-    ctx.fillText(pf.text, p.cx, 321);
+    ctx.fillText(pf.text, p.cx, 321 * heightRatio);
   });
 
-  // 8. 小程序码（圆形裁剪）
-  if (d.qrCodeUrl) {
+  // 8. 小程序码（圆形裁剪，5:4 比例下不绘制）
+  if (d.qrCodeUrl && aspectRatio !== '5:4') {
     try {
       var qr = await loadImage(canvas, d.qrCodeUrl, options);
       ctx.save();
       ctx.beginPath();
-      ctx.arc(250, 400, 44, 0, Math.PI * 2);
+      ctx.arc(250, 400 * heightRatio, 44, 0, Math.PI * 2);
       ctx.closePath();
       ctx.clip();
-      ctx.drawImage(qr, 206, 356, 88, 88);
+      ctx.drawImage(qr, 206, 356 * heightRatio, 88, 88);
       ctx.restore();
     } catch (e) {}
   }
 
   // 9. 导出（背景图已含品牌名和CTA，不重复绘制）
-  return exportCanvas(canvas, options);
+  return exportCanvas(canvas, designH, options);
 }
 
 module.exports = {
   DRAW_SIZE: { width: DESIGN_W, height: DESIGN_H },
+  NORMAL_BG_COLOR: NORMAL_BG_COLOR,
   BG_CLOUD_PATHS: BG_CLOUD_PATHS,
   getBgPath: getBgPath,
   drawShareCard: drawShareCard,
