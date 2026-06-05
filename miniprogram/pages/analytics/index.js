@@ -95,7 +95,8 @@ Page({
     showAllRankings: false,
     loadError: false,
     posterImageUrl: '',
-    showPosterPreview: false
+    showPosterPreview: false,
+    posterButtonText: '生成海报'
   },
 
   ...analyticsSyncController,
@@ -169,6 +170,11 @@ Page({
     const report = analyticsLogic.buildBattleReport(analytics);
     const pageModel = analyticsLogic.buildAnalyticsPageModel(analytics, report);
     const fullRankings = Array.isArray(pageModel.fullRankings) ? pageModel.fullRankings : [];
+    const currentOpenid = String(this.openid || '').trim();
+    const playerStats = Array.isArray(analytics.playerStats) ? analytics.playerStats : [];
+    const isCurrentUserInRanking = currentOpenid
+      ? playerStats.some((row) => String(row.playerId || row.entityId || '') === currentOpenid)
+      : false;
     pageTitle.setTournamentPageTitle(this, '赛事复盘', analytics.tournament);
     this.setData({
       loadError: false,
@@ -194,7 +200,8 @@ Page({
       focusFacts: pageModel.focusFacts,
       fullRankings,
       displayRankings: fullRankings.slice(0, 5),
-      showAllRankings: false
+      showAllRankings: false,
+      posterButtonText: isCurrentUserInRanking ? '生成我的海报' : '生成榜首海报'
     });
     this.clearLastFailedAction();
     this._preheatShareWhenReady(analytics.tournament);

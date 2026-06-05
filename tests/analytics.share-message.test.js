@@ -213,10 +213,11 @@ test('analytics onReady triggers share preheat via mixin', async () => {
     ctx.onReady();
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    // onReady preheats both appMessage and timeline types
-    const preheatedIds = preheatCalls.map(function (c) { return c.tournamentId; });
-    assert.ok(preheatedIds.includes('t_preheat'));
-    assert.ok(preheatCalls.length >= 1);
+    // onReady preheats only appMessage and timeline, NOT poster
+    const types = preheatCalls.map(function (c) { return c.type; });
+    assert.ok(types.includes(shareCardPreheat.TYPE_APP_MESSAGE), 'should preheat appMessage');
+    assert.ok(types.includes(shareCardPreheat.TYPE_TIMELINE), 'should preheat timeline');
+    assert.equal(types.includes(shareCardPreheat.TYPE_POSTER), false, 'should NOT preheat poster');
   } finally {
     shareCardPreheat.preheatShareImage = originalPreheatShareImage;
     clearPageCache();

@@ -126,7 +126,8 @@ Page({
     primaryNavCurrent: 'ranking',
     primaryNavItems: [],
     posterImageUrl: '',
-    showPosterPreview: false
+    showPosterPreview: false,
+    posterButtonText: '生成海报'
   },
 
   ...rankingSyncController,
@@ -250,12 +251,18 @@ Page({
       };
     });
 
+    const currentOpenid = String(this.openid || '').trim();
+    const isCurrentUserInRanking = currentOpenid
+      ? decoratedRankings.some((row) => String(row.playerId || row.entityId || '') === currentOpenid)
+      : false;
+
     this.setData({
       loadError: false,
       tournament: t,
       rankings: decoratedRankings,
       rankingTypeLabel,
-      primaryNavItems: matchPrimaryNav.getPrimaryNavItems('ranking', this.data.tournamentId)
+      primaryNavItems: matchPrimaryNav.getPrimaryNavItems('ranking', this.data.tournamentId),
+      posterButtonText: isCurrentUserInRanking ? '生成我的海报' : '生成榜首海报'
     });
     this.refreshAvatarDisplays();
     this._preheatShareWhenReady(t);
