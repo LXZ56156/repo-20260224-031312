@@ -17,8 +17,6 @@ test('lobby share buttons stay gated until dynamic share resolves and expose fal
   assert.match(wxml, /dynamicShareReady/);
   assert.match(wxml, /dynamicShareError/);
   assert.match(wxml, /dynamicShareUnavailableReason/);
-  assert.match(wxml, /正在准备动态分享/);
-  assert.match(wxml, /动态分享已准备好/);
-  assert.match(wxml, /动态分享不可用，使用普通分享/);
-  assert.match(wxml, /普通分享/);
+  assert.match(wxml, /分享比赛/);
+  assert.doesNotMatch(wxml, /普通分享|动态分享|准备中|正在准备分享/);
 });

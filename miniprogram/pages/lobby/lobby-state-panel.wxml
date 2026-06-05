@@ -5,10 +5,7 @@
     </view>
     <view class="state-panel-summary">{{statePanelSummary}}</view>
     <view class="dynamic-share-status muted small" wx:if="{{dynamicSharePreparing || dynamicShareReady || dynamicShareError || dynamicShareUnavailableReason}}">
-      <text wx:if="{{dynamicSharePreparing}}">正在准备动态分享...</text>
-      <text wx:elif="{{dynamicShareReady}}">动态分享已准备好</text>
-      <text wx:elif="{{dynamicShareError}}">动态分享不可用，使用普通分享</text>
-      <text wx:else>普通分享</text>
+      <text>分享比赛</text>
     </view>
     <view class="state-checklist panel-soft" wx:if="{{showStateChecklist}}">
       <block wx:if="{{featuredChecklistItem && featuredChecklistItem.key}}">
@@ -21,7 +18,7 @@
         >
           <view class="prep-featured-top">
             <view class="prep-badge">{{featuredChecklistItem.badgeText}}</view>
-            <text class="prep-jump prep-jump-featured">{{dynamicSharePreparing ? '准备中' : (dynamicShareReady ? '动态分享' : '普通分享')}}</text>
+            <text class="prep-jump prep-jump-featured">分享比赛</text>
           </view>
           <view class="prep-featured-main">
             <text class="prep-indicator prep-indicator-lg {{featuredChecklistItem.indicatorClass}}"></text>
@@ -83,7 +80,7 @@
               <view class="prep-title">{{item.title}}</view>
               <view class="prep-sub">{{item.summary}}</view>
             </view>
-            <text class="prep-jump">{{dynamicSharePreparing ? '准备中' : (dynamicShareReady ? '动态分享' : '普通分享')}}</text>
+            <text class="prep-jump">分享比赛</text>
           </button>
           <view
             wx:elif="{{item.key==='players'}}"
@@ -126,7 +123,7 @@
         open-type="share"
         disabled="{{dynamicSharePreparing || (!dynamicShareReady && !dynamicShareError && !dynamicShareUnavailableReason)}}"
         bindtouchstart="onShareButtonTouchStart"
-      >{{dynamicSharePreparing ? '正在准备分享...' : (dynamicShareReady ? '动态分享比赛' : '普通分享比赛')}}</button>
+      >分享比赛</button>
       <button
         wx:else
         class="btn btn-primary state-primary-btn {{(nextActionKey==='start' || primaryTaskKey==='start' || primaryTaskKey==='sync_settings') ? 'start-pulse' : ''}}"
