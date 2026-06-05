@@ -116,14 +116,9 @@ function createSharePageMixin(opts) {
       var cardData = preparedData || buildShareCardDataFn.call(ctx, tournament);
       return ctx._getCanvas(canvasSelector).then(function (canvas) {
         if (!canvas) throw new Error('share card canvas not found');
-        // 只有奖牌背景才获取小程序码（普通排名不需要在小聊天卡片中显示小程序码）
-        var qrPromise = (shareCard.getBgPath(cardData.rank) !== shareCard.NORMAL_BG_COLOR)
-          ? shareCode.getTournamentShareCode(tournament && tournament._id).catch(function () { return ''; })
-          : Promise.resolve('');
-        return Promise.all([Promise.resolve(canvas), qrPromise]).then(function (values) {
-          cardData.qrCodeUrl = values[1];
-          return shareCard.drawShareCard(values[0], cardData, { aspectRatio: '5:4' });
-        });
+        // 5:4 群聊卡片不生成小程序码，减少云函数调用
+        cardData.qrCodeUrl = '';
+        return shareCard.drawShareCard(canvas, cardData, { aspectRatio: '5:4' });
       });
     },
 
@@ -141,8 +136,12 @@ function createSharePageMixin(opts) {
       var cardData = preparedData || buildShareCardDataFn.call(ctx, tournament);
       return ctx._getCanvas(posterCanvasSelector).then(function (canvas) {
         if (!canvas) throw new Error('poster canvas not found');
+        // 小程序码生成失败不阻断海报生成
         return shareCode.getTournamentShareCode(tournament && tournament._id).then(function (codeUrl) {
           cardData.qrCodeUrl = codeUrl || '';
+          return sharePoster.generatePoster(canvas, cardData);
+        }).catch(function () {
+          cardData.qrCodeUrl = '';
           return sharePoster.generatePoster(canvas, cardData);
         });
       });
@@ -200,12 +199,9 @@ function createSharePageMixin(opts) {
           shareCardPreheat.preheatShareImage(ctx, tournament, shareCardPreheat.TYPE_TIMELINE);
         }
       });
-      ctx._getCanvas(posterCanvasSelector).then(function (canvas) {
-        if (canvas) {
-          shareCardPreheat.preheatShareImage(ctx, tournament, shareCardPreheat.TYPE_POSTER);
-        }
-      });
     },
+
+    noop: function () {},
 
     _clearShareCache: function () {
       shareCardPreheat.clearPreparedShareCard(this);

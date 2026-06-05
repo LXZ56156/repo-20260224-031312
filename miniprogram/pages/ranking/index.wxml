@@ -27,7 +27,7 @@
     <view class="hero-sub">{{tournament.name}}</view>
     <view class="hero-actions ranking-hero-actions btn-row">
       <button class="btn btn-primary btn-sm" bindtap="onShareTimelineGuide">分享到朋友圈</button>
-      <button class="btn btn-outline btn-sm" bindtap="onGeneratePoster">生成战绩海报</button>
+      <button class="btn btn-outline btn-sm" bindtap="onGeneratePoster">生成赛事海报</button>
     </view>
   </view>
 
@@ -95,7 +95,7 @@
 </view>
 
 <view class="poster-overlay" wx:if="{{showPosterPreview}}" bindtap="onClosePosterPreview">
-  <view class="poster-preview" catchtap="">
+  <view class="poster-preview" catchtap="noop">
     <image class="poster-image" src="{{posterImageUrl}}" mode="widthFix" show-menu-by-longpress="{{true}}"></image>
     <view class="poster-actions">
       <button class="btn btn-primary" bindtap="onSavePoster">保存到相册</button>

@@ -342,7 +342,7 @@ function buildShareText(data) {
   var rank = Number(d.rank) || 1;
   var winsNum = Number(d.wins) || 0;
   var lossesNum = Number(d.losses) || 0;
-  return '我在「' + eventName + '」中获得第 ' + rank + ' 名！' + winsNum + '胜' + lossesNum + '负，来围观 → 羽球轮转助手';
+  return '「' + eventName + '」赛事结果：' + winsNum + '胜' + lossesNum + '负，排名第 ' + rank + ' — 羽球轮转助手';
 }
 
 // --- 保存到相册 ---

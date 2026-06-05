@@ -104,7 +104,7 @@ test('poster share text is correctly formatted', () => {
     losses: 2
   });
   assert.ok(text.indexOf('周三羽毛球夜赛') >= 0);
-  assert.ok(text.indexOf('第 1 名') >= 0);
+  assert.ok(text.indexOf('排名第 1') >= 0);
   assert.ok(text.indexOf('8胜2负') >= 0);
 });
 
@@ -115,5 +115,5 @@ test('poster handles long event names in share text', () => {
     wins: 4,
     losses: 6
   });
-  assert.ok(text.indexOf('第 5 名') >= 0);
+  assert.ok(text.indexOf('排名第 5') >= 0);
 });
