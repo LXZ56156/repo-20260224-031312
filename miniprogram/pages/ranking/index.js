@@ -8,7 +8,6 @@ const matchPrimaryNav = require('../../core/matchPrimaryNav');
 const avatarDisplay = require('../../core/avatarDisplay');
 const uiPreferences = require('../../core/uiPreferences');
 const shareCardStats = require('../../core/shareCardStats');
-const shareCode = require('../../core/shareCode');
 const sharePageMixin = require('../../core/sharePageMixin');
 const tournamentEntry = require('../../core/tournamentEntry');
 

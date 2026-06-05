@@ -4,7 +4,6 @@
  */
 var shareCard = require('./shareCard');
 var shareCardPreheat = require('./shareCardPreheat');
-var shareCardStats = require('./shareCardStats');
 var shareCode = require('./shareCode');
 var shareMeta = require('./shareMeta');
 var shareActivity = require('./shareActivity');

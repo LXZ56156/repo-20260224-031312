@@ -28,7 +28,7 @@
     </view>
     <view class="analytics-hero-actions">
       <button class="btn btn-primary btn-sm analytics-hero-primary" bindtap="cloneCurrentTournament">再办一场</button>
-      <button class="btn btn-outline btn-sm" bindtap="onGeneratePoster">生成赛事海报</button>
+      <button class="btn btn-outline btn-sm" bindtap="onGeneratePoster">生成榜首海报</button>
       <button class="btn btn-outline btn-sm" bindtap="onShareTimelineGuide">分享比赛</button>
     </view>
   </view>

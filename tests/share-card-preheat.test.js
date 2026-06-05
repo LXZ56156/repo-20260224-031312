@@ -63,3 +63,25 @@ test('shareCardPreheat keeps background failures best-effort', async () => {
 
   assert.equal(await shareCardPreheat.preheatShareCard(ctx, { _id: 'tid_1' }), '');
 });
+
+test('getPreparedShareImage dispatches to correct builder by type', async () => {
+  const calls = [];
+  const ctx = {
+    _buildShareCardData() { return { rank: 1 }; },
+    _buildShareCard() { calls.push('appMessage'); return Promise.resolve('/tmp/card.png'); },
+    _buildTimelineCard() { calls.push('timeline'); return Promise.resolve('/tmp/timeline.png'); },
+    _buildPoster() { calls.push('poster'); return Promise.resolve('/tmp/poster.png'); }
+  };
+  const tournament = { _id: 't1' };
+
+  // Clear any cached state on ctx before each call
+  await shareCardPreheat.getPreparedShareImage(ctx, tournament, 'appMessage');
+  assert.deepEqual(calls, ['appMessage']);
+
+  // Use different tournament to avoid cache hit
+  await shareCardPreheat.getPreparedShareImage(ctx, { _id: 't2' }, 'timeline');
+  assert.deepEqual(calls, ['appMessage', 'timeline']);
+
+  await shareCardPreheat.getPreparedShareImage(ctx, { _id: 't3' }, 'poster');
+  assert.deepEqual(calls, ['appMessage', 'timeline', 'poster']);
+});
