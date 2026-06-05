@@ -5,7 +5,7 @@
 ## 基本信息
 
 - Windows 镜像项目：`D:\projects\badminton-miniapp-preview`
-- MCP 服务：`ws://127.0.0.1:9420`
+- MCP 服务：`ws://127.0.0.1:39420`
 - MCP 连接：成功
 - 镜像同步：成功
 - 编译预览：成功，首页可打开

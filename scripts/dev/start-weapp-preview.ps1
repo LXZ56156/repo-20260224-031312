@@ -2,7 +2,8 @@ $ErrorActionPreference = 'Stop'
 
 $CliPath = 'D:\Soft\微信web开发者工具\cli.bat'
 $PreviewDir = 'D:\projects\badminton-miniapp-preview'
-$AutoPort = 9420
+$CliPort = 39421
+$AutoPort = 39420
 $OpenTimeoutSeconds = 45
 $AutoTimeoutSeconds = 45
 $OpenRetries = 2
@@ -145,6 +146,7 @@ if (-not (Test-Path -LiteralPath $PreviewDir -PathType Container)) {
 
 Write-Log "CLI: $CliPath"
 Write-Log "PROJECT: $PreviewDir"
+Write-Log "CLI_PORT: $CliPort"
 Write-Log "PORT: $AutoPort"
 Write-Log "启动顺序：quit -> open -> auto"
 
@@ -155,7 +157,7 @@ try {
     Start-Sleep -Seconds 1
     Start-CliCommand -Arguments @('open', '--project', $PreviewDir)
     Start-Sleep -Seconds 4
-    Start-CliCommand -Arguments @('auto', '--project', $PreviewDir, '--auto-port', [string]$AutoPort)
+    Start-CliCommand -Arguments @('auto', '--project', $PreviewDir, '--port', [string]$CliPort, '--auto-port', [string]$AutoPort)
     if (Wait-ForAutomationPort -Port $AutoPort -TimeoutSeconds $AutoTimeoutSeconds) {
         Write-Log ("automation 已就绪：ws://127.0.0.1:{0}" -f $AutoPort)
     } else {

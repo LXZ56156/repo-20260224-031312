@@ -11,6 +11,7 @@ DEBOUNCE_MILLISECONDS="${DEBOUNCE_MILLISECONDS:-400}"
 DEBOUNCE_SECONDS="${DEBOUNCE_SECONDS:-0.4}"
 POLL_INTERVAL_SECONDS="${POLL_INTERVAL_SECONDS:-0.4}"
 ALLOW_UNSAFE_PREVIEW_DIR="${ALLOW_UNSAFE_PREVIEW_DIR:-0}"
+SYNC_WATCH_MODE="${SYNC_WATCH_MODE:-auto}"
 ACTION="${1:-run}"
 
 WATCH_ROOT_FILES=(
@@ -388,12 +389,27 @@ main() {
       log "预览目录：$PREVIEW_DIR"
       log "PID 文件：$PID_FILE"
       log "同步清单：$SYNC_MANIFEST_PATH"
-      if command -v inotifywait >/dev/null 2>&1; then
-        watch_with_inotify
-      else
-        perform_sync "初始同步"
-        watch_with_polling
-      fi
+      case "$SYNC_WATCH_MODE" in
+        auto)
+          if command -v inotifywait >/dev/null 2>&1; then
+            watch_with_inotify
+          else
+            perform_sync "初始同步"
+            watch_with_polling
+          fi
+          ;;
+        inotify)
+          require_command inotifywait
+          watch_with_inotify
+          ;;
+        polling)
+          perform_sync "初始同步"
+          watch_with_polling
+          ;;
+        *)
+          fail "不支持的监听模式：$SYNC_WATCH_MODE，可选值：auto | inotify | polling"
+          ;;
+      esac
       ;;
     signature)
       build_source_signature

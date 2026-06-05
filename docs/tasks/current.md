@@ -61,7 +61,7 @@
 - 既有分享入口验收：从分享链接加入后，清缓存/换设备确认头像昵称来自云端资料；在赛程页和复盘页分别走右上角转发，确认分享可用。
 
 ## Blockers
-- 默认 Windows DevTools CLI callback 端口 `3799` 和 MCP automation 端口 `9420` 受本机 `xray.exe` 占用。已用 DevTools 安装目录中的本地 sidecar 副本切换 callback 端口，并通过 `ws://127.0.0.1:19423` 直接连接 `miniprogram-automator`；原 CLI 未修改。默认 `scripts/dev/weapp-dev.sh mcp` 仍不可直接使用，但不再阻塞本轮验收。
+- Windows DevTools / MCP 自动化端口已统一为 `39420`。本机 `xray.exe` 占用默认 `9420`，DevTools CLI 默认 callback 端口 `3799` 会报 `listen EACCES`；当前 `scripts/dev/start-weapp-preview.ps1` 和 `D:\weapp-mcp-launcher\weapp-mcp.cmd` 使用 `--port 39421 --auto-port 39420`，连接时优先使用 `ws://127.0.0.1:39420`。
 - `generateShareCode` 的首次 OpenAPI 权限注册不能只使用 `tcb fn deploy`：官方文档要求在 `config.json` 声明 `wxacode.getUnlimited` 并通过开发者工具重新上传。当前 DevTools CLI 打包嵌套 `lib/` 时会报 `EISDIR`，本轮用项目外临时平铺目录完成一次权限注册，再用 `miniprogram-ci.cloud.uploadFunction({ remoteNpmInstall: true })` 恢复规范源码和依赖。临时目录已删除。
 
 ## Verified Subset Output
