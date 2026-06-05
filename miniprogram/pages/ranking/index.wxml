@@ -25,7 +25,8 @@
     <view class="hero-kicker">积分榜</view>
     <view class="hero-title">{{rankingTypeLabel}}</view>
     <view class="hero-sub">{{tournament.name}}</view>
-    <view class="hero-actions">
+    <view class="hero-actions ranking-hero-actions btn-row">
+      <button class="btn btn-primary btn-sm" bindtap="onShareTimelineGuide">分享到朋友圈</button>
       <button class="btn btn-outline btn-sm" bindtap="onGeneratePoster">生成战绩海报</button>
     </view>
   </view>

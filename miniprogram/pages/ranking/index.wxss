@@ -12,6 +12,10 @@
   letter-spacing: 0.5rpx;
 }
 
+.ranking-hero-actions {
+  margin-top: var(--space-section);
+}
+
 /* --- Ranking Card --- */
 .ranking-card {
   margin-top: var(--space-tight);

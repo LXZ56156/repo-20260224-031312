@@ -76,6 +76,22 @@ function createSharePageMixin(opts) {
       });
     },
 
+    onShareTimelineGuide: function () {
+      this._ensureShareMenu();
+      if (typeof wx !== 'undefined' && wx && typeof wx.showModal === 'function') {
+        wx.showModal({
+          title: '分享到朋友圈',
+          content: '请点击右上角“···”，选择“分享到朋友圈”。',
+          showCancel: false,
+          confirmText: '知道了'
+        });
+        return;
+      }
+      if (typeof wx !== 'undefined' && wx && typeof wx.showToast === 'function') {
+        wx.showToast({ title: '请点右上角分享', icon: 'none' });
+      }
+    },
+
     onSavePoster: function () {
       var imageUrl = String(this.data.posterImageUrl || '').trim();
       if (!imageUrl) return;

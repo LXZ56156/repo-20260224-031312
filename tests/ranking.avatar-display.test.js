@@ -201,6 +201,50 @@ test('ranking page renders pair display names on one ellipsized title line', () 
   assert.match(wxml, /class="player-title ellipsis"/);
 });
 
+test('ranking page exposes a timeline share guide action in the hero', () => {
+  const wxml = fs.readFileSync(
+    path.join(__dirname, '..', 'miniprogram/pages/ranking/index.wxml'),
+    'utf8'
+  );
+
+  assert.match(wxml, /bindtap="onShareTimelineGuide"/);
+  assert.match(wxml, />分享到朋友圈<\/button>/);
+  assert.match(wxml, /class="hero-actions ranking-hero-actions btn-row"/);
+});
+
+test('ranking timeline guide preheats share menu and explains the top-right entry', () => {
+  const originalWx = global.wx;
+  const definition = loadRankingPageDefinition();
+  const ctx = createRankingPageContext(definition);
+  const showShareMenuCalls = [];
+  const modalCalls = [];
+
+  global.wx = {
+    showShareMenu(options = {}) {
+      showShareMenuCalls.push(options);
+      if (typeof options.success === 'function') options.success({});
+    },
+    showModal(options = {}) {
+      modalCalls.push(options);
+    }
+  };
+
+  try {
+    ctx.onShareTimelineGuide();
+
+    assert.equal(showShareMenuCalls.length, 1);
+    assert.equal(showShareMenuCalls[0].withShareTicket, true);
+    assert.equal(modalCalls.length, 1);
+    assert.equal(modalCalls[0].title, '分享到朋友圈');
+    assert.match(modalCalls[0].content, /右上角/);
+    assert.match(modalCalls[0].content, /分享到朋友圈/);
+    assert.equal(modalCalls[0].showCancel, false);
+  } finally {
+    global.wx = originalWx;
+    delete require.cache[rankingPagePath];
+  }
+});
+
 test('ranking timeline share waits for the canvas node before drawing', async () => {
   const originalWx = global.wx;
   const originalGetApp = global.getApp;
