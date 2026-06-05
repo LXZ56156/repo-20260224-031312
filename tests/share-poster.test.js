@@ -53,7 +53,7 @@ test('poster generates 1080×1080 image for top 3 rank', async () => {
   assert.equal(exportedHeight, sharePoster.POSTER_SIZE);
 });
 
-test('poster handles normal rank (≥4) with pure color background', async () => {
+test('poster handles normal rank (≥4) with readable fallback layout', async () => {
   const canvas = createCanvas(sharePoster.POSTER_SIZE, sharePoster.POSTER_SIZE);
   const result = await sharePoster.generatePoster(canvas, {
     userName: '李四',
@@ -70,7 +70,11 @@ test('poster handles normal rank (≥4) with pure color background', async () =>
     loadImage() {
       return Promise.reject(new Error('no image'));
     },
-    exportCanvas() { return 'poster-normal.png'; }
+    exportCanvas(targetCanvas) {
+      const panelPixel = targetCanvas.getContext('2d').getImageData(540, 520, 1, 1).data;
+      assert.ok(panelPixel[0] > 220 && panelPixel[1] > 220 && panelPixel[2] > 220, 'normal poster stats panel should be light');
+      return 'poster-normal.png';
+    }
   });
   assert.equal(result, 'poster-normal.png');
 });

@@ -19,6 +19,21 @@ var NORMAL_BG_COLOR = '#0C5A3B';
 
 var imagePathCache = {};
 
+function roundedRect(ctx, x, y, width, height, radius) {
+  var r = Math.max(0, Math.min(Number(radius) || 0, width / 2, height / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + width - r, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+  ctx.lineTo(x + width, y + height - r);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+  ctx.lineTo(x + r, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
 function getBgPath(rank) {
   var value = Number(rank);
   if (!Number.isInteger(value) || value < 1) return NORMAL_BG_COLOR;
@@ -196,6 +211,113 @@ function drawAvatarPlaceholder(ctx, userName) {
   ctx.restore();
 }
 
+function drawNormalShareBackground(ctx, designH, rank) {
+  var heightRatio = designH / DESIGN_H;
+  var gradient = ctx.createLinearGradient(0, 0, 0, designH);
+  gradient.addColorStop(0, '#0C5A3B');
+  gradient.addColorStop(1, '#083E2C');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, DESIGN_W, designH);
+
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(36, 92 * heightRatio);
+  ctx.lineTo(464, 92 * heightRatio);
+  ctx.moveTo(76, designH - 92);
+  ctx.lineTo(424, designH - 92);
+  ctx.moveTo(82, designH);
+  ctx.lineTo(188, 150 * heightRatio);
+  ctx.moveTo(418, designH);
+  ctx.lineTo(312, 150 * heightRatio);
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  roundedRect(ctx, 190, 103 * heightRatio, 120, 24, 12);
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.32)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
+
+  var rankY = designH === 400 ? 112 : 154;
+  var rankH = designH === 400 ? 56 : 66;
+  var rankRadius = designH === 400 ? 18 : 22;
+  var rankCenterY = rankY + rankH / 2;
+  ctx.save();
+  roundedRect(ctx, 142, rankY, 216, rankH, rankRadius);
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.32)';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = '700 ' + (designH === 400 ? 18 : 20) + 'px sans-serif';
+  ctx.fillText('第', 193, rankCenterY);
+  ctx.font = '800 ' + (designH === 400 ? 44 : 54) + 'px sans-serif';
+  ctx.fillText(String(Number(rank) || 4), 250, rankCenterY + 1);
+  ctx.font = '700 ' + (designH === 400 ? 18 : 20) + 'px sans-serif';
+  ctx.fillText('名', 307, rankCenterY);
+  ctx.restore();
+
+  ctx.save();
+  roundedRect(ctx, 70, 222 * heightRatio, 360, 126 * heightRatio, 14);
+  ctx.fillStyle = 'rgba(255,255,255,0.94)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.70)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(AVATAR_FRAME.x + AVATAR_FRAME.size / 2, AVATAR_FRAME.y + AVATAR_FRAME.size / 2, AVATAR_FRAME.size / 2 + 3, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.24)';
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawChatFooterPatch(ctx) {
+  ctx.save();
+  roundedRect(ctx, 150, 282, 200, 96, 34);
+  ctx.fillStyle = 'rgba(7, 74, 50, 0.98)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = '600 13px sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.78)';
+  ctx.fillText('点击查看完整战绩', DESIGN_W / 2, 326);
+  ctx.font = '400 11px sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.52)';
+  ctx.fillText('羽球轮转助手', DESIGN_W / 2, 350);
+  ctx.restore();
+}
+
+function drawNormalShareFooter(ctx, designH, hasQrCode) {
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(255,255,255,0.78)';
+  ctx.font = '500 13px sans-serif';
+  if (hasQrCode && designH === DESIGN_H) {
+    ctx.fillText('扫码查看完整战绩', DESIGN_W / 2, 456);
+    ctx.font = '400 12px sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.54)';
+    ctx.fillText('羽球轮转助手', DESIGN_W / 2, 476);
+  } else {
+    ctx.fillText('羽球轮转助手', DESIGN_W / 2, designH - 24);
+  }
+  ctx.restore();
+}
+
 // 测量文本宽度
 function measure(ctx, text, size, weight) {
   ctx.font = (weight || 400) + ' ' + size + 'px sans-serif';
@@ -337,18 +459,19 @@ async function drawShareCard(canvas, data, options) {
 
   var rank = Number(d.rank);
   var bgPath = getBgPath(rank);
+  var isNormalBg = bgPath === NORMAL_BG_COLOR;
 
   // 1. 背景
-  if (bgPath === NORMAL_BG_COLOR) {
-    ctx.fillStyle = NORMAL_BG_COLOR;
-    ctx.fillRect(0, 0, DESIGN_W, designH);
+  if (isNormalBg) {
+    drawNormalShareBackground(ctx, designH, rank);
   } else {
     try {
       var bg = await loadImage(canvas, bgPath, options);
       ctx.drawImage(bg, 0, 0, DESIGN_W, designH);
+      if (aspectRatio === '5:4') drawChatFooterPatch(ctx);
     } catch (e) {
-      ctx.fillStyle = NORMAL_BG_COLOR;
-      ctx.fillRect(0, 0, DESIGN_W, designH);
+      drawNormalShareBackground(ctx, designH, rank);
+      isNormalBg = true;
     }
   }
 
@@ -372,13 +495,13 @@ async function drawShareCard(canvas, data, options) {
   var userName = String(d.userName || '球员');
   var uf = fitText(ctx, userName, 92, 20, 16, 700, 2);
   ctx.font = (700) + ' ' + uf.size + 'px sans-serif';
-  ctx.fillStyle = '#1D2420';
+  ctx.fillStyle = isNormalBg ? '#FFFFFF' : '#1D2420';
   ctx.textAlign = 'left';
   ctx.fillText(uf.text, 78, 37 * heightRatio);
   var nameW = ctx.measureText(uf.text).width;
 
   ctx.font = '400 14px sans-serif';
-  ctx.fillStyle = '#6F7B74';
+  ctx.fillStyle = isNormalBg ? 'rgba(255,255,255,0.72)' : '#6F7B74';
   ctx.fillText('的比赛战绩', 78 + nameW + 10, 37 * heightRatio);
 
   // 4. 赛事名（按长度分级 24~32px，最大宽度340，底线24px截断）
@@ -386,7 +509,7 @@ async function drawShareCard(canvas, data, options) {
   var etSize = eventTitleSize(ctx, eventName);
   var evf = fitText(ctx, eventName, 340, etSize, 24, 800, 2);
   ctx.font = '800 ' + evf.size + 'px sans-serif';
-  ctx.fillStyle = '#00462E';
+  ctx.fillStyle = isNormalBg ? '#FFFFFF' : '#00462E';
   ctx.textAlign = 'center';
   ctx.fillText(evf.text, DESIGN_W / 2, 75 * heightRatio);
 
@@ -394,7 +517,7 @@ async function drawShareCard(canvas, data, options) {
   var modeText = String(d.mode || '');
   var mf = fitText(ctx, modeText, 104, 14, 11, 500, 1);
   ctx.font = '500 ' + mf.size + 'px sans-serif';
-  ctx.fillStyle = '#0C5A3B';
+  ctx.fillStyle = isNormalBg ? 'rgba(255,255,255,0.86)' : '#0C5A3B';
   ctx.textAlign = 'center';
   ctx.fillText(mf.text, DESIGN_W / 2, 115 * heightRatio);
 
@@ -452,6 +575,8 @@ async function drawShareCard(canvas, data, options) {
     } catch (e) {}
   }
 
+  if (isNormalBg) drawNormalShareFooter(ctx, designH, !!(d.qrCodeUrl && aspectRatio !== '5:4'));
+
   // 9. 导出（背景图已含品牌名和CTA，不重复绘制）
   return exportCanvas(canvas, designH, options);
 }
@@ -469,6 +594,9 @@ module.exports = {
     fmtWinRate: fmtWinRate,
     buildPillTexts: buildPillTexts,
     drawAvatarPlaceholder: drawAvatarPlaceholder,
+    drawNormalShareBackground: drawNormalShareBackground,
+    drawChatFooterPatch: drawChatFooterPatch,
+    roundedRect: roundedRect,
     drawCoverImage: drawCoverImage,
     isCloudPath: isCloudPath,
     isNetworkPath: isNetworkPath,

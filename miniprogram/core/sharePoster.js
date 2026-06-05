@@ -7,6 +7,7 @@ var shareCard = require('./shareCard');
 
 var POSTER_SIZE = 1080;
 var SCALE = POSTER_SIZE / shareCard.DRAW_SIZE.width; // 1080/500 = 2.16
+var roundedRect = shareCard._private.roundedRect;
 
 function getPixelRatio(options) {
   var explicitDpr = Number(options && options.dpr);
@@ -85,6 +86,72 @@ function fitTextScaled(ctx, text, maxWidth, defaultSize, minSize, weight, step) 
   return { text: s + '…', size: minSize };
 }
 
+function drawNormalPosterBackground(ctx, rank) {
+  var gradient = ctx.createLinearGradient(0, 0, 0, POSTER_SIZE);
+  gradient.addColorStop(0, '#0C5A3B');
+  gradient.addColorStop(1, '#083E2C');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, POSTER_SIZE, POSTER_SIZE);
+
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(78, 198);
+  ctx.lineTo(1002, 198);
+  ctx.moveTo(156, 890);
+  ctx.lineTo(924, 890);
+  ctx.moveTo(178, POSTER_SIZE);
+  ctx.lineTo(408, 324);
+  ctx.moveTo(902, POSTER_SIZE);
+  ctx.lineTo(672, 324);
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  roundedRect(ctx, 415, 221, 250, 54, 27);
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.32)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  roundedRect(ctx, 300, 310, 480, 138, 44);
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.32)';
+  ctx.lineWidth = 2.4;
+  ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = '700 42px sans-serif';
+  ctx.fillText('第', 418, 380);
+  ctx.font = '800 112px sans-serif';
+  ctx.fillText(String(Number(rank) || 4), POSTER_SIZE / 2, 382);
+  ctx.font = '700 42px sans-serif';
+  ctx.fillText('名', 662, 380);
+  ctx.restore();
+
+  ctx.save();
+  roundedRect(ctx, 145, 500, 790, 246, 30);
+  ctx.fillStyle = 'rgba(255,255,255,0.94)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.70)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(85.5, 74.5, 49, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.24)';
+  ctx.fill();
+  ctx.restore();
+}
+
 // --- 海报生成 ---
 async function generatePoster(canvas, data, options) {
   options = options || {};
@@ -119,16 +186,16 @@ async function generatePoster(canvas, data, options) {
 
   // 1. 背景
   var bgPath = shareCard.getBgPath(Number(d.rank));
+  var isNormalBg = bgPath === shareCard.NORMAL_BG_COLOR;
   if (bgPath === shareCard.NORMAL_BG_COLOR) {
-    ctx.fillStyle = shareCard.NORMAL_BG_COLOR;
-    ctx.fillRect(0, 0, POSTER_SIZE, POSTER_SIZE);
+    drawNormalPosterBackground(ctx, d.rank);
   } else {
     try {
       var bgImg = await loadPosterImage(canvas, bgPath, options);
       ctx.drawImage(bgImg, 0, 0, POSTER_SIZE, POSTER_SIZE);
     } catch (e) {
-      ctx.fillStyle = shareCard.NORMAL_BG_COLOR;
-      ctx.fillRect(0, 0, POSTER_SIZE, POSTER_SIZE);
+      drawNormalPosterBackground(ctx, d.rank);
+      isNormalBg = true;
     }
   }
 
@@ -158,20 +225,20 @@ async function generatePoster(canvas, data, options) {
   var maxNameW = 200;
   var uf = fitTextScaled(ctx, userName, maxNameW, 44, 34, 700, 4);
   ctx.font = '700 ' + uf.size + 'px sans-serif';
-  ctx.fillStyle = '#1D2420';
+  ctx.fillStyle = isNormalBg ? '#FFFFFF' : '#1D2420';
   ctx.textAlign = 'left';
   ctx.fillText(uf.text, nameX, nameY);
   var nameW = ctx.measureText(uf.text).width;
 
   ctx.font = '400 30px sans-serif';
-  ctx.fillStyle = '#6F7B74';
+  ctx.fillStyle = isNormalBg ? 'rgba(255,255,255,0.72)' : '#6F7B74';
   ctx.fillText('的比赛战绩', nameX + nameW + 20, nameY);
 
   // 4. 赛事名
   var eventName = String(d.eventName || '羽毛球比赛');
   var ef = fitTextScaled(ctx, eventName, 730, 70, 52, 800, 4);
   ctx.font = '800 ' + ef.size + 'px sans-serif';
-  ctx.fillStyle = '#00462E';
+  ctx.fillStyle = isNormalBg ? '#FFFFFF' : '#00462E';
   ctx.textAlign = 'center';
   ctx.fillText(ef.text, POSTER_SIZE / 2, 162);
 
@@ -179,7 +246,7 @@ async function generatePoster(canvas, data, options) {
   var modeText = String(d.mode || '');
   var mf = fitTextScaled(ctx, modeText, 225, 30, 24, 500, 2);
   ctx.font = '500 ' + mf.size + 'px sans-serif';
-  ctx.fillStyle = '#0C5A3B';
+  ctx.fillStyle = isNormalBg ? 'rgba(255,255,255,0.86)' : '#0C5A3B';
   ctx.textAlign = 'center';
   ctx.fillText(mf.text, POSTER_SIZE / 2, 248);
 
@@ -238,7 +305,7 @@ async function generatePoster(canvas, data, options) {
 
   // 9. 品牌 CTA
   ctx.font = '400 22px sans-serif';
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.fillStyle = isNormalBg ? 'rgba(255,255,255,0.74)' : 'rgba(0,0,0,0.3)';
   ctx.textAlign = 'center';
   ctx.fillText('扫码查看完整赛果 · 羽球轮转助手', POSTER_SIZE / 2, 1030);
 
@@ -322,6 +389,7 @@ module.exports = {
     drawPosterAvatarPlaceholder: drawPosterAvatarPlaceholder,
     drawCoverImageScaled: drawCoverImageScaled,
     fitTextScaled: fitTextScaled,
+    drawNormalPosterBackground: drawNormalPosterBackground,
     exportPoster: exportPoster
   }
 };

@@ -120,6 +120,23 @@ function buildCases() {
       }
     },
     {
+      name: 'preview-rank4',
+      data: {
+        userName: '陈默',
+        eventName: '周三羽毛球夜赛',
+        mode: '个人榜',
+        wins: 5,
+        losses: 4,
+        winRate: '55.6%',
+        totalMatches: 9,
+        maxWinStreak: 2,
+        avgScore: 16.8,
+        rank: 4,
+        avatarUrl: makeAvatarDataUrl('陈', '#0b7f5b'),
+        qrCodeUrl
+      }
+    },
+    {
       name: 'preview-stress1',
       data: {
         userName: '昵称特别特别长的参赛选手',

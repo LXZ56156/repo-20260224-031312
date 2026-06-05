@@ -388,6 +388,74 @@ button.btn-mini::after {
   border-color: var(--brand-600);
 }
 
+/* --- Poster Preview Modal --- */
+.poster-overlay {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 1000;
+  box-sizing: border-box;
+  padding: 48rpx 32rpx calc(48rpx + env(safe-area-inset-bottom));
+  background: rgba(15, 23, 42, 0.62);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.poster-preview {
+  position: relative;
+  width: 640rpx;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 24rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 28rpx 72rpx rgba(15, 23, 42, 0.26);
+}
+
+.poster-image {
+  display: block;
+  width: 100%;
+  border-radius: 18rpx;
+  overflow: hidden;
+  background: var(--neutral-100);
+}
+
+.poster-actions {
+  margin-top: 20rpx;
+  display: flex;
+  gap: var(--space-inline);
+  align-items: stretch;
+}
+
+.poster-actions .btn {
+  width: 0;
+  flex: 1;
+  margin-top: 0 !important;
+  height: 76rpx;
+  line-height: 76rpx;
+  font-size: 26rpx;
+  border-radius: 14rpx;
+}
+
+.poster-close {
+  position: absolute;
+  right: -14rpx;
+  top: -14rpx;
+  width: 56rpx;
+  height: 56rpx;
+  line-height: 56rpx;
+  border-radius: 999rpx;
+  text-align: center;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--neutral-700);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 8rpx 22rpx rgba(15, 23, 42, 0.18);
+}
+
 /* --- I. Status Rail (统一状态条 — 固定占位，不插拔) --- */
 .status-rail {
   min-height: 8rpx;

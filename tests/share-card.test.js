@@ -14,6 +14,18 @@ function makeDataUrl() {
   return canvas.toDataURL('image/png');
 }
 
+function makeChatMedalBgDataUrl() {
+  const canvas = createCanvas(500, 400);
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0C5A3B';
+  ctx.fillRect(0, 0, 500, 400);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath();
+  ctx.arc(250, 320, 44, 0, Math.PI * 2);
+  ctx.fill();
+  return canvas.toDataURL('image/png');
+}
+
 test('shareCard formats fallback win rate from wins and total', () => {
   const fmtWinRate = shareCard._private.fmtWinRate;
   assert.equal(fmtWinRate('0%', 8, 10), '80%');
@@ -45,16 +57,16 @@ test('shareCard uses medal backgrounds for top three and fallback color for othe
   assert.equal(shareCard.getBgPath(0), shareCard.NORMAL_BG_COLOR);
 });
 
-test('shareCard draws non-medal ranks with fallback color instead of rejecting', async () => {
+test('shareCard draws non-medal ranks with a readable designed fallback instead of rejecting', async () => {
   const canvas = createCanvas(shareCard.DRAW_SIZE.width, shareCard.DRAW_SIZE.height);
   let drawnBg = false;
   const result = await shareCard.drawShareCard(canvas, { rank: 4, userName: '测试', eventName: '测试赛' }, {
     dpr: 1,
     loadImage,
     exportCanvas(targetCanvas) {
-      // Verify the background was filled with NORMAL_BG_COLOR
-      const pixel = targetCanvas.getContext('2d').getImageData(250, 250, 1, 1).data;
-      assert.deepEqual(Array.from(pixel), [12, 90, 59, 255]); // #0C5A3B
+      const ctx = targetCanvas.getContext('2d');
+      const panelPixel = ctx.getImageData(250, 240, 1, 1).data;
+      assert.ok(panelPixel[0] > 220 && panelPixel[1] > 220 && panelPixel[2] > 220, 'normal rank stats panel should be light');
       drawnBg = true;
       return 'test.png';
     }
@@ -142,6 +154,36 @@ test('shareCard draws with 5:4 aspect ratio for chat card', async () => {
 
   assert.equal(exportedSize.width, 500);
   assert.equal(exportedSize.height, 400);
+});
+
+test('shareCard covers the medal QR placeholder for 5:4 chat cards', async () => {
+  const bgDataUrl = makeChatMedalBgDataUrl();
+  const canvas = createCanvas(shareCard.DRAW_SIZE.width, 400);
+
+  await shareCard.drawShareCard(canvas, {
+    userName: '林夏',
+    eventName: '周三羽毛球夜赛',
+    mode: '个人榜',
+    wins: 8,
+    losses: 2,
+    winRate: '80%',
+    totalMatches: 10,
+    rank: 1,
+    avatarUrl: ''
+  }, {
+    dpr: 1,
+    aspectRatio: '5:4',
+    loadImage,
+    resolveImageSource(src) {
+      if (shareCard._private.isCloudPath(src)) return bgDataUrl;
+      return undefined;
+    },
+    exportCanvas(targetCanvas) {
+      const pixel = targetCanvas.getContext('2d').getImageData(250, 320, 1, 1).data;
+      assert.ok(pixel[1] < 140, 'QR placeholder should be covered with dark footer patch');
+      return 'chat-card-no-hole.png';
+    }
+  });
 });
 
 test('shareCard handles very long event names gracefully', async () => {
