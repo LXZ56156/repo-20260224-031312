@@ -8,7 +8,9 @@
 
 - `docs/context/architecture.md` — 完整架构参考（层级、模式、关键 pattern）
 - `docs/tasks/current.md` — 当前任务状态，会话开始时先读
+- `docs/specs/` — 功能设计文档和实现计划
 - `docs/notes/learnings.md` — 临时规则与经验积累
+- `docs/tools/we-analysis-local-script.md` — we分析数据拉取脚本使用说明
 
 ## Commands
 

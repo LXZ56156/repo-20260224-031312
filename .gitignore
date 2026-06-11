@@ -62,11 +62,12 @@ private.*.key
 tmp/
 .ui-audit-tmp/
 
-# local docs (allow context/tasks/notes, ignore the rest)
+# local docs (allow managed directories, ignore ad-hoc files)
 docs/*
-!docs/scheduler-full-audit.md
-!docs/backend-audit-2026-04-16.md
-!docs/we-analysis-local-script.md
 !docs/context/
 !docs/tasks/
 !docs/notes/
+!docs/specs/
+!docs/reports/
+!docs/archive/
+!docs/tools/

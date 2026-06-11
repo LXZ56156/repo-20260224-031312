@@ -8,7 +8,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 |------|---------|-------------|
 | `docs/context/architecture.md` | Stable architecture reference (layers, patterns, modes) | When touching unfamiliar modules or cross-cutting changes |
 | `docs/tasks/current.md` | Current task state and next steps | At session start, to continue prior work |
+| `docs/tasks/session-logs/` | Detailed verification logs from completed sessions | When investigating past test results or deployment history |
+| `docs/specs/` | Feature design docs and implementation plans | When starting new feature work |
 | `docs/notes/learnings.md` | Temporary rules, gotchas, accumulated discoveries | Before making assumptions about edge cases |
+| `docs/tools/we-analysis-local-script.md` | 微信 we分析 datacube 本地拉取脚本使用说明 | 当需要拉取小程序访问数据/用户画像/留存等分析数据时 |
 
 Update `docs/tasks/current.md` when starting or completing significant work. Record temporary discoveries in `docs/notes/learnings.md`, not here.
 
@@ -30,6 +33,11 @@ node --test tests/ranking-core.consistency.test.js
 
 # Check if cloud common libs are in sync
 ./scripts/check-cloud-common.sh
+
+# Pull WeChat official analytics data (we分析 / datacube)
+node scripts/fetch-we-analysis.js <type> <begin_date> <end_date>
+# See docs/tools/we-analysis-local-script.md for supported types and usage
+# Data saved to data/we-analysis/ (check existing files before re-pulling)
 ```
 
 Deploy cloud functions via WeChat DevTools: right-click `cloudfunctions/` > upload and deploy.

@@ -13,7 +13,7 @@ const matchOptions = require('../miniprogram/core/ux/multiRotateMatchOptions');
 const templateLibrary = require('../cloudfunctions/startTournament/rotation.templates');
 const fixedPair = require('../miniprogram/core/fixedPair');
 
-const OUTPUT_PATH = path.resolve(__dirname, '../docs/scheduler-full-audit.md');
+const OUTPUT_PATH = path.resolve(__dirname, '../docs/reports/scheduler-full-audit.md');
 const COVERAGE_APPENDIX_KEYS = ['4p-1c', '5p-1c', '6p-1c', '7p-1c', '8p-1c', '8p-2c', '9p-1c', '9p-2c', '10p-1c', '10p-2c'];
 const ROTATION_PREFIX_TRACKED_KEYS = ['6p-1c', '9p-2c', '17p-1c', '24p-2c'];
 const WORST_CASE_LIMIT = 5;
