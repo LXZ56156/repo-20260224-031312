@@ -6,7 +6,7 @@
 var DESIGN_W = 500;
 var DESIGN_H = 500;
 var IMAGE_PATH_CACHE_TTL_MS = 50 * 60 * 1000;
-var AVATAR_FRAME = { x: 19, y: 14, size: 41 };
+var AVATAR_FRAME = { x: 17, y: 12, size: 46 };
 var systemInfo = require('./systemInfo');
 
 var BG_CLOUD_PATHS = {

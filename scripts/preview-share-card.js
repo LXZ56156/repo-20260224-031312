@@ -73,7 +73,7 @@ function buildCases() {
       data: {
         userName: '林夏',
         eventName: '周三羽毛球夜赛',
-        mode: '个人榜',
+        mode: '多人转',
         wins: 8,
         losses: 2,
         winRate: '0%',
@@ -120,11 +120,28 @@ function buildCases() {
       }
     },
     {
+      name: 'preview-rank3-white-avatar',
+      data: {
+        userName: 'LZX',
+        eventName: '林丹馆4.2',
+        mode: '多人轮转',
+        wins: 5,
+        losses: 4,
+        winRate: '',
+        totalMatches: 9,
+        maxWinStreak: 3,
+        avgScore: 15.7,
+        rank: 3,
+        avatarUrl: makeAvatarDataUrl('', '#ffffff'),
+        qrCodeUrl
+      }
+    },
+    {
       name: 'preview-rank4',
       data: {
         userName: '陈默',
         eventName: '周三羽毛球夜赛',
-        mode: '个人榜',
+        mode: '多人转',
         wins: 5,
         losses: 4,
         winRate: '55.6%',

@@ -114,11 +114,11 @@ test('shareCard center-crops rectangular avatars before drawing', () => {
   };
   const drawCoverImage = shareCard._private.drawCoverImage;
 
-  drawCoverImage(ctx, { width: 240, height: 120 }, 19, 14, 41, 41);
-  drawCoverImage(ctx, { width: 120, height: 240 }, 19, 14, 41, 41);
+  drawCoverImage(ctx, { width: 240, height: 120 }, 17, 12, 46, 46);
+  drawCoverImage(ctx, { width: 120, height: 240 }, 17, 12, 46, 46);
 
-  assert.deepEqual(calls[0], [{ width: 240, height: 120 }, 60, 0, 120, 120, 19, 14, 41, 41]);
-  assert.deepEqual(calls[1], [{ width: 120, height: 240 }, 0, 60, 120, 120, 19, 14, 41, 41]);
+  assert.deepEqual(calls[0], [{ width: 240, height: 120 }, 60, 0, 120, 120, 17, 12, 46, 46]);
+  assert.deepEqual(calls[1], [{ width: 120, height: 240 }, 0, 60, 120, 120, 17, 12, 46, 46]);
 });
 
 test('shareCard draws with 5:4 aspect ratio for chat card', async () => {
@@ -213,7 +213,7 @@ test('shareCard draws a visible fallback avatar when no avatar image is availabl
 
   shareCard._private.drawAvatarPlaceholder(ctx, '');
 
-  assert.deepEqual(Array.from(ctx.getImageData(39, 18, 1, 1).data), [12, 90, 59, 255]);
+  assert.deepEqual(Array.from(ctx.getImageData(40, 17, 1, 1).data), [12, 90, 59, 255]);
 });
 
 test('shareCard draws with node-canvas adapters', async () => {

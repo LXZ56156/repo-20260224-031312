@@ -7,6 +7,8 @@ var shareCard = require('./shareCard');
 
 var POSTER_SIZE = 1080;
 var SCALE = POSTER_SIZE / shareCard.DRAW_SIZE.width; // 1080/500 = 2.16
+var QR_CENTER_Y = 852;
+var QR_RADIUS = 90;
 var roundedRect = shareCard._private.roundedRect;
 
 function getPixelRatio(options) {
@@ -72,7 +74,12 @@ function measureScaled(ctx, text, size, weight) {
   return ctx.measureText(text).width;
 }
 
+function normalizePosterEllipsis(text) {
+  return String(text || '').replace(/\.{3,}/g, '…');
+}
+
 function fitTextScaled(ctx, text, maxWidth, defaultSize, minSize, weight, step) {
+  text = normalizePosterEllipsis(text);
   step = step || 2;
   var sz = defaultSize;
   while (sz > minSize && measureScaled(ctx, text, sz, weight) > maxWidth) {
@@ -86,6 +93,124 @@ function fitTextScaled(ctx, text, maxWidth, defaultSize, minSize, weight, step) 
   return { text: s + '…', size: minSize };
 }
 
+function getFontSizeFromContext(ctx) {
+  var match = String(ctx && ctx.font || '').match(/(\d+(?:\.\d+)?)px/);
+  return match ? Number(match[1]) : 28;
+}
+
+function drawPosterText(ctx, text, x, y) {
+  text = normalizePosterEllipsis(text);
+  if (text.slice(-1) !== '…') {
+    ctx.fillText(text, x, y);
+    return;
+  }
+
+  var base = text.slice(0, -1);
+  var previousAlign = ctx.textAlign || 'left';
+  var totalWidth = ctx.measureText(text).width;
+  var baseWidth = ctx.measureText(base).width;
+  var startX = x;
+  if (previousAlign === 'center') {
+    startX = x - totalWidth / 2;
+  } else if (previousAlign === 'right' || previousAlign === 'end') {
+    startX = x - totalWidth;
+  }
+
+  ctx.save();
+  ctx.textAlign = 'left';
+  ctx.fillText(base, startX, y);
+  var fontSize = getFontSizeFromContext(ctx);
+  var dotRadius = Math.max(1.4, fontSize * 0.045);
+  var dotGap = dotRadius * 2.7;
+  var ellipsisCenterX = startX + baseWidth + Math.max(fontSize * 0.22, (totalWidth - baseWidth) / 2);
+  var dotY = y + fontSize * 0.16;
+  ctx.beginPath();
+  ctx.arc(ellipsisCenterX - dotGap, dotY, dotRadius, 0, Math.PI * 2);
+  ctx.arc(ellipsisCenterX, dotY, dotRadius, 0, Math.PI * 2);
+  ctx.arc(ellipsisCenterX + dotGap, dotY, dotRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function normalizePosterLabel(value) {
+  return normalizePosterEllipsis(value).replace(/\s+/g, ' ').trim();
+}
+
+function normalizePosterCapsule(value) {
+  var label = normalizePosterLabel(value);
+  if (label === '个人榜' || label === '队伍榜') return '';
+  return label;
+}
+
+function buildPosterTitleTexts(data) {
+  var eventName = normalizePosterLabel(data && data.eventName);
+  var mode = normalizePosterCapsule(data && data.mode);
+  var title = eventName || mode || '羽毛球比赛';
+  var capsule = mode || '战绩榜';
+  if (capsule === title) {
+    capsule = '战绩榜';
+  }
+  return { title: title, capsule: capsule };
+}
+
+function hasVisibleAvatarChange(before, after, size) {
+  if (!before || !after || !before.data || !after.data) return true;
+  var beforeData = before.data;
+  var afterData = after.data;
+  var center = size / 2;
+  var radius = size / 2 - 2;
+  var sampled = 0;
+  var changed = 0;
+  var diffTotal = 0;
+  for (var y = 4; y < size; y += 4) {
+    for (var x = 4; x < size; x += 4) {
+      var dx = x + 0.5 - center;
+      var dy = y + 0.5 - center;
+      if (dx * dx + dy * dy > radius * radius) continue;
+      var i = (y * size + x) * 4;
+      var diff = Math.abs(afterData[i] - beforeData[i]) +
+        Math.abs(afterData[i + 1] - beforeData[i + 1]) +
+        Math.abs(afterData[i + 2] - beforeData[i + 2]) +
+        Math.abs(afterData[i + 3] - beforeData[i + 3]);
+      sampled += 1;
+      diffTotal += diff;
+      if (diff > 8) changed += 1;
+    }
+  }
+  if (!sampled) return true;
+  return changed / sampled > 0.03 || diffTotal / sampled > 5;
+}
+
+function drawPosterAvatarImage(ctx, image, x, y, size, userName) {
+  var before = null;
+  if (typeof ctx.getImageData === 'function' && typeof ctx.putImageData === 'function') {
+    try {
+      before = ctx.getImageData(x, y, size, size);
+    } catch (e) {
+      before = null;
+    }
+  }
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+  ctx.closePath();
+  ctx.clip();
+  drawCoverImageScaled(ctx, image, x, y, size, size);
+  ctx.restore();
+
+  if (before) {
+    try {
+      var after = ctx.getImageData(x, y, size, size);
+      if (!hasVisibleAvatarChange(before, after, size)) {
+        ctx.putImageData(before, x, y);
+        drawPosterAvatarPlaceholder(ctx, x, y, size, userName);
+        return false;
+      }
+    } catch (e) {}
+  }
+  return true;
+}
+
 function drawNormalPosterBackground(ctx, rank) {
   var gradient = ctx.createLinearGradient(0, 0, 0, POSTER_SIZE);
   gradient.addColorStop(0, '#0C5A3B');
@@ -93,8 +218,15 @@ function drawNormalPosterBackground(ctx, rank) {
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, POSTER_SIZE, POSTER_SIZE);
 
+  var topGlow = ctx.createRadialGradient(540, 240, 80, 540, 240, 560);
+  topGlow.addColorStop(0, 'rgba(255,255,255,0.16)');
+  topGlow.addColorStop(0.46, 'rgba(255,255,255,0.05)');
+  topGlow.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = topGlow;
+  ctx.fillRect(0, 0, POSTER_SIZE, POSTER_SIZE);
+
   ctx.save();
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.10)';
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(78, 198);
@@ -109,6 +241,19 @@ function drawNormalPosterBackground(ctx, rank) {
   ctx.restore();
 
   ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, 890);
+  ctx.quadraticCurveTo(540, 810, 1080, 890);
+  ctx.moveTo(130, 0);
+  ctx.lineTo(420, 1080);
+  ctx.moveTo(950, 0);
+  ctx.lineTo(660, 1080);
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
   roundedRect(ctx, 415, 221, 250, 54, 27);
   ctx.fillStyle = 'rgba(255,255,255,0.12)';
   ctx.fill();
@@ -119,8 +264,14 @@ function drawNormalPosterBackground(ctx, rank) {
 
   ctx.save();
   roundedRect(ctx, 300, 310, 480, 138, 44);
-  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.shadowColor = 'rgba(0,0,0,0.16)';
+  ctx.shadowBlur = 18;
+  ctx.shadowOffsetY = 10;
+  ctx.fillStyle = 'rgba(255,255,255,0.14)';
   ctx.fill();
+  ctx.shadowColor = 'rgba(0,0,0,0)';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
   ctx.strokeStyle = 'rgba(255,255,255,0.32)';
   ctx.lineWidth = 2.4;
   ctx.stroke();
@@ -136,9 +287,15 @@ function drawNormalPosterBackground(ctx, rank) {
   ctx.restore();
 
   ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.20)';
+  ctx.shadowBlur = 22;
+  ctx.shadowOffsetY = 12;
   roundedRect(ctx, 145, 500, 790, 246, 30);
-  ctx.fillStyle = 'rgba(255,255,255,0.94)';
+  ctx.fillStyle = 'rgba(255,255,255,0.96)';
   ctx.fill();
+  ctx.shadowColor = 'rgba(0,0,0,0)';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
   ctx.strokeStyle = 'rgba(255,255,255,0.70)';
   ctx.lineWidth = 2;
   ctx.stroke();
@@ -200,55 +357,50 @@ async function generatePoster(canvas, data, options) {
   }
 
   // 2. 头像
-  var avatarX = 41;
-  var avatarY = 30;
-  var avatarSize = 89;
-  var avatarCenterX = avatarX + avatarSize / 2;
-  drawPosterAvatarPlaceholder(ctx, avatarX, avatarY, avatarSize, d.userName);
+  var avatarX = 39;
+  var avatarY = 27;
+  var avatarSize = 88;
   if (d.avatarUrl) {
     try {
       var avi = await loadPosterImage(canvas, d.avatarUrl, options);
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(avatarCenterX, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
-      ctx.closePath();
-      ctx.clip();
-      drawCoverImageScaled(ctx, avi, avatarX, avatarY, avatarSize, avatarSize);
-      ctx.restore();
-    } catch (e) {}
+      drawPosterAvatarImage(ctx, avi, avatarX, avatarY, avatarSize, d.userName);
+    } catch (e) {
+      drawPosterAvatarPlaceholder(ctx, avatarX, avatarY, avatarSize, d.userName);
+    }
+  } else {
+    drawPosterAvatarPlaceholder(ctx, avatarX, avatarY, avatarSize, d.userName);
   }
 
   // 3. 昵称
   var userName = String(d.userName || '球员');
   var nameX = 168;
   var nameY = 80;
-  var maxNameW = 200;
-  var uf = fitTextScaled(ctx, userName, maxNameW, 44, 34, 700, 4);
-  ctx.font = '700 ' + uf.size + 'px sans-serif';
+  var maxNameW = 170;
+  var uf = fitTextScaled(ctx, userName, maxNameW, 34, 26, 600, 2);
+  ctx.font = '600 ' + uf.size + 'px sans-serif';
   ctx.fillStyle = isNormalBg ? '#FFFFFF' : '#1D2420';
   ctx.textAlign = 'left';
-  ctx.fillText(uf.text, nameX, nameY);
+  drawPosterText(ctx, uf.text, nameX, nameY);
   var nameW = ctx.measureText(uf.text).width;
 
-  ctx.font = '400 30px sans-serif';
+  ctx.font = '400 27px sans-serif';
   ctx.fillStyle = isNormalBg ? 'rgba(255,255,255,0.72)' : '#6F7B74';
-  ctx.fillText('的比赛战绩', nameX + nameW + 20, nameY);
+  ctx.fillText('的比赛战绩', nameX + nameW + 12, nameY);
 
   // 4. 赛事名
-  var eventName = String(d.eventName || '羽毛球比赛');
-  var ef = fitTextScaled(ctx, eventName, 730, 70, 52, 800, 4);
+  var titleTexts = buildPosterTitleTexts(d);
+  var ef = fitTextScaled(ctx, titleTexts.title, 560, 62, 40, 800, 4);
   ctx.font = '800 ' + ef.size + 'px sans-serif';
   ctx.fillStyle = isNormalBg ? '#FFFFFF' : '#00462E';
   ctx.textAlign = 'center';
-  ctx.fillText(ef.text, POSTER_SIZE / 2, 162);
+  drawPosterText(ctx, ef.text, POSTER_SIZE / 2, 162);
 
   // 5. 模式标签
-  var modeText = String(d.mode || '');
-  var mf = fitTextScaled(ctx, modeText, 225, 30, 24, 500, 2);
+  var mf = fitTextScaled(ctx, titleTexts.capsule, 225, 30, 24, 500, 2);
   ctx.font = '500 ' + mf.size + 'px sans-serif';
   ctx.fillStyle = isNormalBg ? 'rgba(255,255,255,0.86)' : '#0C5A3B';
   ctx.textAlign = 'center';
-  ctx.fillText(mf.text, POSTER_SIZE / 2, 248);
+  drawPosterText(ctx, mf.text, POSTER_SIZE / 2, 248);
 
   // 6. 战绩三列
   var winRateText = fmt.fmtWinRate(d.winRate, winsNum, total);
@@ -286,7 +438,7 @@ async function generatePoster(canvas, data, options) {
     if (!p.text) return;
     var pf = fitTextScaled(ctx, p.text, p.maxW, 26, 22, 500, 2);
     ctx.font = '500 ' + pf.size + 'px sans-serif';
-    ctx.fillText(pf.text, p.cx, 693);
+    drawPosterText(ctx, pf.text, p.cx, 693);
   });
 
   // 8. 小程序码 — 圆形裁剪，放大版
@@ -295,19 +447,22 @@ async function generatePoster(canvas, data, options) {
       var qr = await loadPosterImage(canvas, d.qrCodeUrl, options);
       ctx.save();
       ctx.beginPath();
-      ctx.arc(POSTER_SIZE / 2, 864, 95, 0, Math.PI * 2);
+      ctx.arc(POSTER_SIZE / 2, QR_CENTER_Y, QR_RADIUS, 0, Math.PI * 2);
       ctx.closePath();
       ctx.clip();
-      ctx.drawImage(qr, POSTER_SIZE / 2 - 95, 864 - 95, 190, 190);
+      ctx.drawImage(qr, POSTER_SIZE / 2 - QR_RADIUS, QR_CENTER_Y - QR_RADIUS, QR_RADIUS * 2, QR_RADIUS * 2);
       ctx.restore();
     } catch (e) {}
   }
 
-  // 9. 品牌 CTA
-  ctx.font = '400 22px sans-serif';
-  ctx.fillStyle = isNormalBg ? 'rgba(255,255,255,0.74)' : 'rgba(0,0,0,0.3)';
-  ctx.textAlign = 'center';
-  ctx.fillText('扫码查看完整赛果 · 羽球轮转助手', POSTER_SIZE / 2, 1030);
+  if (isNormalBg) {
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255,255,255,0.86)';
+    ctx.font = '400 30px sans-serif';
+    ctx.fillText('扫码查看完整战绩', POSTER_SIZE / 2, 985);
+    ctx.font = '400 26px sans-serif';
+    ctx.fillText('羽球轮转助手', POSTER_SIZE / 2, 1030);
+  }
 
   return exportPoster(canvas, options);
 }
@@ -389,6 +544,8 @@ module.exports = {
     drawPosterAvatarPlaceholder: drawPosterAvatarPlaceholder,
     drawCoverImageScaled: drawCoverImageScaled,
     fitTextScaled: fitTextScaled,
+    buildPosterTitleTexts: buildPosterTitleTexts,
+    hasVisibleAvatarChange: hasVisibleAvatarChange,
     drawNormalPosterBackground: drawNormalPosterBackground,
     exportPoster: exportPoster
   }

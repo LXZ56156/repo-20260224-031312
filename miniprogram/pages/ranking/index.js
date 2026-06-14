@@ -78,10 +78,11 @@ var shareMixin = sharePageMixin.createSharePageMixin({
     var players = Array.isArray(tournament.players) ? tournament.players : [];
     var playerRecord = players.find(function (p) { return String(p.id || '') === String(currentRow.playerId || currentRow.entityId || ''); }) || {};
     var cardStats = shareCardStats.buildShareCardStats(tournament, currentRow);
+    var modeLabel = flow.getModeDisplayLabel(tournament.mode || flow.MODE_MULTI_ROTATE, tournament.presetKey);
     return {
       userName: currentRow.displayName || currentRow.name || '球员',
       eventName: tournament.name || '羽毛球比赛',
-      mode: this.data.rankingTypeLabel || '',
+      mode: modeLabel,
       wins: currentRow.wins || 0,
       losses: currentRow.losses || 0,
       winRate: cardStats.winRate,
