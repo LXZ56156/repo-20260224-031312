@@ -221,7 +221,7 @@ Page({
     });
     this.refreshParticipantAvatars();
     pageTitle.setTournamentPageTitle(this, preview.joinAllowed && !preview.joined ? '加入比赛' : '查看比赛', tournament);
-    this.trackShareEntryView();
+    this.trackShareEntryView(tournament);
   },
 
   ensureAvatarRuntime() {
@@ -268,12 +268,14 @@ Page({
     if (tournament) this.applyTournament(tournament);
   },
 
-  trackShareEntryView() {
+  trackShareEntryView(tournament) {
     if (this._trackedShareEntryView) return;
-    const tid = String(this.data.tournamentId || '').trim();
+    const source = tournament || this.data.tournament;
+    if (!source) return;
+    const tid = String(this.data.tournamentId || source._id || source.id || '').trim();
     if (!tid) return;
     this._trackedShareEntryView = true;
-    growthTracker.track('share_entry_view', growthTracker.fromTournament(this.data.tournament, {
+    growthTracker.track('share_entry_view', growthTracker.fromTournament(source, {
       tournamentId: tid,
       src: 'share_entry',
       a: 'view'

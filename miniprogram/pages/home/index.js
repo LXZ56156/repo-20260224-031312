@@ -650,7 +650,13 @@ Page({
     const item = this._getItem(idx) || {};
     const status = String(item.status || '').trim();
     if (status === 'finished') {
-      nav.goLobby(id);
+      growthTracker.track('home_finished_review_click', {
+        t: id,
+        s: 'finished',
+        src: 'home',
+        a: 'review_card'
+      });
+      nav.goAnalytics(id);
       return;
     }
     if (status === 'running') {
