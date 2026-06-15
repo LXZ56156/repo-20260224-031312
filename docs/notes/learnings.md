@@ -4,6 +4,7 @@
 > Periodically review: promote stable items to CLAUDE.md, delete resolved items.
 
 ## Active
+- [2026-06-15] 小程序 UI 改动必须走真实截图检查：先用 `miniprogram-browser doctor` / `snapshot -i --layout` 确认 DevTools 运行态，再用 `npm run ui:screenshot -- <case>` 生成真实页面截图。当前稳定自动化端口是 `39420`，不要使用旧端口 `9420`；`miniprogram-browser screenshot --mode page` 在 WSL 下可能超时或空白，`layout` 只作结构辅助。完整流程见 `docs/tools/weapp-ui-screenshot-workflow.md`。
 - [2026-06-11] 文档生命周期规则：
   1. `docs/tasks/current.md` 保持 ≤50 行，会话结束后将验证细节提取到 `docs/tasks/session-logs/`
   2. 一次性计划/审计/报告完成后移入 `docs/reports/`（审计/报告类）或 `docs/archive/`（历史计划类）

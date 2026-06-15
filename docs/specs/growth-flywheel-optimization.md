@@ -1,314 +1,505 @@
-# 增长飞轮优化方案 — 设计文档
+# 增长飞轮优化方案 — v1.2
 
-> 版本: v1.0 · 状态: ready_for_review  
-> 日期: 2026-06-05  
-> 数据来源: we分析 104 天数据 (2026.02.13–2026.06.04) + CloudBase 后端审计
+> 版本: v1.2 · 状态: ready_for_implementation
+> 日期: 2026-06-15
+> 数据来源: we分析 121 天数据 (2026.02.13–2026.06.13) + CloudBase 后端审计
+> v1.2 变更: 从 P0–P5 分散功能清单重构为"方案 A + E + 轻量 D"第一阶段增长方案。目标是最短可验证增长闭环，不再一次性做完所有增长功能。
 
-## 0. 背景
+## 0. 版本结论
 
-羽毛球轮转赛管理小程序。3 月→5 月实现 42× 增长（57→2,391 月会话）。5 月 532 UV / 485 新 UV（新用户占比 91%）。分享来源占 35%，核心页面为 schedule/lobby/match。用户画像：18–40 岁男性 70.6%，广东/吉林/辽宁集中。
+v1.2 做出以下明确决策：
 
-约束：仅限小程序内产品和体验优化，不改后端架构（CloudBase 个人版继续）。按用户旅程痛点定方案，不设硬性 KPI。
-
-## 1. 增长飞轮模型
-
-产品增长的本质是一个病毒循环：
-
-```
-分享 → 发现 → 首次体验 → 核心使用 → 回访 → 再分享 → (循环)
-```
-
-各节点现状诊断：
-
-| 节点 | 关键数据 | 诊断 |
-|------|---------|------|
-| ① 分享 | 日分享 3 次 / 708 访问 = 分享率 0.4% | 触点不足，用户缺少分享动机 |
-| ② 发现 | share-entry 35 入口/天，停留 3.6s | 落地页信息密度低 |
-| ③ 首次体验 | 91% 新用户，访问深度 2.94 页 | 漏斗最宽处也是流失最大处 |
-| ④ 核心使用 | schedule 247s/match 122s 停留 ✅ | 已形成 core loop |
-| ⑤ 回访 | 任务栏来源 52%，无推送/触达 | 完全靠用户主动回来 |
-| ⑥ 再分享 | ranking 退出率 50%，缺分享触发 | 飞轮未闭合 |
-
-## 2. 优先级排序
-
-按杠杆率（影响面 × 提升空间）÷ 实施成本排序：
-
-| 优先级 | 节点 | 核心理由 |
-|--------|------|---------|
-| P0 | ③ 首次体验 | 91% 新用户，转化漏斗最宽处，边际收益最高 |
-| P1 | ⑤ 回访 | 增长续航的核心短板，完全未开发 |
-| P2 | ⑥ 再分享 | 飞轮闭合点，分享率仅 0.4%，撬动空间大 |
-| P3 | ② 发现 | 落地页 3.6s，信息密度不够，转化瓶颈 |
-| P4 | ① 分享 | 已有大量基础设施（动态消息/海报/朋友圈卡片），补齐触发点即可 |
-| P5 | ④ 核心使用 | 体验已不错，锦上添花 |
+1. **不再采用 P0–P5 分散功能清单**。原方案将分享入口、新人引导、再分享、订阅消息拆成独立优先级，但本质都是"分享入口转化 + 再分享闭环"，合并更聚焦。
+2. **第一阶段采用"方案 A + E + 轻量 D"**：
+   - **方案 A（Entry Conversion）**：share-entry 状态化落地页 + 新人轻引导，解决"分享进来的人看不懂/不加入/秒退"。
+   - **方案 E（Event Tracking）**：最小增长埋点模块，解决"做完不知道有没有效果"。
+   - **轻量 D（Distribution）**：ranking/analytics 战绩再分享 + schedule 完赛时刻分享 + home finished 赛事复盘，解决"排名/完赛高情绪节点没有转化成再分享"。
+3. **第一阶段的唯一目标**：闭合最短增长链路 — 群分享 → 落地页转化 → 核心使用 → 战绩再分享 → 新用户进入。
+4. **第一阶段暂不做**：完整订阅消息系统、新增云函数、新增数据库集合。
+5. **订阅消息、添加到我的小程序引导、match 单场分享、mine 长期战绩分享等进入第二阶段 Backlog**。
 
 ---
 
-## 3. P0 · 首次体验优化
+## 1. 当前增长诊断
 
-### 3.1 诊断
+> 数据基于 121 天 we 分析 (2026.02.13–2026.06.13)，详细分析见 `data/we-analysis/user-behavior-analysis-2026-06-13.md`。
 
-| 数据点 | 数值 | 含义 |
-|--------|------|------|
-| 新用户占比 | 91% | 每天来的人几乎都是新人 |
-| 访问深度 | 2.94 页 | 新用户平均只逛 3 个页面就走 |
-| share-entry 停留 | 3.6s | 从分享进来的人，3.6 秒就决定了去留 |
-| 日均会话 vs PV | 27 vs 170 | 留下的人用得多（单会话约 6 PV），走的人走得快 |
+### 入口问题
 
-核心判断：漏斗最宽处也是流失最大处。新用户从 share-entry 进来，如果 10 秒内没搞懂「这是什么、我能干嘛」，就走了。
+| 指标 | 数值 | 诊断 |
+|------|------|------|
+| share-entry 日均流量 | 41.3 PV / 11.9 UV | 最大流量入口 |
+| share-entry 停留时间 | **0.1s** | 🔴 用户点开即关，信息密度严重不足 |
+| share-entry 当前展示 | 赛事名 + 加入按钮 | 无状态区分、无社交信号、无排名预览 |
 
-### 3.2 问题拆解
+### 新人问题
 
-1. **share-entry 页信息密度低** — 目前只展示赛事名+人数+加入按钮，没有传达「用了会怎样」
-2. **无新用户引导** — 第一次加入赛事后，不知道接下来该干嘛
-3. **陌生概念多** — 「轮转」「多人转」「固定搭档」「赛程」「录分」，第一次接触的球友可能懵
-4. **加入后无即时正反馈** — 加入成功后的状态不够振奋
+| 指标 | 数值 | 诊断 |
+|------|------|------|
+| 新用户占比（近30天） | 59.5% | 每天超过一半用户是新人 |
+| 新用户次日留存（近30天） | **5.7%** | 每 20 个新用户只有 1 个第二天回来 |
+| 次日留存 = 0 的天数 | 65.9% | 大部分日子无人回访 |
+| 访问深度（全时期） | 2.31 页 | 新人逛 2–3 页就走 |
+| 加入后无引导 | 无 | 加入成功后不知道下一步该干嘛 |
 
-### 3.3 优化项
+### 回访问题
 
-#### 3.3.1 share-entry 落地页信息增强
+| 指标 | 数值 | 诊断 |
+|------|------|------|
+| 下拉任务栏（主动回访） | **0.3%** | 用户几乎从不主动打开 |
+| 会话（分享卡片进入） | 59.2% | 回访主要靠别人分享拉进来 |
+| 搜索 | 16.1% | 有一定自然搜索 |
 
-**改动范围**: `pages/share-entry/index`
+### 分享问题
 
-- 在赛事名称下方加一行简短赛事摘要（如「7人轮转 · 21场 · 1片场地」）
-- 展示已有参赛者头像列表（首字头像即可），强化「已有人在等你」的社交信号
-- 「加入比赛」按钮上方加 1-2 个简短 feature 亮点
+| 指标 | 数值 | 诊断 |
+|------|------|------|
+| 日分享 PV | 1.88 | 日均不到 2 次分享 |
+| 日均分享人数 | 1.12 | 每天只有 ~1 人在分享 |
+| 分享率 | 0.5% | 每 200 次访问才有 1 次分享 |
+| 分享来源占总流量 | **59.2%** | 极少量分享撬动大部分流量 — 杠杆极高 |
+| ranking 退出率 | 50% | 用户看完排名就走，无下一步动作 |
 
-**预期效果**: 落地页停留 3.6s → 6–8s，加入转化率提升
+### 核心使用判断
 
-**不涉及**: 云函数、数据结构变更
-
-#### 3.3.2 加入成功后的新手引导
-
-**改动范围**: `pages/lobby/index`
-
-- 加入成功后，对「首次加入」用户显示引导卡片：「比赛还没开始，先看看你的队友 👀」→ 引导点开参赛名单
-- 用 2-3 个轻量 tooltip/高亮卡片串联新用户前 30 秒的关键动作：
-  1. 看看有谁参加（点开参赛名单）
-  2. 了解比赛规则（赛制说明区域高亮）
-  3. 等待开赛（正常状态）
-- 「首次加入」标记通过 `wx.getStorageSync/setStorageSync` 本地记录，不新增云函数
-
-**预期效果**: 新用户访问深度 2.94 → 4–5 页
-
-**不涉及**: 云函数、数据结构变更
-
-#### 3.3.3 开赛后首次体验保护
-
-**改动范围**: `pages/schedule/index`, `pages/match/index`
-
-- 比赛开始后，如果用户还没录过分，schedule 页给一个非阻塞轻提示：「点击比赛卡片进入录分 📝」
-- match 页首次进入时，比分输入区上方显示一行引导文案：「双方确认比分后，点击提交即可」
-- 首次提交比分成功后，用微动效+toast 给正反馈
-- 「首次录分」标记同样走本地 storage，按 `tournamentId` 维度记录
-
-**预期效果**: 减少新用户 schedule → match 路径的摩擦
-
-**不涉及**: 云函数、数据结构变更
-
-### 3.4 不改什么
-
-- 不改变当前加入赛事的业务流程和数据结构
-- 不增加新的云函数
-- 所有引导只对「首次」触发，对老用户零打扰
+- 近 30 天人均停留 338.4s，访问深度 3.08 页。
+- schedule/lobby/match 为 Top 3 页面。
+- **留下来的用户使用深，核心功能不是最主要瓶颈**。
 
 ---
 
-## 4. P1 · 回访与留存
+## 2. 为什么选择 A + E + 轻量 D
 
-### 4.1 诊断
+### 三种方案的定位
 
-| 数据点 | 含义 |
-|--------|------|
-| 任务栏来源占 52% | 一半回访靠用户自己记住、主动回来 |
-| 单聊分享来源 35% | 每次回访几乎都是别人拉进来的 |
-| 无推送无触达 | 用户走了就彻底失联 |
-| 新用户占比 91% | 老用户留存差，几乎每天都在「重新获客」 |
+| 方案 | 解决什么 | 为什么第一阶段必须做 |
+|------|---------|-------------------|
+| **A — Entry Conversion（入口转化）** | share-entry 0.1s 秒退，新用户看不懂/不加入 | 这是漏斗最宽处。share-entry 是 59.2% 流量的入口，0.1s 停留意味绝大多数流量被浪费 |
+| **E — Event Tracking（埋点验证）** | 做完不知道有没有效果，只能看宏观 we 分析 | 没有事件级埋点，无法判断是哪个环节掉了。we 分析有 1 天延迟且粒度粗 |
+| **轻量 D — Distribution（战绩再分享）** | 分享率 0.5%，高情绪节点没有分享出口 | 分享杠杆极高（~2 次分享撬动 60% 流量）。rank/schedule finished 是天然分享时刻，当前完全浪费 |
 
-核心判断：增长全靠「不断拉新」撑着，缺少让用户主动回来的机制。这是飞轮最大的结构性漏洞。
+### 为什么不优先做订阅消息（原 P1）
 
-### 4.2 优化项
-
-#### 4.2.1 订阅消息（`growth-optimization.md` 已有待做项，此处细化）
-
-- **订阅时机**：
-  - 加入赛事成功后 → 引导订阅「比赛开赛通知」
-  - 开赛成功后 → 引导订阅「比赛完赛通知」
-  - 首次提交比分后 → 引导订阅「排名更新通知」
-- **发送时机**：
-  - 管理员开赛 → 推送给所有参赛者
-  - 全部比赛完赛 → 推送完赛提醒
-  - 每个赛事生命周期最多推 3 次（开赛/完赛/排名）
-- **前置条件**：MP 后台确认可用模板；如无合适模板降级为公共服务模板
-- **涉及**：前端 `wx.requestSubscribeMessage` + 新增云函数 `subscribeMessage.send`（这是 P0-P5 中唯一需要新增的云函数）
-
-**预期效果**：给回访一个「外部触发」，不再纯靠用户记忆
-
-#### 4.2.2 「添加到我的小程序」引导（`growth-optimization.md` 已有待做项）
-
-- **触发时机**：创建赛事成功后 / 首次提交比分后
-- **实现**：`wx.showModal` 弹窗 + 示意图提示下拉添加
-- **频率控制**：全生命周期最多弹 1 次（本地 storage 记录）
-
-**预期效果**：给高频用户更短的回访路径，间接提升搜索排名信号
-
-#### 4.2.3 赛后回顾卡片
-
-- **触发**：赛事 finished 后，用户再次进入时，home 页赛事卡片显示「查看战绩 📊」标记
-- **内容**：复用 `shareCard.js` + `sharePageMixin` 生成个人战绩卡（胜率、排名、队友统计）
-- **保存**：长按保存到相册 → 天然为飞轮节点 ⑥ 创造分享机会
-- **实现**：纯前端，不涉及云函数
-
-**预期效果**：完赛后给用户一个回来的理由
-
----
-
-## 5. P2 · 再分享 — 飞轮闭合
-
-### 5.1 诊断
-
-| 数据点 | 数值 | 含义 |
-|--------|------|------|
-| 日分享 PV | 3 | 708 次访问只产生 3 次分享 |
-| 分享率 | 0.4% | 每 250 次访问才有 1 次分享 |
-| ranking 退出率 | 50% | 用户看完排名就走，没有下一步动作 |
-| 分享来源占比 | 35% | 3 次分享却撬动 35% 流量 — 杠杆极强 |
-
-核心判断：分享杠杆极高，但触发触点极少。用户使用高峰（看排名、看赛程、完赛）时找不到分享入口。
-
-### 5.2 优化项
-
-#### 5.2.1 ranking 页分享触点
-
-- 用户排名靠前（前三名）时，行尾显示轻量分享 icon ✈️
-- 点击后弹出 sharePanel（复用 `sharePageMixin`），可选生成战绩卡/保存海报
-- 底部原生分享按钮保留
-
-**改动范围**：`pages/ranking/index`
-
-**预期效果**：ranking 退出率从 50% 降低
-
-#### 5.2.2 完赛时刻分享触发
-
-- schedule 页「比赛结束」横幅追加「分享战绩」按钮
-- 点击后跳转 analytics/ranking 并自动弹出分享面板
-- 在用户情绪最高点（「打完了！看看谁赢了」）抓住分享动机
-
-**改动范围**：`pages/schedule/index`, `pages/analytics/index`
-
-#### 5.2.3 赛后个人战绩卡
-
-- 战绩卡底部加小程序码 + 「扫码加入下一场」文案
-- 球友群场景：「今天战绩」→ 发群 → 别人扫码 → 下次组队
-
-**改动范围**：`core/shareCard.js`
-
-#### 5.2.4 分享文案按场景动态调整
-
-| 场景 | 文案 |
+| 原因 | 说明 |
 |------|------|
-| 赛前（draft） | 「来一起打球！「xxx」正在组队」 |
-| 赛中（running） | 「战况激烈！「xxx」实时排名」 |
-| 赛后（finished） | 「「xxx」最终排名出炉，来看看战绩」 |
-
-**改动范围**：lobby / schedule / ranking 的 `onShareAppMessage`
-
----
-
-## 6. P3 · 发现 — 落地页转化
-
-### 6.1 诊断
-
-share-entry 作为最大流量入口（35 入口 PV/天），停留仅 3.6s。P0 已覆盖信息增强，此节补两个深层优化。
-
-### 6.2 优化项
-
-#### 6.2.1 按赛事状态差异化展示
-
-| 状态 | 用户心态 | 当前展示 | 应展示 |
-|------|---------|---------|--------|
-| draft | 「要不要加入？」 | 赛事名 + 加入按钮 | 已有 N 人 + 还差 M 人 → 紧迫感 |
-| running | 「打得怎么样了？」 | 同上 | 当前排名前三 → 好奇心 |
-| finished | 「谁赢了？」 | 同上 | 最终排名摘要 → 确定性 |
-
-**改动范围**：`pages/share-entry/index`
-
-#### 6.2.2 回访用户快速通道
-
-- 已加入用户再次点开 → 直接跳转 lobby/schedule（无需再看加入按钮）
-- 已完赛赛事 → 引导去查看排名而非尝试加入
-- 判断逻辑已有：`getTournament()` + 本地 openid 比对
-
-**改动范围**：`pages/share-entry/index`
+| 依赖模板 | 需要先在 MP 后台确认可用订阅消息模板，模板可能不匹配羽毛球场景 |
+| 依赖授权 | `wx.requestSubscribeMessage` 需要用户主动授权，弹窗时机不当反而流失 |
+| 需要云函数 | 发送订阅消息需要后端定时任务或事件触发，这是 P0–P5 中唯一需要新增云函数的项 |
+| 当前杠杆不如入口转化 | 主动回访 0.3% 是结构性短板，但第一阶段先把"来了的人留下来"比"让走的人回来"更优先 |
+| 进入第二阶段 | 等 A + E + D 闭环跑通后，订阅消息作为第二阶段的留存续航手段 |
 
 ---
 
-## 7. P4 · 分享触发点补齐
+## 3. 第一阶段核心闭环
 
-### 7.1 诊断
+```
+微信群分享
+  → share-entry 状态化落地页（draft/running/finished 差异化）
+  → 用户 3 秒内看懂赛事 → 加入/查看比赛
+  → lobby 新人轻引导（仅首次，3 步，可关闭）
+  → schedule/match 核心使用
+  → ranking/analytics 查看排名和复盘
+  → 生成战绩卡/保存海报/复制文案 → 发回群
+  → 新用户继续进入 share-entry
+```
 
-已有完善基础设施（动态消息、Canvas 海报、朋友圈卡片、分享预热）。现在缺：**用户在能分享的地方，有分享按钮**。
+### 验证指标
 
-### 7.2 优化项
+这个闭环不只用单一留存衡量，而是用以下事件级指标：
 
-#### 7.2.1 match 页赛后比分分享
-
-- 录分完成后，toast 之外加小的行内入口：「分享本场比分 📊」
-- Canvas 生成单场比分卡（对阵双方 + 比分 + 赛事名）
-- 复用 `shareCard.js` 基础设施
-
-**改动范围**：`pages/match/index`
-
-#### 7.2.2 mine 页战绩分享
-
-- mine 页（`getMyPerformanceStats`）目前只有数字，加「分享我的战绩」按钮
-- 生成个人统计海报
-
-**改动范围**：`pages/mine/index`, `core/shareCard.js`
-
-#### 7.2.3 home 页赛事列表快捷分享
-
-- 赛事卡片右上角或长按菜单中加「转发」入口
-- 使用 `open-type="share"` 或自定义分享
-
-**改动范围**：`pages/home/index`
-
----
-
-## 8. P5 · 核心体验打磨
-
-### 8.1 诊断
-
-核心使用体验已不错（schedule 247s/match 122s 停留）。小幅锦上添花。
-
-### 8.2 优化项
-
-#### 8.2.1 schedule 页空状态
-
-- 已加入但还没开赛 → 展示等待提示 + 分享按钮（拉人）
-- 已开赛但还没第一场 → 提示「点击开始第一场比赛 🏸」
-
-**改动范围**：`pages/schedule/index`
-
-#### 8.2.2 lobby 参赛名单头像展示
-
-- 已有 `avatarDisplay` 基础设施，参赛名单中展示头像
-- 更丰富的社交信号
-
-**改动范围**：`pages/lobby/index`
-
-#### 8.2.3 录分交互防误触
-
-- match 页比分输入区 +1/-1 快捷按钮增大，视觉边界更清晰
-
-**改动范围**：`pages/match/index`
+| 环节 | 指标 | 埋点事件 |
+|------|------|---------|
+| 入口 | share-entry 停留时间 | `share_entry_view` |
+| 入口 | 主按钮点击率 | `share_entry_primary_click` |
+| 加入 | 加入成功率 | `share_entry_join_success` |
+| 引导 | 引导卡片展示/关闭 | `lobby_first_guide_show/close` |
+| 核心 | 进入 schedule/进入 match | `share_entry_go_schedule`, `match_open` |
+| 战绩 | 海报生成率/保存率 | `ranking_generate_poster_click/success`, `ranking_save_poster_success` |
+| 再分享 | 分享行为率 | `ranking_copy_share_text` |
+| 复盘 | finished 赛事复盘点击率 | `home_finished_review_click` |
+| 再办 | 再办一场点击率 | `home_clone_tournament_click`, `clone_tournament_success` |
 
 ---
 
-## 9. 实施约束
+## 4. 任务清单
+
+### Task 1：share-entry 状态化落地页
+
+**目标**：把 share-entry 从"赛事名 + 加入按钮"升级为"赛事状态预览页"，让用户 3 秒内知道这场比赛是什么、现在进行到哪、自己能做什么。
+
+**涉及文件**：
+- `miniprogram/core/shareMeta.js`
+- `miniprogram/pages/share-entry/index.js`
+- `miniprogram/pages/share-entry/index.wxml`
+- `miniprogram/pages/share-entry/index.wxss`
+
+**具体改动**：
+
+1. 扩展 `shareMeta.buildShareEntryViewModel()` 的字段，至少输出：
+   - `lifecycle` / `status`（draft / running / finished）
+   - `eventSummaryText`（如「7人轮转 · 21场 · 1片场地」）
+   - `socialProofText`（如「已有 6 人加入」）
+   - `participantPreviewList`（前 6–8 个参赛者头像/首字头像）
+   - `participantOverflowText`（如「+3 人」）
+   - `rankingPreview`（前 3 名，含排名/队名/胜场等关键信息）
+   - `showRankingPreview`（running/finished 为 true）
+   - `showParticipantPreview`（draft 为 true）
+   - `primaryCtaReason`（如「还差 2 人满员」「查看你的排名」）
+   - `secondaryCtaText`（如「查看赛程」「查看排名」）
+
+2. **draft 状态展示**：
+   - 已有 N 人（如有 `playerLimit` 则展示还差/还剩 M 个名额）
+   - 展示前 6–8 个参赛者头像/首字头像
+   - 主按钮：「加入比赛」
+   - 辅助文案：「加入后可看赛程、录分、查看排名」
+
+3. **running 状态展示**：
+   - 当前进度（如「第 3 轮 / 共 7 轮」）
+   - 当前排名前 3 预览
+   - 主按钮：「查看赛程」
+   - 次按钮：「查看排名」
+
+4. **finished 状态展示**：
+   - 最终排名前 3
+   - 主按钮：「查看战绩 / 复盘」
+   - 次按钮：「查看排名」
+
+5. **已加入用户再次进入**：
+   - 不再重复强调"加入比赛"
+   - 根据状态直接导向 lobby（draft）/ schedule（running）/ ranking 或 analytics（finished）
+
+6. 保持现有身份识别 pending / timeout 逻辑，不破坏游客查看与手动加入原则。
+
+**不做**：
+- 不新增云函数
+- 不新增数据库集合
+- 不改变加入赛事的业务流程
+- 不让用户打开分享链接后自动加入
+
+**验收标准**：
+- draft / running / finished 三种状态都有差异化 UI
+- 未加入、已加入、身份识别中、身份识别超时都能正常显示
+- 老分享链接仍能正常打开
+- share-entry 不出现空白页、按钮错乱、状态误判
+
+---
+
+### Task 2：加入后的 30 秒新人轻引导
+
+**目标**：让首次加入的用户知道接下来该看什么，降低加入后流失。
+
+**涉及文件**：
+- `miniprogram/pages/lobby/index.js`
+- `miniprogram/pages/lobby/index.wxml`
+- `miniprogram/pages/lobby/index.wxss`
+- `miniprogram/core/storage.js`（复用现有 storage 方法）
+
+**具体改动**：
+
+1. 用户从 share-entry 加入成功后，在跳转 lobby 时带 entry 参数或本地标记（如 `wx.setStorageSync('growth:onboarding:pending', tournamentId)`）。
+2. lobby 首次展示轻引导卡片，3 步：
+   - 第一步：「看看有谁参加 👀」→ 引导点开参赛名单
+   - 第二步：「了解赛制规则 📋」→ 赛制说明区域高亮
+   - 第三步：「等待开赛 / 查看赛程 🏸」
+3. 引导**只对当前 tournamentId 首次触发**。
+4. 使用 `wx.Storage` 本地记录，key 格式：`growth:onboarding:lobby:<tournamentId>`。
+5. 老用户、已看过引导的用户不再打扰。
+6. 引导卡片**必须可关闭**（点击关闭按钮或卡片外区域）。
+
+**不做**：
+- 不做复杂多步遮罩教程
+- 不做强制教程
+- 不阻塞用户操作（引导卡片不阻止用户正常使用页面）
+
+**验收标准**：
+- 新加入用户能看到一次引导
+- 关闭后不再出现
+- 换一个 tournamentId 可重新触发
+- 老用户无干扰
+
+---
+
+### Task 3：ranking / analytics 战绩再分享强化
+
+**目标**：把"看排名"这个高情绪节点转化为再分享。
+
+**涉及文件**：
+- `miniprogram/pages/ranking/index.js`
+- `miniprogram/pages/ranking/index.wxml`
+- `miniprogram/pages/ranking/index.wxss`
+- `miniprogram/pages/analytics/index.js` / `.wxml` / `.wxss`（如 analytics 已有分享能力则复用）
+- `miniprogram/core/sharePageMixin.js`
+- `miniprogram/core/shareCard.js`
+- `miniprogram/core/sharePoster.js`（如需要）
+
+**具体改动**：
+
+1. ranking 顶部保留现有"生成海报 / 分享到朋友圈"能力，文案调整为更强动机：
+   - 「生成我的战绩卡」
+   - 「保存后发群」
+2. 排名前 3 行增加轻量"分享"入口（icon 或文字链）。
+3. 点击某一行分享时，**优先生成该用户/队伍的战绩卡**，而不是永远生成当前用户或榜首。
+4. 如果无法识别当前用户，则**默认生成榜首卡**（已有此逻辑，保持）。
+5. finished 状态下，ranking 顶部增加横幅：「最终排名已出炉 🎉」。
+6. 海报文案按状态区分：
+   - running：「实时排名更新中」
+   - finished：「最终排名出炉」
+7. 分享卡底部保留小程序码 / 进入下一场 / 扫码查看战绩的导向文案。
+
+**不做**：
+- 不重做整套海报视觉
+- 不新增图片生成后端
+- 不破坏现有 `sharePageMixin` 预热逻辑
+
+**验收标准**：
+- 当前用户能生成自己的战绩卡
+- 前 3 名可单独生成对应战绩卡
+- 无当前用户时能生成榜首卡
+- 保存海报、复制文案、分享到朋友圈引导仍正常
+- running / finished 文案区分明确
+
+---
+
+### Task 4：schedule 完赛时刻分享触发
+
+**目标**：在比赛刚结束、用户情绪最高时，给出"分享战绩"入口。
+
+**涉及文件**：
+- `miniprogram/pages/schedule/index.js`
+- `miniprogram/pages/schedule/index.wxml`
+- `miniprogram/pages/schedule/index.wxss`
+- `miniprogram/core/nav.js`（复用现有导航方法）
+
+**具体改动**：
+
+1. 当 `tournament.status === 'finished'` 时，schedule 顶部 hero 区域或完赛提示区域展示：
+   - 「比赛已结束 🎉」
+   - 「查看最终排名」→ 跳转 ranking
+   - 「分享我的战绩」→ 跳转 ranking/analytics 并携带自动弹海报参数
+2. 跳转 ranking/analytics 时携带参数（如 `autoPoster=1` 或 `shareIntent=poster`）。
+3. ranking/analytics `onLoad` / `onShow` 识别参数后自动触发海报生成，但**必须避免重复弹**：
+   - 使用页面内 flag 或 storage（如 `growth:autoPoster:fired:<tournamentId>`）
+4. 如果海报生成失败，**降级为普通 ranking 页面**，不影响用户查看排名。
+
+**不做**：
+- 不在每一场比赛结束后强推弹窗
+- 不影响继续录分流程（finished 后 schedule 页无录分入口，不冲突）
+- 不改变比赛状态判断逻辑
+
+**验收标准**：
+- finished 赛事 schedule 显示"分享战绩"入口
+- 点击后能到 ranking/analytics
+- 自动海报只触发一次
+- 失败可降级，不阻断页面
+
+---
+
+### Task 5：home finished 赛事卡片强化
+
+**目标**：让用户回到首页时，finished 赛事有明确的复盘和再办一场路径。
+
+**涉及文件**：
+- `miniprogram/pages/home/index.js`
+- `miniprogram/pages/home/index.wxml`
+- `miniprogram/pages/home/index.wxss`
+
+**具体改动**：
+
+1. finished 赛事卡片强化两个入口：
+   - 「查看战绩 / 复盘」→ 跳转 ranking 或 analytics
+   - 「再办一场」→ 复用现有 `cloneTournament` 逻辑
+2. 对 finished 赛事增加视觉标记：
+   - 「最终排名已出炉」
+   - 「可生成战绩卡」
+3. 保留现有 `cloneTournament` 逻辑，不改变复制赛事后端。
+4. 如果当前已有"查看复盘"和"再办一场"入口，只优化文案、层级和视觉突出度，不重复造轮子。
+
+**不做**：
+- 不重做首页架构
+- 不改 `cloneTournament` 云函数
+- 不新增推荐系统
+
+**验收标准**：
+- finished 赛事一眼能看到"查看战绩"和"再办一场"
+- running / draft 赛事不受影响
+- 删除、滑动、排序、筛选仍正常
+
+---
+
+### Task 6：最小增长埋点模块
+
+**目标**：建立第一阶段增长闭环的事件级验证能力，避免只能看宏观 we 分析（1 天延迟、粒度粗）。
+
+**涉及文件**：
+- `miniprogram/core/growthTracker.js`（**新建**）
+- `miniprogram/pages/share-entry/index.js`
+- `miniprogram/pages/lobby/index.js`
+- `miniprogram/pages/schedule/index.js`
+- `miniprogram/pages/match/index.js`
+- `miniprogram/pages/ranking/index.js`
+- `miniprogram/pages/analytics/index.js`
+- `miniprogram/pages/home/index.js`
+
+**实现原则**：
+
+1. 第一阶段使用 `console.info` + `wx.reportEvent` 双通道：
+   - 如果 `wx.reportEvent` 可用（基础库 ≥ 2.11.1），调用之。
+   - 如果不可用，只 `console.info`，不报错。
+2. 不新增云函数。
+3. 不新增数据库集合。
+4. 事件参数**必须脱敏**，不上传 openid、昵称、头像。
+5. event payload 只包含：
+   - `t` — tournamentId 的短 hash（取前 8 位，或空字符串）
+   - `s` — status（draft / running / finished）
+   - `m` — mode（multi_rotate / squad_doubles / fixed_pair_rr）
+   - `src` — source（如 share_entry / home / schedule / ranking）
+   - `a` — action（行为描述，如 click / success / view）
+   - `r` — result（success / fail / timeout）
+   - `ts` — timestamp
+6. `growthTracker.track(eventName, payload)` **必须 try/catch**，不能影响主流程：
+   ```js
+   // miniprogram/core/growthTracker.js 核心结构
+   function track(eventName, payload = {}) {
+     try {
+       const data = { ...payload, _e: eventName, ts: Date.now() };
+       console.info('[growth]', eventName, data);
+       if (typeof wx !== 'undefined' && wx.reportEvent) {
+         wx.reportEvent(eventName, data);
+       }
+     } catch (_) { /* 静默失败 */ }
+   }
+   module.exports = { track };
+   ```
+
+**事件清单**：
+
+| 事件名 | 触发位置 | 触发时机 |
+|--------|---------|---------|
+| `share_entry_view` | share-entry | 页面 onShow / 首次渲染完成 |
+| `share_entry_primary_click` | share-entry | 主按钮点击 |
+| `share_entry_join_success` | share-entry | 加入赛事成功 |
+| `share_entry_go_schedule` | share-entry | 点击"查看赛程" |
+| `share_entry_go_ranking` | share-entry | 点击"查看排名" |
+| `lobby_first_guide_show` | lobby | 新人引导卡片展示 |
+| `lobby_first_guide_close` | lobby | 新人引导卡片关闭 |
+| `schedule_finished_share_click` | schedule | finished 状态下点击"分享战绩" |
+| `match_open` | match | 进入比赛录分页 |
+| `score_submit_success` | match | 比分提交成功 |
+| `ranking_view` | ranking | 排名页展示 |
+| `ranking_generate_poster_click` | ranking | 点击"生成海报" |
+| `ranking_generate_poster_success` | ranking | 海报生成成功 |
+| `ranking_save_poster_success` | ranking | 海报保存成功 |
+| `ranking_copy_share_text` | ranking | 复制分享文案 |
+| `analytics_view` | analytics | 复盘页展示 |
+| `home_finished_review_click` | home | 首页 finished 赛事点击"查看战绩" |
+| `home_clone_tournament_click` | home | 首页点击"再办一场" |
+| `clone_tournament_success` | home | 复制赛事成功 |
+
+**不做**：
+- 不上报任何隐私数据
+- 不阻塞任何用户操作
+- 不新增云函数或数据库集合
+
+**验收标准**：
+- 所有埋点失败都不影响用户操作
+- 开发者工具控制台可以看到 `[growth]` 事件日志
+- 真机不因 `wx.reportEvent` 不可用而报错
+- 不出现隐私数据上传（openid / 昵称 / 头像 / 地理位置）
+
+---
+
+### Task 7：文档内保留第二阶段 Backlog
+
+以下内容**明确不在第一阶段范围**，进入第二阶段 Backlog：
+
+#### 订阅消息
+
+- 开赛通知：加入赛事后引导订阅
+- 完赛通知：全部比赛完赛时推送
+- 排名更新通知：排名变化时推送
+- 前置条件：MP 后台确认可用模板、`wx.requestSubscribeMessage` 授权策略、新增云函数 `subscribeMessage.send`
+
+#### 添加到我的小程序引导
+
+- 触发时机：创建赛事成功后 / 首次提交比分后
+- 弹窗引导用户下拉添加
+- 全生命周期最多弹 1 次（本地 storage 记录）
+
+#### match 单场比分分享
+
+- 录分完成后，轻量入口分享单场比分卡
+- 需 Canvas 生成单场比分卡（对阵双方 + 比分 + 赛事名）
+
+#### mine 长期个人战绩分享
+
+- 累计战绩卡（胜率、排名、队友统计）
+- 最近 10 场表现
+
+#### 更细分的转化漏斗数据
+
+- 入口转化率（share-entry view → join click → join success）
+- 加入转化率（join success → schedule view → match open）
+- 海报保存率（generate click → generate success → save success）
+- 再办一场率（home finished review → clone click → clone success）
+
+---
+
+## 5. 第一阶段最终验收清单
+
+- [ ] share-entry 支持 draft / running / finished 差异化展示
+- [ ] share-entry / lobby / ranking / schedule / analytics / home 已按 `docs/tools/weapp-ui-screenshot-workflow.md` 完成真实截图检查
+- [ ] share-entry 展示参赛者头像 / 首字头像
+- [ ] share-entry running / finished 展示排名预览
+- [ ] 已加入用户再次进入能快速进入对应页面
+- [ ] 新加入用户 lobby 首次引导只出现一次
+- [ ] ranking 支持当前用户 / 前 3 名战绩卡生成
+- [ ] finished schedule 有"分享战绩"入口
+- [ ] home finished 赛事强化"查看战绩 / 再办一场"
+- [ ] `growthTracker` 最小埋点模块完成
+- [ ] 埋点不上传 openid、昵称、头像
+- [ ] 不新增数据库集合
+- [ ] 不新增云函数
+- [ ] 不破坏现有动态分享、海报、分享卡预热
+- [ ] `node --test tests/*.test.js` 全部通过
+- [ ] `./scripts/check-cloud-common.sh` 全部通过
+
+---
+
+## 6. 实施约束
 
 - 所有改动仅限 `miniprogram/` 目录
-- 除 P1.1 订阅消息新增 `subscribeMessage` 云函数外，不新增/修改其他云函数
+- 第一阶段不新增/修改任何云函数
 - 引导/标记全部走本地 `wx.Storage`，不新增数据库集合
 - 分享类优化复用现有 `shareCard` / `sharePageMixin` / 动态消息基础设施
-- 保持 1000+ 测试全量通过
+- `growthTracker` 双通道上报，不影响主流程
+- 保持现有测试全量通过
+
+---
+
+## 附录 A：数据来源
+
+| 数据类型 | 时间范围 | 最新日期 |
+|---------|---------|---------|
+| dailyVisitTrend | 2026.02.13–2026.06.13 | 121 天 |
+| dailyRetain | 2026.02.12–2026.06.13 | 122 天 |
+| dailySummary | 2026.02.12–2026.06.13 | 122 天 |
+| visitDistribution | 2026.02.12–2026.06.13 | 122 天 |
+| visitPage | 2026.02.13–2026.06.13 | 约 30 个采样日 |
+| userPortrait | 2026.05.11, 05.12, 06.03, 06.12, 06.13 | 5 天 |
+| weeklyVisitTrend | 2026.02.09–2026.06.07 | 连续周 |
+| weeklyRetain | 2026.02.09–2026.06.07 | 连续周 |
+| monthlyVisitTrend | 2026.02–2026.05 | 4 个月 |
+| monthlyRetain | 2026.02–2026.05 | 4 个月 |
+
+详细分析报告：`data/we-analysis/user-behavior-analysis-2026-06-13.md`
+
+---
+
+## 附录 B：版本历史
+
+| 版本 | 日期 | 变更 |
+|------|------|------|
+| v1.0 | 2026-06-05 | 初版，P0–P5 功能清单，基于 104 天数据 |
+| v1.1 | 2026-06-15 | 数据更新至 121 天，修正⑤回访节点错误数据，新增留存指标 |
+| v1.2 | 2026-06-15 | 重构为"方案 A + E + 轻量 D"第一阶段方案，7 个可执行任务 + 第二阶段 Backlog |
+| v1.2.1 | 2026-06-15 | 补充第一阶段 UI 真实截图验收流程入口 |

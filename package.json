@@ -10,6 +10,7 @@
     "report:scheduler-full-audit": "node scripts/generate-scheduler-full-audit.js",
     "preview:share-card": "node scripts/preview-share-card.js",
     "audit:avatars": "node scripts/audit-avatar-data.js",
+    "ui:screenshot": "node scripts/dev/weapp-ui-screenshot.js",
     "check:cloud-common": "bash scripts/check-cloud-common.sh",
     "check:deprecated-wx-api": "bash scripts/check-deprecated-wx-api.sh",
     "check": "npm run check:deprecated-wx-api && npm run check:cloud-common",
