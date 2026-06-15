@@ -17,9 +17,17 @@ const flow = require('./flow');
 
 const IDENTITY_TIMEOUT_MS = 2500;
 const GROWTH_ONBOARDING_PENDING_KEY = 'growth:onboarding:pending';
+const TRACKABLE_STATUSES = { draft: true, running: true, finished: true };
+const TRACKABLE_MODES = { multi_rotate: true, squad_doubles: true, fixed_pair_rr: true };
 
 function warnCloudProfileSaveFailure(err) {
   console.warn('[share-entry] saveCloudProfile failed after join', err);
+}
+
+function isTrackableShareEntryTournament(tournament) {
+  const status = String((tournament && tournament.status) || '').trim();
+  const mode = String((tournament && tournament.mode) || '').trim();
+  return !!(TRACKABLE_STATUSES[status] && TRACKABLE_MODES[mode]);
 }
 
 const shareEntrySyncController = pageTournamentSync.createTournamentSyncMethods({
@@ -274,6 +282,16 @@ Page({
     if (!source) return;
     const tid = String(this.data.tournamentId || source._id || source.id || '').trim();
     if (!tid) return;
+    if (!isTrackableShareEntryTournament(source)) {
+      if (!this._warnedShareEntryViewIncomplete) {
+        this._warnedShareEntryViewIncomplete = true;
+        console.warn('[share-entry] skip share_entry_view until status and mode are ready', {
+          status: String(source.status || '').trim(),
+          mode: String(source.mode || '').trim()
+        });
+      }
+      return;
+    }
     this._trackedShareEntryView = true;
     growthTracker.track('share_entry_view', growthTracker.fromTournament(source, {
       tournamentId: tid,

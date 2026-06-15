@@ -1,5 +1,3 @@
-var BUILT_PAYLOAD_MARK = '__growthTrackerPayload';
-
 function shortTournamentId(value) {
   var input = String(value || '').trim();
   if (!input) return '';
@@ -23,36 +21,11 @@ function pickMode(value) {
   return '';
 }
 
-function markBuiltPayload(data) {
-  try {
-    Object.defineProperty(data, BUILT_PAYLOAD_MARK, {
-      value: true,
-      enumerable: false
-    });
-  } catch (_) {}
-  return data;
-}
-
-function isBuiltPayload(payload) {
-  return !!(payload && typeof payload === 'object' && payload[BUILT_PAYLOAD_MARK] === true);
-}
-
-function cloneBuiltPayload(payload) {
-  return {
-    t: String(payload.t || ''),
-    s: String(payload.s || ''),
-    m: String(payload.m || ''),
-    src: String(payload.src || ''),
-    a: String(payload.a || ''),
-    r: String(payload.r || ''),
-    ts: Number(payload.ts) || Date.now()
-  };
-}
-
 function buildPayload(payload) {
   payload = payload || {};
+  var rawId = payload.tournamentId || payload.rawTournamentId || payload.id || payload._id || payload.t;
   var data = {
-    t: shortTournamentId(payload.t || payload.tournamentId),
+    t: shortTournamentId(rawId),
     s: pickStatus(payload.s || payload.status),
     m: pickMode(payload.m || payload.mode),
     src: String(payload.src || '').trim().slice(0, 40),
@@ -60,14 +33,14 @@ function buildPayload(payload) {
     r: String(payload.r || payload.result || '').trim().slice(0, 40),
     ts: Number(payload.ts) || Date.now()
   };
-  return markBuiltPayload(data);
+  return data;
 }
 
 function track(eventName, payload) {
   try {
     var name = String(eventName || '').trim();
     if (!name) return;
-    var data = isBuiltPayload(payload) ? cloneBuiltPayload(payload) : buildPayload(payload);
+    var data = buildPayload(payload);
     if (typeof console !== 'undefined' && console && typeof console.info === 'function') {
       console.info('[growth]', name, data);
     }
@@ -79,11 +52,11 @@ function track(eventName, payload) {
 
 function fromTournament(tournament, extra) {
   tournament = tournament || {};
-  return buildPayload(Object.assign({
+  return Object.assign({
     tournamentId: tournament._id || tournament.id,
     status: tournament.status,
     mode: tournament.mode
-  }, extra || {}));
+  }, extra || {});
 }
 
 module.exports = {
