@@ -1,9 +1,10 @@
 # 增长飞轮优化方案 — v1.2
 
-> 版本: v1.2 · 状态: ready_for_implementation
+> 版本: v1.2.2 · 状态: phase1_completed_and_pushed
 > 日期: 2026-06-15
 > 数据来源: we分析 121 天数据 (2026.02.13–2026.06.13) + CloudBase 后端审计
 > v1.2 变更: 从 P0–P5 分散功能清单重构为"方案 A + E + 轻量 D"第一阶段增长方案。目标是最短可验证增长闭环，不再一次性做完所有增长功能。
+> 最新状态: 第一阶段 Task 1–6 已完成实现、真实截图检查、回归验证，并推送到 `origin/master`。Task 7 保持 Backlog。
 
 ## 0. 版本结论
 
@@ -17,6 +18,45 @@ v1.2 做出以下明确决策：
 3. **第一阶段的唯一目标**：闭合最短增长链路 — 群分享 → 落地页转化 → 核心使用 → 战绩再分享 → 新用户进入。
 4. **第一阶段暂不做**：完整订阅消息系统、新增云函数、新增数据库集合。
 5. **订阅消息、添加到我的小程序引导、match 单场分享、mine 长期战绩分享等进入第二阶段 Backlog**。
+
+---
+
+## 0.1 第一阶段执行结果
+
+更新时间：2026-06-15 20:37 +0800
+
+### 实现状态
+
+| Task | 状态 | 结果 |
+|------|------|------|
+| Task 1：share-entry 状态化落地页 | 已完成 | draft / running / finished 差异化展示，draft 参赛名单支持实际头像，running/finished 展示排名预览 |
+| Task 2：加入后的新人轻引导 | 已完成 | 加入后 lobby 首次引导走本地 `wx.Storage` 标记，用户可关闭，按 tournamentId 去重 |
+| Task 3：ranking / analytics 战绩再分享强化 | 已完成 | ranking 主 CTA 聚焦战绩卡，analytics 主 CTA 聚焦赛事战报卡，分享文案/保存链路复用现有基础设施 |
+| Task 4：schedule 完赛时刻分享触发 | 已完成 | finished schedule 展示最终排名与分享战绩入口，隐藏无意义空对阵态 |
+| Task 5：home finished 赛事卡片强化 | 已完成 | finished 卡片增加最终排名、战绩卡、复盘提示、查看战绩和再办一场路径 |
+| Task 6：最小增长埋点模块 | 已完成 | 新增 `growthTracker`，事件脱敏，`console.info` + `wx.reportEvent` 双通道，失败不阻断主流程 |
+| Task 7：第二阶段 Backlog | 未实现 | 继续保留订阅消息、添加到我的小程序、match 单场分享、mine 长期战绩等后续项 |
+
+### 提交状态
+
+已分批提交并推送到 `origin/master`：
+
+| Commit | 内容 |
+|--------|------|
+| `03fb80e` | `chore(growth): add analysis and screenshot tooling` |
+| `5f0aa67` | `feat(growth): wire lightweight flywheel tracking` |
+| `08fa322` | `feat(growth): polish flywheel UI surfaces` |
+
+### 最终验证
+
+| 验证项 | 结果 |
+|--------|------|
+| `npm run ui:screenshot -- home shareDraft shareRunning shareFinished lobbyGuide ranking schedule analytics` | 8 个 case 均 `ok=true` |
+| `node --test tests/*.test.js` | 1096 / 1096 pass |
+| `npm run check` | deprecated wx API 与 cloud common 检查通过 |
+| 云函数 / 数据库集合 | 未新增云函数，未新增数据库集合 |
+
+详细执行记录见 `docs/tasks/session-logs/2026-06-15-growth-flywheel-phase1.md`。
 
 ---
 
@@ -446,22 +486,22 @@ v1.2 做出以下明确决策：
 
 ## 5. 第一阶段最终验收清单
 
-- [ ] share-entry 支持 draft / running / finished 差异化展示
-- [ ] share-entry / lobby / ranking / schedule / analytics / home 已按 `docs/tools/weapp-ui-screenshot-workflow.md` 完成真实截图检查
-- [ ] share-entry 展示参赛者头像 / 首字头像
-- [ ] share-entry running / finished 展示排名预览
-- [ ] 已加入用户再次进入能快速进入对应页面
-- [ ] 新加入用户 lobby 首次引导只出现一次
-- [ ] ranking 支持当前用户 / 前 3 名战绩卡生成
-- [ ] finished schedule 有"分享战绩"入口
-- [ ] home finished 赛事强化"查看战绩 / 再办一场"
-- [ ] `growthTracker` 最小埋点模块完成
-- [ ] 埋点不上传 openid、昵称、头像
-- [ ] 不新增数据库集合
-- [ ] 不新增云函数
-- [ ] 不破坏现有动态分享、海报、分享卡预热
-- [ ] `node --test tests/*.test.js` 全部通过
-- [ ] `./scripts/check-cloud-common.sh` 全部通过
+- [x] share-entry 支持 draft / running / finished 差异化展示
+- [x] share-entry / lobby / ranking / schedule / analytics / home 已按 `docs/tools/weapp-ui-screenshot-workflow.md` 完成真实截图检查
+- [x] share-entry 展示参赛者头像 / 首字头像
+- [x] share-entry running / finished 展示排名预览
+- [x] 已加入用户再次进入能快速进入对应页面
+- [x] 新加入用户 lobby 首次引导只出现一次
+- [x] ranking 支持当前用户 / 前 3 名战绩卡生成
+- [x] finished schedule 有"分享战绩"入口
+- [x] home finished 赛事强化"查看战绩 / 再办一场"
+- [x] `growthTracker` 最小埋点模块完成
+- [x] 埋点不上传 openid、昵称、头像
+- [x] 不新增数据库集合
+- [x] 不新增云函数
+- [x] 不破坏现有动态分享、海报、分享卡预热
+- [x] `node --test tests/*.test.js` 全部通过
+- [x] `./scripts/check-cloud-common.sh` 全部通过
 
 ---
 
@@ -503,3 +543,4 @@ v1.2 做出以下明确决策：
 | v1.1 | 2026-06-15 | 数据更新至 121 天，修正⑤回访节点错误数据，新增留存指标 |
 | v1.2 | 2026-06-15 | 重构为"方案 A + E + 轻量 D"第一阶段方案，7 个可执行任务 + 第二阶段 Backlog |
 | v1.2.1 | 2026-06-15 | 补充第一阶段 UI 真实截图验收流程入口 |
+| v1.2.2 | 2026-06-15 | 记录第一阶段 Task 1–6 已完成、截图/测试验证通过，并推送到 `origin/master` |

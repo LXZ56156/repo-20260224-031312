@@ -102,6 +102,22 @@ npm run ui:screenshot -- --list
 
 `match` 当前增长改动是埋点，不改变可见 UI；如后续加入单场比分分享卡，再新增截图 case。
 
+## 最新验证记录
+
+2026-06-15 第一阶段增长飞轮 UI 复查已完成：
+
+```bash
+npm run ui:screenshot -- home shareDraft shareRunning shareFinished lobbyGuide ranking schedule analytics
+```
+
+结果：8 个 case 均 `ok=true`，截图输出目录为 `tmp/ui-screenshots-actual/`。
+
+补充记录：
+
+- `home` 是 tabBar 页面，脚本使用 `switchTab` 启动该 case；如果出现空白或超时，先执行 `./scripts/dev/weapp-dev.sh preview` 重启自动化再重试。
+- 本轮 DevTools 自动化端口为 `ws://127.0.0.1:39420`。
+- 详细任务记录见 `docs/tasks/session-logs/2026-06-15-growth-flywheel-phase1.md`。
+
 ## 判断标准
 
 - 截图文件大小应明显大于 20KB；小于该值通常是空白或失败图。

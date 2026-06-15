@@ -30,11 +30,13 @@
 - `node --test tests/*.test.js`：1096/1096 pass。
 - `npm run check`：deprecated wx API 与 cloud common 检查通过。
 - 未新增云函数，未新增数据库集合。
+- 已分批提交并推送到 `origin/master`：`03fb80e`、`5f0aa67`、`08fa322`。
 
 ## Next Steps
 
 - 用户验收页面截图和真机体验。
 - 后续另起一轮评估 Task 7 Backlog。
+- 详细记录见 `docs/tasks/session-logs/2026-06-15-growth-flywheel-phase1.md`。
 
 ## Verification Notes
 
