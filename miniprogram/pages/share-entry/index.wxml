@@ -16,8 +16,8 @@
       <view class="tag {{preview.statusClass}}">{{preview.statusText}}</view>
     </view>
     <view class="share-pills">
-      <text class="share-pill">{{preview.modeLabel}}</text>
-      <text class="share-pill">{{preview.playersCountText}}</text>
+      <text class="share-pill">{{preview.eventSummaryText || preview.modeLabel}}</text>
+      <text class="share-pill">{{preview.socialProofText || preview.playersCountText}}</text>
       <text class="share-pill">{{preview.joinAllowed ? '可加入' : '当前不可加入'}}</text>
     </view>
   </view>
@@ -28,13 +28,49 @@
       <text class="count-pill">{{preview.viewModeLabel}}</text>
     </view>
     <view
-      class="share-availability {{identityPending ? 'is-pending' : ''}} {{identityTimedOut ? 'is-timeout' : ''}}"
-      wx:if="{{preview.availabilityText}}"
+      class="share-guidance {{preview.showRankingPreview ? 'share-guidance-compact' : ''}} {{identityPending ? 'is-pending' : ''}} {{identityTimedOut ? 'is-timeout' : ''}}"
+      wx:if="{{preview.availabilityText || preview.primaryCtaReason}}"
     >
-      <view class="share-availability-icon">{{identityPending ? '...' : (identityTimedOut ? '!' : 'i')}}</view>
-      <view class="share-availability-body">
-        <view class="share-availability-title">{{identityPending ? '身份识别中' : (identityTimedOut ? '先看比赛' : '操作提示')}}</view>
-        <view class="share-availability-text">{{preview.availabilityText}}</view>
+      <view class="share-guidance-icon">{{identityPending ? '...' : (identityTimedOut ? '!' : 'i')}}</view>
+      <view class="share-guidance-body">
+        <view class="share-guidance-title">{{identityPending ? '身份识别中' : (identityTimedOut ? '先看比赛' : (preview.primaryCtaReason || '操作提示'))}}</view>
+        <view class="share-guidance-text" wx:if="{{preview.availabilityText}}">{{preview.availabilityText}}</view>
+      </view>
+    </view>
+    <view class="share-state-preview" wx:if="{{preview.showParticipantPreview || preview.showRankingPreview}}">
+      <view class="participant-preview" wx:if="{{preview.showParticipantPreview}}">
+        <view class="participant-preview-head">
+          <text class="participant-preview-title">参赛名单</text>
+          <text class="participant-preview-meta">{{preview.playersCountText}}</text>
+        </view>
+        <view class="participant-avatar-row" wx:if="{{preview.participantPreviewList.length}}">
+          <view
+            class="participant-avatar"
+            wx:for="{{preview.participantPreviewList}}"
+            wx:key="id"
+            title="{{item.name}}"
+          >
+            <image wx:if="{{item.showAvatar}}" class="participant-avatar-img" src="{{item.avatarUrl}}" mode="aspectFill" data-avatar-raw="{{item.avatarRaw || item.avatarUrl}}" binderror="onParticipantAvatarError"></image>
+            <text wx:else class="participant-avatar-text">{{item.initial}}</text>
+          </view>
+          <view class="participant-overflow" wx:if="{{preview.participantOverflowText}}">{{preview.participantOverflowText}}</view>
+        </view>
+        <view class="share-empty-note" wx:else>还没有参赛者，加入后会出现在名单里。</view>
+      </view>
+
+      <view class="ranking-preview" wx:if="{{preview.showRankingPreview}}">
+        <view class="participant-preview-head">
+          <text class="participant-preview-title">{{preview.rankingTitle}}</text>
+          <text class="participant-preview-meta">{{preview.progressText}}</text>
+        </view>
+        <view class="ranking-preview-list" wx:if="{{preview.rankingPreview.length}}">
+          <view class="ranking-preview-row" wx:for="{{preview.rankingPreview}}" wx:key="rank">
+            <text class="ranking-preview-rank">No.{{item.rank}}</text>
+            <text class="ranking-preview-name">{{item.name}}</text>
+            <text class="ranking-preview-meta">{{item.summaryText}}</text>
+          </view>
+        </view>
+        <view class="share-empty-note" wx:else>排名生成后会在这里展示。</view>
       </view>
     </view>
     <view class="card-inline-squad" wx:if="{{tournament && tournament.mode==='squad_doubles' && preview.joinAllowed && !preview.joined}}">
@@ -43,20 +79,16 @@
         <view class="chip {{joinSquadChoice==='B' ? 'active' : ''}}" data-squad="B" bindtap="onPickJoinSquad">B队</view>
       </view>
     </view>
-    <view class="share-actions">
+    <view class="share-actions {{preview.secondaryAction && preview.secondaryCtaText ? 'share-actions-two' : ''}}">
       <button
-        class="btn btn-primary"
+        class="btn btn-primary share-primary-btn"
         bindtap="onPrimaryAction"
         loading="{{joinBusy}}"
         disabled="{{joinBusy || preview.primaryAction.key==='identity_pending'}}"
       >
         {{preview.primaryAction.text}}
       </button>
-      <view class="btn-row" wx:if="{{tournament && tournament.status !== 'draft'}}">
-        <button class="btn btn-subtle" bindtap="goSchedule" wx:if="{{tournament.status === 'running'}}">查看赛程</button>
-        <button class="btn btn-subtle" bindtap="goRanking" wx:if="{{tournament.status === 'running'}}">查看排名</button>
-        <button class="btn btn-subtle" bindtap="goRanking" wx:if="{{tournament.status === 'finished'}}">查看排名</button>
-      </view>
+      <button class="btn btn-subtle share-secondary-btn" wx:if="{{preview.secondaryAction && preview.secondaryCtaText}}" bindtap="onSecondaryAction">{{preview.secondaryCtaText}}</button>
       <button
         class="btn btn-subtle"
         wx:if="{{preview.secondaryAction && (preview.viewMode==='invalid-match' || preview.viewMode==='retryable-error')}}"

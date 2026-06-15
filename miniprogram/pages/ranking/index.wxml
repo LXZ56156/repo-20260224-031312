@@ -26,9 +26,19 @@
     <view class="hero-title">{{rankingTypeLabel}}</view>
     <view class="hero-sub">{{tournament.name}}</view>
     <view class="hero-actions ranking-hero-actions btn-row">
-      <button class="btn btn-primary btn-sm" bindtap="onShareTimelineGuide">分享到朋友圈</button>
-      <button class="btn btn-outline btn-sm" bindtap="onGeneratePoster">{{posterButtonText}}</button>
+      <view class="ranking-action-stack">
+        <button class="btn btn-primary btn-sm ranking-action-full" bindtap="onGeneratePoster">{{posterButtonText}}</button>
+        <view class="ranking-action-row">
+          <button class="btn btn-outline btn-sm ranking-action-half" bindtap="onShareTimelineGuide">分享到朋友圈</button>
+          <button class="btn btn-subtle btn-sm ranking-action-half" bindtap="onCopyPosterText">保存后发群</button>
+        </view>
+      </view>
     </view>
+  </view>
+
+  <view class="ranking-share-banner reveal reveal-2" wx:if="{{rankingShareBannerText}}">
+    <view class="ranking-share-banner-title">{{rankingShareBannerText}}</view>
+    <view class="ranking-share-banner-sub">先生成战绩卡，再保存或转发复盘。</view>
   </view>
 
   <view class="card panel panel-soft state-empty mt-md reveal reveal-2" wx:if="{{rankings.length===0}}">
@@ -39,24 +49,29 @@
 
   <view class="card panel ranking-card reveal {{idx < 3 ? 'ranking-card-top' : ''}} {{idx === 0 ? 'ranking-card-1st' : ''}} {{idx === 1 ? 'ranking-card-2nd' : ''}} {{idx === 2 ? 'ranking-card-3rd' : ''}}" style="animation-delay: {{idx < 6 ? 60 + idx * 24 : 204}}ms;" hover-class="list-card-press" hover-stay-time="80" wx:for="{{rankings}}" wx:for-item="r" wx:for-index="idx" wx:key="rankKey">
     <view class="ranking-row">
-      <view class="ranking-left">
-        <view class="rank-badge {{idx === 0 ? 'rank-1' : ''}} {{idx === 1 ? 'rank-2' : ''}} {{idx === 2 ? 'rank-3' : ''}}">{{idx + 1}}</view>
-        <view class="ranking-avatar-group {{r.avatarItems.length > 1 ? 'pair' : ''}}" wx:if="{{r.avatarItems.length}}">
-          <view class="ranking-avatar {{item.colorClass}}" wx:for="{{r.avatarItems}}" wx:key="id">
-            <image class="ranking-avatar-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill" data-avatar-raw="{{item.avatarRaw}}" binderror="onAvatarImageError"></image>
-            <text class="ranking-avatar-initial" wx:else>{{item.initial}}</text>
+      <view class="ranking-main-row">
+        <view class="ranking-left">
+          <view class="rank-badge {{idx === 0 ? 'rank-1' : ''}} {{idx === 1 ? 'rank-2' : ''}} {{idx === 2 ? 'rank-3' : ''}}">{{idx + 1}}</view>
+          <view class="ranking-avatar-group {{r.avatarItems.length > 1 ? 'pair' : ''}}" wx:if="{{r.avatarItems.length}}">
+            <view class="ranking-avatar {{item.colorClass}}" wx:for="{{r.avatarItems}}" wx:key="id">
+              <image class="ranking-avatar-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill" data-avatar-raw="{{item.avatarRaw}}" binderror="onAvatarImageError"></image>
+              <text class="ranking-avatar-initial" wx:else>{{item.initial}}</text>
+            </view>
+          </view>
+          <view class="flex-1">
+            <view class="player-title ellipsis">{{r.displayName || r.name}}</view>
+            <view class="ranking-subtitle ellipsis" wx:if="{{r.subtitle}}">{{r.subtitle}}</view>
+            <view class="muted small ranking-record-line">{{r.entityType==='team' ? '队伍' : '球员'}} · 胜{{r.wins}} 负{{r.losses}} · 出场{{r.played}}</view>
           </view>
         </view>
-        <view class="flex-1">
-          <view class="player-title ellipsis">{{r.displayName || r.name}}</view>
-          <view class="ranking-subtitle ellipsis" wx:if="{{r.subtitle}}">{{r.subtitle}}</view>
-          <view class="muted small">{{r.entityType==='team' ? '队伍' : '球员'}} · 胜{{r.wins}} 负{{r.losses}} · 出场{{r.played}}</view>
+        <view class="ranking-right">
+          <view class="metric-title">净胜 {{r.pointDiff}}</view>
+          <view class="muted small ranking-score-line">得{{r.pointsFor}} 失{{r.pointsAgainst}}</view>
         </view>
       </view>
-      <view class="ranking-right">
-        <view class="metric-title">净胜 {{r.pointDiff}}</view>
-        <view class="muted small">得{{r.pointsFor}} 失{{r.pointsAgainst}}</view>
+      <view class="ranking-card-foot" wx:if="{{r.showTrend || r.topShareText}}">
         <view class="trend-pill {{r.trendType}} {{r.showTrend ? '' : 'trend-muted'}}" wx:if="{{r.showTrend}}">较上轮 {{r.trendText}}</view>
+        <view class="rank-row-share" wx:if="{{r.topShareText}}" data-rank="{{r.rank}}" bindtap="onShareRankingRow">{{r.topShareText}}</view>
       </view>
     </view>
   </view>

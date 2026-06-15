@@ -223,6 +223,111 @@
   box-shadow: 0 -4rpx 18rpx rgba(24, 179, 104, 0.08);
 }
 
+.growth-guide-card {
+  margin-top: var(--space-section);
+  padding: 18rpx 20rpx;
+  border-color: rgba(37, 99, 235, 0.18);
+  background:
+    linear-gradient(180deg, rgba(239, 246, 255, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
+  box-shadow: 0 8rpx 20rpx rgba(37, 99, 235, 0.08);
+}
+
+.growth-guide-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-section);
+}
+
+.growth-guide-close {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 44rpx !important;
+  height: 44rpx !important;
+  min-width: 44rpx !important;
+  min-height: 44rpx !important;
+  max-width: 44rpx;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--neutral-700);
+  font-size: 30rpx;
+  line-height: 1;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+.growth-guide-close::after {
+  border: 0;
+}
+
+.growth-guide-steps {
+  margin-top: var(--space-tight);
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.growth-guide-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-tight);
+  padding: 8rpx 10rpx;
+  border-radius: 12rpx;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1rpx solid rgba(37, 99, 235, 0.08);
+}
+
+.growth-guide-index {
+  flex-shrink: 0;
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 999rpx;
+  background: #DBEAFE;
+  color: #1D4ED8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20rpx;
+  font-weight: 820;
+}
+
+.growth-guide-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.growth-guide-title {
+  font-size: 24rpx;
+  font-weight: 760;
+  line-height: 1.4;
+  color: var(--neutral-950);
+}
+
+.growth-guide-desc {
+  margin-top: 0;
+  font-size: 21rpx;
+  line-height: 1.35;
+  color: var(--neutral-500);
+}
+
+.growth-guide-done {
+  margin-top: var(--space-tight);
+  width: 216rpx !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  min-width: 0;
+}
+
+.growth-guide-roster-focus,
+.growth-guide-rules-focus {
+  border-color: rgba(37, 99, 235, 0.18);
+  box-shadow: 0 10rpx 26rpx rgba(37, 99, 235, 0.10);
+}
+
 .start-pulse {
   animation: startPulse 420ms ease-out 1;
 }

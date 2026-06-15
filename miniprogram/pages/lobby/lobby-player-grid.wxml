@@ -1,4 +1,4 @@
-<view id="player-roster" class="card panel reveal reveal-4">
+<view id="player-roster" class="card panel reveal reveal-4 {{showGrowthOnboardingGuide ? 'growth-guide-roster-focus' : ''}}">
     <view class="section-head">
       <view class="section-title">参赛名单</view>
       <view class="row-right">

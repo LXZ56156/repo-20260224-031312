@@ -50,9 +50,17 @@
           {{nextActionText}}
         </button>
       </view>
+      <view class="hero-finished-share" wx:if="{{showFinishedShareActions}}">
+        <view class="hero-finished-title">比赛已结束</view>
+        <view class="hero-finished-sub">最终排名已生成，可以查看或分享战绩。</view>
+        <view class="btn-row hero-finished-actions">
+          <button class="btn btn-primary btn-sm" bindtap="goFinalRanking">查看最终排名</button>
+          <button class="btn btn-outline btn-sm" bindtap="goSharePosterFromFinished">分享我的战绩</button>
+        </view>
+      </view>
     </view>
 
-    <view class="card panel panel-soft state-empty mt-md" wx:if="{{!roundsUi.length}}">
+    <view class="card panel panel-soft state-empty mt-md" wx:if="{{!roundsUi.length && !showFinishedShareActions}}">
       <view class="state-empty-icon">{{filterEmptyText ? '🔎' : '📋'}}</view>
       <view class="state-empty-title">{{filterEmptyText || '还没有对阵'}}</view>
       <view class="state-empty-desc">{{filterEmptyText ? '调整底部筛选条件后可恢复显示' : '赛程生成后将在此展示所有轮次与比赛'}}</view>

@@ -61,10 +61,10 @@ test('shareMeta keeps unjoined running viewers on the same not-joined surface', 
     openid: 'u_new'
   });
   assert.equal(preview.viewMode, 'join-closed');
-  assert.equal(preview.primaryAction.text, '查看比赛');
-  assert.equal(preview.secondaryAction, null);
-  assert.equal(preview.showRankingPreview, false);
-  assert.match(preview.progressText, /已完成/);
+  assert.equal(preview.primaryAction.text, '查看赛程');
+  assert.equal(preview.secondaryAction.text, '查看排名');
+  assert.equal(preview.showRankingPreview, true);
+  assert.match(preview.progressText, /轮/);
 });
 
 test('shareMeta shows match-oriented action for joined finished viewers', () => {
@@ -73,8 +73,9 @@ test('shareMeta shows match-oriented action for joined finished viewers', () => 
     openid: 'u_joined'
   });
   assert.equal(preview.viewMode, 'joined-entry');
-  assert.equal(preview.primaryAction.text, '查看比赛');
-  assert.match(preview.availabilityText, /已结束/);
+  assert.equal(preview.primaryAction.text, '查看最终排名');
+  assert.equal(preview.secondaryAction.text, '查看赛事战报');
+  assert.match(preview.availabilityText, /最终排名/);
 });
 
 test('shareMeta shows schedule-oriented action for joined running viewers', () => {
@@ -93,8 +94,8 @@ test('shareMeta keeps unjoined finished viewers on the same not-joined surface',
     openid: 'u_new'
   });
   assert.equal(preview.viewMode, 'join-closed');
-  assert.equal(preview.primaryAction.text, '查看比赛');
-  assert.equal(preview.secondaryAction, null);
+  assert.equal(preview.primaryAction.text, '查看最终排名');
+  assert.equal(preview.secondaryAction.text, '查看赛事战报');
   assert.match(preview.progressText, /已完成 1\/1 场/);
 });
 

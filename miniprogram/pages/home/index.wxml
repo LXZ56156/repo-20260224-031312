@@ -124,10 +124,15 @@
                   <text class="pill">{{item.playersCount}}人</text>
                   <text class="pill">{{item.matchProgressText}}</text>
                 </view>
+                <view class="finished-growth-markers" wx:if="{{item.status==='finished'}}">
+                  <text class="finished-growth-pill">最终排名已出炉</text>
+                  <text class="finished-growth-pill">可生成战绩卡</text>
+                </view>
+                <view class="finished-review-note" wx:if="{{item.status==='finished'}}">赛后复盘已准备好，可发回群里查看排名和战绩。</view>
                 <view class="t-meta-row">
                   <view class="t-time muted small">更新 {{item.updatedAtText}}</view>
                   <view class="t-actions" wx:if="{{item.status!=='missing'}}">
-                    <text class="t-quick-action" catchtap="onQuickActionTap" data-id="{{item._id}}" data-status="{{item.status}}" wx:if="{{item.status==='finished'}}">查看复盘</text>
+                    <text class="t-quick-action" catchtap="onQuickActionTap" data-id="{{item._id}}" data-status="{{item.status}}" wx:if="{{item.status==='finished'}}">查看战绩</text>
                     <text class="t-copy-link" catchtap="onCloneTap" data-id="{{item._id}}" wx:if="{{item.status==='finished'}}">再办一场</text>
                     <text class="t-quick-action" catchtap="onQuickActionTap" data-id="{{item._id}}" data-status="{{item.status}}" wx:elif="{{item.status==='running'}}">查看对阵</text>
                   </view>

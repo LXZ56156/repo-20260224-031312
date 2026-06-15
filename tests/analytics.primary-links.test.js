@@ -30,7 +30,7 @@ function createAnalyticsContext(definition) {
   return ctx;
 }
 
-test('analytics page prunes cross-page hero links and keeps clone as the primary CTA', () => {
+test('analytics page prunes cross-page hero links and promotes report card as the primary CTA', () => {
   const wxml = fs.readFileSync(
     path.join(__dirname, '..', 'miniprogram/pages/analytics/index.wxml'),
     'utf8'
@@ -40,7 +40,8 @@ test('analytics page prunes cross-page hero links and keeps clone as the primary
   assert.doesNotMatch(wxml, /bindtap="goRanking"/);
   assert.doesNotMatch(wxml, /bindtap="goSchedule"/);
   assert.doesNotMatch(wxml, /analytics-hero-link/);
-  assert.match(wxml, /class="btn btn-primary btn-sm analytics-hero-primary" bindtap="cloneCurrentTournament"/);
+  assert.match(wxml, /class="btn btn-primary btn-sm analytics-hero-primary" bindtap="onGeneratePoster"/);
+  assert.match(wxml, /bindtap="cloneCurrentTournament"/);
   assert.match(wxml, /bindtap="copyBriefReport"/);
   assert.match(wxml, /bindtap="copyBattleReport"/);
   assert.match(wxml, /analytics-copy-actions/);

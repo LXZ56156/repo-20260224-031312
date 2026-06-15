@@ -15,12 +15,11 @@ test('share-entry landing page puts primary CTA ahead of compact summary facts',
   assert.ok(actionIndex < summaryIndex);
   assert.match(wxml, /share-facts/);
   assert.match(wxml, /share-actions/);
-  assert.match(wxml, /class="share-availability/);
+  assert.match(wxml, /class="share-guidance/);
   assert.match(wxml, /\{\{preview\.availabilityText\}\}/);
-  assert.match(wxml, /bindtap="goSchedule"/);
-  assert.match(wxml, /bindtap="goRanking"/);
-  assert.doesNotMatch(wxml, /bindtap="goAnalytics"/);
-  assert.doesNotMatch(wxml, />查看复盘</);
+  assert.match(wxml, /bindtap="onSecondaryAction"/);
+  assert.match(wxml, /class="participant-avatar-img"/);
+  assert.match(wxml, /binderror="onParticipantAvatarError"/);
   assert.match(wxml, /preview\.viewMode==='invalid-match'/);
   assert.match(wxml, /preview\.viewMode==='retryable-error'/);
 });

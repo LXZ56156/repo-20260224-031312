@@ -70,6 +70,19 @@
 
 .analytics-hero-actions {
   margin-top: var(--space-section);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-tight);
+}
+
+.analytics-hero-actions .btn {
+  width: 100% !important;
+  min-width: 0;
+  margin: 0 !important;
+}
+
+.analytics-hero-actions .analytics-hero-primary {
+  grid-column: 1 / -1;
 }
 
 .analytics-hero-primary {
