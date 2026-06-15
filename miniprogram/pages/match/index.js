@@ -4,6 +4,7 @@ const retryAction = require('../../core/retryAction');
 const storage = require('../../core/storage');
 const nav = require('../../core/nav');
 const writeErrorUi = require('../../core/writeErrorUi');
+const growthTracker = require('../../core/growthTracker');
 const { buildInitialData, clampScore, buildTournamentViewState } = require('./matchViewModel');
 const { createMatchDraftController } = require('./matchDraftController');
 const { createScoreLockManager } = require('./scoreLockManager');
@@ -53,6 +54,7 @@ Page({
     const batchMode = Number(options && options.batch) === 1;
 
     this.openid = (getApp().globalData.openid || storage.get('openid', ''));
+    this._trackedMatchOpen = false;
     this._lockStatusKey = '';
     this._batchOccupiedKey = '';
     this._latestTournament = null;
@@ -62,6 +64,7 @@ Page({
     this.matchDraft.clearUndo();
 
     this.setData({ tournamentId: tid, roundIndex, matchIndex, batchMode, batchTotal: 0, batchFinished: 0, batchPending: 0, batchProgress: 0 });
+    this.trackMatchOpen();
 
     const app = getApp();
     this.setData(pageTournamentSync.composePageSyncPatch(this, {
@@ -176,6 +179,7 @@ Page({
       this.matchDraft.clearUndo();
     }
     this.setData(viewState.data);
+    this.trackMatchOpen(viewState.tournament);
 
     if (viewState.shouldSyncLock && this._lockStatusKey !== viewState.lockSyncKey && options.skipLockSync !== true) {
       this._lockStatusKey = viewState.lockSyncKey;
@@ -361,6 +365,19 @@ Page({
   handleSubmitResultCode(res, lockSnapshot) {
     ensureControllers(this);
     return this.scoreLockManager.handleSubmitResultCode(res, lockSnapshot);
+  },
+
+  trackMatchOpen(tournament) {
+    if (this._trackedMatchOpen) return;
+    const tid = String(this.data.tournamentId || '').trim();
+    if (!tid) return;
+    if (!tournament && !this.data.tournament) return;
+    this._trackedMatchOpen = true;
+    growthTracker.track('match_open', growthTracker.fromTournament(tournament || this.data.tournament, {
+      tournamentId: tid,
+      src: 'match',
+      a: 'open'
+    }));
   },
 
   async submit() {

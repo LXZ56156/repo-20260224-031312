@@ -13,6 +13,7 @@ const scheduleContract = require('../../core/scheduleContract');
 const avatarDisplay = require('../../core/avatarDisplay');
 const pageTimers = require('../../core/pageTimers');
 const uiPreferences = require('../../core/uiPreferences');
+const growthTracker = require('../../core/growthTracker');
 
 const PLAYER_FILTER_OPTIONS = [
   { value: 'contains', label: '含有' },
@@ -323,6 +324,7 @@ Page({
     heroPendingText: '',
     heroProgressPercent: -1,
     heroActionBusy: false,
+    showFinishedShareActions: false,
     canEditScore: false,
     hasPending: false,
     firstPendingRoundIndex: -1,
@@ -460,6 +462,7 @@ Page({
       nextActionKey = 'batch';
       nextActionText = '继续录分';
     }
+    const showFinishedShareActions = status === 'finished';
 
     const heroSummaryText = buildHeroSummaryText(status, modeLabel, heroSummary, firstPending);
     const heroMatchText = heroSummary.totalMatches
@@ -487,6 +490,7 @@ Page({
       heroMatchText,
       heroPendingText,
       heroProgressPercent,
+      showFinishedShareActions,
       canEditScore,
       hasPending: !!firstPending,
       firstPendingRoundIndex: firstPending ? firstPending.roundIndex : -1,
@@ -579,6 +583,22 @@ Page({
     }
     this.setData({ heroActionBusy: false });
     return false;
+  },
+
+  goFinalRanking() {
+    nav.redirectOrNavigate(nav.buildTournamentUrl('/pages/ranking/index', this.data.tournamentId));
+  },
+
+  goSharePosterFromFinished() {
+    growthTracker.track('schedule_finished_share_click', growthTracker.fromTournament(this.data.tournament, {
+      tournamentId: this.data.tournamentId,
+      src: 'schedule',
+      a: 'click'
+    }));
+    nav.redirectOrNavigate(nav.buildTournamentUrl('/pages/ranking/index', this.data.tournamentId, {
+      autoPoster: 1,
+      shareIntent: 'poster'
+    }));
   },
 
   openMatch(e) {

@@ -13,9 +13,13 @@ const tournamentEntry = require('../../core/tournamentEntry');
 const uiPreferences = require('../../core/uiPreferences');
 const avatarDisplay = require('../../core/avatarDisplay');
 const avatarDiagnostics = require('../../core/avatarDiagnostics');
+const growthTracker = require('../../core/growthTracker');
 const viewModel = require('./lobbyViewModel');
 const settingsViewModel = require('../settings/settingsViewModel');
 const { createLobbyDelegates } = require('./lobbyDelegates');
+
+const GROWTH_ONBOARDING_PENDING_KEY = 'growth:onboarding:pending';
+const GROWTH_ONBOARDING_LOBBY_PREFIX = 'growth:onboarding:lobby:';
 
 const lobbySyncController = pageTournamentSync.createTournamentSyncMethods({
   applyDocMethod: 'setTournament',
@@ -60,6 +64,10 @@ function createDynamicShareError(reason, value, fallback) {
   const error = value instanceof Error ? value : new Error(message);
   error.dynamicShareReason = String(reason || '').trim() || 'manage_activity_id_failed';
   return error;
+}
+
+function buildGrowthOnboardingKey(tournamentId) {
+  return `${GROWTH_ONBOARDING_LOBBY_PREFIX}${String(tournamentId || '').trim()}`;
 }
 
 Page({
@@ -216,6 +224,12 @@ Page({
     dynamicShareReady: false,
     dynamicShareError: '',
     dynamicShareUnavailableReason: '',
+    showGrowthOnboardingGuide: false,
+    growthOnboardingSteps: [
+      { step: '1', title: '看看有谁参加', desc: '先扫一眼参赛名单，确认同场球友。' },
+      { step: '2', title: '了解赛制规则', desc: '比赛信息里有赛制、分制和排名规则。' },
+      { step: '3', title: '等待开赛 / 查看赛程', desc: '开赛后从底部导航进入赛程和录分。' }
+    ],
     loadErrorTitle: '加载失败',
     loadErrorMessage: '请检查网络或分享链接是否有效。',
     showLoadErrorHome: false
@@ -308,6 +322,12 @@ Page({
     matchPrimaryNav.navigateToPrimary(key, this.data.tournamentId, 'match');
   },
 
+  onGrowthGuidePageTap() {
+    if (this.data.showGrowthOnboardingGuide) this.closeGrowthOnboardingGuide();
+  },
+
+  keepGrowthGuideOpen() {},
+
   onTapQuickMatchShortcut(e) {
     return lobbyPageDelegates.onTapQuickMatchShortcut.call(this, e);
   },
@@ -376,11 +396,43 @@ Page({
     this.resolveDisplayPlayersAvatars();
     this.runDevelopmentAvatarDiagnostics(next.tournament);
     storage.addRecentTournamentId(next.tournament._id);
+    this.maybeShowGrowthOnboardingGuide(next.tournament._id);
 
     if (this._pendingIntentAction) {
       const action = this._pendingIntentAction;
       this._pendingIntentAction = '';
       setTimeout(() => this.runFlowAction(action), 90);
+    }
+  },
+
+  maybeShowGrowthOnboardingGuide(tournamentId) {
+    const tid = String(tournamentId || this.data.tournamentId || '').trim();
+    if (!tid || this.data.showGrowthOnboardingGuide) return;
+    const pendingTid = String(storage.get(GROWTH_ONBOARDING_PENDING_KEY, '') || '').trim();
+    if (pendingTid !== tid) return;
+    if (storage.get(buildGrowthOnboardingKey(tid), false)) {
+      storage.del(GROWTH_ONBOARDING_PENDING_KEY);
+      return;
+    }
+    this.setData({ showGrowthOnboardingGuide: true });
+    growthTracker.track('lobby_first_guide_show', growthTracker.fromTournament(this.data.tournament, {
+      tournamentId: tid,
+      src: 'lobby',
+      a: 'show'
+    }));
+  },
+
+  closeGrowthOnboardingGuide() {
+    const tid = String(this.data.tournamentId || '').trim();
+    if (tid) storage.set(buildGrowthOnboardingKey(tid), true);
+    storage.del(GROWTH_ONBOARDING_PENDING_KEY);
+    if (this.data.showGrowthOnboardingGuide) {
+      this.setData({ showGrowthOnboardingGuide: false });
+      growthTracker.track('lobby_first_guide_close', growthTracker.fromTournament(this.data.tournament, {
+        tournamentId: tid,
+        src: 'lobby',
+        a: 'close'
+      }));
     }
   },
 

@@ -11,9 +11,12 @@ const profileCore = require('../../core/profile');
 const shareMeta = require('../../core/shareMeta');
 const storage = require('../../core/storage');
 const writeErrorUi = require('../../core/writeErrorUi');
+const growthTracker = require('../../core/growthTracker');
+const avatarDisplay = require('../../core/avatarDisplay');
 const flow = require('./flow');
 
 const IDENTITY_TIMEOUT_MS = 2500;
+const GROWTH_ONBOARDING_PENDING_KEY = 'growth:onboarding:pending';
 
 function warnCloudProfileSaveFailure(err) {
   console.warn('[share-entry] saveCloudProfile failed after join', err);
@@ -69,6 +72,7 @@ Page({
     const intent = flow.normalizeIntent(options && options.intent);
     const app = getApp();
     this.openid = '';
+    this._trackedShareEntryView = false;
     pageTournamentSync.initTournamentSync(this);
     this._identityAttemptSeq = 0;
     this.readCachedOpenid();
@@ -101,6 +105,7 @@ Page({
   onShow() {
     const currentId = String(this.data.tournamentId || '').trim();
     if (!currentId) return;
+    this.trackShareEntryView();
     nav.consumeRefreshFlag(currentId);
     const beforeOpenid = String(this.openid || '').trim();
     this.readCachedOpenid();
@@ -186,10 +191,12 @@ Page({
   },
 
   applyTournament(tournament) {
+    this.ensureAvatarRuntime();
     let preview = shareMeta.buildShareEntryViewModel({
       tournament,
       openid: this.openid
     });
+    preview = this.resolvePreviewParticipantAvatars(preview);
     const lifecycle = String((tournament && tournament.status) || '').trim();
     if (this.data.identityPending && !String(this.openid || '').trim() && lifecycle === 'draft') {
       preview = {
@@ -212,7 +219,65 @@ Page({
       tournament,
       preview
     });
+    this.refreshParticipantAvatars();
     pageTitle.setTournamentPageTitle(this, preview.joinAllowed && !preview.joined ? '加入比赛' : '查看比赛', tournament);
+    this.trackShareEntryView();
+  },
+
+  ensureAvatarRuntime() {
+    this.avatarCache = avatarDisplay.getSharedAvatarCache(this.avatarCache);
+  },
+
+  resolvePreviewParticipantAvatars(preview = {}) {
+    const list = Array.isArray(preview.participantPreviewList) ? preview.participantPreviewList : [];
+    if (!list.length) return preview;
+    const participantPreviewList = list.map((item) => {
+      const raw = String((item && (item.avatarRaw || item.avatarUrl)) || '').trim();
+      let displayUrl = raw;
+      if (avatarDisplay.isCloudAvatar(raw)) {
+        displayUrl = avatarDisplay.getCachedAvatarUrl(this.avatarCache, raw);
+      }
+      return {
+        ...item,
+        avatarRaw: raw,
+        avatarUrl: displayUrl,
+        showAvatar: !!displayUrl
+      };
+    });
+    return { ...preview, participantPreviewList };
+  },
+
+  async refreshParticipantAvatars() {
+    this.ensureAvatarRuntime();
+    const pending = avatarDisplay.collectCloudAvatarFileIds({
+      participantPreviewList: this.data.preview && this.data.preview.participantPreviewList
+    }, this.avatarCache);
+    if (!pending.length) return;
+    const result = await avatarDisplay.resolveCloudAvatarFileIds(pending, this.avatarCache);
+    if (!result.updated) return;
+    const tournament = this.data.tournament;
+    if (tournament) this.applyTournament(tournament);
+  },
+
+  onParticipantAvatarError(e) {
+    this.ensureAvatarRuntime();
+    const raw = String(e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.avatarRaw || '').trim();
+    if (!avatarDisplay.isCloudAvatar(raw)) return;
+    avatarDisplay.markAvatarUrlFailed(this.avatarCache, raw);
+    const tournament = this.data.tournament;
+    if (tournament) this.applyTournament(tournament);
+  },
+
+  trackShareEntryView() {
+    if (this._trackedShareEntryView) return;
+    const tid = String(this.data.tournamentId || '').trim();
+    if (!tid) return;
+    this._trackedShareEntryView = true;
+    growthTracker.track('share_entry_view', growthTracker.fromTournament(this.data.tournament, {
+      tournamentId: tid,
+      src: 'share_entry',
+      a: 'view'
+    }));
   },
 
   onRetry() {
@@ -236,10 +301,20 @@ Page({
   },
 
   goSchedule() {
+    growthTracker.track('share_entry_go_schedule', growthTracker.fromTournament(this.data.tournament, {
+      tournamentId: this.data.tournamentId,
+      src: 'share_entry',
+      a: 'click'
+    }));
     nav.redirectOrNavigate(flow.buildScheduleUrl(this.data.tournamentId));
   },
 
   goRanking() {
+    growthTracker.track('share_entry_go_ranking', growthTracker.fromTournament(this.data.tournament, {
+      tournamentId: this.data.tournamentId,
+      src: 'share_entry',
+      a: 'click'
+    }));
     nav.redirectOrNavigate(flow.buildRankingUrl(this.data.tournamentId));
   },
 
@@ -295,9 +370,16 @@ Page({
           clientRequestId
         }));
         nav.markRefreshFlag(tournamentId);
+        storage.set(GROWTH_ONBOARDING_PENDING_KEY, tournamentId);
         storage.setUserProfile({ nickName: payload.nickname, avatar: payload.avatar, gender: payload.gender });
         this.saveCloudProfileBestEffort(payload, clientRequestId);
         wx.showToast({ title: '已加入比赛', icon: 'success' });
+        growthTracker.track('share_entry_join_success', growthTracker.fromTournament(this.data.tournament, {
+          tournamentId,
+          src: 'share_entry',
+          a: 'join',
+          r: 'success'
+        }));
         await this.fetchTournament(tournamentId);
         const lifecycle = String((this.data.tournament && this.data.tournament.status) || '').trim();
         if (lifecycle === 'running') {
@@ -321,15 +403,26 @@ Page({
 
   onPrimaryAction() {
     const key = String((this.data.preview && this.data.preview.primaryAction && this.data.preview.primaryAction.key) || '').trim();
+    growthTracker.track('share_entry_primary_click', growthTracker.fromTournament(this.data.tournament, {
+      tournamentId: this.data.tournamentId,
+      src: 'share_entry',
+      a: key || 'click'
+    }));
     if (key === 'identity_pending') return;
     if (key === 'join') return this.handleJoin();
     if (key === 'view' || key === 'lobby_view') return this.goLobby('view_only');
     if (key === 'enter') return this.goLobby();
+    if (key === 'schedule') return this.goSchedule();
+    if (key === 'ranking') return this.goRanking();
+    if (key === 'analytics') return nav.redirectOrNavigate(flow.buildAnalyticsUrl(this.data.tournamentId));
     return this.onRetry();
   },
 
   onSecondaryAction() {
     const key = String((this.data.preview && this.data.preview.secondaryAction && this.data.preview.secondaryAction.key) || '').trim();
     if (key === 'home') return this.goHome();
+    if (key === 'schedule') return this.goSchedule();
+    if (key === 'ranking') return this.goRanking();
+    if (key === 'analytics') return nav.redirectOrNavigate(flow.buildAnalyticsUrl(this.data.tournamentId));
   }
 });

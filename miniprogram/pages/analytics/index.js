@@ -11,6 +11,7 @@ const pageTitle = require('../../core/pageTitle');
 const shareCardStats = require('../../core/shareCardStats');
 const sharePageMixin = require('../../core/sharePageMixin');
 const tournamentEntry = require('../../core/tournamentEntry');
+const growthTracker = require('../../core/growthTracker');
 const analyticsLogic = require('./logic');
 
 const analyticsSyncController = pageTournamentSync.createTournamentSyncMethods();
@@ -35,10 +36,12 @@ var shareMixin = sharePageMixin.createSharePageMixin({
     var players = Array.isArray(tournament.players) ? tournament.players : [];
     var playerRecord = players.find(function (p) { return String(p.id || '') === String(currentPlayer.playerId || currentPlayer.entityId || ''); }) || {};
     var cardStats = shareCardStats.buildShareCardStats(tournament, currentPlayer);
+    var statusText = String(tournament.status || '').trim() === 'finished' ? '最终排名出炉' : '实时排名更新中';
+    var modeLabel = this.data.modeLabel || '';
     return {
       userName: currentPlayer.name || '球员',
       eventName: tournament.name || '羽毛球比赛',
-      mode: this.data.modeLabel || '',
+      mode: modeLabel ? modeLabel + ' · ' + statusText : statusText,
       wins: currentPlayer.wins || 0,
       losses: currentPlayer.losses || 0,
       winRate: cardStats.winRate,
@@ -96,7 +99,7 @@ Page({
     loadError: false,
     posterImageUrl: '',
     showPosterPreview: false,
-    posterButtonText: '生成海报'
+    posterButtonText: '生成战绩卡'
   },
 
   ...analyticsSyncController,
@@ -106,6 +109,7 @@ Page({
   onLoad(options) {
     const tid = tournamentEntry.parseTournamentIdFromPageOptions(options || {});
     pageTournamentSync.initTournamentSync(this);
+    this._trackedAnalyticsView = false;
     this.setData({ tournamentId: tid });
     this.openid = (getApp().globalData.openid || '');
 
@@ -201,10 +205,21 @@ Page({
       fullRankings,
       displayRankings: fullRankings.slice(0, 5),
       showAllRankings: false,
-      posterButtonText: isCurrentUserInRanking ? '生成我的海报' : '生成榜首海报'
+      posterButtonText: isCurrentUserInRanking ? '生成我的战绩卡' : '生成榜首战绩卡'
     });
     this.clearLastFailedAction();
+    this.trackAnalyticsView(analytics.tournament);
     this._preheatShareWhenReady(analytics.tournament);
+  },
+
+  trackAnalyticsView(tournament) {
+    if (this._trackedAnalyticsView) return;
+    this._trackedAnalyticsView = true;
+    growthTracker.track('analytics_view', growthTracker.fromTournament(tournament || this.data.tournament, {
+      tournamentId: this.data.tournamentId,
+      src: 'analytics',
+      a: 'view'
+    }));
   },
 
   toggleRankingRows() {

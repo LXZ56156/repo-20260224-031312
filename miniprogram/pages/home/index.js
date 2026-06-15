@@ -15,6 +15,7 @@ const scheduleContract = require('../../core/scheduleContract');
 const systemInfo = require('../../core/systemInfo');
 const envConfig = require('../../config/env');
 const uiPreferences = require('../../core/uiPreferences');
+const growthTracker = require('../../core/growthTracker');
 const { buildHomeHeroCardState } = require('./heroCardState');
 
 function pad2(n) {
@@ -515,6 +516,11 @@ Page({
   async onCloneTap(e, options = {}) {
     const sourceTournamentId = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.id) || '').trim();
     if (!sourceTournamentId) return;
+    growthTracker.track('home_clone_tournament_click', {
+      t: sourceTournamentId,
+      src: 'home',
+      a: 'clone'
+    });
     const actionKey = `home:cloneTournament:${sourceTournamentId}`;
     const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'clone');
     if (actionGuard.isBusy(actionKey)) return;
@@ -523,6 +529,12 @@ Page({
         const nextId = await loading.withLoading('复制中...', () => cloneTournamentCore.cloneTournament(sourceTournamentId, { clientRequestId }));
         this.clearLastFailedAction();
         wx.showToast({ title: '已复制', icon: 'success' });
+        growthTracker.track('clone_tournament_success', {
+          t: sourceTournamentId,
+          src: 'home',
+          a: 'clone',
+          r: 'success'
+        });
         nav.goLobby(nextId);
       } catch (err) {
         this.setLastFailedAction('再办一场', () => this.onCloneTap({ currentTarget: { dataset: { id: sourceTournamentId } } }, { clientRequestId }), { actionKey });
@@ -653,6 +665,12 @@ Page({
     const status = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.status) || '').trim();
     if (!id) return;
     if (status === 'finished') {
+      growthTracker.track('home_finished_review_click', {
+        t: id,
+        s: 'finished',
+        src: 'home',
+        a: 'review'
+      });
       nav.goAnalytics(id);
       return;
     }

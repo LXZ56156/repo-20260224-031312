@@ -10,6 +10,8 @@ const uiPreferences = require('../../core/uiPreferences');
 const shareCardStats = require('../../core/shareCardStats');
 const sharePageMixin = require('../../core/sharePageMixin');
 const tournamentEntry = require('../../core/tournamentEntry');
+const storage = require('../../core/storage');
+const growthTracker = require('../../core/growthTracker');
 
 const rankingSyncController = pageTournamentSync.createTournamentSyncMethods({
   loadErrorMessages: {
@@ -64,11 +66,13 @@ var shareMixin = sharePageMixin.createSharePageMixin({
   buildShareCardData: function (tournament) {
     var openid = this.openid || (getApp().globalData.openid || '');
     var rankings = this.data.rankings || [];
-    var currentRow = null;
-    for (var i = 0; i < rankings.length; i++) {
-      if (String(rankings[i].playerId || rankings[i].entityId || '') === openid) {
-        currentRow = rankings[i];
-        break;
+    var currentRow = this._posterTargetRow || null;
+    if (!currentRow) {
+      for (var i = 0; i < rankings.length; i++) {
+        if (String(rankings[i].playerId || rankings[i].entityId || '') === openid) {
+          currentRow = rankings[i];
+          break;
+        }
       }
     }
     if (!currentRow) {
@@ -79,10 +83,11 @@ var shareMixin = sharePageMixin.createSharePageMixin({
     var playerRecord = players.find(function (p) { return String(p.id || '') === String(currentRow.playerId || currentRow.entityId || ''); }) || {};
     var cardStats = shareCardStats.buildShareCardStats(tournament, currentRow);
     var modeLabel = flow.getModeDisplayLabel(tournament.mode || flow.MODE_MULTI_ROTATE, tournament.presetKey);
+    var statusText = String(tournament.status || '').trim() === 'finished' ? '最终排名出炉' : '实时排名更新中';
     return {
       userName: currentRow.displayName || currentRow.name || '球员',
       eventName: tournament.name || '羽毛球比赛',
-      mode: modeLabel,
+      mode: modeLabel ? modeLabel + ' · ' + statusText : statusText,
       wins: currentRow.wins || 0,
       losses: currentRow.losses || 0,
       winRate: cardStats.winRate,
@@ -95,6 +100,28 @@ var shareMixin = sharePageMixin.createSharePageMixin({
     };
   }
 });
+
+function findRankingRowByRank(rankings, rank) {
+  var targetRank = Number(rank);
+  if (!Number.isFinite(targetRank) || targetRank <= 0) return null;
+  var list = Array.isArray(rankings) ? rankings : [];
+  for (var i = 0; i < list.length; i++) {
+    if (Number(list[i] && list[i].rank) === targetRank) return list[i];
+  }
+  return null;
+}
+
+function buildPosterButtonText(isCurrentUserInRanking) {
+  return isCurrentUserInRanking ? '生成我的战绩卡' : '生成榜首战绩卡';
+}
+
+function buildRankingShareBanner(tournament) {
+  return String(tournament && tournament.status || '').trim() === 'finished' ? '最终排名已出炉' : '';
+}
+
+function buildAutoPosterFiredKey(tournamentId) {
+  return `growth:autoPoster:fired:${String(tournamentId || '').trim()}`;
+}
 
 Page({
   data: {
@@ -128,7 +155,8 @@ Page({
     primaryNavItems: [],
     posterImageUrl: '',
     showPosterPreview: false,
-    posterButtonText: '生成海报'
+    posterButtonText: '生成战绩卡',
+    rankingShareBannerText: ''
   },
 
   ...rankingSyncController,
@@ -136,6 +164,9 @@ Page({
 
   onLoad(options) {
     const tid = tournamentEntry.parseTournamentIdFromPageOptions(options || {});
+    this._autoPosterRequested = String((options && options.autoPoster) || '') === '1' ||
+      String((options && options.shareIntent) || '').trim() === 'poster';
+    this._trackedRankingView = false;
     this.ensureAvatarRuntime();
     pageTournamentSync.initTournamentSync(this);
     this.openid = (getApp().globalData.openid || '');
@@ -248,6 +279,7 @@ Page({
         displayName: displayName || String(row && row.name || '').trim() || '队伍',
         subtitle,
         showTrend,
+        topShareText: idx < 3 ? '分享' : '',
         avatarItems: buildRankingAvatarItems(row, mode, pairTeams, playerMap, this.avatarCache || {})
       };
     });
@@ -263,10 +295,23 @@ Page({
       rankings: decoratedRankings,
       rankingTypeLabel,
       primaryNavItems: matchPrimaryNav.getPrimaryNavItems('ranking', this.data.tournamentId),
-      posterButtonText: isCurrentUserInRanking ? '生成我的海报' : '生成榜首海报'
+      posterButtonText: buildPosterButtonText(isCurrentUserInRanking),
+      rankingShareBannerText: buildRankingShareBanner(t)
     });
     this.refreshAvatarDisplays();
     this._preheatShareWhenReady(t);
+    this.trackRankingView(t);
+    this.maybeFireAutoPoster(t._id || this.data.tournamentId);
+  },
+
+  trackRankingView(tournament) {
+    if (this._trackedRankingView) return;
+    this._trackedRankingView = true;
+    growthTracker.track('ranking_view', growthTracker.fromTournament(tournament || this.data.tournament, {
+      tournamentId: this.data.tournamentId,
+      src: 'ranking',
+      a: 'view'
+    }));
   },
 
   ensureAvatarRuntime() {
@@ -301,6 +346,71 @@ Page({
 
   goHome() {
     nav.goHome();
+  },
+
+  onGeneratePoster() {
+    this._posterTargetRow = null;
+    growthTracker.track('ranking_generate_poster_click', growthTracker.fromTournament(this.data.tournament, {
+      tournamentId: this.data.tournamentId,
+      src: 'ranking',
+      a: 'generate_poster'
+    }));
+    return shareMixin.onGeneratePoster.call(this);
+  },
+
+  onShareRankingRow(e) {
+    const rank = Number(e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.rank);
+    const row = findRankingRowByRank(this.data.rankings, rank);
+    if (!row) return this.onGeneratePoster();
+    this._posterTargetRow = row;
+    growthTracker.track('ranking_generate_poster_click', growthTracker.fromTournament(this.data.tournament, {
+      tournamentId: this.data.tournamentId,
+      src: 'ranking',
+      a: 'top_rank'
+    }));
+    return shareMixin.onGeneratePoster.call(this);
+  },
+
+  onPosterGenerated() {
+    growthTracker.track('ranking_generate_poster_success', growthTracker.fromTournament(this.data.tournament, {
+      tournamentId: this.data.tournamentId,
+      src: 'ranking',
+      a: 'generate_poster',
+      r: 'success'
+    }));
+  },
+
+  onPosterSaved() {
+    growthTracker.track('ranking_save_poster_success', growthTracker.fromTournament(this.data.tournament, {
+      tournamentId: this.data.tournamentId,
+      src: 'ranking',
+      a: 'save_poster',
+      r: 'success'
+    }));
+  },
+
+  onShareTextCopied() {
+    growthTracker.track('ranking_copy_share_text', growthTracker.fromTournament(this.data.tournament, {
+      tournamentId: this.data.tournamentId,
+      src: 'ranking',
+      a: 'copy'
+    }));
+  },
+
+  maybeFireAutoPoster(tournamentId) {
+    const tid = String(tournamentId || '').trim();
+    if (!tid || !this._autoPosterRequested || this._autoPosterFiredInPage) return;
+    const key = buildAutoPosterFiredKey(tid);
+    if (storage.get(key, false)) return;
+    this._autoPosterFiredInPage = true;
+    storage.set(key, true);
+    setTimeout(() => {
+      try {
+        this.onGeneratePoster();
+      } catch (err) {
+        console.warn('[ranking] auto poster failed', err);
+      }
+    }, 120);
   },
 
 });

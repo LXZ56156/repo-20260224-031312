@@ -7,6 +7,7 @@ const tournamentSync = require('../../core/tournamentSync');
 const matchFlow = require('../../core/matchFlow');
 const nav = require('../../core/nav');
 const writeErrorUi = require('../../core/writeErrorUi');
+const growthTracker = require('../../core/growthTracker');
 const { normalizeTournament } = require('../../core/normalize');
 const { clampScore, buildClientRequestId } = require('./matchViewModel');
 
@@ -347,6 +348,12 @@ function createMatchSubmitService(ctx, deps = {}) {
         }
 
         await finalizeSubmitSuccess(res, lockSnapshot);
+        growthTracker.track('score_submit_success', growthTracker.fromTournament(ctx._latestTournament || ctx.data.tournament, {
+          tournamentId: ctx.data.tournamentId,
+          src: 'match',
+          a: 'submit_score',
+          r: 'success'
+        }));
         ctx.clearLastFailedAction();
         ctx.matchDraft.clearScoreDraft();
         ctx.matchDraft.clearUndo();
@@ -389,6 +396,12 @@ function createMatchSubmitService(ctx, deps = {}) {
               ok: true,
               scorerName: lockSnapshot.ownerName
             }, lockSnapshot, { tournamentDoc: recovered });
+            growthTracker.track('score_submit_success', growthTracker.fromTournament(ctx._latestTournament || ctx.data.tournament || recovered, {
+              tournamentId: ctx.data.tournamentId,
+              src: 'match',
+              a: 'submit_score',
+              r: 'success'
+            }));
             ctx.clearLastFailedAction();
             ctx.matchDraft.clearScoreDraft();
             ctx.matchDraft.clearUndo();

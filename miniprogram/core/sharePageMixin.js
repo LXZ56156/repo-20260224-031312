@@ -69,6 +69,7 @@ function createSharePageMixin(opts) {
       shareCardPreheat.getPreparedShareImage(ctx, tournament, shareCardPreheat.TYPE_POSTER).then(function (imageUrl) {
         wx.hideLoading();
         ctx.setData({ posterImageUrl: imageUrl, showPosterPreview: true });
+        if (typeof ctx.onPosterGenerated === 'function') ctx.onPosterGenerated(imageUrl);
       }).catch(function () {
         wx.hideLoading();
         wx.showToast({ title: '海报生成失败，请重试', icon: 'none' });
@@ -94,7 +95,13 @@ function createSharePageMixin(opts) {
     onSavePoster: function () {
       var imageUrl = String(this.data.posterImageUrl || '').trim();
       if (!imageUrl) return;
-      sharePoster.savePosterToAlbum(imageUrl);
+      var task = sharePoster.savePosterToAlbum(imageUrl);
+      if (task && typeof task.then === 'function') {
+        var ctx = this;
+        task.then(function () {
+          if (typeof ctx.onPosterSaved === 'function') ctx.onPosterSaved(imageUrl);
+        }).catch(function () {});
+      }
     },
 
     onCopyPosterText: function () {
@@ -102,6 +109,7 @@ function createSharePageMixin(opts) {
       if (!tournament) return;
       var cardData = buildShareCardDataFn.call(this, tournament);
       sharePoster.copyShareText(cardData);
+      if (typeof this.onShareTextCopied === 'function') this.onShareTextCopied(cardData);
     },
 
     onClosePosterPreview: function () {
