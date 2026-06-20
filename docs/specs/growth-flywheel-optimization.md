@@ -1,10 +1,10 @@
 # 增长飞轮优化方案 — v1.2
 
-> 版本: v1.2.2 · 状态: phase1_completed_and_pushed
+> 版本: v1.2.3 · 状态: phase1_completed_phase2_ready
 > 日期: 2026-06-15
 > 数据来源: we分析 121 天数据 (2026.02.13–2026.06.13) + CloudBase 后端审计
 > v1.2 变更: 从 P0–P5 分散功能清单重构为"方案 A + E + 轻量 D"第一阶段增长方案。目标是最短可验证增长闭环，不再一次性做完所有增长功能。
-> 最新状态: 第一阶段 Task 1–6 已完成实现、真实截图检查、回归验证，并推送到 `origin/master`。Task 7 保持 Backlog。
+> 最新状态: 第一阶段 Task 1–6 已完成实现、真实截图检查、回归验证，并推送到 `origin/master`。Task 7 已升级为 Phase 2 入口（含前置条件和优先级）。Phase 2 待 Phase 1 线上数据积累后启动。
 
 ## 0. 版本结论
 
@@ -448,39 +448,58 @@ v1.2 做出以下明确决策：
 
 ---
 
-### Task 7：文档内保留第二阶段 Backlog
+### Task 7：第二阶段 Backlog（Phase 2 入口）
 
-以下内容**明确不在第一阶段范围**，进入第二阶段 Backlog：
+以下内容**明确不在第一阶段范围**。等 Phase 1 上线积累 ≥7 天数据后，根据 we 分析 + growthTracker 埋点数据决定最终优先级和启动时机。
 
-#### 订阅消息
+#### Phase 2 启动前置条件
+
+- [ ] Phase 1 真机验收通过
+- [ ] Phase 1 上线 ≥7 天，积累足够的埋点数据
+- [ ] 拉取最新 we 分析数据，对比 Phase 1 前后指标变化：
+  - share-entry 停留时间是否提升
+  - 新用户次日留存是否改善
+  - 分享率是否提升
+  - 海报生成/保存量
+- [ ] 确认 MP 后台订阅消息模板可用性
+- [ ] 根据数据决定 Phase 2 优先级是否调整
+
+#### Backlog 项（建议优先级）
+
+**P2-1 · 订阅消息**（依赖 MP 模板确认）
 
 - 开赛通知：加入赛事后引导订阅
 - 完赛通知：全部比赛完赛时推送
 - 排名更新通知：排名变化时推送
 - 前置条件：MP 后台确认可用模板、`wx.requestSubscribeMessage` 授权策略、新增云函数 `subscribeMessage.send`
+- 预计涉及：前端 `wx.requestSubscribeMessage` + 新增云函数 `subscribeMessage`
 
-#### 添加到我的小程序引导
+**P2-2 · 添加到我的小程序引导**
 
 - 触发时机：创建赛事成功后 / 首次提交比分后
 - 弹窗引导用户下拉添加
 - 全生命周期最多弹 1 次（本地 storage 记录）
+- 纯前端改动
 
-#### match 单场比分分享
+**P2-3 · match 单场比分分享**
 
 - 录分完成后，轻量入口分享单场比分卡
 - 需 Canvas 生成单场比分卡（对阵双方 + 比分 + 赛事名）
+- 复用现有 `shareCard.js` 基础设施
 
-#### mine 长期个人战绩分享
+**P2-4 · mine 长期个人战绩分享**
 
 - 累计战绩卡（胜率、排名、队友统计）
 - 最近 10 场表现
+- 复用现有 `shareCard.js` + `sharePageMixin`
 
-#### 更细分的转化漏斗数据
+**P2-5 · 细分转化漏斗看板**
 
 - 入口转化率（share-entry view → join click → join success）
 - 加入转化率（join success → schedule view → match open）
 - 海报保存率（generate click → generate success → save success）
 - 再办一场率（home finished review → clone click → clone success）
+- 基于 Phase 1 growthTracker 埋点数据构建
 
 ---
 
@@ -544,3 +563,4 @@ v1.2 做出以下明确决策：
 | v1.2 | 2026-06-15 | 重构为"方案 A + E + 轻量 D"第一阶段方案，7 个可执行任务 + 第二阶段 Backlog |
 | v1.2.1 | 2026-06-15 | 补充第一阶段 UI 真实截图验收流程入口 |
 | v1.2.2 | 2026-06-15 | 记录第一阶段 Task 1–6 已完成、截图/测试验证通过，并推送到 `origin/master` |
+| v1.2.3 | 2026-06-15 | 整理 Phase 1 文档，升级 Task 7 为 Phase 2 入口（含前置条件 + 建议优先级）；同步更新 `docs/tasks/current.md` |
