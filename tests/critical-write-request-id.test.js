@@ -14,7 +14,7 @@ const lobbyProfileActions = require('../miniprogram/pages/lobby/lobbyProfileActi
 const flow = require('../miniprogram/core/uxFlow');
 
 const createPagePath = require.resolve('../miniprogram/pages/create/index.js');
-const analyticsPagePath = require.resolve('../miniprogram/pages/analytics/index.js');
+const rankingPagePath = require.resolve('../miniprogram/pages/ranking/index.js');
 
 function createWxStub() {
   const pendingModalTasks = [];
@@ -508,7 +508,7 @@ test('lobby removePlayer retry reuses the same clientRequestId', async () => {
   }
 });
 
-test('analytics clone retry reuses the same clientRequestId', async () => {
+test('ranking clone retry reuses the same clientRequestId', async () => {
   const originalWx = global.wx;
   const originalCloudCall = cloud.call;
   const originalAddRecentTournamentId = storage.addRecentTournamentId;
@@ -520,7 +520,7 @@ test('analytics clone retry reuses the same clientRequestId', async () => {
   global.wx = wxBox.api;
 
   try {
-    const definition = loadPageDefinition(analyticsPagePath);
+    const definition = loadPageDefinition(rankingPagePath);
     const ctx = createPageContext(definition, { tournamentId: 't_clone' });
 
     storage.addRecentTournamentId = () => {};
@@ -541,7 +541,7 @@ test('analytics clone retry reuses the same clientRequestId', async () => {
     global.wx = originalWx;
     cloud.call = originalCloudCall;
     storage.addRecentTournamentId = originalAddRecentTournamentId;
-    delete require.cache[analyticsPagePath];
+    delete require.cache[rankingPagePath];
   }
 });
 

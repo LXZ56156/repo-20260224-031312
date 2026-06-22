@@ -2,7 +2,21 @@
 
 > AI session handoff file. Keep it short enough for the next session to continue without re-investigation.
 
-## Status: phase2_planning
+## Status: core_flow_simplification_completed
+
+## Active Task (2026-06-22)
+
+“羽球轮转助手核心流程简化与 UI 重构”已在专用分支完成实现与终验。
+
+- 分支：`feature/core-flow-simplification`
+- 当前阶段：完成；1108/1108 tests、check、lint、13 张真实截图与两轮视觉验收均通过
+- 计划：`docs/tasks/core-flow-simplification-plan.md`
+- 日志：`docs/tasks/session-logs/20260622-core-flow-simplification.md`
+- 约束：不部署、不上传、不 push；保留 `create` / `analytics` 旧路由兼容
+
+完成摘要：launch 直接创建；lobby 只保留摘要、名单和唯一下一步；导航统一为“赛事｜对阵｜排名”；match 合并比分舞台；ranking 成为唯一正式结果页并承接 analytics 广告位；home/share-entry 精简。视觉终验 P0/P1 为零，截图目录为 `tmp/ui-screenshots-actual/`。
+
+## Previous Task: Growth Flywheel Phase 2 Planning
 
 ## Phase 1 Completed (2026-06-15)
 

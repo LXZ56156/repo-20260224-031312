@@ -18,7 +18,6 @@
           <view class="hero-task-label">{{heroCard.label}}</view>
           <view class="hero-task-name ellipsis" wx:if="{{heroCard.name}}">{{heroCard.name}}</view>
           <view class="hero-task-meta" wx:if="{{heroCard.meta}}">{{heroCard.meta}}</view>
-          <view class="hero-task-detail" wx:if="{{heroCard.detail}}">{{heroCard.detail}}</view>
           <view class="hero-progress-wrap" wx:if="{{heroCard.progress >= 0}}">
             <view class="hero-progress-bar">
               <view class="hero-progress-fill" style="width: {{heroCard.progress}}%;"></view>
@@ -44,7 +43,7 @@
       <view class="section-title">我的赛事</view>
       <text class="count-pill">{{visibleCount}} 个</text>
     </view>
-    <view class="toolbar-row" wx:if="{{items.length>1}}">
+    <view class="toolbar-row" wx:if="{{showListControls}}">
       <view class="sort-row">
         <text class="sort-label">排序</text>
         <text class="sort-chip {{sortMode==='updated' ? 'active' : ''}}" data-mode="updated" bindtap="onChangeSortMode">最近更新</text>
@@ -124,15 +123,10 @@
                   <text class="pill">{{item.playersCount}}人</text>
                   <text class="pill">{{item.matchProgressText}}</text>
                 </view>
-                <view class="finished-growth-markers" wx:if="{{item.status==='finished'}}">
-                  <text class="finished-growth-pill">最终排名已出炉</text>
-                  <text class="finished-growth-pill">可生成战绩卡</text>
-                </view>
-                <view class="finished-review-note" wx:if="{{item.status==='finished'}}">赛后复盘已准备好，可发回群里查看排名和战绩。</view>
                 <view class="t-meta-row">
                   <view class="t-time muted small">更新 {{item.updatedAtText}}</view>
                   <view class="t-actions" wx:if="{{item.status!=='missing'}}">
-                    <text class="t-quick-action" catchtap="onQuickActionTap" data-id="{{item._id}}" data-status="{{item.status}}" wx:if="{{item.status==='finished'}}">查看战绩</text>
+                    <text class="t-quick-action" catchtap="onQuickActionTap" data-id="{{item._id}}" data-status="{{item.status}}" wx:if="{{item.status==='finished'}}">查看排名</text>
                     <text class="t-copy-link" catchtap="onCloneTap" data-id="{{item._id}}" wx:if="{{item.status==='finished'}}">再办一场</text>
                     <text class="t-quick-action" catchtap="onQuickActionTap" data-id="{{item._id}}" data-status="{{item.status}}" wx:elif="{{item.status==='running'}}">查看对阵</text>
                   </view>
@@ -146,7 +140,6 @@
 
     <!-- 空态: 统一 state-empty 结构 -->
     <view wx:else class="state-empty">
-      <view class="state-empty-icon">📋</view>
       <view class="state-empty-title">当前筛选下还没有比赛</view>
       <view class="state-empty-desc">创建新赛事或切换筛选条件查看更多</view>
     </view>
@@ -161,17 +154,6 @@
       <button class="btn btn-subtle btn-sm" bindtap="goProfileFromNudge">去完善</button>
       <text class="profile-nudge-later" bindtap="dismissProfileNudge">稍后</text>
     </view>
-  </view>
-
-  <view class="onboarding card panel reveal reveal-4" wx:if="{{showOnboarding}}">
-    <view class="section-head">
-      <view class="section-title">三步开赛</view>
-      <text class="count-pill">新手引导</text>
-    </view>
-    <view class="guide-step"><text class="guide-index">1</text><text class="guide-text">创建比赛</text></view>
-    <view class="guide-step"><text class="guide-index">2</text><text class="guide-text">分享邀请或导入名单，先满 4 人</text></view>
-    <view class="guide-step"><text class="guide-index">3</text><text class="guide-text">在大厅设置参数后开赛录分</text></view>
-    <text class="onboarding-later" bindtap="dismissOnboarding">稍后再看</text>
   </view>
 
   <view class="card panel-soft ad-breakpoint reveal reveal-5" wx:if="{{showHomeAdSlot}}">

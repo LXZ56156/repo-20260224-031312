@@ -35,7 +35,7 @@ function buildRankingUrl(tournamentId) {
 }
 
 function buildAnalyticsUrl(tournamentId) {
-  return nav.buildTournamentUrl('/pages/analytics/index', tournamentId);
+  return buildRankingUrl(tournamentId);
 }
 
 module.exports = {

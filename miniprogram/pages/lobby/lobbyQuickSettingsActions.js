@@ -234,16 +234,16 @@ module.exports = {
   async saveQuickSettings(options = {}) {
     if (!this.data.isAdmin) {
       wx.showToast({ title: '仅管理员可保存参数', icon: 'none' });
-      return;
+      return false;
     }
     const tournament = this.data.tournament;
     if (!tournament || tournament.status !== 'draft') {
       wx.showToast({ title: '仅草稿阶段可修改', icon: 'none' });
-      return;
+      return false;
     }
     if (!this.data.canConfigureSettings) {
       wx.showToast({ title: '满 4 人后才可设置参数', icon: 'none' });
-      return;
+      return false;
     }
 
     const name = flow.getSynchronizedTournamentName(
@@ -253,7 +253,7 @@ module.exports = {
     );
     if (!name) {
       wx.showToast({ title: '请输入赛事名称', icon: 'none' });
-      return;
+      return false;
     }
 
     const matchCount = flow.parsePositiveInt(this.data.quickConfigM, 1);
@@ -261,12 +261,12 @@ module.exports = {
     const maxMatches = Number(this.data.maxMatches) || 0;
     if (maxMatches > 0 && matchCount > maxMatches) {
       wx.showToast({ title: `总场次最多 ${maxMatches} 场`, icon: 'none' });
-      return;
+      return false;
     }
 
     const actionKey = `lobby:updateSettings:${this.data.tournamentId}`;
     const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'update_settings');
-    if (actionGuard.isBusy(actionKey)) return;
+    if (actionGuard.isBusy(actionKey)) return false;
     const endConditionType = this.data.quickShowSquadEndCondition
       ? settingsViewModel.normalizeEndConditionType(this.data.quickEndConditionType)
       : 'total_matches';
@@ -290,13 +290,17 @@ module.exports = {
         const readyToStart = !!this.data.checkStartReady;
         wx.hideLoading();
         this.clearLastFailedAction();
-        wx.showToast({ title: readyToStart ? '已保存，可开赛' : '参数已保存', icon: 'success' });
+        if (!options.silentSuccess) {
+          wx.showToast({ title: readyToStart ? '已保存，可开赛' : '参数已保存', icon: 'success' });
+        }
         nav.markRefreshFlag(this.data.tournamentId);
-        if (readyToStart) this.focusStartAction();
+        if (readyToStart && !options.silentSuccess) this.focusStartAction();
+        return true;
       } catch (err) {
         wx.hideLoading();
         this.setLastFailedAction('保存比赛参数', () => this.saveQuickSettings({ clientRequestId }), { actionKey });
         this.handleWriteError(err, '保存失败', () => this.fetchTournament(this.data.tournamentId));
+        return false;
       }
     });
   }

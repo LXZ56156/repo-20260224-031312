@@ -1,4 +1,4 @@
-<view class="container safe-bottom lobby-page {{uiMotionClass}}" wx:if="{{tournament}}" bindtap="onGrowthGuidePageTap">
+<view class="container safe-bottom lobby-page {{uiMotionClass}}" wx:if="{{tournament}}">
   <view class="match-primary-nav">
     <view
       class="match-primary-nav-item {{item.active ? 'active' : ''}}"
@@ -20,50 +20,12 @@
   </view>
 
   <include src="./lobby-hero.wxml"/>
-  <include src="./lobby-state-panel.wxml"/>
-
-  <view
-    class="card panel growth-guide-card reveal reveal-3"
-    wx:if="{{showGrowthOnboardingGuide}}"
-    catchtap="keepGrowthGuideOpen"
-  >
-    <view class="growth-guide-head">
-      <view>
-        <view class="section-title">刚加入，先看这 3 件事</view>
-        <view class="muted small">按顺序确认名单、规则和赛程。</view>
-      </view>
-      <button class="icon-btn growth-guide-close" bindtap="closeGrowthOnboardingGuide">×</button>
-    </view>
-    <view class="growth-guide-steps">
-      <view class="growth-guide-step" wx:for="{{growthOnboardingSteps}}" wx:key="step">
-        <text class="growth-guide-index">{{item.step}}</text>
-        <view class="growth-guide-copy">
-          <view class="growth-guide-title">{{item.title}}</view>
-          <view class="growth-guide-desc">{{item.desc}}</view>
-        </view>
-      </view>
-    </view>
-    <button class="btn btn-subtle btn-sm growth-guide-done" bindtap="closeGrowthOnboardingGuide">知道了</button>
-  </view>
 
   <view class="sheet-mask" wx:if="{{showJoinSheet}}" bindtap="closeJoinSheet"></view>
   <include src="./lobby-join-sheet.wxml"/>
   <include src="./lobby-player-grid.wxml"/>
+  <include src="./lobby-state-panel.wxml"/>
   <include src="./lobby-admin-panel.wxml"/>
-
-  <view class="card panel panel-soft info-panel reveal reveal-6 {{showGrowthOnboardingGuide ? 'growth-guide-rules-focus' : ''}}">
-    <view class="section-head">
-      <view class="section-title">比赛信息</view>
-    </view>
-    <view class="rule-chips">
-      <text class="rule-chip">{{modeLabel}}</text>
-      <text class="rule-chip">{{pointsPerGame}} 分制</text>
-      <text class="rule-chip">胜场优先</text>
-    </view>
-    <view class="info-highlight">{{matchInfoText}}</view>
-    <view class="muted small">{{genderSummaryText}}</view>
-    <view class="muted small" wx:if="{{tournament.createdAt}}">创建 {{createdAtText}}</view>
-  </view>
 
   <view class="retry-box" wx:if="{{canRetryAction}}">
     <view class="muted small">{{lastFailedActionText}}</view>

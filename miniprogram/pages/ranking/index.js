@@ -12,6 +12,13 @@ const sharePageMixin = require('../../core/sharePageMixin');
 const tournamentEntry = require('../../core/tournamentEntry');
 const storage = require('../../core/storage');
 const growthTracker = require('../../core/growthTracker');
+const actionGuard = require('../../core/actionGuard');
+const clientRequest = require('../../core/clientRequest');
+const cloneTournamentCore = require('../../core/cloneTournament');
+const loading = require('../../core/loading');
+const retryAction = require('../../core/retryAction');
+const writeErrorUi = require('../../core/writeErrorUi');
+const adGuard = require('../../core/adGuard');
 
 const rankingSyncController = pageTournamentSync.createTournamentSyncMethods({
   loadErrorMessages: {
@@ -101,22 +108,8 @@ var shareMixin = sharePageMixin.createSharePageMixin({
   }
 });
 
-function findRankingRowByRank(rankings, rank) {
-  var targetRank = Number(rank);
-  if (!Number.isFinite(targetRank) || targetRank <= 0) return null;
-  var list = Array.isArray(rankings) ? rankings : [];
-  for (var i = 0; i < list.length; i++) {
-    if (Number(list[i] && list[i].rank) === targetRank) return list[i];
-  }
-  return null;
-}
-
 function buildPosterButtonText(isCurrentUserInRanking) {
   return isCurrentUserInRanking ? '生成我的战绩卡' : '生成榜首战绩卡';
-}
-
-function buildRankingShareBanner(tournament) {
-  return String(tournament && tournament.status || '').trim() === 'finished' ? '最终排名已出炉' : '';
 }
 
 function buildAutoPosterFiredKey(tournamentId) {
@@ -156,10 +149,14 @@ Page({
     posterImageUrl: '',
     showPosterPreview: false,
     posterButtonText: '生成战绩卡',
-    rankingShareBannerText: ''
+    showMoreActions: false,
+    showResultAdSlot: false,
+    canRetryAction: false,
+    lastFailedActionText: ''
   },
 
   ...rankingSyncController,
+  ...retryAction.createRetryMethods(),
   ...shareMixin,
 
   onLoad(options) {
@@ -202,10 +199,12 @@ Page({
 
   onHide() {
     pageTournamentSync.pauseTournamentSync(this);
+    if (this.data.showMoreActions) this.setData({ showMoreActions: false });
   },
 
   onShow() {
     this.refreshUiPreferences();
+    this.refreshResultAdSlot();
     const currentId = String(this.data.tournamentId || '').trim();
     nav.consumeRefreshFlag(currentId);
     // 兜底刷新：部分真机 onSnapshot 监听可能不稳定
@@ -215,6 +214,12 @@ Page({
 
   refreshUiPreferences() {
     this.setData(uiPreferences.readUiPreferencePatch());
+  },
+
+  refreshResultAdSlot() {
+    const showResultAdSlot = adGuard.shouldExposePageSlot('analytics');
+    this.setData({ showResultAdSlot });
+    if (showResultAdSlot) adGuard.markPageExposed('analytics');
   },
 
   onUnload() {
@@ -279,7 +284,6 @@ Page({
         displayName: displayName || String(row && row.name || '').trim() || '队伍',
         subtitle,
         showTrend,
-        topShareText: idx < 3 ? '分享' : '',
         avatarItems: buildRankingAvatarItems(row, mode, pairTeams, playerMap, this.avatarCache || {})
       };
     });
@@ -295,8 +299,7 @@ Page({
       rankings: decoratedRankings,
       rankingTypeLabel,
       primaryNavItems: matchPrimaryNav.getPrimaryNavItems('ranking', this.data.tournamentId),
-      posterButtonText: buildPosterButtonText(isCurrentUserInRanking),
-      rankingShareBannerText: buildRankingShareBanner(t)
+      posterButtonText: buildPosterButtonText(isCurrentUserInRanking)
     });
     this.refreshAvatarDisplays();
     this._preheatShareWhenReady(t);
@@ -358,17 +361,28 @@ Page({
     return shareMixin.onGeneratePoster.call(this);
   },
 
-  onShareRankingRow(e) {
-    const rank = Number(e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.rank);
-    const row = findRankingRowByRank(this.data.rankings, rank);
-    if (!row) return this.onGeneratePoster();
-    this._posterTargetRow = row;
-    growthTracker.track('ranking_generate_poster_click', growthTracker.fromTournament(this.data.tournament, {
-      tournamentId: this.data.tournamentId,
-      src: 'ranking',
-      a: 'top_rank'
-    }));
-    return shareMixin.onGeneratePoster.call(this);
+  toggleMoreActions() {
+    this.setData({ showMoreActions: !this.data.showMoreActions });
+  },
+
+  async cloneCurrentTournament(options = {}) {
+    const sourceTournamentId = String(this.data.tournamentId || '').trim();
+    if (!sourceTournamentId) return;
+    const actionKey = `ranking:cloneTournament:${sourceTournamentId}`;
+    const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'clone');
+    if (actionGuard.isBusy(actionKey)) return;
+    return actionGuard.runCriticalWrite(actionKey, async () => {
+      try {
+        const nextId = await loading.withLoading('复制中...', () => cloneTournamentCore.cloneTournament(sourceTournamentId, { clientRequestId }));
+        this.clearLastFailedAction();
+        this.setData({ showMoreActions: false });
+        wx.showToast({ title: '已生成副本', icon: 'success' });
+        nav.goLobby(nextId);
+      } catch (err) {
+        this.setLastFailedAction('再办一场', () => this.cloneCurrentTournament({ clientRequestId }), { actionKey });
+        writeErrorUi.presentWriteError({ err, fallbackMessage: '复制失败' });
+      }
+    });
   },
 
   onPosterGenerated() {

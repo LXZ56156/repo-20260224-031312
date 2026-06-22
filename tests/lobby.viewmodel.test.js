@@ -23,7 +23,7 @@ function buildTournament(overrides = {}) {
   };
 }
 
-test('lobby view model partitions admin role flow and promotes share before backup import', () => {
+test('lobby view model gives underfilled admin one invite action without a preparation checklist', () => {
   const result = viewModel.buildLobbyViewModel({
     tournament: buildTournament(),
     openid: 'u_admin',
@@ -32,26 +32,22 @@ test('lobby view model partitions admin role flow and promotes share before back
 
   assert.equal(result.patch.currentRoleKey, 'admin');
   assert.equal(result.patch.nextActionKey, 'share');
-  assert.equal(result.patch.nextActionText, '转发');
-  assert.equal(result.patch.statePanelTitle, '开赛前准备');
+  assert.equal(result.patch.nextActionText, '邀请球友');
+  assert.equal(result.patch.statePanelTitle, '下一步');
   assert.equal(result.patch.statePrimaryActionKey, 'share');
-  assert.equal(result.patch.statePrimaryActionText, '转发');
-  assert.equal(result.patch.featuredChecklistItem.key, 'players');
-  assert.equal(result.patch.featuredChecklistItem.title, '2. 转发比赛');
-  assert.equal(result.patch.featuredChecklistItem.state, 'active');
-  assert.deepEqual(
-    result.patch.secondaryChecklistItems.map((item) => item.title),
-    ['1. 修改比赛', '3. 开始比赛']
-  );
+  assert.equal(result.patch.statePrimaryActionText, '邀请球友');
+  assert.equal(result.patch.primaryTaskKey, 'share');
+  assert.equal(result.patch.primaryTaskTitle, '邀请球友');
+  assert.equal(Object.hasOwn(result.patch, 'showStateChecklist'), false);
+  assert.equal(Object.hasOwn(result.patch, 'checklistItems'), false);
   assert.deepEqual(
     result.patch.roleCards.map((item) => item.key),
     ['admin', 'joined', 'viewer', 'profile_pending']
   );
-  assert.equal(result.patch.checklistItems[1].actionText, '待邀请');
   assert.equal(result.patch.stateSecondaryActions, undefined);
 });
 
-test('lobby view model promotes settings card when admin draft is missing required configuration', () => {
+test('lobby view model saves safe defaults and starts from one CTA when configuration is not persisted', () => {
   const result = viewModel.buildLobbyViewModel({
     tournament: buildTournament({
       settingsConfigured: false,
@@ -66,13 +62,12 @@ test('lobby view model promotes settings card when admin draft is missing requir
     data: {}
   });
 
-  assert.equal(result.patch.featuredChecklistItem.key, 'settings');
-  assert.equal(result.patch.featuredChecklistItem.title, '1. 修改比赛');
-  assert.equal(result.patch.featuredChecklistItem.state, 'active');
-  assert.deepEqual(
-    result.patch.secondaryChecklistItems.map((item) => item.title),
-    ['2. 转发比赛', '3. 开始比赛']
-  );
+  assert.equal(result.patch.primaryTaskKey, 'sync_settings');
+  assert.equal(result.patch.primaryTaskTitle, '开始比赛');
+  assert.equal(result.patch.nextActionKey, 'sync_settings');
+  assert.equal(result.patch.nextActionText, '开始比赛');
+  assert.match(result.patch.primaryTaskSummary, /默认参数/);
+  assert.equal(Object.hasOwn(result.patch, 'showStateChecklist'), false);
 });
 
 test('lobby view model keeps unjoined draft visitors in pending-profile role once they expand join flow', () => {
@@ -95,14 +90,14 @@ test('lobby view model keeps unjoined draft visitors in pending-profile role onc
   assert.equal(result.patch.showJoin, true);
   assert.equal(result.patch.currentRoleKey, 'profile_pending');
   assert.equal(result.patch.nextActionKey, 'profile_join');
-  assert.equal(result.patch.nextActionText, '立即加入');
+  assert.equal(result.patch.nextActionText, '加入比赛');
   assert.match(result.patch.nextActionDetail, /先补昵称和头像/);
   assert.equal(result.patch.statePanelTitle, '加入前确认');
   assert.equal(result.patch.statePrimaryActionKey, 'profile_join');
   assert.equal(result.patch.showDraftAdminPanel, false);
 });
 
-test('lobby view model uses edit-copy for joined draft profile entry', () => {
+test('lobby view model keeps joined draft participants waiting without admin actions', () => {
   const result = viewModel.buildLobbyViewModel({
     tournament: buildTournament({
       players: [
@@ -118,9 +113,10 @@ test('lobby view model uses edit-copy for joined draft profile entry', () => {
 
   assert.equal(result.patch.showMyProfile, true);
   assert.equal(result.patch.currentRoleKey, 'joined');
-  assert.equal(result.patch.nextActionKey, 'profile_save');
-  assert.equal(result.patch.nextActionText, '编辑我的资料');
-  assert.equal(result.patch.statePrimaryActionText, '编辑我的资料');
+  assert.equal(result.patch.nextActionKey, '');
+  assert.equal(result.patch.nextActionText, '');
+  assert.equal(result.patch.statePrimaryActionText, '');
+  assert.equal(result.patch.statePanelTitle, '等待开赛');
 });
 
 test('lobby view model turns finished state into summary-only actions and keeps three-item nav', () => {
@@ -144,7 +140,7 @@ test('lobby view model turns finished state into summary-only actions and keeps 
   assert.equal(result.patch.stateSecondaryActions, undefined);
   assert.equal(result.patch.showDraftRules, false);
   assert.equal(result.patch.showDraftAdminPanel, false);
-  assert.deepEqual(result.patch.primaryNavItems.map((item) => item.key), ['match', 'ranking', 'schedule']);
+  assert.deepEqual(result.patch.primaryNavItems.map((item) => item.key), ['match', 'schedule', 'ranking']);
 });
 
 test('lobby view model prefers scheduledMatches over legacy totalMatches after start', () => {
@@ -185,13 +181,9 @@ test('lobby view model promotes start card when admin draft is ready to begin', 
   });
 
   assert.equal(result.patch.nextActionKey, 'start');
-  assert.equal(result.patch.featuredChecklistItem.key, 'start');
-  assert.equal(result.patch.featuredChecklistItem.title, '3. 开始比赛');
-  assert.equal(result.patch.featuredChecklistItem.state, 'active');
-  assert.deepEqual(
-    result.patch.secondaryChecklistItems.map((item) => [item.key, item.state]),
-    [['settings', 'done'], ['players', 'done']]
-  );
+  assert.equal(result.patch.primaryTaskKey, 'start');
+  assert.equal(result.patch.primaryTaskTitle, '开始比赛');
+  assert.equal(Object.hasOwn(result.patch, 'showStateChecklist'), false);
 });
 
 test('lobby view model keeps fixed rotation label and quota state when not full', () => {
@@ -227,6 +219,7 @@ test('lobby view model keeps fixed rotation label and quota state when not full'
   assert.equal(result.patch.checkStartReady, false);
   assert.equal(result.patch.playersChecklistHint, '还差 1 人');
   assert.equal(result.patch.primaryTaskKey, 'share');
+  assert.equal(result.patch.primaryTaskTitle, '邀请球友');
   assert.match(result.patch.primaryTaskSummary, /还差 1 人/);
 });
 
@@ -252,7 +245,7 @@ test('lobby view model lets full fixed rotation draft go straight to start', () 
   assert.equal(result.patch.kpiPlayers, '8/8');
   assert.equal(result.patch.checkStartReady, true);
   assert.equal(result.patch.primaryTaskKey, 'start');
-  assert.equal(result.patch.featuredChecklistItem.key, 'start');
+  assert.equal(result.patch.primaryTaskTitle, '开始比赛');
 });
 
 test('lobby view model hides quick match shortcuts before 4 players', () => {

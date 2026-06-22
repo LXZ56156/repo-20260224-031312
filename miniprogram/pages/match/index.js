@@ -5,6 +5,7 @@ const storage = require('../../core/storage');
 const nav = require('../../core/nav');
 const writeErrorUi = require('../../core/writeErrorUi');
 const growthTracker = require('../../core/growthTracker');
+const avatarDisplay = require('../../core/avatarDisplay');
 const { buildInitialData, clampScore, buildTournamentViewState } = require('./matchViewModel');
 const { createMatchDraftController } = require('./matchDraftController');
 const { createScoreLockManager } = require('./scoreLockManager');
@@ -58,6 +59,8 @@ Page({
     this._lockStatusKey = '';
     this._batchOccupiedKey = '';
     this._latestTournament = null;
+    this.avatarCache = avatarDisplay.getSharedAvatarCache(this.avatarCache);
+    this._avatarResolveGen = 0;
     pageTournamentSync.initTournamentSync(this);
     this._pageActive = true;
     this._navTimers = new Set();
@@ -103,6 +106,7 @@ Page({
     this.matchDraft.teardown();
     if (typeof this._offNetwork === 'function') this._offNetwork();
     this._offNetwork = null;
+    this._avatarResolveGen = Number(this._avatarResolveGen || 0) + 1;
   },
 
   isPageActive() {
@@ -146,7 +150,8 @@ Page({
       currentScoreA: this.data.scoreA,
       currentScoreB: this.data.scoreB,
       draft: this.matchDraft.getScoreDraft(),
-      undoSize: this.matchDraft.getUndoSize()
+      undoSize: this.matchDraft.getUndoSize(),
+      avatarCache: this.avatarCache || {}
     });
     if (!viewState) return;
 
@@ -179,12 +184,35 @@ Page({
       this.matchDraft.clearUndo();
     }
     this.setData(viewState.data);
+    this.resolveMatchAvatars(viewState.tournament);
     this.trackMatchOpen(viewState.tournament);
 
     if (viewState.shouldSyncLock && this._lockStatusKey !== viewState.lockSyncKey && options.skipLockSync !== true) {
       this._lockStatusKey = viewState.lockSyncKey;
       this.scoreLockManager.syncLockStatus(true);
     }
+  },
+
+  async resolveMatchAvatars(tournament) {
+    this.avatarCache = avatarDisplay.getSharedAvatarCache(this.avatarCache);
+    const pending = avatarDisplay.collectCloudAvatarFileIds({
+      pair1Players: this.data.pair1Players,
+      pair2Players: this.data.pair2Players
+    }, this.avatarCache);
+    if (!pending.length) return;
+
+    const generation = Number(this._avatarResolveGen || 0) + 1;
+    this._avatarResolveGen = generation;
+    const result = await avatarDisplay.resolveCloudAvatarFileIds(pending, this.avatarCache);
+    if (!result.updated || generation !== this._avatarResolveGen || !this.isPageActive()) return;
+    this.applyTournament(tournament, { skipLockSync: true });
+  },
+
+  onAvatarImageError(e) {
+    const raw = String(e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.avatarRaw || '').trim();
+    if (!raw) return;
+    avatarDisplay.markAvatarUrlFailed(this.avatarCache || {}, raw);
+    this.applyTournament(this._latestTournament, { skipLockSync: true });
   },
 
   buildScoreLockPayload(action, force = false) {

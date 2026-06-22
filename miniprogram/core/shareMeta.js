@@ -3,44 +3,12 @@ const nav = require('./nav');
 const flow = require('./uxFlow');
 const ranking = require('./ranking');
 const playerUtils = require('./playerUtils');
-const scheduleContract = require('./scheduleContract');
-
 function normalizeLifecycleStatus(status) {
   const value = String(status || '').trim().toLowerCase();
   if (value === 'draft') return 'draft';
   if (value === 'running') return 'running';
   if (value === 'finished') return 'finished';
   return 'unavailable';
-}
-
-function formatDateTime(value) {
-  try {
-    const input = String(value || '').trim();
-    if (!input) return '未设置';
-    const date = new Date(input);
-    if (Number.isNaN(date.getTime())) return '未设置';
-    const pad2 = (n) => String(n).padStart(2, '0');
-    return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())} ${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
-  } catch (_) {
-    return '未设置';
-  }
-}
-
-function pickFirstText(source, keys = []) {
-  const base = source && typeof source === 'object' ? source : {};
-  for (const key of keys) {
-    const value = String(base[key] || '').trim();
-    if (value) return value;
-  }
-  return '';
-}
-
-function resolveOrganizerName(tournament) {
-  const t = tournament && typeof tournament === 'object' ? tournament : {};
-  const players = Array.isArray(t.players) ? t.players : [];
-  const creatorId = String(t.creatorId || '').trim();
-  const creator = players.find((player) => playerUtils.extractPlayerId(player) === creatorId);
-  return playerUtils.safePlayerName(creator || {}) || '赛事组织者';
 }
 
 function countRoundProgress(rounds) {
@@ -122,17 +90,6 @@ function buildParticipantOverflowText(playersCount, previewCount) {
   return overflow > 0 ? `+${overflow} 人` : '';
 }
 
-function buildEventSummaryText(tournament, modeLabel, progress) {
-  const totalMatches = scheduleContract.resolveDisplayTotalMatches(tournament, progress.totalMatches);
-  const courts = Math.max(1, Math.floor(Number(tournament && tournament.courts) || 1));
-  const parts = [
-    String(modeLabel || '').trim() || '羽毛球赛',
-    totalMatches > 0 ? `${totalMatches} 场` : '',
-    `${courts} 片场地`
-  ].filter(Boolean);
-  return parts.join(' · ');
-}
-
 function resolveCurrentRoundText(rounds, lifecycle = 'draft') {
   const list = Array.isArray(rounds) ? rounds : [];
   if (!list.length) {
@@ -186,14 +143,6 @@ function buildPrimaryAction({ lifecycle, joined, joinAllowed }) {
   return { key: 'view', text: '查看比赛' };
 }
 
-function buildSecondaryAction(lifecycle) {
-  if (lifecycle === 'running') {
-    return { key: 'ranking', text: '查看排名' };
-  }
-  if (lifecycle === 'finished') return { key: 'analytics', text: '查看赛事战报' };
-  return null;
-}
-
 function buildStatusText(lifecycle) {
   if (lifecycle === 'draft') return '报名中';
   if (lifecycle === 'running') return '进行中';
@@ -215,44 +164,6 @@ function buildPreviewMode({ lifecycle, joined, joinAllowed }) {
   return 'invalid-match';
 }
 
-function buildAvailabilityText({ lifecycle, joined, joinAllowed, playerLimit = 0, playersCount = 0 }) {
-  if (lifecycle === 'finished' && joined) return '比赛已结束，可查看最终排名，生成战绩卡后发回群里。';
-  if (lifecycle === 'finished') return '可查看最终排名，生成战绩卡后发回群里。';
-  if (joined && lifecycle === 'running') return '你已在名单中，可查看赛程和排名。';
-  if (joined) return '你已在名单中，可直接进入比赛。';
-  if (joinAllowed && playerLimit > 0) return `还剩 ${Math.max(0, playerLimit - playersCount)} 个名额，确认后才会加入比赛名单。`;
-  if (joinAllowed) return '确认后才会加入比赛名单。';
-  if (lifecycle === 'draft' && playerLimit > 0 && playersCount >= playerLimit) return '名额已满，可先查看比赛信息。';
-  if (lifecycle === 'running') return '比赛进行中，先看赛程和实时排名。';
-  return '当前无法打开这场比赛，请稍后重试。';
-}
-
-function buildSocialProofText({ playerLimit = 0, playersCount = 0 }) {
-  if (playerLimit > 0) {
-    const left = Math.max(0, playerLimit - playersCount);
-    if (left > 0) return `已有 ${playersCount} 人加入，还差 ${left} 人满员`;
-    return `已有 ${playersCount} 人加入，名额已满`;
-  }
-  return `已有 ${playersCount} 人加入`;
-}
-
-function buildPrimaryCtaReason({ lifecycle, joined, joinAllowed, playerLimit = 0, playersCount = 0, progress }) {
-  if (lifecycle === 'draft') {
-    if (joined) return '你已在名单中，可等待开赛。';
-    if (joinAllowed && playerLimit > 0) return `还差 ${Math.max(0, playerLimit - playersCount)} 人满员`;
-    if (joinAllowed) return '加入后可看赛程、录分、查看排名';
-    return '名额已满，可先查看比赛信息';
-  }
-  if (lifecycle === 'running') {
-    if (progress && progress.totalRounds > 0) {
-      return `第 ${progress.currentRoundNumber || progress.completedRounds || 1} 轮 / 共 ${progress.totalRounds} 轮`;
-    }
-    return '查看赛程和实时排名';
-  }
-  if (lifecycle === 'finished') return '最终排名已出炉';
-  return '';
-}
-
 function buildInvalidShareEntryState(reason = '未找到赛事') {
   return {
     viewMode: 'invalid-match',
@@ -265,19 +176,13 @@ function buildInvalidShareEntryState(reason = '未找到赛事') {
     secondaryAction: { key: 'home', text: '返回首页' },
     joinAllowed: false,
     joined: false,
-    availabilityText: '当前无法打开这场比赛，请确认链接是否有效。',
     tournamentName: '比赛信息不可用',
-    organizerName: '赛事组织者',
     modeLabel: '未识别',
     playersCountText: '—',
-    venueText: '未设置',
-    timeText: '未设置',
     progressText: '暂无比赛信息',
     roundsText: '—',
     lifecycle: 'unavailable',
     status: 'unavailable',
-    eventSummaryText: '比赛信息不可用',
-    socialProofText: '暂无参赛信息',
     participantPreviewList: [],
     participantOverflowText: '',
     rankingPreview: [],
@@ -285,9 +190,7 @@ function buildInvalidShareEntryState(reason = '未找到赛事') {
     rankingTitle: '比赛摘要',
     showRankingPreview: false,
     showParticipantPreview: false,
-    showProgressSummary: false,
-    primaryCtaReason: '',
-    secondaryCtaText: '',
+    identityStatusText: '',
     tournament: null
   };
 }
@@ -304,19 +207,13 @@ function buildRetryableShareEntryState(reason = '同步失败，请稍后重试'
     secondaryAction: { key: 'home', text: '返回首页' },
     joinAllowed: false,
     joined: false,
-    availabilityText: '当前无法同步比赛信息，请确认网络后重试。',
     tournamentName: '比赛信息同步失败',
-    organizerName: '赛事组织者',
     modeLabel: '未识别',
     playersCountText: '—',
-    venueText: '未设置',
-    timeText: '未设置',
     progressText: '暂无比赛信息',
     roundsText: '—',
     lifecycle: 'unavailable',
     status: 'unavailable',
-    eventSummaryText: '比赛信息暂不可用',
-    socialProofText: '暂无参赛信息',
     participantPreviewList: [],
     participantOverflowText: '',
     rankingPreview: [],
@@ -324,9 +221,7 @@ function buildRetryableShareEntryState(reason = '同步失败，请稍后重试'
     rankingTitle: '比赛摘要',
     showRankingPreview: false,
     showParticipantPreview: false,
-    showProgressSummary: false,
-    primaryCtaReason: '',
-    secondaryCtaText: '',
+    identityStatusText: '',
     tournament: null
   };
 }
@@ -349,7 +244,6 @@ function buildShareEntryViewModel({ tournament, openid = '' }) {
     'invalid-match': '链接异常'
   };
   const progress = countRoundProgress(normalizedTournament.rounds);
-  const organizerName = resolveOrganizerName(normalizedTournament);
   const mode = flow.normalizeMode(normalizedTournament.mode || flow.MODE_MULTI_ROTATE);
   const tournamentName = flow.getTournamentDisplayName(normalizedTournament, '羽毛球比赛');
   const players = Array.isArray(normalizedTournament.players) ? normalizedTournament.players : [];
@@ -360,25 +254,12 @@ function buildShareEntryViewModel({ tournament, openid = '' }) {
   const modeLabel = flow.getModeDisplayLabel(mode, normalizedTournament.presetKey);
   const participantPreviewList = buildParticipantPreviewList(players, 8);
   const rankingPreview = lifecycle === 'draft' ? [] : buildRankingPreview(normalizedTournament);
-  const secondaryAction = buildSecondaryAction(lifecycle);
-
-  const venueText = pickFirstText(normalizedTournament, ['venue', 'location', 'place', 'address', 'site']) || '未设置';
-  const timeText = pickFirstText(normalizedTournament, ['scheduledAt', 'startAt', 'startsAt', 'time']) || '';
   const progressText = progress.totalMatches
     ? (lifecycle === 'running' && progress.totalRounds > 0
       ? `第 ${progress.currentRoundNumber || Math.min(progress.completedRounds + 1, progress.totalRounds)} 轮 / 共 ${progress.totalRounds} 轮`
       : `已完成 ${progress.finishedMatches}/${progress.totalMatches} 场`)
     : (lifecycle === 'draft' ? '比赛尚未开始' : '暂无已完成场次');
   const currentRoundText = resolveCurrentRoundText(normalizedTournament.rounds, lifecycle);
-  const primaryCtaReason = buildPrimaryCtaReason({
-    lifecycle,
-    joined,
-    joinAllowed,
-    playerLimit,
-    playersCount,
-    progress
-  });
-
   return {
     viewMode: previewMode,
     viewModeLabel: viewModeLabelMap[previewMode] || '查看比赛',
@@ -391,23 +272,17 @@ function buildShareEntryViewModel({ tournament, openid = '' }) {
     statusText: buildStatusText(lifecycle),
     statusClass: buildStatusClass(lifecycle),
     primaryAction: buildPrimaryAction({ lifecycle, joined, joinAllowed }),
-    secondaryAction,
+    secondaryAction: null,
     joinAllowed,
     joined,
-    availabilityText: buildAvailabilityText({ lifecycle, joined, joinAllowed, playerLimit, playersCount }),
     tournamentName,
-    organizerName,
     mode,
     modeLabel,
     playersCount,
     playerLimit,
     playersCountText: playerLimit > 0 ? `已报名 ${playersCount}/${playerLimit} 人` : `${playersCount} 人`,
-    eventSummaryText: buildEventSummaryText(normalizedTournament, modeLabel, progress),
-    socialProofText: buildSocialProofText({ playerLimit, playersCount }),
     participantPreviewList,
     participantOverflowText: buildParticipantOverflowText(playersCount, participantPreviewList.length),
-    venueText,
-    timeText: timeText ? formatDateTime(timeText) : '未设置',
     progressText,
     currentRoundText,
     roundsText: progress.totalRounds ? `${progress.completedRounds}/${progress.totalRounds} 轮已完成` : '暂无轮次',
@@ -416,22 +291,18 @@ function buildShareEntryViewModel({ tournament, openid = '' }) {
     rankingTitle: lifecycle === 'finished' ? '最终排名前 3' : '实时排名前 3',
     showRankingPreview: lifecycle === 'running' || lifecycle === 'finished',
     showParticipantPreview: lifecycle === 'draft',
-    showProgressSummary: lifecycle !== 'draft',
-    primaryCtaReason,
-    secondaryCtaText: secondaryAction ? secondaryAction.text : '',
+    identityStatusText: '',
     tournament: normalizedTournament
   };
 }
 
 module.exports = {
   normalizeLifecycleStatus,
-  resolveOrganizerName,
   countRoundProgress,
   resolveCurrentRoundText,
   buildRankingPreview,
   buildInvalidShareEntryState,
   buildRetryableShareEntryState,
   buildShareEntryViewModel,
-  buildShareMessage,
-  formatDateTime
+  buildShareMessage
 };

@@ -25,6 +25,7 @@ test('schedule page hero uses a focused progress layout without adding a share C
   assert.doesNotMatch(wxml, /class="hero-stats"/);
   assert.doesNotMatch(wxml, /class="hero-stat"/);
   assert.doesNotMatch(wxml, /open-type="share"/);
+  assert.doesNotMatch(wxml, /hero-finished-share|goSharePosterFromFinished|最终排名已生成/);
   assert.match(wxml, /<block wx:if="\{\{tournament\}\}">/);
 });
 

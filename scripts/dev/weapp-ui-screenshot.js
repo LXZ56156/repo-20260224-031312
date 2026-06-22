@@ -8,28 +8,21 @@ const path = require('path');
 function resolveAutomator() {
   try {
     return require('miniprogram-automator');
-  } catch (err) {
-    // Continue to local npx cache lookup below.
+  } catch (_) {
+    // Fall through to the local npx cache.
   }
-
   const npxRoot = path.join(os.homedir(), '.npm', '_npx');
   const candidates = [];
   try {
     for (const entry of fs.readdirSync(npxRoot)) {
       const modulePath = path.join(npxRoot, entry, 'node_modules', 'miniprogram-automator');
-      if (fs.existsSync(modulePath)) {
-        candidates.push({ modulePath, mtimeMs: fs.statSync(modulePath).mtimeMs });
-      }
+      if (fs.existsSync(modulePath)) candidates.push({ modulePath, mtimeMs: fs.statSync(modulePath).mtimeMs });
     }
-  } catch (err) {
-    // Fall through to the actionable error below.
+  } catch (_) {
+    // The actionable error below covers a missing cache.
   }
-
   candidates.sort((a, b) => b.mtimeMs - a.mtimeMs);
-  if (candidates.length) {
-    return require(candidates[0].modulePath);
-  }
-
+  if (candidates.length) return require(candidates[0].modulePath);
   throw new Error('miniprogram-automator not found. Run: npx --yes -p miniprogram-automator node scripts/dev/weapp-ui-screenshot.js <case>');
 }
 
@@ -39,256 +32,265 @@ const outDir = path.resolve(process.env.WEAPP_SCREENSHOT_DIR || 'tmp/ui-screensh
 const screenshotTimeoutMs = Number(process.env.WEAPP_SCREENSHOT_TIMEOUT_MS || 45000);
 const reLaunchTimeoutMs = Number(process.env.WEAPP_RELAUNCH_TIMEOUT_MS || 25000);
 
-const shared = {
-  navSchedule: [
-    { key: 'schedule', text: '比赛', active: true },
-    { key: 'ranking', text: '排名', active: false },
-    { key: 'analytics', text: '对阵', active: false },
-  ],
-  navRanking: [
-    { key: 'schedule', text: '比赛', active: false },
-    { key: 'ranking', text: '排名', active: true },
-    { key: 'analytics', text: '对阵', active: false },
-  ],
-  rankings: [
-    { rank: 1, rankKey: 'p1', displayName: '阿杰', name: '阿杰', entityType: 'player', played: 8, wins: 7, losses: 1, pointsFor: 168, pointsAgainst: 136, pointDiff: 32, trendText: '连胜 4', trendType: 'up', showTrend: true, topShareText: '分享', avatarItems: [] },
-    { rank: 2, rankKey: 'p2', displayName: '小林', name: '小林', entityType: 'player', played: 8, wins: 6, losses: 2, pointsFor: 154, pointsAgainst: 136, pointDiff: 18, trendText: '连胜 2', trendType: 'up', showTrend: true, topShareText: '分享', avatarItems: [] },
-    { rank: 3, rankKey: 'p3', displayName: 'Chris', name: 'Chris', entityType: 'player', played: 8, wins: 5, losses: 3, pointsFor: 148, pointsAgainst: 139, pointDiff: 9, trendText: '状态稳定', trendType: '', showTrend: true, topShareText: '分享', avatarItems: [] },
-  ],
-};
-
-const participantAvatars = [
-  'https://api.dicebear.com/9.x/personas/png?seed=ajie&backgroundColor=b6e3f4',
-  'https://api.dicebear.com/9.x/personas/png?seed=xiaolin&backgroundColor=c0aede',
-  'https://api.dicebear.com/9.x/personas/png?seed=chris&backgroundColor=ffd5dc',
-  'https://api.dicebear.com/9.x/personas/png?seed=wang&backgroundColor=d1d4f9',
-  'https://api.dicebear.com/9.x/personas/png?seed=li&backgroundColor=ffdfbf',
-  'https://api.dicebear.com/9.x/personas/png?seed=zhao&backgroundColor=c0f0c8',
+const nav = (active) => [
+  { key: 'match', text: '赛事', active: active === 'match' },
+  { key: 'schedule', text: '对阵', active: active === 'schedule' },
+  { key: 'ranking', text: '排名', active: active === 'ranking' }
 ];
 
-const participantPreviewList = ['阿', '林', 'C', '王', '李', '赵'].map((initial, idx) => ({
-  id: `p${idx}`,
-  name: initial,
-  initial,
-  avatarRaw: participantAvatars[idx],
-  avatarUrl: participantAvatars[idx],
-  showAvatar: true,
+const players = ['阿杰', '小林', 'Chris', '王敏', '李雷', '赵青', '周舟', '陈晨'].map((name, index) => ({
+  id: `p${index + 1}`,
+  name,
+  initial: name.slice(0, 1),
+  genderLabel: index % 2 ? '女' : '男',
+  colorClass: `pcolor-${index % 6}`,
+  avatarRaw: '',
+  avatarDisplay: ''
 }));
 
-const rankingPreview = shared.rankings.slice(0, 3).map((item) => ({
+const rankings = players.slice(0, 6).map((player, index) => ({
+  rank: index + 1,
+  rankKey: player.id,
+  displayName: player.name,
+  name: player.name,
+  entityType: 'player',
+  played: 8,
+  wins: Math.max(2, 7 - index),
+  losses: Math.min(6, 1 + index),
+  pointsFor: 168 - index * 8,
+  pointsAgainst: 136 + index * 3,
+  pointDiff: 32 - index * 11,
+  trendText: index < 2 ? `连胜 ${4 - index}` : '持平',
+  trendType: index < 2 ? 'up' : '',
+  showTrend: true,
+  avatarItems: [player]
+}));
+
+const rankingPreview = rankings.slice(0, 3).map((item) => ({
   rank: item.rank,
   name: item.name,
-  summaryText: `${item.wins}胜 ${item.losses}负`,
+  summaryText: `${item.wins} 胜 · 净胜 ${item.pointDiff}`
 }));
 
-const basePreview = {
-  tournamentName: '周末羽毛球赛',
-  modeLabel: '多人轮转',
-  eventSummaryText: '7人轮转 · 21场 · 1片场地',
-  socialProofText: '已有 6 人加入',
-  playersCountText: '6 人',
-  organizerName: '阿杰',
-  timeText: '今天 19:00',
-  venueText: '社区球馆',
-  joinAllowed: true,
-  joined: false,
-  viewModeLabel: '游客可加入',
-  availabilityText: '加入后可看赛程、录分、查看排名。',
-  primaryCtaReason: '还差 2 人满员',
-  primaryAction: { key: 'join', text: '加入比赛' },
-  secondaryAction: null,
-  secondaryCtaText: '',
-  showParticipantPreview: true,
-  participantPreviewList,
-  participantOverflowText: '',
-  showRankingPreview: false,
-  rankingTitle: '实时排名',
-  rankingPreview: [],
-  headline: '朋友邀请你加入这场比赛',
-  subtitle: '加入后可参与对阵和排名',
+const lobbyBase = {
+  tournamentId: 'demo',
+  mode: 'multi_rotate',
+  modeLabel: '6人转',
+  statusClass: 'tag-draft',
   statusText: '报名中',
-  statusClass: 'status-draft',
-  progressText: '等待开赛',
+  primaryNavItems: nav('match'),
+  displayPlayers: [],
+  playerCountText: '0 人',
+  playerRosterHint: '',
+  showMyProfile: false,
+  showAllPlayers: true,
+  showJoinSheet: false,
+  showDraftAdminPanel: false,
+  adminPanelExpanded: false,
+  isAdmin: false,
+  myJoined: false,
+  canRetryAction: false,
+  loadError: false,
+  syncStatusVisible: false,
+  uiMotionClass: 'motion-reduced',
+  dynamicSharePreparing: false,
+  dynamicShareReady: true,
+  dynamicShareError: '',
+  dynamicShareUnavailableReason: ''
 };
 
-function withPreview(patch) {
-  return Object.assign({}, basePreview, patch);
+function team(ids) {
+  const avatarItems = ids.map((index) => players[index]);
+  return { avatarItems, text: avatarItems.map((item) => item.name).join(' / ') };
 }
 
+const scheduleRounds = [{
+  roundIndex: 0,
+  isCurrentRound: true,
+  restText: '',
+  matchesUi: [
+    { key: '0-0', roundIndex: 0, matchIndex: 0, status: 'pending', title: '第 1 场', leftTeam: team([0, 1]), rightTeam: team([2, 3]), isFirstPending: true, focusBadgeText: '下一场', scorerText: '', showScore: false, statusText: '待录分', statusClass: 'pill-pending' },
+    { key: '0-1', roundIndex: 0, matchIndex: 1, status: 'finished', title: '第 2 场', leftTeam: team([4, 5]), rightTeam: team([6, 7]), isFirstPending: false, focusBadgeText: '', scorerText: '本场裁判：阿杰', showScore: true, leftScoreText: '21', rightScoreText: '17', leftScoreClass: 'score-win', rightScoreClass: '' }
+  ]
+}];
+
+const previewBase = {
+  tournamentName: '周末羽毛球赛',
+  lifecycle: 'draft',
+  modeLabel: '6人转',
+  playersCountText: '已报名 5/6 人',
+  joinAllowed: true,
+  joined: false,
+  identityStatusText: '',
+  primaryAction: { key: 'join', text: '加入比赛' },
+  secondaryAction: null,
+  showParticipantPreview: true,
+  participantPreviewList: players.slice(0, 5).map((item) => ({ ...item, avatarUrl: '', showAvatar: false })),
+  participantOverflowText: '',
+  showRankingPreview: false,
+  rankingPreview: [],
+  rankingTitle: '实时排名前 3',
+  progressText: '比赛尚未开始',
+  statusText: '报名中',
+  statusClass: 'tag-draft',
+  viewMode: 'join-preview'
+};
+
 const cases = {
+  launch: {
+    path: '/pages/launch/index',
+    route: 'switchTab',
+    selectors: ['.launch-hero', '.launch-card', '.launch-btn'],
+    data: {
+      modeCards: [
+        { key: 'rotation_6', mode: 'multi_rotate', presetKey: 'rotation_6', name: '6人转', summary: '默认 9 场 · 满 6 人开赛' },
+        { key: 'rotation_7', mode: 'multi_rotate', presetKey: 'rotation_7', name: '7人转', summary: '默认 14 场 · 满 7 人开赛' },
+        { key: 'rotation_8', mode: 'multi_rotate', presetKey: 'rotation_8', name: '8人转', summary: '默认 14 场 · 可选 1/2 场地' },
+        { key: 'multi', mode: 'multi_rotate', presetKey: 'custom', name: '多人转', summary: '4–30 人 · 自动轮换搭档' }
+      ],
+      createBusy: false,
+      createBusyKey: '',
+      canRetryAction: false
+    }
+  },
+  lobbyEmpty: {
+    path: '/pages/lobby/index?tournamentId=demo',
+    selectors: ['.lobby-summary', '.lobby-roster', '.lobby-next', '.state-primary-btn'],
+    data: {
+      ...lobbyBase,
+      tournament: { _id: 'demo', name: '周末新手场', status: 'draft', mode: 'multi_rotate', players: [] },
+      isAdmin: true,
+      myJoined: true,
+      playerCountText: '0/6 人',
+      statePanelTitle: '下一步',
+      statePanelSummary: '邀请球友加入，满 6 人后即可开赛',
+      primaryTaskKey: 'share',
+      primaryTaskTitle: '邀请球友',
+      primaryTaskSummary: '邀请球友加入，满 6 人后即可开赛',
+      showDraftAdminPanel: true
+    }
+  },
+  lobbyWaiting: {
+    path: '/pages/lobby/index?tournamentId=demo',
+    selectors: ['.lobby-summary', '.lobby-roster', '.player-cell', '.lobby-next'],
+    data: {
+      ...lobbyBase,
+      tournament: { _id: 'demo', name: '周末羽毛球赛', status: 'draft', mode: 'multi_rotate', players: players.slice(0, 5) },
+      myJoined: true,
+      displayPlayers: players.slice(0, 5),
+      playerCountText: '5/6 人',
+      statePanelTitle: '下一步',
+      statePanelSummary: '等待管理员邀请最后 1 位球友',
+      primaryTaskKey: '',
+      primaryTaskTitle: '',
+      primaryTaskSummary: '等待管理员邀请最后 1 位球友'
+    }
+  },
+  lobbyReady: {
+    path: '/pages/lobby/index?tournamentId=demo',
+    selectors: ['.lobby-summary', '.lobby-roster', '.player-cell', '.lobby-next', '.state-primary-btn', '.admin-panel'],
+    data: {
+      ...lobbyBase,
+      tournament: { _id: 'demo', name: '周末羽毛球赛', status: 'draft', mode: 'multi_rotate', players: players.slice(0, 6) },
+      isAdmin: true,
+      myJoined: true,
+      displayPlayers: players.slice(0, 6),
+      playerCountText: '6/6 人',
+      statePanelTitle: '下一步',
+      statePanelSummary: '名单已就绪，可以开始比赛',
+      primaryTaskKey: 'start',
+      primaryTaskTitle: '开始比赛',
+      primaryTaskSummary: '名单已就绪，可以开始比赛',
+      showDraftAdminPanel: true
+    }
+  },
+  scheduleRunning: {
+    path: '/pages/schedule/index?tournamentId=demo',
+    selectors: ['.match-primary-nav', '.hero', '.hero-actions-panel', '.round-card', '.match-card-focus'],
+    data: {
+      tournamentId: 'demo',
+      tournament: { _id: 'demo', name: '周末羽毛球赛', status: 'running', players },
+      primaryNavItems: nav('schedule'),
+      statusText: '进行中',
+      statusClass: 'hero-status-running',
+      heroSummaryText: '6人转 · 第 1 轮',
+      heroMatchText: '1 / 9 场',
+      heroPendingText: '仍有 8 场待录分',
+      heroProgressPercent: 11,
+      nextActionKey: 'batch',
+      nextActionText: '继续录分',
+      heroActionBusy: false,
+      roundsUi: scheduleRounds,
+      showFilterBar: false,
+      syncStatusVisible: false,
+      loadError: false
+    }
+  },
+  matchIdle: {
+    path: '/pages/match/index?tournamentId=demo&roundIndex=0&matchIndex=0',
+    selectors: ['.hero-compact', '.score-stage', '.score-matchup', '.score-box', '.score-entry-btn'],
+    data: {
+      tournamentId: 'demo', tournamentName: '周末羽毛球赛', roundIndex: 0, matchIndex: 0,
+      match: { status: 'pending' }, matchStatusText: '待录分', pointsPerGame: 21,
+      pair1Text: '阿杰 / 小林', pair2Text: 'Chris / 王敏', pair1Players: players.slice(0, 2), pair2Players: players.slice(2, 4),
+      userCanScore: true, canEdit: false, canUseScoreLock: true, lockState: 'idle', lockBusy: false, lockActionText: '开始录分',
+      displayScoreA: '-', displayScoreB: '-', batchMode: false, syncStatusVisible: false, loadError: false, canRetryAction: false
+    }
+  },
+  matchEditing: {
+    path: '/pages/match/index?tournamentId=demo&roundIndex=0&matchIndex=0',
+    selectors: ['.hero-compact', '.score-stage-editing', '.score-matchup', '.score-wheel', '.score-toolbar', '.bottom-tray'],
+    data: {
+      tournamentId: 'demo', tournamentName: '周末羽毛球赛', roundIndex: 0, matchIndex: 0,
+      match: { status: 'pending' }, matchStatusText: '待录分', pointsPerGame: 21,
+      pair1Text: '阿杰 / 小林', pair2Text: 'Chris / 王敏', pair1Players: players.slice(0, 2), pair2Players: players.slice(2, 4),
+      userCanScore: true, canEdit: true, canUseScoreLock: true, lockState: 'locked_by_me', lockHintText: '你正在录入比分',
+      scoreA: 21, scoreB: 17, scoreAIndex: 21, scoreBIndex: 17, scoreOptions: Array.from({ length: 61 }, (_, index) => index),
+      quickScoreOptions: [{ label: '21:19', a: 21, b: 19 }, { label: '21:17', a: 21, b: 17 }, { label: '19:21', a: 19, b: 21 }],
+      canUndo: true, submitBusy: false, batchMode: false, syncStatusVisible: false, loadError: false, canRetryAction: false
+    }
+  },
+  rankingRunning: {
+    path: '/pages/ranking/index?tournamentId=demo',
+    selectors: ['.match-primary-nav', '.hero', '.ranking-action-primary', '.ranking-card'],
+    data: { tournamentId: 'demo', tournament: { _id: 'demo', name: '周末羽毛球赛', status: 'running', mode: 'multi_rotate' }, rankings, rankingTypeLabel: '实时个人榜', posterButtonText: '生成我的战绩卡', primaryNavItems: nav('ranking'), showMoreActions: false, showResultAdSlot: false, syncStatusVisible: false, loadError: false }
+  },
+  rankingFinished: {
+    path: '/pages/ranking/index?tournamentId=demo',
+    selectors: ['.match-primary-nav', '.hero', '.ranking-action-primary', '.ranking-card-1st', '.ranking-card-2nd', '.ranking-card-3rd'],
+    data: { tournamentId: 'demo', tournament: { _id: 'demo', name: '周末羽毛球赛', status: 'finished', mode: 'multi_rotate' }, rankings, rankingTypeLabel: '最终个人榜', posterButtonText: '生成我的战绩卡', primaryNavItems: nav('ranking'), showMoreActions: false, showResultAdSlot: false, syncStatusVisible: false, loadError: false }
+  },
   home: {
     path: '/pages/home/index',
     route: 'switchTab',
-    selectors: ['.home-page', '.swipe-row', '.finished-growth-markers'],
+    selectors: ['.hero-card', '.hero-task-btn', '.toolbar-row', '.swipe-row', '.t-quick-action'],
     data: {
-      loadError: false,
-      showHeroCard: false,
-      syncStatusVisible: false,
-      items: [{ _id: 'demo', name: '周末羽毛球赛', status: 'finished', statusClass: 'badge-success', statusLabel: '已结束', modeLabel: '多人轮转', playersCount: 7, matchProgressText: '21/21场', updatedAtText: '刚刚', _offset: 0 }],
-      visibleCount: 1,
-      filterStatus: 'all',
-      statusCountRunning: 0,
-      statusCountDraft: 0,
-      statusCountFinished: 1,
-      loading: false,
-      showProfileNudge: false,
-      showOnboarding: false,
-      showHomeAdSlot: false,
-      canRetryAction: false,
-    },
+      loadError: false, syncStatusVisible: false, loading: false, showHeroCard: true, showProfileNudge: false, showHomeAdSlot: false,
+      heroCard: { title: '继续比赛', label: '当前赛事', name: '周末羽毛球赛', meta: '第 1 轮 · 仍有 8 场待录分', progress: 11, actionTarget: 'batch', actionId: 'demo', actionRound: 0, actionMatch: 0, actionText: '继续录分', empty: false },
+      items: [
+        { _id: 'demo', name: '周末羽毛球赛', status: 'running', statusClass: 'tag-running', statusLabel: '进行中', modeLabel: '6人转', playersCount: 6, matchProgressText: '1/9 场', updatedAtText: '刚刚', _offset: 0 },
+        { _id: 'done', name: '公司双打夜', status: 'finished', statusClass: 'tag-finished', statusLabel: '已结束', modeLabel: '固搭循环赛', playersCount: 8, matchProgressText: '12/12 场', updatedAtText: '昨天', _offset: 0 },
+        { _id: 'draft', name: '周三约球', status: 'draft', statusClass: 'tag-draft', statusLabel: '报名中', modeLabel: '多人转', playersCount: 4, matchProgressText: '未开赛', updatedAtText: '2天前', _offset: 0 },
+        { _id: 'done2', name: '社区周赛', status: 'finished', statusClass: 'tag-finished', statusLabel: '已结束', modeLabel: '小队转', playersCount: 10, matchProgressText: '16/16 场', updatedAtText: '上周', _offset: 0 }
+      ],
+      visibleCount: 4, showListControls: true, sortMode: 'updated', filterStatus: 'all', statusCountRunning: 1, statusCountDraft: 1, statusCountFinished: 2, canRetryAction: false
+    }
   },
   shareDraft: {
-    path: '/pages/share-entry/index?code=demo',
-    selectors: ['.share-hero', '.share-actions .btn', '.participant-avatar-img', '.participant-avatar-row'],
-    data: {
-      tournament: { _id: 'demo', mode: 'multi_rotate', status: 'draft' },
-      tournamentId: 'demo',
-      preview: withPreview({}),
-      identityPending: false,
-      identityTimedOut: false,
-      joinBusy: false,
-      loadError: false,
-      syncStatusVisible: false,
-      joinSquadChoice: 'A',
-    },
+    path: '/pages/share-entry/index?tournamentId=demo',
+    selectors: ['.share-hero', '.participant-preview', '.participant-avatar-row', '.share-primary-btn'],
+    data: { tournament: { _id: 'demo', mode: 'multi_rotate', status: 'draft' }, tournamentId: 'demo', preview: previewBase, identityPending: false, identityTimedOut: false, joinBusy: false, loadError: false, syncStatusVisible: false, joinSquadChoice: 'A' }
   },
   shareRunning: {
-    path: '/pages/share-entry/index?code=demo',
-    selectors: ['.share-hero', '.share-actions .btn', '.ranking-preview', '.ranking-preview-row'],
-    data: {
-      tournament: { _id: 'demo', mode: 'multi_rotate', status: 'running' },
-      tournamentId: 'demo',
-      preview: withPreview({
-        joinAllowed: false,
-        headline: '比赛已经开打',
-        subtitle: '可以查看实时赛程和排名',
-        statusText: '进行中',
-        statusClass: 'status-running',
-        progressText: '已完成 12 / 21 场',
-        viewModeLabel: '实时进展',
-        availabilityText: '比赛进行中，先看赛程和实时排名。',
-        primaryCtaReason: '实时排名已更新',
-        primaryAction: { key: 'schedule', text: '查看赛程' },
-        secondaryAction: { key: 'ranking' },
-        secondaryCtaText: '查看排名',
-        showParticipantPreview: false,
-        showRankingPreview: true,
-        rankingPreview,
-      }),
-      identityPending: false,
-      identityTimedOut: false,
-      joinBusy: false,
-      loadError: false,
-      syncStatusVisible: false,
-    },
+    path: '/pages/share-entry/index?tournamentId=demo',
+    selectors: ['.share-hero', '.ranking-preview', '.ranking-preview-row', '.share-primary-btn'],
+    data: { tournament: { _id: 'demo', mode: 'multi_rotate', status: 'running' }, tournamentId: 'demo', preview: { ...previewBase, lifecycle: 'running', statusText: '进行中', statusClass: 'tag-running', progressText: '第 3 轮 / 共 7 轮', joinAllowed: false, primaryAction: { key: 'schedule', text: '查看对阵' }, showParticipantPreview: false, showRankingPreview: true, rankingPreview, rankingTitle: '实时排名前 3' }, identityPending: false, identityTimedOut: false, joinBusy: false, loadError: false, syncStatusVisible: false }
   },
   shareFinished: {
-    path: '/pages/share-entry/index?code=demo',
-    selectors: ['.share-hero', '.share-actions .btn', '.ranking-preview', '.ranking-preview-row'],
-    data: {
-      tournament: { _id: 'demo', mode: 'multi_rotate', status: 'finished' },
-      tournamentId: 'demo',
-      preview: withPreview({
-        joinAllowed: false,
-        headline: '这场比赛已结束',
-        subtitle: '最终排名和战绩卡已生成',
-        statusText: '已结束',
-        statusClass: 'status-finished',
-        progressText: '21 / 21 场完成',
-        viewModeLabel: '赛后复盘',
-        availabilityText: '可以查看最终排名，生成战绩卡后发回群里。',
-        primaryCtaReason: '最终排名已出炉',
-        primaryAction: { key: 'ranking', text: '查看最终排名' },
-        secondaryAction: { key: 'analytics' },
-        secondaryCtaText: '查看赛事战报',
-        showParticipantPreview: false,
-        showRankingPreview: true,
-        rankingTitle: '最终排名',
-        rankingPreview,
-      }),
-      identityPending: false,
-      identityTimedOut: false,
-      joinBusy: false,
-      loadError: false,
-      syncStatusVisible: false,
-    },
-  },
-  lobbyGuide: {
-    path: '/pages/lobby/index?id=demo',
-    selectors: ['.growth-guide-card', '.growth-guide-step', '.growth-guide-done'],
-    data: {
-      tournament: { _id: 'demo', name: '周末羽毛球赛', status: 'draft', mode: 'multi_rotate', players: [] },
-      tournamentId: 'demo',
-      showGrowthOnboardingGuide: true,
-      growthOnboardingSteps: [
-        { step: 1, title: '看看有谁参加', desc: '先熟悉参赛名单' },
-        { step: 2, title: '了解赛制规则', desc: '确认轮转和计分方式' },
-        { step: 3, title: '等待开赛 / 查看赛程', desc: '开赛后从这里进入赛程和录分' },
-      ],
-      syncStatusVisible: false,
-      showJoinSheet: false,
-      loadError: false,
-    },
-  },
-  ranking: {
-    path: '/pages/ranking/index?id=demo',
-    selectors: ['.ranking-action-full', '.ranking-card', '.ranking-share-banner'],
-    data: {
-      tournamentId: 'demo',
-      tournament: { _id: 'demo', name: '周末羽毛球赛', status: 'finished', mode: 'multi_rotate' },
-      rankings: shared.rankings,
-      rankingTypeLabel: '个人榜',
-      posterButtonText: '生成我的战绩卡',
-      rankingShareBannerText: '最终排名已出炉',
-      loadError: false,
-      syncStatusVisible: false,
-      primaryNavItems: shared.navRanking,
-    },
-  },
-  schedule: {
-    path: '/pages/schedule/index?id=demo',
-    selectors: ['.hero', '.hero-finished-share', '.hero-finished-actions .btn'],
-    data: {
-      tournament: { _id: 'demo', name: '周末羽毛球赛', status: 'finished' },
-      tournamentId: 'demo',
-      primaryNavItems: shared.navSchedule,
-      heroSummaryText: '7人轮转 · 21场',
-      statusClass: 'hero-status-finished',
-      statusText: '已结束',
-      heroMatchText: '21 / 21 场',
-      heroPendingText: '全部比赛已完成',
-      heroProgressPercent: 100,
-      nextActionText: '',
-      showFinishedShareActions: true,
-      roundsUi: [],
-      syncStatusVisible: false,
-      loadError: false,
-    },
-  },
-  analytics: {
-    path: '/pages/analytics/index?id=demo',
-    selectors: ['.analytics-hero', '.analytics-hero-actions .btn', '.report-card'],
-    data: {
-      tournament: { _id: 'demo', name: '周末羽毛球赛', status: 'finished' },
-      tournamentId: 'demo',
-      modeLabel: '多人轮转',
-      statusLabel: '已结束',
-      heroHeadline: '阿杰夺得第一',
-      heroStats: [{ label: '完赛', value: '21' }, { label: '人数', value: '7' }, { label: '冠军', value: '阿杰' }],
-      posterButtonText: '生成赛事战报卡',
-      focusFacts: ['阿杰以 7 胜 1 负排名第一。'],
-      reportHeadline: '最终排名已出炉，可以发回群里复盘。',
-      summary: { finishedMatches: 21, totalMatches: 21 },
-      summaryStats: [{ label: '完赛', value: '21' }, { label: '总分', value: '302' }, { label: '轮次', value: '7' }],
-      top3Cards: [],
-      fullRankings: [],
-      playerStats: [],
-      syncStatusVisible: false,
-      showAnalyticsAdSlot: false,
-      canRetryAction: false,
-      loadError: false,
-    },
-  },
+    path: '/pages/share-entry/index?tournamentId=demo',
+    selectors: ['.share-hero', '.ranking-preview', '.ranking-preview-row', '.share-primary-btn'],
+    data: { tournament: { _id: 'demo', mode: 'multi_rotate', status: 'finished' }, tournamentId: 'demo', preview: { ...previewBase, lifecycle: 'finished', statusText: '已结束', statusClass: 'tag-finished', progressText: '已完成 21/21 场', joinAllowed: false, primaryAction: { key: 'ranking', text: '查看最终排名' }, showParticipantPreview: false, showRankingPreview: true, rankingPreview, rankingTitle: '最终排名前 3' }, identityPending: false, identityTimedOut: false, joinBusy: false, loadError: false, syncStatusVisible: false }
+  }
 };
 
 function timeout(promise, ms, label) {
@@ -301,24 +303,27 @@ function timeout(promise, ms, label) {
 
 async function collectDom(page, selectors) {
   const rows = [];
+  const missingSelectors = [];
   for (const selector of selectors) {
     const elements = await page.$$(selector).catch(() => []);
+    if (!elements.length) missingSelectors.push(selector);
     for (let index = 0; index < elements.length; index += 1) {
       const element = elements[index];
       const [text, size, offset] = await Promise.all([
         element.text().catch(() => ''),
         element.size().catch(() => null),
-        element.offset().catch(() => null),
+        element.offset().catch(() => null)
       ]);
       rows.push({ selector, index, text: String(text || '').replace(/\s+/g, ' ').trim(), size, offset });
     }
   }
-  return rows;
+  return { rows, missingSelectors };
 }
 
 function fileLooksNonBlank(filePath) {
-  const stat = fs.statSync(filePath);
-  return stat.size > 20 * 1024;
+  if (!fs.existsSync(filePath)) return false;
+  const buffer = fs.readFileSync(filePath);
+  return buffer.length > 20 * 1024 && buffer.subarray(1, 4).toString('ascii') === 'PNG';
 }
 
 async function runCase(name, miniProgram) {
@@ -332,9 +337,10 @@ async function runCase(name, miniProgram) {
   await page.setData(item.data);
   await page.waitFor(1800);
   const dom = await collectDom(page, item.selectors);
+  if (dom.missingSelectors.length) throw new Error(`${name}: missing selectors: ${dom.missingSelectors.join(', ')}`);
   await timeout(miniProgram.screenshot({ path: output }), screenshotTimeoutMs, `${name}:screenshot`);
   const ok = fileLooksNonBlank(output);
-  return { name, ok, output, dom };
+  return { name, ok, output, dom: dom.rows };
 }
 
 async function main() {
@@ -343,7 +349,6 @@ async function main() {
     console.log(Object.keys(cases).join('\n'));
     return 0;
   }
-
   const names = requested.length ? requested : Object.keys(cases);
   const results = [];
   for (const name of names) {
@@ -355,12 +360,11 @@ async function main() {
     } finally {
       try {
         miniProgram.disconnect();
-      } catch (err) {
+      } catch (_) {
         // Best effort cleanup only.
       }
     }
   }
-
   return results.every((item) => item.ok) ? 0 : 2;
 }
 
@@ -370,3 +374,5 @@ if (require.main === module) {
     process.exit(1);
   });
 }
+
+module.exports = { cases, fileLooksNonBlank };

@@ -13,7 +13,6 @@ const scheduleContract = require('../../core/scheduleContract');
 const avatarDisplay = require('../../core/avatarDisplay');
 const pageTimers = require('../../core/pageTimers');
 const uiPreferences = require('../../core/uiPreferences');
-const growthTracker = require('../../core/growthTracker');
 
 const PLAYER_FILTER_OPTIONS = [
   { value: 'contains', label: '含有' },
@@ -324,7 +323,6 @@ Page({
     heroPendingText: '',
     heroProgressPercent: -1,
     heroActionBusy: false,
-    showFinishedShareActions: false,
     canEditScore: false,
     hasPending: false,
     firstPendingRoundIndex: -1,
@@ -462,7 +460,10 @@ Page({
       nextActionKey = 'batch';
       nextActionText = '继续录分';
     }
-    const showFinishedShareActions = status === 'finished';
+    if (status === 'finished') {
+      nextActionKey = 'ranking';
+      nextActionText = '查看排名';
+    }
 
     const heroSummaryText = buildHeroSummaryText(status, modeLabel, heroSummary, firstPending);
     const heroMatchText = heroSummary.totalMatches
@@ -475,7 +476,7 @@ Page({
     const statusFilter = String(this.data.statusFilter || 'all').trim() || 'all';
     const roundsUi = filterRoundsUi(focusedRoundsUi, selectedPlayerIds, avatarFilterMode, statusFilter);
     const selectedPlayersUi = buildSelectedPlayersUi(t.players, selectedPlayerIds, this.avatarCache || {});
-    const showFilterBar = roundsSummary.totalMatches > 0;
+    const showFilterBar = roundsSummary.totalMatches >= 4;
     const hasActiveFilter = selectedPlayerIds.length > 0 || statusFilter !== 'all';
     const filterEmptyText = showFilterBar && hasActiveFilter && !roundsUi.length ? '暂无符合条件的对阵' : '';
 
@@ -490,7 +491,6 @@ Page({
       heroMatchText,
       heroPendingText,
       heroProgressPercent,
-      showFinishedShareActions,
       canEditScore,
       hasPending: !!firstPending,
       firstPendingRoundIndex: firstPending ? firstPending.roundIndex : -1,
@@ -577,28 +577,12 @@ Page({
       if (!handled) this.setData({ heroActionBusy: false });
       return handled;
     }
-    if (key === 'analytics') {
-      nav.redirectOrNavigate(nav.buildTournamentUrl('/pages/analytics/index', this.data.tournamentId));
+    if (key === 'ranking') {
+      nav.redirectOrNavigate(nav.buildTournamentUrl('/pages/ranking/index', this.data.tournamentId));
       return true;
     }
     this.setData({ heroActionBusy: false });
     return false;
-  },
-
-  goFinalRanking() {
-    nav.redirectOrNavigate(nav.buildTournamentUrl('/pages/ranking/index', this.data.tournamentId));
-  },
-
-  goSharePosterFromFinished() {
-    growthTracker.track('schedule_finished_share_click', growthTracker.fromTournament(this.data.tournament, {
-      tournamentId: this.data.tournamentId,
-      src: 'schedule',
-      a: 'click'
-    }));
-    nav.redirectOrNavigate(nav.buildTournamentUrl('/pages/ranking/index', this.data.tournamentId, {
-      autoPoster: 1,
-      shareIntent: 'poster'
-    }));
   },
 
   openMatch(e) {

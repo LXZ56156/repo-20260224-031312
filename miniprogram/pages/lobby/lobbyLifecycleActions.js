@@ -60,8 +60,8 @@ module.exports = {
     }
 
     try {
-      await this.saveQuickSettings();
-      await this.handleStart();
+      const saved = await this.saveQuickSettings({ silentSuccess: true });
+      if (saved) await this.handleStart();
     } catch (_) {
       // saveQuickSettings 和 handleStart 内部已有错误处理
     }

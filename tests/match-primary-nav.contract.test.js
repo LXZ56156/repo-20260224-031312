@@ -14,18 +14,18 @@ test('match primary nav model exposes the three stable first-level pages', () =>
   assert.deepEqual(
     items.map((item) => ({ key: item.key, text: item.text, active: item.active })),
     [
-      { key: 'match', text: '比赛', active: false },
-      { key: 'ranking', text: '排名', active: true },
-      { key: 'schedule', text: '对阵', active: false }
+      { key: 'match', text: '赛事', active: false },
+      { key: 'schedule', text: '对阵', active: false },
+      { key: 'ranking', text: '排名', active: true }
     ]
   );
   assert.equal(items[0].url, '/pages/lobby/index?tournamentId=t_1');
-  assert.equal(items[2].url, '/pages/schedule/index?tournamentId=t_1');
+  assert.equal(items[1].url, '/pages/schedule/index?tournamentId=t_1');
 });
 
 test('match primary nav ignores finished-state analytics toggles and remains three items', () => {
   const items = navModel.getPrimaryNavItems('schedule', 't_1', { showAnalytics: true });
-  assert.deepEqual(items.map((item) => item.key), ['match', 'ranking', 'schedule']);
+  assert.deepEqual(items.map((item) => item.key), ['match', 'schedule', 'ranking']);
 });
 
 test('match, ranking, and schedule pages all render the shared first-level nav', () => {

@@ -1,6 +1,6 @@
 /**
  * 分享页面混入
- * 提取 ranking/analytics 重复的分享相关方法
+ * 集中 ranking 页的聊天、朋友圈和海报分享能力
  */
 var shareCard = require('./shareCard');
 var shareCardPreheat = require('./shareCardPreheat');

@@ -23,19 +23,12 @@ test('lobby admin draft view prioritizes拉人流程并 keeps destructive reset 
     openid: 'u_admin',
     data: {}
   });
-  const checklistTitles = (result.patch.checklistItems || []).map((item) => item.title);
-
   assert.equal(result.patch.nextActionKey, 'share');
-  assert.equal(result.patch.nextActionText, '转发');
-  assert.equal(result.patch.featuredChecklistItem.key, 'players');
+  assert.equal(result.patch.nextActionText, '邀请球友');
   assert.equal(result.patch.playerRosterHint, '长按成员可移除');
-  assert.deepEqual(
-    result.patch.secondaryChecklistItems.map((item) => item.key),
-    ['settings', 'start']
-  );
-  assert.equal(checklistTitles.includes('1. 修改比赛'), true);
-  assert.equal(checklistTitles.includes('2. 转发比赛'), true);
-  assert.equal(checklistTitles.includes('重置回草稿'), false);
+  assert.equal(Object.hasOwn(result.patch, 'checklistItems'), false);
+  assert.equal(Object.hasOwn(result.patch, 'featuredChecklistItem'), false);
+  assert.equal(Object.hasOwn(result.patch, 'secondaryChecklistItems'), false);
 });
 
 test('lobby member draft view hints self removal only', () => {

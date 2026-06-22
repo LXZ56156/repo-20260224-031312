@@ -264,7 +264,7 @@ function goRanking(tournamentId, query = {}) {
 }
 
 function goAnalytics(tournamentId, query = {}) {
-  navigateToUrl(buildTournamentUrl('/pages/analytics/index', tournamentId, query));
+  goRanking(tournamentId, query);
 }
 
 function goLaunch() {

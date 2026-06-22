@@ -2,7 +2,6 @@ const storage = require('../../core/storage');
 const actionGuard = require('../../core/actionGuard');
 const clientRequest = require('../../core/clientRequest');
 const cloneTournamentCore = require('../../core/cloneTournament');
-const cloud = require('../../core/cloud');
 const loading = require('../../core/loading');
 const retryAction = require('../../core/retryAction');
 const syncStatus = require('../../core/syncStatus');
@@ -143,11 +142,12 @@ function pickLatestUpdatedAt(items) {
   }, 0);
 }
 
+const HOME_LIST_CONTROLS_MIN_ITEMS = 4;
+
 Page({
   data: {
     loading: false,
     loadError: false,
-    showOnboarding: false,
     showProfileNudge: false,
     sortMode: 'updated',
     filterStatus: 'all',
@@ -176,6 +176,7 @@ Page({
     uiDensityClass: 'density-comfortable',
     uiPreferenceClass: 'motion-standard density-comfortable',
     visibleCount: 0,
+    showListControls: false,
     statusCountRunning: 0,
     statusCountDraft: 0,
     statusCountFinished: 0,
@@ -192,7 +193,6 @@ Page({
     const app = getApp();
     this.setData(composeHomeSyncPatch(this, {
       networkOffline: !!(app && app.globalData && app.globalData.networkOffline),
-      showOnboarding: !storage.isOnboardingDone(),
       showProfileNudge: this.shouldShowProfileNudge(),
       sortMode: storage.getHomeSortMode(),
       filterStatus: storage.getHomeFilterStatus(),
@@ -265,11 +265,6 @@ Page({
     if (showHomeAdSlot) adGuard.markPageExposed('home');
   },
 
-  dismissOnboarding() {
-    storage.setOnboardingDone(true);
-    this.setData({ showOnboarding: false });
-  },
-
   refreshUiPreferences() {
     this.setData(uiPreferences.readUiPreferencePatch());
   },
@@ -310,7 +305,8 @@ Page({
 
   refreshVisibleState() {
     const items = Array.isArray(this.data.items) ? this.data.items : [];
-    const filterStatus = this.data.filterStatus;
+    const showListControls = items.length >= HOME_LIST_CONTROLS_MIN_ITEMS;
+    const filterStatus = showListControls ? this.data.filterStatus : 'all';
     let visibleCount = 0;
     let running = 0;
     let draft = 0;
@@ -331,6 +327,8 @@ Page({
 
     this.setData({
       visibleCount,
+      showListControls,
+      filterStatus,
       heroCard,
       showHeroCard,
       statusCountRunning: running,
@@ -444,7 +442,6 @@ Page({
   },
 
   goCreate() {
-    if (this.data.showOnboarding) this.dismissOnboarding();
     nav.goLaunch();
   },
 
@@ -480,9 +477,9 @@ Page({
         return;
       }
     }
-    if (action === 'analytics') {
+    if (action === 'ranking') {
       if (id) {
-        nav.goAnalytics(id);
+        nav.goRanking(id);
         return;
       }
     }
@@ -656,7 +653,7 @@ Page({
         src: 'home',
         a: 'review_card'
       });
-      nav.goAnalytics(id);
+      nav.goRanking(id);
       return;
     }
     if (status === 'running') {
@@ -677,7 +674,7 @@ Page({
         src: 'home',
         a: 'review'
       });
-      nav.goAnalytics(id);
+      nav.goRanking(id);
       return;
     }
     if (status === 'running') {

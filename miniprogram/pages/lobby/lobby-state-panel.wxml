@@ -1,133 +1,20 @@
-<view class="card panel state-overview reveal reveal-2" wx:if="{{statePanelSummary}}">
-    <view class="section-head">
-      <view class="section-title">{{statePanelTitle}}</view>
-      <text class="count-pill">{{stateStageBadge}} · {{statePanelRoleLabel}}</text>
-    </view>
-    <view class="state-panel-summary">{{statePanelSummary}}</view>
-    <view class="dynamic-share-status muted small" wx:if="{{dynamicSharePreparing || dynamicShareReady || dynamicShareError || dynamicShareUnavailableReason}}">
-      <text>分享比赛</text>
-    </view>
-    <view class="state-checklist panel-soft" wx:if="{{showStateChecklist}}">
-      <block wx:if="{{featuredChecklistItem && featuredChecklistItem.key}}">
-        <button
-          wx:if="{{featuredChecklistItem.key==='players' && !featuredChecklistItem.done}}"
-          class="prep-featured prep-share-action {{featuredChecklistItem.cardClass}}"
-          open-type="share"
-          disabled="{{dynamicSharePreparing || (!dynamicShareReady && !dynamicShareError && !dynamicShareUnavailableReason)}}"
-          bindtouchstart="onShareButtonTouchStart"
-        >
-          <view class="prep-featured-top">
-            <view class="prep-badge">{{featuredChecklistItem.badgeText}}</view>
-            <text class="prep-jump prep-jump-featured">分享比赛</text>
-          </view>
-          <view class="prep-featured-main">
-            <text class="prep-indicator prep-indicator-lg {{featuredChecklistItem.indicatorClass}}"></text>
-            <view class="prep-main">
-              <view class="prep-title prep-title-featured">{{featuredChecklistItem.title}}</view>
-              <view class="prep-sub prep-sub-featured">{{featuredChecklistItem.summary}}</view>
-            </view>
-          </view>
-        </button>
-        <view
-          wx:elif="{{featuredChecklistItem.key==='players'}}"
-          class="prep-featured prep-static {{featuredChecklistItem.cardClass}}"
-        >
-          <view class="prep-featured-top">
-            <view class="prep-badge">{{featuredChecklistItem.badgeText}}</view>
-            <text class="prep-jump prep-jump-featured">{{featuredChecklistItem.actionText}}</text>
-          </view>
-          <view class="prep-featured-main">
-            <text class="prep-indicator prep-indicator-lg {{featuredChecklistItem.indicatorClass}}"></text>
-            <view class="prep-main">
-              <view class="prep-title prep-title-featured">{{featuredChecklistItem.title}}</view>
-              <view class="prep-sub prep-sub-featured">{{featuredChecklistItem.summary}}</view>
-            </view>
-          </view>
-        </view>
-        <view
-          wx:else
-          class="prep-featured {{featuredChecklistItem.cardClass}}"
-          data-key="{{featuredChecklistItem.key}}"
-          bindtap="onChecklistTap"
-        >
-          <view class="prep-featured-top">
-            <view class="prep-badge">{{featuredChecklistItem.badgeText}}</view>
-            <text class="prep-jump prep-jump-featured">{{featuredChecklistItem.actionText}}</text>
-          </view>
-          <view class="prep-featured-main">
-            <text class="prep-indicator prep-indicator-lg {{featuredChecklistItem.indicatorClass}}"></text>
-            <view class="prep-main">
-              <view class="prep-title prep-title-featured">{{featuredChecklistItem.title}}</view>
-              <view class="prep-sub prep-sub-featured">{{featuredChecklistItem.summary}}</view>
-            </view>
-          </view>
-        </view>
-      </block>
-      <view class="prep-secondary-grid" wx:if="{{secondaryChecklistItems.length}}">
-        <block wx:for="{{secondaryChecklistItems}}" wx:key="key">
-          <button
-            wx:if="{{item.key==='players' && !item.done}}"
-            class="prep-tile prep-share-action {{item.cardClass}}"
-            open-type="share"
-            disabled="{{dynamicSharePreparing || (!dynamicShareReady && !dynamicShareError && !dynamicShareUnavailableReason)}}"
-            bindtouchstart="onShareButtonTouchStart"
-          >
-            <view class="prep-secondary-head">
-              <text class="prep-indicator {{item.indicatorClass}}"></text>
-              <view class="prep-badge prep-badge-subtle" wx:if="{{item.badgeText}}">{{item.badgeText}}</view>
-            </view>
-            <view class="prep-main prep-main-secondary">
-              <view class="prep-title">{{item.title}}</view>
-              <view class="prep-sub">{{item.summary}}</view>
-            </view>
-            <text class="prep-jump">分享比赛</text>
-          </button>
-          <view
-            wx:elif="{{item.key==='players'}}"
-            class="prep-tile prep-static {{item.cardClass}}"
-          >
-            <view class="prep-secondary-head">
-              <text class="prep-indicator {{item.indicatorClass}}"></text>
-              <view class="prep-badge prep-badge-subtle" wx:if="{{item.badgeText}}">{{item.badgeText}}</view>
-            </view>
-            <view class="prep-main prep-main-secondary">
-              <view class="prep-title">{{item.title}}</view>
-              <view class="prep-sub">{{item.summary}}</view>
-            </view>
-            <text class="prep-jump">{{item.actionText}}</text>
-          </view>
-          <view
-            wx:else
-            class="prep-tile {{item.cardClass}}"
-            data-key="{{item.key}}"
-            bindtap="onChecklistTap"
-          >
-            <view class="prep-secondary-head">
-              <text class="prep-indicator {{item.indicatorClass}}"></text>
-              <view class="prep-badge prep-badge-subtle" wx:if="{{item.badgeText}}">{{item.badgeText}}</view>
-            </view>
-            <view class="prep-main prep-main-secondary">
-              <view class="prep-title">{{item.title}}</view>
-              <view class="prep-sub">{{item.summary}}</view>
-            </view>
-            <text class="prep-jump">{{item.actionText}}</text>
-          </view>
-        </block>
-      </view>
-    </view>
-    <view id="state-primary-action" class="state-actions {{(nextActionKey==='start' || primaryTaskKey==='start') ? 'state-actions-sticky' : ''}}" wx:if="{{primaryTaskTitle || statePrimaryActionText}}">
-      <view class="primary-task-summary muted small" wx:if="{{primaryTaskSummary}}">{{primaryTaskSummary}}</view>
-      <button
-        wx:if="{{primaryTaskKey==='share' && primaryTaskTitle==='转发比赛'}}"
-        class="btn btn-primary state-primary-btn"
-        open-type="share"
-        disabled="{{dynamicSharePreparing || (!dynamicShareReady && !dynamicShareError && !dynamicShareUnavailableReason)}}"
-        bindtouchstart="onShareButtonTouchStart"
-      >分享比赛</button>
-      <button
-        wx:else
-        class="btn btn-primary state-primary-btn {{(nextActionKey==='start' || primaryTaskKey==='start' || primaryTaskKey==='sync_settings') ? 'start-pulse' : ''}}"
-        bindtap="onNextActionTap"
-      >{{primaryTaskTitle || statePrimaryActionText}}</button>
-    </view>
+<view class="lobby-next reveal reveal-3" wx:if="{{statePanelSummary || primaryTaskTitle || statePrimaryActionText}}">
+  <view class="lobby-next-copy">
+    <view class="section-title">{{statePanelTitle}}</view>
+    <view class="muted small">{{primaryTaskSummary || statePanelSummary}}</view>
   </view>
+  <view id="state-primary-action" class="state-actions" wx:if="{{primaryTaskTitle || statePrimaryActionText}}">
+    <button
+      wx:if="{{primaryTaskKey==='share'}}"
+      class="btn btn-primary state-primary-btn"
+      open-type="share"
+      disabled="{{dynamicSharePreparing || (!dynamicShareReady && !dynamicShareError && !dynamicShareUnavailableReason)}}"
+      bindtouchstart="onShareButtonTouchStart"
+    >{{primaryTaskTitle || statePrimaryActionText}}</button>
+    <button
+      wx:else
+      class="btn btn-primary state-primary-btn"
+      bindtap="onNextActionTap"
+    >{{primaryTaskTitle || statePrimaryActionText}}</button>
+  </view>
+</view>

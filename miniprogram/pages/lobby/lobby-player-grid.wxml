@@ -1,8 +1,9 @@
-<view id="player-roster" class="card panel reveal reveal-4 {{showGrowthOnboardingGuide ? 'growth-guide-roster-focus' : ''}}">
+<view id="player-roster" class="card panel lobby-roster reveal reveal-2">
     <view class="section-head">
       <view class="section-title">参赛名单</view>
       <view class="row-right">
         <text class="player-roster-hint" wx:if="{{playerRosterHint}}">{{playerRosterHint}}</text>
+        <text class="link-btn" wx:if="{{showMyProfile}}" bindtap="openJoinSheet">编辑资料</text>
         <text class="count-pill">{{playerCountText}}</text>
         <text class="link-btn" wx:if="{{tournament.players.length>12}}" bindtap="togglePlayers">{{showAllPlayers?'收起':'展开'}}</text>
       </view>

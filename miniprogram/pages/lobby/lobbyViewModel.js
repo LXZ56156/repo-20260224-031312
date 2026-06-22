@@ -229,70 +229,6 @@ function diffLobbyPatch(current = {}, next = {}) {
   return patch;
 }
 
-function buildChecklistItems({ checkSettingsOk, checkPlayersOk, checkStartReady, playersChecklistHint }) {
-  return [
-    {
-      key: 'settings',
-      label: '参数',
-      title: '1. 修改比赛',
-      done: !!checkSettingsOk,
-      summary: checkSettingsOk ? '已保存' : (checkPlayersOk ? '待保存' : '满 4 人后可设置'),
-      actionText: checkSettingsOk ? '查看' : (checkPlayersOk ? '去修改' : '等待')
-    },
-    {
-      key: 'players',
-      label: '转发',
-      title: '2. 转发比赛',
-      done: !!checkPlayersOk,
-      summary: String(playersChecklistHint || '').trim() || '优先转发比赛，导入名单作备用',
-      actionText: checkPlayersOk ? '已就绪' : '待邀请'
-    },
-    {
-      key: 'start',
-      label: '开始比赛',
-      title: '3. 开始比赛',
-      done: !!checkStartReady,
-      summary: checkStartReady ? '可立即开赛' : '完成前两项后可开赛',
-      actionText: checkStartReady ? '见上方' : '去完成'
-    }
-  ];
-}
-
-function buildChecklistLayout(checklistItems, nextActionKey) {
-  const items = Array.isArray(checklistItems) ? checklistItems : [];
-  const featuredKeyMap = {
-    settings: 'settings',
-    share: 'players',
-    start: 'start'
-  };
-  const featuredKey = featuredKeyMap[String(nextActionKey || '').trim()] || '';
-  const featuredIndex = items.findIndex((item) => item && item.key === featuredKey);
-  const safeFeaturedIndex = featuredIndex >= 0 ? featuredIndex : 0;
-
-  const decoratedItems = items.map((item, index) => {
-    const base = item && typeof item === 'object' ? item : {};
-    let state = 'pending';
-    if (index === safeFeaturedIndex) state = 'active';
-    else if (base.done) state = 'done';
-
-    return {
-      ...base,
-      state,
-      badgeText: state === 'active' ? '当前步骤' : (state === 'done' ? '已完成' : ''),
-      cardClass: `prep-card-${state}`,
-      indicatorClass: state === 'active'
-        ? 'prep-indicator-active'
-        : (base.done ? 'prep-indicator-ok' : '')
-    };
-  });
-
-  return {
-    checklistItems: decoratedItems,
-    featuredChecklistItem: decoratedItems[safeFeaturedIndex] || null,
-    secondaryChecklistItems: decoratedItems.filter((_, index) => index !== safeFeaturedIndex)
-  };
-}
-
 function buildRoleCard(key, label, summary, actionKey, actionText, active) {
   return {
     key,
@@ -312,7 +248,6 @@ function buildRoleCards(ctx) {
     isAdmin,
     myJoined,
     showJoin,
-    showMyProfile,
     showViewOnlyJoinPrompt,
     checkSettingsOk,
     checkPlayersOk,
@@ -329,15 +264,15 @@ function buildRoleCards(ctx) {
 
   let adminActionKey = '';
   let adminActionText = '';
-  let adminSummary = '管理员可修改比赛、转发比赛并开始比赛。';
+  let adminSummary = '管理名单并开始比赛。';
   if (status === 'draft' && !checkPlayersOk) {
     adminActionKey = 'share';
-    adminActionText = '转发';
+    adminActionText = '邀请球友';
     adminSummary = `当前名单未就绪，${playersChecklistHint || '请先补全参赛信息'}。`;
   } else if (status === 'draft' && !checkSettingsOk) {
-    adminActionKey = 'settings';
-    adminActionText = '修改比赛';
-    adminSummary = '成员已达门槛，先补全比赛参数再开始比赛。';
+    adminActionKey = 'sync_settings';
+    adminActionText = '开始比赛';
+    adminSummary = '将使用当前默认参数生成对阵。';
   } else if (status === 'draft' && checkStartReady) {
     adminActionKey = 'start';
     adminActionText = '开始比赛';
@@ -354,9 +289,7 @@ function buildRoleCards(ctx) {
   let joinedActionText = '';
   let joinedSummary = '你已在名单中，可继续跟进比赛安排。';
   if (status === 'draft') {
-    joinedActionKey = 'profile_save';
-    joinedActionText = '编辑我的资料';
-    joinedSummary = '你已加入比赛，草稿阶段仍可补充昵称和头像。';
+    joinedSummary = '你已加入比赛，等待管理员开赛。';
   } else if (status === 'running' && canEditScore && hasPending) {
     joinedActionKey = 'batch';
     joinedActionText = '继续录分';
@@ -370,7 +303,7 @@ function buildRoleCards(ctx) {
   let viewerSummary = '当前以观赛身份查看，不会自动加入名单。';
   if (status === 'draft') {
     viewerActionKey = showViewOnlyJoinPrompt ? 'view_only_join' : 'share';
-    viewerActionText = showViewOnlyJoinPrompt ? '立即加入' : '继续观赛';
+    viewerActionText = showViewOnlyJoinPrompt ? '加入比赛' : '继续观赛';
     viewerSummary = '可以先看比赛信息，确定后再显式加入。';
   } else if (status === 'finished') {
     viewerSummary = '比赛已结束，可通过顶部切换查看比赛、排名或对阵。';
@@ -387,7 +320,7 @@ function buildRoleCards(ctx) {
       buildRoleCard('admin', '管理员', adminSummary, adminActionKey, adminActionText, activeRoleKey === 'admin'),
       buildRoleCard('joined', '已加入用户', joinedSummary, joinedActionKey, joinedActionText, activeRoleKey === 'joined'),
       buildRoleCard('viewer', '观赛用户', viewerSummary, viewerActionKey, viewerActionText, activeRoleKey === 'viewer'),
-      buildRoleCard('profile_pending', '待补资料用户', pendingSummary, 'profile_join', '立即加入', activeRoleKey === 'profile_pending')
+      buildRoleCard('profile_pending', '待补资料用户', pendingSummary, 'profile_join', '加入比赛', activeRoleKey === 'profile_pending')
     ]
   };
 }
@@ -398,11 +331,9 @@ function buildStatePanel(ctx) {
     isAdmin,
     myJoined,
     showJoin,
-    showMyProfile,
     showViewOnlyJoinPrompt,
     checkSettingsOk,
     checkPlayersOk,
-    checkStartReady,
     canEditScore,
     hasPending,
     mode,
@@ -418,17 +349,17 @@ function buildStatePanel(ctx) {
     finished: '已结束'
   };
 
-  let title = '当前下一步';
+  let title = '下一步';
   let summary = String(currentRoleSummary || '').trim() || '先看当前状态，再决定下一步。';
 
   if (status === 'draft') {
     if (isAdmin) {
-      title = '开赛前准备';
+      title = '下一步';
       summary = !checkPlayersOk
-        ? '先转发比赛，让名单先准备好。'
+        ? '邀请球友加入，名单就绪后即可开赛。'
         : (!checkSettingsOk
-          ? '成员已达门槛，先修改比赛信息。'
-          : '前置项已完成，可以直接开始比赛。');
+          ? '将使用当前默认参数生成对阵。'
+          : '名单已就绪，可以开始比赛。');
     } else if (showJoin) {
       title = '加入前确认';
       summary = mode === flow.MODE_SQUAD_DOUBLES
@@ -439,7 +370,7 @@ function buildStatePanel(ctx) {
       summary = '当前以只读方式查看比赛，不会自动加入名单。';
     } else if (myJoined) {
       title = '等待开赛';
-      summary = '你已在名单中，草稿阶段仍可补充昵称和头像。';
+      summary = '你已在名单中，等待管理员开始比赛。';
     }
   } else if (status === 'running') {
     if (canEditScore && hasPending) {
@@ -627,17 +558,17 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
   if (status === 'draft' && isAdmin) {
     if (mode === flow.MODE_FIXED_PAIR_RR) {
       if (playersCount < 4) {
-        primaryTaskKey = 'import_players';
-        primaryTaskTitle = '导入名单';
+        primaryTaskKey = 'share';
+        primaryTaskTitle = '邀请球友';
         primaryTaskSummary = '至少需要 4 人才能组队开赛';
       } else if (validPairTeamsCount < 2) {
         primaryTaskKey = 'build_pair_teams';
         primaryTaskTitle = validPairTeamsCount === 0 ? '开始组队' : '继续组队';
         primaryTaskSummary = `需至少 2 支队伍（当前 ${validPairTeamsCount}）`;
       } else if (!checkSettingsOk) {
-        primaryTaskKey = 'settings';
-        primaryTaskTitle = '修改比赛';
-        primaryTaskSummary = '成员已达门槛，先修改比赛信息';
+        primaryTaskKey = 'sync_settings';
+        primaryTaskTitle = '开始比赛';
+        primaryTaskSummary = '将使用当前默认参数生成对阵';
       } else if (needsSettingsSync) {
         primaryTaskKey = 'sync_settings';
         primaryTaskTitle = '保存并开赛';
@@ -654,16 +585,16 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
     } else if (mode === flow.MODE_SQUAD_DOUBLES) {
       if (playersCount < 4) {
         primaryTaskKey = 'share';
-        primaryTaskTitle = '转发比赛';
-        primaryTaskSummary = '先邀请成员，满 4 人后再设置参数';
+        primaryTaskTitle = '邀请球友';
+        primaryTaskSummary = '先邀请成员，满 4 人后即可开赛';
       } else if (aCount < 2 || bCount < 2) {
         primaryTaskKey = 'assign_squads';
         primaryTaskTitle = '分配 A/B 队';
         primaryTaskSummary = checkPlayersOk ? `A队 ${aCount} / B队 ${bCount}` : `A队 ${aCount} / B队 ${bCount}（至少各2人）`;
       } else if (!checkSettingsOk) {
-        primaryTaskKey = 'settings';
-        primaryTaskTitle = '修改比赛';
-        primaryTaskSummary = '成员已达门槛，先修改比赛信息';
+        primaryTaskKey = 'sync_settings';
+        primaryTaskTitle = '开始比赛';
+        primaryTaskSummary = '将使用当前默认参数生成对阵';
       } else if (checkStartReady) {
         primaryTaskKey = 'start';
         primaryTaskTitle = '开始比赛';
@@ -677,7 +608,7 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       // multi_rotate
       if (playerLimit > 0 && playersCount < playerLimit) {
         primaryTaskKey = 'share';
-        primaryTaskTitle = '转发比赛';
+        primaryTaskTitle = '邀请球友';
         primaryTaskSummary = `还差 ${playerLimit - playersCount} 人，人齐后可直接开赛`;
       } else if (playerLimit > 0 && playersCount > playerLimit) {
         primaryTaskKey = 'share';
@@ -685,12 +616,12 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
         primaryTaskSummary = `最多 ${playerLimit} 人，当前 ${playersCount} 人`;
       } else if (playersCount < 4) {
         primaryTaskKey = 'share';
-        primaryTaskTitle = '转发比赛';
-        primaryTaskSummary = '先邀请成员，满 4 人后再设置参数';
+        primaryTaskTitle = '邀请球友';
+        primaryTaskSummary = '先邀请成员，满 4 人后即可开赛';
       } else if (!checkSettingsOk) {
-        primaryTaskKey = 'settings';
-        primaryTaskTitle = '修改比赛';
-        primaryTaskSummary = '成员已达门槛，先修改比赛信息';
+        primaryTaskKey = 'sync_settings';
+        primaryTaskTitle = '开始比赛';
+        primaryTaskSummary = '将使用当前默认参数生成对阵';
       } else if (checkStartReady) {
         primaryTaskKey = 'start';
         primaryTaskTitle = '开始比赛';
@@ -703,21 +634,13 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
     }
   }
 
-  const quickChecklistPending = (checkPlayersOk ? 0 : 1) + (checkSettingsOk ? 0 : 1);
   const canEditScore = perm.canEditScore(t, openid);
   const hasPending = flow.hasPendingMatch(t.rounds);
-  const checklistItems = buildChecklistItems({
-    checkSettingsOk,
-    checkPlayersOk,
-    checkStartReady,
-    playersChecklistHint: players.length ? playersChecklistHint : '优先转发比赛，导入名单作备用'
-  });
   const roleView = buildRoleCards({
     status,
     isAdmin,
     myJoined,
     showJoin,
-    showMyProfile,
     showViewOnlyJoinPrompt,
     checkSettingsOk,
     checkPlayersOk,
@@ -739,7 +662,6 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
     isAdmin,
     myJoined,
     showJoin,
-    showMyProfile,
     showViewOnlyJoinPrompt,
     checkSettingsOk,
     checkPlayersOk,
@@ -752,7 +674,6 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
     nextActionKey: activeRoleCard.actionKey,
     nextActionText: activeRoleCard.actionText
   });
-  const checklistLayout = buildChecklistLayout(checklistItems, activeRoleCard.actionKey);
   return {
     tournament: displayTournament,
     meta: {
@@ -839,10 +760,6 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       pairTeamCandidates: pairTeamModel.pairTeamCandidates,
       pairTeamFirstIndex: pairTeamModel.pairTeamFirstIndex,
       pairTeamSecondIndex: pairTeamModel.pairTeamSecondIndex,
-      quickChecklistPending,
-      checklistItems: checklistLayout.checklistItems,
-      featuredChecklistItem: checklistLayout.featuredChecklistItem,
-      secondaryChecklistItems: checklistLayout.secondaryChecklistItems,
       checkPlayersOk,
       playersChecklistHint,
       checkSettingsOk,
@@ -862,7 +779,6 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       statePrimaryActionKey: statePanel.statePrimaryActionKey,
       statePrimaryActionText: statePanel.statePrimaryActionText,
       stateStageBadge: statePanel.stageBadge,
-      showStateChecklist: isAdmin && status === 'draft' && checklistItems.length > 0,
       showDraftRules: status === 'draft',
       showDraftAdminPanel: isAdmin && status === 'draft',
       showViewOnlyJoinPrompt,

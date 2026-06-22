@@ -25,20 +25,13 @@
     <view class="hero-kicker">积分榜</view>
     <view class="hero-title">{{rankingTypeLabel}}</view>
     <view class="hero-sub">{{tournament.name}}</view>
-    <view class="hero-actions ranking-hero-actions btn-row">
-      <view class="ranking-action-stack">
-        <button class="btn btn-primary btn-sm ranking-action-full" bindtap="onGeneratePoster">{{posterButtonText}}</button>
-        <view class="ranking-action-row">
-          <button class="btn btn-outline btn-sm ranking-action-half" bindtap="onShareTimelineGuide">分享到朋友圈</button>
-          <button class="btn btn-subtle btn-sm ranking-action-half" bindtap="onCopyPosterText">保存后发群</button>
-        </view>
-      </view>
+    <view class="hero-actions ranking-hero-actions">
+      <button class="btn btn-primary btn-sm ranking-action-primary" bindtap="onGeneratePoster">{{posterButtonText}}</button>
+      <button class="btn btn-subtle btn-sm ranking-more-trigger" bindtap="toggleMoreActions">更多</button>
     </view>
-  </view>
-
-  <view class="ranking-share-banner reveal reveal-2" wx:if="{{rankingShareBannerText}}">
-    <view class="ranking-share-banner-title">{{rankingShareBannerText}}</view>
-    <view class="ranking-share-banner-sub">先生成战绩卡，再保存或转发复盘。</view>
+    <view class="ranking-more-menu" wx:if="{{showMoreActions}}">
+      <button class="btn btn-outline btn-sm" bindtap="cloneCurrentTournament">再办一场</button>
+    </view>
   </view>
 
   <view class="card panel panel-soft state-empty mt-md reveal reveal-2" wx:if="{{rankings.length===0}}">
@@ -69,11 +62,19 @@
           <view class="muted small ranking-score-line">得{{r.pointsFor}} 失{{r.pointsAgainst}}</view>
         </view>
       </view>
-      <view class="ranking-card-foot" wx:if="{{r.showTrend || r.topShareText}}">
+      <view class="ranking-card-foot" wx:if="{{r.showTrend}}">
         <view class="trend-pill {{r.trendType}} {{r.showTrend ? '' : 'trend-muted'}}" wx:if="{{r.showTrend}}">较上轮 {{r.trendText}}</view>
-        <view class="rank-row-share" wx:if="{{r.topShareText}}" data-rank="{{r.rank}}" bindtap="onShareRankingRow">{{r.topShareText}}</view>
       </view>
     </view>
+  </view>
+
+  <view class="card panel-soft ad-breakpoint" wx:if="{{showResultAdSlot}}">
+    <view class="ad-badge">广告</view>
+  </view>
+
+  <view class="retry-box panel-soft" wx:if="{{canRetryAction}}">
+    <view class="muted small">{{lastFailedActionText}}</view>
+    <button class="btn btn-subtle btn-sm" bindtap="retryLastAction">重试上次操作</button>
   </view>
 </view>
 

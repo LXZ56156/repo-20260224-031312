@@ -16,60 +16,39 @@
   margin-top: var(--space-section);
 }
 
-.ranking-action-stack {
-  width: 100%;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-tight);
-}
-
-.ranking-action-row {
+.ranking-hero-actions {
   display: flex;
   gap: var(--space-tight);
 }
 
-.ranking-page .ranking-hero-actions .ranking-action-stack .btn {
+.ranking-page .ranking-hero-actions .btn {
   margin: 0 !important;
   min-width: 0;
-  max-width: 100%;
   white-space: nowrap;
   line-height: 72rpx;
   height: 72rpx;
   font-size: 26rpx;
 }
 
-.ranking-page .ranking-hero-actions .ranking-action-full {
-  width: 100% !important;
-  flex: none !important;
+.ranking-action-primary {
+  flex: 1;
 }
 
-.ranking-page .ranking-hero-actions .ranking-action-half {
-  width: 0 !important;
-  flex: 1 1 0 !important;
+.ranking-more-trigger {
+  flex: none;
+  width: 144rpx !important;
+  padding: 0 16rpx;
 }
 
-.ranking-share-banner {
+.ranking-more-menu {
   margin-top: var(--space-tight);
-  padding: 14rpx 18rpx;
-  border-radius: 14rpx;
-  border: 1rpx solid rgba(245, 158, 11, 0.14);
-  background: rgba(255, 250, 239, 0.78);
-  box-shadow: none;
+  padding-top: var(--space-tight);
+  border-top: 1rpx solid var(--neutral-200);
 }
 
-.ranking-share-banner-title {
-  font-size: 25rpx;
-  font-weight: 800;
-  line-height: 1.35;
-  color: #92400E;
-}
-
-.ranking-share-banner-sub {
-  margin-top: 2rpx;
-  font-size: 22rpx;
-  line-height: 1.35;
-  color: var(--neutral-500);
+.ranking-more-menu .btn {
+  width: 100%;
+  margin: 0 !important;
 }
 
 /* --- Ranking Card --- */
@@ -182,28 +161,6 @@
   gap: var(--space-tight);
   min-width: 0;
   padding-left: 58rpx;
-}
-
-.rank-row-share {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  box-sizing: border-box;
-  min-width: 0;
-  max-width: 100%;
-  min-height: 40rpx;
-  padding: 0 12rpx;
-  border-radius: 999rpx;
-  background: rgba(24, 179, 104, 0.10);
-  color: var(--brand-700);
-  font-size: 22rpx;
-  font-weight: 760;
-  line-height: 40rpx;
-}
-
-.rank-row-share::after {
-  border: 0;
 }
 
 .metric-title {

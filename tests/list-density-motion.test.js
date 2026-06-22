@@ -109,6 +109,7 @@ test('ranking content list uses reveal motion and compact ranking rows', () => {
   const avatarImgRule = getCssRuleBody(wxss, '.ranking-avatar-img');
   const playerTitleRule = getCssRuleBody(wxss, '.player-title');
   const metricRule = getCssRuleBody(wxss, '.metric-title');
+  const moreTriggerRule = getCssRuleBody(wxss, '.ranking-more-trigger');
   const skeletonRule = getCssRuleBody(wxss, '.ranking-skeleton-list .skeleton-card');
   const comfortableCardRule = getCssRuleBody(wxss, '.ranking-page.density-comfortable .ranking-card,\n.ranking-page.density-comfortable .ranking-skeleton-list .skeleton-card');
 
@@ -129,20 +130,22 @@ test('ranking content list uses reveal motion and compact ranking rows', () => {
   assert.match(avatarImgRule, /width:\s*60rpx/);
   assert.match(playerTitleRule, /font-size:\s*28rpx/);
   assert.match(metricRule, /font-size:\s*26rpx/);
+  assert.match(moreTriggerRule, /width:\s*144rpx\s*!important/);
+  assert.match(moreTriggerRule, /padding:\s*0 16rpx/);
   assert.match(skeletonRule, /padding:\s*var\(--space-panel-pad\) var\(--space-card-pad\)/);
   assert.match(comfortableCardRule, /padding:\s*var\(--space-card-pad-lg\)/);
 });
 
-test('lobby start emphasis is not an unconditional infinite animation', () => {
+test('lobby next action does not retain the legacy pulse treatment', () => {
   const wxml = read('miniprogram/pages/lobby/index.wxml');
   const statePanelWxml = read('miniprogram/pages/lobby/lobby-state-panel.wxml');
   const wxss = read('miniprogram/pages/lobby/index.wxss');
-  const startPulseRule = getCssRuleBody(wxss, '.start-pulse');
+  const appWxss = read('miniprogram/app.wxss');
 
   assert.match(wxml, /lobby-page \{\{uiMotionClass\}\}/);
-  assert.match(statePanelWxml, /start-pulse/);
-  assert.match(startPulseRule, /animation:\s*startPulse 420ms ease-out 1/);
-  assert.doesNotMatch(startPulseRule, /infinite/);
+  assert.doesNotMatch(statePanelWxml, /start-pulse/);
+  assert.doesNotMatch(wxss, /\.start-pulse/);
+  assert.doesNotMatch(appWxss, /\.start-pulse/);
 });
 
 test('match score tools keep larger legacy controls with containment', () => {

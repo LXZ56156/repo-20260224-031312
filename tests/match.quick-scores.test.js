@@ -51,7 +51,10 @@ function buildTournament(pointsPerGame = 21) {
       matches: [{
         matchIndex: 0,
         status: 'pending',
-        teamA: [{ id: 'user_1', name: '裁判A' }, { id: 'u2', name: '球友B' }],
+        teamA: [
+          { id: 'user_1', name: '裁判A', avatar: 'https://avatar.test/a.png' },
+          { id: 'u2', name: '球友B' }
+        ],
         teamB: [{ id: 'u3', name: '球友C' }, { id: 'u4', name: '球友D' }]
       }]
     }]
@@ -199,6 +202,35 @@ test('match page renders dynamic quick score options instead of hardcoded score 
   assert.doesNotMatch(wxml, /请先点击/);
   assert.doesNotMatch(wxml, /刷新状态/);
   assert.doesNotMatch(wxml, /接管录分/);
+});
+
+test('match view model integrates both teams avatar displays into the score stage', () => {
+  const viewState = buildTournamentViewState(buildTournament(21), {
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    openid: 'user_1',
+    lockState: 'idle',
+    avatarCache: {}
+  });
+
+  assert.equal(viewState.data.pair1Players.length, 2);
+  assert.equal(viewState.data.pair2Players.length, 2);
+  assert.equal(viewState.data.pair1Players[0].avatarDisplay, 'https://avatar.test/a.png');
+  assert.equal(viewState.data.pair1Players[1].initial, '球');
+  assert.match(viewState.data.pair2Players[0].colorClass, /^pcolor-\d$/);
+});
+
+test('match page keeps matchup identity inside the score stage without a duplicate card', () => {
+  const wxml = readPage('miniprogram/pages/match/index.wxml');
+
+  assert.doesNotMatch(wxml, /本场对阵/);
+  assert.doesNotMatch(wxml, /class="match-vs"/);
+  assert.match(wxml, /class="score-team-avatars"/);
+  assert.match(wxml, /wx:for="\{\{pair1Players\}\}"/);
+  assert.match(wxml, /wx:for="\{\{pair2Players\}\}"/);
+  assert.match(wxml, /class="score-player-name"[^>]*>\{\{pair1Text\}\}/);
+  assert.match(wxml, /class="score-player-name"[^>]*>\{\{pair2Text\}\}/);
 });
 
 test('match score edit tools stay contained within the score panel', () => {

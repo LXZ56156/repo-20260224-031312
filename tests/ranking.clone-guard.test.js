@@ -5,25 +5,23 @@ const cloud = require('../miniprogram/core/cloud');
 const actionGuard = require('../miniprogram/core/actionGuard');
 const storage = require('../miniprogram/core/storage');
 
-const analyticsPagePath = require.resolve('../miniprogram/pages/analytics/index.js');
+const rankingPagePath = require.resolve('../miniprogram/pages/ranking/index.js');
 
-function loadAnalyticsPageDefinition() {
+function loadRankingPageDefinition() {
   const originalPage = global.Page;
   let definition = null;
   global.Page = (options) => {
     definition = options;
   };
-  delete require.cache[analyticsPagePath];
-  require(analyticsPagePath);
+  delete require.cache[rankingPagePath];
+  require(rankingPagePath);
   global.Page = originalPage;
   return definition;
 }
 
-function createAnalyticsPageContext(definition) {
+function createRankingPageContext(definition) {
   const ctx = {
-    data: {
-      tournamentId: 't_1'
-    },
+    data: { tournamentId: 't_1', showMoreActions: true },
     setData(update) {
       this.data = { ...this.data, ...(update || {}) };
     },
@@ -36,13 +34,10 @@ function createAnalyticsPageContext(definition) {
   return ctx;
 }
 
-test('analytics clone action is guarded against repeated taps', async () => {
+test('ranking clone action is guarded against repeated taps', async () => {
   const originalWx = global.wx;
   const originalCloudCall = cloud.call;
-  const originalIsBusy = actionGuard.isBusy;
-  const originalRun = actionGuard.run;
   const originalAddRecentTournamentId = storage.addRecentTournamentId;
-
   let releaseCall;
   const calls = [];
 
@@ -54,18 +49,13 @@ test('analytics clone action is guarded against repeated taps', async () => {
   };
 
   try {
-    const definition = loadAnalyticsPageDefinition();
-    const ctx = createAnalyticsPageContext(definition);
-
+    const definition = loadRankingPageDefinition();
+    const ctx = createRankingPageContext(definition);
     cloud.call = async (name, payload) => {
       calls.push({ name, payload });
-      await new Promise((resolve) => {
-        releaseCall = resolve;
-      });
+      await new Promise((resolve) => { releaseCall = resolve; });
       return { tournamentId: 't_2' };
     };
-    actionGuard.isBusy = originalIsBusy;
-    actionGuard.run = originalRun;
     storage.addRecentTournamentId = () => {};
 
     const first = ctx.cloneCurrentTournament();
@@ -78,14 +68,12 @@ test('analytics clone action is guarded against repeated taps', async () => {
 
     releaseCall();
     await Promise.all([first, second]);
-
     assert.equal(calls.length, 1);
   } finally {
+    actionGuard.clear('ranking:cloneTournament:t_1');
     global.wx = originalWx;
     cloud.call = originalCloudCall;
-    actionGuard.isBusy = originalIsBusy;
-    actionGuard.run = originalRun;
     storage.addRecentTournamentId = originalAddRecentTournamentId;
-    delete require.cache[analyticsPagePath];
+    delete require.cache[rankingPagePath];
   }
 });

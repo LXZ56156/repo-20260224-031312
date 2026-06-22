@@ -87,21 +87,6 @@
   transition: width 0.4s ease;
 }
 
-/* --- 对阵区 --- */
-.match-vs {
-  margin-top: var(--space-tight);
-  font-size: 32rpx;
-  font-weight: 700;
-  line-height: 1.4;
-  color: var(--neutral-950);
-}
-
-.vs {
-  margin: 0 10rpx;
-  color: var(--neutral-500);
-  font-weight: 700;
-}
-
 /* --- 比分舞台（统一容器） --- */
 .score-stage {
   padding: var(--space-card-pad-lg);
@@ -122,6 +107,55 @@
   font-size: 22rpx;
   font-weight: 600;
   flex-shrink: 0;
+}
+
+.score-matchup {
+  margin-top: var(--space-section);
+  display: flex;
+  align-items: center;
+  gap: var(--space-inline);
+}
+
+.score-team {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.score-team-avatars {
+  min-height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+}
+
+.score-avatar {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 999rpx;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-avatar-img {
+  width: 64rpx;
+  height: 64rpx;
+}
+
+.score-avatar-initial {
+  color: #ffffff;
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
+.score-matchup-vs {
+  flex: none;
+  color: var(--neutral-400);
+  font-size: 24rpx;
+  font-weight: 700;
 }
 
 /* --- 比分行 --- */
@@ -154,7 +188,7 @@
 
 /* --- 选手名称 --- */
 .score-player-name {
-  margin-bottom: var(--space-tight);
+  margin-top: var(--space-tight);
   font-size: 24rpx;
   font-weight: 600;
   color: var(--neutral-700);

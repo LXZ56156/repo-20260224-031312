@@ -21,7 +21,7 @@ test('search SEO static navigation titles match the approved map', () => {
     'miniprogram/pages/schedule/index.json': '羽毛球赛程对阵',
     'miniprogram/pages/ranking/index.json': '羽毛球赛事排名',
     'miniprogram/pages/match/index.json': '录入羽毛球比分',
-    'miniprogram/pages/analytics/index.json': '羽毛球赛事复盘',
+    'miniprogram/pages/analytics/index.json': '羽毛球赛事排名',
     'miniprogram/pages/share-entry/index.json': '加入羽毛球比赛',
     'miniprogram/pages/settings/index.json': '比赛设置',
     'miniprogram/pages/preferences/index.json': '偏好设置',

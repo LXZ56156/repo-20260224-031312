@@ -13,7 +13,6 @@ const ACTION_TEMPLATES = {
   quickImport: { text: '去导入名单' },
   start: { text: '开始比赛' },
   batch: { text: '去批量录分' },
-  analytics: { text: '查看结果' },
   schedule: { text: '查看对阵' },
   ranking: { text: '查看排名' }
 };
@@ -136,7 +135,7 @@ function getLaunchModes() {
       mode: MODE_MULTI_ROTATE,
       presetKey: 'custom',
       name: '多人转',
-      summary: '个人轮换搭档上场，按个人成绩排名，4~30 人可用。',
+      summary: '4–30 人 · 自动轮换搭档',
       badge: ''
     },
     {
@@ -144,7 +143,7 @@ function getLaunchModes() {
       mode: MODE_SQUAD_DOUBLES,
       presetKey: 'custom',
       name: '小队转',
-      summary: '个人报名先选 A/B 队，每场 A 队双打对阵 B 队双打，按队伍胜场累计。',
+      summary: 'A/B 队对抗 · 按队伍胜场',
       badge: ''
     },
     {
@@ -152,7 +151,7 @@ function getLaunchModes() {
       mode: MODE_FIXED_PAIR_RR,
       presetKey: 'custom',
       name: '固搭循环赛',
-      summary: '以双打队伍报名，单循环依次交手，按胜场与净胜分排名。',
+      summary: '固定搭档 · 单循环排名',
       badge: ''
     }
   ];
@@ -186,7 +185,7 @@ function pickNextAction(ctx) {
   if (status === 'draft' && isAdmin && !checkSettingsOk) return buildAction('settings');
   if (status === 'draft' && isAdmin && checkPlayersOk && checkSettingsOk) return buildAction('start');
   if (status === 'running' && canEditScore && hasPending) return buildAction('batch');
-  if (status === 'finished') return buildAction('analytics');
+  if (status === 'finished') return buildAction('ranking');
   if (status === 'running') return buildAction('schedule');
   return buildAction('schedule');
 }

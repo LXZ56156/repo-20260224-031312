@@ -35,18 +35,33 @@
     </view>
   </view>
 
-  <!-- 对阵卡片 -->
-  <view class="card panel reveal reveal-2">
-    <view class="section-title">本场对阵</view>
-    <view class="match-vs">{{pair1Text}} <text class="vs">vs</text> {{pair2Text}}</view>
-    <view class="muted small" wx:if="{{!pair1Text || !pair2Text}}">对阵未就绪</view>
-  </view>
-
   <!-- ==================== 比分舞台（统一容器） ==================== -->
-  <view class="card panel score-stage {{canEdit ? 'score-stage-editing' : ''}} reveal reveal-3">
+  <view class="card panel score-stage {{canEdit ? 'score-stage-editing' : ''}} reveal reveal-2">
     <view class="row row-top">
       <view class="section-title">比分录入</view>
       <text class="score-badge">{{pointsPerGame}} 分制</text>
+    </view>
+
+    <view class="score-matchup">
+      <view class="score-team">
+        <view class="score-team-avatars">
+          <view class="score-avatar {{item.colorClass}}" wx:for="{{pair1Players}}" wx:key="id">
+            <image class="score-avatar-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill" data-avatar-raw="{{item.avatarRaw}}" binderror="onAvatarImageError"></image>
+            <text class="score-avatar-initial" wx:else>{{item.initial}}</text>
+          </view>
+        </view>
+        <view class="score-player-name" wx:if="{{pair1Text}}">{{pair1Text}}</view>
+      </view>
+      <view class="score-matchup-vs">VS</view>
+      <view class="score-team">
+        <view class="score-team-avatars">
+          <view class="score-avatar {{item.colorClass}}" wx:for="{{pair2Players}}" wx:key="id">
+            <image class="score-avatar-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill" data-avatar-raw="{{item.avatarRaw}}" binderror="onAvatarImageError"></image>
+            <text class="score-avatar-initial" wx:else>{{item.initial}}</text>
+          </view>
+        </view>
+        <view class="score-player-name" wx:if="{{pair2Text}}">{{pair2Text}}</view>
+      </view>
     </view>
 
     <view class="score-entry-row" wx:if="{{userCanScore && !canEdit && canUseScoreLock && lockState==='idle'}}">
@@ -85,12 +100,10 @@
     <!-- 比分展示区 — 只读态 -->
     <view class="score-row" wx:if="{{!canEdit}}">
       <view class="score-col">
-        <view class="score-player-name" wx:if="{{pair1Text}}">{{pair1Text}}</view>
         <view class="score-box score-box-readonly">{{displayScoreA}}</view>
       </view>
       <view class="score-divider"></view>
       <view class="score-col">
-        <view class="score-player-name" wx:if="{{pair2Text}}">{{pair2Text}}</view>
         <view class="score-box score-box-readonly">{{displayScoreB}}</view>
       </view>
     </view>
@@ -98,14 +111,12 @@
     <!-- 比分编辑区 — 编辑态 -->
     <view class="score-row" wx:if="{{canEdit}}">
       <view class="score-col">
-        <view class="score-player-name" wx:if="{{pair1Text}}">{{pair1Text}}</view>
         <picker mode="selector" range="{{scoreOptions}}" value="{{scoreAIndex}}" bindchange="onPickScoreA">
           <view class="picker score-wheel">{{scoreA}}</view>
         </picker>
       </view>
       <view class="score-divider"></view>
       <view class="score-col">
-        <view class="score-player-name" wx:if="{{pair2Text}}">{{pair2Text}}</view>
         <picker mode="selector" range="{{scoreOptions}}" value="{{scoreBIndex}}" bindchange="onPickScoreB">
           <view class="picker score-wheel">{{scoreB}}</view>
         </picker>
@@ -142,13 +153,8 @@
 <view class="container safe-bottom match-page" wx:else>
   <!-- skeleton hero -->
   <view class="skeleton-bone skeleton-hero reveal reveal-1"></view>
-  <!-- skeleton 对阵卡 -->
-  <view class="skeleton-card reveal reveal-2">
-    <view class="skeleton-bone skeleton-line skeleton-line-short"></view>
-    <view class="skeleton-bone skeleton-line skeleton-line-long" style="margin-top: 12rpx;"></view>
-  </view>
   <!-- skeleton 比分舞台 -->
-  <view class="skeleton-card reveal reveal-3">
+  <view class="skeleton-card reveal reveal-2">
     <view class="skeleton-bone skeleton-line skeleton-line-medium"></view>
     <view class="skeleton-score-row">
       <view class="skeleton-score-col">
@@ -162,7 +168,7 @@
     </view>
   </view>
   <!-- skeleton 底部栏 -->
-  <view class="skeleton-card reveal reveal-4" style="margin-top: 24rpx;">
+  <view class="skeleton-card reveal reveal-3" style="margin-top: 24rpx;">
     <view class="skeleton-bone" style="height: 80rpx; border-radius: 16rpx;"></view>
   </view>
 </view>

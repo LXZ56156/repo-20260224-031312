@@ -59,7 +59,7 @@ test('lobby view model keeps draft share visitors in read-only mode until they o
   assert.equal(result.patch.showViewOnlyJoinPrompt, true);
   assert.equal(result.patch.showJoin, false);
   assert.equal(result.patch.nextActionKey, 'view_only_join');
-  assert.equal(result.patch.nextActionText, '立即加入');
+  assert.equal(result.patch.nextActionText, '加入比赛');
 });
 
 test('lobby view-only prompt can expand into the normal join form', () => {

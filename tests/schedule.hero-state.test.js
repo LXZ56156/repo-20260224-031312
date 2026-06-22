@@ -71,6 +71,7 @@ test('schedule page derives running hero copy from current pending round', () =>
     assert.equal(ctx.data.heroPendingText, '仍有 1 场待录分');
     assert.equal(ctx.data.heroProgressPercent, 0);
     assert.equal(ctx.data.nextActionText, '继续录分');
+    assert.equal(ctx.data.showFilterBar, false);
   } finally {
     delete require.cache[schedulePagePath];
   }
@@ -102,7 +103,8 @@ test('schedule page derives finished hero copy from completed rounds', () => {
     assert.equal(ctx.data.heroMatchText, '1 / 1 场');
     assert.equal(ctx.data.heroPendingText, '全部 1 场已录完');
     assert.equal(ctx.data.heroProgressPercent, 100);
-    assert.equal(ctx.data.nextActionText, '');
+    assert.equal(ctx.data.nextActionKey, 'ranking');
+    assert.equal(ctx.data.nextActionText, '查看排名');
   } finally {
     delete require.cache[schedulePagePath];
   }
@@ -170,14 +172,14 @@ test('schedule hero action busy state resets on return to the page', () => {
     };
 
     ctx.data.tournamentId = 't_schedule';
-    ctx.data.nextActionKey = 'analytics';
+    ctx.data.nextActionKey = 'ranking';
     ctx.data.heroActionBusy = false;
 
     const handled = ctx.onHeroActionTap();
 
     assert.equal(handled, true);
     assert.equal(ctx.data.heroActionBusy, true);
-    assert.match(navigatedUrl, /pages\/analytics\/index/);
+    assert.match(navigatedUrl, /pages\/ranking\/index/);
 
     ctx.onShow();
     assert.equal(ctx.data.heroActionBusy, false);

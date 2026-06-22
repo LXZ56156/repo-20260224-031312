@@ -29,7 +29,7 @@ function createScheduleContext(definition) {
   return ctx;
 }
 
-test('lobby analytics entry prefers redirectTo for same-tournament lateral navigation', () => {
+test('lobby finished entry prefers redirectTo to ranking', () => {
   const originalWx = global.wx;
   const calls = [];
 
@@ -47,17 +47,17 @@ test('lobby analytics entry prefers redirectTo for same-tournament lateral navig
       data: { tournamentId: 't_lobby' }
     };
 
-    lobbyDraftActions.goAnalytics.call(ctx);
+    lobbyDraftActions.goRanking.call(ctx);
 
     assert.deepEqual(calls, [
-      { type: 'redirectTo', url: '/pages/analytics/index?tournamentId=t_lobby' }
+      { type: 'redirectTo', url: '/pages/ranking/index?tournamentId=t_lobby' }
     ]);
   } finally {
     global.wx = originalWx;
   }
 });
 
-test('schedule analytics hero action prefers redirectTo for same-tournament lateral navigation', () => {
+test('schedule finished hero action prefers redirectTo to ranking', () => {
   const definition = loadSchedulePageDefinition();
   const ctx = createScheduleContext(definition);
   const originalWx = global.wx;
@@ -75,7 +75,7 @@ test('schedule analytics hero action prefers redirectTo for same-tournament late
   try {
     ctx.setData({
       tournamentId: 't_schedule',
-      nextActionKey: 'analytics',
+      nextActionKey: 'ranking',
       heroActionBusy: false
     });
 
@@ -84,7 +84,7 @@ test('schedule analytics hero action prefers redirectTo for same-tournament late
     assert.equal(handled, true);
     assert.equal(ctx.data.heroActionBusy, true);
     assert.deepEqual(calls, [
-      { type: 'redirectTo', url: '/pages/analytics/index?tournamentId=t_schedule' }
+      { type: 'redirectTo', url: '/pages/ranking/index?tournamentId=t_schedule' }
     ]);
   } finally {
     global.wx = originalWx;

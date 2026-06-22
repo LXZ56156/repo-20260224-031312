@@ -37,7 +37,7 @@ function createHomeContext(definition) {
   return ctx;
 }
 
-test('home card taps route finished to analytics, running to schedule, and draft to lobby', () => {
+test('home card taps route finished to ranking, running to schedule, and draft to lobby', () => {
   const definition = loadHomePageDefinition();
   const ctx = createHomeContext(definition);
   const originalWx = global.wx;
@@ -61,10 +61,10 @@ test('home card taps route finished to analytics, running to schedule, and draft
     ctx.onQuickActionTap({ currentTarget: { dataset: { id: 'finished_1', status: 'finished' } } });
 
     assert.deepEqual(calls, [
-      '/pages/analytics/index?tournamentId=finished_1',
+      '/pages/ranking/index?tournamentId=finished_1',
       '/pages/schedule/index?tournamentId=running_1',
       '/pages/lobby/index?tournamentId=draft_1',
-      '/pages/analytics/index?tournamentId=finished_1'
+      '/pages/ranking/index?tournamentId=finished_1'
     ]);
     assert.deepEqual(events, [
       {

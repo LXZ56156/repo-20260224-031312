@@ -1,8 +1,8 @@
-<view class="card panel admin-panel reveal reveal-5" wx:if="{{showDraftAdminPanel}}">
+<view class="admin-panel reveal reveal-4" wx:if="{{showDraftAdminPanel}}">
     <view class="section-head admin-collapse-head" bindtap="toggleAdminPanel">
-      <view class="section-title admin-section-title">管理员面板</view>
+      <view class="section-title admin-section-title">管理</view>
       <view class="row-right">
-        <text class="count-pill">待完成 {{quickChecklistPending}} 项</text>
+        <text class="muted small">参数、导入与取消</text>
         <text class="admin-collapse-arrow {{adminPanelExpanded ? 'expanded' : ''}}">▾</text>
       </view>
     </view>
@@ -12,7 +12,7 @@
         <button class="btn btn-danger" bindtap="cancelTournament">取消比赛</button>
       </view>
 
-      <view id="quick-settings" class="quick-settings panel-soft">
+      <view id="quick-settings" class="quick-settings">
         <view class="section-head quick-settings-head">
           <view class="section-title quick-settings-title">比赛参数</view>
           <text class="count-pill quick-settings-pill">{{canConfigureSettings ? '可编辑' : '待满员'}}</text>
@@ -139,11 +139,11 @@
             </view>
           </view>
 
-          <button class="btn btn-primary quick-settings-save" bindtap="saveQuickSettings" loading="{{quickSettingsBusy}}" disabled="{{quickSettingsBusy || !canConfigureSettings}}">保存比赛参数</button>
+          <button class="btn btn-outline quick-settings-save" bindtap="saveQuickSettings" loading="{{quickSettingsBusy}}" disabled="{{quickSettingsBusy || !canConfigureSettings}}">保存比赛参数</button>
         </view>
       </view>
 
-      <view class="quick-import panel-soft">
+      <view class="quick-import">
         <view class="quick-import-head">导入名单</view>
         <textarea
           id="quick-import"
@@ -154,7 +154,7 @@
           bindinput="onQuickImportInput"
         ></textarea>
         <view class="btn-row quick-import-actions">
-          <button class="btn btn-primary" bindtap="quickImportPlayers">一键导入</button>
+          <button class="btn btn-outline" bindtap="quickImportPlayers">一键导入</button>
         </view>
         <view class="quick-import-result" wx:if="{{importResultText}}">
           <view class="quick-import-result-title">{{importResultText}}</view>
@@ -162,7 +162,7 @@
         </view>
       </view>
 
-      <view class="fixed-team panel-soft" wx:if="{{mode==='fixed_pair_rr'}}">
+      <view class="fixed-team" wx:if="{{mode==='fixed_pair_rr'}}">
         <view class="fixed-team-head row row-top">
           <view class="quick-import-head">固搭队伍</view>
           <button class="btn-mini" bindtap="autoGeneratePairTeams" loading="{{pairTeamBusy}}" disabled="{{pairTeamBusy}}">自动组队</button>
@@ -195,7 +195,7 @@
               </picker>
             </view>
           </view>
-          <button class="btn btn-primary fixed-team-create-btn" bindtap="createPairTeam" loading="{{pairTeamBusy}}" disabled="{{pairTeamBusy}}">添加队伍</button>
+          <button class="btn btn-outline fixed-team-create-btn" bindtap="createPairTeam" loading="{{pairTeamBusy}}" disabled="{{pairTeamBusy}}">添加队伍</button>
         </view>
         <view class="muted small" wx:else>暂无可组队成员</view>
 

@@ -32,7 +32,7 @@ test('nav target helpers route to the expected pages', () => {
       { type: 'navigateTo', url: '/pages/schedule/index?tournamentId=t_schedule&filter=pending' },
       { type: 'navigateTo', url: '/pages/match/index?tournamentId=t_match&roundIndex=1&matchIndex=2&batch=1' },
       { type: 'navigateTo', url: '/pages/ranking/index?tournamentId=t_rank' },
-      { type: 'navigateTo', url: '/pages/analytics/index?tournamentId=t_analytics' },
+      { type: 'navigateTo', url: '/pages/ranking/index?tournamentId=t_analytics' },
       { type: 'switchTab', url: '/pages/launch/index' },
       { type: 'navigateTo', url: '/pages/profile/index?redirect=%2Fpages%2Fhome%2Findex' },
       { type: 'navigateTo', url: '/pages/preferences/index' },

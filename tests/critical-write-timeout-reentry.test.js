@@ -17,7 +17,7 @@ const createPagePath = require.resolve('../miniprogram/pages/create/index.js');
 const shareEntryPagePath = require.resolve('../miniprogram/pages/share-entry/index.js');
 const profilePagePath = require.resolve('../miniprogram/pages/profile/index.js');
 const feedbackPagePath = require.resolve('../miniprogram/pages/feedback/index.js');
-const analyticsPagePath = require.resolve('../miniprogram/pages/analytics/index.js');
+const rankingPagePath = require.resolve('../miniprogram/pages/ranking/index.js');
 
 function installFakeTimers() {
   const originalSetTimeout = global.setTimeout;
@@ -577,7 +577,7 @@ test('lobby quickImportPlayers stays guarded after timeout while request is pend
   }
 });
 
-test('analytics clone action stays guarded after timeout while request is pending', async () => {
+test('ranking clone action stays guarded after timeout while request is pending', async () => {
   const timers = installFakeTimers();
   const originalWx = global.wx;
   const originalCloudCall = cloud.call;
@@ -591,7 +591,7 @@ test('analytics clone action stays guarded after timeout while request is pendin
   global.wx = wxBox.api;
 
   try {
-    const definition = loadPageDefinition(analyticsPagePath);
+    const definition = loadPageDefinition(rankingPagePath);
     const ctx = createPageContext(definition, { tournamentId: 't_clone' });
     ctx.clearLastFailedAction = () => {};
     ctx.setLastFailedAction = () => {};
@@ -609,7 +609,7 @@ test('analytics clone action stays guarded after timeout while request is pendin
 
     await timers.flushAll();
 
-    assert.equal(actionGuard.isBusy('analytics:cloneTournament:t_clone'), true);
+    assert.equal(actionGuard.isBusy('ranking:cloneTournament:t_clone'), true);
 
     const second = ctx.cloneCurrentTournament();
     tasks.push(second);
@@ -623,12 +623,12 @@ test('analytics clone action stays guarded after timeout while request is pendin
   } finally {
     deferred.resolve();
     await settleTasks(tasks);
-    actionGuard.clear('analytics:cloneTournament:t_clone');
+    actionGuard.clear('ranking:cloneTournament:t_clone');
     timers.restore();
     global.wx = originalWx;
     cloud.call = originalCloudCall;
     storage.addRecentTournamentId = originalAddRecentTournamentId;
-    delete require.cache[analyticsPagePath];
+    delete require.cache[rankingPagePath];
   }
 });
 

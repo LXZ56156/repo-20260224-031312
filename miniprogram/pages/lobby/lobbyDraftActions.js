@@ -89,7 +89,7 @@ const draftActions = {
       sync_settings: () => this.saveAndStart(),
       start: () => this.handleStart(),
       batch: () => this.goBatchScoring(),
-      analytics: () => this.goAnalytics(),
+      ranking: () => this.goRanking(),
       clone: () => this.cloneCurrentTournament(),
       share: () => this.focusPlayerRosterArea()
     };
@@ -136,8 +136,8 @@ const draftActions = {
     }, 100);
   },
 
-  goAnalytics() {
-    nav.redirectOrNavigate(nav.buildTournamentUrl('/pages/analytics/index', this.data.tournamentId));
+  goRanking() {
+    nav.redirectOrNavigate(nav.buildTournamentUrl('/pages/ranking/index', this.data.tournamentId));
   },
 
   focusPlayerRosterArea() {

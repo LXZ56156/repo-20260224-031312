@@ -4,16 +4,15 @@ const fs = require('node:fs');
 const path = require('node:path');
 const shareMeta = require('../miniprogram/core/shareMeta');
 
-test('share-entry page uses user-facing labels instead of raw internal view mode keys', () => {
+test('share-entry page keeps one state-driven action without guidance or duplicate facts', () => {
   const wxml = fs.readFileSync(
     path.join(__dirname, '..', 'miniprogram/pages/share-entry/index.wxml'),
     'utf8'
   );
-  assert.match(wxml, /\{\{preview\.viewModeLabel\}\}/);
-  assert.doesNotMatch(wxml, /\{\{preview\.viewMode\}\}/);
   assert.match(wxml, /\{\{preview\.primaryAction\.text\}\}/);
-  assert.match(wxml, /\{\{preview\.availabilityText\}\}/);
-  assert.match(wxml, /\{\{preview\.secondaryAction\.text\}\}/);
+  assert.equal((wxml.match(/class="btn btn-primary share-primary-btn"/g) || []).length, 1);
+  assert.doesNotMatch(wxml, /现在可以做什么|操作提示|比赛摘要/);
+  assert.doesNotMatch(wxml, /preview\.availabilityText|preview\.organizerName|preview\.timeText|preview\.venueText/);
 });
 
 test('share-entry view model displays fixed rotation label and quota status', () => {
@@ -37,7 +36,7 @@ test('share-entry view model displays fixed rotation label and quota status', ()
   assert.equal(preview.tournamentName, '6人转');
   assert.equal(preview.playersCountText, '已报名 5/6 人');
   assert.equal(preview.joinAllowed, true);
-  assert.match(preview.availabilityText, /还剩 1 个名额/);
+  assert.equal(preview.secondaryAction, null);
 
   const full = shareMeta.buildShareEntryViewModel({
     tournament: {
@@ -58,5 +57,5 @@ test('share-entry view model displays fixed rotation label and quota status', ()
   assert.equal(full.playersCountText, '已报名 6/6 人');
   assert.equal(full.joinAllowed, false);
   assert.equal(full.primaryAction.key, 'view');
-  assert.match(full.availabilityText, /名额已满/);
+  assert.equal(full.secondaryAction, null);
 });

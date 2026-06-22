@@ -1,6 +1,7 @@
 const perm = require('../../permission/permission');
 const { normalizeTournament, safePlayerName } = require('../../core/normalize');
 const modeHelper = require('../../core/mode');
+const avatarDisplay = require('../../core/avatarDisplay');
 
 const SCORE_MAX = 60;
 const DEFAULT_POINTS_PER_GAME = 21;
@@ -123,6 +124,8 @@ function buildInitialData() {
     isAdmin: false,
     pair1Text: '',
     pair2Text: '',
+    pair1Players: [],
+    pair2Players: [],
     batchMode: false,
     networkOffline: false,
     showStaleSyncHint: false,
@@ -179,6 +182,8 @@ function buildTournamentViewState(tournament, options = {}) {
   let match = rawMatch || null;
   let pair1Text = '';
   let pair2Text = '';
+  let pair1Players = [];
+  let pair2Players = [];
 
   if (match) {
     const teamA = (match.teamA || []).map((player) => ({ ...player, name: safePlayerName(player) }));
@@ -188,6 +193,8 @@ function buildTournamentViewState(tournament, options = {}) {
     const bNames = teamB.map((player) => player.name).filter(Boolean);
     pair1Text = aNames.length ? aNames.join(' / ') : '待定';
     pair2Text = bNames.length ? bNames.join(' / ') : '待定';
+    pair1Players = avatarDisplay.buildAvatarDisplays(teamA, options.avatarCache || {});
+    pair2Players = avatarDisplay.buildAvatarDisplays(teamB, options.avatarCache || {});
   }
 
   if (!match) {
@@ -207,7 +214,9 @@ function buildTournamentViewState(tournament, options = {}) {
         lockActionText: '开始录分',
         canUseScoreLock: false,
         pair1Text,
-        pair2Text
+        pair2Text,
+        pair1Players,
+        pair2Players
       }
     };
   }
@@ -288,6 +297,8 @@ function buildTournamentViewState(tournament, options = {}) {
       displayScoreB,
       pair1Text,
       pair2Text,
+      pair1Players,
+      pair2Players,
       canUndo: canEdit ? undoSize > 0 : false
     }
   };

@@ -37,17 +37,29 @@ function installWxStub(overrides = {}) {
   return calls;
 }
 
-test('launch fixed rotation card navigates with multi_rotate mode and presetKey', async () => {
+test('launch fixed rotation card creates directly with multi_rotate mode and presetKey', async () => {
   const originalWx = global.wx;
   const originalEnsureProfile = profileCore.ensureProfileForAction;
+  const originalCloudCall = cloud.call;
+  const originalBuildTournamentUrl = nav.buildTournamentUrl;
   const calls = installWxStub();
+  let createPayload = null;
 
   try {
-    profileCore.ensureProfileForAction = async () => ({ ok: true, profile: {} });
+    profileCore.ensureProfileForAction = async () => ({
+      ok: true,
+      profile: { nickName: '发起人', avatar: 'cloud://avatar/launch', gender: 'male' }
+    });
+    cloud.call = async (name, payload) => {
+      assert.equal(name, 'createTournament');
+      createPayload = payload;
+      return { ok: true, tournamentId: 't_rotation_7' };
+    };
+    nav.buildTournamentUrl = (path, tournamentId) => `${path}?tournamentId=${tournamentId}`;
     const definition = loadPageDefinition(launchPagePath);
     const ctx = createPageContext(definition);
 
-    await ctx.onStart({
+    await ctx.onCreate({
       currentTarget: {
         dataset: {
           mode: 'multi_rotate',
@@ -56,11 +68,18 @@ test('launch fixed rotation card navigates with multi_rotate mode and presetKey'
       }
     });
 
-    assert.equal(calls.navigateTo.length, 1);
-    assert.match(calls.navigateTo[0].url, /\/pages\/create\/index\?mode=multi_rotate&presetKey=rotation_7/);
+    assert.equal(calls.navigateTo.length, 0);
+    assert.equal(createPayload.mode, 'multi_rotate');
+    assert.equal(createPayload.presetKey, 'rotation_7');
+    assert.equal(createPayload.name, '7人转');
+    assert.equal(calls.redirectTo.length, 1);
+    assert.match(calls.redirectTo[0].url, /\/pages\/lobby\/index\?tournamentId=t_rotation_7/);
   } finally {
+    actionGuard.clear('launch:createTournament');
     global.wx = originalWx;
     profileCore.ensureProfileForAction = originalEnsureProfile;
+    cloud.call = originalCloudCall;
+    nav.buildTournamentUrl = originalBuildTournamentUrl;
     delete require.cache[launchPagePath];
   }
 });

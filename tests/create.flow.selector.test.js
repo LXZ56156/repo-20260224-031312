@@ -88,9 +88,9 @@ test('pickNextAction selects batch in running editable tournaments', () => {
   assert.equal(out.key, 'batch');
 });
 
-test('pickNextAction selects analytics for finished tournaments', () => {
+test('pickNextAction selects ranking for finished tournaments', () => {
   const out = flow.pickNextAction({ status: 'finished' });
-  assert.equal(out.key, 'analytics');
+  assert.equal(out.key, 'ranking');
 });
 
 test('pickNextAction falls back to schedule for non-editor running users', () => {

@@ -201,15 +201,15 @@ test('ranking page renders pair display names on one ellipsized title line', () 
   assert.match(wxml, /class="player-title ellipsis"/);
 });
 
-test('ranking page exposes a timeline share guide action in the hero', () => {
+test('ranking page keeps a single poster action in the hero', () => {
   const wxml = fs.readFileSync(
     path.join(__dirname, '..', 'miniprogram/pages/ranking/index.wxml'),
     'utf8'
   );
 
-  assert.match(wxml, /bindtap="onShareTimelineGuide"/);
-  assert.match(wxml, />分享到朋友圈<\/button>/);
-  assert.match(wxml, /class="hero-actions ranking-hero-actions btn-row"/);
+  assert.equal((wxml.match(/bindtap="onGeneratePoster"/g) || []).length, 1);
+  assert.doesNotMatch(wxml, /bindtap="onShareTimelineGuide"/);
+  assert.match(wxml, /class="hero-actions ranking-hero-actions"/);
 });
 
 test('ranking timeline guide preheats share menu and explains the top-right entry', () => {

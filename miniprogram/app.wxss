@@ -995,11 +995,6 @@ button.btn-mini::after {
   animation: none !important;
 }
 
-.motion-off .start-pulse,
-.motion-light .start-pulse {
-  animation: none !important;
-}
-
 /* --- P. Utility --- */
 .row {
   display: flex;

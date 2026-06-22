@@ -16,7 +16,6 @@ const avatarDisplay = require('../../core/avatarDisplay');
 const flow = require('./flow');
 
 const IDENTITY_TIMEOUT_MS = 2500;
-const GROWTH_ONBOARDING_PENDING_KEY = 'growth:onboarding:pending';
 const TRACKABLE_STATUSES = { draft: true, running: true, finished: true };
 const TRACKABLE_MODES = { multi_rotate: true, squad_doubles: true, fixed_pair_rr: true };
 
@@ -210,14 +209,14 @@ Page({
       preview = {
         ...preview,
         viewModeLabel: '识别中',
-        availabilityText: '正在识别你的参赛状态，完成后会显示加入或进入比赛。',
+        identityStatusText: '正在识别你的参赛状态',
         primaryAction: { key: 'identity_pending', text: '识别中...' }
       };
     } else if (this.data.identityTimedOut && !String(this.openid || '').trim() && lifecycle === 'draft') {
       preview = {
         ...preview,
         viewModeLabel: '游客查看',
-        availabilityText: '身份识别较慢，你可以先以游客身份查看比赛，稍后仍可加入。',
+        identityStatusText: '身份识别较慢，可先查看比赛',
         primaryAction: { key: 'view', text: '查看比赛' },
         secondaryAction: null
       };
@@ -390,7 +389,6 @@ Page({
           clientRequestId
         }));
         nav.markRefreshFlag(tournamentId);
-        storage.set(GROWTH_ONBOARDING_PENDING_KEY, tournamentId);
         storage.setUserProfile({ nickName: payload.nickname, avatar: payload.avatar, gender: payload.gender });
         this.saveCloudProfileBestEffort(payload, clientRequestId);
         wx.showToast({ title: '已加入比赛', icon: 'success' });
@@ -434,7 +432,7 @@ Page({
     if (key === 'enter') return this.goLobby();
     if (key === 'schedule') return this.goSchedule();
     if (key === 'ranking') return this.goRanking();
-    if (key === 'analytics') return nav.redirectOrNavigate(flow.buildAnalyticsUrl(this.data.tournamentId));
+    if (key === 'analytics') return this.goRanking();
     return this.onRetry();
   },
 
@@ -443,6 +441,6 @@ Page({
     if (key === 'home') return this.goHome();
     if (key === 'schedule') return this.goSchedule();
     if (key === 'ranking') return this.goRanking();
-    if (key === 'analytics') return nav.redirectOrNavigate(flow.buildAnalyticsUrl(this.data.tournamentId));
+    if (key === 'analytics') return this.goRanking();
   }
 });

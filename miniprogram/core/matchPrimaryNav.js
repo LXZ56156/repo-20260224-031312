@@ -3,16 +3,16 @@ const nav = require('./nav');
 function buildPageUrl(key, tournamentId) {
   if (key === 'ranking') return nav.buildTournamentUrl('/pages/ranking/index', tournamentId);
   if (key === 'schedule') return nav.buildTournamentUrl('/pages/schedule/index', tournamentId);
-  if (key === 'analytics') return nav.buildTournamentUrl('/pages/analytics/index', tournamentId);
+  if (key === 'analytics') return nav.buildTournamentUrl('/pages/ranking/index', tournamentId);
   return nav.buildTournamentUrl('/pages/lobby/index', tournamentId);
 }
 
 function getPrimaryNavItems(currentKey, tournamentId) {
   const current = String(currentKey || '').trim() || 'match';
   const items = [
-    { key: 'match', text: '比赛', url: buildPageUrl('match', tournamentId), active: current === 'match' },
-    { key: 'ranking', text: '排名', url: buildPageUrl('ranking', tournamentId), active: current === 'ranking' },
-    { key: 'schedule', text: '对阵', url: buildPageUrl('schedule', tournamentId), active: current === 'schedule' }
+    { key: 'match', text: '赛事', url: buildPageUrl('match', tournamentId), active: current === 'match' },
+    { key: 'schedule', text: '对阵', url: buildPageUrl('schedule', tournamentId), active: current === 'schedule' },
+    { key: 'ranking', text: '排名', url: buildPageUrl('ranking', tournamentId), active: current === 'ranking' }
   ];
   return items;
 }
