@@ -76,6 +76,11 @@
   width: 8rpx;
 }
 
+.launch-card.is-legacy-selected {
+  border-color: rgba(24, 179, 104, 0.42);
+  box-shadow: 0 0 0 2rpx rgba(24, 179, 104, 0.08);
+}
+
 .launch-row {
   align-items: flex-start;
   gap: var(--space-inline);

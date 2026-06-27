@@ -461,6 +461,10 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
   const courts = Number(t.courts) || 0;
   const settingsFormState = settingsViewModel.buildSettingsFormState(t, { openid });
   const pointsPerGame = Math.max(1, Number(settingsFormState.pointsPerGame) || 21);
+  const heroPlayerCountText = playerLimit > 0 ? `${playersCount}/${playerLimit}人` : `${playersCount}人`;
+  const heroMatchCountText = displayTotalMatches > 0 ? `${displayTotalMatches}场` : '场次待定';
+  const heroCourtCountText = courts > 0 ? `${courts}场地` : '场地待定';
+  const heroMetaLine = `${modeLabel} · ${pointsPerGame}分制 · ${heroPlayerCountText} · ${heroMatchCountText} · ${heroCourtCountText}`;
   const pairTeams = Array.isArray(t.pairTeams) ? t.pairTeams : [];
   const pairTeamModel = buildPairTeamModel(
     pairTeams,
@@ -699,6 +703,7 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       kpiCourts: kpiReady ? String(courts) : '—',
       mode,
       modeLabel,
+      heroMetaLine,
       modeRules,
       playerLimit,
       playerCountText,

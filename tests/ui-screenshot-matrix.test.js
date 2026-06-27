@@ -6,6 +6,8 @@ const { cases } = require('../scripts/dev/weapp-ui-screenshot');
 test('real UI screenshot matrix covers every required simplified flow state', () => {
   assert.deepEqual(Object.keys(cases), [
     'launch',
+    'launchCreating',
+    'createCompat',
     'lobbyEmpty',
     'lobbyWaiting',
     'lobbyReady',

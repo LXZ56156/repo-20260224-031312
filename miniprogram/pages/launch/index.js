@@ -10,6 +10,7 @@ const flow = require('../../core/uxFlow');
 Page({
   data: {
     modeCards: flow.getLaunchModes(),
+    legacySelectionKey: '',
     createBusy: false,
     createBusyKey: '',
     canRetryAction: false,
@@ -17,6 +18,26 @@ Page({
   },
 
   ...retryAction.createRetryMethods(),
+
+  onShow() {
+    const intent = nav.consumeLaunchIntent();
+    if (!intent) {
+      if (this.data.legacySelectionKey) this.setData({ legacySelectionKey: '' });
+      return;
+    }
+    const mode = flow.normalizeMode(intent.mode || flow.MODE_MULTI_ROTATE);
+    const presetKey = mode === flow.MODE_MULTI_ROTATE
+      ? flow.normalizePresetKey(intent.presetKey)
+      : 'custom';
+    const selected = this.data.modeCards.find((item) => (
+      item.mode === mode && flow.normalizePresetKey(item.presetKey) === presetKey
+    ));
+    if (!selected) return;
+    this.setData({ legacySelectionKey: selected.key });
+    if (typeof wx.pageScrollTo === 'function') {
+      wx.pageScrollTo({ selector: `#launch-mode-${selected.key}`, duration: 0 });
+    }
+  },
 
   async onCreate(e) {
     const dataset = e && e.currentTarget && e.currentTarget.dataset

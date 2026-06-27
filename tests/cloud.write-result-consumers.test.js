@@ -13,10 +13,10 @@ const nav = require('../miniprogram/core/nav');
 const profileCore = require('../miniprogram/core/profile');
 const lobbyDraftActions = require('../miniprogram/pages/lobby/lobbyDraftActions');
 
-const createPagePath = require.resolve('../miniprogram/pages/create/index.js');
+const launchPagePath = require.resolve('../miniprogram/pages/launch/index.js');
 const feedbackPagePath = require.resolve('../miniprogram/pages/feedback/index.js');
 
-test('create handleCreate treats structured ok:false result as failure instead of success redirect', async () => {
+test('launch create treats structured ok:false result as failure instead of success redirect', async () => {
   const originalWx = global.wx;
   const originalCall = cloud.call;
   const originalEnsureProfile = profileCore.ensureProfileForAction;
@@ -36,12 +36,8 @@ test('create handleCreate treats structured ok:false result as failure instead o
   };
 
   try {
-    const definition = loadPageDefinition(createPagePath);
-    const ctx = createPageContext(definition, {
-      name: '周末比赛',
-      mode: 'multi_rotate',
-      createBusy: false
-    });
+    const definition = loadPageDefinition(launchPagePath);
+    const ctx = createPageContext(definition);
 
     profileCore.ensureProfileForAction = async () => ({
       ok: true,
@@ -59,7 +55,7 @@ test('create handleCreate treats structured ok:false result as failure instead o
       data: {}
     });
 
-    await ctx.handleCreate();
+    await ctx.createSelectedTournament({ mode: 'multi_rotate', presetKey: 'custom', cardKey: 'multi' });
 
     assert.equal(ctx.data.createBusy, false);
     assert.equal(ctx.data.canRetryAction, true);
@@ -67,12 +63,12 @@ test('create handleCreate treats structured ok:false result as failure instead o
     assert.equal(toastCalls.length, 1);
     assert.equal(toastCalls[0].title, '赛事名称不能为空');
   } finally {
-    actionGuard.clear('create:createTournament');
+    actionGuard.clear('launch:createTournament');
     global.wx = originalWx;
     cloud.call = originalCall;
     profileCore.ensureProfileForAction = originalEnsureProfile;
     nav.buildTournamentUrl = originalBuildTournamentUrl;
-    delete require.cache[createPagePath];
+    delete require.cache[launchPagePath];
   }
 });
 

@@ -242,6 +242,7 @@ test('lobby view model lets full fixed rotation draft go straight to start', () 
   });
 
   assert.equal(result.patch.modeLabel, '8人转');
+  assert.equal(result.patch.heroMetaLine, '8人转 · 21分制 · 8/8人 · 14场 · 2场地');
   assert.equal(result.patch.kpiPlayers, '8/8');
   assert.equal(result.patch.checkStartReady, true);
   assert.equal(result.patch.primaryTaskKey, 'start');

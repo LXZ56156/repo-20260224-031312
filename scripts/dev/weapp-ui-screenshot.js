@@ -48,6 +48,12 @@ const players = ['阿杰', '小林', 'Chris', '王敏', '李雷', '赵青', '周
   avatarDisplay: ''
 }));
 
+const schedulePlayers = players.map((player, index) => {
+  const names = ['阿杰', '小林同学', 'ChristopherWong', '王敏同学', '李雷', '赵青', 'AlexandraJohnson', '陈晨同学'];
+  const name = names[index];
+  return { ...player, name, initial: name.slice(0, 1) };
+});
+
 const rankings = players.slice(0, 6).map((player, index) => ({
   rank: index + 1,
   rankKey: player.id,
@@ -99,8 +105,8 @@ const lobbyBase = {
   dynamicShareUnavailableReason: ''
 };
 
-function team(ids) {
-  const avatarItems = ids.map((index) => players[index]);
+function scheduleTeam(ids) {
+  const avatarItems = ids.map((index) => schedulePlayers[index]);
   return { avatarItems, text: avatarItems.map((item) => item.name).join(' / ') };
 }
 
@@ -109,8 +115,8 @@ const scheduleRounds = [{
   isCurrentRound: true,
   restText: '',
   matchesUi: [
-    { key: '0-0', roundIndex: 0, matchIndex: 0, status: 'pending', title: '第 1 场', leftTeam: team([0, 1]), rightTeam: team([2, 3]), isFirstPending: true, focusBadgeText: '下一场', scorerText: '', showScore: false, statusText: '待录分', statusClass: 'pill-pending' },
-    { key: '0-1', roundIndex: 0, matchIndex: 1, status: 'finished', title: '第 2 场', leftTeam: team([4, 5]), rightTeam: team([6, 7]), isFirstPending: false, focusBadgeText: '', scorerText: '本场裁判：阿杰', showScore: true, leftScoreText: '21', rightScoreText: '17', leftScoreClass: 'score-win', rightScoreClass: '' }
+    { key: '0-0', roundIndex: 0, matchIndex: 0, status: 'pending', title: '第 1 场', leftTeam: scheduleTeam([0, 1]), rightTeam: scheduleTeam([2, 3]), isFirstPending: true, focusBadgeText: '优先录分', scorerText: '', showScore: false, statusText: '待录分', statusClass: 'pill-pending' },
+    { key: '0-1', roundIndex: 0, matchIndex: 1, status: 'finished', title: '第 2 场', leftTeam: scheduleTeam([4, 5]), rightTeam: scheduleTeam([6, 7]), isFirstPending: false, focusBadgeText: '', scorerText: '本场裁判：阿杰', showScore: true, leftScoreText: '21', rightScoreText: '17', leftScoreClass: 'score-win', rightScoreClass: '' }
   ]
 }];
 
@@ -153,15 +159,36 @@ const cases = {
       canRetryAction: false
     }
   },
+  launchCreating: {
+    path: '/pages/launch/index',
+    route: 'switchTab',
+    selectors: ['.launch-hero', '.launch-card', '.launch-btn'],
+    expectedTexts: ['选择赛制', '6人转', '8人转', '创建'],
+    data: {
+      createBusy: true,
+      createBusyKey: 'rotation_8',
+      canRetryAction: false
+    }
+  },
+  createCompat: {
+    path: '/pages/launch/index',
+    route: 'switchTab',
+    selectors: ['.launch-hero', '.launch-card', '.launch-btn', '.launch-card.is-legacy-selected'],
+    expectedTexts: ['选择赛制', '8人转', '创建'],
+    forbiddenTexts: ['创建后流程', '一步创建', '创建并进入'],
+    data: { legacySelectionKey: 'rotation_8' }
+  },
   lobbyEmpty: {
     path: '/pages/lobby/index?tournamentId=demo',
     selectors: ['.lobby-summary', '.lobby-roster', '.lobby-next', '.state-primary-btn'],
+    expectedTexts: ['21分制', '0/6人', '9场', '2场地', '可在下方「管理」中修改比赛参数'],
     data: {
       ...lobbyBase,
       tournament: { _id: 'demo', name: '周末新手场', status: 'draft', mode: 'multi_rotate', players: [] },
       isAdmin: true,
       myJoined: true,
       playerCountText: '0/6 人',
+      heroMetaLine: '6人转 · 21分制 · 0/6人 · 9场 · 2场地',
       statePanelTitle: '下一步',
       statePanelSummary: '邀请球友加入，满 6 人后即可开赛',
       primaryTaskKey: 'share',
@@ -173,12 +200,14 @@ const cases = {
   lobbyWaiting: {
     path: '/pages/lobby/index?tournamentId=demo',
     selectors: ['.lobby-summary', '.lobby-roster', '.player-cell', '.lobby-next'],
+    expectedTexts: ['21分制', '5/6人', '9场', '2场地'],
     data: {
       ...lobbyBase,
-      tournament: { _id: 'demo', name: '周末羽毛球赛', status: 'draft', mode: 'multi_rotate', players: players.slice(0, 5) },
+      tournament: { _id: 'demo', name: '周末羽毛球公开交流挑战赛', status: 'draft', mode: 'multi_rotate', players: players.slice(0, 5) },
       myJoined: true,
       displayPlayers: players.slice(0, 5),
       playerCountText: '5/6 人',
+      heroMetaLine: '6人转 · 21分制 · 5/6人 · 9场 · 2场地',
       statePanelTitle: '下一步',
       statePanelSummary: '等待管理员邀请最后 1 位球友',
       primaryTaskKey: '',
@@ -189,6 +218,7 @@ const cases = {
   lobbyReady: {
     path: '/pages/lobby/index?tournamentId=demo',
     selectors: ['.lobby-summary', '.lobby-roster', '.player-cell', '.lobby-next', '.state-primary-btn', '.admin-panel'],
+    expectedTexts: ['21分制', '6/6人', '9场', '2场地', '可在下方「管理」中修改比赛参数'],
     data: {
       ...lobbyBase,
       tournament: { _id: 'demo', name: '周末羽毛球赛', status: 'draft', mode: 'multi_rotate', players: players.slice(0, 6) },
@@ -196,6 +226,7 @@ const cases = {
       myJoined: true,
       displayPlayers: players.slice(0, 6),
       playerCountText: '6/6 人',
+      heroMetaLine: '6人转 · 21分制 · 6/6人 · 9场 · 2场地',
       statePanelTitle: '下一步',
       statePanelSummary: '名单已就绪，可以开始比赛',
       primaryTaskKey: 'start',
@@ -206,10 +237,11 @@ const cases = {
   },
   scheduleRunning: {
     path: '/pages/schedule/index?tournamentId=demo',
-    selectors: ['.match-primary-nav', '.hero', '.hero-actions-panel', '.round-card', '.match-card-focus'],
+    selectors: ['.match-primary-nav', '.hero', '.hero-actions-panel', '.round-card', '.match-card-focus', '.match-team-name-line', '.match-card-result', '.match-center-score'],
+    expectedTexts: ['待录分', '优先录分', '阿杰/小林同学', 'ChristopherWong/王敏同学', '21:17'],
     data: {
       tournamentId: 'demo',
-      tournament: { _id: 'demo', name: '周末羽毛球赛', status: 'running', players },
+      tournament: { _id: 'demo', name: '周末羽毛球赛', status: 'running', players: schedulePlayers },
       primaryNavItems: nav('schedule'),
       statusText: '进行中',
       statusClass: 'hero-status-running',
@@ -338,6 +370,11 @@ async function runCase(name, miniProgram) {
   await page.waitFor(1800);
   const dom = await collectDom(page, item.selectors);
   if (dom.missingSelectors.length) throw new Error(`${name}: missing selectors: ${dom.missingSelectors.join(', ')}`);
+  const visibleText = dom.rows.map((row) => row.text).join(' ').replace(/\s+/g, '');
+  const missingTexts = (item.expectedTexts || []).filter((value) => !visibleText.includes(String(value).replace(/\s+/g, '')));
+  if (missingTexts.length) throw new Error(`${name}: missing expected text: ${missingTexts.join(', ')}`);
+  const forbiddenTexts = (item.forbiddenTexts || []).filter((value) => visibleText.includes(String(value).replace(/\s+/g, '')));
+  if (forbiddenTexts.length) throw new Error(`${name}: forbidden text present: ${forbiddenTexts.join(', ')}`);
   await timeout(miniProgram.screenshot({ path: output }), screenshotTimeoutMs, `${name}:screenshot`);
   const ok = fileLooksNonBlank(output);
   return { name, ok, output, dom: dom.rows };

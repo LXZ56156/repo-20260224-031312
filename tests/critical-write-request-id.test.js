@@ -13,7 +13,7 @@ const lobbyDraftActions = require('../miniprogram/pages/lobby/lobbyDraftActions'
 const lobbyProfileActions = require('../miniprogram/pages/lobby/lobbyProfileActions');
 const flow = require('../miniprogram/core/uxFlow');
 
-const createPagePath = require.resolve('../miniprogram/pages/create/index.js');
+const launchPagePath = require.resolve('../miniprogram/pages/launch/index.js');
 const rankingPagePath = require.resolve('../miniprogram/pages/ranking/index.js');
 
 function createWxStub() {
@@ -78,7 +78,7 @@ function createContext(methods, data = {}) {
   return ctx;
 }
 
-test('create retry reuses the same clientRequestId', async () => {
+test('launch create retry reuses the same clientRequestId', async () => {
   const originalWx = global.wx;
   const originalCloudCall = cloud.call;
   const originalEnsureProfileForAction = profileCore.ensureProfileForAction;
@@ -91,10 +91,8 @@ test('create retry reuses the same clientRequestId', async () => {
   global.wx = wxBox.api;
 
   try {
-    const definition = loadPageDefinition(createPagePath);
-    const ctx = createPageContext(definition, {
-      name: '周末比赛'
-    });
+    const definition = loadPageDefinition(launchPagePath);
+    const ctx = createPageContext(definition);
 
     profileCore.ensureProfileForAction = async () => ({
       ok: true,
@@ -108,7 +106,7 @@ test('create retry reuses the same clientRequestId', async () => {
       return { ok: true, tournamentId: 't_new' };
     };
 
-    await ctx.handleCreate();
+    await ctx.createSelectedTournament({ mode: 'multi_rotate', presetKey: 'custom', cardKey: 'multi' });
     assert.equal(typeof ctx.retryLastAction, 'function');
     await ctx.retryLastAction();
 
@@ -116,11 +114,12 @@ test('create retry reuses the same clientRequestId', async () => {
     assert.equal(requestIds[0], requestIds[1]);
     assert.match(String(requestIds[0] || ''), /^create_/);
   } finally {
+    actionGuard.clear('launch:createTournament');
     global.wx = originalWx;
     cloud.call = originalCloudCall;
     profileCore.ensureProfileForAction = originalEnsureProfileForAction;
     nav.buildTournamentUrl = originalBuildTournamentUrl;
-    delete require.cache[createPagePath];
+    delete require.cache[launchPagePath];
   }
 });
 

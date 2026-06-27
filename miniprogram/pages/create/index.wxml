@@ -1,52 +1,7 @@
-<view class="container create-page">
-  <view class="sync-banner sync-warning" hidden="{{!networkOffline}}">
-    <view class="sync-banner-main">
-      <view class="sync-banner-text">当前网络不可用，写入操作可能失败</view>
-    </view>
-  </view>
-
-  <view class="hero create-hero reveal reveal-1">
-    <view class="hero-title">创建比赛</view>
-    <view class="hero-sub create-hero-sub">先创建草稿，再邀请成员与设置比赛参数。</view>
-  </view>
-
-  <view class="card panel create-panel reveal reveal-2">
-    <view class="section-head">
-      <view class="section-title">基本信息</view>
-      <text class="count-pill">一步创建</text>
-    </view>
-
-    <view class="form-block">
-      <view class="field-label">赛事名称</view>
-      <input
-        class="input {{canEditTournamentName ? '' : 'disabled'}}"
-        placeholder="赛事名称（例如：周末比赛）"
-        bindinput="onName"
-        value="{{name}}"
-        disabled="{{!canEditTournamentName}}"
-      />
-    </view>
-
-    <view class="form-block">
-      <view class="field-label">已选赛制</view>
-      <view class="picker input-like disabled">{{modeLabel}}</view>
-    </view>
-  </view>
-
-  <view class="card panel-soft create-flow reveal reveal-3">
-    <view class="section-head">
-      <view class="section-title">创建后流程</view>
-      <text class="count-pill">2 步</text>
-    </view>
-    <view class="create-flow-item" wx:for="{{createFlowSteps}}" wx:key="*this">{{item}}</view>
-  </view>
-
-  <view class="retry-box panel-soft" wx:if="{{canRetryAction}}">
-    <view class="muted small">{{lastFailedActionText}}</view>
-    <button class="btn btn-subtle btn-sm" bindtap="retryLastAction">重试上次操作</button>
-  </view>
-
-  <view class="bottom-tray create-actions reveal reveal-4">
-    <button class="btn btn-primary" bindtap="handleCreate" loading="{{createBusy}}" disabled="{{createBusy}}">创建并进入</button>
+<view class="container create-compat-page">
+  <view class="card panel create-compat-card">
+    <view class="create-compat-title">正在前往发起页...</view>
+    <view class="muted create-compat-hint" wx:if="{{!redirecting}}">未能自动跳转，请点击下方按钮。</view>
+    <button class="btn btn-primary create-compat-btn" bindtap="goLaunch">返回发起</button>
   </view>
 </view>

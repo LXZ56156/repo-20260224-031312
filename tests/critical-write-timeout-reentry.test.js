@@ -13,7 +13,7 @@ const lobbyPairTeamActions = require('../miniprogram/pages/lobby/lobbyPairTeamAc
 const lobbyProfileActions = require('../miniprogram/pages/lobby/lobbyProfileActions');
 const flow = require('../miniprogram/core/uxFlow');
 
-const createPagePath = require.resolve('../miniprogram/pages/create/index.js');
+const launchPagePath = require.resolve('../miniprogram/pages/launch/index.js');
 const shareEntryPagePath = require.resolve('../miniprogram/pages/share-entry/index.js');
 const profilePagePath = require.resolve('../miniprogram/pages/profile/index.js');
 const feedbackPagePath = require.resolve('../miniprogram/pages/feedback/index.js');
@@ -149,7 +149,7 @@ async function settleTasks(tasks) {
   await Promise.allSettled((tasks || []).filter((task) => task && typeof task.then === 'function'));
 }
 
-test('create handleCreate stays guarded after timeout while request is pending', async () => {
+test('launch create stays guarded after timeout while request is pending', async () => {
   const timers = installFakeTimers();
   const originalWx = global.wx;
   const originalCloudCall = cloud.call;
@@ -164,11 +164,12 @@ test('create handleCreate stays guarded after timeout while request is pending',
   global.wx = wxBox.api;
 
   try {
-    const definition = loadPageDefinition(createPagePath);
+    const definition = loadPageDefinition(launchPagePath);
     const ctx = createPageContext(definition, {
-      name: '周末比赛',
-      createBusy: false
+      createBusy: false,
+      createBusyKey: ''
     });
+    const selection = { mode: 'multi_rotate', presetKey: 'custom', cardKey: 'multi' };
 
     profileCore.ensureProfileForAction = async () => ({
       ok: true,
@@ -184,7 +185,7 @@ test('create handleCreate stays guarded after timeout while request is pending',
       return deferred.promise.then(() => ({ ok: true, tournamentId: 't_created' }));
     };
 
-    const first = ctx.handleCreate();
+    const first = ctx.createSelectedTournament(selection);
     tasks.push(first);
     await Promise.resolve();
     await Promise.resolve();
@@ -194,9 +195,9 @@ test('create handleCreate stays guarded after timeout while request is pending',
     await timers.flushAll();
 
     assert.equal(ctx.data.createBusy, true);
-    assert.equal(actionGuard.isBusy('create:createTournament'), true);
+    assert.equal(actionGuard.isBusy('launch:createTournament'), true);
 
-    const second = ctx.handleCreate();
+    const second = ctx.createSelectedTournament(selection);
     tasks.push(second);
     assert.equal(calls.length, 1);
 
@@ -209,13 +210,13 @@ test('create handleCreate stays guarded after timeout while request is pending',
   } finally {
     deferred.resolve();
     await settleTasks(tasks);
-    actionGuard.clear('create:createTournament');
+    actionGuard.clear('launch:createTournament');
     timers.restore();
     global.wx = originalWx;
     cloud.call = originalCloudCall;
     profileCore.ensureProfileForAction = originalEnsureProfileForAction;
     nav.buildTournamentUrl = originalBuildTournamentUrl;
-    delete require.cache[createPagePath];
+    delete require.cache[launchPagePath];
   }
 });
 

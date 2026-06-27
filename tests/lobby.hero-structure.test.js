@@ -24,6 +24,9 @@ test('lobby index includes split partials and keeps hero/admin sections in their
   assert.doesNotMatch(wxml, /<import /);
   assert.doesNotMatch(wxml, /<template is=/);
   assert.match(hero, /class="tag \{\{statusClass\}\} hero-status-tag"/);
+  assert.match(hero, /class="hero-meta-line">\{\{heroMetaLine\}\}/);
+  assert.match(hero, /class="hero-admin-hint" wx:if="\{\{isAdmin\}\}">可在下方「管理」中修改比赛参数<\/view>/);
+  assert.doesNotMatch(hero, /kpi-card|hero-meta-pill/);
   assert.equal((wxml.match(/bindtap="goEditTournament"/g) || []).length, 0);
   assert.equal((admin.match(/bindtap="goEditTournament"/g) || []).length, 0);
 });

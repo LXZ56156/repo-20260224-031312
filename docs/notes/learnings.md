@@ -4,13 +4,14 @@
 > Periodically review: promote stable items to CLAUDE.md, delete resolved items.
 
 ## Active
+- [2026-06-28] 微信 DevTools 真实截图验收优先迁到 Windows 端执行。已验证 `D:\weapp-mcp-launcher` + `weapp-mcp.cmd` + `ws://127.0.0.1:39420` 可稳定单页、跨页、每 case 重连、快速切换、同页高频和 3 分钟长跑截图；`9420` 不可用。WSL/Linux 侧截图曾出现连接失败、超时或空白图，后续 UI 验收截图用 Windows 端 launcher，代码修改和 Node 测试仍可在当前仓库执行。完整流程见 `docs/tools/weapp-ui-screenshot-workflow.md`。
 - [2026-06-15] 增长飞轮 Phase 1 已完成并推送。关键经验：
   - "方案 A + E + 轻量 D"的组合策略有效——聚焦最短可验证闭环（入口转化 + 埋点 + 再分享），而不是分散做 P0–P5 功能清单。
   - 所有改动仅限前端（零云函数、零数据库集合），改动范围收束在 share-entry/lobby/ranking/schedule/analytics/home 6 个页面 + growthTracker 模块。
   - UI 改动必须走真实截图检查（`npm run ui:screenshot -- <case>`），自动化端口 `39420`。
   - Phase 2 需要等 Phase 1 线上数据积累（≥7 天）后再启动，用埋点数据而非直觉驱动优先级。
   - 完整方案见 `docs/specs/growth-flywheel-optimization.md` v1.2.3。
-- [2026-06-15] 小程序 UI 改动必须走真实截图检查：先用 `miniprogram-browser doctor` / `snapshot -i --layout` 确认 DevTools 运行态，再用 `npm run ui:screenshot -- <case>` 生成真实页面截图。当前稳定自动化端口是 `39420`，不要使用旧端口 `9420`；`miniprogram-browser screenshot --mode page` 在 WSL 下可能超时或空白，`layout` 只作结构辅助。完整流程见 `docs/tools/weapp-ui-screenshot-workflow.md`。
+- [2026-06-15] 小程序 UI 改动必须走真实截图检查：先确认 DevTools 自动化运行态，再生成真实页面截图。当前稳定自动化端口是 `39420`，不要使用旧端口 `9420`；`miniprogram-browser screenshot --mode page` 在 WSL 下可能超时或空白，`layout` 只作结构辅助。真实视觉验收优先走 Windows 端 launcher。完整流程见 `docs/tools/weapp-ui-screenshot-workflow.md`。
 - [2026-06-11] 文档生命周期规则：
   1. `docs/tasks/current.md` 保持 ≤50 行，会话结束后将验证细节提取到 `docs/tasks/session-logs/`
   2. 一次性计划/审计/报告完成后移入 `docs/reports/`（审计/报告类）或 `docs/archive/`（历史计划类）

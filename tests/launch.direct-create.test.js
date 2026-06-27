@@ -122,11 +122,12 @@ test('launch direct create deduplicates repeated taps while the write is pending
     const ctx = createPageContext(definition);
 
     first = ctx.onCreate(createEvent('multi_rotate', 'rotation_6'));
-    second = ctx.onCreate(createEvent('multi_rotate', 'rotation_6'));
+    second = ctx.onCreate(createEvent('multi_rotate', 'rotation_8'));
     await Promise.resolve();
     await Promise.resolve();
     assert.equal(callCount, 1);
     assert.equal(ctx.data.createBusy, true);
+    assert.equal(ctx.data.createBusyKey, 'rotation_6');
 
     resolveWrite();
     await Promise.all([first, second]);
@@ -181,5 +182,7 @@ test('launch presents explicit create buttons without linking to the confirmatio
   const wxml = fs.readFileSync(path.join(__dirname, '..', 'miniprogram/pages/launch/index.wxml'), 'utf8');
   assert.match(wxml, /bindtap="onCreate"/);
   assert.match(wxml, />创建<\/button>/);
+  assert.match(wxml, /disabled="\{\{createBusy && createBusyKey===item.key\}\}"/);
+  assert.doesNotMatch(wxml, /disabled="\{\{createBusy\}\}"/);
   assert.doesNotMatch(wxml, /pages\/create\/index|>发起<\/button>/);
 });

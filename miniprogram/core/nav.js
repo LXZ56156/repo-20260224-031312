@@ -113,6 +113,26 @@ function consumeLobbyIntent(tournamentId) {
   return intentAction;
 }
 
+function setLaunchIntent(selection = {}) {
+  const mode = trimText(selection.mode);
+  const presetKey = trimText(selection.presetKey);
+  if (!mode && !presetKey) return;
+  const app = readApp();
+  if (!app || !app.globalData) return;
+  app.globalData.launchIntent = { mode, presetKey };
+}
+
+function consumeLaunchIntent() {
+  const app = readApp();
+  if (!app || !app.globalData) return null;
+  const raw = app.globalData.launchIntent;
+  app.globalData.launchIntent = null;
+  if (!raw || typeof raw !== 'object') return null;
+  const mode = trimText(raw.mode);
+  const presetKey = trimText(raw.presetKey);
+  return mode || presetKey ? { mode, presetKey } : null;
+}
+
 function navigateBackOrRedirect(url, delay = 0) {
   const target = trimText(url);
   if (!target) return;
@@ -290,6 +310,8 @@ module.exports = {
   markRefreshFlag,
   setLobbyIntent,
   consumeLobbyIntent,
+  setLaunchIntent,
+  consumeLaunchIntent,
   navigateBackOrRedirect,
   redirectOrBack,
   redirectOrNavigate,

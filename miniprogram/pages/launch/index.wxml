@@ -5,7 +5,8 @@
   </view>
 
   <view
-    class="card panel launch-card launch-card-{{item.key}} {{index === 0 ? 'is-default' : ''}} reveal reveal-{{index + 2}}"
+    id="launch-mode-{{item.key}}"
+    class="card panel launch-card launch-card-{{item.key}} {{index === 0 ? 'is-default' : ''}} {{legacySelectionKey === item.key ? 'is-legacy-selected' : ''}} reveal reveal-{{index + 2}}"
     wx:for="{{modeCards}}"
     wx:key="key"
   >
@@ -26,7 +27,7 @@
         data-preset-key="{{item.presetKey}}"
         bindtap="onCreate"
         loading="{{createBusy && createBusyKey===item.key}}"
-        disabled="{{createBusy}}"
+        disabled="{{createBusy && createBusyKey===item.key}}"
       >创建</button>
     </view>
   </view>

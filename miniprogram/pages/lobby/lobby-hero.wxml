@@ -2,12 +2,13 @@
   <view class="row hero-top">
     <view class="flex-1 minw0 hero-main">
       <view class="hero-title">{{tournament.name}}</view>
-      <view class="hero-sub">{{modeLabel}}</view>
     </view>
     <view class="tag {{statusClass}} hero-status-tag">{{statusText}}</view>
   </view>
+  <view class="hero-meta-line">{{heroMetaLine}}</view>
   <view class="hero-meta" wx:if="{{isAdmin || myJoined}}">
     <text class="hero-role" wx:if="{{isAdmin}}">管理员</text>
     <text class="hero-role" wx:elif="{{myJoined}}">已参赛</text>
   </view>
+  <view class="hero-admin-hint" wx:if="{{isAdmin}}">可在下方「管理」中修改比赛参数</view>
 </view>

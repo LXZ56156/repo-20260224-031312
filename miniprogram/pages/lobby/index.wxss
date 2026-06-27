@@ -42,11 +42,12 @@
   overflow-wrap: anywhere;
 }
 
-.hero-sub {
+.hero-meta-line {
   margin-top: var(--space-tight);
   font-size: 24rpx;
-  line-height: 1.45;
+  line-height: 1.55;
   color: var(--neutral-500);
+  overflow-wrap: anywhere;
 }
 
 .hero-meta {
@@ -70,7 +71,15 @@
   font-weight: 700;
 }
 
+.hero-admin-hint {
+  margin-top: 4rpx;
+  font-size: 21rpx;
+  line-height: 1.4;
+  color: var(--neutral-400);
+}
+
 .hero-status-tag {
+  flex-shrink: 0;
   margin-top: 2rpx;
   box-shadow: none;
 }
