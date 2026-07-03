@@ -18,6 +18,10 @@ function collectAllMatches(out) {
   return (out.rounds || []).flatMap((round) => round.matches || []);
 }
 
+function deterministicBeamRules(rules = {}, workBudget = 2000000) {
+  return { ...rules, _deterministicSearch: true, _deterministicWorkBudget: workBudget };
+}
+
 function computePartnerCounts(matches) {
   const result = new Map();
   const bump = (a, b) => {
@@ -327,7 +331,7 @@ test('squad 7v7/18m/3c keeps partner diversity stable across representative seed
       makePlayers(7, 7),
       18,
       3,
-      { endCondition: { type: 'total_matches', target: 18 }, _hardDeadlineMs: 5000, _seed: seed }
+      deterministicBeamRules({ endCondition: { type: 'total_matches', target: 18 }, _hardDeadlineMs: 5000, _seed: seed }, 15000000)
     );
 
     assert.equal(collectAllMatches(out).length, 18, `seed=${seed}`);
@@ -364,7 +368,7 @@ test('squad 9v9/18m/3c hotspot keeps beam-quality while removing partner repeat 
       makePlayers(9, 9),
       18,
       3,
-      { endCondition: { type: 'total_matches', target: 18 }, _hardDeadlineMs: 5000, _seed: seed }
+      deterministicBeamRules({ endCondition: { type: 'total_matches', target: 18 }, _hardDeadlineMs: 5000, _seed: seed })
     );
 
     assert.equal(collectAllMatches(out).length, 18, `seed=${seed}`);

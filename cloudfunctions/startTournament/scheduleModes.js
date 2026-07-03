@@ -616,6 +616,8 @@ function buildSquadSchedule(players, totalMatches, courts, rules = {}) {
       const internalSeed = Number(rules._seed);
       const beamResult = squadEngine.resolveSquadSchedule(idsA, idsB, targetMatches, courts, {
         hardDeadlineMs: Number(rules._hardDeadlineMs) || 2500,
+        deterministicSearch: rules._deterministicSearch === true,
+        deterministicWorkBudget: Number(rules._deterministicWorkBudget) || undefined,
         ...(Number.isFinite(internalSeed) ? { seed: internalSeed } : {})
       });
       if (beamResult && Array.isArray(beamResult.rounds)) {

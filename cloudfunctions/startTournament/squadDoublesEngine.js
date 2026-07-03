@@ -22,7 +22,19 @@ function nowMs() {
 }
 
 function deadlineReached(deadlineAtMs) {
+  if (deadlineAtMs && typeof deadlineAtMs === 'object' && deadlineAtMs.deterministic === true) {
+    deadlineAtMs.work = (Number(deadlineAtMs.work) || 0) + 1;
+    return deadlineAtMs.work >= deadlineAtMs.limit;
+  }
   return Number(deadlineAtMs) > 0 && nowMs() >= Number(deadlineAtMs);
+}
+
+function createDeterministicDeadline(limit) {
+  return {
+    deterministic: true,
+    limit: Math.max(1, Number(limit) || 1),
+    work: 0
+  };
 }
 
 // 把一组 active 选手（偶数个）穷举拆分成 k 个不相交的 2 人对
@@ -281,7 +293,11 @@ function buildBeamContext(idsA, idsB, totalMatches, courts, config = {}) {
     prioritizePartnerDiversity,
     avoidRepeatedRoundLayouts,
     timeBudgetMs: Number(config.timeBudgetMs) || 180,
-    deadlineAtMs: Number(config.deadlineAtMs) || 0
+    deadlineAtMs: config.deadlineAtMs && typeof config.deadlineAtMs === 'object'
+      ? config.deadlineAtMs
+      : (Number(config.deadlineAtMs) || 0),
+    deterministicSearch: config.deterministicSearch === true,
+    deterministicWorkBudget: Math.max(1, Number(config.deterministicWorkBudget) || Number(config.timeBudgetMs) || 180)
   };
 }
 
@@ -306,10 +322,15 @@ function enumerateRestForSquad(teamIds, restCount, state, limit, deadlineAtMs = 
   const shouldEarlyStop = totalComb > comboLimit;
   const result = [];
   enumerateCombinations(rankedPool, restCount, (combo) => {
+    if (deadlineReached(deadlineAtMs)) return false;
     result.push(combo.slice());
     if (!shouldEarlyStop) return true;
     return result.length < comboLimit;
-  }, { stable: false, deadlineAtMs, nowFn: nowMs });
+  }, {
+    stable: false,
+    deadlineAtMs: deadlineAtMs && typeof deadlineAtMs === 'object' ? 0 : deadlineAtMs,
+    nowFn: nowMs
+  });
   return result;
 }
 
@@ -855,7 +876,7 @@ function applyRoundCandidate(state, roundCand, context) {
 function greedilyCompleteState(state, context, seed) {
   let current = state;
   while (current && current.matchCount < context.totalMatches) {
-    if (context.deadlineAtMs > 0 && nowMs() >= context.deadlineAtMs) break;
+    if (deadlineReached(context.deadlineAtMs)) break;
     const candidates = buildRoundCandidates(current, context, seed);
     if (!candidates.length) break;
     current = applyRoundCandidate(current, candidates[0], context);
@@ -868,22 +889,31 @@ function runSingleBeam(idsA, idsB, totalMatches, courts, seed, config = {}) {
   let beam = [buildInitialState(context.idsA, context.idsB, context)];
   const startedAt = nowMs();
   let timedOut = false;
+  let deterministicWorkUsed = 0;
+
+  const deterministicBudgetReached = () => context.deterministicSearch
+    && deterministicWorkUsed >= context.deterministicWorkBudget;
 
   while (beam.length) {
     if (beam.every((s) => s.matchCount >= totalMatches)) break;
-    if ((nowMs() - startedAt) >= context.timeBudgetMs) {
+    if (deterministicBudgetReached()) {
       timedOut = true;
       break;
     }
-    if (context.deadlineAtMs > 0 && nowMs() >= context.deadlineAtMs) {
+    if (!context.deterministicSearch && (nowMs() - startedAt) >= context.timeBudgetMs) {
+      timedOut = true;
+      break;
+    }
+    if (deadlineReached(context.deadlineAtMs)) {
       timedOut = true;
       break;
     }
     const expanded = [];
     for (const state of beam) {
       // 内部 deadline 检查：避免单轮扩展多个 state 导致超时
-      if (deadlineReached(context.deadlineAtMs)
-          || (nowMs() - startedAt) >= context.timeBudgetMs) {
+      if (deterministicBudgetReached()
+          || deadlineReached(context.deadlineAtMs)
+          || (!context.deterministicSearch && (nowMs() - startedAt) >= context.timeBudgetMs)) {
         timedOut = true;
         expanded.push(state);
         continue;
@@ -892,6 +922,7 @@ function runSingleBeam(idsA, idsB, totalMatches, courts, seed, config = {}) {
         expanded.push(state);
         continue;
       }
+      if (context.deterministicSearch) deterministicWorkUsed += 1;
       // 用状态历史哈希而非单纯轮次作 seed，让不同路径的 beam state 探索不同候选顺序
       const stateSeed = normalizeSeed(seed + (Number(state.historyKey) || state.matchCount));
       const candidates = buildRoundCandidates(state, context, stateSeed);
@@ -1025,13 +1056,19 @@ function resolveSquadSchedule(idsA, idsB, totalMatches, courts, options = {}) {
     && target === 18
     && (sortedA.length === 6 || sortedA.length === 7);
 
+  const deterministicSearch = options.deterministicSearch === true;
+  const deterministicWorkBudget = Math.max(1, Number(options.deterministicWorkBudget) || 50000);
   const hardDeadlineMs = Number(options.hardDeadlineMs) || 2500;
   const softBudgetMs = isPartnerDiversityHotspot
     ? Math.min(2100, hardDeadlineMs - 250)
     : Math.min(1700, hardDeadlineMs - 500);
   const startedAt = nowMs();
-  const softDeadlineAtMs = startedAt + softBudgetMs;
-  const hardDeadlineAtMs = startedAt + hardDeadlineMs;
+  const softDeadlineAtMs = deterministicSearch
+    ? createDeterministicDeadline(deterministicWorkBudget)
+    : startedAt + softBudgetMs;
+  const hardDeadlineAtMs = deterministicSearch
+    ? createDeterministicDeadline(deterministicWorkBudget)
+    : startedAt + hardDeadlineMs;
 
   const seedStep = Math.max(1, Number(options.seedStep) || 7919);
   const baseSeed = normalizeSeed(options.seed || 1);
@@ -1067,16 +1104,18 @@ function resolveSquadSchedule(idsA, idsB, totalMatches, courts, options = {}) {
     && (playersPerSquad >= 7 || effectiveCourts >= 3 || searchSeeds <= 2);
 
   for (let i = 0; i < searchSeeds; i += 1) {
-    if (nowMs() >= softDeadlineAtMs) {
+    if (deterministicSearch ? deadlineReached(softDeadlineAtMs) : nowMs() >= softDeadlineAtMs) {
       if (!bestCompleted) softTimeoutTriggered = true;
       break;
     }
     const seed = normalizeSeed(baseSeed + (i * seedStep));
-    const remaining = Math.max(25, softDeadlineAtMs - nowMs());
+    const remaining = deterministicSearch ? Number.POSITIVE_INFINITY : Math.max(25, softDeadlineAtMs - nowMs());
     const { state } = runSingleBeam(sortedA, sortedB, target, effectiveCourts, seed, {
       ...runtimeConfig,
-      timeBudgetMs: Math.min(runtimeConfig.timeBudgetMs, remaining),
-      deadlineAtMs: softDeadlineAtMs
+      timeBudgetMs: deterministicSearch ? runtimeConfig.timeBudgetMs : Math.min(runtimeConfig.timeBudgetMs, remaining),
+      deadlineAtMs: softDeadlineAtMs,
+      deterministicSearch,
+      deterministicWorkBudget: Number.POSITIVE_INFINITY
     });
     if (!state) continue;
     if (state.matchCount >= target) {
@@ -1098,7 +1137,7 @@ function resolveSquadSchedule(idsA, idsB, totalMatches, courts, options = {}) {
   }
 
   // 如果没有完整方案，尝试用 partial 贪心补齐（使用更大的参数以提高成功率）
-  if (!bestCompleted && bestPartial && nowMs() < hardDeadlineAtMs) {
+  if (!bestCompleted && bestPartial && (deterministicSearch ? !deadlineReached(hardDeadlineAtMs) : nowMs() < hardDeadlineAtMs)) {
     const largeRosterGreedyRestLimit = playersPerSquad >= 8
       ? (effectiveCourts >= 4 ? 2 : 4)
       : 0;
@@ -1108,7 +1147,8 @@ function resolveSquadSchedule(idsA, idsB, totalMatches, courts, options = {}) {
       packageLimit: 16,
       perStateLimit: 1,
       greedyRestLimit: largeRosterGreedyRestLimit,
-      deadlineAtMs: hardDeadlineAtMs
+      deadlineAtMs: hardDeadlineAtMs,
+      deterministicSearch
     });
     const completed = greedilyCompleteState(bestPartial, guardContext, baseSeed + 100003);
     if (completed && completed.matchCount >= target) {
