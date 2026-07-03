@@ -26,11 +26,21 @@ test('claude weapp hooks always run mirror sync helpers', () => {
 test('codex hooks enable preflight and stop hooks for the Windows weapp workflow', () => {
   const configToml = fs.readFileSync(path.join(REPO_DIR, '.codex/config.toml'), 'utf8');
   const hooks = JSON.parse(fs.readFileSync(path.join(REPO_DIR, '.codex/hooks.json'), 'utf8'));
+  const userPromptCommand = hooks.hooks.UserPromptSubmit[0].hooks[0].command;
+  const stopCommand = hooks.hooks.Stop[0].hooks[0].command;
 
   assert.match(configToml, /\[features\][\s\S]*hooks = true/);
+  assert.match(configToml, /"\/home\/lizixuan\/projects\/badminton-miniapp"\s*=\s*\{\s*trust_level\s*=\s*"trusted"\s*\}/);
+  assert.match(configToml, /"D:\\\\projects\\\\badminton-miniapp"\s*=\s*\{\s*trust_level\s*=\s*"trusted"\s*\}/);
   assert.ok(hooks.hooks.UserPromptSubmit, '缺少 Codex UserPromptSubmit hook');
   assert.ok(hooks.hooks.Stop, '缺少 Codex Stop hook');
-  assert.match(hooks.hooks.UserPromptSubmit[0].hooks[0].command, /\.codex\/hooks\/user_prompt_sync_windows_mirror\.py/);
+  assert.match(userPromptCommand, /powershell\.exe/);
+  assert.match(userPromptCommand, /windows_weapp_preflight\.ps1/);
+  assert.doesNotMatch(userPromptCommand, /\/usr\/bin\/python3|user_prompt_sync_windows_mirror|weapp-sync-preview|weapp-hook-ensure/);
   assert.match(hooks.hooks.UserPromptSubmit[0].hooks[0].statusMessage, /微信开发环境/);
-  assert.match(hooks.hooks.Stop[0].hooks[0].command, /\.codex\/hooks\/stop_sync_windows_mirror\.py/);
+  assert.match(stopCommand, /powershell\.exe/);
+  assert.match(stopCommand, /windows_weapp_stop\.ps1/);
+  assert.doesNotMatch(stopCommand, /\/usr\/bin\/python3|stop_sync_windows_mirror|weapp-sync-preview|weapp-hook-ensure/);
+  assert.ok(fs.existsSync(path.join(REPO_DIR, 'scripts/dev/weapp-dev.sh')));
+  assert.ok(fs.existsSync(path.join(REPO_DIR, 'scripts/dev/weapp-sync-preview.sh')));
 });

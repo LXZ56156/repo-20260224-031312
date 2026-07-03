@@ -56,6 +56,8 @@ private.*.key
 .codex/hooks/*
 !.codex/hooks/user_prompt_sync_windows_mirror.py
 !.codex/hooks/stop_sync_windows_mirror.py
+!.codex/hooks/windows_weapp_preflight.ps1
+!.codex/hooks/windows_weapp_stop.ps1
 .codex-skill-staging/
 
 # Temp / tool artifacts

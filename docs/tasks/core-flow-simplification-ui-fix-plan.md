@@ -25,7 +25,7 @@
 | --- | --- | --- | --- | --- | --- |
 | 1. Lobby hero | Add one compact mode/points/people/matches/courts line | None | Confirmed | `tmp/ui-screenshots-actual/lobby*.png` | Passed |
 | 2. Create compatibility | Replace obsolete form with safe launch redirect | Navigation changes; no auto-create | Confirmed | `tmp/ui-screenshots-actual/createCompat.png`, `launchCreating.png` | Passed |
-| 3. Schedule small screen | Reflow match card at 375px | None | Awaiting Windows visual confirmation | Windows screenshot channel verified; schedule screenshot still needs product review | Pending |
+| 3. Schedule small screen | Reflow match card at 375px | None | Windows screenshot captured; awaiting final user confirmation | `tmp\ui-screenshots-actual\scheduleRunning.png` | Pending |
 | 4. Ranking result/ad | Add short result context and move existing ad slot | CTA/default unchanged | Blocked by point 3 | Pending | Pending |
 | 5. Home/share-entry | Audit only; change only if objective defect exists | To be assessed | Blocked by point 4 | Pending | Pending |
 
@@ -71,12 +71,17 @@
 - Long team names are centered and capped at two lines; avatar tap filtering, whole-card navigation, status filtering, scorer notes, and score data semantics are unchanged.
 - Focused schedule tests: 23 passed, 0 failed.
 - Full suite: 1113 passed, 0 failed; `npm run check` passed; `npm run lint` passed with 0 errors and 59 existing warnings; `git diff --check` passed.
-- Screenshot fixture now requires `.match-center-score` and expected score text `21:17`, but WSL real screenshot refresh was blocked because WeChat DevTools automation was unavailable on both configured ports (`39420` and `9420`) and no local DevTools CLI path was found.
+- Screenshot fixture now requires `.match-center-score` and expected score text `21:17`. Windows main project produced a valid `tmp\ui-screenshots-actual\scheduleRunning.png`; manual inspection confirmed pending cards keep `VS` centered and finished score `21:17` sits between both teams.
 
 ## Windows Migration Checkpoint
 
-- Windows launcher path: `D:\weapp-mcp-launcher`; preview project path: `D:\projects\badminton-miniapp-preview`; stable endpoint: `ws://127.0.0.1:39420`.
+- Windows main development project: `D:\projects\badminton-miniapp`; main launcher: `D:\weapp-mcp-launcher\weapp-main-dev.cmd`; stable endpoint: `ws://127.0.0.1:39420`.
+- Legacy preview/upload mirror remains available at `D:\weapp-mcp-launcher\weapp-mcp.cmd` + `D:\projects\badminton-miniapp-preview`, but it is no longer part of daily development or screenshot acceptance.
+- Codex daily hooks now use Windows main-project preflight and no-op stop; WSL mirror sync hooks remain as legacy files only.
+- `install-cloud-deploy-hook.sh` is Windows-compatible only through Git Bash: `D:\Soft\Git\bin\bash.exe scripts/install-cloud-deploy-hook.sh`. Do not install `.git/hooks/post-commit` during migration; no cloud function deploy is required.
+- Squad fairness tests now pass a test-only deterministic search option for exact beam-quality regression cases. Production scheduling still uses the original wall-clock soft/hard budget by default and fairness assertions were not relaxed.
 - Windows screenshot tests passed: single screenshot, 10 consecutive screenshots, 9-case sequential navigation, 5 rounds of reconnect-per-case, 20 rapid switches, 30 same-surface captures, and 3-minute long-running captures.
 - Valid output directories on Windows: `D:\weapp-mcp-launcher\tmp-screenshots\multi-page-orchestrated` and `D:\weapp-mcp-launcher\tmp-screenshots\long-running`.
 - `/pages/create/index?mode=multi_rotate&presetKey=rotation_8`, `/pages/schedule/index?tournamentId=demo`, and `/pages/ranking/index?tournamentId=demo` all produced non-blank PNGs on Windows. `create` legacy redirect needs about 7.5s and should be given explicit wait time.
-- Next handoff point: after this commit/push, use Windows screenshots for UI point 3 visual confirmation, then continue to UI point 4 only after user approval.
+- Main-project `tmp\ui-screenshots-actual\scheduleRunning.png` is valid and confirms the UI point 3 score placement. A later rerun hit `App.captureScreenshot` timeout while `39420`, page stack, and DOM remained healthy; track that as a DevTools screenshot surface issue and do not block this migration commit on it.
+- Next handoff point: after this commit/push, ask for final UI point 3 confirmation, then continue to UI point 4 only after user approval.

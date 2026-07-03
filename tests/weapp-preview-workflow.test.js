@@ -79,6 +79,7 @@ exit 0
     SYNC_WATCH_MODE: 'polling',
     POLL_INTERVAL_SECONDS: '0.1',
     DEBOUNCE_MILLISECONDS: '100',
+    MIRROR_WAIT_SECONDS: '30',
     ALLOW_UNSAFE_PREVIEW_DIR: '1',
     POWERSHELL_EXE: fakePowerShell,
     PROJECT_DIR: sourceDir,

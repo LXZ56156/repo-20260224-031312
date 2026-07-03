@@ -5,9 +5,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/usr/bin/python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/user_prompt_sync_windows_mirror.py\"",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"D:\\projects\\badminton-miniapp\\.codex\\hooks\\windows_weapp_preflight.ps1\"",
             "timeout": 120,
-            "statusMessage": "预热 Windows 微信开发环境..."
+            "statusMessage": "检查 Windows 微信开发环境..."
           }
         ]
       }
@@ -17,9 +17,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/usr/bin/python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/stop_sync_windows_mirror.py\"",
-            "timeout": 120,
-            "statusMessage": "收尾同步 Windows 微信预览镜像..."
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"D:\\projects\\badminton-miniapp\\.codex\\hooks\\windows_weapp_stop.ps1\"",
+            "timeout": 30,
+            "statusMessage": "Windows 微信开发环境收尾..."
           }
         ]
       }

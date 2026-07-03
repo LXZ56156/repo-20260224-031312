@@ -1,58 +1,52 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const os = require('node:os');
 const path = require('node:path');
-const { execFileSync } = require('node:child_process');
 
 const REPO_DIR = path.resolve(__dirname, '..');
-const HOOK_SCRIPT = path.join(REPO_DIR, '.codex/hooks/user_prompt_sync_windows_mirror.py');
+const PREFLIGHT_SCRIPT = path.join(REPO_DIR, '.codex/hooks/windows_weapp_preflight.ps1');
+const STOP_SCRIPT = path.join(REPO_DIR, '.codex/hooks/windows_weapp_stop.ps1');
 
-function createFixture() {
-  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-user-prompt-hook-'));
-  const modeLog = path.join(rootDir, 'mode.log');
-  const helper = path.join(rootDir, 'fake-weapp-hook-ensure.sh');
+test('codex user prompt hook points to Windows main DevTools preflight', () => {
+  const hooks = JSON.parse(fs.readFileSync(path.join(REPO_DIR, '.codex/hooks.json'), 'utf8'));
+  const command = hooks.hooks.UserPromptSubmit[0].hooks[0].command;
 
-  fs.writeFileSync(
-    helper,
-    `#!/usr/bin/env bash
-set -euo pipefail
-printf '%s\\n' "$1" > "${modeLog}"
-`,
-    'utf8'
-  );
-  fs.chmodSync(helper, 0o755);
-
-  return {
-    env: {
-      ...process.env,
-      WEAPP_HOOK_ENSURE_SCRIPT: helper,
-    },
-    modeLog,
-  };
-}
-
-function runHook(payload, env) {
-  return execFileSync('python3', [HOOK_SCRIPT], {
-    cwd: REPO_DIR,
-    env,
-    input: JSON.stringify(payload),
-    encoding: 'utf8',
-  });
-}
-
-test('user prompt hook prepares full mcp chain for weapp-related prompts', () => {
-  const fixture = createFixture();
-
-  runHook({ prompt: '用微信mcp对修改结果做验证' }, fixture.env);
-
-  assert.equal(fs.readFileSync(fixture.modeLog, 'utf8').trim(), 'mcp');
+  assert.ok(fs.existsSync(PREFLIGHT_SCRIPT));
+  assert.match(command, /powershell\.exe/);
+  assert.match(command, /windows_weapp_preflight\.ps1/);
+  assert.match(command, /D:\\projects\\badminton-miniapp/);
+  assert.doesNotMatch(command, /user_prompt_sync_windows_mirror|weapp-sync-preview|weapp-hook-ensure|\/usr\/bin\/python3/);
 });
 
-test('user prompt hook keeps mirror-only preflight for unrelated prompts', () => {
-  const fixture = createFixture();
+test('Windows preflight is keyword-gated and uses the main source launcher', () => {
+  const script = fs.readFileSync(PREFLIGHT_SCRIPT, 'utf8');
 
-  runHook({ prompt: '整理一下这份审计文档' }, fixture.env);
+  assert.match(script, /WEAPP_PREFLIGHT_LAUNCHER/);
+  assert.match(script, /weapp-main-dev\.cmd/);
+  assert.match(script, /39420/);
+  assert.match(script, /Test-WeappPrompt/);
+  assert.match(script, /0x5fae/);
+  assert.match(script, /0x5c0f/);
+  assert.match(script, /devtools/);
+  assert.match(script, /0x622a/);
+  assert.doesNotMatch(script, /badminton-miniapp-preview|weapp-sync-preview|weapp-hook-ensure/);
+});
 
-  assert.equal(fs.readFileSync(fixture.modeLog, 'utf8').trim(), 'mirror');
+test('codex stop hook is a no-op for Windows main development', () => {
+  const hooks = JSON.parse(fs.readFileSync(path.join(REPO_DIR, '.codex/hooks.json'), 'utf8'));
+  const command = hooks.hooks.Stop[0].hooks[0].command;
+  const script = fs.readFileSync(STOP_SCRIPT, 'utf8');
+
+  assert.ok(fs.existsSync(STOP_SCRIPT));
+  assert.match(command, /powershell\.exe/);
+  assert.match(command, /windows_weapp_stop\.ps1/);
+  assert.match(script, /exit 0/);
+  assert.doesNotMatch(script, /badminton-miniapp-preview|weapp-sync-preview|weapp-hook-ensure/);
+});
+
+test('legacy mirror hook files are retained for preview or upload workflows only', () => {
+  assert.ok(fs.existsSync(path.join(REPO_DIR, '.codex/hooks/user_prompt_sync_windows_mirror.py')));
+  assert.ok(fs.existsSync(path.join(REPO_DIR, '.codex/hooks/stop_sync_windows_mirror.py')));
+  assert.ok(fs.existsSync(path.join(REPO_DIR, 'scripts/dev/weapp-dev.sh')));
+  assert.ok(fs.existsSync(path.join(REPO_DIR, 'scripts/dev/weapp-sync-preview.sh')));
 });

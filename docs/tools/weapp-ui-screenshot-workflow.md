@@ -10,11 +10,11 @@
 
 ## 结论
 
-后续真实 UI 截图优先在 Windows 端执行。当前已验证的稳定链路：
+后续真实 UI 截图优先在 Windows 主开发项目执行。当前日常开发链路：
 
 - launcher：`D:\weapp-mcp-launcher`
-- 预览项目：`D:\projects\badminton-miniapp-preview`
-- 启动脚本：`D:\weapp-mcp-launcher\weapp-mcp.cmd`
+- 主开发项目：`D:\projects\badminton-miniapp`
+- 启动脚本：`D:\weapp-mcp-launcher\weapp-main-dev.cmd`
 - DevTools CLI：`D:\Soft\微信web开发者工具\cli.bat`
 - 自动化端口：
 
@@ -24,7 +24,11 @@ ws://127.0.0.1:39420
 
 不要使用旧端口 `9420`。
 
-Windows 端已通过单页、跨页、每 case 重连、快速切换、同页高频和 3 分钟长跑测试；截图文件均大于 20KB，未出现空白图、超时、连接断开或 DevTools 卡死。WSL/Linux 侧可继续承担代码修改、单元测试、`npm run check`、lint；涉及真实 DevTools 截图和连续页面切换验收时，优先使用 Windows 端 launcher。
+旧镜像链路 `D:\weapp-mcp-launcher\weapp-mcp.cmd` + `D:\projects\badminton-miniapp-preview` 仅保留给 preview/upload 镜像用途，不再作为日常开发或截图验收项目。
+
+Windows Codex 日常 hooks 已切到 Windows 主项目 preflight，不再触发 WSL mirror sync。`install-cloud-deploy-hook.sh` 在 Windows 可用，但必须通过 Git Bash 执行：`D:\Soft\Git\bin\bash.exe scripts/install-cloud-deploy-hook.sh`。迁移阶段不要安装 `.git/hooks/post-commit`，避免 commit 后触发云函数部署检查。
+
+Windows 端曾通过单页、跨页、每 case 重连、快速切换、同页高频和 3 分钟长跑测试；截图文件均大于 20KB，未出现空白图、超时、连接断开或 DevTools 卡死。2026-07-03 主项目迁移验收中，`tmp\ui-screenshots-actual\scheduleRunning.png` 已生成有效实图并确认 finished score `21:17` 位于双方中间；同日后续重跑出现 `App.captureScreenshot` 超时，但端口、页栈和 DOM 正常，作为 DevTools surface 运维问题单独排查，不阻塞环境迁移。
 
 `miniprogram-browser` 适合做运行态健康检查和结构快照；在 WSL + 微信开发者工具下，官方 page screenshot 通道可能超时或生成空白图。真实 UI 验收优先使用 Windows 端 `miniprogram-automator` / `scripts/dev/weapp-ui-screenshot.js` 链路。
 
@@ -36,17 +40,31 @@ Windows 端已通过单页、跨页、每 case 重连、快速切换、同页高
 
 ```powershell
 cd D:\weapp-mcp-launcher
-.\weapp-mcp.cmd
+.\weapp-main-dev.cmd
 Test-NetConnection 127.0.0.1 -Port 39420
 ```
 
-2. 运行目标截图脚本或临时截图检查。若使用完整源码/预览镜像中的内置脚本，保持：
+2. 在主项目运行目标截图脚本或临时截图检查：
 
 ```powershell
+cd D:\projects\badminton-miniapp
 $env:WEAPP_WS_ENDPOINT="ws://127.0.0.1:39420"
+$env:WEAPP_SCREENSHOT_DIR="tmp\ui-screenshots-actual"
+node scripts/dev/weapp-ui-screenshot.js scheduleRunning
 ```
 
 涉及 `create` 旧路由重定向的 case 可能需要 8 秒级等待，不要用过短的总超时包住多轮 case。多 case 压测时让 Node 进程显式退出，避免 `miniprogram-automator` 残留事件句柄导致测试 harness 等待超时。
+
+### Legacy Preview/Mirror 流程
+
+仅在需要小程序 preview/upload 镜像时使用旧链路：
+
+```powershell
+cd D:\weapp-mcp-launcher
+.\weapp-mcp.cmd
+```
+
+该链路打开 `D:\projects\badminton-miniapp-preview`，不要用于日常开发截图。
 
 ### WSL 侧辅助流程
 
@@ -128,6 +146,14 @@ npm run ui:screenshot -- --list
 | `shareDraft` / `shareRunning` / `shareFinished` | `pages/share-entry/index` | 加入、查看对阵、查看排名 |
 
 ## 最新验证记录
+
+2026-07-03 Windows 主开发迁移：
+
+- 日常项目改为 `D:\projects\badminton-miniapp`，launcher 改为 `D:\weapp-mcp-launcher\weapp-main-dev.cmd`，自动化端口仍为 `ws://127.0.0.1:39420`。
+- 旧 `D:\weapp-mcp-launcher\weapp-mcp.cmd` 和 `D:\projects\badminton-miniapp-preview` 保留给 preview/upload 镜像用途。
+- Codex hooks 改为 Windows 主项目 preflight/stop，不再执行 WSL -> Windows mirror sync。
+- `scheduleRunning.png` 有效实图已确认：待录分卡中间为 `VS`，已完赛比分 `21:17` 位于双方中间，长名字两行内可读。
+- 后续重跑 `scheduleRunning` 时 `App.captureScreenshot` 超时；`39420` 端口、page stack 和 DOM 均正常，记录为 DevTools screenshot surface 后续问题，不阻塞本次迁移。
 
 2026-06-28 Windows launcher 截图通道验证：
 

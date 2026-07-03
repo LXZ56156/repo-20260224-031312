@@ -21,7 +21,7 @@
 | --- | --- | --- | --- | --- |
 | Lobby hero information | Confirmed | `tmp/ui-screenshots-actual/lobbyEmpty.png`, `lobbyWaiting.png`, `lobbyReady.png` | Passed on 2026-06-23 | 1108 tests + check + lint passed |
 | Create compatibility | Confirmed | `tmp/ui-screenshots-actual/createCompat.png`, `launchCreating.png` | Passed on 2026-06-23 | 1113 tests + check + lint passed |
-| Schedule small-screen card | Awaiting Windows visual confirmation | Windows screenshot channel verified; schedule screenshot still needs product review | Pending | 1113 tests + check + lint passed |
+| Schedule small-screen card | Windows screenshot captured; awaiting final user confirmation | `tmp\ui-screenshots-actual\scheduleRunning.png` | Pending | 1115 tests + check + lint passed |
 | Ranking summary/ad | Not started | Pending | Pending | Blocked by point 3 |
 | Home/share-entry audit | Not started | Pending | Pending | Blocked by point 4 |
 
@@ -77,3 +77,13 @@
   - Valid Windows output directories: `D:\weapp-mcp-launcher\tmp-screenshots\multi-page-orchestrated`, `D:\weapp-mcp-launcher\tmp-screenshots\long-running`.
 - Documented the new screenshot workflow in `docs/tools/weapp-ui-screenshot-workflow.md` and `docs/notes/learnings.md`.
 - Migration handoff state: UI points 1 and 2 are confirmed; UI point 3 code/test work is complete and should receive Windows real-screenshot visual confirmation next; UI point 4 remains blocked until that confirmation.
+
+## Windows Main Development Finalization
+
+- Daily Windows project is now `D:\projects\badminton-miniapp`; daily DevTools launcher is `D:\weapp-mcp-launcher\weapp-main-dev.cmd`; automation endpoint remains `ws://127.0.0.1:39420`.
+- Legacy mirror chain `D:\weapp-mcp-launcher\weapp-mcp.cmd` + `D:\projects\badminton-miniapp-preview` is retained only for preview/upload mirror usage, not for daily development or screenshot acceptance.
+- Codex project hooks now use Windows main-project preflight and no-op stop; WSL mirror sync is no longer a daily hook dependency.
+- `install-cloud-deploy-hook.sh` can run on Windows only through Git Bash: `D:\Soft\Git\bin\bash.exe scripts/install-cloud-deploy-hook.sh`. The migration task keeps `.git/hooks/post-commit` uninstalled and does not deploy cloud functions.
+- Squad fairness regression tests now use a test-only deterministic search option for exact quality assertions. Production squad scheduling still defaults to the original wall-clock soft/hard budget, and the 7v7/9v9 fairness assertions were not relaxed.
+- UI point 3 has a valid Windows main-project screenshot at `tmp\ui-screenshots-actual\scheduleRunning.png`; manual inspection confirmed pending cards keep `VS` centered and finished score `21:17` appears between teams.
+- Follow-up issue: later reruns of `scheduleRunning` hit `App.captureScreenshot` timeout while DevTools port, page stack, selectors, and text assertions were healthy. Treat this as a DevTools screenshot surface maintenance issue, not a blocker for the Windows migration configuration.
