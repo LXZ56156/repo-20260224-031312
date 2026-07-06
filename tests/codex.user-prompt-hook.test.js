@@ -4,18 +4,32 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const REPO_DIR = path.resolve(__dirname, '..');
+const PREFLIGHT_WRAPPER = path.join(REPO_DIR, '.codex/hooks/weapp_preflight.js');
+const STOP_WRAPPER = path.join(REPO_DIR, '.codex/hooks/weapp_stop.js');
 const PREFLIGHT_SCRIPT = path.join(REPO_DIR, '.codex/hooks/windows_weapp_preflight.ps1');
 const STOP_SCRIPT = path.join(REPO_DIR, '.codex/hooks/windows_weapp_stop.ps1');
 
-test('codex user prompt hook points to Windows main DevTools preflight', () => {
+test('codex user prompt hook points to the cross-platform weapp preflight wrapper', () => {
   const hooks = JSON.parse(fs.readFileSync(path.join(REPO_DIR, '.codex/hooks.json'), 'utf8'));
   const command = hooks.hooks.UserPromptSubmit[0].hooks[0].command;
 
+  assert.ok(fs.existsSync(PREFLIGHT_WRAPPER));
   assert.ok(fs.existsSync(PREFLIGHT_SCRIPT));
-  assert.match(command, /powershell\.exe/);
-  assert.match(command, /windows_weapp_preflight\.ps1/);
-  assert.match(command, /D:\\projects\\badminton-miniapp/);
+  assert.match(command, /node/);
+  assert.match(command, /\.codex\/hooks\/weapp_preflight\.js/);
+  assert.doesNotMatch(command, /D:\\projects\\badminton-miniapp/);
   assert.doesNotMatch(command, /user_prompt_sync_windows_mirror|weapp-sync-preview|weapp-hook-ensure|\/usr\/bin\/python3/);
+});
+
+test('cross-platform preflight defaults to Windows main project and WSL no-op unless explicitly requested', () => {
+  const script = fs.readFileSync(PREFLIGHT_WRAPPER, 'utf8');
+
+  assert.match(script, /windows_weapp_preflight\.ps1/);
+  assert.match(script, /WEAPP_CODEX_DEV_MODE/);
+  assert.match(script, /wsl-mirror/);
+  assert.match(script, /weapp-dev\.sh/);
+  assert.match(script, /No weapp-related prompt detected/);
+  assert.doesNotMatch(script, /user_prompt_sync_windows_mirror|stop_sync_windows_mirror/);
 });
 
 test('Windows preflight is keyword-gated and uses the main source launcher', () => {
@@ -44,9 +58,10 @@ test('codex stop hook is a no-op for Windows main development', () => {
   const command = hooks.hooks.Stop[0].hooks[0].command;
   const script = fs.readFileSync(STOP_SCRIPT, 'utf8');
 
+  assert.ok(fs.existsSync(STOP_WRAPPER));
   assert.ok(fs.existsSync(STOP_SCRIPT));
-  assert.match(command, /powershell\.exe/);
-  assert.match(command, /windows_weapp_stop\.ps1/);
+  assert.match(command, /node/);
+  assert.match(command, /\.codex\/hooks\/weapp_stop\.js/);
   assert.match(script, /exit 0/);
   assert.doesNotMatch(script, /badminton-miniapp-preview|weapp-sync-preview|weapp-hook-ensure/);
 });

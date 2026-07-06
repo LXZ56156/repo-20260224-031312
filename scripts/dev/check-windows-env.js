@@ -161,6 +161,8 @@ if (exists('.git/hooks/post-commit', postCommit, false)) {
 
 exists('Codex config', path.join(repoDir, '.codex', 'config.toml'), true);
 exists('Codex hooks config', path.join(repoDir, '.codex', 'hooks.json'), true);
+exists('Codex cross-platform preflight', path.join(repoDir, '.codex', 'hooks', 'weapp_preflight.js'), true);
+exists('Codex cross-platform stop', path.join(repoDir, '.codex', 'hooks', 'weapp_stop.js'), true);
 exists('Codex Windows preflight', path.join(repoDir, '.codex', 'hooks', 'windows_weapp_preflight.ps1'), true);
 exists('Codex Windows stop', path.join(repoDir, '.codex', 'hooks', 'windows_weapp_stop.ps1'), true);
 

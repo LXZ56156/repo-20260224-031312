@@ -70,19 +70,26 @@ Only print key names with `<redacted>` values. `WX_PRIVATE_KEY_PATH` should poin
 
 ## Codex Hooks
 
-Codex hooks are tracked under `.codex/` and now target the Windows main project:
+Codex hooks are tracked under `.codex/` and use cross-platform Node wrappers:
+
+- `.codex/hooks/weapp_preflight.js`
+- `.codex/hooks/weapp_stop.js`
+
+On Windows, the wrapper calls the main-project PowerShell preflight:
 
 - `.codex/hooks/windows_weapp_preflight.ps1`
 - `.codex/hooks/windows_weapp_stop.ps1`
+
+On non-Windows systems, the preflight is a no-op by default. To explicitly use the legacy WSL preview/upload mirror flow, set `WEAPP_CODEX_DEV_MODE=wsl-mirror`; only then will the wrapper call `scripts/dev/weapp-dev.sh mcp`.
 
 The preflight hook is keyword-gated. Empty prompts and unrelated prompts must not open WeChat DevTools. It only checks or starts DevTools for prompts related to WeChat, mini program, DevTools, screenshots, or UI work.
 
 Useful manual checks:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File D:\projects\badminton-miniapp\.codex\hooks\windows_weapp_preflight.ps1
-"微信截图" | powershell.exe -NoProfile -ExecutionPolicy Bypass -File D:\projects\badminton-miniapp\.codex\hooks\windows_weapp_preflight.ps1
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File D:\projects\badminton-miniapp\.codex\hooks\windows_weapp_stop.ps1
+node .codex/hooks/weapp_preflight.js
+"微信截图" | node .codex/hooks/weapp_preflight.js
+node .codex/hooks/weapp_stop.js
 Test-NetConnection 127.0.0.1 -Port 39420
 ```
 
@@ -91,6 +98,52 @@ Environment switches:
 - `WEAPP_PREFLIGHT_FORCE=1` forces the preflight.
 - `WEAPP_PREFLIGHT_PORT` overrides the default `39420`.
 - `WEAPP_PREFLIGHT_LAUNCHER` overrides `D:\weapp-mcp-launcher\weapp-main-dev.cmd`.
+- `WEAPP_CODEX_DEV_MODE=wsl-mirror` enables the legacy WSL mirror flow on non-Windows systems.
+
+## Windows / WSL Handoff
+
+Use Git as the source handoff mechanism. Do not use the legacy mirror as a source sync channel.
+
+Windows to WSL:
+
+```powershell
+cd D:\projects\badminton-miniapp
+npm run verify:light
+git status --short --branch
+git push
+```
+
+```bash
+cd /home/lizixuan/projects/badminton-miniapp
+git fetch origin
+git checkout feature/core-flow-simplification
+git pull --ff-only
+npm install
+npm run verify:light
+```
+
+WSL to Windows:
+
+```bash
+cd /home/lizixuan/projects/badminton-miniapp
+git status --short --branch
+git push
+./scripts/dev/weapp-dev.sh stop
+```
+
+```powershell
+cd D:\projects\badminton-miniapp
+git pull --ff-only
+npm install
+npm run verify:windows-env
+npm run verify:light
+```
+
+If WSL needs WeChat DevTools or screenshots, use the legacy mirror explicitly:
+
+```bash
+WEAPP_CODEX_DEV_MODE=wsl-mirror node .codex/hooks/weapp_preflight.js
+```
 
 ## Git Post-Commit Cloud Hook
 

@@ -5,9 +5,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"D:\\projects\\badminton-miniapp\\.codex\\hooks\\windows_weapp_preflight.ps1\"",
+            "command": "node \".codex/hooks/weapp_preflight.js\"",
             "timeout": 120,
-            "statusMessage": "检查 Windows 微信开发环境..."
+            "statusMessage": "检查微信开发环境..."
           }
         ]
       }
@@ -17,9 +17,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"D:\\projects\\badminton-miniapp\\.codex\\hooks\\windows_weapp_stop.ps1\"",
+            "command": "node \".codex/hooks/weapp_stop.js\"",
             "timeout": 30,
-            "statusMessage": "Windows 微信开发环境收尾..."
+            "statusMessage": "微信开发环境收尾..."
           }
         ]
       }

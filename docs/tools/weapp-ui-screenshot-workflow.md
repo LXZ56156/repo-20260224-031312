@@ -26,7 +26,7 @@ ws://127.0.0.1:39420
 
 旧镜像链路 `D:\weapp-mcp-launcher\weapp-mcp.cmd` + `D:\projects\badminton-miniapp-preview` 仅保留给 preview/upload 镜像用途，不再作为日常开发或截图验收项目。
 
-Windows Codex 日常 hooks 已切到 Windows 主项目 preflight，不再触发 WSL mirror sync。`install-cloud-deploy-hook.sh` 在 Windows 可用，但必须通过 Git Bash 执行：`D:\Soft\Git\bin\bash.exe scripts/install-cloud-deploy-hook.sh`。当前 Windows 本机已安装 `.git/hooks/post-commit`，并通过 `SKIP_CLOUD_POST_COMMIT_DEPLOY=1` skip 验证；它只做 commit 后云函数变更检查，不应用作部署测试。
+Codex 日常 hooks 已切到跨平台 Node wrapper。Windows 下 wrapper 调用主项目 preflight，不再触发 WSL mirror sync；非 Windows 默认 no-op，只有显式设置 `WEAPP_CODEX_DEV_MODE=wsl-mirror` 才启用旧 preview/upload 镜像链路。`install-cloud-deploy-hook.sh` 在 Windows 可用，但必须通过 Git Bash 执行：`D:\Soft\Git\bin\bash.exe scripts/install-cloud-deploy-hook.sh`。当前 Windows 本机已安装 `.git/hooks/post-commit`，并通过 `SKIP_CLOUD_POST_COMMIT_DEPLOY=1` skip 验证；它只做 commit 后云函数变更检查，不应用作部署测试。
 
 Windows 端曾通过单页、跨页、每 case 重连、快速切换、同页高频和 3 分钟长跑测试；截图文件均大于 20KB，未出现空白图、超时、连接断开或 DevTools 卡死。2026-07-03 主项目迁移验收中，`tmp\ui-screenshots-actual\scheduleRunning.png` 已生成有效实图并确认 finished score `21:17` 位于双方中间；同日后续重跑出现 `App.captureScreenshot` 超时，但端口、页栈和 DOM 正常，作为 DevTools surface 运维问题单独排查，不阻塞环境迁移。
 
@@ -160,7 +160,7 @@ npm run ui:screenshot -- --list
 - Codex hooks 改为 Windows 主项目 preflight/stop，不再执行 WSL -> Windows mirror sync。
 - `scheduleRunning.png` 有效实图已确认：待录分卡中间为 `VS`，已完赛比分 `21:17` 位于双方中间，长名字两行内可读。
 - 后续重跑 `scheduleRunning` 时 `App.captureScreenshot` 超时；`39420` 端口、page stack 和 DOM 均正常，记录为 DevTools screenshot surface 后续问题，不阻塞本次迁移。
-- Codex preflight 已修正为空 prompt / 非小程序 prompt 跳过，避免刚打开 Codex 就自动启动 DevTools；可用 `"微信截图" | powershell.exe -NoProfile -ExecutionPolicy Bypass -File D:\projects\badminton-miniapp\.codex\hooks\windows_weapp_preflight.ps1` 手动验证相关 prompt 才触发。
+- Codex preflight 已修正为空 prompt / 非小程序 prompt 跳过，避免刚打开 Codex 就自动启动 DevTools；可用 `"微信截图" | node .codex/hooks/weapp_preflight.js` 手动验证相关 prompt 才触发。
 
 2026-06-28 Windows launcher 截图通道验证：
 
