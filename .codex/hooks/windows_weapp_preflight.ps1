@@ -36,7 +36,7 @@ function Test-WeappPrompt {
     return $true
   }
   if ([string]::IsNullOrWhiteSpace($Payload)) {
-    return $true
+    return $false
   }
 
   $haystack = $Payload.ToLowerInvariant()

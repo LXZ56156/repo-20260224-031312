@@ -32,6 +32,13 @@ test('Windows preflight is keyword-gated and uses the main source launcher', () 
   assert.doesNotMatch(script, /badminton-miniapp-preview|weapp-sync-preview|weapp-hook-ensure/);
 });
 
+test('Windows preflight skips empty prompt payload unless explicitly forced', () => {
+  const script = fs.readFileSync(PREFLIGHT_SCRIPT, 'utf8');
+
+  assert.match(script, /WEAPP_PREFLIGHT_FORCE[\s\S]*return \$true/);
+  assert.match(script, /IsNullOrWhiteSpace\(\$Payload\)[\s\S]*return \$false/);
+});
+
 test('codex stop hook is a no-op for Windows main development', () => {
   const hooks = JSON.parse(fs.readFileSync(path.join(REPO_DIR, '.codex/hooks.json'), 'utf8'));
   const command = hooks.hooks.Stop[0].hooks[0].command;
