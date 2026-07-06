@@ -26,7 +26,7 @@ ws://127.0.0.1:39420
 
 旧镜像链路 `D:\weapp-mcp-launcher\weapp-mcp.cmd` + `D:\projects\badminton-miniapp-preview` 仅保留给 preview/upload 镜像用途，不再作为日常开发或截图验收项目。
 
-Windows Codex 日常 hooks 已切到 Windows 主项目 preflight，不再触发 WSL mirror sync。`install-cloud-deploy-hook.sh` 在 Windows 可用，但必须通过 Git Bash 执行：`D:\Soft\Git\bin\bash.exe scripts/install-cloud-deploy-hook.sh`。迁移阶段不要安装 `.git/hooks/post-commit`，避免 commit 后触发云函数部署检查。
+Windows Codex 日常 hooks 已切到 Windows 主项目 preflight，不再触发 WSL mirror sync。`install-cloud-deploy-hook.sh` 在 Windows 可用，但必须通过 Git Bash 执行：`D:\Soft\Git\bin\bash.exe scripts/install-cloud-deploy-hook.sh`。当前 Windows 本机已安装 `.git/hooks/post-commit`，并通过 `SKIP_CLOUD_POST_COMMIT_DEPLOY=1` skip 验证；它只做 commit 后云函数变更检查，不应用作部署测试。
 
 Windows 端曾通过单页、跨页、每 case 重连、快速切换、同页高频和 3 分钟长跑测试；截图文件均大于 20KB，未出现空白图、超时、连接断开或 DevTools 卡死。2026-07-03 主项目迁移验收中，`tmp\ui-screenshots-actual\scheduleRunning.png` 已生成有效实图并确认 finished score `21:17` 位于双方中间；同日后续重跑出现 `App.captureScreenshot` 超时，但端口、页栈和 DOM 正常，作为 DevTools surface 运维问题单独排查，不阻塞环境迁移。
 
@@ -54,6 +54,12 @@ node scripts/dev/weapp-ui-screenshot.js scheduleRunning
 ```
 
 涉及 `create` 旧路由重定向的 case 可能需要 8 秒级等待，不要用过短的总超时包住多轮 case。多 case 压测时让 Node 进程显式退出，避免 `miniprogram-automator` 残留事件句柄导致测试 harness 等待超时。
+
+如果截图失败或怀疑 DevTools surface 异常，先跑诊断脚本。诊断脚本会先检查路由、selector、期望文本和 DOM，再尝试截图；截图先写入 `*.diagnostic.png`，只有确认非空白后才覆盖正式 PNG：
+
+```powershell
+npm run screenshot:diagnose -- scheduleRunning
+```
 
 ### Legacy Preview/Mirror 流程
 
@@ -154,6 +160,7 @@ npm run ui:screenshot -- --list
 - Codex hooks 改为 Windows 主项目 preflight/stop，不再执行 WSL -> Windows mirror sync。
 - `scheduleRunning.png` 有效实图已确认：待录分卡中间为 `VS`，已完赛比分 `21:17` 位于双方中间，长名字两行内可读。
 - 后续重跑 `scheduleRunning` 时 `App.captureScreenshot` 超时；`39420` 端口、page stack 和 DOM 均正常，记录为 DevTools screenshot surface 后续问题，不阻塞本次迁移。
+- Codex preflight 已修正为空 prompt / 非小程序 prompt 跳过，避免刚打开 Codex 就自动启动 DevTools；可用 `"微信截图" | powershell.exe -NoProfile -ExecutionPolicy Bypass -File D:\projects\badminton-miniapp\.codex\hooks\windows_weapp_preflight.ps1` 手动验证相关 prompt 才触发。
 
 2026-06-28 Windows launcher 截图通道验证：
 

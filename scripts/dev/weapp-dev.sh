@@ -20,6 +20,7 @@ MCP_INITIAL_WAIT_SECONDS="${MCP_INITIAL_WAIT_SECONDS:-2}"
 MCP_LAUNCH_WAIT_SECONDS="${MCP_LAUNCH_WAIT_SECONDS:-30}"
 MCP_PROBE_TIMEOUT_MS="${MCP_PROBE_TIMEOUT_MS:-5000}"
 MIRROR_WAIT_SECONDS="${MIRROR_WAIT_SECONDS:-10}"
+SYNC_START_WAIT_SECONDS="${SYNC_START_WAIT_SECONDS:-10}"
 ACTION="${1:-mcp}"
 
 RUNNING_SYNC_PID=""
@@ -40,6 +41,19 @@ fail() {
 require_command() {
   local command_name="$1"
   command -v "$command_name" >/dev/null 2>&1 || fail "缺少命令：$command_name"
+}
+
+normalize_compare_path() {
+  local value="${1//\\//}"
+  if [[ "$value" =~ ^([A-Za-z]):/?(.*)$ ]]; then
+    printf '/%s/%s' "${BASH_REMATCH[1],,}" "${BASH_REMATCH[2]}"
+    return 0
+  fi
+  printf '%s' "$value"
+}
+
+paths_equal() {
+  [[ "$(normalize_compare_path "$1")" == "$(normalize_compare_path "$2")" ]]
 }
 
 is_sync_running() {
@@ -97,12 +111,12 @@ collect_mirror_status() {
 
   IFS=$'\t' read -r manifest_signature MIRROR_SYNCED_AT manifest_source_dir manifest_preview_dir <<<"$fields"
 
-  if [[ -n "$manifest_source_dir" && "$manifest_source_dir" != "$SOURCE_DIR" ]]; then
+  if [[ -n "$manifest_source_dir" ]] && ! paths_equal "$manifest_source_dir" "$SOURCE_DIR"; then
     MIRROR_DETAIL="同步清单 sourceDir 不匹配：$manifest_source_dir"
     return 0
   fi
 
-  if [[ -n "$manifest_preview_dir" && "$manifest_preview_dir" != "$PREVIEW_DIR" ]]; then
+  if [[ -n "$manifest_preview_dir" ]] && ! paths_equal "$manifest_preview_dir" "$PREVIEW_DIR"; then
     MIRROR_DETAIL="同步清单 previewDir 不匹配：$manifest_preview_dir"
     return 0
   fi
@@ -197,12 +211,16 @@ start_sync() {
   log "启动同步脚本：$SYNC_SCRIPT"
   nohup "$SYNC_SCRIPT" run >> "$SYNC_LOG" 2>&1 &
   disown || true
-  sleep 1
 
-  if is_sync_running; then
-    log "同步脚本已启动，PID=${RUNNING_SYNC_PID}"
-    return 0
-  fi
+  local elapsed=0
+  while (( elapsed < SYNC_START_WAIT_SECONDS )); do
+    sleep 1
+    if is_sync_running; then
+      log "同步脚本已启动，PID=${RUNNING_SYNC_PID}"
+      return 0
+    fi
+    elapsed=$((elapsed + 1))
+  done
 
   fail "同步脚本启动失败，请查看日志：$SYNC_LOG"
 }

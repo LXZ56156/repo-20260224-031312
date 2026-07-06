@@ -267,7 +267,7 @@ test('squad uneven hotspots stay near structural baseline without greedy fallbac
       makePlayers(scenario.a, scenario.b),
       scenario.matches,
       scenario.courts,
-      { endCondition: { type: 'total_matches', target: scenario.matches }, _hardDeadlineMs: 4000, _seed: 1 }
+      deterministicBeamRules({ endCondition: { type: 'total_matches', target: scenario.matches }, _hardDeadlineMs: 4000, _seed: 1 })
     );
     assert.equal(collectAllMatches(out).length, scenario.matches, `${scenario.a}v${scenario.b}`);
     assert.notEqual(out.schedulerMeta && out.schedulerMeta.executionProfile, 'greedy-fallback', `${scenario.a}v${scenario.b}`);
