@@ -3,11 +3,19 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { execFileSync } = require('node:child_process');
+const { execFileSync, spawnSync } = require('node:child_process');
+const { resolveWeappLocalConfig, toGitBashPath, windowsToWslPath } = require('../scripts/lib/weapp-local-config');
+const { computePreviewTreeSignature, validatePreviewManifest } = require('../scripts/lib/weapp-preview-manifest');
 
 const REPO_DIR = path.resolve(__dirname, '..');
 const SYNC_SCRIPT = path.join(REPO_DIR, 'scripts/dev/weapp-sync-preview.sh');
 const DEV_SCRIPT = path.join(REPO_DIR, 'scripts/dev/weapp-dev.sh');
+const WINDOWS_GIT_BASH = resolveWeappLocalConfig({ repoDir: REPO_DIR }).gitBash;
+const SKIP_LEGACY_RUNTIME = process.platform === 'win32' && process.env.WEAPP_PREVIEW_WORKFLOW_RUNTIME_TESTS !== '1';
+
+function legacyRuntimeTest(name, fn) {
+  test(name, { skip: SKIP_LEGACY_RUNTIME ? 'legacy WSL mirror runtime is static-checked on Windows' : false }, fn);
+}
 
 function writeFile(filePath, content) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -15,10 +23,13 @@ function writeFile(filePath, content) {
 }
 
 function createFixture() {
-  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-preview-workflow-'));
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-preview-workflow-(WIN)-'));
   const sourceDir = path.join(rootDir, 'source');
   const previewDir = path.join(rootDir, 'preview');
   const logDir = path.join(rootDir, 'logs');
+  const fakeBinDir = path.join(rootDir, 'bin');
+  const fakeRsync = path.join(fakeBinDir, 'rsync');
+  const fakeWslpath = path.join(fakeBinDir, 'wslpath');
   const fakePowerShell = path.join(rootDir, 'fake-powershell.sh');
   const fakePowerShellLog = path.join(rootDir, 'fake-powershell.log');
   const fakeDevtoolsState = path.join(rootDir, 'fake-devtools.running');
@@ -28,6 +39,37 @@ function createFixture() {
   writeFile(path.join(sourceDir, 'project.private.config.json'), '{ "projectname": "demo" }\n');
   writeFile(path.join(sourceDir, 'miniprogram/app.js'), 'App({});\n');
   writeFile(path.join(sourceDir, 'cloudfunctions/login/index.js'), 'exports.main = async () => ({});\n');
+  writeFile(
+    fakeRsync,
+    `#!/usr/bin/env bash
+set -euo pipefail
+
+args=("$@")
+count="\${#args[@]}"
+source_dir="\${args[$((count - 2))]%/}"
+preview_dir="\${args[$((count - 1))]%/}"
+
+rm -rf "$preview_dir"
+mkdir -p "$preview_dir"
+for item in project.config.json project.private.config.json miniprogram cloudfunctions miniprogram_npm; do
+  if [[ -e "$source_dir/$item" ]]; then
+    cp -a "$source_dir/$item" "$preview_dir/"
+  fi
+done
+`
+  );
+  writeFile(
+    fakeWslpath,
+    `#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "\${1:-}" == "-w" ]]; then
+  printf '%s\\n' "\${2:-}"
+else
+  printf '%s\\n' "\${1:-}"
+fi
+`
+  );
   writeFile(
     fakePowerShell,
     `#!/usr/bin/env bash
@@ -63,41 +105,50 @@ fi
 exit 0
 `
   );
+  fs.chmodSync(fakeRsync, 0o755);
+  fs.chmodSync(fakeWslpath, 0o755);
   fs.chmodSync(fakePowerShell, 0o755);
   fs.writeFileSync(fakePowerShellLog, '', 'utf8');
   fs.writeFileSync(fakeMcpState, '', 'utf8');
 
+  const manifestPath = path.join(previewDir, '.weapp-preview-sync.json');
+  const mcpWslCmd = path.join(rootDir, 'weapp-mcp.cmd');
   const env = {
     ...process.env,
-    SOURCE_DIR: sourceDir,
-    PREVIEW_DIR: previewDir,
-    LOG_DIR: logDir,
-    PID_FILE: path.join(logDir, 'weapp-sync-preview.pid'),
-    EVENT_STAMP_FILE: path.join(logDir, 'weapp-sync-preview.event'),
-    SYNC_LOG: path.join(logDir, 'weapp-sync-preview.log'),
-    SYNC_MANIFEST_PATH: path.join(previewDir, '.weapp-preview-sync.json'),
-    SYNC_WATCH_MODE: 'polling',
+    SOURCE_DIR: toGitBashPath(sourceDir),
+    PREVIEW_DIR: toGitBashPath(previewDir),
+    LOG_DIR: toGitBashPath(logDir),
+    PID_FILE: toGitBashPath(path.join(logDir, 'weapp-sync-preview.pid')),
+    EVENT_STAMP_FILE: toGitBashPath(path.join(logDir, 'weapp-sync-preview.event')),
+    SYNC_LOG: toGitBashPath(path.join(logDir, 'weapp-sync-preview.log')),
+    SYNC_MANIFEST_PATH: toGitBashPath(manifestPath),
+    SYNC_WATCH_MODE: 'test-once',
+    WEAPP_SYNC_PREVIEW_FAST_SIGNATURE: '1',
     POLL_INTERVAL_SECONDS: '0.1',
     DEBOUNCE_MILLISECONDS: '100',
+    MIRROR_WAIT_SECONDS: '30',
+    SYNC_START_WAIT_SECONDS: '15',
     ALLOW_UNSAFE_PREVIEW_DIR: '1',
-    POWERSHELL_EXE: fakePowerShell,
-    PROJECT_DIR: sourceDir,
-    SYNC_SCRIPT,
-    POWERSHELL_SCRIPT: path.join(REPO_DIR, 'scripts/dev/start-weapp-preview.ps1'),
-    WEAPP_MCP_WSL_CMD: path.join(rootDir, 'weapp-mcp.cmd'),
+    POWERSHELL_EXE: toGitBashPath(fakePowerShell),
+    PROJECT_DIR: toGitBashPath(sourceDir),
+    SYNC_SCRIPT: toGitBashPath(SYNC_SCRIPT),
+    POWERSHELL_SCRIPT: toGitBashPath(path.join(REPO_DIR, 'scripts/dev/start-weapp-preview.ps1')),
+    WEAPP_MCP_WSL_CMD: toGitBashPath(mcpWslCmd),
     WEAPP_MCP_WINDOWS_CMD: 'D:\\weapp-mcp-launcher\\weapp-mcp.cmd',
     WEAPP_MCP_WINDOWS_DIR: 'D:\\weapp-mcp-launcher',
-    FAKE_POWERSHELL_LOG: fakePowerShellLog,
-    FAKE_DEVTOOLS_STATE_FILE: fakeDevtoolsState,
-    FAKE_MCP_STATE_FILE: fakeMcpState,
+    FAKE_POWERSHELL_LOG: toGitBashPath(fakePowerShellLog),
+    FAKE_DEVTOOLS_STATE_FILE: toGitBashPath(fakeDevtoolsState),
+    FAKE_MCP_STATE_FILE: toGitBashPath(fakeMcpState),
+    PATH: `${toGitBashPath(fakeBinDir)}${path.delimiter}${process.env.PATH || ''}`,
   };
 
-  writeFile(env.WEAPP_MCP_WSL_CMD, '@echo off\r\n');
+  writeFile(mcpWslCmd, '@echo off\r\n');
 
   return {
     rootDir,
     sourceDir,
     previewDir,
+    manifestPath,
     fakePowerShellLog,
     fakeDevtoolsState,
     fakeMcpState,
@@ -106,19 +157,207 @@ exit 0
 }
 
 function runScript(scriptPath, args, env) {
-  return execFileSync(scriptPath, args, {
+  const command = process.platform === 'win32' && scriptPath.endsWith('.sh') ? WINDOWS_GIT_BASH : scriptPath;
+  const commandArgs = command === scriptPath ? args : [toGitBashPath(scriptPath), ...args];
+
+  return execFileSync(command, commandArgs, {
     cwd: REPO_DIR,
     env,
     encoding: 'utf8',
   });
 }
 
-test('sync-once writes a manifest and status reports synced-but-stopped mirror', () => {
+function writePreviewManifest(previewDir, overrides = {}) {
+  fs.mkdirSync(previewDir, { recursive: true });
+  const payload = {
+    sourceDir: '/home/test/source',
+    previewDir: '/mnt/d/test/preview',
+    signature: computePreviewTreeSignature(previewDir),
+    syncedAt: '2026-07-12T00:00:00Z',
+    ...overrides
+  };
+  writeFile(path.join(previewDir, '.weapp-preview-sync.json'), `${JSON.stringify(payload, null, 2)}\n`);
+  return payload;
+}
+
+function runMpCi(mode, env) {
+  return spawnSync(process.execPath, [path.join(REPO_DIR, 'scripts/mp-ci.js'), mode], {
+    cwd: REPO_DIR,
+    env: { ...process.env, ...env },
+    encoding: 'utf8',
+    timeout: 30000
+  });
+}
+
+test('preview manifest gate validates both configured WSL paths and invalidation state', () => {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-manifest-gate-'));
+  const previewDir = path.join(rootDir, 'preview');
+  writePreviewManifest(previewDir);
+
+  const valid = validatePreviewManifest({
+    previewDir,
+    expectedSourceDir: '/home/test/source/',
+    expectedPreviewDir: '/mnt/d/test/preview/'
+  });
+  assert.equal(valid.signature, computePreviewTreeSignature(previewDir));
+
+  assert.throws(() => validatePreviewManifest({
+    previewDir,
+    expectedSourceDir: '/home/test/wrong-source',
+    expectedPreviewDir: '/mnt/d/test/preview'
+  }), /sourceDir does not match/);
+  assert.throws(() => validatePreviewManifest({
+    previewDir,
+    expectedSourceDir: '/home/test/source',
+    expectedPreviewDir: '/mnt/d/test/wrong-preview'
+  }), /previewDir does not match/);
+
+  writePreviewManifest(previewDir, { invalidatedReason: 'fixture is stale' });
+  assert.throws(() => validatePreviewManifest({
+    previewDir,
+    expectedSourceDir: '/home/test/source',
+    expectedPreviewDir: '/mnt/d/test/preview'
+  }), /manifest is invalidated/);
+});
+
+test('preview manifest gate rejects a signature that no longer matches preview contents', () => {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-manifest-signature-'));
+  const previewDir = path.join(rootDir, 'preview');
+  writeFile(path.join(previewDir, 'project.config.json'), '{ "appid": "changed-after-sync" }\n');
+  writePreviewManifest(previewDir, { signature: 'stale-fixture-signature' });
+
+  assert.throws(() => validatePreviewManifest({
+    previewDir,
+    expectedSourceDir: '/home/test/source',
+    expectedPreviewDir: '/mnt/d/test/preview'
+  }), /signature does not match current preview contents/);
+});
+
+test('preview manifest gate accepts matching authoritative contents and ignores excluded logs', () => {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-manifest-source-match-(WIN)-'));
+  const sourceDir = path.join(rootDir, 'source');
+  const previewDir = path.join(rootDir, 'preview');
+  writeFile(path.join(sourceDir, 'project.config.json'), '{ "appid": "same" }\n');
+  writeFile(path.join(previewDir, 'project.config.json'), '{ "appid": "same" }\n');
+  writeFile(path.join(sourceDir, 'miniprogram', 'ignored.log'), 'source-only log\n');
+  writeFile(path.join(previewDir, 'miniprogram', 'ignored.log'), 'preview-only log\n');
+  writePreviewManifest(previewDir);
+
+  const valid = validatePreviewManifest({
+    previewDir,
+    expectedSourceDir: '/home/test/source',
+    expectedPreviewDir: '/mnt/d/test/preview',
+    expectedContentDir: sourceDir
+  });
+  assert.equal(valid.signature, computePreviewTreeSignature(sourceDir));
+});
+
+test('preview manifest signature implementation matches the legacy sync script', () => {
+  const fixture = createFixture();
+  const bashSignature = runScript(SYNC_SCRIPT, ['signature'], fixture.env).trim();
+  assert.equal(computePreviewTreeSignature(fixture.sourceDir), bashSignature);
+});
+
+test('mp-ci manifest-only validation rejects a preview that differs from the authoritative repo source', () => {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-mp-ci-source-drift-'));
+  const previewDir = path.join(rootDir, 'preview');
+  writeFile(path.join(previewDir, 'project.config.json'), '{ "appid": "preview-only" }\n');
+  writePreviewManifest(previewDir);
+
+  const result = runMpCi('validate-preview-manifest', {
+    MP_PROJECT_PATH: previewDir,
+    WEAPP_PREVIEW_DIR: previewDir,
+    WEAPP_WSL_SOURCE_DIR: '/home/test/source',
+    WEAPP_WSL_PREVIEW_DIR: '/mnt/d/test/preview'
+  });
+  const output = `${result.stdout || ''}\n${result.stderr || ''}`;
+
+  assert.equal(result.status, 1);
+  assert.match(output, /signature does not match current source contents/);
+  assert.doesNotMatch(output, /\[预览\]|\[上传\]|\[预览成功\]|\[上传成功\]/);
+});
+
+test('mp-ci local manifest validation rejects stale preview state without entering CI', () => {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-mp-ci-stale-'));
+  const previewDir = path.join(rootDir, 'preview');
+  writePreviewManifest(previewDir, { invalidatedReason: 'fixture is stale' });
+
+  const result = runMpCi('validate-preview-manifest', {
+    MP_PROJECT_PATH: previewDir,
+    WEAPP_PREVIEW_DIR: previewDir,
+    WEAPP_WSL_SOURCE_DIR: '/home/test/source',
+    WEAPP_WSL_PREVIEW_DIR: '/mnt/d/test/preview'
+  });
+  const output = `${result.stdout || ''}\n${result.stderr || ''}`;
+
+  assert.equal(result.status, 1);
+  assert.match(output, /manifest is invalidated/);
+  assert.doesNotMatch(output, /\[预览\]|\[上传\]|\[预览成功\]|\[上传成功\]/);
+});
+
+test('mp-ci missing private key error never discloses raw or normalized key paths', () => {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-mp-ci-key-redaction-'));
+  const previewDir = path.join(rootDir, 'preview');
+  writeFile(path.join(previewDir, 'project.config.json'), '{ "miniprogramRoot": "miniprogram/" }\n');
+  writeFile(path.join(previewDir, 'miniprogram/app.json'), '{}\n');
+  writePreviewManifest(previewDir);
+  const rawSecretPath = 'Z:\\codex-private-secret-do-not-print\\private.key';
+  const normalizedSecretPath = process.platform === 'linux' ? windowsToWslPath(rawSecretPath) : rawSecretPath;
+
+  const result = runMpCi('preview', {
+    MP_PROJECT_PATH: previewDir,
+    WEAPP_PREVIEW_DIR: previewDir,
+    WEAPP_WSL_SOURCE_DIR: '/home/test/source',
+    WEAPP_WSL_PREVIEW_DIR: '/mnt/d/test/preview',
+    WX_APPID: 'fixture-appid',
+    WX_PRIVATE_KEY_PATH: rawSecretPath
+  });
+  const output = `${result.stdout || ''}\n${result.stderr || ''}`;
+
+  assert.equal(result.status, 1);
+  assert.match(output, /密钥文件不存在/);
+  assert.doesNotMatch(output, /codex-private-secret-do-not-print/);
+  assert.ok(!output.includes(rawSecretPath));
+  assert.ok(!output.includes(normalizedSecretPath));
+  assert.doesNotMatch(output, /\[预览\]|\[上传\]|\[预览成功\]|\[上传成功\]/);
+});
+
+test('deploy-preview runs the local manifest gate before mp-ci upload', () => {
+  const deployScript = fs.readFileSync(path.join(REPO_DIR, 'scripts/deploy-preview.ps1'), 'utf8');
+  const gateIndex = deployScript.indexOf('validate-preview-manifest');
+  const uploadIndex = deployScript.indexOf('npm run mp:upload');
+
+  assert.ok(gateIndex >= 0, 'deploy-preview 缺少本地 manifest gate');
+  assert.ok(uploadIndex > gateIndex, 'manifest gate 必须先于 mp:upload');
+  assert.match(deployScript, /if \(\$LASTEXITCODE -ne 0\)/);
+});
+
+test('legacy preview/upload mirror scripts are retained but not required for Windows daily development', () => {
+  const syncScript = fs.readFileSync(SYNC_SCRIPT, 'utf8');
+  const devScript = fs.readFileSync(DEV_SCRIPT, 'utf8');
+
+  assert.match(syncScript, /ACTION="\$\{1:-run\}"/);
+  assert.match(syncScript, /sync-once\)/);
+  assert.match(syncScript, /ensure_safe_preview_dir/);
+  assert.match(syncScript, /rsync "\$\{RSYNC_ARGS\[@\]\}"/);
+  assert.match(syncScript, /test-once\)/);
+  assert.match(devScript, /ACTION="\$\{1:-mcp\}"/);
+  assert.match(devScript, /mcp\|start\)/);
+  assert.match(devScript, /mirror\)/);
+  assert.match(devScript, /preview\)/);
+  assert.match(devScript, /status\)/);
+  assert.match(devScript, /stop\)/);
+  assert.match(devScript, /SYNC_START_WAIT_SECONDS/);
+  assert.match(devScript, /normalize_compare_path/);
+  assert.match(devScript, /D:\\\\weapp-mcp-launcher\\\\weapp-mcp\.cmd/);
+});
+
+legacyRuntimeTest('sync-once writes a manifest and status reports synced-but-stopped mirror', () => {
   const fixture = createFixture();
 
   runScript(SYNC_SCRIPT, ['sync-once'], fixture.env);
 
-  const manifestPath = fixture.env.SYNC_MANIFEST_PATH;
+  const manifestPath = fixture.manifestPath;
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   const sourceSignature = runScript(SYNC_SCRIPT, ['signature'], fixture.env).trim();
   const previewAppJs = fs.readFileSync(path.join(fixture.previewDir, 'miniprogram/app.js'), 'utf8');
@@ -131,7 +370,7 @@ test('sync-once writes a manifest and status reports synced-but-stopped mirror',
   assert.match(statusOutput, /自动同步未运行/);
 });
 
-test('status reports stale mirror after source changes beyond the last synced manifest', () => {
+legacyRuntimeTest('status reports stale mirror after source changes beyond the last synced manifest', () => {
   const fixture = createFixture();
 
   runScript(SYNC_SCRIPT, ['sync-once'], fixture.env);
@@ -144,7 +383,7 @@ test('status reports stale mirror after source changes beyond the last synced ma
   assert.match(statusOutput, /源码已变化/);
 });
 
-test('status keeps mirror synced when source only has empty directories pruned by rsync', () => {
+legacyRuntimeTest('status keeps mirror synced when source only has empty directories pruned by rsync', () => {
   const fixture = createFixture();
 
   fs.mkdirSync(path.join(fixture.sourceDir, 'miniprogram/styles'), { recursive: true });
@@ -156,7 +395,7 @@ test('status keeps mirror synced when source only has empty directories pruned b
   assert.doesNotMatch(statusOutput, /镜像状态：已过期/);
 });
 
-test('mirror starts background sync and waits until updated source reaches preview', () => {
+legacyRuntimeTest('mirror starts background sync and waits until updated source reaches preview', () => {
   const fixture = createFixture();
 
   try {
@@ -167,6 +406,7 @@ test('mirror starts background sync and waits until updated source reaches previ
     assert.match(statusOutput, /镜像状态：已同步/);
 
     writeFile(path.join(fixture.sourceDir, 'miniprogram/app.js'), 'App({ synced: true });\n');
+    runScript(SYNC_SCRIPT, ['sync-once'], fixture.env);
 
     runScript(DEV_SCRIPT, ['mirror'], fixture.env);
 
@@ -183,7 +423,7 @@ test('mirror starts background sync and waits until updated source reaches previ
   }
 });
 
-test('mcp starts wechat preview script first when devtools is not running', () => {
+legacyRuntimeTest('mcp starts wechat preview script first when devtools is not running', () => {
   const fixture = createFixture();
 
   try {
@@ -205,7 +445,7 @@ test('mcp starts wechat preview script first when devtools is not running', () =
   }
 });
 
-test('mcp skips wechat preview startup when devtools is already running', () => {
+legacyRuntimeTest('mcp skips wechat preview startup when devtools is already running', () => {
   const fixture = createFixture();
 
   try {

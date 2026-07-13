@@ -3,13 +3,22 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { resolveWeappLocalConfig, toGitBashPath } = require('../scripts/lib/weapp-local-config');
+
+const REPO_DIR = path.resolve(__dirname, '..');
+const WINDOWS_GIT_BASH = resolveWeappLocalConfig({ repoDir: REPO_DIR }).gitBash;
 
 function runDeployPlan(files) {
+  const command = process.platform === 'win32' ? WINDOWS_GIT_BASH : 'bash';
+  const scriptPath = process.platform === 'win32'
+    ? toGitBashPath(path.join(REPO_DIR, 'scripts/deploy-changed-cloudfunctions.sh'))
+    : 'scripts/deploy-changed-cloudfunctions.sh';
+
   return spawnSync(
-    'bash',
-    ['scripts/deploy-changed-cloudfunctions.sh', '--files-from', '-', '--dry-run'],
+    command,
+    [scriptPath, '--files-from', '-', '--dry-run'],
     {
-      cwd: process.cwd(),
+      cwd: REPO_DIR,
       input: `${files.join('\n')}\n`,
       encoding: 'utf8'
     }

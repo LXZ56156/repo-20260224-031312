@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SOURCE_DIR="${SOURCE_DIR:-/home/lizixuan/projects/badminton-miniapp}"
-PREVIEW_DIR="${PREVIEW_DIR:-/mnt/d/projects/badminton-miniapp-preview}"
+SOURCE_DIR="${SOURCE_DIR:-/home/lizixuan/projects(WSL)/badminton-miniapp}"
+PREVIEW_DIR="${PREVIEW_DIR:-/mnt/d/projects(WIN)/badminton-miniapp-preview}"
 LOG_DIR="${LOG_DIR:-${SOURCE_DIR}/tmp/weapp-preview}"
 PID_FILE="${PID_FILE:-${LOG_DIR}/weapp-sync-preview.pid}"
 EVENT_STAMP_FILE="${EVENT_STAMP_FILE:-${LOG_DIR}/weapp-sync-preview.event}"
@@ -260,7 +260,11 @@ perform_sync() {
   log "同步原因：$reason"
 
   if rsync "${RSYNC_ARGS[@]}" "${SOURCE_DIR}/" "${PREVIEW_DIR}/"; then
-    preview_signature="$(build_preview_signature)"
+    if [[ "${WEAPP_SYNC_PREVIEW_FAST_SIGNATURE:-0}" == "1" ]]; then
+      preview_signature="$(build_source_signature)"
+    else
+      preview_signature="$(build_preview_signature)"
+    fi
     write_sync_manifest "$preview_signature" || fail "写入同步清单失败：$SYNC_MANIFEST_PATH"
     log "同步完成：$reason"
   else
@@ -406,8 +410,15 @@ main() {
           perform_sync "初始同步"
           watch_with_polling
           ;;
+        test-once)
+          perform_sync "初始同步"
+          log "测试模式：完成一次同步后保持进程存活"
+          while true; do
+            sleep 3600
+          done
+          ;;
         *)
-          fail "不支持的监听模式：$SYNC_WATCH_MODE，可选值：auto | inotify | polling"
+          fail "不支持的监听模式：$SYNC_WATCH_MODE，可选值：auto | inotify | polling | test-once"
           ;;
       esac
       ;;

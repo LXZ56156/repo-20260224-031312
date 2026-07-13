@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 'use strict';
 
-const ci = require('miniprogram-ci');
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
+const {
+  preflightWorkflowRecord,
+  writeWorkflowRecordAfterRemoteSuccess
+} = require('./lib/workflow-records');
+const { resolveWeappLocalConfig, windowsToWslPath } = require('./lib/weapp-local-config');
+const { validatePreviewManifest } = require('./lib/weapp-preview-manifest');
 
 const ROOT = path.resolve(__dirname, '..');
 
@@ -31,20 +36,15 @@ const ROOT = path.resolve(__dirname, '..');
 
 // ---- helpers ----
 
-function normalizeProjectPath(raw) {
+function normalizeProjectPath(raw, platform = process.platform) {
   if (!raw) return null;
-  // Windows path D:\... → WSL /mnt/d/...
-  if (process.platform === 'linux' && /^[A-Z]:[/\\]/.test(raw)) {
-    const drive = raw[0].toLowerCase();
-    const rest = raw.slice(2).replace(/\\/g, '/');
-    return `/mnt/${drive}${rest}`;
-  }
-  return raw.replace(/\\/g, '/');
+  if (platform === 'linux' && /^[A-Z]:[/\\]/i.test(raw)) return windowsToWslPath(raw);
+  return platform === 'win32' ? path.normalize(raw) : raw;
 }
 
 function gitShortHash() {
   try {
-    return execSync('git rev-parse --short HEAD', { encoding: 'utf8', cwd: ROOT }).trim();
+    return execFileSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf8', cwd: ROOT }).trim();
   } catch (_) {
     return 'unknown';
   }
@@ -52,7 +52,7 @@ function gitShortHash() {
 
 function gitLastCommitSubject() {
   try {
-    return execSync('git log -1 --pretty=%s', { encoding: 'utf8', cwd: ROOT }).trim();
+    return execFileSync('git', ['log', '-1', '--pretty=%s'], { encoding: 'utf8', cwd: ROOT }).trim();
   } catch (_) {
     return '';
   }
@@ -86,6 +86,43 @@ function resolveProjectConfig(projectPath) {
   }
 
   return null;
+}
+
+function packageInfoFromResult(result) {
+  if (!result || typeof result !== 'object') return {};
+  const info = {};
+  if (result.subPackageInfo) info.subPackageInfo = result.subPackageInfo;
+  if (result.pluginInfo) info.pluginInfo = result.pluginInfo;
+  return info;
+}
+
+function recordMpCiSuccess({ mode, version, desc, robot, rawProjectPath, projectPath, qrcodeDest, result }, options = {}) {
+  const record = writeWorkflowRecordAfterRemoteSuccess('miniapp-ci', {
+    event: mode === 'upload' ? 'upload_success' : 'preview_success',
+    mode,
+    version,
+    desc,
+    robot,
+    appid: process.env.WX_APPID || '',
+    rawProjectPath,
+    projectPath,
+    qrcodePath: qrcodeDest || '',
+    packageInfo: packageInfoFromResult(result),
+    command: `node scripts/mp-ci.js ${mode}`
+  }, options);
+  console.log(`[记录] ${mode} 成功记录已写入: ${record.recordPath}`);
+}
+
+function preflightMpCiEvidence(options = {}) {
+  try {
+    const result = preflightWorkflowRecord('miniapp-ci', options);
+    console.log(`[校验通过] workflow evidence storage: ${result.recordDir}`);
+    return result;
+  } catch (error) {
+    const wrapped = new Error(`Workflow evidence preflight failed before remote action: ${error.message}`);
+    wrapped.cause = error;
+    throw wrapped;
+  }
 }
 
 // ---- validation ----
@@ -132,41 +169,67 @@ function validate(projectPath) {
 
   // 6. key file exists
   let keyPath = process.env.WX_PRIVATE_KEY_PATH;
-  if (process.platform === 'linux' && /^[A-Z]:[/\\]/.test(keyPath)) {
-    const drive = keyPath[0].toLowerCase();
-    const rest = keyPath.slice(2).replace(/\\/g, '');
-    keyPath = `/mnt/${drive}${rest}`;
-  }
+  if (process.platform === 'linux' && /^[A-Z]:[/\\]/i.test(keyPath)) keyPath = windowsToWslPath(keyPath);
   if (!fs.existsSync(keyPath)) {
-    fail(`密钥文件不存在: ${process.env.WX_PRIVATE_KEY_PATH} (解析后: ${keyPath})`);
+    fail('密钥文件不存在；请检查 WX_PRIVATE_KEY_PATH 配置（路径已隐藏）');
   }
 
   console.log(`\x1b[32m[校验通过]\x1b[0m`);
   console.log(`  项目路径: ${projectPath}`);
   console.log(`  配置文件: ${cfg.configPath}`);
   console.log(`  AppID: ${process.env.WX_APPID}`);
-  console.log(`  密钥路径: ${keyPath}`);
+  console.log('  密钥路径: <redacted path exists>');
 }
 
 // ---- main ----
 
 async function main() {
   const mode = process.argv[2];
-  if (!mode || (mode !== 'preview' && mode !== 'upload')) {
-    console.error('用法: node scripts/mp-ci.js <preview|upload>');
+  if (!mode || !['preview', 'upload', 'validate-preview-manifest'].includes(mode)) {
+    console.error('用法: node scripts/mp-ci.js <preview|upload|validate-preview-manifest>');
     process.exit(1);
   }
 
   // resolve project path
-  const rawProjectPath = process.env.MP_PROJECT_PATH || 'D:\\projects\\badminton-miniapp-preview';
+  const baseConfig = resolveWeappLocalConfig({ repoDir: ROOT });
+  const rawProjectPath = process.env.MP_PROJECT_PATH || baseConfig.previewDir;
   const projectPath = normalizeProjectPath(rawProjectPath);
+  const localConfig = resolveWeappLocalConfig({
+    repoDir: ROOT,
+    env: { ...process.env, WEAPP_PREVIEW_DIR: projectPath }
+  });
   console.log(`[信息] MP_PROJECT_PATH: ${rawProjectPath}`);
   if (rawProjectPath !== projectPath) {
     console.log(`[信息] 规范化路径: ${projectPath}`);
   }
 
+  const manifest = validatePreviewManifest({
+    previewDir: projectPath,
+    expectedSourceDir: localConfig.wslSourceDir,
+    expectedPreviewDir: localConfig.wslPreviewDir
+  });
+  console.log(`[校验通过] preview sync manifest: ${manifest.syncedAt}`);
+  if (mode === 'validate-preview-manifest') {
+    validatePreviewManifest({
+      previewDir: projectPath,
+      expectedSourceDir: localConfig.wslSourceDir,
+      expectedPreviewDir: localConfig.wslPreviewDir,
+      expectedContentDir: ROOT
+    });
+    console.log('[校验通过] preview contents match the authoritative source');
+    return;
+  }
+
   // validate
   validate(projectPath);
+  validatePreviewManifest({
+    previewDir: projectPath,
+    expectedSourceDir: localConfig.wslSourceDir,
+    expectedPreviewDir: localConfig.wslPreviewDir,
+    expectedContentDir: ROOT
+  });
+  console.log('[校验通过] preview contents match the authoritative source');
+  preflightMpCiEvidence();
 
   // resolve version
   const version = process.env.MP_VERSION || `${pkgVersion()}-${gitShortHash()}`;
@@ -175,17 +238,14 @@ async function main() {
 
   // resolve key path for WSL
   let keyPath = process.env.WX_PRIVATE_KEY_PATH;
-  if (process.platform === 'linux' && /^[A-Z]:[/\\]/.test(keyPath)) {
-    const drive = keyPath[0].toLowerCase();
-    const rest = keyPath.slice(2).replace(/\\/g, '\\');
-    keyPath = `/mnt/${drive}${rest}`;
-  }
+  if (process.platform === 'linux' && /^[A-Z]:[/\\]/i.test(keyPath)) keyPath = windowsToWslPath(keyPath);
 
   console.log(`[信息] 模式: ${mode}`);
   console.log(`[信息] 版本: ${version}`);
   console.log(`[信息] 备注: ${desc}`);
   console.log(`[信息] 机器人: ${robot}`);
 
+  const ci = require('miniprogram-ci');
   const project = new ci.Project({
     appid: process.env.WX_APPID,
     type: 'miniProgram',
@@ -226,6 +286,7 @@ async function main() {
     });
 
     console.log(`\x1b[32m[预览成功]\x1b[0m 二维码已保存到: ${qrcodeDest}`);
+    recordMpCiSuccess({ mode, version, desc, robot, rawProjectPath, projectPath, qrcodeDest, result });
     if (result) {
       if (result.subPackageInfo) {
         console.log('[包信息]', JSON.stringify(result.subPackageInfo, null, 2));
@@ -246,6 +307,7 @@ async function main() {
     });
 
     console.log(`\x1b[32m[上传成功]\x1b[0m`);
+    recordMpCiSuccess({ mode, version, desc, robot, rawProjectPath, projectPath, result });
     if (result) {
       if (result.subPackageInfo) {
         console.log('[包信息]', JSON.stringify(result.subPackageInfo, null, 2));
@@ -257,10 +319,18 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error(`\x1b[31m[失败]\x1b[0m ${err.message}`);
-  if (err.stack && process.env.DEBUG) {
-    console.error(err.stack);
-  }
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((err) => {
+    if (err && err.remoteActionSucceeded) {
+      console.error(`\x1b[33m[远端操作已成功，证据写入失败 / remote action succeeded, evidence write failed]\x1b[0m ${err.message}`);
+      process.exit(2);
+    }
+    console.error(`\x1b[31m[失败]\x1b[0m ${err.message}`);
+    if (err.stack && process.env.DEBUG) {
+      console.error(err.stack);
+    }
+    process.exit(1);
+  });
+}
+
+module.exports = { normalizeProjectPath, preflightMpCiEvidence, recordMpCiSuccess, resolveProjectConfig };

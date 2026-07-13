@@ -303,6 +303,59 @@ process.stdin.on("end", () => {
   fi
 }
 
+preflight_workflow_records() {
+  if node <<'NODE'
+const { preflightWorkflowRecord } = require('./scripts/lib/workflow-records');
+
+try {
+  const result = preflightWorkflowRecord('cloudfunctions-deploy');
+  console.log(`Workflow evidence storage ready: ${result.recordDir}`);
+} catch (error) {
+  console.error(`Workflow evidence preflight failed before remote action: ${error.message}`);
+  process.exit(1);
+}
+NODE
+  then
+    return 0
+  fi
+
+  fail "Workflow evidence preflight failed before remote action; no cloud function deploy was started."
+}
+
+record_deploy_success() {
+  local function_name="$1"
+  local status
+
+  if FUNCTION_NAME="$function_name" \
+    VERIFY_DEPLOY="$VERIFY_DEPLOY" \
+    FORCE_DEPLOY="$FORCE_DEPLOY" \
+    node <<'NODE'
+const { writeWorkflowRecordAfterRemoteSuccess } = require('./scripts/lib/workflow-records');
+
+try {
+  const result = writeWorkflowRecordAfterRemoteSuccess('cloudfunctions-deploy', {
+    event: 'deploy_success',
+    functionName: process.env.FUNCTION_NAME || '',
+    verifyDeploy: process.env.VERIFY_DEPLOY === 'true',
+    forceDeploy: process.env.FORCE_DEPLOY === 'true',
+    command: 'bash scripts/deploy-cloudfunctions.sh'
+  });
+
+  console.log(`Recorded cloud deploy: ${result.recordPath}`);
+} catch (error) {
+  console.error(error.message);
+  process.exit(error && error.remoteActionSucceeded ? 2 : 1);
+}
+NODE
+  then
+    return 0
+  else
+    status=$?
+    echo "ERROR: Remote action succeeded, evidence write failed for cloud function: $function_name" >&2
+    return "$status"
+  fi
+}
+
 deploy_one() {
   local function_name="$1"
 
@@ -318,6 +371,8 @@ deploy_one() {
   if [ "$VERIFY_DEPLOY" = true ]; then
     verify_one "$function_name"
   fi
+
+  record_deploy_success "$function_name"
 }
 
 main() {
@@ -366,6 +421,7 @@ main() {
     exit 1
   fi
 
+  preflight_workflow_records
   require_tcb
   require_config
   load_config
