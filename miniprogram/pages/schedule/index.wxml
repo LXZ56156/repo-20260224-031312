@@ -74,6 +74,13 @@
       </view>
 
       <view class="match-card {{m.isFirstPending ? 'match-card-focus' : ''}}" hover-class="list-card-press" hover-stay-time="80" wx:for="{{item.matchesUi}}" wx:for-item="m" wx:key="key" data-round="{{m.roundIndex}}" data-match="{{m.matchIndex}}" data-status="{{m.status}}" bindtap="openMatch">
+        <view class="match-card-head">
+          <view class="match-title">{{m.title}}</view>
+          <view class="match-card-result" wx:if="{{!m.showScore}}">
+            <view class="pill {{m.statusClass}}">{{m.statusText}}</view>
+          </view>
+        </view>
+
         <view class="match-card-main">
           <view class="match-team">
             <view class="match-team-avatars">
@@ -82,11 +89,16 @@
                 <text class="match-avatar-initial" wx:else>{{item.initial}}</text>
               </view>
             </view>
-            <view class="match-team-name-line ellipsis">{{m.leftTeam.text}}</view>
+            <view class="match-team-name-line">{{m.leftTeam.text}}</view>
           </view>
 
-          <view class="match-center">
-            <view class="vs">VS</view>
+          <view class="match-center {{m.showScore ? 'match-center-score' : ''}}">
+            <view class="match-score-row match-score-row-center" wx:if="{{m.showScore}}">
+              <text class="match-score {{m.leftScoreClass}}">{{m.leftScoreText}}</text>
+              <text class="match-score-sep">:</text>
+              <text class="match-score {{m.rightScoreClass}}">{{m.rightScoreText}}</text>
+            </view>
+            <view class="vs" wx:else>VS</view>
           </view>
 
           <view class="match-team">
@@ -96,17 +108,7 @@
                 <text class="match-avatar-initial" wx:else>{{item.initial}}</text>
               </view>
             </view>
-            <view class="match-team-name-line ellipsis">{{m.rightTeam.text}}</view>
-          </view>
-
-          <view class="match-side-rail">
-            <view class="match-title">{{m.title}}</view>
-            <view class="match-score-row" wx:if="{{m.showScore}}">
-              <text class="match-score {{m.leftScoreClass}}">{{m.leftScoreText}}</text>
-              <text class="match-score-sep">:</text>
-              <text class="match-score {{m.rightScoreClass}}">{{m.rightScoreText}}</text>
-            </view>
-            <view class="pill {{m.statusClass}}" wx:else>{{m.statusText}}</view>
+            <view class="match-team-name-line">{{m.rightTeam.text}}</view>
           </view>
         </view>
 

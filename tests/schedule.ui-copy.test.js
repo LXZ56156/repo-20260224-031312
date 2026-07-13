@@ -17,7 +17,14 @@ test('schedule page hero uses a focused progress layout without adding a share C
   assert.match(wxml, /class="hero"/);
   assert.match(wxml, /class="hero-progress-card"/);
   assert.match(wxml, /class="hero-actions-panel"/);
-  assert.match(wxml, /class="match-team-name-line ellipsis"/);
+  assert.match(wxml, /class="match-card-head"/);
+  assert.match(wxml, /class="match-card-result" wx:if="\{\{!m\.showScore\}\}"/);
+  assert.match(wxml, /class="match-center \{\{m\.showScore \? 'match-center-score' : ''\}\}"/);
+  assert.match(wxml, /class="match-score-row match-score-row-center" wx:if="\{\{m\.showScore\}\}"/);
+  assert.match(wxml, /class="match-team-name-line"/);
+  assert.doesNotMatch(wxml, /match-team-name-line ellipsis|match-side-rail/);
+  assert.match(wxml, /class="match-card [^"]*"[^>]*bindtap="openMatch"/);
+  assert.match(wxml, /class="match-avatar [^"]*"[^>]*catchtap="onMatchPlayerAvatarTap"/);
   assert.match(wxml, /\{\{heroMatchText\}\}/);
   assert.match(wxml, /\{\{heroPendingText\}\}/);
   assert.match(wxml, /\{\{heroProgressPercent >= 0\}\}/);
@@ -28,7 +35,7 @@ test('schedule page hero uses a focused progress layout without adding a share C
   assert.match(wxml, /<block wx:if="\{\{tournament\}\}">/);
 });
 
-test('schedule page keeps team member names on one centered line beneath each avatar group', () => {
+test('schedule page keeps long team names centered and bounded to two lines', () => {
   const wxss = fs.readFileSync(
     path.join(__dirname, '..', 'miniprogram/pages/schedule/index.wxss'),
     'utf8'
@@ -37,5 +44,8 @@ test('schedule page keeps team member names on one centered line beneath each av
 
   assert.match(nameLineRule, /width:\s*100%/);
   assert.match(nameLineRule, /text-align:\s*center/);
-  assert.match(nameLineRule, /white-space:\s*nowrap/);
+  assert.match(nameLineRule, /white-space:\s*normal/);
+  assert.match(nameLineRule, /-webkit-line-clamp:\s*2/);
+  assert.match(nameLineRule, /overflow-wrap:\s*anywhere/);
+  assert.doesNotMatch(wxss, /\.match-side-rail\s*\{[^}]*width:\s*132rpx/s);
 });
