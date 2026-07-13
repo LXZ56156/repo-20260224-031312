@@ -56,6 +56,7 @@ Windows 原生工具链、workflow records、hooks、DevTools session provenance
 2. `fix(tooling): port Windows-native development workflow`
 3. `fix(schedule): center score between teams`
 4. `docs: retire core-flow experiment and start incremental UI plan`
+5. `test(squad): stabilize fairness quality regressions`
 
 每批只使用精确文件清单，提交前审查完整差异；禁止 `git add .`、reset、clean 或 checkout 覆盖。提交与 push 分离，本轮没有远程 push、preview/upload、发布或云函数部署授权。
 

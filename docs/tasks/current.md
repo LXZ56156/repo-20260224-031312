@@ -23,7 +23,7 @@
 - `launch/create/lobby/match/ranking/analytics/home/share-entry`、导航、业务 core 与全局样式保持 master。
 - `cloudfunctions/` 保持 master，无需部署。
 - 从旧分支按白名单迁入 Windows 原生工具链、workflow records、hooks 与验证测试；fixture 通过 13/13 契约测试，2026-07-14 三页真实 smoke 的 DOM、coherence、PNG、事务提升和窗口恢复全部通过，canonical record 已更新到当前分支。
-- 冷启动/全量复验修复四项非功能工具问题：空进程集合参数校验、过早第二次 `auto` 引发的 AppService 竞态、DevTools 多顶层窗口/前台锁导致的截图恢复失败，以及测试文件并发抢占使墙钟预算型调度回归偶发提前截止。
+- 冷启动/全量复验修复四项非功能工具问题：空进程集合参数校验、过早第二次 `auto` 引发的 AppService 竞态、DevTools 多顶层窗口/前台锁导致的截图恢复失败，以及墙钟预算型调度质量回归受桌面负载影响；公平性测试改用确定的 operation clock，独立性能测试仍用真实时钟。
 - 文档体系同步 canonical Windows 路径、工具命令、旧方向关闭原因和新 UI 审批方式。
 
 ## Windows Development Contract
@@ -43,7 +43,7 @@
 - schedule 聚焦测试、`verify:windows-env`、`verify:light`、`verify:full` 与 `git diff --check` 已通过；最终全量为 1164 项、1158 通过、6 跳过、0 失败，lint 0 error（64 个既有 warning）。
 - 已从权威 Windows 源码重跑 `scheduleRunning` 与三页 smoke；`VS`、`21:17`、长中文名、长英文名均完整可读，无重叠或裁切。
 - 2026-07-12 的三页 smoke 属于旧分支/工具迁移历史证据，不能代替新分支产品验收。
-- 本轮已按 records、Windows tooling、schedule UI、docs 四批本地提交；不 push。下一项用户可见优化必须重新逐点审批。
+- 本轮已按 records、Windows tooling、schedule UI、docs 四个主题批次提交，并追加一个测试稳定性补丁；不 push。下一项用户可见优化必须重新逐点审批。
 
 ## Hard Boundaries
 

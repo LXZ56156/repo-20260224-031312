@@ -48,7 +48,7 @@ npm run check:cloud-common
 
 These ordinary workflows use Node or PowerShell directly. They do not require a global npm `script-shell`, WSL, or bare `bash`. A configured Git Bash remains optional and is used only by `scripts/run-bash-script.js` for guarded deploy/hook commands and explicit compatibility work.
 
-The test runner keeps test files at `--test-concurrency=1`. Several squad-quality regressions intentionally exercise production wall-clock search budgets; serial file execution prevents unrelated test files from stealing that budget while preserving every fairness assertion and the production algorithm unchanged.
+The test runner keeps test files at `--test-concurrency=1`. Squad fairness quality regressions use a test-only operation clock (`0.002ms` per deadline read), so identical inputs receive an identical search-operation budget even under transient desktop load. `tests/squad.beam.performance.test.js` remains on the real clock for runtime limits; every fairness assertion and the production algorithm/default deadlines remain unchanged.
 
 ## DevTools Launcher Contract
 

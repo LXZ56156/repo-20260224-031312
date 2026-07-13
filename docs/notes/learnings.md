@@ -4,7 +4,7 @@
 > Periodically review: promote stable items to CLAUDE.md, delete resolved items.
 
 ## Active
-- [2026-07-14] DevTools 冷启动只执行一次 exact `auto --project`，为同一 AppService 保留 75 秒；CLI quit 后空进程集合表示目标树已退出。截图窗口必须按同一 PID 下带 DevTools 标题的可见顶层窗口选择，恢复时校验原句柄仍归属该 PID，不能假设 `.NET MainWindowHandle` 全程稳定。全量 `node:test` 按文件串行，因为 squad 搜索使用真实墙钟截止；并发文件会争抢 CPU 并使公平性回归偶发少搜索一轮，不能用放宽公平性阈值掩盖。
+- [2026-07-14] DevTools 冷启动只执行一次 exact `auto --project`，为同一 AppService 保留 75 秒；CLI quit 后空进程集合表示目标树已退出。截图窗口必须按同一 PID 下带 DevTools 标题的可见顶层窗口选择，恢复时校验原句柄仍归属该 PID，不能假设 `.NET MainWindowHandle` 全程稳定。全量 `node:test` 按文件串行；squad 公平性质量回归用每次 deadline read 前进 `0.002ms` 的 operation clock，使相同输入获得相同操作预算，不能用放宽阈值掩盖抖动。真实墙钟性能继续由 `squad.beam.performance.test.js` 覆盖。
 - [2026-07-13] `feature/core-flow-simplification` 已因整体 UI/流程方向不符合预期而关闭。当前 `codex/ui-optimization-v2` 从 `master@5813ffc` 起步，只保留 schedule 对阵卡中央 `VS`/比分布局；其他页面、流程与视觉保持 master。后续 UI 必须逐点批准、实图验收、单独提交，详见 `docs/tasks/incremental-ui-optimization-plan.md`。
 - [2026-07-13] Windows 权威源码为 `D:\projects(WIN)\badminton-miniapp`，preview 镜像为 sibling `badminton-miniapp-preview`，WSL mirror 仅显式启用。截图先跑 `npm run weapp:probe`，常用闭环为 `npm run screenshot:smoke`，失败用 `npm run screenshot:diagnose -- <case>`；不要使用空壳 `D:\projects\badminton-miniapp` 或旧端口 `9420`。
 - [2026-06-15] 增长飞轮 Phase 1 已完成并推送。关键经验：

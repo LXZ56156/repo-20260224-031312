@@ -1,5 +1,19 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { performance: nodePerformance } = require('node:perf_hooks');
+
+// These are deterministic quality regressions, not wall-clock performance tests.
+// Each deadline read advances 0.002 logical ms, so identical inputs receive the
+// same operation budget under transient desktop/CI load;
+// tests/squad.beam.performance.test.js keeps the real-time deadline coverage.
+let logicalNowMs = nodePerformance.now();
+nodePerformance.now = () => {
+  logicalNowMs += 0.002;
+  return logicalNowMs;
+};
+test.after(() => {
+  delete nodePerformance.now;
+});
 
 const { buildSquadSchedule } = require('../cloudfunctions/startTournament/scheduleModes');
 
