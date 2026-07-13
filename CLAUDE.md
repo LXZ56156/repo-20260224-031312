@@ -8,9 +8,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 |------|---------|-------------|
 | `docs/context/architecture.md` | Stable architecture reference (layers, patterns, modes) | When touching unfamiliar modules or cross-cutting changes |
 | `docs/tasks/current.md` | Current task state and next steps | At session start, to continue prior work |
+| `docs/tasks/incremental-ui-optimization-plan.md` | Current product/UI whitelist and approval gates | Before any user-visible work |
+| `docs/tasks/windows-native-toolchain-migration-handoff.md` | Canonical Windows/WSL/preview paths and migration history | When paths, launchers, hooks, DevTools, or screenshots are involved |
 | `docs/tasks/session-logs/` | Detailed verification logs from completed sessions | When investigating past test results or deployment history |
 | `docs/specs/` | Feature design docs and implementation plans | When starting new feature work |
 | `docs/notes/learnings.md` | Temporary rules, gotchas, accumulated discoveries | Before making assumptions about edge cases |
+| `docs/tools/windows-dev-environment.md` | Windows-native development and private config contracts | Before changing local tooling or hooks |
+| `docs/tools/weapp-ui-screenshot-workflow.md` | Real DevTools screenshot workflow and failure classification | Before visual acceptance work |
 | `docs/tools/we-analysis-local-script.md` | 微信 we分析 datacube 本地拉取脚本使用说明 | 当需要拉取小程序访问数据/用户画像/留存等分析数据时 |
 
 Update `docs/tasks/current.md` when starting or completing significant work. Record temporary discoveries in `docs/notes/learnings.md`, not here.
@@ -23,16 +27,20 @@ WeChat Mini Program for badminton round-robin tournament management. Native WeCh
 
 ```bash
 # Run all tests (Node.js native test runner)
-node --test tests/*.test.js
+npm test
 
 # Run a single test
 node --test tests/ranking-core.consistency.test.js
 
 # Sync shared libraries to cloud functions (required before deploying)
-./scripts/sync-cloud-common.sh
+npm run sync:cloud-common
 
 # Check if cloud common libs are in sync
-./scripts/check-cloud-common.sh
+npm run check:cloud-common
+
+# Windows-native environment and real screenshot loop
+npm run verify:windows-env
+npm run screenshot:smoke
 
 # Pull WeChat official analytics data (we分析 / datacube)
 node scripts/fetch-we-analysis.js <type> <begin_date> <end_date>
@@ -40,7 +48,7 @@ node scripts/fetch-we-analysis.js <type> <begin_date> <end_date>
 # Data saved to data/we-analysis/ (check existing files before re-pulling)
 ```
 
-Deploy cloud functions via WeChat DevTools: right-click `cloudfunctions/` > upload and deploy.
+Deploy cloud functions via WeChat DevTools: right-click `cloudfunctions/` > upload and deploy. Do not upload the mini program, preview upload, release, or deploy cloud functions unless the user explicitly authorizes it.
 
 ## Architecture (Summary)
 
@@ -48,8 +56,8 @@ Deploy cloud functions via WeChat DevTools: right-click `cloudfunctions/` > uplo
 
 - `miniprogram/pages/` — 14 UI pages, tabBar: home/launch/mine
 - `miniprogram/core/` — Shared business logic
-- `cloudfunctions/` — 20 cloud functions, shared code via `scripts/*-common.template.js` (source of truth, never edit `lib/` directly)
-- `tests/` — ~170 test files, `node:test` + `node:assert/strict`
+- `cloudfunctions/` — 22 cloud functions, shared code via `scripts/*-common.template.js` (source of truth, never edit `lib/` directly)
+- `tests/` — `node:test` + `node:assert/strict`; query the live tree rather than copying historical counts
 - Tournament states: `draft` > `running` > `finished`
 - Ranking: wins > point diff > points scored > name
 - Game modes: `multi_rotate`, `squad_doubles`, `fixed_pair_rr`
@@ -64,12 +72,13 @@ Deploy cloud functions via WeChat DevTools: right-click `cloudfunctions/` > uplo
 
 - `wx.saveFile` / `wx.removeSavedFile` > use `wx.getFileSystemManager().*`
 - `wx.getSystemInfo` / `wx.getSystemInfoSync` > use `miniprogram/core/systemInfo.js`
-- Check: `scripts/check-deprecated-wx-api.sh`
+- Check: `npm run check:deprecated-wx-api`
 
 ## MCP Configuration
 
 - Verify working directory matches `.mcp.json` location. After config changes, restart Claude Code before testing.
-- weapp_dev MCP: auto-launch on connection failure before reporting errors.
+- Windows source: `D:\projects(WIN)\badminton-miniapp`; preview mirror: `D:\projects(WIN)\badminton-miniapp-preview`; WSL fallback requires `WEAPP_CODEX_DEV_MODE=wsl-mirror`.
+- `weapp_dev` uses `ws://127.0.0.1:39420`; launcher readiness requires real Tool/App protocol responses.
 
 ## Style & Commit
 
@@ -94,4 +103,4 @@ Deploy cloud functions via WeChat DevTools: right-click `cloudfunctions/` > uplo
 
 ## Skill Policy
 
-Only use: `systematic-debugging`, `test-driven-development`, `verification-before-completion`, `brainstorming`, `simplify`. Do not invoke any other skills.
+Follow the active host and repository skill instructions for the current session. A historical skill allowlist must not override current repository instructions.

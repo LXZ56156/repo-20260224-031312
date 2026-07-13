@@ -259,8 +259,8 @@ npm run preview:share-card
 
 ## 相关文档
 
-- `docs/tasks/growth-optimization.md` — 增长优化待办事项总览
-- `data/we-analysis/search-optimization-plan-verified.md` — 搜索优化方案
+- `docs/specs/growth-flywheel-optimization.md` — 增长飞轮 Phase 1 历史方案与 Phase 2 入口
+- 历史上曾引用 `data/we-analysis/search-optimization-plan-verified.md`，但该文件不在当前仓库；不得视为当前可复验证据
 - `miniprogram/core/shareCard.js` — 源码注释
 
 ---

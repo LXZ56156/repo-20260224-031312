@@ -1,6 +1,8 @@
 # 朋友圈/群聊分享方案优化 实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Lifecycle (2026-07-13): completed historical plan.** 分享卡、timeline card、poster 和 mixin 已落地；下文未勾选 checkbox 保留原执行模板，不代表当前待办。当前 master-based UI 范围以 `docs/tasks/current.md` 和 `docs/tasks/incremental-ui-optimization-plan.md` 为准。
+
+> **Historical execution template:** 下文的 skill 建议和 task-by-task checkbox 仅供追溯，当前会话不要重新执行。
 
 **Goal:** 优化微信小程序分享方案 — 朋友圈用极简缩略图、群聊用 5:4 卡片、新增 1080×1080 海报生成、支持第 4 名+、提取重复代码
 

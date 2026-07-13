@@ -8,25 +8,40 @@
 
 - `docs/context/architecture.md` — 完整架构参考（层级、模式、关键 pattern）
 - `docs/tasks/current.md` — 当前任务状态，会话开始时先读
+- `docs/tasks/incremental-ui-optimization-plan.md` — 当前增量 UI 优化边界与验收门槛
+- `docs/tasks/windows-native-toolchain-migration-handoff.md` — Windows 原生工具链迁移事实与历史验收
 - `docs/specs/` — 功能设计文档和实现计划
 - `docs/notes/learnings.md` — 临时规则与经验积累
+- `docs/tools/windows-dev-environment.md` — Windows 主开发环境与本地配置契约
 - `docs/tools/we-analysis-local-script.md` — we分析数据拉取脚本使用说明
+- `docs/tools/weapp-ui-screenshot-workflow.md` — 微信开发者工具真实截图流程
 
 ## Commands
 
-```bash
-node --test tests/*.test.js          # 全量测试
-./scripts/sync-cloud-common.sh       # 同步云函数共享库
-./scripts/check-cloud-common.sh      # 检查共享库同步状态
+```powershell
+npm run verify:light                 # 常用轻量回归
+npm run verify:full                  # 全量测试 + check + lint + diff check
+npm run verify:windows-env           # Windows 本地配置/launcher 审计，不打印 secret
+npm run ui:screenshot -- --list      # 列出真实截图 case
+npm run screenshot:smoke             # launch + scheduleRunning + home 实图验收
+npm run screenshot:schedule          # scheduleRunning 单页实图
+npm run screenshot:diagnose -- scheduleRunning
+npm run weapp:probe                   # 验证 39420 的真实 Tool.getInfo/App.getCurrentPage
+npm run records:latest               # 查看上传/部署/截图成功记录
+npm test                             # 全量测试
+npm run sync:cloud-common            # 同步云函数共享库
+npm run check:cloud-common           # 检查共享库同步状态
 ```
 
-云函数部署通过微信开发者工具完成。
+Windows 主开发路径为 `D:\projects(WIN)\badminton-miniapp`，preview/upload 镜像为 `D:\projects(WIN)\badminton-miniapp-preview`，WSL fallback 为 `/home/lizixuan/projects(WSL)/badminton-miniapp`。`D:\projects\badminton-miniapp` 只是元数据空壳，禁止使用。日常 npm、hooks、DevTools 和截图走 Windows 原生入口；WSL mirror 只有显式设置 `WEAPP_CODEX_DEV_MODE=wsl-mirror` 才启用。自动化端口为 `ws://127.0.0.1:39420`。
+
+云函数部署通过微信开发者工具完成。不要执行 `npm run mp:upload`、`npm run mp:preview`、云函数 deploy、preview upload 或真实发布，除非用户明确要求。
 
 ## Architecture (Summary)
 
 - `miniprogram/pages/`：14 个页面，tabBar: home/launch/mine
 - `miniprogram/core/`：跨页面业务逻辑
-- `cloudfunctions/`：20 个云函数
+- `cloudfunctions/`：22 个云函数
 - 云函数共享代码以 `scripts/*-common.template.js` 为准，不直接修改 `cloudfunctions/*/lib/*`
 - Tournament states: `draft` > `running` > `finished`
 - Ranking: wins > point diff > points scored > name
@@ -42,7 +57,7 @@ node --test tests/*.test.js          # 全量测试
 
 - `wx.saveFile` / `wx.removeSavedFile` > use `wx.getFileSystemManager().*`
 - `wx.getSystemInfo` / `wx.getSystemInfoSync` > use `miniprogram/core/systemInfo.js`
-- Check: `scripts/check-deprecated-wx-api.sh`
+- Check: `npm run check:deprecated-wx-api`
 
 ## Execution Mode
 
@@ -56,10 +71,12 @@ node --test tests/*.test.js          # 全量测试
 ## Methodology
 
 1. **测试先行**：实现/修复前，先写或确认测试覆盖
-2. **验证后完成**：宣称完成前运行 `node --test tests/*.test.js` 和 `npm run check`
+2. **验证后完成**：宣称完成前按风险运行 `npm run verify:light` 或 `npm run verify:full`
 3. **微信 API**：查文档再写代码，避免废弃 API
-4. **云函数模板**：改 `scripts/*-common.template.js`，改完运行 sync 脚本
+4. **云函数模板**：改 `scripts/*-common.template.js`，改完运行 `npm run sync:cloud-common`
 5. **云函数上传提醒**：完成改动后检查是否涉及 `cloudfunctions/`；如有需要通过微信开发者工具上传的云函数，在最终汇报中提醒一次具体函数名，不反复提醒
+6. **Windows shell**：普通 npm 开发/验证不得依赖全局 `script-shell` 或裸 `bash`；guarded deploy/hook 与显式 compatibility flow 统一通过 `scripts/run-bash-script.js`。
+7. **增量 UI**：当前产品基线保持 `master@5813ffc` 的原流程；除已批准的 schedule 中央 `VS`/比分布局外，任何页面结构、视觉或流程调整都必须逐点批准、实图验收、单独提交。
 
 ## Style & Commit
 

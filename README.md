@@ -36,10 +36,13 @@
      {"read": true, "write": false}
      ```
 
-## 4. 部署云函数（必须）
+## 4. 首次环境初始化：部署云函数（需明确授权）
+
+> 以下步骤只用于用户明确授权后的首次初始化或指定云函数部署。日常开发、测试和文档维护不得自行上传或部署；已有环境也不要重复执行“上传并部署：所有云函数”。
+
 1. 先在项目根目录执行：
-   ```bash
-   ./scripts/sync-cloud-common.sh
+   ```powershell
+   npm run sync:cloud-common
    ```
    用于同步云函数公共库、模式工具、权限工具到各函数目录。
 2. 在开发者工具左侧资源管理器里，找到 `cloudfunctions/`
@@ -52,10 +55,12 @@
 - createTournament
 - deleteTournament
 - feedbackSubmit
+- generateShareCode
 - getMyPerformanceStats
 - getUserProfile
 - joinTournament
 - login
+- manageActivityId
 - managePairTeams
 - rebuildRankings
 - removePlayer
@@ -93,6 +98,19 @@ npm run check:deprecated-wx-api
 
 # 执行常用本地检查
 npm run check
+
+# Windows 原生环境审计与常用回归
+npm run verify:windows-env
+npm run verify:light
+npm run verify:full
+
+# 真实微信开发者工具截图
+npm run ui:screenshot -- --list
+npm run screenshot:smoke
+npm run screenshot:schedule
+
+# 查看上传/部署/截图成功记录
+npm run records:latest
 ```
 
 其中 `npm run check:deprecated-wx-api` 会拦截以下废弃 API：
@@ -101,8 +119,23 @@ npm run check
 - `wx.saveFile`
 - `wx.removeSavedFile`
 
+## 5.2 Windows 主开发环境
+
+- 权威源码：`D:\projects(WIN)\badminton-miniapp`
+- preview/upload 镜像：`D:\projects(WIN)\badminton-miniapp-preview`
+- 显式 WSL fallback：`/home/lizixuan/projects(WSL)/badminton-miniapp`
+- DevTools 自动化：`ws://127.0.0.1:39420`
+
+`D:\projects\badminton-miniapp` 只是元数据空壳，禁止作为源码。日常 npm、hooks、DevTools 和截图均走 Windows 原生链路；preview 镜像只在明确授权的 preview/upload 流程使用。详见 `docs/tools/windows-dev-environment.md`。
+
+普通验证不依赖全局 npm `script-shell`、WSL 或裸 `bash`。云函数 deploy、小程序 preview/upload、发布和真实云数据写入都必须先取得明确授权。
+
 ## 6. 运行 & 典型流程
+
+当前 `codex/ui-optimization-v2` 保留 `master@5813ffc` 的以下完整流程。已关闭的 `feature/core-flow-simplification` 不再作为产品基线；唯一保留的可见改动是对阵列表中将待录分 `VS` / 完赛比分放到双方头像姓名之间，为长名字释放宽度。
+
 ### 6.1 创建赛事（管理员）
+
 1. 首页 → **去创建**
 2. 填：赛事名、昵称/头像（可选）
 3. 创建并进入大厅

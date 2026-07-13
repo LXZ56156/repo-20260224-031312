@@ -229,7 +229,7 @@
 
 ## 结果文档计划结构
 
-结果文档命名为 `docs/scheduler-fairness-check-2026-05-05.md`，包含：
+结果文档后来归档为 `docs/reports/scheduler-fairness-check-2026-05-05.md`，包含：
 
 - 检查摘要
 - 执行命令与环境

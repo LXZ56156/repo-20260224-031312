@@ -1,10 +1,12 @@
 # 微信 MCP 上线前自动验收报告
 
+> 历史报告。路径、工具状态和上传结果只代表 2026-06-02，不是当前操作说明；当前 Windows 路径见 `docs/tools/windows-dev-environment.md`。
+
 执行日期：2026-06-02
 
 ## 基本信息
 
-- Windows 镜像项目：`D:\projects\badminton-miniapp-preview`
+- 当时的 Windows 镜像项目：`D:\projects\badminton-miniapp-preview`（现已废弃）
 - MCP 服务：`ws://127.0.0.1:39420`
 - MCP 连接：成功
 - 镜像同步：成功

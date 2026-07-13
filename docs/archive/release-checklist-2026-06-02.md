@@ -1,9 +1,11 @@
 # 上线前微信 MCP 自动验收清单
 
+> 历史清单（2026-06-02）。下文旧 preview 路径仅记录当时环境；当前路径和命令见 `docs/tools/windows-dev-environment.md`，不得直接照此执行。
+
 ## 前提
 
 1. 确认微信开发者工具已启动，自动化服务端口可连接。
-2. 使用微信开发者工具 MCP / `weapp-dev` MCP 连接 Windows 镜像项目：`D:\projects\badminton-miniapp-preview`。
+2. 当时使用微信开发者工具 MCP / `weapp-dev` MCP 连接 Windows 镜像项目：`D:\projects\badminton-miniapp-preview`（现已废弃）。
 3. 确认小程序已完成编译，首页可打开；如有编译错误，记录错误并停止后续 UI 验收。
 4. 涉及云端真实能力时，先部署对应云函数。
 5. MCP 无法真实验证微信群聊卡片最终展示形态，报告必须标注「需真机补充确认」。
@@ -24,4 +26,4 @@
 
 ## MCP 验收报告
 
-执行结果记录在 `docs/tasks/wechat-mcp-release-report-2026-06-02.md`。
+执行结果现归档在 `docs/reports/wechat-mcp-release-report-2026-06-02.md`。

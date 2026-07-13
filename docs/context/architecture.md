@@ -8,14 +8,14 @@ miniprogram/core/         Business logic shared across pages
 miniprogram/core/storage/ Local storage with TTL caching
 miniprogram/permission/   Permission checks (isAdmin, isParticipant, canEditScore)
 miniprogram/config/env.js Cloud environment config (develop/trial/release)
-cloudfunctions/           20 cloud functions, each: index.js entry + lib/ shared code
+cloudfunctions/           22 cloud functions, each: index.js entry + lib/ shared code
 scripts/                  Build tooling; *-common.template.js = source of truth for cloud libs
-tests/                    ~170 test files, node:test + node:assert/strict
+tests/                    node:test + node:assert/strict; count from the live tree when needed
 ```
 
 ## Cloud Function Shared Libraries
 
-Template files in `scripts/*-common.template.js` are the source of truth. `./scripts/sync-cloud-common.sh` copies them to each cloud function's `lib/`. Never edit `cloudfunctions/*/lib/` directly.
+Template files in `scripts/*-common.template.js` are the source of truth. `npm run sync:cloud-common` copies them to each cloud function's `lib/`. Never edit `cloudfunctions/*/lib/` directly.
 
 Shared modules: `common.js`, `mode.js`, `permission.js`, `player.js`, `rankingCore.js`, `score.js`, `schedule.js`, `fixedPair.js`.
 
@@ -29,6 +29,12 @@ Shared modules: `common.js`, `mode.js`, `permission.js`, `player.js`, `rankingCo
 - **Navigation & flow** (`core/nav.js`, `core/matchFlow.js`, `core/uxFlow.js`): State-driven navigation by tournament status (draft/running/finished).
 - **Retry action** (`core/retryAction.js`): Reusable retry method factory, mixable into pages.
 - **Sync status** (`core/syncStatus.js`): Sync state machine (loading/stale/offline) for UI indicators.
+
+## Current Product Baseline
+
+`codex/ui-optimization-v2` starts from `master@5813ffc` and preserves its full create/configure/start/score/rank/review-share flow. The retired `feature/core-flow-simplification` branch is historical evidence only; its direct-create flow, removed analytics/review surfaces, reduced lobby/home/share context, navigation rewrite, and flattened global visual system are not part of the architecture baseline.
+
+The only approved product overlay is local to `pages/schedule/index.wxml` and `index.wxss`: pending `VS` and completed score sit between both teams, while names may use two lines. It must not change routing, scoring, filters, permissions, cloud contracts, or any other page.
 
 ## Game Modes
 
