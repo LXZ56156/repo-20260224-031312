@@ -1,0 +1,216 @@
+{
+  "schemaVersion": 1,
+  "stream": "ui-screenshot",
+  "recordedAt": "2026-07-13T16:26:51.627Z",
+  "git": {
+    "branch": "codex/ui-optimization-v2",
+    "head": "5813ffc79f94c180fa5573eb25fb0d57f53b85df",
+    "shortHead": "5813ffc",
+    "dirty": true,
+    "dirtyFiles": [
+      "M .claude/settings.json",
+      " M .codex/config.toml",
+      " M .codex/hooks.json",
+      " M .env.local.example",
+      " M .gitignore",
+      " M AGENTS.md",
+      " M CLAUDE.md",
+      " M README.md",
+      " M docs/archive/release-checklist-2026-06-02.md",
+      " M docs/archive/scheduler-fairness-check-plan-2026-05-05.md",
+      " M docs/archive/scheduler-optimization-implementation-2026-05-05.md",
+      " M docs/archive/share-card-handover.md",
+      " M docs/context/architecture.md",
+      " M docs/notes/learnings.md",
+      " M docs/reports/scheduler-fairness-check-2026-05-05.md",
+      " M docs/reports/wechat-mcp-release-report-2026-06-02.md",
+      " M docs/specs/growth-flywheel-optimization.md",
+      " M docs/specs/share-optimization-design.md",
+      " M docs/specs/share-optimization-plan.md",
+      " M docs/tasks/current.md",
+      " M docs/tasks/session-logs/2026-06-02-share-card-verification.md",
+      " M docs/tools/weapp-ui-screenshot-workflow.md",
+      " M miniprogram/pages/schedule/index.wxml",
+      " M miniprogram/pages/schedule/index.wxss",
+      " M package-lock.json",
+      " M package.json",
+      " M scripts/check-cloud-common.sh",
+      " M scripts/check-deprecated-wx-api.sh",
+      " M scripts/deploy-cloudfunctions.sh",
+      " M scripts/deploy-preview.ps1",
+      " M scripts/dev/start-weapp-preview.ps1",
+      " M scripts/dev/weapp-dev.sh",
+      " M scripts/dev/weapp-sync-preview.sh",
+      " M scripts/dev/weapp-ui-screenshot.js",
+      " M scripts/mp-ci.js",
+      " M scripts/sync-cloud-common.sh",
+      " M tests/codex.user-prompt-hook.test.js",
+      " M tests/deploy-changed-cloudfunctions.test.js",
+      " M tests/schedule.ui-copy.test.js",
+      " M tests/weapp-hook-config.test.js",
+      " M tests/weapp-preview-workflow.test.js",
+      "?? .codex/hooks/weapp_preflight.js",
+      "?? .codex/hooks/weapp_stop.js",
+      "?? .codex/hooks/windows_weapp_preflight.ps1",
+      "?? .codex/hooks/windows_weapp_stop.ps1",
+      "?? .github/",
+      "?? docs/records/",
+      "?? docs/tasks/core-flow-simplification-plan.md",
+      "?? docs/tasks/core-flow-simplification-ui-fix-plan.md",
+      "?? docs/tasks/incremental-ui-optimization-plan.md",
+      "?? docs/tasks/session-logs/20260622-core-flow-simplification-ui-fix.md",
+      "?? docs/tasks/session-logs/20260622-core-flow-simplification.md",
+      "?? docs/tasks/windows-native-toolchain-migration-handoff.md",
+      "?? docs/tools/windows-dev-environment.md",
+      "?? scripts/check-deprecated-wx-api.js",
+      "?? scripts/cloud-common.js",
+      "?? scripts/dev/check-windows-env.js",
+      "?? scripts/dev/probe-weapp-automation.ps1",
+      "?? scripts/dev/show-weapp-devtools-window.ps1",
+      "?? scripts/dev/start-weapp-main.ps1",
+      "?? scripts/dev/weapp-hook-ensure.js",
+      "?? scripts/dev/weapp-post-edit.js",
+      "?? scripts/dev/weapp-powershell-common.ps1",
+      "?? scripts/dev/weapp-screenshot-diagnose.js",
+      "?? scripts/lib/",
+      "?? scripts/run-bash-script.js",
+      "?? scripts/run-eslint.js",
+      "?? scripts/run-node-tests.js",
+      "?? scripts/show-workflow-records.js",
+      "?? tests/ui-screenshot-matrix.test.js",
+      "?? tests/ui-screenshot-safety.test.js",
+      "?? tests/weapp-session-provenance.ps1",
+      "?? tests/windows-dev-workflow.test.js",
+      "?? tests/windows-native-toolchain.test.js",
+      "?? tests/workflow-records.test.js"
+    ]
+  },
+  "payload": {
+    "event": "screenshot_success",
+    "runKind": "smoke",
+    "requestedCases": [
+      "launch",
+      "scheduleRunning",
+      "home"
+    ],
+    "sourceProject": "D:\\projects(WIN)\\badminton-miniapp",
+    "cases": [
+      {
+        "name": "launch",
+        "output": "D:\\projects(WIN)\\badminton-miniapp\\tmp\\ui-screenshots-actual\\launch.png",
+        "ok": true,
+        "bytes": 183353,
+        "width": 717,
+        "height": 1233,
+        "connectMs": 17,
+        "navigationMs": 8600,
+        "captureMs": 383,
+        "captureCount": 3,
+        "coherence": {
+          "selector": ".launch-card",
+          "transition": {
+            "sampledPixels": 526959,
+            "changedPixels": 3887,
+            "changedRatio": 0.007376285441561868,
+            "meanAbsoluteDifference": 0.42481862915331053
+          },
+          "stability": {
+            "sampledPixels": 526959,
+            "changedPixels": 0,
+            "changedRatio": 0,
+            "meanAbsoluteDifference": 0
+          }
+        },
+        "durationMs": 15933
+      },
+      {
+        "name": "scheduleRunning",
+        "output": "D:\\projects(WIN)\\badminton-miniapp\\tmp\\ui-screenshots-actual\\scheduleRunning.png",
+        "ok": true,
+        "bytes": 229254,
+        "width": 717,
+        "height": 1384,
+        "connectMs": 11,
+        "navigationMs": 7584,
+        "captureMs": 421,
+        "captureCount": 3,
+        "coherence": {
+          "selector": ".round-card",
+          "transition": {
+            "sampledPixels": 51075,
+            "changedPixels": 81,
+            "changedRatio": 0.0015859030837004405,
+            "meanAbsoluteDifference": 0.18562245064447702
+          },
+          "stability": {
+            "sampledPixels": 51075,
+            "changedPixels": 0,
+            "changedRatio": 0,
+            "meanAbsoluteDifference": 0
+          }
+        },
+        "durationMs": 13686
+      },
+      {
+        "name": "home",
+        "output": "D:\\projects(WIN)\\badminton-miniapp\\tmp\\ui-screenshots-actual\\home.png",
+        "ok": true,
+        "bytes": 52898,
+        "width": 717,
+        "height": 1233,
+        "connectMs": 4,
+        "navigationMs": 7276,
+        "captureMs": 257,
+        "captureCount": 3,
+        "coherence": {
+          "selector": ".swipe-row",
+          "transition": {
+            "sampledPixels": 187767,
+            "changedPixels": 716,
+            "changedRatio": 0.003813236617723029,
+            "meanAbsoluteDifference": 0.25430808750561434
+          },
+          "stability": {
+            "sampledPixels": 187767,
+            "changedPixels": 0,
+            "changedRatio": 0,
+            "meanAbsoluteDifference": 0
+          }
+        },
+        "durationMs": 12958
+      }
+    ],
+    "outDir": "D:\\projects(WIN)\\badminton-miniapp\\tmp\\ui-screenshots-actual",
+    "wsEndpoint": "ws://127.0.0.1:39420",
+    "screenshotTimeoutMs": 45000,
+    "reLaunchTimeoutMs": 25000,
+    "reuseConnection": false,
+    "maxAttempts": 2,
+    "windowPrepareMs": 10473,
+    "windowRestore": {
+      "processId": 706860,
+      "processCreationDate": "2026-07-13T16:17:31.2920250+00:00",
+      "windowHandle": 396360,
+      "windowStateRestored": true,
+      "originalShowCmd": 2,
+      "restoredShowCmd": 2,
+      "foregroundRestoreAction": "restore-original",
+      "foregroundRestored": true,
+      "foregroundSafe": true,
+      "userFocusPreserved": false,
+      "finalForegroundWindowHandle": 329314,
+      "durationMs": 5280
+    },
+    "runtimeDiagnostics": {
+      "deprecatedFileApiWarningCount": 0,
+      "fakeFixtureSyncErrorCount": 0
+    },
+    "totalDurationMs": 58369,
+    "command": "node scripts/dev/weapp-ui-screenshot.js --smoke",
+    "commandArgv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "D:\\projects(WIN)\\badminton-miniapp\\scripts\\dev\\weapp-ui-screenshot.js",
+      "--smoke"
+    ]
+  }
+}
