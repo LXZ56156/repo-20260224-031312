@@ -1,9 +1,10 @@
 # 增量 UI 优化计划
 
-> 状态：本轮完成，等待下一项逐点批准
+> 状态：开发分支已推送，尚未小程序发布；等待下一项逐点批准
 > 决策日期：2026-07-13
 > 分支：`codex/ui-optimization-v2`
 > 产品基线：`master@5813ffc`
+> 线上版本：用户于 2026-07-15 确认 `master` = `origin/master` = `5813ffc`
 
 ## 决策背景
 
@@ -48,7 +49,7 @@
 
 Windows 原生工具链、workflow records、hooks、DevTools session provenance、截图窗口恢复和故障分型可以从已验证实现中按白名单迁入。这些变更不得改变页面、业务逻辑或云端行为，并应与产品改动分批提交。
 
-2026-07-12 在旧分支生成的截图只作为工具链历史证据。新分支已针对 master 页面结构重新适配 selector/fixture 并通过契约测试，但仍须重新生成验收图；旧分支的 canonical latest 不得冒充本分支产品验收。
+2026-07-12 在旧分支生成的前 5 条截图记录只作为工具链历史证据。新分支针对 master 页面结构重新适配 selector/fixture 后，于 2026-07-14 完成三页 smoke；`ui-screenshot.jsonl` 第 6 条和 canonical latest 已指向当前分支。该记录是 `git.head=5813ffc`、`dirty=true` 的 pre-commit acceptance snapshot，只证明被捕获工作区的产品像素验收，不证明干净 commit、Git push 或线上发布。
 
 ## 本轮提交批次
 
@@ -58,7 +59,7 @@ Windows 原生工具链、workflow records、hooks、DevTools session provenance
 4. `docs: retire core-flow experiment and start incremental UI plan`
 5. `test(squad): stabilize fairness quality regressions`
 
-每批只使用精确文件清单，提交前审查完整差异；禁止 `git add .`、reset、clean 或 checkout 覆盖。提交与 push 分离，本轮没有远程 push、preview/upload、发布或云函数部署授权。
+每批只使用精确文件清单，提交前审查完整差异；禁止 `git add .`、reset、clean 或 checkout 覆盖。计划执行阶段最初没有 push 授权；用户于 2026-07-15 另行授权后，完成提交已推送到 `origin/codex/ui-optimization-v2`。该 Git push 不代表小程序发布；仍未执行 preview/upload、正式发布或云函数部署。
 
 ## 当前轮验收
 

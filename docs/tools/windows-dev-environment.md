@@ -117,6 +117,12 @@ Claude hooks use `scripts/dev/weapp-hook-ensure.js` and `scripts/dev/weapp-post-
 
 Git is the source handoff mechanism. Never copy the WSL checkout over Windows or use the preview mirror as a source sync channel.
 
+### Git and Release State (2026-07-15)
+
+The user confirmed that the online mini-program corresponds to `master` = `origin/master` = `5813ffc`. The development branch `codex/ui-optimization-v2` has been pushed to `origin/codex/ui-optimization-v2`, but its schedule/tooling/docs changes have not been uploaded or released.
+
+Git push is source transfer only; it is not mini-program online-release state and does not run `mp:preview`, `mp:upload`, a formal mini-program release, or cloud-function deployment. Never infer production state from branch/upstream equality; use the explicit release fact in `docs/tasks/current.md`.
+
 Windows to WSL:
 
 ```powershell
@@ -160,7 +166,7 @@ Successful workflows write under `docs/records/`:
 - cloud deployment: `cloudfunctions-deploy.jsonl` / latest;
 - requested screenshot sets: `ui-screenshot.jsonl` / `ui-screenshot-latest.json`.
 
-The 2026-07-12 record belongs to the retired product branch. The current `codex/ui-optimization-v2` smoke was accepted on 2026-07-14: three coherent three-frame captures, zero deprecated-file warnings and fake-fixture sync errors, exact restoration from/to minimized `showCmd=2`, restored foreground focus, and total script time `58.369s` (including `10.473s` preparation and `5.280s` restoration). The canonical latest record now names the current branch and authoritative source path.
+The 2026-07-12 records belong to the retired product branch. The current `codex/ui-optimization-v2` smoke was accepted on 2026-07-14: three coherent three-frame captures, zero deprecated-file warnings and fake-fixture sync errors, exact restoration from/to minimized `showCmd=2`, restored foreground focus, and total script time `58.369s` (including `10.473s` preparation and `5.280s` restoration). The canonical latest record names the current branch and authoritative source path, but its capture-time provenance is `git.head=5813ffc` and `dirty=true`; it is worktree screenshot evidence, not clean-commit, push, upload, or release evidence.
 
 ## Post-Commit Hook and Boundaries
 

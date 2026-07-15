@@ -1,6 +1,6 @@
 # Core Flow Simplification UI Fix Session
 
-> Historical session log started on 2026-06-22. Current paths, verification, and next-action authority are maintained in `docs/tasks/current.md`; the 2026-07-12 resolution addendum below supersedes operational statements from the original migration checkpoints without rewriting their history.
+> Historical session log started on 2026-06-22. Current paths, verification, and next-action authority are maintained in `docs/tasks/current.md`; the 2026-07-12 resolution and 2026-07-13 closure addenda supersede operational statements from the original checkpoints without rewriting their history. Any pending/blocked status below is a historical snapshot. The recorded push request is a historical request and is not current authorization for any remote action.
 
 ## Start State
 
@@ -23,14 +23,14 @@
 | --- | --- | --- | --- | --- |
 | Lobby hero information | Confirmed | `tmp/ui-screenshots-actual/lobbyEmpty.png`, `lobbyWaiting.png`, `lobbyReady.png` | Passed on 2026-06-23 | 1108 tests + check + lint passed |
 | Create compatibility | Confirmed | `tmp/ui-screenshots-actual/createCompat.png`, `launchCreating.png` | Passed on 2026-06-23 | 1113 tests + check + lint passed |
-| Schedule small-screen card | Technical acceptance complete; awaiting final product confirmation | `tmp\ui-screenshots-actual\scheduleRunning.png` (refreshed 2026-07-12) | Pending | Original session 1115 tests; current migration/full verification passed |
-| Ranking summary/ad | Not started | Pending | Pending | Not authorized; blocked by explicit approval after point 3 |
-| Home/share-entry audit | Not started | Pending | Pending | Blocked by point 4 |
+| Schedule small-screen card | Historical checkpoint: technical acceptance complete; later retained as sole accepted extraction | `tmp\ui-screenshots-actual\scheduleRunning.png` (refreshed 2026-07-12) | Accepted extraction on 2026-07-13 | Original session 1115 tests; current migration/full verification passed |
+| Ranking summary/ad | Historical checkpoint: not started; cancelled on 2026-07-13 | Not produced | Cancelled | Old approval gate superseded by closure |
+| Home/share-entry audit | Historical checkpoint: not started; cancelled on 2026-07-13 | Not produced | Cancelled | Old approval gate superseded by closure |
 
 ## Constraints And Risks
 
 - No cloud function changes or deployment.
-- No preview upload or remote push.
+- At that checkpoint, no preview upload or remote push had occurred.
 - Do not restore removed low-value guidance or duplicate CTAs.
 - Real screenshot inspection is required before asking for user confirmation.
 
@@ -66,11 +66,11 @@
 - Kept interaction semantics unchanged: whole card opens the match, avatar taps still filter, status filter values are unchanged, scorer note remains below the matchup.
 - Added screenshot fixture coverage for long names, `优先录分`, `21:17`, and the `.match-center-score` selector.
 - Verification: focused schedule suite 23/23; final full suite 1113/1113; `npm run check` passed; `npm run lint` passed with 0 errors and 59 existing warnings; `git diff --check` passed.
-- Historical screenshot note: the original WSL refresh failed because DevTools automation was not reachable. This was superseded by the successful 2026-07-12 Windows canonical-source capture described in the resolution addendum; final user product confirmation is still required before UI point 4.
+- Historical screenshot note: the original WSL refresh failed because DevTools automation was not reachable. This was superseded by the successful 2026-07-12 Windows canonical-source capture; at that checkpoint, final product confirmation was still required before point 4. The 2026-07-13 closure later accepted only point 3 and cancelled point 4.
 
 ## Migration Checkpoint
 
-- User requested committing and pushing all pending work before moving development to Windows.
+- Historical request, not current authorization: the user then requested committing and pushing pending work before moving development to Windows.
 - Windows screenshot validation completed outside this repo:
   - Launcher: `D:\weapp-mcp-launcher`
   - Preview project at that historical checkpoint: `D:\projects\badminton-miniapp-preview` (later moved; not a current path)
@@ -78,7 +78,7 @@
   - Single screenshot, 10 consecutive screenshots, 9-case sequential navigation, 5 reconnect-per-case rounds, 20 rapid switches, 30 same-surface screenshots, and 18 long-running screenshots all passed.
   - Valid Windows output directories: `D:\weapp-mcp-launcher\tmp-screenshots\multi-page-orchestrated`, `D:\weapp-mcp-launcher\tmp-screenshots\long-running`.
 - Documented the new screenshot workflow in `docs/tools/weapp-ui-screenshot-workflow.md` and `docs/notes/learnings.md`.
-- Migration handoff state: UI points 1 and 2 are confirmed; UI point 3 code/test work is complete and should receive Windows real-screenshot visual confirmation next; UI point 4 remains blocked until that confirmation.
+- Historical migration handoff state: points 1 and 2 were confirmed; point 3 awaited Windows visual confirmation; point 4 was then blocked. The later closure supersedes this checkpoint.
 
 ## Historical Windows Main Development Finalization (superseded 2026-07-12)
 
@@ -86,7 +86,7 @@
 - At the same checkpoint the preview mirror was `D:\projects\badminton-miniapp-preview`; it has since moved to the sibling `(WIN)` path.
 - Codex project hooks now use cross-platform Node wrappers: Windows calls the main-project preflight/stop scripts, non-Windows defaults to no-op, and the legacy WSL mirror flow only runs when `WEAPP_CODEX_DEV_MODE=wsl-mirror` is set explicitly.
 - `install-cloud-deploy-hook.sh` can run on Windows only through Git Bash: `D:\Soft\Git\bin\bash.exe scripts/install-cloud-deploy-hook.sh`. The Windows local `.git/hooks/post-commit` hook is installed and has passed `SKIP_CLOUD_POST_COMMIT_DEPLOY=1` skip verification; it was not used to deploy cloud functions.
-- Squad fairness regression tests now use a test-only deterministic search option for exact quality assertions. Production squad scheduling still defaults to the original wall-clock soft/hard budget, and the 7v7/9v9 fairness assertions were not relaxed.
+- At this checkpoint, squad fairness regressions used a test-only deterministic search option. The accepted current mechanism advances a test-only operation clock by `0.002ms` per deadline read; production scheduling and the separate performance suite retain real wall time, original deadlines, and unchanged 7v7/9v9 assertions.
 - UI point 3 has a valid Windows main-project screenshot at `tmp\ui-screenshots-actual\scheduleRunning.png`; manual inspection confirmed pending cards keep `VS` centered and finished score `21:17` appears between teams.
 - Historical follow-up: later reruns of `scheduleRunning` hit `App.captureScreenshot` timeout while DevTools port, page stack, selectors, and text assertions were healthy. The 2026-07-12 resolution below closes this issue.
 
@@ -96,11 +96,11 @@
 - The window lifecycle fix binds the session PID/CreationDate/window handle, temporarily maximizes only the target DevTools window for capture, verifies coherent probe/recovery frames, and restores the original minimized state and exact restore-time user foreground on both success and failure.
 - `npm run screenshot:smoke` passed from canonical source for `launch`, `scheduleRunning`, and `home`; the promoted `scheduleRunning.png` confirms centered `VS` and `21:17`, with no fake fixture sync errors.
 - 2026-07-12 initial migration acceptance checkpoint: `npm run verify:light` = 74 total / 68 pass / 6 skip / 0 fail; forced-`cmd.exe` `npm run verify:full` = 1157 total / 1151 pass / 6 skip / 0 fail; `git diff --check` passed. Current submission-review counts live in `docs/tasks/current.md`.
-- UI point 3 is technically accepted and awaits the user's final product confirmation. UI point 4 remains a user-visible change and must not start without explicit approval.
+- Historical 2026-07-12 gate: point 3 was technically accepted and awaited final product confirmation; point 4 could not start. The 2026-07-13 closure superseded this gate by retaining point 3 alone and cancelling points 4 and 5.
 
 ## 2026-07-13 Closure Addendum
 
-- This log remains an unchanged historical account of the follow-up work on `feature/core-flow-simplification`.
+- This log retains the historical account of the follow-up work on `feature/core-flow-simplification`; later annotations only mark superseded authority and status.
 - The user rejected the overall simplified UI/flow direction. UI points 4 and 5 are cancelled and the old branch will not be repaired further.
 - UI point 3 is the sole accepted extraction: on the new `master`-based branch, pending `VS` and finished score stay centered between both teams to give names more room.
 - All other launch/create/lobby/match/ranking/analytics/home/share-entry behavior and visual structure return to the `master@5813ffc` baseline.

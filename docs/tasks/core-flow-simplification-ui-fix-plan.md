@@ -1,6 +1,7 @@
 # Core Flow Simplification UI Fix Plan
 
 > Status: cancelled on 2026-07-13. Historical point 3 is extracted separately; points 4 and 5 will not continue.
+> Reading rule: all approval, pending, blocked, and next-gate wording below is a historical checkpoint superseded by the 2026-07-13 cancellation. Current authority lives in `docs/tasks/current.md` and `docs/tasks/incremental-ui-optimization-plan.md`.
 
 ## Baseline
 
@@ -27,9 +28,9 @@
 | --- | --- | --- | --- | --- | --- |
 | 1. Lobby hero | Add one compact mode/points/people/matches/courts line | None | Confirmed | `tmp/ui-screenshots-actual/lobby*.png` | Passed |
 | 2. Create compatibility | Replace obsolete form with safe launch redirect | Navigation changes; no auto-create | Confirmed | `tmp/ui-screenshots-actual/createCompat.png`, `launchCreating.png` | Passed |
-| 3. Schedule small screen | Reflow match card at 375px | None | Technical acceptance complete; awaiting final product confirmation | `tmp\ui-screenshots-actual\scheduleRunning.png` (refreshed 2026-07-12) | Pending |
-| 4. Ranking result/ad | Add short result context and move existing ad slot | CTA/default unchanged | Not authorized; blocked by explicit approval after point 3 | Pending | Pending |
-| 5. Home/share-entry | Audit only; change only if objective defect exists | To be assessed | Blocked by point 4 | Pending | Pending |
+| 3. Schedule small screen | Reflow match card at 375px | None | Historical checkpoint: technical acceptance was complete; later retained as the sole accepted extraction | `tmp\ui-screenshots-actual\scheduleRunning.png` (refreshed 2026-07-12) | Accepted extraction on 2026-07-13 |
+| 4. Ranking result/ad | Add short result context and move existing ad slot | CTA/default unchanged | Historical checkpoint: was blocked; cancelled on 2026-07-13 | Not produced | Cancelled |
+| 5. Home/share-entry | Audit only; change only if objective defect exists | To be assessed | Historical checkpoint: was blocked; cancelled on 2026-07-13 | Not produced | Cancelled |
 
 ## UI Point 1 Scope
 
@@ -43,7 +44,7 @@
 
 - Real DevTools font metrics may wrap the metadata differently from static structure tests.
 - Long tournament names and the status tag require screenshot inspection on the actual 375px viewport.
-- Later UI points remain intentionally untouched until explicit confirmation.
+- At this historical checkpoint, later UI points remained intentionally untouched pending explicit confirmation; points 4 and 5 were subsequently cancelled.
 
 ## UI Point 1 Verification
 
@@ -74,7 +75,7 @@
 - Focused schedule tests: 23 passed, 0 failed.
 - Full suite: 1113 passed, 0 failed; `npm run check` passed; `npm run lint` passed with 0 errors and 59 existing warnings; `git diff --check` passed.
 - Screenshot fixture now requires `.match-center-score` and expected score text `21:17`. Windows main project produced a valid `tmp\ui-screenshots-actual\scheduleRunning.png`; manual inspection confirmed pending cards keep `VS` centered and finished score `21:17` sits between both teams.
-- 2026-07-12 refresh: the canonical source project regenerated `scheduleRunning.png`; the three-case screenshot smoke completed with coherent probe/recovery frames and `fakeFixtureSyncErrorCount=0`. The technical acceptance is complete, but the user-visible point still awaits final product confirmation.
+- 2026-07-12 refresh: the canonical source project regenerated `scheduleRunning.png`; the three-case screenshot smoke completed with coherent probe/recovery frames and `fakeFixtureSyncErrorCount=0`. At that checkpoint, the user-visible point still awaited final product confirmation; the 2026-07-13 closure retained it as the sole accepted extraction.
 
 ## Windows Migration Checkpoint And 2026-07-12 Resolution
 
@@ -82,12 +83,12 @@
 - Preview/upload mirror remains available at `D:\weapp-mcp-launcher\weapp-mcp.cmd` + `D:\projects(WIN)\badminton-miniapp-preview`, but it is not part of daily development or screenshot acceptance.
 - Codex daily hooks now use cross-platform Node wrappers: Windows calls the main-project preflight/stop scripts, non-Windows defaults to no-op, and the legacy WSL mirror flow only runs when `WEAPP_CODEX_DEV_MODE=wsl-mirror` is set explicitly.
 - `install-cloud-deploy-hook.sh` is Windows-compatible only through Git Bash: `D:\Soft\Git\bin\bash.exe scripts/install-cloud-deploy-hook.sh`. The Windows local `.git/hooks/post-commit` hook is installed and has passed `SKIP_CLOUD_POST_COMMIT_DEPLOY=1` skip verification; do not use it as a deployment test, and no cloud function deploy is required.
-- Squad fairness tests now pass a test-only deterministic search option for exact beam-quality regression cases. Production scheduling still uses the original wall-clock soft/hard budget by default and fairness assertions were not relaxed.
+- At this checkpoint, squad fairness tests used a test-only deterministic search option. The accepted current test mechanism instead advances an operation clock by `0.002ms` per deadline read for exact beam-quality regression cases; the separate performance suite and production scheduling retain real wall time, original deadlines, and unchanged fairness assertions.
 - Historical 2026-06/07 stress evidence passed single capture, repeated capture, reconnect, rapid-switch, same-surface, and long-running scenarios; its output directories under `D:\weapp-mcp-launcher\tmp-screenshots\` remain historical artifacts, not the current acceptance source.
 - Historical fixture routes once included fake `tournamentId=demo` values. Current fixtures intentionally omit fake tournament IDs in both routes and top-level page data so reconnect cannot trigger real cloud fetch/watch calls.
 - The later `App.captureScreenshot` timeout was resolved on 2026-07-12: minimized DevTools windows can stop or stale the Chromium/NW.js surface, so the current script targets the session-bound window, temporarily maximizes it, validates coherent frames, and restores the original window/foreground state.
 - 2026-07-12 initial migration acceptance checkpoint: `npm run verify:light` = 74 tests / 68 pass / 6 skip / 0 fail; forced-`cmd.exe` `npm run verify:full` = 1157 tests / 1151 pass / 6 skip / 0 fail; `git diff --check` passed. Current submission-review counts live in `docs/tasks/current.md`.
-- Next product gate: request final UI point 3 confirmation. Do not implement UI point 4 until the user explicitly approves that visible change; no commit/push precondition is implied by this plan.
+- Historical next gate (superseded on 2026-07-13): point 3 confirmation was to precede point 4. The closure below accepted only the point 3 extraction and cancelled points 4 and 5; this plan grants no current implementation, commit, push, upload, or release authority.
 
 ## Cancellation (2026-07-13)
 

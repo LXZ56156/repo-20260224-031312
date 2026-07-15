@@ -130,9 +130,11 @@ npm run records:latest
 
 普通验证不依赖全局 npm `script-shell`、WSL 或裸 `bash`。云函数 deploy、小程序 preview/upload、发布和真实云数据写入都必须先取得明确授权。
 
+截至 2026-07-15，用户确认当前线上正式版对应 `master` = `origin/master` = `5813ffc`。`codex/ui-optimization-v2` 已作为后续开发分支推送到 GitHub，但其中的 schedule 中央比分、Windows 工具链与文档变更尚未执行小程序上传或发布，因此尚未进入线上。
+
 ## 6. 运行 & 典型流程
 
-当前 `codex/ui-optimization-v2` 保留 `master@5813ffc` 的以下完整流程。已关闭的 `feature/core-flow-simplification` 不再作为产品基线；唯一保留的可见改动是对阵列表中将待录分 `VS` / 完赛比分放到双方头像姓名之间，为长名字释放宽度。
+开发分支 `codex/ui-optimization-v2` 保留线上 `master@5813ffc` 的以下完整流程。已关闭的 `feature/core-flow-simplification` 不再作为产品基线；唯一保留的可见改动是对阵列表中将待录分 `VS` / 完赛比分放到双方头像姓名之间，为长名字释放宽度。
 
 ### 6.1 创建赛事（管理员）
 

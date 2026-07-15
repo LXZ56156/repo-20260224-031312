@@ -23,6 +23,11 @@ Update `docs/tasks/current.md` when starting or completing significant work. Rec
 
 WeChat Mini Program for badminton round-robin tournament management. Native WeChat framework (WXML/WXSS/JS) + CloudBase backend. Full lifecycle: create > configure > start > score > rank > analytics.
 
+## Release Baseline
+
+- User-confirmed online mini-program version on 2026-07-15: `master` = `origin/master` = `5813ffc`.
+- `codex/ui-optimization-v2` is pushed to GitHub for continued development, but its schedule/tooling/docs changes have not been uploaded or released to the mini program. A Git push is not online-release evidence.
+
 ## Commands
 
 ```bash

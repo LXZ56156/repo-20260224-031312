@@ -64,3 +64,29 @@ test('GitHub agent instructions point agents to the same Windows workflow', () =
   assert.match(docs, /Do not deploy cloud functions/);
   assert.match(docs, /D:\\projects\(WIN\)\\badminton-miniapp/);
 });
+
+test('active handoff docs distinguish the pushed Git branch from the online mini-program release', () => {
+  const agents = fs.readFileSync(path.join(REPO_DIR, 'AGENTS.md'), 'utf8');
+  const current = fs.readFileSync(path.join(REPO_DIR, 'docs/tasks/current.md'), 'utf8');
+  const plan = fs.readFileSync(path.join(REPO_DIR, 'docs/tasks/incremental-ui-optimization-plan.md'), 'utf8');
+  const windowsDocs = fs.readFileSync(path.join(REPO_DIR, 'docs/tools/windows-dev-environment.md'), 'utf8');
+  const screenshotDocs = fs.readFileSync(path.join(REPO_DIR, 'docs/tools/weapp-ui-screenshot-workflow.md'), 'utf8');
+  const recordsDocs = fs.readFileSync(path.join(REPO_DIR, 'docs/records/README.md'), 'utf8');
+  const historicalPlan = fs.readFileSync(path.join(REPO_DIR, 'docs/tasks/core-flow-simplification-ui-fix-plan.md'), 'utf8');
+  const historicalLog = fs.readFileSync(path.join(REPO_DIR, 'docs/tasks/session-logs/20260622-core-flow-simplification-ui-fix.md'), 'utf8');
+
+  assert.match(agents, /线上正式版[\s\S]*master[\s\S]*origin\/master[\s\S]*5813ffc/);
+  assert.match(current, /线上正式版[\s\S]*master[\s\S]*origin\/master[\s\S]*5813ffc/);
+  assert.match(current, /origin\/codex\/ui-optimization-v2/);
+  assert.match(current, /尚未[^\n]*小程序[^\n]*发布/);
+  assert.ok(current.trimEnd().split(/\r?\n/).length <= 50);
+  assert.match(plan, /线上版本[\s\S]*master[\s\S]*5813ffc/);
+  assert.match(windowsDocs, /Git push[^\n]*not[^\n]*(mini-program|online)[^\n]*(release|state)/i);
+  assert.match(screenshotDocs, /pre-commit acceptance snapshot/);
+  assert.match(screenshotDocs, /dirty=true/);
+  assert.match(recordsDocs, /point-in-time local workflow evidence/);
+  assert.match(recordsDocs, /not[^\n]*release evidence/i);
+  assert.match(historicalPlan, /superseded[^\n]*2026-07-13/i);
+  assert.match(historicalPlan, /0\.002ms/);
+  assert.match(historicalLog, /historical request[^\n]*not current authorization/i);
+});

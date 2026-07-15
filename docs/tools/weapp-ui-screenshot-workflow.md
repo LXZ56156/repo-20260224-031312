@@ -110,6 +110,7 @@ npm run screenshot:diagnose -- scheduleRunning
 - 三页分别为 `183353 / 229254 / 52898` bytes；每页探针帧有变化，恢复后的两帧完全稳定，`deprecatedFileApiWarningCount=0`、`fakeFixtureSyncErrorCount=0`。
 - 人工检查确认 master 的 launch/home 视觉未被旧分支替换；`scheduleRunning` 的 `VS` 与 `21:17` 位于双方头像和姓名之间，长中英文姓名完整可读，无重叠或裁切。
 - canonical evidence：`docs/records/ui-screenshot-latest.json`，分支为 `codex/ui-optimization-v2`，来源为 `D:\projects(WIN)\badminton-miniapp`。
+- 记录属性：这是开发工作区的 pre-commit acceptance snapshot；记录中的 `git.head=5813ffc`、`dirty=true` 和 `dirtyFiles` 是截图时 provenance。它证明当时被捕获工作区的页面像素通过验收，不证明当前干净 commit、Git push、小程序 upload 或线上发布；通用解释见 `docs/records/README.md`。
 
 ## 2026-07-12 历史工具链验收记录
 

@@ -39,6 +39,8 @@ For cloud shared libraries, edit `scripts/*-common.template.js`, run `npm run sy
 
 `codex/ui-optimization-v2` preserves the `master@5813ffc` product flow. The sole approved visible delta is the schedule card's centered pending `VS` / finished score layout in `pages/schedule/index.wxml` and `index.wxss`. Do not carry over any other UI or flow change from `feature/core-flow-simplification`.
 
+As user-confirmed on 2026-07-15, the online mini-program still corresponds to `master` = `origin/master` = `5813ffc`. The development branch is pushed to GitHub but has not been uploaded or released as a mini program; never treat Git push state as online-release state.
+
 ## Boundaries
 
 - Do not upload the mini program, run preview upload, or release without explicit authorization.

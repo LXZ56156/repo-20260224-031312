@@ -4,6 +4,7 @@
 > 启动日期：2026-06-22
 > 原始分支：`master`（`5813ffc`）
 > 工作分支：`feature/core-flow-simplification`
+> 阅读规则：正文中的“当前、目标、待确认、阻塞、下一步”均为历史快照；当前权威状态只看 `docs/tasks/current.md`。
 
 ## 目标与边界
 

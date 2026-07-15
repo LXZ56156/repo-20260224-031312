@@ -32,7 +32,9 @@ Shared modules: `common.js`, `mode.js`, `permission.js`, `player.js`, `rankingCo
 
 ## Current Product Baseline
 
-`codex/ui-optimization-v2` starts from `master@5813ffc` and preserves its full create/configure/start/score/rank/review-share flow. The retired `feature/core-flow-simplification` branch is historical evidence only; its direct-create flow, removed analytics/review surfaces, reduced lobby/home/share context, navigation rewrite, and flattened global visual system are not part of the architecture baseline.
+The user confirmed on 2026-07-15 that the online mini-program corresponds to `master` = `origin/master` = `5813ffc`. `codex/ui-optimization-v2` is a pushed development branch, not an uploaded or released mini-program version.
+
+The development branch starts from `master@5813ffc` and preserves its full create/configure/start/score/rank/review-share flow. The retired `feature/core-flow-simplification` branch is historical evidence only; its direct-create flow, removed analytics/review surfaces, reduced lobby/home/share context, navigation rewrite, and flattened global visual system are not part of the architecture baseline.
 
 The only approved product overlay is local to `pages/schedule/index.wxml` and `index.wxss`: pending `VS` and completed score sit between both teams, while names may use two lines. It must not change routing, scoring, filters, permissions, cloud contracts, or any other page.
 

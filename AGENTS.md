@@ -35,6 +35,8 @@ npm run check:cloud-common           # 检查共享库同步状态
 
 Windows 主开发路径为 `D:\projects(WIN)\badminton-miniapp`，preview/upload 镜像为 `D:\projects(WIN)\badminton-miniapp-preview`，WSL fallback 为 `/home/lizixuan/projects(WSL)/badminton-miniapp`。`D:\projects\badminton-miniapp` 只是元数据空壳，禁止使用。日常 npm、hooks、DevTools 和截图走 Windows 原生入口；WSL mirror 只有显式设置 `WEAPP_CODEX_DEV_MODE=wsl-mirror` 才启用。自动化端口为 `ws://127.0.0.1:39420`。
 
+用户于 2026-07-15 确认：当前线上正式版对应 `master` = `origin/master` = `5813ffc`。`codex/ui-optimization-v2` 是已推送到 GitHub 的后续开发分支，但其 schedule 中央比分、Windows 工具链和文档提交尚未通过小程序上传/发布进入线上；Git push 不等于小程序发布。
+
 云函数部署通过微信开发者工具完成。不要执行 `npm run mp:upload`、`npm run mp:preview`、云函数 deploy、preview upload 或真实发布，除非用户明确要求。
 
 ## Architecture (Summary)
@@ -76,7 +78,7 @@ Windows 主开发路径为 `D:\projects(WIN)\badminton-miniapp`，preview/upload
 4. **云函数模板**：改 `scripts/*-common.template.js`，改完运行 `npm run sync:cloud-common`
 5. **云函数上传提醒**：完成改动后检查是否涉及 `cloudfunctions/`；如有需要通过微信开发者工具上传的云函数，在最终汇报中提醒一次具体函数名，不反复提醒
 6. **Windows shell**：普通 npm 开发/验证不得依赖全局 `script-shell` 或裸 `bash`；guarded deploy/hook 与显式 compatibility flow 统一通过 `scripts/run-bash-script.js`。
-7. **增量 UI**：当前产品基线保持 `master@5813ffc` 的原流程；除已批准的 schedule 中央 `VS`/比分布局外，任何页面结构、视觉或流程调整都必须逐点批准、实图验收、单独提交。
+7. **增量 UI**：线上与产品基线保持 `master@5813ffc` 的原流程；开发分支除已批准的 schedule 中央 `VS`/比分布局外，任何页面结构、视觉或流程调整都必须逐点批准、实图验收、单独提交。
 
 ## Style & Commit
 

@@ -1,5 +1,7 @@
 # 2026-06-22 核心流程简化与 UI 重构会话日志
 
+> 历史日志：正文中的产品目标、禁止 push 和执行状态都是当时快照，已被 2026-07-13 Closure Addendum 取代，不构成当前任务或远程操作授权。当前权威状态只看 `docs/tasks/current.md`。
+
 ## 启动记录
 
 - 原始分支：`master`
@@ -86,11 +88,11 @@
 ## 云函数与外部操作
 
 - 云函数改动：无。
-- 部署/上传/push：未执行。
+- 该历史 checkpoint 未执行部署、上传或 push；不能据此推断当前 Git 或线上状态。
 
 ## 2026-07-13 Closure Addendum
 
-- This log remains an unchanged historical account of what was implemented and technically verified on `feature/core-flow-simplification`.
+- This log retains the historical account of what was implemented and technically verified on `feature/core-flow-simplification`; later annotations only mark superseded authority and status.
 - The user later rejected the branch's overall UI and workflow direction: it removed too much information, visual hierarchy, confirmation, review, and sharing context.
 - The branch is retired as a product baseline. No remaining repair work will continue on it.
 - A new branch, `codex/ui-optimization-v2`, starts from `master@5813ffc`. It preserves the master product flow and extracts only the schedule-card layout with centered `VS` / finished score.
