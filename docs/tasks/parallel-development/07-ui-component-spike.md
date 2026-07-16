@@ -1,8 +1,16 @@
 # P07：小程序 UI 组件库 discovery
 
-> 状态：`ready_for_parallel_discovery_only`
+> 状态：`discovery_complete_pending_explicit_pilot_approval`
 > 任务类型：官方资料调研、选型评分与单页试点审批包；禁止生产实现
 > 文档所有者：P07 独立对话
+
+## 完成记录（2026-07-16）
+
+- 完整报告：[`docs/reports/ui-component-library-discovery-2026-07-16.md`](../../reports/ui-component-library-discovery-2026-07-16.md)。
+- 唯一推荐：WeUI Miniprogram，且只采用微信官方 `useExtendedLib` 路径；TDesign 与 Vant 的 stable quickstart 均要求移除本项目现有 `style:v2`，不满足单页隔离门槛。
+- 未来试点提案：仅 `pages/feedback/index`，只用 `mp-form`、`mp-cells`、`mp-cell` 三个组件；删除项为“无”，文案、CTA、导航、分享与默认行为保持不变。
+- 当前只完成 discovery。报告审批矩阵内的页面、保留/调整/删除、文案/CTA、导航/分享、默认行为、组件清单、`useExtendedLib`、视觉变化、包体预算、截图和回滚均待用户逐点批准；批准后必须另开实现任务。
+- 本轮未安装依赖、未改生产文件、未 preview/upload、未发布或部署。
 
 ## 统一基线
 
