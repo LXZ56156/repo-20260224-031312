@@ -1,15 +1,24 @@
 # 工作线 02：排阵观测与模板覆盖审计证据
 
-- 生成时间：`2026-07-16T07:41:21.904Z`
-- 分支 / 基线：`codex/roadmap-scheduler-observability@70845c1`
+- 生成时间：`2026-07-16T16:47:52.971Z`
+- 分支 / 基线：`codex/roadmap-scheduler-observability@3b2566e`
 - 模板库：`rotation-v3-templates`
 - 运行环境：`v24.16.0 / win32 x64`
+- 源码状态：`dirty_expected_audit_only`；production scheduler clean=yes
+- 状态解释：审计启动时只有 allowlist 内的 P02 脚本、测试、任务卡或生成证据有改动；production scheduler 源码相对 HEAD 干净。
 
 ## 结论
 
 当前树实时枚举到 60 个模板键、283 个模板 variant、941 个连续场数前缀；注册表问题 0，模板路径审计失败 0。本轮没有新增或刷新模板，也没有改变任何生产排阵行为。
 
-路径分类共 1035 条，分类守恒：是；计数为 `{"beam":5,"error":4,"legacy":1,"template":1025}`。有效长尾场景均进入 beam guarded 路径；legacy 实现存在，但本轮有效场景命中数为 1。
+路径分类共 1035 条，分类守恒：是；计数为 `{"beam":5,"error":4,"legacy":1,"template":1025}`。动态与带外场景受 deadline 影响，可落入 beam、legacy 或 error；legacy 实现存在，本轮有效场景命中数为 1。
+
+## 证据存储与复跑
+
+tracked JSON 是紧凑机器摘要；逐前缀、逐人场次、逐次路径与性能样本位于 ignored 本地产物 `tmp/scheduler-observability/02-scheduler-observability-audit.full.json`。
+全量产物本次运行字节 SHA-256=`34b256de2c7c486b0403aa773ca274f6bba5be1a373ffe3717e842ede70bd1d7`，3329094 bytes / 116465 lines，git ignored=yes。
+稳定审计不变量 SHA-256=`3750dd17cfe3e1008c83d1847a151edb34204deb65a8d346d1f5728acc47989d`。字节哈希包含 generatedAt、墙钟样本和 deadline 敏感结果，复跑允许变化；相同源码与 P01 输入的不变量哈希必须稳定。
+复跑：`node scripts/audit-scheduler-observability.js --p01-evidence-dir="<P01_EVIDENCE_DIR>" --p01-expected-commit="<P01_FINAL_COMMIT>"`
 
 ## 模板覆盖矩阵
 
@@ -76,7 +85,7 @@
 | 24p-3c | 24 | 3 | 18 | 7 | 18 | 0 |
 | 24p-4c | 24 | 4 | 16 | 8 | 16 | 0 |
 
-场地降级矩阵覆盖 84 个 `playersCount × requestedCourts` 组合，失败 0。完整逐前缀与逐人数据见同名 JSON。
+场地降级矩阵覆盖 84 个 `playersCount × requestedCourts` 组合，失败 0。完整逐前缀与逐人数据见上方 ignored 全量产物，并由 tracked SHA-256 锚定。
 
 ## fallback 与无合法结果
 
@@ -95,7 +104,7 @@
 
 | scenario | runs | requested budget ms | path counts | profile counts | fallback reason counts | stable path |
 | --- | --- | --- | --- | --- | --- | --- |
-| rotation outside template band 20p/12m/5c | 5 | 600 | {"beam":1,"error":4} | {"beam-guarded":1,"error":4} | {"guarded_greedy_completion":1,"排阵超时，请减少场次或补充模板":4} | no |
+| rotation outside template band 20p/12m/5c | 5 | 600 | {"beam":3,"error":2} | {"beam-guarded":3,"error":2} | {"guarded_greedy_completion":3,"排阵超时，请减少场次或补充模板":2} | no |
 | rotation outside template band 24p/12m/6c | 5 | 600 | {"error":5} | {"error":5} | {"排阵超时，请减少场次或补充模板":5} | yes |
 | rotation outside template band 24p/12m/6c legacy window | 5 | 800 | {"legacy":5} | {"legacy-guarded":5} | {"beam_unavailable":5} | yes |
 | rotation outside roster template band 25p/12m/4c | 5 | 600 | {"error":5} | {"error":5} | {"排阵超时，请减少场次或补充模板":5} | yes |
@@ -120,15 +129,15 @@
 
 | scenario | path | N | median ms | P95 ms | min ms | max ms | runtime budget requested / effective ms | same schedule |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| template 6p/12m/1c | template | 20 | 3.909 | 5.569 | 3.451 | 6.257 | default / 2500 | yes |
-| template 16p/12m/4c | template | 20 | 0.207 | 0.271 | 0.183 | 0.666 | default / 2500 | yes |
-| template 24p/12m/2c | template | 20 | 1.215 | 1.556 | 1.08 | 1.687 | default / 2500 | yes |
-| beam 10p/31m/2c budget=200 | beam | 20 | 257.919 | 286.453 | 230.586 | 290.373 | 200 / 600 | no |
-| beam 11p/14m/2c budget=800 | beam | 20 | 224.516 | 252.558 | 217.05 | 270.119 | 800 / 800 | no |
-| beam 13p/16m/2c budget=800 | beam | 20 | 276.39 | 294.338 | 249.291 | 294.727 | 800 / 800 | yes |
-| beam 15p/18m/3c budget=1200 | beam | 20 | 503.412 | 654.824 | 476.779 | 661.399 | 1200 / 1200 | yes |
+| template 6p/12m/1c | template | 20 | 4.036 | 5.312 | 3.561 | 5.893 | default / 2500 | yes |
+| template 16p/12m/4c | template | 20 | 0.246 | 0.377 | 0.195 | 0.426 | default / 2500 | yes |
+| template 24p/12m/2c | template | 20 | 2.053 | 3.194 | 1.202 | 3.959 | default / 2500 | yes |
+| beam 10p/31m/2c budget=200 | beam | 20 | 248.127 | 266.473 | 240.195 | 279.439 | 200 / 600 | yes |
+| beam 11p/14m/2c budget=800 | beam | 20 | 220.109 | 225.311 | 212.136 | 225.558 | 800 / 800 | yes |
+| beam 13p/16m/2c budget=800 | beam | 20 | 255.772 | 291.32 | 237.072 | 294.297 | 800 / 800 | yes |
+| beam 15p/18m/3c budget=1200 | beam | 20 | 534.1 | 581.081 | 509.605 | 598.306 | 1200 / 1200 | yes |
 
-真实性能采样中，同 seed 排阵 digest 变化 2/7，质量 digest 变化 1/7。这反映动态 deadline 的负载敏感性；模板公平性结论来自独立确定性审计，不由墙钟样本改写。
+真实性能采样中，同 seed 排阵 digest 变化 0/7，质量 digest 变化 0/7。这反映动态 deadline 的负载敏感性；模板公平性结论来自独立确定性审计，不由墙钟样本改写。
 
 本地只测算法。`materializeMs`、`writeMs`、`totalMs` 未通过假数据冒充云端端到端耗时；本轮仅核对这些字段在生产 timing 日志中的可用性，未调用云函数、未写真实云数据。
 
@@ -183,9 +192,90 @@
 
 计时语义：schedule=排阵生成加完整性校验；不含此前的 policy/profile 计算。 materialize=round/player 对象物化；idToPlayerMap 在计时开始前。 write=赛事更新及可选 client request log；不含 transaction callback 返回后的工作。 total=截至 transaction callback 内写入完成；不含后置分享消息更新，因此不是严格云函数端到端。 去重提前返回、排阵异常与写入异常没有统一 done timing，生产分布存在成功样本偏差。
 
-## 工作线 01 依赖
+## P01 → P02 高频组合映射
 
-工作线 01 的脱敏组合 Pareto 尚未提供；本轮只完成现状矩阵，不新增或刷新模板。
+180d 稳定高频 multi_rotate 共 424 场：406 场命中当前模板前缀，18 场超过现有 horizon；当前缺失模板键 0 个。未来候选仅是数据支持的审计清单，不代表批准刷新模板。
+
+P01 closure：`codex/roadmap-data-baseline@611207f88031146a484c50fdb8d85aa958a06719`，source clean=yes。
+相对 pre-closure `42367b042e316fffca28eb878f2d055b9c514bd1`：Pareto path drift=no，content hash drift=no。
+证据粒度：180d 精确 Pareto 行已 tracked；90d 精确行未复制进公开 evidence 目录。
+输入哈希：180d JSON=`331ae2e2e6b65e6242fd042d90d405f7d3251436a0b7ae85af1e686fbc07466d`；180d CSV=`4a8744f84e34b4287e988e12b57d25951dbf2309a2cbdfb41564dad74c6c6db7`；90d manifest anchor=`b46509d7791bc466a978c2cf8da22543cdf0dc467661544c9bc87a93fee039f5`。
+
+90d 已发布 Top 精确组合 `multi_rotate/6p/1c/9m`（48 场）映射到 `6p-1c` / `proper_prefix` / `template`。
+
+90d 已发布 Top family（缺 totalMatches，故只能确认 key，不能确认所有 prefix）：
+
+| family | events | current key | key present | horizon | prefix evidence |
+| --- | --- | --- | --- | --- | --- |
+| multi_rotate/6p/1c | 133 | 6p-1c | yes | 18 | not_assessable_without_exact_total_matches |
+| multi_rotate/7p/1c | 58 | 7p-1c | yes | 21 | not_assessable_without_exact_total_matches |
+| multi_rotate/5p/1c | 47 | 5p-1c | yes | 15 | not_assessable_without_exact_total_matches |
+| multi_rotate/8p/1c | 42 | 8p-1c | yes | 16 | not_assessable_without_exact_total_matches |
+
+180d 官方 P80：73 个精确行、59 个四维决策组合、438 场；template=406、dynamic=18、mode-specific=3、unclassified=11。
+
+180d 稳定高频口径为 `count >= 2`：70 个源精确行、57 个四维决策组合、435 场。路径事件守恒为 template=406、dynamic=18、mode-specific=0、unclassified=11、invalid=0。
+其中 multi_rotate 当前模板前缀覆盖率=95.8%；缺失当前模板键组合=0。动态组合只是未来 horizon/key 候选，不是本轮实施或批准。
+
+| 180d stable combination | events | current key | horizon | prefix | current path contract | equal-play possible | future disposition |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| multi_rotate/6p/1c/9m | 66 | 6p-1c | 18 | proper_prefix | template | yes | already_covered |
+| multi_rotate/7p/1c/14m | 37 | 7p-1c | 21 | proper_prefix | template | yes | already_covered |
+| multi_rotate/5p/1c/10m | 26 | 5p-1c | 15 | proper_prefix | template | yes | already_covered |
+| multi_rotate/8p/1c/14m | 22 | 8p-1c | 16 | proper_prefix | template | yes | already_covered |
+| multi_rotate/6p/1c/15m | 18 | 6p-1c | 18 | proper_prefix | template | yes | already_covered |
+| multi_rotate/9p/1c/18m | 16 | 9p-1c | 18 | full_horizon | template | yes | already_covered |
+| multi_rotate/5p/1c/5m | 14 | 5p-1c | 15 | proper_prefix | template | yes | already_covered |
+| multi_rotate/6p/1c/12m | 14 | 6p-1c | 18 | proper_prefix | template | yes | already_covered |
+| multi_rotate/4p/1c/3m | 14 | 4p-1c | 3 | full_horizon | template | yes | already_covered |
+| multi_rotate/6p/1c/18m | 12 | 6p-1c | 18 | full_horizon | template | yes | already_covered |
+| multi_rotate/9p/2c/18m | 11 | 9p-2c | 18 | full_horizon | template | yes | already_covered |
+| unknown/4p/1c/3m | 11 | n/a | n/a | not_applicable | unclassified | n/a | unclassifiable_not_template_signal |
+| multi_rotate/8p/1c/8m | 11 | 8p-1c | 16 | proper_prefix | template | yes | already_covered |
+| multi_rotate/14p/1c/14m | 10 | 14p-1c | 18 | proper_prefix | template | yes | already_covered |
+| multi_rotate/6p/1c/8m | 10 | 6p-1c | 18 | proper_prefix | template | no | already_covered |
+| multi_rotate/13p/2c/12m | 9 | 13p-2c | 12 | full_horizon | template | no | already_covered |
+| multi_rotate/6p/1c/13m | 8 | 6p-1c | 18 | proper_prefix | template | no | already_covered |
+| multi_rotate/10p/1c/23m | 7 | 10p-1c | 30 | proper_prefix | template | no | already_covered |
+| multi_rotate/10p/1c/15m | 6 | 10p-1c | 30 | proper_prefix | template | yes | already_covered |
+| multi_rotate/12p/2c/12m | 6 | 12p-2c | 12 | full_horizon | template | yes | already_covered |
+| multi_rotate/10p/1c/10m | 5 | 10p-1c | 30 | proper_prefix | template | yes | already_covered |
+| multi_rotate/5p/1c/15m | 5 | 5p-1c | 15 | full_horizon | template | yes | already_covered |
+| multi_rotate/7p/1c/11m | 5 | 7p-1c | 21 | proper_prefix | template | no | already_covered |
+| multi_rotate/9p/1c/9m | 5 | 9p-1c | 18 | proper_prefix | template | yes | already_covered |
+| multi_rotate/10p/2c/15m | 4 | 10p-2c | 30 | proper_prefix | template | yes | already_covered |
+| multi_rotate/13p/2c/30m | 4 | 13p-2c | 12 | beyond_horizon | dynamic_guarded_beyond_template_horizon | no | extend_existing_template_prefix_candidate |
+| multi_rotate/4p/1c/1m | 4 | 4p-1c | 3 | proper_prefix | template | yes | already_covered |
+| multi_rotate/7p/1c/10m | 4 | 7p-1c | 21 | proper_prefix | template | no | already_covered |
+| multi_rotate/7p/1c/16m | 4 | 7p-1c | 21 | proper_prefix | template | no | already_covered |
+| multi_rotate/7p/1c/21m | 4 | 7p-1c | 21 | full_horizon | template | yes | already_covered |
+| multi_rotate/8p/2c/14m | 4 | 8p-2c | 16 | proper_prefix | template | yes | already_covered |
+| multi_rotate/12p/3c/12m | 4 | 12p-3c | 12 | full_horizon | template | yes | already_covered |
+| multi_rotate/12p/2c/24m | 3 | 12p-2c | 12 | beyond_horizon | dynamic_guarded_beyond_template_horizon | yes | extend_existing_template_prefix_candidate |
+| multi_rotate/12p/2c/6m | 3 | 12p-2c | 12 | proper_prefix | template | yes | already_covered |
+| multi_rotate/13p/1c/8m | 3 | 13p-1c | 12 | proper_prefix | template | no | already_covered |
+| multi_rotate/18p/3c/45m | 3 | 18p-3c | 16 | beyond_horizon | dynamic_guarded_beyond_template_horizon | yes | extend_existing_template_prefix_candidate |
+| multi_rotate/8p/1c/16m | 3 | 8p-1c | 16 | full_horizon | template | yes | already_covered |
+| multi_rotate/10p/1c/12m | 2 | 10p-1c | 30 | proper_prefix | template | no | already_covered |
+| multi_rotate/10p/1c/20m | 2 | 10p-1c | 30 | proper_prefix | template | yes | already_covered |
+| multi_rotate/10p/1c/30m | 2 | 10p-1c | 30 | full_horizon | template | yes | already_covered |
+| multi_rotate/10p/2c/20m | 2 | 10p-2c | 30 | proper_prefix | template | yes | already_covered |
+| multi_rotate/11p/3c/12m | 2 | 11p-2c | 12 | full_horizon | template | no | already_covered |
+| multi_rotate/12p/1c/24m | 2 | 12p-1c | 12 | beyond_horizon | dynamic_guarded_beyond_template_horizon | yes | extend_existing_template_prefix_candidate |
+| multi_rotate/12p/2c/30m | 2 | 12p-2c | 12 | beyond_horizon | dynamic_guarded_beyond_template_horizon | yes | extend_existing_template_prefix_candidate |
+| multi_rotate/12p/2c/9m | 2 | 12p-2c | 12 | proper_prefix | template | yes | already_covered |
+| multi_rotate/12p/3c/18m | 2 | 12p-3c | 12 | beyond_horizon | dynamic_guarded_beyond_template_horizon | yes | extend_existing_template_prefix_candidate |
+| multi_rotate/14p/1c/28m | 2 | 14p-1c | 18 | beyond_horizon | dynamic_guarded_beyond_template_horizon | yes | extend_existing_template_prefix_candidate |
+| multi_rotate/15p/2c/12m | 2 | 15p-2c | 12 | full_horizon | template | no | already_covered |
+| multi_rotate/4p/10c/1m | 2 | 4p-1c | 3 | proper_prefix | template | yes | already_covered |
+| multi_rotate/4p/1c/2m | 2 | 4p-1c | 3 | proper_prefix | template | yes | already_covered |
+| multi_rotate/4p/2c/2m | 2 | 4p-1c | 3 | proper_prefix | template | yes | already_covered |
+| multi_rotate/6p/1c/5m | 2 | 6p-1c | 18 | proper_prefix | template | no | already_covered |
+| multi_rotate/6p/1c/7m | 2 | 6p-1c | 18 | proper_prefix | template | no | already_covered |
+| multi_rotate/7p/1c/18m | 2 | 7p-1c | 21 | proper_prefix | template | no | already_covered |
+| multi_rotate/8p/2c/8m | 2 | 8p-2c | 16 | proper_prefix | template | yes | already_covered |
+| multi_rotate/9p/2c/14m | 2 | 9p-2c | 18 | proper_prefix | template | no | already_covered |
+| multi_rotate/9p/2c/9m | 2 | 9p-2c | 18 | proper_prefix | template | yes | already_covered |
 
 ## 边界确认
 

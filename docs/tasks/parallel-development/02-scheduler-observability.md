@@ -1,11 +1,12 @@
 # 工作线 02：排阵观测与模板覆盖审计
 
-> 状态：`audit_complete_waiting_p01_pareto`
+> 状态：`complete_ready_for_integration`
 > 类型：logic-only 审计、测试与本地观测证据
 > 统一开发基线：`codex/ui-optimization-v2@743b016`
 > 线上产品基线：`master@5813ffc`
 > 建议分支：`codex/roadmap-scheduler-observability`
 > 建议 worktree：`D:\projects(WIN)\badminton-miniapp-worktrees\scheduler-observability`
+> 本次收口授权：允许在本分支创建本地补充提交；仍禁止 push、PR、preview/upload、发布、部署和真实数据写入。
 
 ## 1. 目标
 
@@ -17,9 +18,9 @@
 
 审计阶段前置依赖：无，可与工作线 01 并行。
 
-实施阶段前置依赖：
+实施阶段前置依赖（本次审计收口已满足）：
 
-- 工作线 01 输出可核验的 `mode × playersCount × courts × totalMatches` 组合和累计覆盖率。
+- 工作线 01 已输出可核验的 180 天精确 Pareto，以及 90 天阈值、Top 精确组合和 Top family 聚合；90 天逐行明细未复制进公开 evidence，报告必须保留该证据限制。
 - 高频模板目标、fallback 政策及任何用户可见约束获得单独确认。
 
 开始前必须阅读：
@@ -177,8 +178,9 @@
 
 - `scripts/audit-scheduler-observability.js`：实时模板枚举、结构完整性、多维公平性、路径分型、重复性能采样与 timing/meta 字段审计。
 - `tests/scheduler.observability-audit.test.js`：覆盖矩阵守恒、畸形排阵检测、绝对等场必要条件、场地归一、runtime budget、真实 timing 源、按 mode 的 meta 可用性、路径分类与稳定性统计。
-- `docs/tasks/parallel-development/evidence/02-scheduler-observability-audit.json`：机器可读的逐模板、逐场数、逐人场次/轮空、fallback、benchmark 和观测字段证据。
-- `docs/tasks/parallel-development/evidence/02-scheduler-observability-audit.md`：可读审计摘要。
+- `docs/tasks/parallel-development/evidence/02-scheduler-observability-audit.json`：tracked 紧凑机器摘要，保留审计守恒结论、P01 映射、全量产物 SHA-256、尺寸和复跑命令。
+- `tmp/scheduler-observability/02-scheduler-observability-audit.full.json`：ignored、可再生的逐模板、逐场数、逐人场次/轮空、fallback 和 benchmark 全量明细，不进入 Git。
+- `docs/tasks/parallel-development/evidence/02-scheduler-observability-audit.md`：可读审计摘要与 P01 → P02 覆盖表。
 
 当前事实：
 
@@ -188,4 +190,16 @@
 - 模板同 seed 与跨 seed 路由审计均稳定；动态路径受真实时钟 deadline 影响，同一输入可能在 beam、legacy 与 error 间变化，证据中保留重复运行计数。
 - 本地性能只测算法，使用 `performance.now()`、`2` 次 warmup、`20` 次原始样本并记录 median/P95；没有把本地结果冒充 materialize/write/云函数端到端耗时。
 - 生产 done timing 已有 `scheduleMs/materializeMs/writeMs/totalMs` 等字段，但缺 `engineVersion/fallbackReason/searchElapsedMs/mode/scheduledMatches`；squad/fixed 的部分 meta 字段还存在“键或值不可用”缺口。本轮只报告建议，未修改生产代码。
-- 工作线 01 的脱敏组合 Pareto 尚未提供，因此 `mode × playersCount × courts × totalMatches` 高频映射仍为 pending；本轮没有新增或刷新模板。
+- P01 映射已完成：180 天稳定高频 `count >= 2` 集合为 70 个精确源行、57 个四维决策组合、435 场；其中 `multi_rotate` 424 场，406 场命中当前模板前缀，18 场超过 horizon，当前缺失模板键为 0。
+- 7 个未来候选全部是已有键的 horizon 扩展：`13p-2c@30m`、`12p-2c@24m`、`18p-3c@45m`、`12p-1c@24m`、`12p-2c@30m`、`12p-3c@18m`、`14p-1c@28m`；单项频次仅 2–4 场，不支持本阶段直接刷新模板。
+- 90 天公开证据能确认 Top 精确组合 `6p-1c@9m` 已命中 proper prefix，且 6/7/5/8 人单场地 Top family 均已有当前模板键；因缺少公开逐行 `totalMatches`，不能声称 family 内所有前缀均已覆盖。
+
+## 12. 2026-07-16 总控集成前收口
+
+- 旧 tracked 全量 JSON 为 3,244,021 bytes / 114,169 行；最终 tracked 紧凑摘要为 111,641 bytes / 3,163 行。全量明细 3,329,094 bytes / 116,465 行写入 `.gitignore` 已覆盖的 `tmp/`，最终单次运行 SHA-256 为 `34b256de2c7c486b0403aa773ca274f6bba5be1a373ffe3717e842ede70bd1d7`，摘要同时记录 bytes、line count 和参数化复跑命令。
+- 原 `sourceTreeDirtyDuringGeneration` 歧义布尔字段已移除，改为 `sourceTreeAtAuditStart`：分别记录 allowlist 内审计改动、production scheduler 改动和非预期改动。最终证据要求 `state=dirty_expected_audit_only`、`productionSchedulerSourceClean=true`、`unexpectedDirtyPaths=[]`。
+- 最终输入锁定为 P01 `611207f88031146a484c50fdb8d85aa958a06719`，只通过 `git show <commit>:<path>` 读取已提交 blob；P01 worktree 在读取前后均为 clean，closure 前后 Pareto 路径和 JSON 内容哈希均未漂移。
+- tracked 摘要记录并强校验 180 天 Pareto JSON SHA-256 `331ae2e2e6b65e6242fd042d90d405f7d3251436a0b7ae85af1e686fbc07466d`、CSV SHA-256 `4a8744f84e34b4287e988e12b57d25951dbf2309a2cbdfb41564dad74c6c6db7` 和 manifest 中 90 天聚合 Pareto SHA-256 `b46509d7791bc466a978c2cf8da22543cdf0dc467661544c9bc87a93fee039f5`。JSON/CSV 行、事件数、classifiable 数和 P80/P90/P95 阈值均守恒。
+- 隐私门槛要求 raw files、actor identifiers、raw profile fields 和 secrets 均未 tracked；如 manifest 声明 k 匿名聚合画像，则必须同时满足地域省略且 `k >= 5`。P02 不复制原始赛事、用户标识或 PII。
+- 全量 JSON 的 byte hash 是单次运行哈希；另保留排除时间戳、运行环境、墙钟样本和 deadline 敏感路径结果的 `stableInvariantSha256=3750dd17cfe3e1008c83d1847a151edb34204deb65a8d346d1f5728acc47989d`。相同源码、相同 P01 Git blob 连续两次复跑该摘要一致；动态路径计数可因真实时钟 deadline 在 beam/error 间变化，不能误报为业务不确定性。
+- 本次收口仍未修改生产排阵文件、模板、算法、fallback、seed、阈值、赛事规则或 UI，未执行任何远程或云端写操作。
