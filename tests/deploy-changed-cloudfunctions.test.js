@@ -63,9 +63,10 @@ test('deploy changed cloudfunctions expands shared template changes to all confi
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Shared common template changed/);
-  assert.equal(functions.length, 22);
+  assert.equal(functions.length, 23);
   assert.equal(functions[0], 'addPlayers');
   assert.equal(functions.includes('generateShareCode'), true);
+  assert.equal(functions.includes('reportProductEvents'), true);
   assert.equal(functions.at(-1), 'updateSettings');
 });
 

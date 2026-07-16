@@ -60,6 +60,10 @@
       "installDependency": true
     },
     {
+      "name": "reportProductEvents",
+      "installDependency": true
+    },
+    {
       "name": "resetTournament",
       "installDependency": true
     },

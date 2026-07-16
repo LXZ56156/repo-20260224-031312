@@ -1,6 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
+const productEventConfig = require('../miniprogram/config/productEvents');
+const productEventQueue = require('../miniprogram/core/productEventQueue');
 const growthTracker = require('../miniprogram/core/growthTracker');
 
 test('growthTracker hashes tournament ids without exposing raw prefixes', () => {
@@ -168,6 +170,140 @@ test('growthTracker track builds fromTournament context exactly once', () => {
     assert.notEqual(reports[0].payload.t, 'tourname');
     assert.deepEqual(Object.keys(reports[0].payload).sort(), ['a', 'm', 'r', 's', 'src', 't', 'ts']);
   } finally {
+    global.wx = originalWx;
+    console.info = originalInfo;
+  }
+});
+
+test('growthTracker keeps console and wx.reportEvent behavior while the product event pipeline is disabled', async () => {
+  const originalWx = global.wx;
+  const originalInfo = console.info;
+  const logs = [];
+  const reports = [];
+  let cloudCalls = 0;
+  let storageCalls = 0;
+
+  assert.equal(productEventConfig.enabled, false);
+  global.wx = {
+    reportEvent(name, payload) {
+      reports.push({ name, payload });
+    },
+    getStorageSync() {
+      storageCalls += 1;
+      throw new Error('disabled pipeline must not read storage');
+    },
+    setStorageSync() {
+      storageCalls += 1;
+      throw new Error('disabled pipeline must not write storage');
+    },
+    cloud: {
+      async callFunction() {
+        cloudCalls += 1;
+        throw new Error('disabled pipeline must not call cloud');
+      }
+    }
+  };
+  console.info = (...args) => logs.push(args);
+
+  try {
+    const returned = growthTracker.track('share_entry_view', {
+      tournamentId: 'tournament_secret_default_disabled',
+      status: 'running',
+      mode: 'multi_rotate',
+      src: 'share_entry',
+      a: 'view'
+    });
+    await Promise.resolve();
+
+    assert.equal(returned, undefined);
+    assert.equal(logs.length, 1);
+    assert.equal(logs[0][0], '[growth]');
+    assert.equal(reports.length, 1);
+    assert.equal(reports[0].name, 'share_entry_view');
+    assert.match(reports[0].payload.t, /^[0-9a-f]{8}$/);
+    assert.equal(storageCalls, 0);
+    assert.equal(cloudCalls, 0);
+  } finally {
+    global.wx = originalWx;
+    console.info = originalInfo;
+  }
+});
+
+test('growthTracker passes the already-sanitized payload to the isolated queue exactly once', () => {
+  const originalWx = global.wx;
+  const originalInfo = console.info;
+  const originalEnqueue = productEventQueue.enqueue;
+  const reports = [];
+  const queued = [];
+
+  global.wx = {
+    reportEvent(name, payload) {
+      reports.push({ name, payload });
+    }
+  };
+  console.info = () => {};
+  productEventQueue.enqueue = (name, payload) => {
+    queued.push({ name, payload });
+    return true;
+  };
+
+  try {
+    growthTracker.track('share_entry_view', {
+      tournamentId: 'tournament_secret_queue_once',
+      status: 'running',
+      mode: 'multi_rotate',
+      src: 'share_entry',
+      a: 'view',
+      nickname: '不得进入队列'
+    });
+
+    assert.equal(queued.length, 1);
+    assert.equal(queued[0].name, 'share_entry_view');
+    assert.deepEqual(queued[0].payload, reports[0].payload);
+    assert.match(queued[0].payload.t, /^[0-9a-f]{8}$/);
+    assert.notEqual(queued[0].payload.t, 'tournamen');
+    assert.equal(queued[0].payload.nickname, undefined);
+  } finally {
+    productEventQueue.enqueue = originalEnqueue;
+    global.wx = originalWx;
+    console.info = originalInfo;
+  }
+});
+
+test('growthTracker consumes synchronous queue failures and Promise rejections', async () => {
+  const originalWx = global.wx;
+  const originalInfo = console.info;
+  const originalEnqueue = productEventQueue.enqueue;
+  const reports = [];
+
+  global.wx = {
+    reportEvent(name, payload) {
+      reports.push({ name, payload });
+    }
+  };
+  console.info = () => {};
+
+  try {
+    productEventQueue.enqueue = () => {
+      throw new Error('queue sync failure');
+    };
+    assert.doesNotThrow(() => growthTracker.track('share_entry_view', {
+      tournamentId: 'tournament_secret_sync_failure',
+      src: 'share_entry',
+      a: 'view'
+    }));
+
+    productEventQueue.enqueue = () => Promise.reject(new Error('queue async failure'));
+    assert.doesNotThrow(() => growthTracker.track('share_entry_view', {
+      tournamentId: 'tournament_secret_async_failure',
+      src: 'share_entry',
+      a: 'view'
+    }));
+    await Promise.resolve();
+
+    assert.equal(reports.length, 2);
+  } finally {
+    productEventQueue.enqueue = originalEnqueue;
     global.wx = originalWx;
     console.info = originalInfo;
   }

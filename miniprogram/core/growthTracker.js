@@ -1,3 +1,5 @@
+const productEventQueue = require('./productEventQueue');
+
 function shortTournamentId(value) {
   var input = String(value || '').trim();
   if (!input) return '';
@@ -47,6 +49,10 @@ function track(eventName, payload) {
     if (typeof wx !== 'undefined' && wx && typeof wx.reportEvent === 'function') {
       wx.reportEvent(name, data);
     }
+    try {
+      const pending = productEventQueue.enqueue(name, data);
+      if (pending && typeof pending.catch === 'function') pending.catch(() => {});
+    } catch (_) {}
   } catch (_) {}
 }
 
