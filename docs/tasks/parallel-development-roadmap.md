@@ -1,10 +1,12 @@
 # 羽毛球小程序并行开发路线图
 
-> 状态：`ready_for_parallel_execution`
+> 状态：`locally_integrated_verified_pending_release_plan`
 > 规划日期：2026-07-16
-> 统一开发基线：`codex/ui-optimization-v2@743b016`
+> 统一开发 checkpoint：`codex/ui-optimization-v2@70845c1`
+> 本地功能集成 head：`codex/ui-optimization-v2@530ecae`
+> 远端开发分支：`origin/codex/ui-optimization-v2@743b016`
 > 线上产品基线：`master@5813ffc`
-> 远程操作：未授权
+> 远程操作：未授权、未执行
 
 ## 1. 目标与边界
 
@@ -13,14 +15,14 @@
 必须始终区分两条基线：
 
 - `master@5813ffc` 是用户于 2026-07-15 确认的线上正式版产品基线。
-- `codex/ui-optimization-v2@743b016` 是本轮所有并行任务的统一开发基线；其中 schedule 中央 `VS` / 比分布局已获批准但尚未上传或发布。
+- `codex/ui-optimization-v2@70845c1` 是 7 条工作线共同使用的 docs checkpoint，由远端开发基线 `743b016` 追加路线图文档形成；本地功能集成已推进到 `530ecae`，但均未 push、上传或发布。
 
 所有工作线共同遵守：
 
 - 每个对话使用独立 branch 和独立 worktree，禁止多个对话共用主工作区切分支。
 - 开始前核对绝对路径、当前 branch、HEAD 和 `git status`；发现不符立即停止，不能自行 checkout 覆盖。
 - 保留既有改动，禁止 `reset`、`clean`、覆盖式 checkout 或从旧仓库回灌。
-- 本轮不 commit、不 push、不创建 PR、不执行小程序 upload/preview upload/发布、不部署云函数、不写真实云数据。
+- 用户已明确授权本轮 docs checkpoint、7 个 worktree、本地提交与本地集成；这些动作已经完成。仍禁止 push、创建 PR、小程序 upload/preview upload/发布、云函数部署和真实云数据写入。
 - 可以读取已在范围内的 We 分析和云数据库数据，并可以写本地脱敏分析产物；不得输出 secret、openid、昵称、头像、精确位置等个人信息。
 - 页面结构、文案、CTA、导航、默认行为、操作语义等任何用户可见变化，必须先提交审批矩阵并取得明确批准，批准前只允许研究、规格、测试设计和非产品行为工作。
 - worker 只维护自己的任务文档和唯一命名的证据文件；`docs/tasks/current.md` 与本路线图只由集成对话维护。
@@ -39,7 +41,7 @@
 | 06 轻量组局规格 | `codex/roadmap-group-session-lite` | `D:\projects(WIN)\badminton-miniapp-worktrees\group-session-lite` |
 | 07 UI 组件调研 | `codex/roadmap-ui-component-spike` | `D:\projects(WIN)\badminton-miniapp-worktrees\ui-component-spike` |
 
-worktree 建立前应先有一个包含本路线图和所有工作线文档的稳定 checkpoint。未获得 commit 授权时，不要为了并行擅自创建提交；由集成对话明确后续启动方式。
+7 个 worktree 均从稳定 checkpoint `70845c1` 建立，所有收口提交由原任务对话完成，再由总控按固定顺序 cherry-pick；每次本地提交均设置 `SKIP_CLOUD_POST_COMMIT_DEPLOY=1`。
 
 ## 3. 工作线与依赖
 
@@ -52,6 +54,18 @@ worktree 建立前应先有一个包含本路线图和所有工作线文档的�
 | 05 | 复制与复办 | 先提交审批矩阵；获批后修复 `cloneTournament` 配置复制 | 常用名单 UI 需另行审批 | 三种 mode 契约、去重、返回结构和 allowlist 配置复制均有回归测试 |
 | 06 | 轻量组局规格 | 领域模型、报名状态机、分享、AA 和合规边界；仅 discovery | 实现等待第一阶段稳定及审批 | 首版排除附近、匹配、聊天、支付；金额使用整数分；隐私字段最小化 |
 | 07 | UI 组件调研 | TDesign、WeUI、Vant 一手资料评分与单页试点审批包；仅 discovery | 安装或试点等待明确审批 | 唯一推荐、包体预算、3–5 组件试点和回滚边界完整；生产文件零差异 |
+
+### 3.1 本地集成状态
+
+| 工作线 | 状态 | 当前结论 |
+|---|---|---|
+| P01 数据基线 | `complete_integrated_local` | We 分析截至 2026-07-15；931/931 只读请求成功，公开 evidence 已脱敏 |
+| P02 排阵观测 | `complete_integrated_local` | 仅审计；未改模板/算法。高频 424 场中 406 场已覆盖，18 场超过 horizon |
+| P03 打水 MVP | `approved_implemented_integrated_local_verified` | 9 项矩阵已批准；`multi_rotate` 专属、默认关闭、排名隔离；真实 DevTools 三图通过 |
+| P04 事件管道 Phase A | `phase_a_integrated_local_disabled` | 客户端/服务端双端关闭；未部署、未建集合、未写事件 |
+| P05 clone 复办基础 | `approved_implemented_integrated_local` | preset/config 复制契约已修复；未部署 `cloneTournament` |
+| P06 组局 Lite | `discovery_complete_pending_product_approval` | 仅规格，无生产实现 |
+| P07 UI 组件调研 | `discovery_complete_pending_explicit_pilot_approval` | 仅调研，无依赖或生产实现 |
 
 依赖关系：
 
@@ -85,11 +99,11 @@ worktree 建立前应先有一个包含本路线图和所有工作线文档的�
 
 | 顺序 | 后续事项 | 必须等待 | 启动条件 |
 |---|---|---|---|
-| 08 | 高频排阵模板实施 | 01 数据基线 + 02 审计 | 高频组合、目标覆盖率、fallback 与排阵变化获得确认 |
-| 09 | 自建运营监控后台 | 01 指标字典 + 04 可靠事件管道 | 事件契约稳定并积累可验证样本；先做最小内部看板，不先做复杂权限系统 |
+| 08 | 高频排阵 horizon 扩展 | 01 数据基线 + 02 审计 | 当前无缺失 key；只评审 6 个满足等场必要条件的既有 key 扩展，逐项批准公平性、fallback 与行为变化；排除 `13p-2c@30m` |
+| 09 | 自建运营监控后台 | 01 指标字典 + 04 安全加固后的事件管道 | 先修复弱假名、持久标识、调用者绑定/限流、保留删除与成本熔断；再做隔离数据验证和最小内部看板 |
 | 10 | 常用球友名单 / 一键复办 | 05 clone 契约 | 用户资产权限、删除、去重和导入流程逐点审批 |
 | 11 | 单点漏斗体验优化 | 01 最大掉点 + 04 可观测能力 | 每次只解决一个漏斗问题，先审批再实图验收 |
-| 12 | 打水 MVP 实现与灰度 | 03 审批矩阵 | 默认关闭、数据兼容、排名隔离及页面文案全部获批 |
+| 12 | 打水 MVP 发布与灰度 | 03 本地实现与集成验证已完成 | 制定独立发布包；发布时单独部署 `updateSettings` / `submitScore`，默认仍关闭，并补真机/真实云 smoke |
 | 13 | 组局 Lite 实现 | 06 规格 + 04 事件契约 + 核心链路稳定 | 首版范围、分享入口、成员转赛事与 AA 规则获批 |
 | 14 | 新玩法模板 | 01 需求证据 + 排阵模板体系稳定 | 单玩法独立规格；继续遵守每人场次一致与排名公平，不恢复实时算法依赖 |
 | 15 | 附近局 / 搭子匹配 | 组局 Lite 有留存和转化证据 | 个人主体、位置隐私、内容治理和安全成本重新评估后再决策 |
@@ -106,40 +120,50 @@ worktree 建立前应先有一个包含本路线图和所有工作线文档的�
 
 高冲突区域：
 
-- `miniprogram/pages/match/*` 与 `cloudfunctions/submitScore/*` 未来可能同时被打水和事件接线触及；先稳定事件基础设施，再由打水工作线 rebase 后接线。
+- P04 Phase A 与 P03 已按“默认关闭事件基础设施 → 打水 MVP”完成本地集成；未来 Phase B 若触及 `miniprogram/pages/match/*` 或 `cloudfunctions/submitScore/*`，必须基于当前集成 head 重新审计并单独审批。
 - `scripts/*-common.template.js` 及生成的 `cloudfunctions/*/lib/*` 同一阶段只能由一条工作线修改；必须修改模板源并在 rebase 后统一 sync/check。
 - `miniprogram/pages/schedule/index.wxml` 与 `index.wxss` 当前只承载已批准的中央比分布局，不属于排阵观测任务，也不得被其他工作线顺手调整。
 - 各工作线测试、报告和 session log 必须使用唯一文件名，避免并行新增同名文件。
 
-## 6. 推荐集成顺序
+## 6. 本地集成顺序与下一步
 
-1. 路线图和工作线文档 checkpoint。
-2. 并行启动 01、02、04、06、07；03 和 05 先只提交审批矩阵。
-3. 集成 01 数据结论、02 审计报告、06 组局规格、07 UI 选型报告。
-4. 05 获批后集成 `cloneTournament` 契约修复。
-5. 根据 01 定稿事件字典，再集成 04 基础设施。
-6. 根据 01 的组合 Pareto 和 02 的覆盖证据，单独实现高频模板。
-7. 03 获得明确批准后，rebase 到最新基线并实现打水 MVP。
-8. clone 契约稳定后实现常用名单与一键复办。
-9. 根据数据只选择一个最大漏斗问题做 UI 审批和实图闭环。
-10. 最后进入轻量组局实现；新玩法、附近局和自动匹配继续后置。
+本轮实际顺序已经完成：
 
-每批集成均应先做聚焦测试，再根据跨域风险选择 `npm run verify:light` 或 `npm run verify:full`，并运行 `git diff --check`。任何云函数变更在最终报告中列出未来需要部署的具体函数名，但不得在本轮部署。
+1. docs checkpoint `70845c1`。
+2. P06 组局规格。
+3. P07 UI 组件调研。
+4. P01 数据基线。
+5. P02 排阵覆盖审计。
+6. P05 clone preset/config 契约。
+7. P04 默认关闭事件基础设施。
+8. P03 打水 MVP；人工合并唯一的 clone 测试冲突，并追加 preset × water 组合回归。
+
+下一步按以下门槛启动，不再把“本地已集成”误写成“已上线”：
+
+1. 主集成树云契约、`verify:full` 和 P03 三张真实 DevTools 截图已完成；真机与真实云 smoke 留在发布前门槛。
+2. 由用户评审 P02 的 6 个可行 horizon 扩展；每项另开任务，测试先行，不批量新增 key。
+3. P04 先做隐私与抗滥用安全加固；在服务端关闭态部署、零写入验证和隔离数据验证完成前，不得启用客户端。
+4. 单独制定发布包：明确 schedule UI、打水 UI 与未来云函数是否分批，禁止把 Git 集成当作小程序发布。
+5. P06/P07 继续等待逐点产品/试点审批；常用名单、单点漏斗 UI 和组局生产实现继续后置。
+
+每批后续实施均应先做聚焦测试，再根据跨域风险运行 `npm run verify:light` 或 `npm run verify:full` 和 `git diff --check`。任何云函数变更在报告中列出未来需要部署的具体函数名，但未经授权不得部署。
 
 ## 7. 发布边界
 
 集成、Git push 和小程序发布是三件不同的事。本路线图不授权其中任何远程操作。
 
+当前本地分支已同时包含未上线的 schedule 中央比分、P03 打水 UI、P05/P03/P04 云函数源码和默认关闭的事件客户端。未来任何 preview/upload 都必须先审阅实际打包差异；云函数部署必须逐个函数单独授权，不能因小程序代码上传而默认执行。
+
 未来建议按以下顺序独立验收和发布：
 
-1. `cloneTournament` 契约修复。
-2. `startTournament` 高频模板。
-3. 产品事件管道。
-4. 打水灰度。
-5. 常用名单和一键复办。
-6. 轻量组局。
+1. 单独确认 schedule 中央比分 UI 的发布批次。
+2. `cloneTournament` 契约修复。
+3. 打水 UI + `updateSettings` / `submitScore` 灰度。
+4. 安全加固后的产品事件服务端关闭态验证；客户端启用另行审批。
+5. 经逐项批准的排阵 horizon 扩展。
+6. 常用名单、一键复办与轻量组局。
 
-第一次从 `codex/ui-optimization-v2` 上传小程序时，会同时包含尚未上线的 schedule 中央比分 UI。执行前必须明确选择“先单独发布 schedule UI”或“明确批准与下一功能捆绑”，不得默认夹带。
+第一次从 `codex/ui-optimization-v2` 上传小程序时，会同时包含尚未上线的 schedule 中央比分 UI 与 P03 打水 UI。执行前必须明确选择分批方案或明确批准捆绑，不能默认夹带；云函数部署仍须逐个授权。
 
 ## 8. 工作线索引
 
