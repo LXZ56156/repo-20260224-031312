@@ -280,6 +280,28 @@ test('cloneTournament preserves valid multi_rotate water rules while clearing ro
   assert.deepEqual(addedData.rounds, []);
 });
 
+test('cloneTournament preserves rotation preset and water rules together while clearing rounds', async () => {
+  const { result, addedData } = await cloneAndCapture({
+    mode: 'multi_rotate',
+    presetKey: 'rotation_6',
+    playerLimit: 999,
+    rules: {
+      ...buildSourceTournament().rules,
+      water: { enabled: true, defaultUnitsPerLoser: 2 }
+    },
+    rounds: [{ roundIndex: 0, matches: [{ matchIndex: 0, status: 'finished' }] }]
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(addedData.presetKey, 'rotation_6');
+  assert.equal(addedData.playerLimit, 6);
+  assert.deepEqual(addedData.rules.water, {
+    enabled: true,
+    defaultUnitsPerLoser: 2
+  });
+  assert.deepEqual(addedData.rounds, []);
+});
+
 test('cloneTournament index returns structured invalid result for missing sourceTournamentId', async () => {
   const db = {
     serverDate() {
