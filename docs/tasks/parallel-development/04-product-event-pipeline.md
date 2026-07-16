@@ -1,10 +1,12 @@
 # 04 · 产品事件管道 Phase A
 
-> 状态：`ready`
+> 状态：`phase_a_complete_pending_integration`
 >
 > 类型：非可见基础设施 + 新云契约
 >
 > 开关：客户端和云端均默认关闭
+>
+> 实现提交：`4070f7b`
 >
 > 权威路径：`D:\projects(WIN)\badminton-miniapp`
 
@@ -14,12 +16,45 @@
 
 Phase A 只完成事件协议、客户端缓冲、独立接收云函数和自动化测试。不得把服务端事件直接接入现有热业务云函数，也不得开启真实上报。
 
-## 当前基线
+## Phase A 完成快照（2026-07-16）
+
+- `codex/roadmap-product-events@4070f7b` 已完成 Phase A 实现，等待总控集成。
+- 客户端 `miniprogram/config/productEvents.js` 保持 `enabled: false`；服务端仅在 `PRODUCT_EVENTS_ENABLED === 'true'` 时开启，环境变量缺失或其他值均视为关闭。
+- 协议固定为以下 19 个事件，不接受动态事件名：
+
+  1. `analytics_view`
+  2. `clone_tournament_success`
+  3. `home_clone_tournament_click`
+  4. `home_finished_review_click`
+  5. `lobby_first_guide_close`
+  6. `lobby_first_guide_show`
+  7. `match_open`
+  8. `ranking_copy_share_text`
+  9. `ranking_generate_poster_click`
+  10. `ranking_generate_poster_success`
+  11. `ranking_save_poster_success`
+  12. `ranking_view`
+  13. `schedule_finished_share_click`
+  14. `score_submit_success`
+  15. `share_entry_go_ranking`
+  16. `share_entry_go_schedule`
+  17. `share_entry_join_success`
+  18. `share_entry_primary_click`
+  19. `share_entry_view`
+
+- 属性仅允许 `t`、`s`、`m`、`src`、`a`、`r`，其中 `t` 是现有 `shortTournamentId` 生成的 8 位 FNV-1a 假名化短标识，不携带原始赛事 ID；其余值均受固定枚举约束，不接受数组、嵌套对象或自由文本。
+- 客户端使用随机 `anonymousInstallId` 和稳定 `eventId`；云端只保存二者的 SHA-256 摘要，以事务和稳定文档键实现批内、跨批幂等。
+- `growthTracker` 保留原 `console.info + wx.reportEvent` 行为；队列失败、超时或禁用均不阻断业务，也不产生用户提示。
+- 未修改现有页面埋点调用，也未接入 `createTournament`、`joinTournament`、`startTournament`、`submitScore`、`updateSettings`、`cloneTournament` 等业务热函数；这些工作仍属于 Phase B。
+- 本工作线未执行 `reportProductEvents` 部署、真实 `product_events` collection 创建、开关启用或真实云数据写入；远端实际状态本轮未连接核验。
+
+## 实现基线
 
 - 权威源码：`D:\projects(WIN)\badminton-miniapp`。
-- 当前开发基线：`codex/ui-optimization-v2`；线上正式版仍对应 `master@5813ffc`。
-- `miniprogram/core/growthTracker.js` 当前只做 `console.info('[growth]')` 和 `wx.reportEvent`，已有调用分散在 home、lobby、match、ranking、analytics、schedule、share-entry。
-- 当前没有可靠的本地事件队列、自建事件 collection、批量接收接口或业务幂等键。
+- Phase A 分支：`codex/roadmap-product-events`，实现提交 `4070f7b`；线上正式版仍对应 `master@5813ffc`。
+- `miniprogram/core/growthTracker.js` 在保留 `console.info('[growth]')` 和 `wx.reportEvent` 的基础上，把同一份已清洗 payload 交给默认关闭的隔离队列。
+- `miniprogram/core/productEventQueue.js` 已实现持久化小批次、稳定事件 ID、容量保护、请求超时、指数退避与重启恢复。
+- `cloudfunctions/reportProductEvents/` 已实现独立接收、逐条校验、部分失败、事务幂等与稳定返回契约；本工作线未执行真实环境部署，远端实际状态未连接核验。
 - `startTournament` 已有排阵阶段 timing 日志和 `schedulerMetaJson`，但这不等于产品事件管道。
 - 云结果需兼容 `miniprogram/core/cloud.js` 的稳定归一化：`ok`、`code`、`message`、`state`、`traceId`、`data`。
 
@@ -35,7 +70,7 @@ Phase A 只完成事件协议、客户端缓冲、独立接收云函数和自动
 
 ### 客户端事件
 
-建议最小结构：
+实现结构：
 
 ```js
 {
@@ -50,10 +85,10 @@ Phase A 只完成事件协议、客户端缓冲、独立接收云函数和自动
 约束：
 
 - `eventId` 在客户端首次生成后保持稳定，重试不得换 ID。
-- 单次请求为有上限的小批次；建议最多 20 条。
+- 单次请求为有上限的小批次，固定最多 20 条。
 - `name` 必须命中明确 allowlist，不接受任意动态名称。
-- `properties` 只能使用指标字典允许的键，字符串和数组长度均设上限。
-- 允许的赛事标识只能是现有 `growthTracker.shortTournamentId` 或不可逆摘要，不得发送原始 tournamentId。
+- `properties` 只能使用 `t`、`s`、`m`、`src`、`a`、`r`，值必须命中固定格式或枚举；数组、嵌套对象和自由文本均拒绝。
+- 允许的赛事标识固定为现有 `growthTracker.shortTournamentId` 生成的 8 位假名化短标识，不得发送原始 tournamentId。
 - 客户端队列失败、超时或禁用时不得阻断任何业务操作，不向用户弹错误提示。
 
 ### 匿名与无 PII
@@ -82,7 +117,7 @@ Phase A 只完成事件协议、客户端缓冲、独立接收云函数和自动
 - 服务端时间作为 `receivedAt`，客户端时间只作为受范围校验的 `occurredAtMs`。
 - 任意数据库失败都返回稳定失败状态，不把 SDK 原始异常结构暴露给客户端。
 
-建议成功响应：
+实现成功响应：
 
 ```js
 {
@@ -146,7 +181,7 @@ Phase A 不得修改以下文件或目录中的业务实现：
 聚焦回归至少包括：
 
 ```powershell
-node --test tests/growth-tracker.test.js tests/product-event-queue.test.js tests/reportProductEvents.logic.test.js tests/reportProductEvents.index.test.js tests/cloud-response-contract-write-actions.test.js tests/cloud-db-write-shape.test.js
+node --test tests/growth-tracker.test.js tests/product-event-queue.test.js tests/reportProductEvents.logic.test.js tests/reportProductEvents.index.test.js tests/product-event-contract.consistency.test.js tests/cloud-response-contract-write-actions.test.js tests/cloud-db-write-shape.test.js
 npm run check:cloud-common
 npm run verify:full
 ```
@@ -155,14 +190,16 @@ npm run verify:full
 
 ## 交付与验收
 
-- 一份明确的事件名称和属性 allowlist。
-- 默认关闭的客户端队列和 transport。
-- 默认关闭的独立 `reportProductEvents` 云函数。
-- 匿名、无 PII、幂等、批量、部分失败和非阻断测试全部通过。
-- 现有业务页面、热业务云函数及其结果契约零差异。
-- `npm run check:cloud-common` 与 `npm run verify:full` 通过。
-- 最终汇报说明新云函数未来需要部署，但本任务不部署、不建真实 collection、不启用开关。
-- 不提交、不 push、不创建 PR、不 preview/upload、不发布、不部署云函数、不写真实云数据。
+- [x] 明确的 19 个事件名称及逐事件属性 allowlist。
+- [x] 默认关闭的客户端队列和 transport。
+- [x] 默认关闭的独立 `reportProductEvents` 云函数。
+- [x] 匿名、无 PII、幂等、批量、部分失败和非阻断测试。
+- [x] 现有业务页面、热业务云函数及其结果契约零差异。
+- [x] `npm run check:cloud-common` 与 `npm run verify:full` 通过。
+- [x] 本地实现提交 `4070f7b`；该提交由用户在独立 worktree 任务中明确授权。
+- [ ] 总控集成尚未完成。
+- [ ] 真实 collection、云函数部署、真实环境契约验证和双端开关启用仍待另行授权；本工作线未执行，远端实际状态未连接核验。
+- [ ] 未 push、未创建 PR、未 preview/upload、未发布、未部署云函数、未写真实云数据。
 
 ## Phase B 明确后置
 
@@ -173,16 +210,10 @@ npm run verify:full
 - 运营后台、告警、数据保留策略和线上开关启用。
 - 历史赛事回填。
 
-## 可复制启动提示词
+## 总控集成提示
 
-```text
-在 D:\projects(WIN)\badminton-miniapp 开始任务 04「产品事件管道 Phase A」。
-
-先完整阅读 AGENTS.md、docs/tasks/current.md、docs/context/architecture.md、docs/tasks/parallel-development/04-product-event-pipeline.md，并使用 weapp-regression-guard 与 weapp-cloud-contract-audit。先核对 git status，保留现有改动，禁止 reset/clean/checkout 覆盖。
-
-本任务状态为 ready，可以直接测试先行实现，但范围必须隔离：只允许改 growthTracker、增加默认关闭的客户端事件队列/配置、增加独立 reportProductEvents 云函数及测试。客户端和云端开关都保持 false；匿名、无 PII、不发送原始 tournamentId；eventId 稳定、批量有上限、服务端幂等、部分失败可报告，所有异常都不得阻断业务。
-
-严格禁止修改 startTournament、submitScore、updateSettings、cloneTournament、createTournament、joinTournament、现有页面埋点调用、core/cloud.js 全局语义或 permission；不得接入任何服务端热业务事件。稳定返回契约保持 ok/code/message/state/traceId/data。
-
-完成后运行聚焦测试、npm run check:cloud-common、npm run verify:full。不要 commit、push、创建 PR、preview/upload、发布、部署云函数、创建真实 collection、启用开关或写真实云数据；最终按“变更、测试、未测试、风险”汇报，并明确 Phase B 后置项。
-```
+- 集成对象：`codex/roadmap-product-events@4070f7b`。
+- 集成时保持客户端 `enabled: false`，不得配置 `PRODUCT_EVENTS_ENABLED=true`。
+- 合并冲突只允许围绕 `growthTracker`、`cloudbaserc.json`、云函数清单测试和生成库处理；不得借机接入 Phase B 热函数事件。
+- 集成后重新运行本页聚焦回归、`npm run check:cloud-common` 与 `npm run verify:full`。
+- 部署、建集合、权限配置、真实环境写入和开关启用必须另行获得明确授权。
