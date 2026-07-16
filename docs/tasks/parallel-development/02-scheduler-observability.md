@@ -1,6 +1,6 @@
 # 工作线 02：排阵观测与模板覆盖审计
 
-> 状态：`ready_for_audit`
+> 状态：`audit_complete_waiting_p01_pareto`
 > 类型：logic-only 审计、测试与本地观测证据
 > 统一开发基线：`codex/ui-optimization-v2@743b016`
 > 线上产品基线：`master@5813ffc`
@@ -168,3 +168,24 @@
 
 本任务不 commit、不 push、不创建 PR，不 upload/preview upload、不发布、不部署云函数、不读取或写入真实赛事数据。结束时用中文汇报：模板覆盖、fallback、完整性与公平性、性能、观测缺口、工作线 01 依赖、产物路径、测试结果、确认未执行的远程操作。不要更新全局 current.md。
 ```
+
+## 11. 2026-07-16 审计交付
+
+本轮在 `codex/roadmap-scheduler-observability@70845c1` 上完成现状审计，未修改生产排阵文件、模板库或用户可见文件。
+
+交付物：
+
+- `scripts/audit-scheduler-observability.js`：实时模板枚举、结构完整性、多维公平性、路径分型、重复性能采样与 timing/meta 字段审计。
+- `tests/scheduler.observability-audit.test.js`：覆盖矩阵守恒、畸形排阵检测、绝对等场必要条件、场地归一、runtime budget、真实 timing 源、按 mode 的 meta 可用性、路径分类与稳定性统计。
+- `docs/tasks/parallel-development/evidence/02-scheduler-observability-audit.json`：机器可读的逐模板、逐场数、逐人场次/轮空、fallback、benchmark 和观测字段证据。
+- `docs/tasks/parallel-development/evidence/02-scheduler-observability-audit.md`：可读审计摘要。
+
+当前事实：
+
+- 实时枚举 `60` 个模板键、`283` 个 variant、`941` 个连续场数前缀；注册表与模板路径问题均为 `0`。
+- `941` 个模板前缀的四人唯一性、合法成员、同轮冲突与 `Σplays = 4 × matches` 错误均为 `0`。
+- `114` 个数学上可绝对等场组合全部达成；`827` 个不满足 `4 × totalMatches % playersCount == 0` 的组合没有被误报为绝对等场。
+- 模板同 seed 与跨 seed 路由审计均稳定；动态路径受真实时钟 deadline 影响，同一输入可能在 beam、legacy 与 error 间变化，证据中保留重复运行计数。
+- 本地性能只测算法，使用 `performance.now()`、`2` 次 warmup、`20` 次原始样本并记录 median/P95；没有把本地结果冒充 materialize/write/云函数端到端耗时。
+- 生产 done timing 已有 `scheduleMs/materializeMs/writeMs/totalMs` 等字段，但缺 `engineVersion/fallbackReason/searchElapsedMs/mode/scheduledMatches`；squad/fixed 的部分 meta 字段还存在“键或值不可用”缺口。本轮只报告建议，未修改生产代码。
+- 工作线 01 的脱敏组合 Pareto 尚未提供，因此 `mode × playersCount × courts × totalMatches` 高频映射仍为 pending；本轮没有新增或刷新模板。
