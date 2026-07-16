@@ -1,8 +1,14 @@
 # P06：组局 Lite discovery / spec
 
-> 状态：`ready_for_parallel_discovery_spec_only`
+> 状态：`discovery_complete_pending_product_approval`
 > 任务类型：产品发现、数据契约与实现拆分；禁止生产实现
 > 文档所有者：P06 独立对话
+
+## 本轮成果（2026-07-16）
+
+- 完整规格：[`docs/specs/game-session-lite-discovery-spec.md`](../../specs/game-session-lite-discovery-spec.md)
+- Session log：[`docs/tasks/session-logs/20260716-game-session-lite-discovery-spec.md`](../session-logs/20260716-game-session-lite-discovery-spec.md)
+- 当前门槛：等待用户逐点批准规格中的页面、文案、CTA、导航、分享、默认行为和隐私选择；批准前继续禁止生产实现。
 
 ## 统一基线
 
