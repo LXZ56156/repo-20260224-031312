@@ -241,6 +241,7 @@ async function getAccessToken({
   tokenCachePath = TOKEN_CACHE_PATH,
   nowMs = Date.now(),
   forceRefresh = false,
+  persistToken = true,
   fetchImpl = globalThis.fetch
 }) {
   if (!forceRefresh) {
@@ -249,7 +250,8 @@ async function getAccessToken({
       return {
         accessToken: cached.accessToken,
         expiresAt: cached.expiresAt,
-        fromCache: true
+        fromCache: true,
+        persisted: false
       };
     }
   }
@@ -262,17 +264,20 @@ async function getAccessToken({
   });
   const expiresAt = nowMs + fresh.expiresIn * 1000;
 
-  await writeJsonFile(tokenCachePath, {
-    fetched_at: new Date(nowMs).toISOString(),
-    expires_at: expiresAt,
-    expires_in: fresh.expiresIn,
-    access_token: fresh.accessToken
-  }, 0o600);
+  if (persistToken) {
+    await writeJsonFile(tokenCachePath, {
+      fetched_at: new Date(nowMs).toISOString(),
+      expires_at: expiresAt,
+      expires_in: fresh.expiresIn,
+      access_token: fresh.accessToken
+    }, 0o600);
+  }
 
   return {
     accessToken: fresh.accessToken,
     expiresAt,
-    fromCache: false
+    fromCache: false,
+    persisted: Boolean(persistToken)
   };
 }
 
@@ -398,6 +403,7 @@ async function fetchWeAnalysis({
   envPath = ENV_LOCAL_PATH,
   tokenCachePath = TOKEN_CACHE_PATH,
   outputDir = OUTPUT_DIR,
+  persistToken = true,
   nowFn = Date.now,
   fetchImpl = globalThis.fetch,
   logger = console
@@ -411,6 +417,7 @@ async function fetchWeAnalysis({
     secret: env.WX_APPSECRET,
     tokenCachePath,
     nowMs,
+    persistToken,
     fetchImpl
   });
 
@@ -436,6 +443,7 @@ async function fetchWeAnalysis({
       tokenCachePath,
       nowMs: nowFn(),
       forceRefresh: true,
+      persistToken,
       fetchImpl
     });
     raw = await fetchDatacube({

@@ -3,8 +3,27 @@
   "cutoffDate": "2026-07-15",
   "sources": {
     "weAnalysis": {
-      "status": "unavailable_missing_local_credentials",
-      "fileCount": 0
+      "status": "available_with_platform_empty_dates",
+      "cutoffDate": "2026-07-15",
+      "requestedWindow": {
+        "startDate": "2026-01-17",
+        "endDate": "2026-07-15"
+      },
+      "transport": "official_required_https_post",
+      "semantics": "read_only",
+      "dataRequests": 931,
+      "succeeded": 931,
+      "failed": 0,
+      "dailyRequestedDays": 180,
+      "dailyTrendDaysWithRows": 153,
+      "dailyTrendSuccessfulEmptyDays": 27,
+      "latestCompleteDayFetched": true,
+      "rawResponseJsonFiles": 931,
+      "rawCsvFiles": 818,
+      "rawFilesTracked": false,
+      "tokenPersisted": false,
+      "summarySha256": "1d84ea5376f9295a7fc016f212a0b3e78412e760ac0e1ede351a980034dcc090",
+      "remoteWritesExecuted": false
     },
     "tournaments": {
       "status": "stable_client_visible_snapshot",
@@ -39,7 +58,10 @@
   "privacy": {
     "rawFilesTracked": false,
     "containsActorIdentifiers": false,
-    "containsProfileFields": false,
+    "containsRawProfileFields": false,
+    "containsKAnonymizedAggregatePortrait": true,
+    "portraitGeographyOmitted": true,
+    "portraitKThreshold": 5,
     "containsSecrets": false
   }
 }

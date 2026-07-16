@@ -1,15 +1,33 @@
 {
   "schemaVersion": 2,
-  "status": "partial_source_coverage",
+  "status": "complete_with_scope_limitations",
   "decisionReady": {
-    "overall": false,
+    "overall": true,
     "tournamentFunnel": true,
     "schedulerTemplatePrioritization": "directional_client_visible_snapshot",
-    "weAnalysis": false
+    "weAnalysis": true,
+    "scopeLimitations": [
+      "tournaments is a stable client-visible snapshot, not an administrator-complete collection export",
+      "the 180-day We date range was requested completely but 27 early days returned no daily trend row",
+      "no verified production publication timestamp supports a causal growth-feature pre/post comparison"
+    ]
   },
   "intendedCutoffDate": "2026-07-15",
   "actualCoverage": {
-    "weAnalysis": null,
+    "weAnalysis": {
+      "scope": "official_datacube_read_only_responses",
+      "transport": "official_required_https_post",
+      "requestedStartDate": "2026-01-17",
+      "requestedEndDate": "2026-07-15",
+      "dataRequests": 931,
+      "successfulRequests": 931,
+      "failedRequests": 0,
+      "dailyTrendDaysWithRows": 153,
+      "dailyTrendSuccessfulEmptyDays": 27,
+      "window90DailyTrendDaysWithRows": 90,
+      "tokenPersisted": false,
+      "rawFilesTracked": false
+    },
     "tournaments": {
       "scope": "wx.cloud.database_client_read_context",
       "snapshotRecords": 1070,
@@ -93,7 +111,66 @@
         }
       }
     },
-    "weAnalysis": null
+    "weAnalysis": {
+      "window90": {
+        "startDate": "2026-04-17",
+        "endDate": "2026-07-15",
+        "observedDays": 90,
+        "visitUvPersonDays": 2689,
+        "averageDailyVisitUvOnObservedDays": 29.877778,
+        "visitPv": 46450,
+        "averageDailyVisitPvOnObservedDays": 516.111111,
+        "visitUvNewPersonDays": 1614,
+        "newUserUvPersonDayRatio": 0.600223,
+        "sessions": 8300,
+        "weightedStayTimePerVisitorSeconds": 328.567108,
+        "weightedStayTimePerSessionSeconds": 106.447845,
+        "weightedVisitDepth": 2.810723,
+        "sharePv": 429,
+        "shareUvPersonDays": 259,
+        "newUserRetention": {
+          "d1": { "eligibleCohorts": 89, "denominator": 1581, "retained": 135, "rate": 0.085389 },
+          "w1": { "eligibleCohorts": 11, "denominator": 1294, "retained": 153, "rate": 0.118238 },
+          "w4": { "eligibleCohorts": 8, "denominator": 779, "retained": 50, "rate": 0.064185 }
+        },
+        "topPage": {
+          "pagePath": "pages/schedule/index",
+          "visitPv": 11635
+        },
+        "shareEntry": {
+          "pagePath": "pages/share-entry/index",
+          "visitPv": 6134,
+          "entryPv": 5408,
+          "weightedStayTimePerPageViewSeconds": 7.238693
+        },
+        "topAccessSourceSessionCodes": [
+          { "key": "3", "sessions": 5690, "share": 0.685542 },
+          { "key": "29", "sessions": 1391, "share": 0.16759 },
+          { "key": "2", "sessions": 945, "share": 0.113855 }
+        ]
+      },
+      "window180": {
+        "startDate": "2026-01-17",
+        "endDate": "2026-07-15",
+        "observedDays": 153,
+        "successfulEmptyDays": 27,
+        "visitUvPersonDays": 2845,
+        "visitPv": 48936,
+        "visitUvNewPersonDays": 1704,
+        "newUserUvPersonDayRatio": 0.598946,
+        "sessions": 8733,
+        "newUserRetention": {
+          "d1": { "eligibleCohorts": 168, "denominator": 1671, "retained": 150, "rate": 0.089767 },
+          "w1": { "eligibleCohorts": 24, "denominator": 1401, "retained": 166, "rate": 0.118487 },
+          "w4": { "eligibleCohorts": 21, "denominator": 886, "retained": 67, "rate": 0.075621 }
+        }
+      },
+      "semantics": {
+        "visitUv": "daily UV person-days sum, not deduplicated users across the window",
+        "shareUv": "daily sharing UV person-days sum",
+        "retention": "weighted exact-offset cohort rate; missing offsets excluded, not zero"
+      }
+    }
   },
   "derivedFindings": {
     "largestAuditableFunnelLosses90d": [
@@ -126,13 +203,23 @@
       { "mode": "multi_rotate", "playersCount": 7, "courts": 1, "count": 58, "shareOfStarted": 0.12033195020746888, "effectiveCompletionRate": 0.3620689655172414 },
       { "mode": "multi_rotate", "playersCount": 5, "courts": 1, "count": 47, "shareOfStarted": 0.0975103734439834, "effectiveCompletionRate": 0.5106382978723404 },
       { "mode": "multi_rotate", "playersCount": 8, "courts": 1, "count": 42, "shareOfStarted": 0.08713692946058091, "effectiveCompletionRate": 0.30952380952380953 }
-    ]
+    ],
+    "weAnalysis90d": {
+      "shareEntryIsLargestEntryRoute": true,
+      "shareEntryEntryPv": 5408,
+      "shareEntryWeightedStayTimePerPageViewSeconds": 7.238693,
+      "platformSharingPresentButPageAttributionUnavailable": true,
+      "newUserUvPersonDayRatio": 0.600223,
+      "newUserD1Retention": 0.085389,
+      "newUserW4Retention": 0.064185,
+      "causalPrePostComparisonAvailable": false
+    }
   },
   "downstream": {
     "schedulerTemplateImplementation": "prioritize 6/7/5/8-player one-court multi_rotate families, but retain configuration flexibility because exact combinations are highly fragmented",
     "productEventDictionary": "persist start/join/first-score/finish/share/clone timestamps and delivery evidence",
     "funnelUiOptimization": "investigate roster readiness and started-to-first-score before changing user-visible behavior; current snapshot does not establish causality",
-    "weGrowthPrioritization": "wait_for_current_we_analysis"
+    "weGrowthPrioritization": "share-entry remains the dominant measured entry route and new-user retention remains low; prioritize instrumentation and diagnosis before any separately approved user-visible change"
   },
   "privacy": {
     "containsActorIdentifiers": false,

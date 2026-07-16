@@ -1,19 +1,27 @@
 {
   "schemaVersion": 2,
-  "status": "partial_source_coverage",
+  "status": "complete_with_scope_limitations",
   "intendedCutoffDate": "2026-07-15",
   "requestedWindowsDays": [90, 180],
   "sources": {
     "weAnalysis": {
-      "availability": "blocked_missing_local_credentials",
-      "auditedFiles": 0,
-      "reasons": [
-        "worktree .env.local missing",
-        "worktree token cache missing",
-        "process credential variables missing"
-      ],
-      "historicalDocumentLatestDate": "2026-06-13",
-      "historicalRawEvidenceAvailable": false
+      "availability": "available_with_disclosed_platform_empty_dates",
+      "cutoffDate": "2026-07-15",
+      "requestedStartDate": "2026-01-17",
+      "dataRequests": 931,
+      "successfulRequests": 931,
+      "failedRequests": 0,
+      "dailyTrendRequestedDays": 180,
+      "dailyTrendDaysWithRows": 153,
+      "dailyTrendSuccessfulEmptyDays": 27,
+      "emptyDateRange": {
+        "startDate": "2026-01-17",
+        "endDate": "2026-02-12"
+      },
+      "window90DailyTrendDaysWithRows": 90,
+      "tokenPersisted": false,
+      "rawFilesTracked": false,
+      "interpretation": "successful responses without a metric row are unavailable observations and are excluded from metric denominators, never filled as zero"
     },
     "tournaments": {
       "availability": "available_client_visible_snapshot",
@@ -61,6 +69,19 @@
     }
   },
   "qualityFindings": {
+    "weAnalysis": {
+      "requestCoverageComplete": true,
+      "dailyTrendObservedDays": 153,
+      "dailyTrendSuccessfulEmptyDays": 27,
+      "visitPageObservedDays": 129,
+      "visitPageSuccessfulEmptyDays": 51,
+      "dailySummaryVisitTotalSemantics": "cumulative endpoint value; only first, last and endpoint delta are reported",
+      "windowUvSemantics": "sum of daily UV person-days, not deduplicated window users",
+      "retentionOffsets": "only cohorts containing the exact D1/W1/W4/M1 offset are included; immature or missing offsets are unavailable",
+      "portraitScope": "single-day 2026-07-15 snapshot; province/city omitted and buckets below k=5 suppressed",
+      "pageShareAttribution": "dailySummary reports platform sharing while visitPage page-share fields aggregate to explicit zero; page-level share attribution is not decision-ready",
+      "historicalComparison": "the repository has an implementation checkpoint but no verified production publication timestamp or retained historical raw evidence, so no causal pre/post claim is made"
+    },
     "missingPersistentTimestamps": {
       "startedAtRecords": 0,
       "finishedAtRecords": 0,
@@ -97,11 +118,14 @@
   },
   "exitGates": {
     "latestCompleteDayFetched": {
-      "weAnalysis": false,
+      "weAnalysis": true,
       "tournaments": true
     },
     "windows90And180Covered": {
-      "weAnalysis": false,
+      "weAnalysisRequestedDates": true,
+      "weAnalysis90dDailyRowsComplete": true,
+      "weAnalysis180dDailyRowsComplete": false,
+      "weAnalysis180dObservedDays": 153,
       "tournaments": true
     },
     "tournamentCoreClassificationAtLeast95Percent": true,

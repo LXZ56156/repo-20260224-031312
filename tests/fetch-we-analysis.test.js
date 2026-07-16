@@ -96,6 +96,26 @@ test('fetch-we-analysis refreshes cached access_token inside the five-minute win
   assert.equal(cached.expires_at, nowMs + 7200 * 1000);
 });
 
+test('fetch-we-analysis can keep a refreshed access_token in memory only', async () => {
+  const tempDir = makeTempDir();
+  const tokenCachePath = path.join(tempDir, '.cache/wechat-access-token.json');
+  const nowMs = Date.parse('2026-05-12T00:00:00.000Z');
+
+  const result = await weAnalysis.getAccessToken({
+    appid: 'fake_appid',
+    secret: 'fake_secret',
+    tokenCachePath,
+    nowMs,
+    persistToken: false,
+    fetchImpl: async () => makeJsonResponse({ access_token: 'memory_only_token', expires_in: 7200 })
+  });
+
+  assert.equal(result.accessToken, 'memory_only_token');
+  assert.equal(result.fromCache, false);
+  assert.equal(result.persisted, false);
+  assert.equal(fs.existsSync(tokenCachePath), false);
+});
+
 test('fetch-we-analysis force-refreshes token and retries datacube once on token errors', async () => {
   const tempDir = makeTempDir();
   const envPath = path.join(tempDir, '.env.local');

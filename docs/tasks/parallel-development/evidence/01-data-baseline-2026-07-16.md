@@ -1,6 +1,6 @@
 # 工作线 01 数据基线执行报告（2026-07-16）
 
-> 结论：`partial_source_coverage`。已取得并双遍校验当前 `tournaments` 客户端可见快照，完成 90/180 天赛事漏斗、留存 proxy、周有效完赛和组合 Pareto；We 分析仍因当前独立 worktree 缺少本地凭据而不可用。数据库结果可用于方向性判断，但不能冒充管理员全量快照。
+> 结论：`complete_with_scope_limitations`。截至 `2026-07-15` 的 We 分析只读请求与赛事数据库稳定客户端可见快照均已刷新，完成 90/180 天访问、页面、来源、留存、赛事漏斗和组合 Pareto。We 的成功空响应、person-days 口径与画像范围均已披露；数据库结果仍不能冒充管理员全量快照。
 
 ## 1. 数据范围与来源
 
@@ -18,12 +18,52 @@
 
 ### 当前 We 分析事实
 
-- 预期最近完整日：`2026-07-15`，预期覆盖最近 90/180 天。
-- 当前 worktree 无 `.env.local`、token 缓存和 `WX_APPID/WX_APPSECRET` 进程凭据。
-- 本次 We 分析 API 请求数为 0，缓存文件数为 0；所有当前 We 指标保持 `null/unavailable`，不填成 0。
-- 未读取主工作区配置，也未要求在聊天中提供 secret。
+- 最近完整日为 `2026-07-15`；请求范围为 `2026-01-17..2026-07-15`，同时输出 90/180 天窗口。
+- 仅在进程内读取主工作区既有本地配置，未打印、未复制到 worktree、未写日志，access token 未持久化。官方 stable_token/datacube 协议要求 HTTPS POST；本次只调用查询语义接口，没有 mutation endpoint 或远端数据写入。
+- 共执行 931 个 datacube 数据请求，931 成功、0 失败。原始响应、CSV 与 fetch manifest 均只在 ignored `data/we-analysis/**`，Git tracked 数为 0。
+- `dailySummary` 与 `dailyVisitTrend` 均完成 180/180 日请求，其中 153 日有指标行；`2026-01-17..2026-02-12` 的 27 日为成功空响应，按 unavailable 排除，不补成业务 0。最近 90 日为 90/90 日有指标行。
+- `visitPage` / `visitDistribution` 有指标的日期为 129/180；最近 90 日均为 90/90。`userPortrait` 仅取 `2026-07-15` 单日快照，省市被删除，小于 k=5 的 bucket 被抑制。
 
-## 2. 90 天赛事漏斗
+## 2. We 分析与产品复盘
+
+### 90/180 天访问基线
+
+| 指标 | 90 天 | 180 天 |
+|---|---:|---:|
+| 有指标日 / 请求日 | 90 / 90 | 153 / 180 |
+| UV person-days | 2689 | 2845 |
+| 有指标日日均 UV | 29.9 | 18.6 |
+| PV | 46450 | 48936 |
+| 新 UV person-days 占比 | 60.0% | 59.9% |
+| sessions | 8300 | 8733 |
+| 加权访客停留 | 328.6 秒 | 327.3 秒 |
+| 加权单次会话停留 | 106.4 秒 | 106.6 秒 |
+| 加权访问深度 | 2.81 | 2.81 |
+| share PV / share UV person-days | 429 / 259 | 452 / 274 |
+
+UV、新 UV 和 share UV 均为逐日 UV 的 person-days 之和，不是跨窗口去重用户。`dailySummary.visit_total` 是累计端点：90 天首末为 94→1704、端点差 1610；180 天首个有指标日 `2026-02-13` 到截止日为 2→1704、端点差 1702。端点差不能改写成窗口新增独立用户数。
+
+90 天贡献约 95% 的 180 天 UV person-days、PV、sessions 和分享量，只能描述为“活动高度集中在最近 90 个日历日”。两个窗口互相包含，早期还有成功空响应；仓库也没有经验证的线上发布时间和旧 raw，因此不能把差异归因为某次产品改动。
+
+### 页面、入口与来源
+
+- 90 天 PV 前六页为 `schedule=11635`、`lobby=6139`、`share-entry=6134`、`match=5949`、`home=5036`、`ranking=4799`，合计占页面 PV 的 85.5%。赛事执行与结果查看仍是主要浏览区域。
+- `share-entry` 的 entry PV 为 5408，占已发布页面 entry PV 的 68.7%，是当前主要记录入口；其加权单 PV 停留为 7.24 秒。入口、停留和 exit 不是 session 转化率，不能直接称为成功、跳失或漏斗断点。
+- 90 天来源 session 数前三个 code 为 `3=5690 (68.6%)`、`29=1391 (16.8%)`、`2=945 (11.4%)`。当前 fetch evidence 不含版本化 code→渠道名称字典，因此公开证据保留数字 code，不擅自命名渠道。
+- 平台日汇总明确返回 429 次分享、259 share UV person-days，但 `visitPage` 的页面分享字段聚合为显式 0；这是端点语义/归因差异，不能解释为“页面没有分享”，也不能建立分享→赛事的用户级因果链。
+
+### 平台留存
+
+| cohort | 新用户 90 天 | 全访客 90 天 | 新用户 180 天 | 全访客 180 天 |
+|---|---:|---:|---:|---:|
+| D1 | 8.5% | 13.2% | 9.0% | 13.6% |
+| W1 | 11.8% | 19.7% | 11.8% | 19.9% |
+| W4 | 6.4% | 11.9% | 7.6% | 13.0% |
+| M1 | 10.1% | 13.9% | 14.7% | 18.2% |
+
+90 天新用户 D1/W1/W4 的有效 cohort 分别为 89/11/8 个，分母为 1581/1294/779；最新 1 个日 cohort、1 个周 cohort 和 4 个 W4 cohort 因 offset 未成熟或缺失而排除，不填 0。M1 在 90 天仅 1 个成熟 cohort，方向性很弱。D1/W1/W4/M1 使用不同时间粒度与分母，不能当成同一批用户的连续衰减。
+
+## 3. 90 天赛事漏斗
 
 | 阶段 | 赛事数 | 相对上一阶段转化 |
 |---|---:|---:|
@@ -43,7 +83,7 @@
 
 `share_or_repeat_lower_bound` 主要来自可观察 clone 关联。快照内没有 `sharedAt` / 正数 `shareCount` 证据，`shareActivity*` 又只是动态消息状态，因此 10.3% 只能视为复办/分享可观察下界，不能解释为真实分享率。
 
-## 3. 留存、复办与耗时 proxy
+## 4. 留存、复办与耗时 proxy
 
 90 天窗口：
 
@@ -63,7 +103,7 @@
 
 这些用户级指标使用最终赛事快照和赛事 `createdAt` 近似参与时点；无 `joinedAt`、认领/移除历史和删除记录，属于 survivor-based proxy，不是精确 cohort 事实。
 
-## 4. 赛事组合 Pareto
+## 5. 赛事组合 Pareto
 
 ### 精确七维组合
 
@@ -94,7 +134,7 @@
 
 180 天 mode 分布为：`multi_rotate=516`、`fixed_pair_rr=8`、`squad_doubles=10`、`unknown=13`。因此后续模板工作可优先研究 6/7/5/8 人单场地轮转族，但必须保留总场数和公平性配置的弹性；这只是方向性输入，不代表已批准产品改动。
 
-## 5. 数据质量与结构限制
+## 6. 数据质量与结构限制
 
 - 1065 条截止日前赛事中：draft 518、running 357、finished 190；190 条 finished 均满足本报告的严格有效完赛口径。
 - 主表 `startedAt` / `finishedAt` 覆盖均为 0；创建到开赛、开赛到首分耗时无法计算。
@@ -103,22 +143,24 @@
 - reset 会清 rounds/rankings/scheduler 元数据，delete 会物理删除；当前快照存在历史丢失和 survivor bias。
 - 旧数据缺少 mode/scheduler 元数据；started 赛事七维核心分类率仍达到 97.6%，超过 95% 退出门槛。
 - `shareActivity*` 不是实际分享行为；不得与 We 平台分享入口或会话来源混为同一指标。
+- We 成功空响应、成熟 offset 缺口、单日画像和页面分享归因差异均保留为质量边界；没有任何 missing 值被填成 0。
 
-## 6. 下游结论
+## 7. 下游结论
 
 ### 当前事实支持
 
 - 工作线 02 可以把 6/7/5/8 人单场地 `multi_rotate` 作为模板研究优先级，但精确组合分散，不能只实现一个固定场数模板。
 - 名单就绪和开赛后首分是当前两个最大可审计掉点；由于快照缺少事件时间和失败原因，不能直接归因于 UI。
 - 工作线 04 应优先持久化 start/join/first-score/finish/share/clone 的幂等时间戳和送达证据。
+- `share-entry` 仍是主要入口，新用户 person-day 占比约 60%，新用户 D1/W4 留存为 8.5%/6.4%；应先补齐版本化来源字典、曝光→加入→开赛事件链和发布标记，再讨论增长入口优先级。
 
 ### 仍不可做的结论
 
-- 当前没有 We 访问、页面、来源、分享和留存数据，不能排序增长入口或声称增长功能效果。
+- 当前 We 聚合支持描述入口、访问和留存现状，但不支持把 90/180 天差异或历史文档值归因于增长功能效果。
 - 未核对管理员集合总数，不能把客户端可见 1070 条称为绝对全量。
 - 当前证据不授权页面结构、CTA、导航或用户流程调整；任何用户可见改动仍需单独批准和实图验收。
 
-## 7. 可复跑命令
+## 8. 可复跑命令
 
 在已由仓库启动器绑定当前 worktree 的 DevTools session 中：
 
@@ -142,7 +184,26 @@ node scripts/audit-product-data.js `
 
 原始导出和本地分析目录均由 `.gitignore` 隔离。公开证据只复制 allowlist 维度和聚合数，不包含 openid、昵称、头像、手机号、位置、赛事名或原始行。
 
-## 8. 交付与远程操作声明
+已存在 ignored We raw 时，可确定性重建脱敏摘要：
+
+```powershell
+node scripts/audit-we-data.js `
+  data/we-analysis/we-current `
+  docs/tasks/parallel-development/evidence/01-we-analysis-summary-2026-07-16.json
+```
+
+批量拉取脚本只接受显式本地 env path 和 ignored 输出目录；凭据与 token 均不得进入命令回显或提交。其作业矩阵固定为 180 天日级五类、25 个完整周留存、5 个完整月留存和截止日单日画像，共 931 个只读 datacube 请求。
+
+```powershell
+node scripts/analysis/data-baseline-we-fetch-readonly.js `
+  --cutoff-date 2026-07-15 `
+  --output-dir data/we-analysis/we-current `
+  --env-path <existing-local-env-file>
+```
+
+也可预先在进程环境提供 `WX_APPID` / `WX_APPSECRET` 并省略 `--env-path`；脚本不会打印值或写 token cache，输出目录不在仓库内或未命中 `.gitignore` 时会 fail closed。
+
+## 9. 交付与远程操作声明
 
 - 指标字典：`01-metric-dictionary.json`
 - 数据质量：`01-data-quality-2026-07-16.json`
@@ -152,4 +213,4 @@ node scripts/audit-product-data.js `
 - 来源清单：`01-source-manifest-2026-07-16.json`
 - 验证记录：`01-validation-2026-07-16.md`
 
-本次只执行云数据库读取；未执行真实云数据写入、集合创建、云函数部署、preview/upload、正式发布、push、PR 或 merge。
+本次只执行 We 分析与云数据库读取；未执行真实云数据写入、集合创建、云函数部署、preview/upload、正式发布、push、PR 或 merge。

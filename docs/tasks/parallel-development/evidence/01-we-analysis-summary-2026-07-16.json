@@ -1,36 +1,1137 @@
 {
-  "schemaVersion": 1,
-  "status": "source_unavailable",
-  "intendedCutoffDate": "2026-07-15",
-  "requestedWindows": {
-    "90d": { "startDate": "2026-04-17", "endDate": "2026-07-15" },
-    "180d": { "startDate": "2026-01-17", "endDate": "2026-07-15" }
-  },
+  "schemaVersion": 3,
+  "status": "complete",
+  "cutoffDate": "2026-07-15",
   "sources": {
-    "dailySummary": null,
-    "dailyVisitTrend": null,
-    "visitPage": null,
-    "visitDistribution": null,
-    "userPortrait": null,
-    "dailyRetain": null,
-    "weeklyRetain": null,
-    "monthlyRetain": null
+    "dailySummary": {
+      "status": "complete",
+      "requestedRequests": 180,
+      "declaredSuccessfulRequests": 180,
+      "failedRequests": 0,
+      "rawArtifactCount": 180,
+      "missingSuccessfulArtifacts": 0,
+      "nonEmptyResponses": 153,
+      "successfulEmptyResponses": 27,
+      "semanticRows": 153,
+      "firstRequestDate": "2026-01-17",
+      "lastRequestDate": "2026-07-15"
+    },
+    "dailyVisitTrend": {
+      "status": "complete",
+      "requestedRequests": 180,
+      "declaredSuccessfulRequests": 180,
+      "failedRequests": 0,
+      "rawArtifactCount": 180,
+      "missingSuccessfulArtifacts": 0,
+      "nonEmptyResponses": 153,
+      "successfulEmptyResponses": 27,
+      "semanticRows": 153,
+      "firstRequestDate": "2026-01-17",
+      "lastRequestDate": "2026-07-15"
+    },
+    "visitPage": {
+      "status": "complete",
+      "requestedRequests": 180,
+      "declaredSuccessfulRequests": 180,
+      "failedRequests": 0,
+      "rawArtifactCount": 180,
+      "missingSuccessfulArtifacts": 0,
+      "nonEmptyResponses": 129,
+      "successfulEmptyResponses": 51,
+      "semanticRows": 1148,
+      "firstRequestDate": "2026-01-17",
+      "lastRequestDate": "2026-07-15"
+    },
+    "visitDistribution": {
+      "status": "complete",
+      "requestedRequests": 180,
+      "declaredSuccessfulRequests": 180,
+      "failedRequests": 0,
+      "rawArtifactCount": 180,
+      "missingSuccessfulArtifacts": 0,
+      "nonEmptyResponses": 129,
+      "successfulEmptyResponses": 51,
+      "semanticRows": 2408,
+      "firstRequestDate": "2026-01-17",
+      "lastRequestDate": "2026-07-15"
+    },
+    "dailyRetain": {
+      "status": "complete",
+      "requestedRequests": 180,
+      "declaredSuccessfulRequests": 180,
+      "failedRequests": 0,
+      "rawArtifactCount": 180,
+      "missingSuccessfulArtifacts": 0,
+      "nonEmptyResponses": 173,
+      "successfulEmptyResponses": 7,
+      "semanticRows": 1658,
+      "firstRequestDate": "2026-01-17",
+      "lastRequestDate": "2026-07-15"
+    },
+    "weeklyRetain": {
+      "status": "complete",
+      "requestedRequests": 25,
+      "declaredSuccessfulRequests": 25,
+      "failedRequests": 0,
+      "rawArtifactCount": 25,
+      "missingSuccessfulArtifacts": 0,
+      "nonEmptyResponses": 25,
+      "successfulEmptyResponses": 0,
+      "semanticRows": 115,
+      "firstRequestDate": "2026-01-19",
+      "lastRequestDate": "2026-07-12"
+    },
+    "monthlyRetain": {
+      "status": "complete",
+      "requestedRequests": 5,
+      "declaredSuccessfulRequests": 5,
+      "failedRequests": 0,
+      "rawArtifactCount": 5,
+      "missingSuccessfulArtifacts": 0,
+      "nonEmptyResponses": 5,
+      "successfulEmptyResponses": 0,
+      "semanticRows": 9,
+      "firstRequestDate": "2026-02-01",
+      "lastRequestDate": "2026-06-30"
+    },
+    "userPortrait": {
+      "status": "complete",
+      "requestedRequests": 1,
+      "declaredSuccessfulRequests": 1,
+      "failedRequests": 0,
+      "rawArtifactCount": 1,
+      "missingSuccessfulArtifacts": 0,
+      "nonEmptyResponses": 1,
+      "successfulEmptyResponses": 0,
+      "semanticRows": 60,
+      "firstRequestDate": "2026-07-15",
+      "lastRequestDate": "2026-07-15"
+    }
   },
-  "metrics": {
-    "visitUv": null,
-    "visitPv": null,
-    "newUserUvRatio": null,
-    "sessions": null,
-    "stayTime": null,
-    "visitDepth": null,
-    "pageVisits": null,
-    "accessSources": null,
-    "sharing": null,
-    "retentionD1W1W4": null
+  "windows": {
+    "90d": {
+      "startDate": "2026-04-17",
+      "endDate": "2026-07-15",
+      "traffic": {
+        "semantics": {
+          "visitUvPersonDays": "daily_uv_person_days_sum_not_window_unique_users",
+          "visitUvNewPersonDays": "daily_new_uv_person_days_sum_not_window_unique_users",
+          "newUserUvPersonDayRatio": "daily_new_uv_person_days_sum_divided_by_daily_uv_person_days_sum"
+        },
+        "observedDays": 90,
+        "successfulEmptyDays": 0,
+        "visitUvPersonDays": 2689,
+        "visitPv": 46450,
+        "visitUvNewPersonDays": 1614,
+        "newUserUvPersonDayRatio": 0.600223,
+        "sessions": 8300,
+        "weightedStayTimePerVisitor": 328.567108,
+        "weightedStayTimePerSession": 106.447845,
+        "weightedVisitDepth": 2.810723,
+        "metricObservations": {
+          "visitUv": 90,
+          "visitPv": 90,
+          "visitUvNew": 90,
+          "sessions": 90,
+          "stayTimePerVisitor": 90,
+          "stayTimePerSession": 90,
+          "visitDepth": 90
+        }
+      },
+      "cumulativeUsers": {
+        "semantics": "cumulative_endpoint_not_window_unique_users",
+        "observedDays": 90,
+        "firstDate": "2026-04-17",
+        "firstValue": 94,
+        "lastDate": "2026-07-15",
+        "lastValue": 1704,
+        "endpointDelta": 1610
+      },
+      "sharing": {
+        "observedDays": 90,
+        "sharePv": 429,
+        "shareUvPersonDays": 259
+      },
+      "pages": {
+        "semantics": {
+          "routeVisitUvPersonDays": "daily_page_visit_uv_summed_across_routes_and_days_not_global_unique_visitors",
+          "routeShareUvPersonDays": "daily_page_share_uv_summed_across_routes_and_days"
+        },
+        "observedResponseDays": 90,
+        "successfulEmptyDays": 0,
+        "observedRows": 952,
+        "totalVisitPv": 46450,
+        "routeVisitUvPersonDays": 10720,
+        "totalSharePv": 0,
+        "routeShareUvPersonDays": 0,
+        "weightedStayTimePerPageView": 58.147469,
+        "topPages": [
+          {
+            "pagePath": "pages/schedule/index",
+            "visitPv": 11635,
+            "visitUvPersonDays": 1284,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 346,
+            "exitPv": 2513,
+            "weightedStayTimePerPageView": 106.879552
+          },
+          {
+            "pagePath": "pages/lobby/index",
+            "visitPv": 6139,
+            "visitUvPersonDays": 1417,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 147,
+            "exitPv": 1303,
+            "weightedStayTimePerPageView": 42.174298
+          },
+          {
+            "pagePath": "pages/share-entry/index",
+            "visitPv": 6134,
+            "visitUvPersonDays": 1667,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 5408,
+            "exitPv": 924,
+            "weightedStayTimePerPageView": 7.238693
+          },
+          {
+            "pagePath": "pages/match/index",
+            "visitPv": 5949,
+            "visitUvPersonDays": 587,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 53,
+            "exitPv": 232,
+            "weightedStayTimePerPageView": 144.857613
+          },
+          {
+            "pagePath": "pages/home/index",
+            "visitPv": 5036,
+            "visitUvPersonDays": 1423,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 1689,
+            "exitPv": 997,
+            "weightedStayTimePerPageView": 12.103102
+          },
+          {
+            "pagePath": "pages/ranking/index",
+            "visitPv": 4799,
+            "visitUvPersonDays": 1247,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 103,
+            "exitPv": 1449,
+            "weightedStayTimePerPageView": 28.299021
+          },
+          {
+            "pagePath": "pages/launch/index",
+            "visitPv": 2871,
+            "visitUvPersonDays": 980,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 97,
+            "exitPv": 656,
+            "weightedStayTimePerPageView": 12.75645
+          },
+          {
+            "pagePath": "pages/profile/index",
+            "visitPv": 1664,
+            "visitUvPersonDays": 896,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 2,
+            "exitPv": 73,
+            "weightedStayTimePerPageView": 18.57351
+          },
+          {
+            "pagePath": "pages/create/index",
+            "visitPv": 1125,
+            "visitUvPersonDays": 630,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 6,
+            "exitPv": 30,
+            "weightedStayTimePerPageView": 11.399132
+          },
+          {
+            "pagePath": "pages/mine/index",
+            "visitPv": 769,
+            "visitUvPersonDays": 393,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 14,
+            "exitPv": 85,
+            "weightedStayTimePerPageView": 5.511183
+          },
+          {
+            "pagePath": "pages/analytics/index",
+            "visitPv": 281,
+            "visitUvPersonDays": 156,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 10,
+            "exitPv": 161,
+            "weightedStayTimePerPageView": 37.086829
+          },
+          {
+            "pagePath": "pages/preferences/index",
+            "visitPv": 37,
+            "visitUvPersonDays": 31,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 0,
+            "exitPv": 2,
+            "weightedStayTimePerPageView": 10.623797
+          },
+          {
+            "pagePath": "pages/feedback/index",
+            "visitPv": 11,
+            "visitUvPersonDays": 9,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 0,
+            "exitPv": 1,
+            "weightedStayTimePerPageView": 15.756273
+          }
+        ]
+      },
+      "accessSources": {
+        "observedResponses": 90,
+        "sessionCounts": [
+          {
+            "key": "1",
+            "value": 38
+          },
+          {
+            "key": "2",
+            "value": 945
+          },
+          {
+            "key": "3",
+            "value": 5690
+          },
+          {
+            "key": "4",
+            "value": 2
+          },
+          {
+            "key": "7",
+            "value": 3
+          },
+          {
+            "key": "8",
+            "value": 27
+          },
+          {
+            "key": "10",
+            "value": 95
+          },
+          {
+            "key": "16",
+            "value": 7
+          },
+          {
+            "key": "22",
+            "value": 6
+          },
+          {
+            "key": "23",
+            "value": 6
+          },
+          {
+            "key": "29",
+            "value": 1391
+          },
+          {
+            "key": "30",
+            "value": 2
+          },
+          {
+            "key": "36",
+            "value": 10
+          },
+          {
+            "key": "41",
+            "value": 14
+          },
+          {
+            "key": "43",
+            "value": 6
+          },
+          {
+            "key": "46",
+            "value": 5
+          },
+          {
+            "key": "49",
+            "value": 11
+          },
+          {
+            "key": "57",
+            "value": 39
+          },
+          {
+            "key": "59",
+            "value": 2
+          },
+          {
+            "key": "60",
+            "value": 1
+          }
+        ],
+        "visitUvPersonDays": [
+          {
+            "key": "1",
+            "value": 18
+          },
+          {
+            "key": "2",
+            "value": 834
+          },
+          {
+            "key": "3",
+            "value": 1703
+          },
+          {
+            "key": "4",
+            "value": 1
+          },
+          {
+            "key": "7",
+            "value": 2
+          },
+          {
+            "key": "8",
+            "value": 21
+          },
+          {
+            "key": "10",
+            "value": 63
+          },
+          {
+            "key": "16",
+            "value": 7
+          },
+          {
+            "key": "22",
+            "value": 4
+          },
+          {
+            "key": "23",
+            "value": 5
+          },
+          {
+            "key": "29",
+            "value": 512
+          },
+          {
+            "key": "30",
+            "value": 2
+          },
+          {
+            "key": "36",
+            "value": 10
+          },
+          {
+            "key": "41",
+            "value": 13
+          },
+          {
+            "key": "43",
+            "value": 4
+          },
+          {
+            "key": "46",
+            "value": 1
+          },
+          {
+            "key": "49",
+            "value": 5
+          },
+          {
+            "key": "57",
+            "value": 17
+          },
+          {
+            "key": "59",
+            "value": 2
+          },
+          {
+            "key": "60",
+            "value": 1
+          }
+        ]
+      },
+      "retention": {
+        "d1": {
+          "newUsers": {
+            "sourceCohorts": 90,
+            "observedCohorts": 89,
+            "missingOffsetCohorts": 1,
+            "denominator": 1581,
+            "retained": 135,
+            "rate": 0.085389
+          },
+          "allVisitors": {
+            "sourceCohorts": 90,
+            "observedCohorts": 89,
+            "missingOffsetCohorts": 1,
+            "denominator": 2622,
+            "retained": 347,
+            "rate": 0.132342
+          }
+        },
+        "w1": {
+          "newUsers": {
+            "sourceCohorts": 12,
+            "observedCohorts": 11,
+            "missingOffsetCohorts": 1,
+            "denominator": 1294,
+            "retained": 153,
+            "rate": 0.118238
+          },
+          "allVisitors": {
+            "sourceCohorts": 12,
+            "observedCohorts": 11,
+            "missingOffsetCohorts": 1,
+            "denominator": 1714,
+            "retained": 337,
+            "rate": 0.196616
+          }
+        },
+        "w4": {
+          "newUsers": {
+            "sourceCohorts": 12,
+            "observedCohorts": 8,
+            "missingOffsetCohorts": 4,
+            "denominator": 779,
+            "retained": 50,
+            "rate": 0.064185
+          },
+          "allVisitors": {
+            "sourceCohorts": 12,
+            "observedCohorts": 8,
+            "missingOffsetCohorts": 4,
+            "denominator": 1001,
+            "retained": 119,
+            "rate": 0.118881
+          }
+        },
+        "m1": {
+          "newUsers": {
+            "sourceCohorts": 2,
+            "observedCohorts": 1,
+            "missingOffsetCohorts": 1,
+            "denominator": 485,
+            "retained": 49,
+            "rate": 0.101031
+          },
+          "allVisitors": {
+            "sourceCohorts": 2,
+            "observedCohorts": 1,
+            "missingOffsetCohorts": 1,
+            "denominator": 532,
+            "retained": 74,
+            "rate": 0.139098
+          }
+        }
+      }
+    },
+    "180d": {
+      "startDate": "2026-01-17",
+      "endDate": "2026-07-15",
+      "traffic": {
+        "semantics": {
+          "visitUvPersonDays": "daily_uv_person_days_sum_not_window_unique_users",
+          "visitUvNewPersonDays": "daily_new_uv_person_days_sum_not_window_unique_users",
+          "newUserUvPersonDayRatio": "daily_new_uv_person_days_sum_divided_by_daily_uv_person_days_sum"
+        },
+        "observedDays": 153,
+        "successfulEmptyDays": 27,
+        "visitUvPersonDays": 2845,
+        "visitPv": 48936,
+        "visitUvNewPersonDays": 1704,
+        "newUserUvPersonDayRatio": 0.598946,
+        "sessions": 8733,
+        "weightedStayTimePerVisitor": 327.332143,
+        "weightedStayTimePerSession": 106.636907,
+        "weightedVisitDepth": 2.809459,
+        "metricObservations": {
+          "visitUv": 153,
+          "visitPv": 153,
+          "visitUvNew": 153,
+          "sessions": 153,
+          "stayTimePerVisitor": 129,
+          "stayTimePerSession": 129,
+          "visitDepth": 129
+        }
+      },
+      "cumulativeUsers": {
+        "semantics": "cumulative_endpoint_not_window_unique_users",
+        "observedDays": 153,
+        "firstDate": "2026-02-13",
+        "firstValue": 2,
+        "lastDate": "2026-07-15",
+        "lastValue": 1704,
+        "endpointDelta": 1702
+      },
+      "sharing": {
+        "observedDays": 153,
+        "sharePv": 452,
+        "shareUvPersonDays": 274
+      },
+      "pages": {
+        "semantics": {
+          "routeVisitUvPersonDays": "daily_page_visit_uv_summed_across_routes_and_days_not_global_unique_visitors",
+          "routeShareUvPersonDays": "daily_page_share_uv_summed_across_routes_and_days"
+        },
+        "observedResponseDays": 129,
+        "successfulEmptyDays": 51,
+        "observedRows": 1148,
+        "totalVisitPv": 48936,
+        "routeVisitUvPersonDays": 11328,
+        "totalSharePv": 0,
+        "routeShareUvPersonDays": 0,
+        "weightedStayTimePerPageView": 58.840347,
+        "topPages": [
+          {
+            "pagePath": "pages/schedule/index",
+            "visitPv": 12331,
+            "visitUvPersonDays": 1364,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 360,
+            "exitPv": 2654,
+            "weightedStayTimePerPageView": 110.788473
+          },
+          {
+            "pagePath": "pages/lobby/index",
+            "visitPv": 6564,
+            "visitUvPersonDays": 1525,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 162,
+            "exitPv": 1364,
+            "weightedStayTimePerPageView": 42.271583
+          },
+          {
+            "pagePath": "pages/share-entry/index",
+            "visitPv": 6396,
+            "visitUvPersonDays": 1760,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 5646,
+            "exitPv": 955,
+            "weightedStayTimePerPageView": 7.253046
+          },
+          {
+            "pagePath": "pages/match/index",
+            "visitPv": 6161,
+            "visitUvPersonDays": 622,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 53,
+            "exitPv": 236,
+            "weightedStayTimePerPageView": 144.223576
+          },
+          {
+            "pagePath": "pages/home/index",
+            "visitPv": 5352,
+            "visitUvPersonDays": 1510,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 1831,
+            "exitPv": 1099,
+            "weightedStayTimePerPageView": 11.89066
+          },
+          {
+            "pagePath": "pages/ranking/index",
+            "visitPv": 4964,
+            "visitUvPersonDays": 1301,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 112,
+            "exitPv": 1491,
+            "weightedStayTimePerPageView": 27.844679
+          },
+          {
+            "pagePath": "pages/launch/index",
+            "visitPv": 3056,
+            "visitUvPersonDays": 1026,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 102,
+            "exitPv": 689,
+            "weightedStayTimePerPageView": 12.387726
+          },
+          {
+            "pagePath": "pages/profile/index",
+            "visitPv": 1730,
+            "visitUvPersonDays": 930,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 2,
+            "exitPv": 74,
+            "weightedStayTimePerPageView": 18.410533
+          },
+          {
+            "pagePath": "pages/create/index",
+            "visitPv": 1192,
+            "visitUvPersonDays": 671,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 6,
+            "exitPv": 32,
+            "weightedStayTimePerPageView": 11.397735
+          },
+          {
+            "pagePath": "pages/mine/index",
+            "visitPv": 852,
+            "visitUvPersonDays": 416,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 14,
+            "exitPv": 89,
+            "weightedStayTimePerPageView": 5.476287
+          },
+          {
+            "pagePath": "pages/analytics/index",
+            "visitPv": 284,
+            "visitUvPersonDays": 158,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 10,
+            "exitPv": 161,
+            "weightedStayTimePerPageView": 36.798175
+          },
+          {
+            "pagePath": "pages/preferences/index",
+            "visitPv": 38,
+            "visitUvPersonDays": 32,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 0,
+            "exitPv": 2,
+            "weightedStayTimePerPageView": 10.371276
+          },
+          {
+            "pagePath": "pages/feedback/index",
+            "visitPv": 13,
+            "visitUvPersonDays": 10,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 0,
+            "exitPv": 1,
+            "weightedStayTimePerPageView": 13.885923
+          },
+          {
+            "pagePath": "pages/settings/index",
+            "visitPv": 3,
+            "visitUvPersonDays": 3,
+            "sharePv": 0,
+            "shareUvPersonDays": 0,
+            "entryPv": 0,
+            "exitPv": 0,
+            "weightedStayTimePerPageView": 3.946333
+          }
+        ]
+      },
+      "accessSources": {
+        "observedResponses": 129,
+        "sessionCounts": [
+          {
+            "key": "1",
+            "value": 40
+          },
+          {
+            "key": "2",
+            "value": 992
+          },
+          {
+            "key": "3",
+            "value": 5932
+          },
+          {
+            "key": "4",
+            "value": 2
+          },
+          {
+            "key": "7",
+            "value": 3
+          },
+          {
+            "key": "8",
+            "value": 36
+          },
+          {
+            "key": "10",
+            "value": 103
+          },
+          {
+            "key": "16",
+            "value": 9
+          },
+          {
+            "key": "22",
+            "value": 6
+          },
+          {
+            "key": "23",
+            "value": 6
+          },
+          {
+            "key": "29",
+            "value": 1510
+          },
+          {
+            "key": "30",
+            "value": 3
+          },
+          {
+            "key": "36",
+            "value": 12
+          },
+          {
+            "key": "41",
+            "value": 15
+          },
+          {
+            "key": "43",
+            "value": 6
+          },
+          {
+            "key": "46",
+            "value": 5
+          },
+          {
+            "key": "49",
+            "value": 11
+          },
+          {
+            "key": "57",
+            "value": 39
+          },
+          {
+            "key": "59",
+            "value": 2
+          },
+          {
+            "key": "60",
+            "value": 1
+          }
+        ],
+        "visitUvPersonDays": [
+          {
+            "key": "1",
+            "value": 20
+          },
+          {
+            "key": "2",
+            "value": 877
+          },
+          {
+            "key": "3",
+            "value": 1798
+          },
+          {
+            "key": "4",
+            "value": 1
+          },
+          {
+            "key": "7",
+            "value": 2
+          },
+          {
+            "key": "8",
+            "value": 25
+          },
+          {
+            "key": "10",
+            "value": 70
+          },
+          {
+            "key": "16",
+            "value": 9
+          },
+          {
+            "key": "22",
+            "value": 4
+          },
+          {
+            "key": "23",
+            "value": 5
+          },
+          {
+            "key": "29",
+            "value": 555
+          },
+          {
+            "key": "30",
+            "value": 3
+          },
+          {
+            "key": "36",
+            "value": 12
+          },
+          {
+            "key": "41",
+            "value": 14
+          },
+          {
+            "key": "43",
+            "value": 4
+          },
+          {
+            "key": "46",
+            "value": 1
+          },
+          {
+            "key": "49",
+            "value": 5
+          },
+          {
+            "key": "57",
+            "value": 17
+          },
+          {
+            "key": "59",
+            "value": 2
+          },
+          {
+            "key": "60",
+            "value": 1
+          }
+        ]
+      },
+      "retention": {
+        "d1": {
+          "newUsers": {
+            "sourceCohorts": 169,
+            "observedCohorts": 168,
+            "missingOffsetCohorts": 1,
+            "denominator": 1671,
+            "retained": 150,
+            "rate": 0.089767
+          },
+          "allVisitors": {
+            "sourceCohorts": 173,
+            "observedCohorts": 172,
+            "missingOffsetCohorts": 1,
+            "denominator": 2778,
+            "retained": 377,
+            "rate": 0.135709
+          }
+        },
+        "w1": {
+          "newUsers": {
+            "sourceCohorts": 25,
+            "observedCohorts": 24,
+            "missingOffsetCohorts": 1,
+            "denominator": 1401,
+            "retained": 166,
+            "rate": 0.118487
+          },
+          "allVisitors": {
+            "sourceCohorts": 25,
+            "observedCohorts": 24,
+            "missingOffsetCohorts": 1,
+            "denominator": 1846,
+            "retained": 368,
+            "rate": 0.19935
+          }
+        },
+        "w4": {
+          "newUsers": {
+            "sourceCohorts": 25,
+            "observedCohorts": 21,
+            "missingOffsetCohorts": 4,
+            "denominator": 886,
+            "retained": 67,
+            "rate": 0.075621
+          },
+          "allVisitors": {
+            "sourceCohorts": 25,
+            "observedCohorts": 21,
+            "missingOffsetCohorts": 4,
+            "denominator": 1133,
+            "retained": 147,
+            "rate": 0.129744
+          }
+        },
+        "m1": {
+          "newUsers": {
+            "sourceCohorts": 5,
+            "observedCohorts": 4,
+            "missingOffsetCohorts": 1,
+            "denominator": 661,
+            "retained": 97,
+            "rate": 0.146747
+          },
+          "allVisitors": {
+            "sourceCohorts": 5,
+            "observedCohorts": 4,
+            "missingOffsetCohorts": 1,
+            "denominator": 718,
+            "retained": 131,
+            "rate": 0.182451
+          }
+        }
+      }
+    }
   },
-  "blockingReason": "The independent worktree has no .env.local, token cache or WX_APPID/WX_APPSECRET process credentials. No API request was made and unavailable values are not represented as zero.",
-  "historicalDocumentLatestDate": "2026-06-13",
-  "historicalRawEvidenceAvailable": false,
-  "containsSecrets": false,
-  "remoteWritesExecuted": false
+  "portrait": {
+    "asOfDate": "2026-07-15",
+    "kAnonymityThreshold": 5,
+    "differentialProtection": "new_user_bucket_requires_all_visitor_minus_new_user_count_at_or_above_k",
+    "cohorts": {
+      "newUsers": {
+        "ages": {
+          "publishedBuckets": [
+            {
+              "label": "25-29岁",
+              "value": 13
+            },
+            {
+              "label": "18-24岁",
+              "value": 8
+            },
+            {
+              "label": "30-39岁",
+              "value": 7
+            }
+          ],
+          "suppressedBucketCount": 3
+        },
+        "genders": {
+          "publishedBuckets": [
+            {
+              "label": "男",
+              "value": 23
+            },
+            {
+              "label": "女",
+              "value": 9
+            }
+          ],
+          "suppressedBucketCount": 0
+        },
+        "platforms": {
+          "publishedBuckets": [
+            {
+              "label": "Android",
+              "value": 17
+            },
+            {
+              "label": "iPhone",
+              "value": 16
+            }
+          ],
+          "suppressedBucketCount": 0
+        },
+        "devices": {
+          "publishedBuckets": [],
+          "suppressedBucketCount": 20
+        }
+      },
+      "allVisitors": {
+        "ages": {
+          "publishedBuckets": [
+            {
+              "label": "25-29岁",
+              "value": 20
+            },
+            {
+              "label": "30-39岁",
+              "value": 16
+            },
+            {
+              "label": "18-24岁",
+              "value": 15
+            },
+            {
+              "label": "40-49岁",
+              "value": 12
+            }
+          ],
+          "suppressedBucketCount": 2
+        },
+        "genders": {
+          "publishedBuckets": [
+            {
+              "label": "男",
+              "value": 45
+            },
+            {
+              "label": "女",
+              "value": 21
+            }
+          ],
+          "suppressedBucketCount": 0
+        },
+        "platforms": {
+          "publishedBuckets": [
+            {
+              "label": "Android",
+              "value": 36
+            },
+            {
+              "label": "iPhone",
+              "value": 31
+            }
+          ],
+          "suppressedBucketCount": 0
+        },
+        "devices": {
+          "publishedBuckets": [
+            {
+              "label": "iPhone 17 Pro Max",
+              "value": 5
+            }
+          ],
+          "suppressedBucketCount": 19
+        }
+      }
+    }
+  },
+  "provenance": {
+    "inputArtifactCount": 931,
+    "uniqueArtifactCount": 931,
+    "duplicateArtifacts": 0,
+    "canonicalInputSha256": "c8b02fdc96e3b4e7a3b06f4e0dafd722a5879575a8155df4529110a90dba109a",
+    "manifest": {
+      "totalJobs": 931,
+      "successfulRequests": 931,
+      "failedRequests": 0,
+      "totalBalances": true,
+      "successesMatchArtifacts": true,
+      "expectedStartDate": "2026-01-17",
+      "expectedJobCount": 931,
+      "cutoffMatches": true,
+      "requestedStartMatches": true,
+      "allRequiredSourcesDeclared": true,
+      "byTypeCountsMatchExpected": true,
+      "artifactsMatchExpectedJobs": true,
+      "resultsMatchExpectedJobs": true,
+      "resultsMatchArtifacts": true,
+      "resultFileMappingsValid": true,
+      "resultRowCountsMatchArtifacts": true,
+      "declaredReturnedRowsMatchResults": true,
+      "exactJobMatrix": true,
+      "tokenPersisted": false,
+      "remoteWritesExecuted": false,
+      "readOnlyContractSatisfied": true
+    }
+  },
+  "privacy": {
+    "routeQueryAndFragmentOmitted": true,
+    "geographicDimensionsOmitted": true,
+    "directUserIdentifiersIncluded": false,
+    "portraitSmallBucketsSuppressed": true,
+    "portraitOverlappingCohortDifferencingProtected": true,
+    "portraitLimitation": "new-user buckets are suppressed unless the derived returning-user count also meets k",
+    "containsSecrets": false
+  }
 }
