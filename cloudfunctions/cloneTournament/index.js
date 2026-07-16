@@ -12,6 +12,16 @@ function toPosInt(value, fallback = 0) {
   return Math.floor(n);
 }
 
+function buildClonePresetFields(source, mode) {
+  if (mode !== modeHelper.MODE_MULTI_ROTATE) return {};
+  const preset = modeHelper.resolveRotationPreset(source && source.presetKey);
+  if (!preset) return { presetKey: modeHelper.PRESET_CUSTOM };
+  return {
+    presetKey: preset.key,
+    playerLimit: preset.playerLimit
+  };
+}
+
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
   const sourceTournamentId = String((event && event.sourceTournamentId) || '').trim();
@@ -91,6 +101,7 @@ exports.main = async (event) => {
         : { gamesPerMatch: 1, pointsPerGame: 21, endCondition: { type: 'total_matches', target: 1 }, unfinishedPolicy: 'admin_decide' };
       const modeRaw = String(source.mode || '').trim().toLowerCase();
       const mode = modeHelper.normalizeMode(modeRaw);
+      const presetFields = buildClonePresetFields(source, mode);
       const copied = logic.copyPlayers(source.players, OPENID, undefined, {
         preserveSquad: mode === 'squad_doubles'
       });
@@ -104,6 +115,7 @@ exports.main = async (event) => {
         status: 'draft',
         creatorId: OPENID,
         mode,
+        ...presetFields,
         refereeId: '',
         settingsConfigured,
         totalMatches,

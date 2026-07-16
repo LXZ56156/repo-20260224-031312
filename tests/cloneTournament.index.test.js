@@ -60,6 +60,43 @@ function loadMain(db, stubs = {}) {
   }
 }
 
+async function cloneAndCapture(sourceOverrides = {}) {
+  let addedData = null;
+  const source = {
+    ...buildSourceTournament(),
+    players: [
+      { id: 'u_creator', name: '管理员', type: 'user', gender: 'male' }
+    ],
+    pairTeams: [],
+    ...sourceOverrides
+  };
+  const db = {
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      assert.equal(name, 'tournaments');
+      return {
+        doc(id) {
+          assert.equal(id, 't_source');
+          return {
+            async get() {
+              return { data: source };
+            }
+          };
+        },
+        async add(payload) {
+          addedData = payload.data;
+          return { _id: 't_copy' };
+        }
+      };
+    }
+  };
+  const { main } = loadMain(db);
+  const result = await main({ sourceTournamentId: 't_source' });
+  return { result, addedData };
+}
+
 test('cloneTournament index creates a new draft copy with remapped pair teams', async () => {
   const originalNow = Date.now;
   let addedData = null;
@@ -110,6 +147,10 @@ test('cloneTournament index creates a new draft copy with remapped pair teams', 
     });
     assert.equal(addedData.status, 'draft');
     assert.equal(addedData.name, '周三双打（副本）');
+    assert.equal(addedData.settingsConfigured, true);
+    assert.equal(addedData.totalMatches, 10);
+    assert.equal(addedData.courts, 2);
+    assert.deepEqual(addedData.rules, buildSourceTournament().rules);
     assert.equal(addedData.players[0].id, 'u_creator');
     assert.equal(addedData.players[1].id, 'guest_1700000000000_1_1234567890abcdef');
     assert.deepEqual(addedData.pairTeams, [{
@@ -120,6 +161,64 @@ test('cloneTournament index creates a new draft copy with remapped pair teams', 
     }]);
   } finally {
     Date.now = originalNow;
+  }
+});
+
+test('cloneTournament preserves canonical rotation presets and derives player limits', async (t) => {
+  const cases = [
+    [' ROTATION_6 ', 'rotation_6', 6],
+    ['rotation_7', 'rotation_7', 7],
+    ['rotation_8', 'rotation_8', 8]
+  ];
+
+  for (const [sourcePresetKey, canonicalPresetKey, playerLimit] of cases) {
+    await t.test(canonicalPresetKey, async () => {
+      const { result, addedData } = await cloneAndCapture({
+        mode: 'multi_rotate',
+        presetKey: sourcePresetKey,
+        playerLimit: 999
+      });
+
+      assert.equal(result.code, 'TOURNAMENT_CLONED');
+      assert.equal(addedData.presetKey, canonicalPresetKey);
+      assert.equal(addedData.playerLimit, playerLimit);
+    });
+  }
+});
+
+test('cloneTournament normalizes custom, missing, and unknown rotation presets', async (t) => {
+  const cases = [
+    ['custom', 'custom'],
+    ['missing', undefined],
+    ['unknown', 'rotation_99']
+  ];
+
+  for (const [label, presetKey] of cases) {
+    await t.test(label, async () => {
+      const { addedData } = await cloneAndCapture({
+        mode: 'multi_rotate',
+        presetKey,
+        playerLimit: 999
+      });
+
+      assert.equal(addedData.presetKey, 'custom');
+      assert.equal(Object.prototype.hasOwnProperty.call(addedData, 'playerLimit'), false);
+    });
+  }
+});
+
+test('cloneTournament does not add rotation preset fields to non rotation modes', async (t) => {
+  for (const mode of ['squad_doubles', 'fixed_pair_rr']) {
+    await t.test(mode, async () => {
+      const { addedData } = await cloneAndCapture({
+        mode,
+        presetKey: 'rotation_6',
+        playerLimit: 999
+      });
+
+      assert.equal(Object.prototype.hasOwnProperty.call(addedData, 'presetKey'), false);
+      assert.equal(Object.prototype.hasOwnProperty.call(addedData, 'playerLimit'), false);
+    });
   }
 });
 
@@ -263,6 +362,7 @@ test('cloneTournament treats repeated clientRequestId as deduped success', async
   });
 
   assert.equal(result.ok, true);
+  assert.equal(result.code, 'TOURNAMENT_CLONED');
   assert.equal(result.state, 'deduped');
   assert.equal(result.deduped, true);
   assert.equal(result.clientRequestId, 'req_clone_1');
