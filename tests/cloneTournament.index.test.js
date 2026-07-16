@@ -18,7 +18,11 @@ function buildSourceTournament() {
     settingsConfigured: true,
     totalMatches: 10,
     courts: 2,
-    rules: { gamesPerMatch: 1, pointsPerGame: 21, endCondition: { type: 'total_matches', target: 10 } },
+    rules: {
+      gamesPerMatch: 1,
+      pointsPerGame: 21,
+      endCondition: { type: 'total_matches', target: 10 }
+    },
     players: [
       { id: 'u_creator', name: '管理员', type: 'user', gender: 'male' },
       { id: 'p_2', name: '球友B', type: 'guest', gender: 'female' }
@@ -159,6 +163,7 @@ test('cloneTournament index creates a new draft copy with remapped pair teams', 
       playerIds: ['u_creator', 'guest_1700000000000_1_1234567890abcdef'],
       locked: true
     }]);
+    assert.deepEqual(addedData.rounds, []);
   } finally {
     Date.now = originalNow;
   }
@@ -220,6 +225,59 @@ test('cloneTournament does not add rotation preset fields to non rotation modes'
       assert.equal(Object.prototype.hasOwnProperty.call(addedData, 'playerLimit'), false);
     });
   }
+});
+
+test('cloneTournament preserves valid multi_rotate water rules while clearing rounds', async () => {
+  let addedData = null;
+  const source = {
+    ...buildSourceTournament(),
+    name: '周末多人转',
+    mode: 'multi_rotate',
+    pairTeams: [],
+    rules: {
+      ...buildSourceTournament().rules,
+      water: { enabled: true, defaultUnitsPerLoser: 2 }
+    },
+    rounds: [{ roundIndex: 0, matches: [{ matchIndex: 0, status: 'finished' }] }]
+  };
+  const db = {
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      assert.equal(name, 'tournaments');
+      return {
+        doc(id) {
+          assert.equal(id, 't_source');
+          return {
+            async get() {
+              return { data: source };
+            }
+          };
+        },
+        async add(payload) {
+          addedData = payload.data;
+          return { _id: 't_water_copy' };
+        }
+      };
+    }
+  };
+  const { main } = loadMain(db, {
+    crypto: {
+      randomBytes() {
+        return Buffer.from('1234567890abcdef', 'hex');
+      }
+    }
+  });
+
+  const result = await main({ sourceTournamentId: 't_source' });
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(addedData.rules.water, {
+    enabled: true,
+    defaultUnitsPerLoser: 2
+  });
+  assert.deepEqual(addedData.rounds, []);
 });
 
 test('cloneTournament index returns structured invalid result for missing sourceTournamentId', async () => {

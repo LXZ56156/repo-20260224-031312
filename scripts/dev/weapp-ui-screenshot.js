@@ -380,12 +380,103 @@ const cases = {
       loadError: false
     }
   },
+  settingsWater: {
+    path: '/pages/settings/index',
+    quiesceTournamentSync: true,
+    selectors: ['.settings-page', '.context-panel', '.settings-panel', '.water-setting-field', '.water-setting-switch', '.settings-save'],
+    visualSelectors: ['.context-panel', '.settings-panel', '.water-setting-field'],
+    expectedTexts: ['修改比赛', '每局分制', '打水记账', '每局默认 1 瓶', '不影响正式排名', '保存修改'],
+    data: {
+      tournamentId: '',
+      tournament: {
+        _id: 'demo',
+        name: '周末羽毛球赛',
+        status: 'draft',
+        mode: 'multi_rotate',
+        totalMatches: 9,
+        courts: 1,
+        rules: {
+          pointsPerGame: 21,
+          water: { enabled: true, defaultUnitsPerLoser: 1 }
+        }
+      },
+      mandatoryDone: 1,
+      mandatoryTotal: 1,
+      settingsReady: true,
+      settingsGateHint: '',
+      isAdmin: true,
+      isDraft: true,
+      canConfigureSettings: true,
+      canEditTournamentName: true,
+      name: '周末羽毛球赛',
+      mode: 'multi_rotate',
+      modeLabel: '多人转',
+      editM: 9,
+      editC: 1,
+      pointsPerGame: 21,
+      pointsIndex: 2,
+      showWaterSettings: true,
+      waterEnabled: true,
+      waterDefaultUnitsPerLoser: 1,
+      showSquadEndCondition: false,
+      syncStatusVisible: false,
+      settingsBusy: false,
+      canRetryAction: false,
+      loadError: false,
+      contextTitle: '仅草稿阶段可修改比赛信息'
+    }
+  },
+  matchWater: {
+    path: '/pages/match/index',
+    quiesceTournamentSync: true,
+    selectors: ['.match-page', '.score-stage', '.score-row', '.water-control', '.water-units-picker', '.bottom-tray'],
+    visualSelectors: ['.score-stage', '.water-control', '.bottom-tray'],
+    expectedTexts: ['第1轮 · 第1场', '本场对阵', '阿杰 / 小林', '王敏 / 陈晨', '比分录入', '负方每人请水', '1 瓶', '不影响正式排名', '提交比分'],
+    data: {
+      tournamentId: '',
+      tournamentName: '周末羽毛球赛',
+      roundIndex: 0,
+      matchIndex: 0,
+      match: {
+        matchIndex: 0,
+        status: 'pending',
+        teamA: [{ id: 'u1', name: '阿杰' }, { id: 'u2', name: '小林' }],
+        teamB: [{ id: 'u3', name: '王敏' }, { id: 'u4', name: '陈晨' }]
+      },
+      pair1Text: '阿杰 / 小林',
+      matchStatusText: '待录分',
+      pointsPerGame: 21,
+      userCanScore: true,
+      canUseScoreLock: true,
+      canEdit: true,
+      lockState: 'locked_by_me',
+      lockHintText: '你正在录入比分',
+      scoreA: 21,
+      scoreB: 18,
+      scoreAIndex: 21,
+      scoreBIndex: 18,
+      displayScoreA: '21',
+      displayScoreB: '18',
+      waterEnabled: true,
+      showWaterControl: true,
+      waterUnitsPerLoser: 1,
+      waterUnitsIndex: 1,
+      waterUnitOptions: [{ value: 0, label: '0 瓶' }, { value: 1, label: '1 瓶' }, { value: 2, label: '2 瓶' }],
+      batchMode: false,
+      submitBusy: false,
+      syncStatusVisible: false,
+      canRetryAction: false,
+      loadError: false,
+      pair2Text: '王敏 / 陈晨'
+    }
+  },
   analytics: {
     path: '/pages/analytics/index',
     quiesceTournamentSync: true,
-    selectors: ['.analytics-hero', '.analytics-hero-actions .btn', '.report-card', '.analytics-copy-actions .btn'],
-    visualSelectors: ['.analytics-hero', '.report-card'],
-    expectedTexts: ['赛后战报', '生成赛事战报卡', '分享到朋友圈', '再办一场', '比赛结论', '复制摘要', '复制完整战报'],
+    clearLastEnterOptions: true,
+    selectors: ['.analytics-hero', '.analytics-hero-actions .btn', '.report-card', '.analytics-copy-actions .btn', '.water-ledger-card', '.water-ledger-row'],
+    visualSelectors: ['.analytics-hero', '.report-card', '.water-ledger-card'],
+    expectedTexts: ['赛后战报', '生成赛事战报卡', '分享到朋友圈', '再办一场', '比赛结论', '复制摘要', '复制完整战报', '打水榜', '赢水', '请水', '净水'],
     data: {
       tournamentId: '',
       tournament: { _id: 'demo', name: '周末羽毛球赛', status: 'finished' },
@@ -403,6 +494,13 @@ const cases = {
       playerStats: [],
       pairHot: [],
       duelHot: [],
+      showWaterLedger: true,
+      waterLedgerHasRecords: true,
+      waterLedgerRows: [
+        { rank: 1, playerId: 'u1', name: '阿杰', wonUnits: 5, treatUnits: 1, netUnits: 4, netText: '+4' },
+        { rank: 2, playerId: 'u2', name: '小林', wonUnits: 3, treatUnits: 2, netUnits: 1, netText: '+1' },
+        { rank: 3, playerId: 'u3', name: '王敏', wonUnits: 1, treatUnits: 3, netUnits: -2, netText: '-2' }
+      ],
       syncStatusVisible: false,
       showAnalyticsAdSlot: false,
       canRetryAction: false,
@@ -871,7 +969,26 @@ async function runCase(name, miniProgram) {
   const routeMethod = item.route === 'switchTab' ? 'switchTab' : 'reLaunch';
   const navigationStartedAt = process.hrtime.bigint();
   try {
-    let page = await timeout(miniProgram[routeMethod](item.path), reLaunchTimeoutMs, `${name}:${routeMethod}`);
+    let previousLastEnterOptions = null;
+    if (item.clearLastEnterOptions) {
+      previousLastEnterOptions = await timeout(miniProgram.evaluate(function () {
+        var app = getApp();
+        var previous = app && app.globalData ? app.globalData.lastEnterOptions : null;
+        if (app && app.globalData) app.globalData.lastEnterOptions = {};
+        return previous;
+      }), 3000, `${name}:clear-last-enter-options`);
+    }
+    let page;
+    try {
+      page = await timeout(miniProgram[routeMethod](item.path), reLaunchTimeoutMs, `${name}:${routeMethod}`);
+    } finally {
+      if (item.clearLastEnterOptions) {
+        await timeout(miniProgram.evaluate(function (previous) {
+          var app = getApp();
+          if (app && app.globalData) app.globalData.lastEnterOptions = previous || {};
+        }, previousLastEnterOptions), 3000, `${name}:restore-last-enter-options`);
+      }
+    }
     const expectedRoute = item.path.split('?')[0].replace(/^\//, '');
     const actualRoute = String(page.path || '').replace(/^\//, '');
     if (actualRoute !== expectedRoute) throw new Error(`${name}: route mismatch: expected ${expectedRoute}, got ${actualRoute || '<unknown>'}`);

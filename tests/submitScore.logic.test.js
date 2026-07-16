@@ -88,6 +88,81 @@ test('buildSubmitResult updates score, ranking and finished status', () => {
   assert.equal(top.pointDiff, 4);
 });
 
+test('buildSubmitResult writes the minimal water snapshot without changing rankings', () => {
+  const tournament = fixtureTournament();
+  tournament.mode = 'multi_rotate';
+  tournament.rules = { water: { enabled: true, defaultUnitsPerLoser: 1 } };
+
+  const withoutWater = logic.buildSubmitResult(tournament, 0, 0, 21, 17);
+  const withWater = logic.buildSubmitResult(tournament, 0, 0, 21, 17, null, {
+    unitsPerLoser: 2
+  });
+
+  assert.deepEqual(withWater.rounds[0].matches[0].water, { unitsPerLoser: 2 });
+  assert.deepEqual(withWater.rankings, withoutWater.rankings);
+});
+
+test('resolveWaterSubmission defaults enabled tournaments and rejects invalid or disabled writes', () => {
+  const enabled = {
+    mode: 'multi_rotate',
+    rules: { water: { enabled: true, defaultUnitsPerLoser: 2 } }
+  };
+  assert.deepEqual(logic.resolveWaterSubmission(enabled, undefined, false), {
+    ok: true,
+    snapshot: { unitsPerLoser: 2 }
+  });
+  assert.deepEqual(logic.resolveWaterSubmission(enabled, 0, true), {
+    ok: true,
+    snapshot: { unitsPerLoser: 0 }
+  });
+  assert.deepEqual(logic.resolveWaterSubmission(enabled, 3, true), {
+    ok: false,
+    code: 'WATER_UNITS_INVALID',
+    message: '打水瓶数仅支持 0、1、2'
+  });
+  for (const malformed of [true, false, ' ', [1], {}]) {
+    assert.deepEqual(logic.resolveWaterSubmission(enabled, malformed, true), {
+      ok: false,
+      code: 'WATER_UNITS_INVALID',
+      message: '打水瓶数仅支持 0、1、2'
+    });
+  }
+  assert.deepEqual(logic.resolveWaterSubmission(enabled, ' 1 ', true), {
+    ok: true,
+    snapshot: { unitsPerLoser: 1 }
+  });
+  assert.deepEqual(logic.resolveWaterSubmission({ mode: 'multi_rotate', rules: {} }, 1, true), {
+    ok: false,
+    code: 'WATER_NOT_ENABLED',
+    message: '当前赛事未开启打水记账'
+  });
+  assert.deepEqual(logic.resolveWaterSubmission({ mode: 'squad_doubles', rules: enabled.rules }, undefined, false), {
+    ok: true,
+    snapshot: null
+  });
+});
+
+test('resolveWaterSubmission preserves a finished match snapshot when a legacy retry omits water units', () => {
+  const enabled = {
+    mode: 'multi_rotate',
+    rules: { water: { enabled: true, defaultUnitsPerLoser: 2 } }
+  };
+
+  assert.deepEqual(logic.resolveWaterSubmission(enabled, undefined, false, {
+    status: 'finished',
+    water: { unitsPerLoser: 1 }
+  }), {
+    ok: true,
+    snapshot: { unitsPerLoser: 1 }
+  });
+  assert.deepEqual(logic.resolveWaterSubmission(enabled, undefined, false, {
+    status: 'finished'
+  }), {
+    ok: true,
+    snapshot: undefined
+  });
+});
+
 test('buildSubmitResult keeps running when remaining matches not finished', () => {
   const t = fixtureTournament();
   t.rounds.push({

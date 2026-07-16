@@ -176,15 +176,20 @@ test('submitScore returns LOCK_EXPIRED when score lock document is missing', asy
   assert.equal(calls.remove, 0);
 });
 
-test('submitScore returns VERSION_CONFLICT when optimistic update reports updated: 0', async () => {
+test('submitScore rejects an expired lock without writing water or releasing the lock', async () => {
+  const expireAt = Date.now() - 1;
   const { db, calls } = createDbHarness(async () => ({
     data: {
       ownerId: 'u_admin',
       ownerName: '管理员',
-      expireAt: Date.now() + 60_000
+      expireAt
     }
   }), {
-    updatedCount: 0
+    tournamentFactory: () => ({
+      ...buildTournament(),
+      mode: 'multi_rotate',
+      rules: { water: { enabled: true, defaultUnitsPerLoser: 1 } }
+    })
   });
   const { main } = loadSubmitScoreMain(db);
 
@@ -193,7 +198,48 @@ test('submitScore returns VERSION_CONFLICT when optimistic update reports update
     roundIndex: 0,
     matchIndex: 0,
     scoreA: 21,
-    scoreB: 19
+    scoreB: 19,
+    waterUnitsPerLoser: 2
+  });
+
+  assert.deepEqual(result, {
+    ok: false,
+    code: 'LOCK_EXPIRED',
+    message: '录分会话已过期，请重新开始录分',
+    state: 'expired',
+    traceId: '',
+    expireAt,
+    data: { expireAt }
+  });
+  assert.equal(calls.lockGet, 1);
+  assert.equal(calls.update, 0);
+  assert.equal(calls.remove, 0);
+});
+
+test('submitScore returns VERSION_CONFLICT when optimistic update reports updated: 0', async () => {
+  const { db, calls } = createDbHarness(async () => ({
+    data: {
+      ownerId: 'u_admin',
+      ownerName: '管理员',
+      expireAt: Date.now() + 60_000
+    }
+  }), {
+    updatedCount: 0,
+    tournamentFactory: () => ({
+      ...buildTournament(),
+      mode: 'multi_rotate',
+      rules: { water: { enabled: true, defaultUnitsPerLoser: 1 } }
+    })
+  });
+  const { main } = loadSubmitScoreMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    scoreA: 21,
+    scoreB: 19,
+    waterUnitsPerLoser: 2
   });
 
   assert.deepEqual(result, {
@@ -218,7 +264,13 @@ test('submitScore returns LOCK_OCCUPIED when another scorer owns the lock', asyn
       ownerName: '球友B',
       expireAt
     }
-  }));
+  }), {
+    tournamentFactory: () => ({
+      ...buildTournament(),
+      mode: 'multi_rotate',
+      rules: { water: { enabled: true, defaultUnitsPerLoser: 1 } }
+    })
+  });
   const { main } = loadSubmitScoreMain(db, { openid: 'u_admin' });
 
   const result = await main({
@@ -226,7 +278,8 @@ test('submitScore returns LOCK_OCCUPIED when another scorer owns the lock', asyn
     roundIndex: 0,
     matchIndex: 0,
     scoreA: 21,
-    scoreB: 19
+    scoreB: 19,
+    waterUnitsPerLoser: 2
   });
 
   assert.deepEqual(result, {
@@ -332,6 +385,208 @@ test('submitScore lets participants overwrite a finished score when they hold th
   assert.deepEqual(writtenMatch.score, { teamA: 18, teamB: 21 });
   assert.equal(writtenMatch.scorerId, 'u_b');
   assert.equal(writtenMatch.scorerName, '球友B');
+});
+
+test('submitScore stores water snapshot in the same optimistic update as score', async () => {
+  const { db, calls } = createDbHarness(async () => ({
+    data: {
+      ownerId: 'u_admin',
+      ownerName: '管理员',
+      expireAt: Date.now() + 60_000
+    }
+  }), {
+    tournamentFactory: () => ({
+      ...buildTournament(),
+      mode: 'multi_rotate',
+      rules: { water: { enabled: true, defaultUnitsPerLoser: 1 } }
+    })
+  });
+  const { main } = loadSubmitScoreMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    scoreA: 21,
+    scoreB: 19,
+    waterUnitsPerLoser: 2
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(calls.update, 1);
+  const writtenMatch = calls.updatePayloads[0].data.rounds[0].matches[0];
+  assert.deepEqual(writtenMatch.score, { teamA: 21, teamB: 19 });
+  assert.deepEqual(writtenMatch.water, {
+    unitsPerLoser: 2
+  });
+  assert.ok(Array.isArray(calls.updatePayloads[0].data.rankings));
+});
+
+test('submitScore uses configured default when an enabled client omits water units', async () => {
+  const { db, calls } = createDbHarness(async () => ({
+    data: {
+      ownerId: 'u_admin',
+      ownerName: '管理员',
+      expireAt: Date.now() + 60_000
+    }
+  }), {
+    tournamentFactory: () => ({
+      ...buildTournament(),
+      mode: 'multi_rotate',
+      rules: { water: { enabled: true, defaultUnitsPerLoser: 2 } }
+    })
+  });
+  const { main } = loadSubmitScoreMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    scoreA: 21,
+    scoreB: 19
+  });
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(calls.updatePayloads[0].data.rounds[0].matches[0].water, {
+    unitsPerLoser: 2
+  });
+});
+
+test('submitScore dedupes same score and same water without reading a lock', async () => {
+  const { db, calls } = createDbHarness(async () => {
+    throw new Error('lock should not be read for same score and water');
+  }, {
+    tournamentFactory: () => {
+      const tournament = buildTournament();
+      tournament.mode = 'multi_rotate';
+      tournament.rules = { water: { enabled: true, defaultUnitsPerLoser: 1 } };
+      tournament.rounds[0].matches[0] = {
+        ...tournament.rounds[0].matches[0],
+        status: 'finished',
+        score: { teamA: 21, teamB: 19 },
+        water: { unitsPerLoser: 1 },
+        scorerName: '管理员'
+      };
+      return tournament;
+    }
+  });
+  const { main } = loadSubmitScoreMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    scoreA: 21,
+    scoreB: 19,
+    waterUnitsPerLoser: 1
+  });
+
+  assert.equal(result.code, 'SCORE_SUBMIT_DEDUPED');
+  assert.equal(result.state, 'deduped');
+  assert.equal(calls.lockGet, 0);
+  assert.equal(calls.update, 0);
+});
+
+test('submitScore updates same score when water units changed instead of deduping', async () => {
+  const { db, calls } = createDbHarness(async () => ({
+    data: {
+      ownerId: 'u_b',
+      ownerName: '球友B',
+      expireAt: Date.now() + 60_000
+    }
+  }), {
+    tournamentFactory: () => {
+      const tournament = buildTournament();
+      tournament.mode = 'multi_rotate';
+      tournament.rules = { water: { enabled: true, defaultUnitsPerLoser: 1 } };
+      tournament.rounds[0].matches[0] = {
+        ...tournament.rounds[0].matches[0],
+        status: 'finished',
+        score: { teamA: 21, teamB: 19 },
+        water: { unitsPerLoser: 1 },
+        scorerId: 'u_admin',
+        scorerName: '管理员'
+      };
+      return tournament;
+    }
+  });
+  const { main } = loadSubmitScoreMain(db, { openid: 'u_b' });
+
+  const result = await main({
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    scoreA: 21,
+    scoreB: 19,
+    waterUnitsPerLoser: 2
+  });
+
+  assert.equal(result.code, 'SCORE_SUBMITTED');
+  assert.equal(calls.lockGet, 1);
+  assert.equal(calls.update, 1);
+  assert.deepEqual(calls.updatePayloads[0].data.rounds[0].matches[0].water, {
+    unitsPerLoser: 2
+  });
+});
+
+test('submitScore rejects invalid water units before reading a score lock', async () => {
+  const { db, calls } = createDbHarness(async () => {
+    throw new Error('lock should not be read for invalid water input');
+  }, {
+    tournamentFactory: () => ({
+      ...buildTournament(),
+      mode: 'multi_rotate',
+      rules: { water: { enabled: true, defaultUnitsPerLoser: 1 } }
+    })
+  });
+  const { main } = loadSubmitScoreMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    scoreA: 21,
+    scoreB: 19,
+    waterUnitsPerLoser: 3
+  });
+
+  assert.deepEqual(result, {
+    ok: false,
+    code: 'WATER_UNITS_INVALID',
+    message: '打水瓶数仅支持 0、1、2',
+    state: 'invalid',
+    traceId: '',
+    data: {}
+  });
+  assert.equal(calls.lockGet, 0);
+  assert.equal(calls.update, 0);
+});
+
+test('submitScore rejects explicit water input when the feature is disabled', async () => {
+  const { db, calls } = createDbHarness(async () => {
+    throw new Error('lock should not be read when water is disabled');
+  });
+  const { main } = loadSubmitScoreMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    scoreA: 21,
+    scoreB: 19,
+    waterUnitsPerLoser: 1
+  });
+
+  assert.deepEqual(result, {
+    ok: false,
+    code: 'WATER_NOT_ENABLED',
+    message: '当前赛事未开启打水记账',
+    state: 'invalid',
+    traceId: '',
+    data: {}
+  });
+  assert.equal(calls.lockGet, 0);
+  assert.equal(calls.update, 0);
 });
 
 test('submitScore marks and updates active share activity when tournament finishes', async () => {
@@ -470,4 +725,39 @@ test('submitScore keeps canceled matches non-editable', async () => {
   assert.equal(calls.lockGet, 0);
   assert.equal(calls.update, 0);
   assert.equal(calls.remove, 0);
+});
+
+test('submitScore preserves finished water snapshot when an older client omits water units', async () => {
+  const { db, calls } = createDbHarness(async () => {
+    throw new Error('lock should not be read for a legacy idempotent retry');
+  }, {
+    tournamentFactory: () => {
+      const tournament = buildTournament();
+      tournament.mode = 'multi_rotate';
+      tournament.rules = { water: { enabled: true, defaultUnitsPerLoser: 2 } };
+      tournament.rounds[0].matches[0] = {
+        ...tournament.rounds[0].matches[0],
+        status: 'finished',
+        score: { teamA: 21, teamB: 19 },
+        water: { unitsPerLoser: 1 },
+        scorerId: 'u_admin',
+        scorerName: '管理员'
+      };
+      return tournament;
+    }
+  });
+  const { main } = loadSubmitScoreMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    scoreA: 21,
+    scoreB: 19
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.code, 'SCORE_SUBMIT_DEDUPED');
+  assert.equal(calls.lockGet, 0);
+  assert.equal(calls.update, 0);
 });

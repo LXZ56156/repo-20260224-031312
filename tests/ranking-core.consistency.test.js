@@ -128,3 +128,14 @@ test('frontend and cloud ranking cores keep tie-break ordering consistent', () =
     cloudRankingCore.computeRankings(tournament)
   );
 });
+
+test('frontend and cloud ranking cores ignore water fields', () => {
+  const withoutWater = playerTournament();
+  const withWater = JSON.parse(JSON.stringify(withoutWater));
+  withWater.rules = { water: { enabled: true, defaultUnitsPerLoser: 1 } };
+  withWater.rounds[0].matches[0].water = { unitsPerLoser: 2 };
+
+  const expected = frontendRankingCore.computeRankings(withoutWater);
+  assert.deepEqual(frontendRankingCore.computeRankings(withWater), expected);
+  assert.deepEqual(cloudRankingCore.computeRankings(withWater), expected);
+});

@@ -7,7 +7,7 @@ const permission = require('./lib/permission');
 const playerUtils = require('./lib/player');
 const scoreUtils = require('./lib/score');
 const shareActivity = require('./lib/share-activity');
-const { buildSubmitResult, buildIdempotentRetryResult } = require('./logic');
+const { buildSubmitResult, buildIdempotentRetryResult, resolveWaterSubmission } = require('./logic');
 
 function safePlayerName(player) {
   return playerUtils.safePlayerName(player);
@@ -59,6 +59,8 @@ exports.main = async (event) => {
   const roundIndex = Number(event && event.roundIndex);
   const matchIndex = Number(event && event.matchIndex);
   const clientRequestId = String((event && event.clientRequestId) || '').trim();
+  const waterInputProvided = !!(event && Object.prototype.hasOwnProperty.call(event, 'waterUnitsPerLoser'));
+  const waterInput = waterInputProvided ? event.waterUnitsPerLoser : undefined;
   console.info('[submitScore]', traceId || '-', tournamentId || '-', roundIndex, matchIndex);
 
   const scorePair = scoreUtils.extractScorePairAny(event);
@@ -82,8 +84,19 @@ exports.main = async (event) => {
 
     const match = findMatch(t, roundIndex, matchIndex);
     if (!match) return createCodeResult('MATCH_NOT_FOUND', '比赛不存在', { traceId });
+    const waterResolution = resolveWaterSubmission(t, waterInput, waterInputProvided, match);
+    if (!waterResolution.ok) {
+      return createCodeResult(waterResolution.code, waterResolution.message, { traceId });
+    }
     const fallbackScorerName = resolvePlayerName(t, OPENID);
-    const retryResult = buildIdempotentRetryResult(match, a, b, OPENID, fallbackScorerName);
+    const retryResult = buildIdempotentRetryResult(
+      match,
+      a,
+      b,
+      OPENID,
+      fallbackScorerName,
+      waterResolution.snapshot
+    );
     if (retryResult) {
       return common.withWriteResult({
         ...retryResult,
@@ -127,7 +140,7 @@ exports.main = async (event) => {
       id: OPENID,
       name: scorerName,
       scoredAt: new Date().toISOString()
-    });
+    }, waterResolution.snapshot);
 
     const updateNow = db.serverDate();
     const updateData = {

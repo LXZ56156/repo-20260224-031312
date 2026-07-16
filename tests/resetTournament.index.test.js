@@ -2,6 +2,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const Module = require('node:module');
 
+const waterLedger = require('../miniprogram/core/waterLedger');
+
 const mainPath = require.resolve('../cloudfunctions/resetTournament/index.js');
 const commonPath = require.resolve('../cloudfunctions/resetTournament/lib/common.js');
 const modePath = require.resolve('../cloudfunctions/resetTournament/lib/mode.js');
@@ -41,6 +43,30 @@ function loadMain(db, stubs = {}) {
 test('resetTournament index writes reset patch and triggers lock cleanup', async () => {
   let writtenData = null;
   let cleanupCalled = false;
+  const tournament = {
+    _id: 't_1',
+    creatorId: 'u_admin',
+    version: 5,
+    mode: 'multi_rotate',
+    players: [
+      { id: 'u1', name: 'A' },
+      { id: 'u2', name: 'B' },
+      { id: 'u3', name: 'C' },
+      { id: 'u4', name: 'D' }
+    ],
+    rules: { water: { enabled: true, defaultUnitsPerLoser: 1 } },
+    rounds: [{
+      roundIndex: 0,
+      matches: [{
+        matchIndex: 0,
+        status: 'finished',
+        teamA: ['u1', 'u2'],
+        teamB: ['u3', 'u4'],
+        score: { teamA: 21, teamB: 18 },
+        water: { unitsPerLoser: 1 }
+      }]
+    }]
+  };
   const db = {
     command: {
       inc(value) {
@@ -70,15 +96,7 @@ test('resetTournament index writes reset patch and triggers lock cleanup', async
           assert.equal(id, 't_1');
           return {
             async get() {
-              return {
-                data: {
-                  _id: 't_1',
-                  creatorId: 'u_admin',
-                  version: 5,
-                  mode: 'double',
-                  players: []
-                }
-              };
+              return { data: tournament };
             }
           };
         },
@@ -120,6 +138,19 @@ test('resetTournament index writes reset patch and triggers lock cleanup', async
     data: {}
   });
   assert.equal(writtenData.status, 'draft');
+  assert.deepEqual(writtenData.rounds, []);
+  assert.equal(Object.prototype.hasOwnProperty.call(writtenData, 'rules'), false);
+  const resetTournament = { ...tournament, ...writtenData };
+  assert.deepEqual(resetTournament.rules.water, {
+    enabled: true,
+    defaultUnitsPerLoser: 1
+  });
+  assert.deepEqual(waterLedger.deriveWaterLedger(resetTournament), {
+    enabled: true,
+    hasRecords: false,
+    recordedMatchCount: 0,
+    rows: []
+  });
   assert.deepEqual(writtenData.fairness, { $remove: true });
   assert.equal(cleanupCalled, true);
 });

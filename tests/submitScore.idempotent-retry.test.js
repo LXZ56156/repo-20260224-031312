@@ -80,3 +80,34 @@ test('buildIdempotentRetryResult rejects finished retry only when score differs'
     scorerName: '裁判A'
   });
 });
+
+test('buildIdempotentRetryResult compares water snapshot when the caller supplies it', () => {
+  const match = {
+    status: 'finished',
+    score: { teamA: 21, teamB: 18 },
+    water: { unitsPerLoser: 1 },
+    scorerName: '裁判A'
+  };
+
+  assert.equal(logic.buildIdempotentRetryResult(
+    match,
+    21,
+    18,
+    'user_1',
+    '备用名',
+    { unitsPerLoser: 2 }
+  ), null);
+  assert.deepEqual(logic.buildIdempotentRetryResult(
+    match,
+    21,
+    18,
+    'user_1',
+    '备用名',
+    { unitsPerLoser: 1 }
+  ), {
+    ok: true,
+    deduped: true,
+    finished: true,
+    scorerName: '裁判A'
+  });
+});

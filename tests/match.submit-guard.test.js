@@ -36,6 +36,8 @@ function createMatchPageContext(definition) {
       lockOwnerId: 'user_1',
       lockOwnerName: '裁判A',
       lockExpireAt: Date.now() + 60 * 1000,
+      waterEnabled: true,
+      waterUnitsPerLoser: 0,
       submitBusy: false
     },
     _undoStack: [],
@@ -116,6 +118,7 @@ test('match submitBusy prevents repeated submit requests and sends clientRequest
 
     assert.equal(payloads.length, 1);
     assert.match(String(payloads[0].clientRequestId || ''), /^submit_/);
+    assert.equal(payloads[0].waterUnitsPerLoser, 0);
 
     releaseCall();
     await Promise.all([first, second]);

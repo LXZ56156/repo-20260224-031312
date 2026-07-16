@@ -12,6 +12,7 @@ const shareCardStats = require('../../core/shareCardStats');
 const sharePageMixin = require('../../core/sharePageMixin');
 const tournamentEntry = require('../../core/tournamentEntry');
 const growthTracker = require('../../core/growthTracker');
+const waterLedger = require('../../core/waterLedger');
 const analyticsLogic = require('./logic');
 
 const analyticsSyncController = pageTournamentSync.createTournamentSyncMethods();
@@ -65,6 +66,9 @@ Page({
     playerStats: [],
     pairHot: [],
     duelHot: [],
+    showWaterLedger: false,
+    waterLedgerHasRecords: false,
+    waterLedgerRows: [],
     rankingTitle: '球员数据',
     rankingUnit: '人',
     modeLabel: '',
@@ -171,6 +175,7 @@ Page({
   applyTournament(tournament) {
     if (!tournament) return;
     const analytics = analyticsLogic.computeAnalytics(tournament);
+    const water = waterLedger.deriveWaterLedger(tournament);
     const report = analyticsLogic.buildBattleReport(analytics);
     const pageModel = analyticsLogic.buildAnalyticsPageModel(analytics, report);
     const fullRankings = Array.isArray(pageModel.fullRankings) ? pageModel.fullRankings : [];
@@ -189,6 +194,9 @@ Page({
       playerStats: analytics.playerStats,
       pairHot: analytics.pairHot.slice(0, 3),
       duelHot: analytics.duelHot.slice(0, 3),
+      showWaterLedger: water.enabled,
+      waterLedgerHasRecords: water.hasRecords,
+      waterLedgerRows: water.rows,
       rankingTitle: analytics.rankingTitle,
       rankingUnit: analytics.rankingUnit,
       reportLines: report.lines,

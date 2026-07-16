@@ -29,7 +29,75 @@ function allMatchesFinished(rounds) {
   return true;
 }
 
-function applyScoreToRounds(rounds, roundIndex, matchIndex, scoreA, scoreB, scorer = null) {
+function normalizeWaterUnits(value) {
+  let units = value;
+  if (typeof value === 'string') {
+    const normalized = value.trim();
+    if (!/^[012]$/.test(normalized)) return null;
+    units = Number(normalized);
+  } else if (typeof value !== 'number') {
+    return null;
+  }
+  if (!Number.isInteger(units)) return null;
+  return units === 0 || units === 1 || units === 2 ? units : null;
+}
+
+function normalizeWaterConfig(tournament) {
+  const source = tournament && typeof tournament === 'object' ? tournament : {};
+  const mode = String(source.mode || '').trim().toLowerCase();
+  const rules = source.rules && typeof source.rules === 'object' && !Array.isArray(source.rules)
+    ? source.rules
+    : {};
+  const water = rules.water && typeof rules.water === 'object' && !Array.isArray(rules.water)
+    ? rules.water
+    : null;
+  const defaultUnitsPerLoser = normalizeWaterUnits(water && water.defaultUnitsPerLoser);
+  if (mode !== 'multi_rotate' || !water || water.enabled !== true || defaultUnitsPerLoser === null) {
+    return { enabled: false, defaultUnitsPerLoser: 1 };
+  }
+  return { enabled: true, defaultUnitsPerLoser };
+}
+
+function normalizeWaterSnapshot(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) return null;
+  const unitsPerLoser = normalizeWaterUnits(snapshot.unitsPerLoser);
+  return unitsPerLoser === null ? null : { unitsPerLoser };
+}
+
+function resolveWaterSubmission(tournament, inputValue, inputProvided, currentMatch = null) {
+  if (!inputProvided && String(currentMatch && currentMatch.status || '').trim() === 'finished') {
+    return {
+      ok: true,
+      snapshot: normalizeWaterSnapshot(currentMatch && currentMatch.water) || undefined
+    };
+  }
+
+  const config = normalizeWaterConfig(tournament);
+  if (!config.enabled) {
+    if (inputProvided) {
+      return {
+        ok: false,
+        code: 'WATER_NOT_ENABLED',
+        message: '当前赛事未开启打水记账'
+      };
+    }
+    return { ok: true, snapshot: null };
+  }
+
+  const unitsPerLoser = inputProvided
+    ? normalizeWaterUnits(inputValue)
+    : config.defaultUnitsPerLoser;
+  if (unitsPerLoser === null) {
+    return {
+      ok: false,
+      code: 'WATER_UNITS_INVALID',
+      message: '打水瓶数仅支持 0、1、2'
+    };
+  }
+  return { ok: true, snapshot: { unitsPerLoser } };
+}
+
+function applyScoreToRounds(rounds, roundIndex, matchIndex, scoreA, scoreB, scorer = null, waterSnapshot = undefined) {
   const nextRounds = Array.isArray(rounds) ? JSON.parse(JSON.stringify(rounds)) : [];
   const targetRound = nextRounds[roundIndex];
   if (!targetRound) throw new Error('轮次不存在');
@@ -52,6 +120,11 @@ function applyScoreToRounds(rounds, roundIndex, matchIndex, scoreA, scoreB, scor
     match.scorerId = String(scorer.id || '');
     match.scorerName = String(scorer.name || '').trim();
     match.scoredAt = scorer.scoredAt || new Date().toISOString();
+  }
+  if (waterSnapshot !== undefined) {
+    const normalizedWater = normalizeWaterSnapshot(waterSnapshot);
+    if (normalizedWater) match.water = normalizedWater;
+    else delete match.water;
   }
   match.status = 'finished';
   matches[idx] = match;
@@ -102,13 +175,27 @@ function applySquadTargetWinEndCondition(tournament, rounds, rankings) {
   return { rounds: nextRounds, finishedByRule: true };
 }
 
-function buildIdempotentRetryResult(match, scoreA, scoreB, requesterId, fallbackScorerName = '球友') {
+function buildIdempotentRetryResult(
+  match,
+  scoreA,
+  scoreB,
+  requesterId,
+  fallbackScorerName = '球友',
+  expectedWaterSnapshot = undefined
+) {
   const status = String(match && match.status || '').trim();
   if (status !== 'finished') return null;
 
   const current = scoreUtils.extractScorePairAny(match);
   if (!Number.isFinite(current.a) || !Number.isFinite(current.b)) return null;
   if (Number(current.a) !== Number(scoreA) || Number(current.b) !== Number(scoreB)) return null;
+  if (expectedWaterSnapshot !== undefined) {
+    const currentWater = normalizeWaterSnapshot(match && match.water);
+    const expectedWater = normalizeWaterSnapshot(expectedWaterSnapshot);
+    const currentUnits = currentWater ? currentWater.unitsPerLoser : null;
+    const expectedUnits = expectedWater ? expectedWater.unitsPerLoser : null;
+    if (currentUnits !== expectedUnits) return null;
+  }
 
   return {
     ok: true,
@@ -118,11 +205,19 @@ function buildIdempotentRetryResult(match, scoreA, scoreB, requesterId, fallback
   };
 }
 
-function buildSubmitResult(tournament, roundIndex, matchIndex, scoreA, scoreB, scorer = null) {
+function buildSubmitResult(
+  tournament,
+  roundIndex,
+  matchIndex,
+  scoreA,
+  scoreB,
+  scorer = null,
+  waterSnapshot = undefined
+) {
   const sourceRounds = isSquadTargetWins(tournament)
     ? reviveScorelessCanceledMatches(tournament && tournament.rounds)
     : (tournament && tournament.rounds);
-  let rounds = applyScoreToRounds(sourceRounds, roundIndex, matchIndex, scoreA, scoreB, scorer);
+  let rounds = applyScoreToRounds(sourceRounds, roundIndex, matchIndex, scoreA, scoreB, scorer, waterSnapshot);
   let rankings = computeRankings({ ...(tournament || {}), rounds });
   const squadEnd = applySquadTargetWinEndCondition(tournament, rounds, rankings);
   if (squadEnd.finishedByRule) {
@@ -144,6 +239,10 @@ module.exports = {
   isTeamMode,
   computeRankings,
   allMatchesFinished,
+  normalizeWaterUnits,
+  normalizeWaterConfig,
+  normalizeWaterSnapshot,
+  resolveWaterSubmission,
   applyScoreToRounds,
   isSquadTargetWins,
   reviveScorelessCanceledMatches,

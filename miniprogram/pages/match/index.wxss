@@ -152,6 +152,34 @@
   flex-shrink: 0;
 }
 
+.water-control {
+  margin-top: var(--space-section);
+  padding-top: var(--space-section);
+  border-top: 1rpx solid var(--neutral-200);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-inline);
+}
+
+.water-control-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.water-control-title {
+  margin-bottom: 4rpx;
+  font-size: 26rpx;
+  font-weight: 760;
+  color: var(--neutral-950);
+}
+
+.water-units-picker {
+  min-width: 132rpx;
+  text-align: center;
+  box-sizing: border-box;
+}
+
 /* --- 选手名称 --- */
 .score-player-name {
   margin-bottom: var(--space-tight);

@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const {
+  WATER_UNIT_OPTIONS,
   buildInitialData,
   buildQuickScoreOptions,
   buildTournamentViewState
@@ -79,8 +80,9 @@ function createPageContext(definition) {
       pushUndo(scoreA, scoreB) {
         ctx._undoStack.push({ a: scoreA, b: scoreB });
       },
-      saveScoreDraft(scoreA, scoreB) {
+      saveScoreDraft(scoreA, scoreB, waterUnitsPerLoser) {
         ctx._savedDraft = { scoreA, scoreB };
+        if (waterUnitsPerLoser !== undefined) ctx._savedDraft.waterUnitsPerLoser = waterUnitsPerLoser;
       },
       undo() {
         return ctx._undoStack.pop() || null;
@@ -162,6 +164,102 @@ test('match quick score presets follow tournament pointsPerGame order including 
   ]);
 });
 
+test('match view model enables water only for canonical multi_rotate and prefers draft units', () => {
+  const tournament = {
+    ...buildTournament(21),
+    mode: 'multi_rotate',
+    rules: {
+      pointsPerGame: 21,
+      water: { enabled: true, defaultUnitsPerLoser: 2 }
+    }
+  };
+  const viewState = buildTournamentViewState(tournament, {
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    openid: 'user_1',
+    lockState: 'locked_by_me',
+    currentScoreA: 0,
+    currentScoreB: 0,
+    draft: { scoreA: 21, scoreB: 18, waterUnitsPerLoser: 0 },
+    undoSize: 0
+  });
+
+  assert.equal(viewState.data.waterEnabled, true);
+  assert.equal(viewState.data.waterUnitsPerLoser, 0);
+  assert.equal(viewState.data.waterUnitsIndex, 0);
+  assert.equal(viewState.data.showWaterControl, true);
+
+  const squadState = buildTournamentViewState({
+    ...tournament,
+    mode: 'squad_doubles'
+  }, {
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    openid: 'user_1',
+    lockState: 'locked_by_me',
+    draft: null,
+    undoSize: 0
+  });
+  assert.equal(squadState.data.waterEnabled, false);
+  assert.equal(squadState.data.showWaterControl, false);
+});
+
+test('match water options keep finished server snapshots readonly but preserve active edit drafts', () => {
+  assert.deepEqual(WATER_UNIT_OPTIONS, [
+    { value: 0, label: '0 瓶' },
+    { value: 1, label: '1 瓶' },
+    { value: 2, label: '2 瓶' }
+  ]);
+  assert.deepEqual(buildInitialData().waterUnitOptions, WATER_UNIT_OPTIONS);
+
+  const tournament = {
+    ...buildTournament(21),
+    mode: 'multi_rotate',
+    rules: {
+      pointsPerGame: 21,
+      water: { enabled: true, defaultUnitsPerLoser: 1 }
+    }
+  };
+  tournament.rounds[0].matches[0] = {
+    ...tournament.rounds[0].matches[0],
+    status: 'finished',
+    score: { teamA: 21, teamB: 18 },
+    water: { unitsPerLoser: 2 }
+  };
+
+  const readonlyState = buildTournamentViewState(tournament, {
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    openid: 'user_1',
+    lockState: 'idle',
+    currentScoreA: 21,
+    currentScoreB: 18,
+    draft: { scoreA: 21, scoreB: 18, waterUnitsPerLoser: 0 },
+    undoSize: 0
+  });
+
+  assert.equal(readonlyState.data.waterUnitsPerLoser, 2);
+  assert.equal(readonlyState.data.waterUnitsIndex, 2);
+
+  const activeEditState = buildTournamentViewState(tournament, {
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    openid: 'user_1',
+    lockState: 'locked_by_me',
+    currentScoreA: 21,
+    currentScoreB: 18,
+    draft: { scoreA: 21, scoreB: 18, waterUnitsPerLoser: 0 },
+    undoSize: 0
+  });
+
+  assert.equal(activeEditState.data.waterUnitsPerLoser, 0);
+  assert.equal(activeEditState.data.waterUnitsIndex, 0);
+});
+
 test('match view model syncs fixed rotation tournament name with preset label', () => {
   const viewState = buildTournamentViewState({
     ...buildTournament(21),
@@ -199,6 +297,15 @@ test('match page renders dynamic quick score options instead of hardcoded score 
   assert.doesNotMatch(wxml, /请先点击/);
   assert.doesNotMatch(wxml, /刷新状态/);
   assert.doesNotMatch(wxml, /接管录分/);
+});
+
+test('match page renders the approved water selector only in editable water state', () => {
+  const wxml = readPage('miniprogram/pages/match/index.wxml');
+
+  assert.match(wxml, /负方每人请水/);
+  assert.match(wxml, /wx:if="\{\{showWaterControl\}\}"/);
+  assert.match(wxml, /range="\{\{waterUnitOptions\}\}"/);
+  assert.match(wxml, /bindchange="onPickWaterUnits"/);
 });
 
 test('match score edit tools stay contained within the score panel', () => {
@@ -247,6 +354,25 @@ test('onQuickScore still overwrites scores and records undo plus draft from dyna
   assert.equal(ctx.data.canUndo, true);
   assert.deepEqual(ctx._undoStack, [{ a: 3, b: 6 }]);
   assert.deepEqual(ctx._savedDraft, { scoreA: 15, scoreB: 13 });
+
+  delete require.cache[matchPagePath];
+});
+
+test('onPickWaterUnits preserves zero in page state and score draft', () => {
+  const definition = loadMatchPageDefinition();
+  const ctx = createPageContext(definition);
+  ctx.data.showWaterControl = true;
+  ctx.data.waterUnitOptions = buildInitialData().waterUnitOptions;
+
+  ctx.onPickWaterUnits({ detail: { value: '0' } });
+
+  assert.equal(ctx.data.waterUnitsPerLoser, 0);
+  assert.equal(ctx.data.waterUnitsIndex, 0);
+  assert.deepEqual(ctx._savedDraft, {
+    scoreA: 3,
+    scoreB: 6,
+    waterUnitsPerLoser: 0
+  });
 
   delete require.cache[matchPagePath];
 });

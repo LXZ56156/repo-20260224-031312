@@ -49,6 +49,14 @@ function buildFinishedTournament(scoreA = 21, scoreB = 18) {
   };
 }
 
+function buildWaterFinishedTournament(unitsPerLoser) {
+  const tournament = buildFinishedTournament(21, 18);
+  tournament.mode = 'multi_rotate';
+  tournament.rules = { water: { enabled: true, defaultUnitsPerLoser: 1 } };
+  tournament.rounds[0].matches[0].water = { unitsPerLoser };
+  return tournament;
+}
+
 function createCtx(overrides = {}) {
   const toastCalls = [];
   const ctx = {
@@ -143,6 +151,7 @@ function createCtx(overrides = {}) {
 test('match submit retry reuses the same clientRequestId after a network failure', async () => {
   const originalWx = global.wx;
   const payloads = [];
+  const submittedPayloads = [];
   let callCount = 0;
 
   global.wx = {
@@ -155,10 +164,13 @@ test('match submit retry reuses the same clientRequestId after a network failure
 
   try {
     const ctx = createCtx();
+    ctx.data.waterEnabled = true;
+    ctx.data.waterUnitsPerLoser = 1;
     const requestIds = [];
     const service = createMatchSubmitService(ctx, {
       cloud: {
         async call(_name, payload) {
+          submittedPayloads.push(JSON.parse(JSON.stringify(payload)));
           requestIds.push(payload.clientRequestId);
           callCount += 1;
           if (callCount === 1) throw new Error('network timeout');
@@ -189,10 +201,21 @@ test('match submit retry reuses the same clientRequestId after a network failure
     assert.equal(ctx._writeErrors.length, 1);
     assert.equal(ctx._clearDraftCount, 0);
 
+    ctx.data.scoreA = 15;
+    ctx.data.scoreB = 13;
+    ctx.data.waterUnitsPerLoser = 2;
     await ctx._retryAction();
 
     assert.equal(requestIds.length, 2);
     assert.equal(requestIds[0], requestIds[1]);
+    assert.deepEqual(submittedPayloads.map((payload) => ({
+      scoreA: payload.scoreA,
+      scoreB: payload.scoreB,
+      waterUnitsPerLoser: payload.waterUnitsPerLoser
+    })), [
+      { scoreA: 21, scoreB: 18, waterUnitsPerLoser: 1 },
+      { scoreA: 21, scoreB: 18, waterUnitsPerLoser: 1 }
+    ]);
     assert.equal(ctx._writeErrors.length, 1);
     assert.equal(ctx._clearDraftCount, 1);
     assert.equal(ctx._clearUndoCount, 1);
@@ -250,6 +273,122 @@ test('match submit treats network timeout as success when refreshed tournament a
     assert.equal(ctx._clearUndoCount, 1);
     assert.ok(ctx._lockStates.includes('finished'));
     assert.equal(toastCalls.some((item) => item.title === '已提交'), true);
+  } finally {
+    global.wx = originalWx;
+  }
+});
+
+test('match submit does not recover a network timeout when score matches but water units differ', async () => {
+  const originalWx = global.wx;
+  global.wx = {
+    showLoading() {},
+    hideLoading() {},
+    showToast() {}
+  };
+
+  try {
+    const ctx = createCtx();
+    ctx.data.waterEnabled = true;
+    ctx.data.waterUnitsPerLoser = 2;
+    ctx.fetchTournament = async () => buildWaterFinishedTournament(1);
+    const service = createMatchSubmitService(ctx, {
+      cloud: {
+        async call() {
+          throw new Error('network timeout');
+        },
+        parseCloudError() {
+          return { isNetwork: true };
+        }
+      },
+      storage: {
+        get(key, fallback) {
+          if (key === 'score_auto_next' || key === 'score_auto_return') return false;
+          return fallback;
+        }
+      },
+      nav: {
+        markRefreshFlag() {},
+        buildTournamentUrl(path, tournamentId, query = {}) {
+          return `${path}?tournamentId=${tournamentId}&roundIndex=${query.roundIndex || 0}&matchIndex=${query.matchIndex || 0}`;
+        },
+        redirectOrBack() {},
+        redirectOrNavigate() {}
+      }
+    });
+
+    await service.submit();
+
+    assert.equal(ctx._writeErrors.length, 1);
+    assert.equal(typeof ctx._retryAction, 'function');
+    assert.equal(ctx._clearDraftCount, 0);
+    assert.equal(ctx._lockStates.includes('finished'), false);
+  } finally {
+    global.wx = originalWx;
+  }
+});
+
+test('version conflict refresh keeps active water edit aligned with the frozen retry payload', async () => {
+  const originalWx = global.wx;
+  const submittedPayloads = [];
+  global.wx = {
+    showLoading() {},
+    hideLoading() {},
+    showToast() {}
+  };
+
+  try {
+    const serverTournament = buildWaterFinishedTournament(2);
+    const ctx = createCtx();
+    ctx._latestTournament = serverTournament;
+    ctx._draft = { scoreA: 21, scoreB: 18, waterUnitsPerLoser: 0 };
+    ctx.data.match = serverTournament.rounds[0].matches[0];
+    ctx.data.waterEnabled = true;
+    ctx.data.waterUnitsPerLoser = 0;
+    let callCount = 0;
+    const service = createMatchSubmitService(ctx, {
+      cloud: {
+        async call(_name, payload) {
+          submittedPayloads.push(JSON.parse(JSON.stringify(payload)));
+          callCount += 1;
+          if (callCount === 1) {
+            return {
+              ok: false,
+              code: 'VERSION_CONFLICT',
+              message: '数据已更新，请刷新后重试',
+              state: 'conflict'
+            };
+          }
+          return { ok: true, scorerName: '裁判A', version: 3 };
+        },
+        parseCloudError() {
+          return { isNetwork: false };
+        }
+      },
+      storage: {
+        get(key, fallback) {
+          if (key === 'score_auto_next' || key === 'score_auto_return') return false;
+          return fallback;
+        }
+      },
+      nav: {
+        markRefreshFlag() {},
+        buildTournamentUrl(path, tournamentId, query = {}) {
+          return `${path}?tournamentId=${tournamentId}&roundIndex=${query.roundIndex || 0}&matchIndex=${query.matchIndex || 0}`;
+        },
+        redirectOrBack() {},
+        redirectOrNavigate() {}
+      }
+    });
+
+    await service.submit();
+    assert.equal(typeof ctx._retryAction, 'function');
+
+    ctx.applyTournament(serverTournament);
+    assert.equal(ctx.data.waterUnitsPerLoser, 0);
+    assert.equal(ctx.data.waterUnitsIndex, 0);
+
+    await ctx._retryAction();
+    assert.deepEqual(submittedPayloads.map((payload) => payload.waterUnitsPerLoser), [0, 0]);
   } finally {
     global.wx = originalWx;
   }

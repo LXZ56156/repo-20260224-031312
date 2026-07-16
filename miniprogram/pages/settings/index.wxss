@@ -90,6 +90,25 @@
   margin-top: var(--space-inline);
 }
 
+.water-setting-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-inline);
+}
+
+.water-setting-copy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.water-setting-switch {
+  flex-shrink: 0;
+}
+
 .settings-save {
   margin-top: var(--space-card-pad-lg);
 }

@@ -25,6 +25,53 @@ test('parsePosInt normalizes numeric input', () => {
   assert.equal(logic.parsePosInt('abc', 10), null);
 });
 
+test('normalizeWaterSettings keeps valid 0/1/2 values and closes invalid configs', () => {
+  assert.deepEqual(logic.normalizeWaterSettings('multi_rotate', {
+    enabled: true,
+    defaultUnitsPerLoser: 0
+  }), {
+    enabled: true,
+    defaultUnitsPerLoser: 0
+  });
+  assert.deepEqual(logic.normalizeWaterSettings('multi_rotate', {
+    enabled: true,
+    defaultUnitsPerLoser: '2'
+  }), {
+    enabled: true,
+    defaultUnitsPerLoser: 2
+  });
+  assert.deepEqual(logic.normalizeWaterSettings('multi_rotate', {
+    enabled: true,
+    defaultUnitsPerLoser: ' 1 '
+  }), {
+    enabled: true,
+    defaultUnitsPerLoser: 1
+  });
+  assert.deepEqual(logic.normalizeWaterSettings('multi_rotate', {
+    enabled: true,
+    defaultUnitsPerLoser: 1.5
+  }), {
+    enabled: false,
+    defaultUnitsPerLoser: 1
+  });
+  assert.deepEqual(logic.normalizeWaterSettings('fixed_pair_rr', {
+    enabled: true,
+    defaultUnitsPerLoser: 1
+  }), {
+    enabled: false,
+    defaultUnitsPerLoser: 1
+  });
+  for (const malformed of [true, false, ' ', [1], {}]) {
+    assert.deepEqual(logic.normalizeWaterSettings('multi_rotate', {
+      enabled: true,
+      defaultUnitsPerLoser: malformed
+    }), {
+      enabled: false,
+      defaultUnitsPerLoser: 1
+    });
+  }
+});
+
 test('validateSettings allows preconfiguration when players less than 4', () => {
   const out = logic.validateSettings(makePlayers(3), 1, 1);
   assert.equal(out.maxMatches, 0);

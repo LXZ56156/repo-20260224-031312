@@ -1,5 +1,6 @@
 const storage = require('../../core/storage');
 const { clampScore } = require('./matchViewModel');
+const { normalizeUnitsPerLoser } = require('../../core/waterLedger');
 
 function createMatchDraftController(ctx) {
   function ensureUndoStack() {
@@ -15,16 +16,22 @@ function createMatchDraftController(ctx) {
     );
   }
 
-  function saveScoreDraft(scoreA, scoreB) {
+  function saveScoreDraft(scoreA, scoreB, waterUnitsPerLoser = undefined) {
+    const inputWaterUnits = waterUnitsPerLoser === undefined
+      ? ctx.data.waterUnitsPerLoser
+      : waterUnitsPerLoser;
+    const normalizedWaterUnits = normalizeUnitsPerLoser(inputWaterUnits);
+    const draft = {
+      scoreA: clampScore(scoreA),
+      scoreB: clampScore(scoreB),
+      updatedAt: Date.now()
+    };
+    if (normalizedWaterUnits !== null) draft.waterUnitsPerLoser = normalizedWaterUnits;
     storage.setScoreDraft(
       ctx.data.tournamentId,
       ctx.data.roundIndex,
       ctx.data.matchIndex,
-      {
-        scoreA: clampScore(scoreA),
-        scoreB: clampScore(scoreB),
-        updatedAt: Date.now()
-      }
+      draft
     );
   }
 

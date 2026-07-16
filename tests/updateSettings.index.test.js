@@ -160,6 +160,177 @@ test('updateSettings writes normalized settings and rules through the direct ind
   });
 });
 
+test('updateSettings writes water config without losing existing rules', async () => {
+  let writtenData = null;
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return { data: buildTournament() };
+                }
+              };
+            },
+            where() {
+              return {
+                async update(payload) {
+                  writtenData = payload.data;
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    water: { enabled: true, defaultUnitsPerLoser: 0 }
+  });
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(writtenData.rules.water, {
+    enabled: true,
+    defaultUnitsPerLoser: 0
+  });
+  assert.equal(writtenData.rules.pointsPerGame, 21);
+  assert.deepEqual(writtenData.rules.endCondition, {
+    type: 'total_matches',
+    target: 4
+  });
+  assert.equal(writtenData.rules.unfinishedPolicy, 'admin_decide');
+
+  const disabledResult = await main({
+    tournamentId: 't_1',
+    water: { enabled: false, defaultUnitsPerLoser: 2 }
+  });
+
+  assert.equal(disabledResult.ok, true);
+  assert.deepEqual(writtenData.rules.water, {
+    enabled: false,
+    defaultUnitsPerLoser: 1
+  });
+  assert.equal(writtenData.rules.pointsPerGame, 21);
+  assert.equal(writtenData.rules.unfinishedPolicy, 'admin_decide');
+});
+
+test('updateSettings rejects water writes outside multi_rotate', async () => {
+  let updateCalled = false;
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return { data: buildSquadTournament() };
+                }
+              };
+            },
+            where() {
+              updateCalled = true;
+              return {
+                async update() {
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({
+    tournamentId: 't_squad',
+    water: { enabled: true, defaultUnitsPerLoser: 1 }
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'SETTINGS_INVALID');
+  assert.equal(result.state, 'invalid');
+  assert.match(result.message, /不支持打水记账/);
+  assert.equal(updateCalled, false);
+});
+
+test('updateSettings preserves existing water config when water is omitted', async () => {
+  let writtenData = null;
+  const db = {
+    command: {
+      inc(value) {
+        return { $inc: value };
+      }
+    },
+    serverDate() {
+      return { $serverDate: true };
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection() {
+          return {
+            doc() {
+              return {
+                async get() {
+                  return {
+                    data: {
+                      ...buildTournament(),
+                      rules: {
+                        ...buildTournament().rules,
+                        water: { enabled: true, defaultUnitsPerLoser: 2 }
+                      }
+                    }
+                  };
+                }
+              };
+            },
+            where() {
+              return {
+                async update(payload) {
+                  writtenData = payload.data;
+                  return { stats: { updated: 1 } };
+                }
+              };
+            }
+          };
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({ tournamentId: 't_1', pointsPerGame: 15 });
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(writtenData.rules.water, {
+    enabled: true,
+    defaultUnitsPerLoser: 2
+  });
+});
+
 test('updateSettings refreshes draft updatable share count after successful settings save', async () => {
   const openapiCalls = [];
   const db = {

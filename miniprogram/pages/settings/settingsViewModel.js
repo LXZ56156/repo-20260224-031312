@@ -3,6 +3,7 @@ const draftStartReadiness = require('../../core/draftStartReadiness');
 const flow = require('../../core/uxFlow');
 const fixedPair = require('../../core/fixedPair');
 const multiRotateMatchOptions = require('../../core/ux/multiRotateMatchOptions');
+const waterLedger = require('../../core/waterLedger');
 
 const POINT_OPTIONS = [11, 15, 21];
 const END_CONDITION_OPTIONS = [
@@ -40,6 +41,11 @@ function clampTarget(target, options) {
   const max = list.length ? Number(list[list.length - 1] || 1) : 1;
   const n = Math.floor(Number(target) || 1);
   return Math.max(min, Math.min(max, n));
+}
+
+function normalizeWaterDefaultUnits(value) {
+  const normalized = waterLedger.normalizeUnitsPerLoser(value);
+  return normalized === null ? 1 : normalized;
 }
 
 function suggestEndConditionTarget(type, totalMatches, courts) {
@@ -307,6 +313,9 @@ function buildSettingsFormState(tournament, options = {}) {
   const digitLen = Math.max(2, String(maxMatches > 0 ? maxMatches : 999).length);
 
   const rules = t.rules && typeof t.rules === 'object' ? t.rules : {};
+  const rawMode = String(t.mode || '').trim().toLowerCase();
+  const waterConfig = waterLedger.normalizeWaterConfig(rawMode, rules);
+  const showWaterSettings = rawMode === flow.MODE_MULTI_ROTATE;
   const pointsPerGame = POINT_OPTIONS.includes(Number(rules.pointsPerGame)) ? Number(rules.pointsPerGame) : 21;
   const pointsIndex = Math.max(0, POINT_OPTIONS.indexOf(pointsPerGame));
   const rawEndCondition = rules.endCondition && typeof rules.endCondition === 'object' ? rules.endCondition : {};
@@ -366,6 +375,9 @@ function buildSettingsFormState(tournament, options = {}) {
     pointsOptions: POINT_OPTIONS,
     pointsPerGame,
     pointsIndex,
+    showWaterSettings,
+    waterEnabled: showWaterSettings && waterConfig.enabled,
+    waterDefaultUnitsPerLoser: waterConfig.defaultUnitsPerLoser,
     endConditionOptions,
     endConditionType,
     endConditionIndex: endConditionIndex >= 0 ? endConditionIndex : 0,
@@ -400,6 +412,7 @@ module.exports = {
   digitValueToNumber,
   normalizeEndConditionType,
   clampTarget,
+  normalizeWaterDefaultUnits,
   suggestEndConditionTarget,
   buildEndConditionUi,
   buildRecommendationState,

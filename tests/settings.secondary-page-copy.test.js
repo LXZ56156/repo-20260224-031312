@@ -16,4 +16,7 @@ test('settings page keeps advanced configuration in a dedicated context and reco
   assert.match(wxml, /id="section-params"/);
   assert.match(wxml, /bindtap="saveSettings"/);
   assert.match(wxml, /bindtap="goHome" wx:if="\{\{showLoadErrorHome\}\}"/);
+  assert.match(wxml, /打水记账/);
+  assert.match(wxml, /wx:if="\{\{showWaterSettings\}\}"/);
+  assert.match(wxml, /bindchange="onWaterEnabledChange"/);
 });

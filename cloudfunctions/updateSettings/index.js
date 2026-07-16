@@ -12,7 +12,8 @@ const {
   normalizeGender,
   normalizeTournamentName,
   normalizePoints,
-  normalizeEndConditionType
+  normalizeEndConditionType,
+  normalizeWaterSettings
 } = require('./logic');
 
 exports.main = async (event) => {
@@ -34,6 +35,8 @@ exports.main = async (event) => {
   const endConditionTargetInput = event && Object.prototype.hasOwnProperty.call(event, 'endConditionTarget')
     ? parseTargetInt(event.endConditionTarget, 1)
     : null;
+  const waterProvided = !!(event && Object.prototype.hasOwnProperty.call(event, 'water'));
+  const waterInput = waterProvided ? event.water : null;
   const playerGenderPatch = (event && typeof event.playerGenderPatch === 'object' && event.playerGenderPatch)
     ? event.playerGenderPatch
     : null;
@@ -69,11 +72,17 @@ exports.main = async (event) => {
         || courts !== null
         || pointsPerGame !== null
         || endConditionTypeInput !== null
-        || endConditionTargetInput !== null;
+        || endConditionTargetInput !== null
+        || waterProvided;
       if (wantsParamConfig && players.length < 4 && !fixedRotationPreset) {
         throw new Error('满 4 人后才可设置比赛参数');
       }
-      const mode = String(t.mode || 'multi_rotate').trim().toLowerCase();
+      const rawMode = String(t.mode || '').trim().toLowerCase();
+      const mode = rawMode || 'multi_rotate';
+      if (waterProvided && rawMode !== 'multi_rotate') {
+        throw new Error('当前比赛模式不支持打水记账');
+      }
+      const normalizedWater = waterProvided ? normalizeWaterSettings(rawMode, waterInput) : null;
       const oldVersion = Number(t.version) || 1;
       const currentRules = (t.rules && typeof t.rules === 'object') ? t.rules : {};
       const currentEndCondition = (currentRules.endCondition && typeof currentRules.endCondition === 'object')
@@ -106,14 +115,15 @@ exports.main = async (event) => {
           type: resolvedEndConditionType,
           target: resolvedEndConditionTarget
         },
-        unfinishedPolicy: String(currentRules.unfinishedPolicy || 'admin_decide')
+        unfinishedPolicy: String(currentRules.unfinishedPolicy || 'admin_decide'),
+        ...(waterProvided ? { water: normalizedWater } : {})
       };
 
       const data = { updatedAt: db.serverDate(), version: _.inc(1) };
       Object.assign(data, checked.patch);
       if (clientRequestId) data.lastClientRequestId = clientRequestId;
       if (nameProvided) data.name = syncedName;
-      if (nameProvided || pointsPerGame !== null || endConditionTypeInput !== null || endConditionTargetInput !== null || totalMatches !== null) {
+      if (nameProvided || pointsPerGame !== null || endConditionTypeInput !== null || endConditionTargetInput !== null || totalMatches !== null || waterProvided) {
         data.rules = nextRules;
       }
       if (playerGenderPatch) {
@@ -182,7 +192,9 @@ function mapUpdateSettingsFailure(err, traceId = '') {
     message.includes('名单') ||
     message.includes('成员') ||
     message.includes('队伍') ||
-    message.includes('结束条件')
+    message.includes('结束条件') ||
+    message.includes('打水') ||
+    message.includes('瓶')
   ) {
     return common.failResult('SETTINGS_INVALID', message, { traceId, state: 'invalid' });
   }

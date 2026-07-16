@@ -254,9 +254,9 @@ Page({
     return this.matchDraft.getScoreDraft();
   },
 
-  saveScoreDraft(scoreA, scoreB) {
+  saveScoreDraft(scoreA, scoreB, waterUnitsPerLoser = undefined) {
     ensureControllers(this);
-    this.matchDraft.saveScoreDraft(scoreA, scoreB);
+    this.matchDraft.saveScoreDraft(scoreA, scoreB, waterUnitsPerLoser);
   },
 
   clearScoreDraft() {
@@ -288,7 +288,23 @@ Page({
       displayScoreB: String(scoreB),
       canUndo: this.matchDraft.getUndoSize() > 0
     });
-    if (options.persist !== false) this.matchDraft.saveScoreDraft(scoreA, scoreB);
+    if (options.persist !== false) {
+      this.matchDraft.saveScoreDraft(scoreA, scoreB, this.data.waterUnitsPerLoser);
+    }
+  },
+
+  onPickWaterUnits(e) {
+    if (!this.data.showWaterControl || !this.data.canEdit) return;
+    const options = Array.isArray(this.data.waterUnitOptions) ? this.data.waterUnitOptions : [];
+    const index = Number(e && e.detail && e.detail.value);
+    const selected = options[index];
+    if (!selected) return;
+    const waterUnitsPerLoser = Number(selected.value);
+    this.setData({
+      waterUnitsPerLoser,
+      waterUnitsIndex: index
+    });
+    this.matchDraft.saveScoreDraft(this.data.scoreA, this.data.scoreB, waterUnitsPerLoser);
   },
 
   onQuickScore(e) {
@@ -332,7 +348,11 @@ Page({
       conflictContent: '数据已被其他人更新，刷新后可继续提交，当前输入会保留。',
       onRefresh,
       onKeepDraft: () => {
-        this.matchDraft.saveScoreDraft(this.data.scoreA, this.data.scoreB);
+        this.matchDraft.saveScoreDraft(
+          this.data.scoreA,
+          this.data.scoreB,
+          this.data.waterUnitsPerLoser
+        );
       }
     });
   },

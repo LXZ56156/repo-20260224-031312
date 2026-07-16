@@ -10,6 +10,7 @@ const writeErrorUi = require('../../core/writeErrorUi');
 const growthTracker = require('../../core/growthTracker');
 const { normalizeTournament } = require('../../core/normalize');
 const { clampScore, buildClientRequestId } = require('./matchViewModel');
+const { normalizeUnitsPerLoser } = require('../../core/waterLedger');
 
 const SCORE_AUTO_RETURN_KEY = 'score_auto_return';
 const SCORE_AUTO_NEXT_KEY = 'score_auto_next';
@@ -74,7 +75,13 @@ function createMatchSubmitService(ctx, deps = {}) {
     return true;
   }
 
-  function buildLocalSubmittedTournament(scoreA, scoreB, lockSnapshot, result = {}) {
+  function buildLocalSubmittedTournament(
+    scoreA,
+    scoreB,
+    lockSnapshot,
+    result = {},
+    waterUnitsPerLoser = undefined
+  ) {
     const currentTournament = ctx._latestTournament || (ctx.data && ctx.data.tournament) || null;
     if (!currentTournament || typeof currentTournament !== 'object') return null;
 
@@ -93,6 +100,9 @@ function createMatchSubmitService(ctx, deps = {}) {
     delete match.a;
     delete match.b;
     match.score = { teamA: scoreA, teamB: scoreB };
+    if (waterUnitsPerLoser !== undefined) {
+      match.water = { unitsPerLoser: waterUnitsPerLoser };
+    }
     match.status = 'finished';
     match.scorerId = String(lockSnapshot.ownerId || ctx.data.lockOwnerId || '').trim();
     match.scorerName = String((result && result.scorerName) || lockSnapshot.ownerName || ctx.data.lockOwnerName || '').trim();
@@ -124,30 +134,35 @@ function createMatchSubmitService(ctx, deps = {}) {
     return tournamentDoc;
   }
 
-  function isSubmittedMatch(tournamentDoc, scoreA, scoreB) {
+  function isSubmittedMatch(tournamentDoc, scoreA, scoreB, waterUnitsPerLoser = undefined) {
     const match = findCurrentMatch(tournamentDoc);
     if (!match) return false;
     if (String(match.status || '').trim() !== 'finished') return false;
     const current = extractMatchScore(match);
-    return Number(current.scoreA) === Number(scoreA) && Number(current.scoreB) === Number(scoreB);
+    if (Number(current.scoreA) !== Number(scoreA) || Number(current.scoreB) !== Number(scoreB)) return false;
+    if (waterUnitsPerLoser === undefined) return true;
+    const currentWaterUnits = normalizeUnitsPerLoser(match && match.water && match.water.unitsPerLoser);
+    return currentWaterUnits === waterUnitsPerLoser;
   }
 
-  async function tryRecoverSubmittedResult(scoreA, scoreB) {
+  async function tryRecoverSubmittedResult(scoreA, scoreB, waterUnitsPerLoser = undefined) {
     const latest = await refreshTournamentDoc();
-    if (isSubmittedMatch(latest, scoreA, scoreB)) return latest;
+    if (isSubmittedMatch(latest, scoreA, scoreB, waterUnitsPerLoser)) return latest;
     return null;
   }
 
   async function finalizeSubmitSuccess(result, lockSnapshot, options = {}) {
-    const scoreA = clampScore(ctx.data.scoreA);
-    const scoreB = clampScore(ctx.data.scoreB);
+    const scoreA = clampScore(options.scoreA === undefined ? ctx.data.scoreA : options.scoreA);
+    const scoreB = clampScore(options.scoreB === undefined ? ctx.data.scoreB : options.scoreB);
+    const waterUnitsPerLoser = options.waterUnitsPerLoser;
     const resolvedTournament = options.tournamentDoc || await refreshTournamentDoc();
-    if (!isSubmittedMatch(resolvedTournament, scoreA, scoreB)) {
+    if (!isSubmittedMatch(resolvedTournament, scoreA, scoreB, waterUnitsPerLoser)) {
       const localCommitted = buildLocalSubmittedTournament(
         scoreA,
         scoreB,
         lockSnapshot,
-        result
+        result,
+        waterUnitsPerLoser
       );
       if (localCommitted) applyCommittedTournament(localCommitted);
     }
@@ -291,10 +306,25 @@ function createMatchSubmitService(ctx, deps = {}) {
   }
 
   async function submit(options = {}) {
-    const scoreA = clampScore(ctx.data.scoreA);
-    const scoreB = clampScore(ctx.data.scoreB);
+    const scoreAInput = Object.prototype.hasOwnProperty.call(options, 'scoreA')
+      ? options.scoreA
+      : ctx.data.scoreA;
+    const scoreBInput = Object.prototype.hasOwnProperty.call(options, 'scoreB')
+      ? options.scoreB
+      : ctx.data.scoreB;
+    const scoreA = clampScore(scoreAInput);
+    const scoreB = clampScore(scoreBInput);
     if (!Number.isFinite(scoreA) || !Number.isFinite(scoreB) || scoreA < 0 || scoreB < 0) {
       wx.showToast({ title: '请输入合法比分', icon: 'none' });
+      return;
+    }
+    const waterEnabled = ctx.data.waterEnabled === true;
+    const waterInput = Object.prototype.hasOwnProperty.call(options, 'waterUnitsPerLoser')
+      ? options.waterUnitsPerLoser
+      : ctx.data.waterUnitsPerLoser;
+    const waterUnitsPerLoser = waterEnabled ? normalizeUnitsPerLoser(waterInput) : undefined;
+    if (waterEnabled && waterUnitsPerLoser === null) {
+      wx.showToast({ title: '请选择 0、1 或 2 瓶', icon: 'none' });
       return;
     }
 
@@ -327,18 +357,25 @@ function createMatchSubmitService(ctx, deps = {}) {
     if (actionGuard.isBusy(actionKey)) return;
 
     return actionGuard.runWithPageBusy(ctx, 'submitBusy', actionKey, async () => {
-      const retrySubmit = () => submit({ clientRequestId });
+      const retrySubmit = () => submit({
+        clientRequestId,
+        scoreA,
+        scoreB,
+        ...(waterEnabled ? { waterUnitsPerLoser } : {})
+      });
       ctx.lockController.setLockState('submitting', lockSnapshot, { skipApply: true });
       wx.showLoading({ title: '提交中...' });
       try {
-        const res = await cloudApi.call('submitScore', {
+        const payload = {
           tournamentId: ctx.data.tournamentId,
           roundIndex: ctx.data.roundIndex,
           matchIndex: ctx.data.matchIndex,
           scoreA,
           scoreB,
           clientRequestId
-        });
+        };
+        if (waterEnabled) payload.waterUnitsPerLoser = waterUnitsPerLoser;
+        const res = await cloudApi.call('submitScore', payload);
 
         if (res && res.ok === false) {
           if (handleSubmitResultCode(res, lockSnapshot, { retrySubmit })) return;
@@ -347,7 +384,7 @@ function createMatchSubmitService(ctx, deps = {}) {
           return;
         }
 
-        await finalizeSubmitSuccess(res, lockSnapshot);
+        await finalizeSubmitSuccess(res, lockSnapshot, { scoreA, scoreB, waterUnitsPerLoser });
         growthTracker.track('score_submit_success', growthTracker.fromTournament(ctx._latestTournament || ctx.data.tournament, {
           tournamentId: ctx.data.tournamentId,
           src: 'match',
@@ -390,12 +427,12 @@ function createMatchSubmitService(ctx, deps = {}) {
           ? cloudApi.parseCloudError(err, '提交失败')
           : null;
         if (parsed && parsed.isNetwork) {
-          const recovered = await tryRecoverSubmittedResult(scoreA, scoreB);
+          const recovered = await tryRecoverSubmittedResult(scoreA, scoreB, waterUnitsPerLoser);
           if (recovered) {
             await finalizeSubmitSuccess({
               ok: true,
               scorerName: lockSnapshot.ownerName
-            }, lockSnapshot, { tournamentDoc: recovered });
+            }, lockSnapshot, { tournamentDoc: recovered, scoreA, scoreB, waterUnitsPerLoser });
             growthTracker.track('score_submit_success', growthTracker.fromTournament(ctx._latestTournament || ctx.data.tournament || recovered, {
               tournamentId: ctx.data.tournamentId,
               src: 'match',

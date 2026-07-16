@@ -111,6 +111,22 @@
         </picker>
       </view>
     </view>
+
+    <view class="water-control" wx:if="{{showWaterControl}}">
+      <view class="water-control-copy">
+        <view class="water-control-title">负方每人请水</view>
+        <view class="muted small">按本场最终比分确定胜负方，不影响正式排名</view>
+      </view>
+      <picker
+        mode="selector"
+        range="{{waterUnitOptions}}"
+        range-key="label"
+        value="{{waterUnitsIndex}}"
+        bindchange="onPickWaterUnits"
+      >
+        <view class="picker water-units-picker">{{waterUnitsPerLoser}} 瓶</view>
+      </picker>
+    </view>
   </view>
 
   <!-- 底部提交栏 — bottom-tray -->

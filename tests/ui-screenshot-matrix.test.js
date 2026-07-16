@@ -14,6 +14,8 @@ const EXPECTED_CASES = [
   'ranking',
   'scheduleRunning',
   'schedule',
+  'settingsWater',
+  'matchWater',
   'analytics'
 ];
 
@@ -71,10 +73,35 @@ test('lobby, result, share and analytics cases retain the rich master product su
   assert.ok(cases.shareFinished.expectedTexts.includes('查看赛事战报'));
 
   assert.equal(cases.analytics.path, '/pages/analytics/index');
+  assert.equal(cases.analytics.clearLastEnterOptions, true);
   assert.ok(cases.analytics.selectors.includes('.analytics-hero'));
   assert.ok(cases.analytics.selectors.includes('.report-card'));
   assert.ok(cases.analytics.expectedTexts.includes('比赛结论'));
   assert.ok(cases.analytics.expectedTexts.includes('复制完整战报'));
+  assert.ok(cases.analytics.selectors.includes('.water-ledger-card'));
+  assert.ok(cases.analytics.expectedTexts.includes('打水榜'));
+  assert.ok(cases.analytics.expectedTexts.includes('净水'));
+});
+
+test('water MVP screenshot cases cover settings and match without adding navigation', () => {
+  assert.equal(cases.settingsWater.path, '/pages/settings/index');
+  assert.ok(cases.settingsWater.selectors.includes('.context-panel'));
+  assert.ok(cases.settingsWater.selectors.includes('.water-setting-field'));
+  assert.ok(cases.settingsWater.expectedTexts.includes('打水记账'));
+  assert.ok(cases.settingsWater.expectedTexts.includes('不影响正式排名'));
+  assert.equal(cases.settingsWater.data.waterEnabled, true);
+  assert.equal(cases.settingsWater.data.waterDefaultUnitsPerLoser, 1);
+
+  assert.equal(cases.matchWater.path, '/pages/match/index');
+  assert.ok(cases.matchWater.selectors.includes('.water-control'));
+  assert.ok(cases.matchWater.expectedTexts.includes('负方每人请水'));
+  assert.ok(cases.matchWater.expectedTexts.includes('提交比分'));
+  assert.deepEqual(cases.matchWater.data.waterUnitOptions.map((item) => item.value), [0, 1, 2]);
+  assert.equal(cases.matchWater.data.waterUnitsPerLoser, 1);
+
+  const analyticsNetUnits = cases.analytics.data.waterLedgerRows.map((row) => row.netUnits);
+  assert.equal(analyticsNetUnits.some((value) => value > 0), true);
+  assert.equal(analyticsNetUnits.some((value) => value < 0), true);
 });
 
 test('schedule matrix keeps master chrome while proving central score and long-name rendering', () => {

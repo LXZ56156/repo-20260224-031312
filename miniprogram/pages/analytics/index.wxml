@@ -112,6 +112,35 @@
     </view>
   </view>
 
+  <view class="card panel water-ledger-card reveal reveal-7" wx:if="{{showWaterLedger}}">
+    <view class="section-head">
+      <view class="section-title">打水榜</view>
+      <text class="count-pill">独立记账</text>
+    </view>
+
+    <view class="water-ledger-table" wx:if="{{waterLedgerHasRecords}}">
+      <view class="water-ledger-row water-ledger-head">
+        <text class="water-col-rank">#</text>
+        <text class="water-col-name">球员</text>
+        <text class="water-col-num">赢水</text>
+        <text class="water-col-num">请水</text>
+        <text class="water-col-num">净水</text>
+      </view>
+      <view class="water-ledger-row" wx:for="{{waterLedgerRows}}" wx:key="playerId">
+        <text class="water-col-rank">{{item.rank}}</text>
+        <text class="water-col-name ellipsis">{{item.name}}</text>
+        <text class="water-col-num">{{item.wonUnits}}</text>
+        <text class="water-col-num">{{item.treatUnits}}</text>
+        <text class="water-col-num water-net {{item.netUnits>0 ? 'positive' : (item.netUnits<0 ? 'negative' : '')}}">{{item.netText}}</text>
+      </view>
+    </view>
+
+    <view class="water-ledger-empty" wx:else>
+      <view class="state-empty-title">暂无打水记录</view>
+      <view class="state-empty-desc">完成带打水快照的比赛后，这里将展示赢水、请水和净水</view>
+    </view>
+  </view>
+
   <view class="card panel reveal reveal-7" wx:if="{{summary && summary.finishedMatches>0 && (pairHot.length || duelHot.length)}}">
     <view class="section-head">
       <view class="section-title">更多看点</view>

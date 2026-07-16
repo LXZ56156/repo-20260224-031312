@@ -64,6 +64,51 @@ test('settings view model exposes squad end condition editing when mode is squad
   assert.equal(state.showEndConditionTargetPicker, true);
 });
 
+test('settings view model exposes water only for canonical multi_rotate and preserves valid zero default', () => {
+  const base = {
+    _id: 't_water',
+    status: 'draft',
+    creatorId: 'u_1',
+    mode: flow.MODE_MULTI_ROTATE,
+    players: [
+      { id: 'u_1', name: 'A' },
+      { id: 'u_2', name: 'B' },
+      { id: 'u_3', name: 'C' },
+      { id: 'u_4', name: 'D' }
+    ],
+    totalMatches: 6,
+    courts: 1
+  };
+
+  const missing = viewModel.buildSettingsViewState(base, { openid: 'u_1' });
+  assert.equal(missing.showWaterSettings, true);
+  assert.equal(missing.waterEnabled, false);
+  assert.equal(missing.waterDefaultUnitsPerLoser, 1);
+
+  const enabled = viewModel.buildSettingsViewState({
+    ...base,
+    rules: { water: { enabled: true, defaultUnitsPerLoser: 0 } }
+  }, { openid: 'u_1' });
+  assert.equal(enabled.showWaterSettings, true);
+  assert.equal(enabled.waterEnabled, true);
+  assert.equal(enabled.waterDefaultUnitsPerLoser, 0);
+
+  const invalid = viewModel.buildSettingsViewState({
+    ...base,
+    rules: { water: { enabled: true, defaultUnitsPerLoser: 3 } }
+  }, { openid: 'u_1' });
+  assert.equal(invalid.waterEnabled, false);
+  assert.equal(invalid.waterDefaultUnitsPerLoser, 1);
+
+  const squad = viewModel.buildSettingsViewState({
+    ...base,
+    mode: flow.MODE_SQUAD_DOUBLES,
+    rules: { water: { enabled: true, defaultUnitsPerLoser: 1 } }
+  }, { openid: 'u_1' });
+  assert.equal(squad.showWaterSettings, false);
+  assert.equal(squad.waterEnabled, false);
+});
+
 test('settings view model exposes fixed fair presets for multi_rotate', () => {
   const state = viewModel.buildSettingsViewState({
     _id: 't_x',

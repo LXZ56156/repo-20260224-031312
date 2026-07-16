@@ -177,6 +177,17 @@ module.exports = {
     this.setData({ pointsPerGame, pointsIndex: idx });
   },
 
+  onWaterEnabledChange(e) {
+    if (
+      !this.data.showWaterSettings
+      || this.data.mode !== flow.MODE_MULTI_ROTATE
+      || !this.data.isAdmin
+      || !this.data.isDraft
+      || !this.data.canConfigureSettings
+    ) return;
+    this.setData({ waterEnabled: !!(e && e.detail && e.detail.value) });
+  },
+
   onPickEndConditionType(e) {
     const idx = Number(e.detail.value);
     const options = this.data.endConditionOptions || viewModel.END_CONDITION_OPTIONS;
@@ -258,47 +269,74 @@ module.exports = {
       return;
     }
 
-    const name = flow.getSynchronizedTournamentName(
-      this.data.name,
-      this.data.tournament.mode || this.data.mode,
-      this.data.tournament.presetKey
-    );
+    const submittedSnapshot = options.submissionSnapshot
+      && typeof options.submissionSnapshot === 'object'
+      && !Array.isArray(options.submissionSnapshot)
+      ? options.submissionSnapshot
+      : null;
+    const name = submittedSnapshot
+      ? String(submittedSnapshot.name || '').trim()
+      : flow.getSynchronizedTournamentName(
+        this.data.name,
+        this.data.tournament.mode || this.data.mode,
+        this.data.tournament.presetKey
+      );
     if (!name) {
       wx.showToast({ title: '请输入赛事名称', icon: 'none' });
       return;
     }
 
     const maxMatches = Number(this.data.maxMatches) || 0;
-    const M = Number(this.data.editM) || 1;
-    const C = Math.max(1, Math.min(10, Number(this.data.editC) || 1));
+    const M = Number(submittedSnapshot ? submittedSnapshot.totalMatches : this.data.editM) || 1;
+    const C = Math.max(1, Math.min(10, Number(submittedSnapshot ? submittedSnapshot.courts : this.data.editC) || 1));
     if (maxMatches > 0 && M > maxMatches) {
       wx.showToast({ title: `总场次不能超过最大可选 ${maxMatches} 场`, icon: 'none' });
       return;
     }
 
-    const endConditionType = this.data.showSquadEndCondition
-      ? viewModel.normalizeEndConditionType(this.data.endConditionType)
-      : 'total_matches';
-    const endConditionTarget = endConditionType === 'total_matches'
-      ? M
-      : viewModel.clampTarget(this.data.endConditionTarget, this.data.endConditionTargetOptions);
+    const endConditionType = submittedSnapshot
+      ? viewModel.normalizeEndConditionType(submittedSnapshot.endConditionType)
+      : (this.data.showSquadEndCondition
+        ? viewModel.normalizeEndConditionType(this.data.endConditionType)
+        : 'total_matches');
+    const endConditionTarget = submittedSnapshot
+      ? Math.max(1, Number(submittedSnapshot.endConditionTarget) || M)
+      : (endConditionType === 'total_matches'
+        ? M
+        : viewModel.clampTarget(this.data.endConditionTarget, this.data.endConditionTargetOptions));
 
     const actionKey = `settings:updateSettings:${this.data.tournamentId}`;
-    const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'update_settings');
+    const clientRequestId = clientRequest.resolveClientRequestId(
+      options.clientRequestId || (submittedSnapshot && submittedSnapshot.clientRequestId),
+      'update_settings'
+    );
+    const payload = submittedSnapshot
+      ? {
+        ...submittedSnapshot,
+        ...(submittedSnapshot.water ? { water: { ...submittedSnapshot.water } } : {}),
+        clientRequestId
+      }
+      : {
+        tournamentId: this.data.tournamentId,
+        name,
+        totalMatches: M,
+        courts: C,
+        pointsPerGame: Number(this.data.pointsPerGame) || 21,
+        endConditionType,
+        endConditionTarget,
+        clientRequestId
+      };
+    if (!submittedSnapshot && this.data.showWaterSettings && this.data.mode === flow.MODE_MULTI_ROTATE) {
+      payload.water = {
+        enabled: this.data.waterEnabled === true,
+        defaultUnitsPerLoser: viewModel.normalizeWaterDefaultUnits(this.data.waterDefaultUnitsPerLoser)
+      };
+    }
     if (actionGuard.isBusy(actionKey)) return;
     return actionGuard.runWithCriticalPageBusy(this, 'settingsBusy', actionKey, async () => {
       wx.showLoading({ title: '保存中...' });
       try {
-        cloud.assertWriteResult(await cloud.call('updateSettings', {
-          tournamentId: this.data.tournamentId,
-          name,
-          totalMatches: M,
-          courts: C,
-          pointsPerGame: Number(this.data.pointsPerGame) || 21,
-          endConditionType,
-          endConditionTarget,
-          clientRequestId
-        }), '保存失败');
+        cloud.assertWriteResult(await cloud.call('updateSettings', payload), '保存失败');
         await this.fetchTournament(this.data.tournamentId);
         const readyToStart = !!this.data.checkStartReady;
         wx.hideLoading();
@@ -315,7 +353,10 @@ module.exports = {
       } catch (e) {
         wx.hideLoading();
         await this.fetchTournament(this.data.tournamentId);
-        this.setLastFailedAction('修改比赛', () => this.saveSettings({ clientRequestId }), { actionKey });
+        this.setLastFailedAction('修改比赛', () => this.saveSettings({
+          clientRequestId,
+          submissionSnapshot: payload
+        }), { actionKey });
         this.handleWriteError(e, '保存失败', () => this.fetchTournament(this.data.tournamentId));
       }
     });

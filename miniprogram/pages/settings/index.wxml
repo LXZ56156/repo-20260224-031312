@@ -127,6 +127,23 @@
       </view>
     </view>
 
+    <view class="form-item" wx:if="{{showWaterSettings}}">
+      <view class="form-label">打水记账</view>
+      <view class="form-field water-setting-field">
+        <view class="water-setting-copy">
+          <view class="muted small">每局默认 {{waterDefaultUnitsPerLoser}} 瓶，录分时可选 0 / 1 / 2 瓶</view>
+          <view class="muted small">独立趣味账目，不影响正式排名</view>
+        </view>
+        <switch
+          class="water-setting-switch"
+          checked="{{waterEnabled}}"
+          bindchange="onWaterEnabledChange"
+          disabled="{{!(isAdmin && tournament.status==='draft' && canConfigureSettings)}}"
+          color="#18B368"
+        />
+      </view>
+    </view>
+
     <view class="form-item" wx:if="{{showSquadEndCondition}}">
       <view class="form-label">结束条件</view>
       <view class="form-field">

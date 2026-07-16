@@ -44,6 +44,24 @@ function normalizeEndConditionType(type) {
   return scheduleContract.normalizeEndConditionType(type);
 }
 
+function normalizeWaterSettings(mode, water) {
+  const normalizedMode = String(mode || '').trim().toLowerCase();
+  const source = water && typeof water === 'object' && !Array.isArray(water) ? water : {};
+  const rawUnits = source.defaultUnitsPerLoser;
+  let units = rawUnits;
+  if (typeof rawUnits === 'string') {
+    const normalizedUnits = rawUnits.trim();
+    units = /^[012]$/.test(normalizedUnits) ? Number(normalizedUnits) : null;
+  } else if (typeof rawUnits !== 'number') {
+    units = null;
+  }
+  const validUnits = Number.isInteger(units) && (units === 0 || units === 1 || units === 2);
+  if (normalizedMode !== 'multi_rotate' || source.enabled !== true || !validUnits) {
+    return { enabled: false, defaultUnitsPerLoser: 1 };
+  }
+  return { enabled: true, defaultUnitsPerLoser: units };
+}
+
 function countGender(players) {
   let maleCount = 0;
   let femaleCount = 0;
@@ -164,6 +182,7 @@ module.exports = {
   normalizeTournamentName,
   normalizePoints,
   normalizeEndConditionType,
+  normalizeWaterSettings,
   deriveEffectiveScheduledMatches,
   countGender,
   validateSettings

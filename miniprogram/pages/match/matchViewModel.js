@@ -1,9 +1,15 @@
 const perm = require('../../permission/permission');
 const { normalizeTournament, safePlayerName } = require('../../core/normalize');
 const modeHelper = require('../../core/mode');
+const waterLedger = require('../../core/waterLedger');
 
 const SCORE_MAX = 60;
 const DEFAULT_POINTS_PER_GAME = 21;
+const WATER_UNIT_OPTIONS = Object.freeze([
+  Object.freeze({ value: 0, label: '0 瓶' }),
+  Object.freeze({ value: 1, label: '1 瓶' }),
+  Object.freeze({ value: 2, label: '2 瓶' })
+]);
 const QUICK_SCORE_PRESETS = Object.freeze({
   11: Object.freeze([
     Object.freeze({ label: '11:9', a: 11, b: 9 }),
@@ -150,12 +156,18 @@ function buildInitialData() {
     lockBusy: false,
     submitBusy: false,
     matchStatusText: '待录分',
-    pointsPerGame: DEFAULT_POINTS_PER_GAME
+    pointsPerGame: DEFAULT_POINTS_PER_GAME,
+    waterEnabled: false,
+    showWaterControl: false,
+    waterUnitsPerLoser: 1,
+    waterUnitsIndex: 1,
+    waterUnitOptions: WATER_UNIT_OPTIONS.map((item) => ({ ...item }))
   };
 }
 
 function buildTournamentViewState(tournament, options = {}) {
   if (!tournament) return null;
+  const rawWaterConfig = waterLedger.normalizeWaterConfig(tournament.mode, tournament.rules);
   let nt = normalizeTournament(tournament);
   const tournamentName = modeHelper.getTournamentDisplayName(nt, '未命名赛事');
   if (tournamentName !== String(nt.name || '').trim()) {
@@ -206,6 +218,10 @@ function buildTournamentViewState(tournament, options = {}) {
         canEdit: false,
         lockActionText: '开始录分',
         canUseScoreLock: false,
+        waterEnabled: rawWaterConfig.enabled,
+        showWaterControl: false,
+        waterUnitsPerLoser: rawWaterConfig.defaultUnitsPerLoser,
+        waterUnitsIndex: rawWaterConfig.defaultUnitsPerLoser,
         pair1Text,
         pair2Text
       }
@@ -261,6 +277,17 @@ function buildTournamentViewState(tournament, options = {}) {
   const showDraftPreview = !finished && !canceled && !canEdit && userCanScore && hasDraft;
   const displayScoreA = (canEdit || finished || canceled || hasServerScore || showDraftPreview) ? String(scoreA) : '-';
   const displayScoreB = (canEdit || finished || canceled || hasServerScore || showDraftPreview) ? String(scoreB) : '-';
+  const draftWaterUnits = waterLedger.normalizeUnitsPerLoser(draft && draft.waterUnitsPerLoser);
+  const matchWaterUnits = waterLedger.normalizeUnitsPerLoser(match && match.water && match.water.unitsPerLoser);
+  let waterUnitsPerLoser = rawWaterConfig.defaultUnitsPerLoser;
+  if (rawWaterConfig.enabled && canEdit && draftWaterUnits !== null) {
+    waterUnitsPerLoser = draftWaterUnits;
+  } else if (rawWaterConfig.enabled && finished && matchWaterUnits !== null) {
+    waterUnitsPerLoser = matchWaterUnits;
+  } else if (rawWaterConfig.enabled && draftWaterUnits !== null) {
+    waterUnitsPerLoser = draftWaterUnits;
+  }
+  const showWaterControl = rawWaterConfig.enabled && canEdit;
 
   return {
     tournament: nt,
@@ -288,13 +315,18 @@ function buildTournamentViewState(tournament, options = {}) {
       displayScoreB,
       pair1Text,
       pair2Text,
-      canUndo: canEdit ? undoSize > 0 : false
+      canUndo: canEdit ? undoSize > 0 : false,
+      waterEnabled: rawWaterConfig.enabled,
+      showWaterControl,
+      waterUnitsPerLoser,
+      waterUnitsIndex: waterUnitsPerLoser
     }
   };
 }
 
 module.exports = {
   SCORE_MAX,
+  WATER_UNIT_OPTIONS,
   buildInitialData,
   buildQuickScoreOptions,
   clampScore,

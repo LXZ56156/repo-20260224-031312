@@ -134,7 +134,7 @@ test('settings saveSettings retry reuses the same clientRequestId', async () => 
   const originalBuildTournamentUrl = nav.buildTournamentUrl;
 
   const wxBox = createWxStub();
-  const requestIds = [];
+  const submittedPayloads = [];
   let callCount = 0;
   let retryFn = null;
 
@@ -147,7 +147,7 @@ test('settings saveSettings retry reuses the same clientRequestId', async () => 
 
   try {
     cloud.call = async (_name, payload) => {
-      requestIds.push(payload.clientRequestId);
+      submittedPayloads.push(JSON.parse(JSON.stringify(payload)));
       callCount += 1;
       if (callCount === 1) throw new Error('network timeout');
       return { ok: true, version: 2 };
@@ -161,6 +161,8 @@ test('settings saveSettings retry reuses the same clientRequestId', async () => 
       isAdmin: true,
       tournament: {
         status: 'draft',
+        mode: 'multi_rotate',
+        presetKey: 'custom',
         players: [
           { id: 'u1', name: 'A' },
           { id: 'u2', name: 'B' },
@@ -177,11 +179,17 @@ test('settings saveSettings retry reuses the same clientRequestId', async () => 
       endConditionTarget: 1,
       endConditionTargetOptions: [1],
       showSquadEndCondition: false,
+      showWaterSettings: true,
+      waterEnabled: true,
+      waterDefaultUnitsPerLoser: 2,
       mode: 'multi_rotate',
       allowOpenTeam: false,
       canConfigureSettings: true
     });
-    ctx.fetchTournament = async () => {};
+    ctx.fetchTournament = async () => {
+      ctx.data.waterEnabled = false;
+      ctx.data.waterDefaultUnitsPerLoser = 1;
+    };
     ctx.clearLastFailedAction = () => {};
     ctx.setLastFailedAction = (_text, fn) => {
       retryFn = fn;
@@ -192,9 +200,14 @@ test('settings saveSettings retry reuses the same clientRequestId', async () => 
     assert.equal(typeof retryFn, 'function');
     await retryFn();
 
-    assert.equal(requestIds.length, 2);
-    assert.equal(requestIds[0], requestIds[1]);
-    assert.match(String(requestIds[0] || ''), /^update_settings_/);
+    assert.equal(submittedPayloads.length, 2);
+    assert.equal(submittedPayloads[0].clientRequestId, submittedPayloads[1].clientRequestId);
+    assert.match(String(submittedPayloads[0].clientRequestId || ''), /^update_settings_/);
+    assert.deepEqual(submittedPayloads[0].water, {
+      enabled: true,
+      defaultUnitsPerLoser: 2
+    });
+    assert.deepEqual(submittedPayloads[1].water, submittedPayloads[0].water);
   } finally {
     global.wx = originalWx;
     global.setTimeout = originalSetTimeout;
