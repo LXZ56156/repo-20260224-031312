@@ -1,100 +1,155 @@
 # 工作线 01 数据基线执行报告（2026-07-16）
 
-> 结论：`blocked_source_credentials`。分析工具与口径已落地，但当前独立 worktree 没有 We 分析凭据、缓存或赛事全量只读导出，不能生成当前线上数值。本文将“当前事实”“历史文档声称”“推断/建议”严格分开。
+> 结论：`partial_source_coverage`。已取得并双遍校验当前 `tournaments` 客户端可见快照，完成 90/180 天赛事漏斗、留存 proxy、周有效完赛和组合 Pareto；We 分析仍因当前独立 worktree 缺少本地凭据而不可用。数据库结果可用于方向性判断，但不能冒充管理员全量快照。
 
-## 1. 当前事实
+## 1. 数据范围与来源
 
-- 预期最近完整日：`2026-07-15`；预期窗口：最近 90 天与 180 天。
-- 本次实际 We 分析覆盖：不可用（0 个可审计缓存文件）。
-- 本次实际赛事数据库覆盖：不可用（0 条全量导出记录）。
-- worktree 内不存在 `.env.local`、`.cache/wechat-access-token.json` 和 `data/we-analysis/`；进程环境也没有 We 分析或 CloudBase 凭据变量。
-- 已用当前 worktree 启动微信开发者工具 CLI，会话绑定到本目录且 CLI 端口 `39421` 就绪；自动化端口 `39420` 在 60 秒内未就绪，因此没有执行数据库查询。
-- 仓库没有全量云数据库只读导出器。`getMyPerformanceStats` 只覆盖当前用户的 finished 赛事，不能替代全量审计。
-- 未读取主工作区配置，未请求用户在聊天中提供 secret，未执行任何远程写操作。
+### 当前赛事数据库事实
 
-因此，下列当前指标均为“未计算”，不能写成 0：
+- 截止日：`2026-07-15`；90 天窗口：`2026-04-17..2026-07-15`；180 天窗口：`2026-01-17..2026-07-15`。
+- DevTools session 已通过 project path、进程身份和 runtime binding 校验，确认绑定 `D:\projects(WIN)\badminton-miniapp-worktrees\data-baseline`。
+- 使用 AppService 的 `wx.cloud.database()` 客户端只读上下文，以 `_id` 升序 keyset、每页 20 条导出 `tournaments`。
+- 导出前、后 count 均为 1070；连续两遍均为 1070 条，规范化文档 SHA-256 均为 `e3bb1aed23e3d00a8545b3baea04550a7b1de04420b85ccdf180a3532605b65b`。
+- 可见记录的 `createdAt` 范围为 `2026-02-10T15:32:35.621Z..2026-07-16T10:14:33.698Z`；截止日后 5 条已排除。
+- 90 天纳入 944 条；180 天纳入 1065 条。输入、去重、窗口和 status 分类均守恒。
+- `client_request_logs` 在同一客户端上下文连续两遍均返回 0 条，但 1012 条赛事带 `clientRequestId` 或 `lastClientRequestId`。因此本报告将该集合标记为“管理员可见性未验证”，不把 0 解释为服务端空集合。
 
-- 4 周移动平均周有效完赛赛事数；
-- 主理人 28 日复办率；
-- 参与者 28 日再次加入率与转主理人率；
-- 创建到开赛、开赛到首分、首分到完赛转化与耗时；
-- 80% / 90% / 95% 赛事组合 Pareto；
-- We 分析访问、页面、来源、分享和留存当前基线。
+客户端查询权限不等于云数据库管理员权限；仓库没有可复用的管理员全量 exporter，也没有安全凭据可核对控制台总数。因此本文使用“客户端可见快照”，不使用“数据库全量”表述。
 
-## 2. 已完成的可复跑能力
+### 当前 We 分析事实
 
-新增 `scripts/analysis/data-baseline-core.js` 与 `scripts/audit-product-data.js`：
+- 预期最近完整日：`2026-07-15`，预期覆盖最近 90/180 天。
+- 当前 worktree 无 `.env.local`、token 缓存和 `WX_APPID/WX_APPSECRET` 进程凭据。
+- 本次 We 分析 API 请求数为 0，缓存文件数为 0；所有当前 We 指标保持 `null/unavailable`，不填成 0。
+- 未读取主工作区配置，也未要求在聊天中提供 secret。
 
-- 读取当前 worktree 内的本地 JSON / JSON Lines 赛事导出，不连接云端、不调用写 API；
-- 按 `_id` 去重并保留最新快照，显式报告坏时间、重复行、窗口外记录和守恒结果；
-- 保留未知 mode、缺失人数/场地/场数和缺失 scheduler 元数据，不静默回填；
-- 建立 `created → roster_ready → started → first_score → half_scores → all_scores → effective_completed → share_or_repeat_lower_bound` 单调漏斗；
-- 固定严格“有效完赛”口径：已开赛、全部实际计划场均有合法非平局比分、`status=finished`、`rankings` 非空；
-- 将 target-wins 等规则导致的 `canceled` finished 单列，不与普通数据损坏混在一起；
-- 计算窗口内 first-observed 28 日主理人复办、参与者再次出现和参与者转主理人 proxy，排除管理员导入 guest；
-- 按 `mode × playersCount × courts × totalMatches × presetKey × templateKey × engine` 输出数量、有效完成率、可观测首分到完赛耗时和累计覆盖率；
-- 生成包含零周的周有效完赛序列及 4 周移动平均；
-- 日/周窗口统一按 `Asia/Shanghai` 自然日，首尾不完整周标记 `isPartial` 且不进入 4 个完整周的移动平均；
-- 公开输出只包含聚合数，维度值限制为受控标识符，并以源数据身份/资料 token 扫描作为写出前 fail-closed 检查；
-- 输入和输出路径均限制在当前 worktree 内。
+## 2. 90 天赛事漏斗
 
-待取得安全本地数据后运行：
+| 阶段 | 赛事数 | 相对上一阶段转化 |
+|---|---:|---:|
+| created | 944 | 100.0% |
+| roster_ready | 529 | 56.0% |
+| started | 482 | 91.1% |
+| first_score | 251 | 52.1% |
+| half_scores | 213 | 84.9% |
+| all_scores | 165 | 77.5% |
+| effective_completed | 165 | 100.0% |
+| share_or_repeat_lower_bound | 17 | 10.3% |
+
+严格有效完赛为 165 场，占创建赛事 17.5%，占已开赛赛事 34.2%。两个最大可审计绝对损失为：
+
+- 创建到名单就绪：减少 415 场；
+- 开赛到首个合法比分：减少 231 场。
+
+`share_or_repeat_lower_bound` 主要来自可观察 clone 关联。快照内没有 `sharedAt` / 正数 `shareCount` 证据，`shareActivity*` 又只是动态消息状态，因此 10.3% 只能视为复办/分享可观察下界，不能解释为真实分享率。
+
+## 3. 留存、复办与耗时 proxy
+
+90 天窗口：
+
+- 主理人 28 日复办：83 / 226，36.7%；
+- 参与者 28 日再次出现：44 / 135，32.6%；
+- 参与者 28 日转主理人：7 / 135，5.2%；
+- 最近完整周 `2026-07-06` 的 4 周移动平均周有效完赛赛事数：12.25；
+- 首分到有效完赛中位耗时：1.17 小时，样本 165。
+
+180 天交叉校验：
+
+- 主理人 28 日复办：92 / 250，36.8%；
+- 参与者 28 日再次出现：47 / 142，33.1%；
+- 参与者 28 日转主理人：8 / 142，5.6%；
+- 创建到有效完赛：190 / 1065，17.8%；开赛到有效完赛：190 / 547，34.7%；
+- 首分到有效完赛中位耗时：1.13 小时；182 场有完整 scoredAt，另 8 场无法恢复可靠完赛时间。
+
+这些用户级指标使用最终赛事快照和赛事 `createdAt` 近似参与时点；无 `joinedAt`、认领/移除历史和删除记录，属于 survivor-based proxy，不是精确 cohort 事实。
+
+## 4. 赛事组合 Pareto
+
+### 精确七维组合
+
+90 天已开赛 482 场全部可完成核心组合分类，共 145 个精确组合：
+
+- 覆盖 80%：54 个组合 / 387 场；
+- 覆盖 90%：97 个组合 / 434 场；
+- 覆盖 95%：121 个组合 / 458 场。
+
+180 天已开赛 547 场，534 场可完成核心分类，分类率 97.6%，共 182 个精确组合：
+
+- 覆盖 80%：73 个组合 / 438 场；
+- 覆盖 90%：128 个组合 / 493 场；
+- 覆盖 95%：155 个组合 / 520 场。
+
+90 天排名第一的精确组合为：`multi_rotate × 6 人 × 1 场地 × 9 场 × rotation_6 × 6p-1c × template`，48 场，占已开赛 10.0%，严格完成率 47.9%。精确组合高度分散，不能只用少数固定总场数组合覆盖绝大多数真实赛事。
+
+### 聚合到模式 × 人数 × 场地
+
+90 天前四类均为单场地 `multi_rotate`：
+
+| 人数 | 场地 | 已开赛 | 占比 | 严格完成率 |
+|---:|---:|---:|---:|---:|
+| 6 | 1 | 133 | 27.6% | 36.1% |
+| 7 | 1 | 58 | 12.0% | 36.2% |
+| 5 | 1 | 47 | 9.8% | 51.1% |
+| 8 | 1 | 42 | 8.7% | 31.0% |
+
+180 天 mode 分布为：`multi_rotate=516`、`fixed_pair_rr=8`、`squad_doubles=10`、`unknown=13`。因此后续模板工作可优先研究 6/7/5/8 人单场地轮转族，但必须保留总场数和公平性配置的弹性；这只是方向性输入，不代表已批准产品改动。
+
+## 5. 数据质量与结构限制
+
+- 1065 条截止日前赛事中：draft 518、running 357、finished 190；190 条 finished 均满足本报告的严格有效完赛口径。
+- 主表 `startedAt` / `finishedAt` 覆盖均为 0；创建到开赛、开赛到首分耗时无法计算。
+- 180 天内合法比分 2611 场，其中 2586 场有 scoredAt；改分会覆盖 scoredAt，仍不能证明首次比分时间。
+- 150 条赛事存在计划/物化场数差异；其中 draft 配置和未生成赛程会自然贡献差异，不能一概解释为故障。
+- reset 会清 rounds/rankings/scheduler 元数据，delete 会物理删除；当前快照存在历史丢失和 survivor bias。
+- 旧数据缺少 mode/scheduler 元数据；started 赛事七维核心分类率仍达到 97.6%，超过 95% 退出门槛。
+- `shareActivity*` 不是实际分享行为；不得与 We 平台分享入口或会话来源混为同一指标。
+
+## 6. 下游结论
+
+### 当前事实支持
+
+- 工作线 02 可以把 6/7/5/8 人单场地 `multi_rotate` 作为模板研究优先级，但精确组合分散，不能只实现一个固定场数模板。
+- 名单就绪和开赛后首分是当前两个最大可审计掉点；由于快照缺少事件时间和失败原因，不能直接归因于 UI。
+- 工作线 04 应优先持久化 start/join/first-score/finish/share/clone 的幂等时间戳和送达证据。
+
+### 仍不可做的结论
+
+- 当前没有 We 访问、页面、来源、分享和留存数据，不能排序增长入口或声称增长功能效果。
+- 未核对管理员集合总数，不能把客户端可见 1070 条称为绝对全量。
+- 当前证据不授权页面结构、CTA、导航或用户流程调整；任何用户可见改动仍需单独批准和实图验收。
+
+## 7. 可复跑命令
+
+在已由仓库启动器绑定当前 worktree 的 DevTools session 中：
 
 ```powershell
+& .\scripts\analysis\data-baseline-export-readonly.ps1 `
+  -Collection tournaments `
+  -OutputPath data\we-analysis\raw-db\tournaments-client-visible-2026-07-16.json
+
 node scripts/audit-product-data.js `
-  --tournaments data/we-analysis/tournaments-export.json `
+  --tournaments data/we-analysis/raw-db/tournaments-client-visible-2026-07-16.json `
+  --cutoff 2026-07-15 `
+  --window-days 90 `
+  --output-dir data/we-analysis/data-baseline/90d
+
+node scripts/audit-product-data.js `
+  --tournaments data/we-analysis/raw-db/tournaments-client-visible-2026-07-16.json `
   --cutoff 2026-07-15 `
   --window-days 180 `
-  --output-dir data/we-analysis/data-baseline
+  --output-dir data/we-analysis/data-baseline/180d
 ```
 
-原始导出与本地分析目录继续由 `.gitignore` 隔离；只允许把人工审查后的脱敏聚合结果复制为 `01-*` 证据。
+原始导出和本地分析目录均由 `.gitignore` 隔离。公开证据只复制 allowlist 维度和聚合数，不包含 openid、昵称、头像、手机号、位置、赛事名或原始行。
 
-## 3. 数据库字段能力与硬限制
-
-当前源码静态审计确认：
-
-- `tournaments` 有 `createdAt` / `updatedAt`，但主表不持久化 `startedAt`、`finishedAt`、`joinedAt` 或 `addedAt`。
-- 比分记录在 match 的 `scoredAt`；改分会覆盖该时间，所以只能代理当前最终比分的最后修改时点，不能证明首次完赛时点。
-- `updatedAt` 会被资料同步、改分、重算排名等覆盖，不能代理开赛或完赛时间。
-- `client_request_logs` 可为较新且带 `clientRequestId` 的 create/start/clone/delete 子集提供操作时间，但不含完整赛事配置、join 或 score 历史，必须先披露覆盖率才能用于校正。
-- `shareActivityUpdatedAt` 只可为少量动态消息状态样本提供 finished 时间 proxy；`shareActivity*` 本身不是实际分享行为证据。
-- `resetTournament` 会清空 rounds 和 scheduler 元数据并回到 draft；`deleteTournament` 物理删除赛事。当前集合漏斗存在 reset 丢历史与 survivor bias。
-- `rankings` 在开赛时已非空；产品语义 `finished` 也允许 target-wins 下存在无比分 `canceled` 场，因此两者都不能单独代表严格有效完赛。
-- 主动加入者与 guest 可在最终快照中区分，但认领、移除和 clone 会改写名单；无加入时间时，参与者 28 日指标只能是基于赛事 `createdAt` 的 survivor-based proxy。
-- `templateKey` / `engine` 主要来自 JSON 字符串元数据，旧记录、reset、clone 或其他赛制可合法缺失；缺失不自动等于数据损坏，也不得填成 `custom`。
-
-## 4. 历史文档声称（不可作为当前事实）
-
-`docs/specs/growth-flywheel-optimization.md` 声称历史 We 数据最晚到 `2026-06-13`：
-
-- dailyVisitTrend：2026-02-13 至 2026-06-13（121 天）；
-- dailyRetain / dailySummary / visitDistribution：2026-02-12 至 2026-06-13（122 天）；
-- visitPage：约 30 个采样日；userPortrait：5 个日期；
-- 周数据最晚 2026-06-07，月数据最晚 2026-05。
-
-这些原始缓存和被引用的详细分析报告从未进入 Git，当前 clean worktree 无法复验。历史文档中的 `0.1s share-entry 停留`、`5.7% 新用户次日留存`、`59.2% 会话来源`等只能标注为“历史文档声称”；其中“会话”来源也不能直接解释为单赛事分享转化。更早 v1.0 数据已被 v1.1 明确修正，不再使用。
-
-## 5. 下游结论
-
-### 事实
-
-- 工作线 02 暂时没有可信的高频组合 Pareto，不能据此批量新增排阵模板。
-- 工作线 04 不能靠现有 `growthTracker` 计算用户级 28 日指标：当前通道是 `console.info + wx.reportEvent` best-effort，payload 无用户标识，仓库也没有事件读取器或送达确认。
-- 当前没有证据选择“最大漏斗掉点”，因此不应启动单点 UI 行为优化。
-
-### 推断与建议
-
-- 下一次只读审计应同时分页导出 `tournaments` 与可用的 `client_request_logs`，记录总数、分页上限、快照时间和截断状态。
-- 事件管道后续应优先补可验证的 start/join/score/finish/clone/share 事实及幂等时间戳；这只是工作线 04 的输入建议，本工作线没有修改生产代码。
-- 在拿到当前数据前，历史增长文档仅用于提出假设，不用于排序产品开发优先级。
-
-## 6. 交付与远程操作声明
+## 8. 交付与远程操作声明
 
 - 指标字典：`01-metric-dictionary.json`
 - 数据质量：`01-data-quality-2026-07-16.json`
 - 机器摘要：`01-product-data-summary-2026-07-16.json`
-- Pareto 状态：`01-tournament-combination-pareto-2026-07-16.json`
+- We 分析状态：`01-we-analysis-summary-2026-07-16.json`
+- Pareto：`01-tournament-combination-pareto-2026-07-16.json/.csv`
+- 来源清单：`01-source-manifest-2026-07-16.json`
 - 验证记录：`01-validation-2026-07-16.md`
 
-本次未 push、未创建 PR、未 preview/upload、未发布、未部署云函数、未创建集合、未写真实云数据。
+本次只执行云数据库读取；未执行真实云数据写入、集合创建、云函数部署、preview/upload、正式发布、push、PR 或 merge。

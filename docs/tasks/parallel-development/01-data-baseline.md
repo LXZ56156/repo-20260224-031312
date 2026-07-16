@@ -1,6 +1,6 @@
 # 工作线 01：全量数据基线与产品漏斗复盘
 
-> 状态：`blocked_source_credentials`
+> 状态：`partial_source_coverage`（赛事数据库已刷新；We 分析缺少当前 worktree 本地凭据）
 > 类型：只读线上审计 + 本地脱敏分析产物
 > 统一开发基线：`codex/ui-optimization-v2@743b016`
 > 线上产品基线：`master@5813ffc`
@@ -161,8 +161,10 @@ mode × playersCount × courts × totalMatches × presetKey × templateKey × en
 ## 11. 2026-07-16 执行结果
 
 - 独立 worktree、分支和起始 HEAD 已核对：`codex/roadmap-data-baseline@70845c1`。
-- 当前 worktree 无 `.env.local`、token 缓存、We 分析缓存或赛事全量导出；微信开发者工具 CLI 端口就绪，但自动化端口 `39420` 未就绪，未执行数据库查询。
-- 已新增只读本地分析核心、CLI 与聚焦测试，固定严格有效完赛、单调漏斗、28 日 cohort proxy、组合 Pareto、4 周均线、守恒和隐私 fail-closed 口径。
-- 脱敏报告、指标字典、数据质量、机器摘要、Pareto unavailable 状态与验证记录位于 `docs/tasks/parallel-development/evidence/01-*`。
-- 当前 90/180 天线上数据和核心指标均未计算；历史 2026-06-13 文档结论未冒充当前事实。工作线 02 的高频模板实施与漏斗 UI 选择继续等待当前 Pareto / 最大掉点。
+- DevTools 已通过 project path、进程身份和 runtime binding 绑定当前 worktree；使用只读客户端上下文双遍导出 1070 条可见赛事，前后 count 与规范化 SHA-256 一致，未写云数据。
+- 截止 `2026-07-15`：90 天纳入 944 条赛事、482 条已开赛、165 条严格有效完赛；180 天纳入 1065 条、547 条已开赛、190 条严格有效完赛。
+- 已计算单调漏斗、28 日 cohort proxy、组合 Pareto、4 周均线、耗时覆盖、守恒和数据质量；180 天 started 核心组合分类率为 97.6%。
+- 当前客户端上下文的 `client_request_logs` 返回 0，但 1012 条赛事带 request ID；管理员集合可见性未验证，因此不把 0 当服务端空集合，也不把赛事快照称为管理员全量。
+- 当前 worktree 仍无 `.env.local`、token 缓存或 We 分析缓存，未执行 We API 请求；历史 2026-06-13 文档结论未冒充当前事实。
+- 脱敏报告、指标字典、数据质量、机器摘要、We 状态、Pareto JSON/CSV、来源清单与验证记录位于 `docs/tasks/parallel-development/evidence/01-*`。
 - 本次用户明确授权当前任务分支创建本地提交；该授权只覆盖 local commit，不覆盖 push、PR、preview/upload、发布、部署或真实数据写入。

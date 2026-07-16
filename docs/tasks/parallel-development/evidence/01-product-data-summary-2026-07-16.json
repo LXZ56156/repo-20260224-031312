@@ -1,29 +1,138 @@
 {
-  "schemaVersion": 1,
-  "status": "blocked_source_credentials",
-  "decisionReady": false,
+  "schemaVersion": 2,
+  "status": "partial_source_coverage",
+  "decisionReady": {
+    "overall": false,
+    "tournamentFunnel": true,
+    "schedulerTemplatePrioritization": "directional_client_visible_snapshot",
+    "weAnalysis": false
+  },
   "intendedCutoffDate": "2026-07-15",
   "actualCoverage": {
     "weAnalysis": null,
-    "tournaments": null
+    "tournaments": {
+      "scope": "wx.cloud.database_client_read_context",
+      "snapshotRecords": 1070,
+      "observedCreatedAtStart": "2026-02-10T15:32:35.621Z",
+      "observedCreatedAtEnd": "2026-07-16T10:14:33.698Z",
+      "recordsThroughCutoff": 1065,
+      "administratorCompletenessProven": false
+    }
   },
   "metrics": {
-    "weeklyEffectiveCompletionsMovingAverage4w": null,
-    "organizerRepeat28d": null,
-    "participantRejoin28d": null,
-    "participantToOrganizer28d": null,
-    "funnel": null,
-    "combinationPareto": null
+    "window90": {
+      "startDate": "2026-04-17",
+      "endDate": "2026-07-15",
+      "funnel": [
+        { "key": "created", "count": 944, "conversionFromPrevious": 1 },
+        { "key": "roster_ready", "count": 529, "conversionFromPrevious": 0.5603813559322034 },
+        { "key": "started", "count": 482, "conversionFromPrevious": 0.9111531190926276 },
+        { "key": "first_score", "count": 251, "conversionFromPrevious": 0.520746887966805 },
+        { "key": "half_scores", "count": 213, "conversionFromPrevious": 0.848605577689243 },
+        { "key": "all_scores", "count": 165, "conversionFromPrevious": 0.7746478873239436 },
+        { "key": "effective_completed", "count": 165, "conversionFromPrevious": 1 },
+        { "key": "share_or_repeat_lower_bound", "count": 17, "conversionFromPrevious": 0.10303030303030303 }
+      ],
+      "effectiveCompletionFromCreatedRate": 0.17478813559322035,
+      "effectiveCompletionFromStartedRate": 0.34232365145228216,
+      "organizerRepeat28d": { "eligible": 226, "converted": 83, "rate": 0.3672566371681416 },
+      "participantRejoin28d": { "eligible": 135, "converted": 44, "rate": 0.32592592592592595 },
+      "participantToOrganizer28d": { "eligible": 135, "converted": 7, "rate": 0.05185185185185185 },
+      "latestCompleteWeeklyEffectiveCompletionsMa4": {
+        "weekStart": "2026-07-06",
+        "value": 12.25
+      },
+      "medianFirstScoreToCompletionHours": 1.1660952777777778,
+      "createdToStartDuration": null,
+      "startToFirstScoreDuration": null,
+      "pareto": {
+        "startedPopulation": 482,
+        "classifiableRate": 1,
+        "distinctExactCombinations": 145,
+        "thresholds": {
+          "0.8": { "rowCount": 54, "coveredCount": 387, "coverage": 0.8029045643153527 },
+          "0.9": { "rowCount": 97, "coveredCount": 434, "coverage": 0.9004149377593361 },
+          "0.95": { "rowCount": 121, "coveredCount": 458, "coverage": 0.950207468879668 }
+        }
+      }
+    },
+    "window180": {
+      "startDate": "2026-01-17",
+      "endDate": "2026-07-15",
+      "observedFirstTournamentDate": "2026-02-10",
+      "funnel": [
+        { "key": "created", "count": 1065, "conversionFromPrevious": 1 },
+        { "key": "roster_ready", "count": 600, "conversionFromPrevious": 0.5633802816901409 },
+        { "key": "started", "count": 547, "conversionFromPrevious": 0.9116666666666666 },
+        { "key": "first_score", "count": 279, "conversionFromPrevious": 0.5100548446069469 },
+        { "key": "half_scores", "count": 240, "conversionFromPrevious": 0.8602150537634409 },
+        { "key": "all_scores", "count": 190, "conversionFromPrevious": 0.7916666666666666 },
+        { "key": "effective_completed", "count": 190, "conversionFromPrevious": 1 },
+        { "key": "share_or_repeat_lower_bound", "count": 20, "conversionFromPrevious": 0.10526315789473684 }
+      ],
+      "effectiveCompletionFromCreatedRate": 0.1784037558685446,
+      "effectiveCompletionFromStartedRate": 0.3473491773308958,
+      "organizerRepeat28d": { "eligible": 250, "converted": 92, "rate": 0.368 },
+      "participantRejoin28d": { "eligible": 142, "converted": 47, "rate": 0.33098591549295775 },
+      "participantToOrganizer28d": { "eligible": 142, "converted": 8, "rate": 0.056338028169014086 },
+      "medianFirstScoreToCompletionHours": 1.1338816666666667,
+      "pareto": {
+        "startedPopulation": 547,
+        "classifiableRate": 0.9762340036563071,
+        "distinctExactCombinations": 182,
+        "thresholds": {
+          "0.8": { "rowCount": 73, "coveredCount": 438, "coverage": 0.8007312614259597 },
+          "0.9": { "rowCount": 128, "coveredCount": 493, "coverage": 0.9012797074954296 },
+          "0.95": { "rowCount": 155, "coveredCount": 520, "coverage": 0.9506398537477148 }
+        },
+        "modeCounts": {
+          "multi_rotate": 516,
+          "fixed_pair_rr": 8,
+          "squad_doubles": 10,
+          "unknown": 13
+        }
+      }
+    },
+    "weAnalysis": null
+  },
+  "derivedFindings": {
+    "largestAuditableFunnelLosses90d": [
+      {
+        "stage": "created_to_roster_ready",
+        "lost": 415,
+        "conversion": 0.5603813559322034
+      },
+      {
+        "stage": "started_to_first_score",
+        "lost": 231,
+        "conversion": 0.520746887966805
+      }
+    ],
+    "shareOrRepeatCaveat": "10.3% is a lower bound dominated by observable clone linkage; no explicit sharedAt/shareCount records were observed and shareActivity is not share proof",
+    "topExactCombination90d": {
+      "mode": "multi_rotate",
+      "playersCount": 6,
+      "courts": 1,
+      "totalMatches": 9,
+      "presetKey": "rotation_6",
+      "templateKey": "6p-1c",
+      "engine": "template",
+      "count": 48,
+      "shareOfStarted": 0.0995850622406639,
+      "effectiveCompletionRate": 0.4791666666666667
+    },
+    "topModePlayersCourts90d": [
+      { "mode": "multi_rotate", "playersCount": 6, "courts": 1, "count": 133, "shareOfStarted": 0.27593360995850624, "effectiveCompletionRate": 0.3609022556390977 },
+      { "mode": "multi_rotate", "playersCount": 7, "courts": 1, "count": 58, "shareOfStarted": 0.12033195020746888, "effectiveCompletionRate": 0.3620689655172414 },
+      { "mode": "multi_rotate", "playersCount": 5, "courts": 1, "count": 47, "shareOfStarted": 0.0975103734439834, "effectiveCompletionRate": 0.5106382978723404 },
+      { "mode": "multi_rotate", "playersCount": 8, "courts": 1, "count": 42, "shareOfStarted": 0.08713692946058091, "effectiveCompletionRate": 0.30952380952380953 }
+    ]
   },
   "downstream": {
-    "schedulerTemplateImplementation": "wait_for_current_pareto",
-    "productEventDictionary": "use_schema_gaps_as_inputs_but_do_not_claim_current_rates",
-    "funnelUiOptimization": "wait_for_largest_current_dropoff"
-  },
-  "historicalEvidence": {
-    "latestDocumentClaimedDate": "2026-06-13",
-    "rawEvidenceAvailable": false,
-    "usableAsCurrentFact": false
+    "schedulerTemplateImplementation": "prioritize 6/7/5/8-player one-court multi_rotate families, but retain configuration flexibility because exact combinations are highly fragmented",
+    "productEventDictionary": "persist start/join/first-score/finish/share/clone timestamps and delivery evidence",
+    "funnelUiOptimization": "investigate roster readiness and started-to-first-score before changing user-visible behavior; current snapshot does not establish causality",
+    "weGrowthPrioritization": "wait_for_current_we_analysis"
   },
   "privacy": {
     "containsActorIdentifiers": false,

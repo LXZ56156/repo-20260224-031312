@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "status": "source_unavailable",
+  "intendedCutoffDate": "2026-07-15",
+  "requestedWindows": {
+    "90d": { "startDate": "2026-04-17", "endDate": "2026-07-15" },
+    "180d": { "startDate": "2026-01-17", "endDate": "2026-07-15" }
+  },
+  "sources": {
+    "dailySummary": null,
+    "dailyVisitTrend": null,
+    "visitPage": null,
+    "visitDistribution": null,
+    "userPortrait": null,
+    "dailyRetain": null,
+    "weeklyRetain": null,
+    "monthlyRetain": null
+  },
+  "metrics": {
+    "visitUv": null,
+    "visitPv": null,
+    "newUserUvRatio": null,
+    "sessions": null,
+    "stayTime": null,
+    "visitDepth": null,
+    "pageVisits": null,
+    "accessSources": null,
+    "sharing": null,
+    "retentionD1W1W4": null
+  },
+  "blockingReason": "The independent worktree has no .env.local, token cache or WX_APPID/WX_APPSECRET process credentials. No API request was made and unavailable values are not represented as zero.",
+  "historicalDocumentLatestDate": "2026-06-13",
+  "historicalRawEvidenceAvailable": false,
+  "containsSecrets": false,
+  "remoteWritesExecuted": false
+}

@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "cutoffDate": "2026-07-15",
+  "sources": {
+    "weAnalysis": {
+      "status": "unavailable_missing_local_credentials",
+      "fileCount": 0
+    },
+    "tournaments": {
+      "status": "stable_client_visible_snapshot",
+      "retrievedAtUtc": "2026-07-16T10:20:11.9901078Z",
+      "records": 1070,
+      "pagination": "_id_ascending_keyset_20",
+      "passes": 2,
+      "canonicalDocumentsSha256": "e3bb1aed23e3d00a8545b3baea04550a7b1de04420b85ccdf180a3532605b65b",
+      "remoteWritesExecuted": false
+    },
+    "clientRequestLogs": {
+      "status": "client_visible_zero_admin_unverified",
+      "records": 0,
+      "passes": 2,
+      "canonicalDocumentsSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  },
+  "localAggregateArtifacts": {
+    "90d": {
+      "summarySha256": "ad403d030ea6a5ee040e1ac5b851e215401ca0e3ef4168f44f9b6877ef5b52c4",
+      "paretoJsonSha256": "b46509d7791bc466a978c2cf8da22543cdf0dc467661544c9bc87a93fee039f5",
+      "paretoCsvSha256": "07294a661d85d1b0deff0a6c9e2ec1e5b336ac944f7fdf1b6205264b399befff",
+      "dataQualitySha256": "18d126e6d42706044618636fffb13498927dab93acaafcb66db02918cc06a812"
+    },
+    "180d": {
+      "summarySha256": "22b9eef80f1ac2805b9546e87ee967863653390c439c477ee8150536bbc3ce49",
+      "paretoJsonSha256": "331ae2e2e6b65e6242fd042d90d405f7d3251436a0b7ae85af1e686fbc07466d",
+      "paretoCsvSha256": "4a8744f84e34b4287e988e12b57d25951dbf2309a2cbdfb41564dad74c6c6db7",
+      "dataQualitySha256": "df2a4fdda9263e40939412f885ac7dfd8cf499fd18a2e52dfd100eb3053bdb9d"
+    }
+  },
+  "privacy": {
+    "rawFilesTracked": false,
+    "containsActorIdentifiers": false,
+    "containsProfileFields": false,
+    "containsSecrets": false
+  }
+}

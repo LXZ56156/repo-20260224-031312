@@ -1,7 +1,11 @@
 {
   "schemaVersion": 1,
-  "status": "defined_unmeasured",
+  "status": "partially_measured",
   "intendedCutoffDate": "2026-07-15",
+  "measurementStatus": {
+    "tournaments": "measured_from_client_visible_snapshot",
+    "weAnalysis": "defined_but_unmeasured_missing_local_credentials"
+  },
   "metrics": [
     {
       "key": "effective_completed",
@@ -71,6 +75,71 @@
       "deduplication": "tournament _id; missing and unknown are explicit categories",
       "source": "tournaments + schedulerMetaJson/fairnessJson",
       "thresholds": [0.8, 0.9, 0.95]
+    },
+    {
+      "key": "we_daily_visit_uv",
+      "denominator": "successful dailyVisitTrend response day",
+      "numerator": "platform field visit_uv for that natural day",
+      "timeWindow": "Asia/Shanghai daily rows, deduplicated by ref_date",
+      "deduplication": "type + ref_date; overlapping fetch batches must not be summed",
+      "source": "We analysis dailyVisitTrend",
+      "measurementStatus": "unmeasured"
+    },
+    {
+      "key": "we_daily_visit_pv",
+      "denominator": "successful dailyVisitTrend response day",
+      "numerator": "platform field visit_pv for that natural day",
+      "timeWindow": "Asia/Shanghai daily rows, deduplicated by ref_date",
+      "deduplication": "type + ref_date",
+      "source": "We analysis dailyVisitTrend",
+      "measurementStatus": "unmeasured"
+    },
+    {
+      "key": "we_new_user_uv_ratio",
+      "denominator": "visit_uv on a day with a successful dailyVisitTrend response and visit_uv > 0",
+      "numerator": "visit_uv_new on the same day",
+      "timeWindow": "report daily values and explicitly weighted window totals; do not average missing days as zero",
+      "deduplication": "type + ref_date",
+      "source": "We analysis dailyVisitTrend",
+      "measurementStatus": "unmeasured"
+    },
+    {
+      "key": "we_session_quality",
+      "denominator": "successful dailyVisitTrend response day",
+      "numerator": "session_cnt, stay_time_uv, stay_time_session and visit_depth as returned by the platform",
+      "timeWindow": "daily and disclosed complete-day windows only",
+      "deduplication": "type + ref_date",
+      "source": "We analysis dailyVisitTrend",
+      "measurementStatus": "unmeasured"
+    },
+    {
+      "key": "we_page_visit",
+      "denominator": "successful visitPage response days",
+      "numerator": "page_visit_pv and page_visit_uv aggregated by normalized page route",
+      "timeWindow": "daily rows within the disclosed coverage window",
+      "deduplication": "type + ref_date + route; strip query and fragment before public aggregation",
+      "source": "We analysis visitPage",
+      "measurementStatus": "unmeasured"
+    },
+    {
+      "key": "we_access_source_share",
+      "denominator": "sum of access_source_session_cnt values on successful visitDistribution days",
+      "numerator": "session count for the same platform source key",
+      "timeWindow": "complete response days only",
+      "deduplication": "type + ref_date + source key",
+      "source": "We analysis visitDistribution",
+      "measurementStatus": "unmeasured",
+      "limitation": "platform session source is not a single-tournament share conversion"
+    },
+    {
+      "key": "we_retention_d1_w1_w4",
+      "denominator": "platform-provided cohort denominator for the matching new/all-user retention series",
+      "numerator": "platform-provided retained user value for the exact day/week/month offset",
+      "timeWindow": "dailyRetain, weeklyRetain and monthlyRetain rows with their platform ref_date",
+      "deduplication": "endpoint type + ref_date + cohort kind + offset key",
+      "source": "We analysis retention endpoints",
+      "measurementStatus": "unmeasured",
+      "limitation": "unsupported offsets remain unavailable and are never filled with zero"
     }
   ]
 }

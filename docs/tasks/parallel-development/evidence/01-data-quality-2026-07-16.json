@@ -1,38 +1,93 @@
 {
-  "schemaVersion": 1,
-  "status": "source_unavailable",
+  "schemaVersion": 2,
+  "status": "partial_source_coverage",
   "intendedCutoffDate": "2026-07-15",
   "requestedWindowsDays": [90, 180],
   "sources": {
     "weAnalysis": {
-      "availability": "blocked",
+      "availability": "blocked_missing_local_credentials",
       "auditedFiles": 0,
       "reasons": [
         "worktree .env.local missing",
         "worktree token cache missing",
-        "worktree data/we-analysis cache missing",
         "process credential variables missing"
       ],
       "historicalDocumentLatestDate": "2026-06-13",
       "historicalRawEvidenceAvailable": false
     },
     "tournaments": {
-      "availability": "blocked",
-      "auditedRecords": 0,
-      "reasons": [
-        "no local full export",
-        "no repository full-read export tool",
-        "WeChat automation endpoint 39420 did not become ready"
-      ]
+      "availability": "available_client_visible_snapshot",
+      "retrievedAtUtc": "2026-07-16T10:20:11.9901078Z",
+      "countBefore": 1070,
+      "exportedRecords": 1070,
+      "countAfter": 1070,
+      "passesExecuted": 2,
+      "consecutiveSnapshotSha256": "e3bb1aed23e3d00a8545b3baea04550a7b1de04420b85ccdf180a3532605b65b",
+      "stable": true,
+      "observedCreatedAtMin": "2026-02-10T15:32:35.621Z",
+      "observedCreatedAtMax": "2026-07-16T10:14:33.698Z",
+      "recordsAfterCutoffExcluded": 5,
+      "completenessLimitation": "wx.cloud.database client read context cannot prove equality with the administrator collection total"
+    },
+    "clientRequestLogs": {
+      "availability": "indeterminate_client_visible_zero",
+      "clientVisibleCount": 0,
+      "stablePasses": 2,
+      "tournamentRecordsWithClientRequestId": 1012,
+      "interpretation": "zero is not treated as an empty server collection because this collection is written by server SDK and administrator visibility was unavailable"
     }
   },
-  "schemaLimitations": {
-    "missingPersistentTimestamps": ["startedAt", "finishedAt", "player.joinedAt", "player.addedAt"],
-    "snapshotHistoryLoss": ["reset clears rounds and scheduler metadata", "delete physically removes tournament"],
-    "timeProxies": [
-      "match.scoredAt can be overwritten by score edits",
-      "shareActivityUpdatedAt covers only a limited dynamic-message subset",
-      "client_request_logs can correct only covered create/start/clone/delete requests"
+  "analysisWindows": {
+    "90": {
+      "startDate": "2026-04-17",
+      "endDate": "2026-07-15",
+      "analyzedTournaments": 944,
+      "startedTournaments": 482,
+      "effectiveCompletedTournaments": 165,
+      "startedCombinationClassifiableRate": 1,
+      "recordConservation": true,
+      "statusConservation": true
+    },
+    "180": {
+      "startDate": "2026-01-17",
+      "endDate": "2026-07-15",
+      "observedFirstTournamentDate": "2026-02-10",
+      "analyzedTournaments": 1065,
+      "startedTournaments": 547,
+      "effectiveCompletedTournaments": 190,
+      "startedCombinationClassifiableRate": 0.9762340036563071,
+      "recordConservation": true,
+      "statusConservation": true
+    }
+  },
+  "qualityFindings": {
+    "missingPersistentTimestamps": {
+      "startedAtRecords": 0,
+      "finishedAtRecords": 0,
+      "participantJoinTimestampsAvailable": false
+    },
+    "window180": {
+      "statusCounts": {
+        "draft": 518,
+        "running": 357,
+        "finished": 190,
+        "unknown": 0
+      },
+      "formalFinishedIncomplete": 0,
+      "plannedMaterializedMismatch": 150,
+      "legalScoreMatches": 2611,
+      "scoredTimestampMatches": 2586,
+      "effectiveCompletionTimestampSources": {
+        "scoredAt": 182,
+        "unavailable": 8
+      },
+      "rosterReadyInferredFromStarted": 13,
+      "malformedSchedulerMeta": 0,
+      "missingTournamentId": 0
+    },
+    "snapshotHistoryLoss": [
+      "reset clears rounds and scheduler metadata",
+      "delete physically removes tournament"
     ],
     "identityLimitations": [
       "guest claim, removal and clone rewrite final roster state",
@@ -41,12 +96,19 @@
     "shareLimitation": "shareActivity fields are not proof of an actual share action"
   },
   "exitGates": {
-    "latestCompleteDayFetched": false,
-    "windows90And180Covered": false,
-    "tournamentCoreClassificationAtLeast95Percent": null,
-    "pareto80_90_95Computed": false,
-    "fullFunnelComputed": false,
-    "retentionBaselineComputed": false,
+    "latestCompleteDayFetched": {
+      "weAnalysis": false,
+      "tournaments": true
+    },
+    "windows90And180Covered": {
+      "weAnalysis": false,
+      "tournaments": true
+    },
+    "tournamentCoreClassificationAtLeast95Percent": true,
+    "pareto80_90_95Computed": true,
+    "fullFunnelComputed": true,
+    "retentionBaselineComputedAsSnapshotProxy": true,
+    "administratorCollectionCompletenessProven": false,
     "publicArtifactsDeidentified": true,
     "remoteWritesExecuted": false
   }
