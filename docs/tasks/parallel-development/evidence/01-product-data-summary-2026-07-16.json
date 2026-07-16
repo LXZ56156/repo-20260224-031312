@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "status": "blocked_source_credentials",
+  "decisionReady": false,
+  "intendedCutoffDate": "2026-07-15",
+  "actualCoverage": {
+    "weAnalysis": null,
+    "tournaments": null
+  },
+  "metrics": {
+    "weeklyEffectiveCompletionsMovingAverage4w": null,
+    "organizerRepeat28d": null,
+    "participantRejoin28d": null,
+    "participantToOrganizer28d": null,
+    "funnel": null,
+    "combinationPareto": null
+  },
+  "downstream": {
+    "schedulerTemplateImplementation": "wait_for_current_pareto",
+    "productEventDictionary": "use_schema_gaps_as_inputs_but_do_not_claim_current_rates",
+    "funnelUiOptimization": "wait_for_largest_current_dropoff"
+  },
+  "historicalEvidence": {
+    "latestDocumentClaimedDate": "2026-06-13",
+    "rawEvidenceAvailable": false,
+    "usableAsCurrentFact": false
+  },
+  "privacy": {
+    "containsActorIdentifiers": false,
+    "containsProfileFields": false,
+    "containsSecrets": false
+  },
+  "remoteWritesExecuted": false
+}

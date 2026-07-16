@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "status": "defined_unmeasured",
+  "intendedCutoffDate": "2026-07-15",
+  "metrics": [
+    {
+      "key": "effective_completed",
+      "denominator": "deduplicated tournaments created in window",
+      "numerator": "started and every actual planned match (scheduledMatches preferred, legacy fallback disclosed) has a legal non-tied score and status is finished and rankings are present",
+      "timeWindow": "createdAt cohort; completion week requires complete scoredAt coverage or an explicitly labeled legacy proxy",
+      "deduplication": "tournament _id, latest updatedAt snapshot",
+      "source": "tournaments"
+    },
+    {
+      "key": "weekly_effective_completions_ma4",
+      "denominator": 4,
+      "numerator": "effective completions in trailing four Asia/Shanghai calendar weeks",
+      "timeWindow": "Asia/Shanghai Monday-Sunday with explicit zero weeks; moving average requires four complete observed weeks",
+      "deduplication": "one completion per tournament",
+      "source": "complete match.scoredAt coverage; legacy finishedAt/shareActivityUpdatedAt proxy is labeled separately"
+    },
+    {
+      "key": "organizer_28d_repeat",
+      "denominator": "first-observed organizers with a complete 28-day observation window",
+      "numerator": "denominator actors creating another tournament within 28 days",
+      "timeWindow": "first-observed createdAt through day 28 inclusive",
+      "deduplication": "creator actor in memory only; public output is aggregate",
+      "source": "tournaments.creatorId + createdAt",
+      "limitation": "survivor-based and left-censored unless older history is supplied"
+    },
+    {
+      "key": "participant_28d_rejoin",
+      "denominator": "first-observed non-guest participants with a complete 28-day observation window",
+      "numerator": "denominator actors present in another tournament within 28 days",
+      "timeWindow": "tournament createdAt proxy through day 28 inclusive",
+      "deduplication": "exclude creator occurrence, duplicate roster item and imported guest",
+      "source": "tournaments.players + createdAt",
+      "limitation": "no joinedAt; createdAt is only a proxy"
+    },
+    {
+      "key": "participant_28d_to_organizer",
+      "denominator": "same eligible participant cohort as participant_28d_rejoin",
+      "numerator": "participants becoming creatorId within 28 days",
+      "timeWindow": "tournament createdAt proxy through day 28 inclusive",
+      "deduplication": "actor in memory only; imported guest excluded",
+      "source": "tournaments.players + creatorId + createdAt"
+    },
+    {
+      "key": "funnel_created_to_effective_completed",
+      "denominator": "previous stage and created stage",
+      "numerator": "monotonic stage pass count",
+      "timeWindow": "createdAt cohort",
+      "deduplication": "tournament _id, latest snapshot",
+      "source": "tournaments",
+      "stages": [
+        "created",
+        "roster_ready",
+        "started",
+        "first_score",
+        "half_scores",
+        "all_scores",
+        "effective_completed",
+        "share_or_repeat_lower_bound"
+      ]
+    },
+    {
+      "key": "combination_pareto",
+      "denominator": "started tournaments created in window",
+      "numerator": "count for identical mode x playersCount x courts x totalMatches x presetKey x templateKey x engine",
+      "timeWindow": "createdAt cohort",
+      "deduplication": "tournament _id; missing and unknown are explicit categories",
+      "source": "tournaments + schedulerMetaJson/fairnessJson",
+      "thresholds": [0.8, 0.9, 0.95]
+    }
+  ]
+}

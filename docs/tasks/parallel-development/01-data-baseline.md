@@ -1,6 +1,6 @@
 # 工作线 01：全量数据基线与产品漏斗复盘
 
-> 状态：`ready`
+> 状态：`blocked_source_credentials`
 > 类型：只读线上审计 + 本地脱敏分析产物
 > 统一开发基线：`codex/ui-optimization-v2@743b016`
 > 线上产品基线：`master@5813ffc`
@@ -157,3 +157,12 @@ mode × playersCount × courts × totalMatches × presetKey × templateKey × en
 
 本任务不 commit、不 push、不创建 PR，不 upload/preview upload、不发布、不部署云函数、不创建集合、不写真实云数据。结束时用中文汇报：数据截止日和覆盖、关键结论、产物路径、测试结果、未完成项、数据局限、确认未执行的远程操作。不要更新全局 current.md。
 ```
+
+## 11. 2026-07-16 执行结果
+
+- 独立 worktree、分支和起始 HEAD 已核对：`codex/roadmap-data-baseline@70845c1`。
+- 当前 worktree 无 `.env.local`、token 缓存、We 分析缓存或赛事全量导出；微信开发者工具 CLI 端口就绪，但自动化端口 `39420` 未就绪，未执行数据库查询。
+- 已新增只读本地分析核心、CLI 与聚焦测试，固定严格有效完赛、单调漏斗、28 日 cohort proxy、组合 Pareto、4 周均线、守恒和隐私 fail-closed 口径。
+- 脱敏报告、指标字典、数据质量、机器摘要、Pareto unavailable 状态与验证记录位于 `docs/tasks/parallel-development/evidence/01-*`。
+- 当前 90/180 天线上数据和核心指标均未计算；历史 2026-06-13 文档结论未冒充当前事实。工作线 02 的高频模板实施与漏斗 UI 选择继续等待当前 Pareto / 最大掉点。
+- 本次用户明确授权当前任务分支创建本地提交；该授权只覆盖 local commit，不覆盖 push、PR、preview/upload、发布、部署或真实数据写入。

@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "status": "source_unavailable",
+  "intendedCutoffDate": "2026-07-15",
+  "requestedWindowsDays": [90, 180],
+  "sources": {
+    "weAnalysis": {
+      "availability": "blocked",
+      "auditedFiles": 0,
+      "reasons": [
+        "worktree .env.local missing",
+        "worktree token cache missing",
+        "worktree data/we-analysis cache missing",
+        "process credential variables missing"
+      ],
+      "historicalDocumentLatestDate": "2026-06-13",
+      "historicalRawEvidenceAvailable": false
+    },
+    "tournaments": {
+      "availability": "blocked",
+      "auditedRecords": 0,
+      "reasons": [
+        "no local full export",
+        "no repository full-read export tool",
+        "WeChat automation endpoint 39420 did not become ready"
+      ]
+    }
+  },
+  "schemaLimitations": {
+    "missingPersistentTimestamps": ["startedAt", "finishedAt", "player.joinedAt", "player.addedAt"],
+    "snapshotHistoryLoss": ["reset clears rounds and scheduler metadata", "delete physically removes tournament"],
+    "timeProxies": [
+      "match.scoredAt can be overwritten by score edits",
+      "shareActivityUpdatedAt covers only a limited dynamic-message subset",
+      "client_request_logs can correct only covered create/start/clone/delete requests"
+    ],
+    "identityLimitations": [
+      "guest claim, removal and clone rewrite final roster state",
+      "participant 28-day metrics use tournament createdAt proxy"
+    ],
+    "shareLimitation": "shareActivity fields are not proof of an actual share action"
+  },
+  "exitGates": {
+    "latestCompleteDayFetched": false,
+    "windows90And180Covered": false,
+    "tournamentCoreClassificationAtLeast95Percent": null,
+    "pareto80_90_95Computed": false,
+    "fullFunnelComputed": false,
+    "retentionBaselineComputed": false,
+    "publicArtifactsDeidentified": true,
+    "remoteWritesExecuted": false
+  }
+}

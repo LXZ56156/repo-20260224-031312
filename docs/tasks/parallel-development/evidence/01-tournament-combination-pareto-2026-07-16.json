@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "status": "not_computed",
+  "population": "started_tournaments",
+  "intendedCutoffDate": "2026-07-15",
+  "auditedTournamentCount": 0,
+  "rows": [],
+  "thresholds": {
+    "0.8": null,
+    "0.9": null,
+    "0.95": null
+  },
+  "reason": "No full read-only tournament export is available inside the independent worktree. Empty rows mean unavailable, not zero usage.",
+  "containsActorIdentifiers": false
+}
