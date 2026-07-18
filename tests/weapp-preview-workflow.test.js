@@ -262,7 +262,7 @@ test('mp-ci manifest-only validation rejects a preview that differs from the aut
   const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-mp-ci-source-drift-'));
   const previewDir = path.join(rootDir, 'preview');
   writeFile(path.join(previewDir, 'project.config.json'), '{ "appid": "preview-only" }\n');
-  writePreviewManifest(previewDir);
+  writePreviewManifest(previewDir, { sourceDir: REPO_DIR, previewDir });
 
   const result = runMpCi('validate-preview-manifest', {
     MP_PROJECT_PATH: previewDir,
@@ -280,7 +280,11 @@ test('mp-ci manifest-only validation rejects a preview that differs from the aut
 test('mp-ci local manifest validation rejects stale preview state without entering CI', () => {
   const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-mp-ci-stale-'));
   const previewDir = path.join(rootDir, 'preview');
-  writePreviewManifest(previewDir, { invalidatedReason: 'fixture is stale' });
+  writePreviewManifest(previewDir, {
+    sourceDir: REPO_DIR,
+    previewDir,
+    invalidatedReason: 'fixture is stale'
+  });
 
   const result = runMpCi('validate-preview-manifest', {
     MP_PROJECT_PATH: previewDir,
@@ -300,7 +304,7 @@ test('mp-ci missing private key error never discloses raw or normalized key path
   const previewDir = path.join(rootDir, 'preview');
   writeFile(path.join(previewDir, 'project.config.json'), '{ "miniprogramRoot": "miniprogram/" }\n');
   writeFile(path.join(previewDir, 'miniprogram/app.json'), '{}\n');
-  writePreviewManifest(previewDir);
+  writePreviewManifest(previewDir, { sourceDir: REPO_DIR, previewDir });
   const rawSecretPath = 'Z:\\codex-private-secret-do-not-print\\private.key';
   const normalizedSecretPath = process.platform === 'linux' ? windowsToWslPath(rawSecretPath) : rawSecretPath;
 

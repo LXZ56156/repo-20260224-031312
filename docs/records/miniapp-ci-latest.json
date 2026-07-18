@@ -1,30 +1,68 @@
 {
   "schemaVersion": 1,
   "stream": "miniapp-ci",
-  "recordedAt": "2026-06-02T00:00:00.000+08:00",
+  "recordedAt": "2026-07-18T05:40:59.671Z",
   "git": {
-    "branch": "master",
-    "head": "8209570",
-    "shortHead": "8209570",
-    "dirty": false,
-    "dirtyFiles": []
+    "branch": "codex/ui-optimization-v2",
+    "head": "e2670887ef1972440d9dbea268d174e5e7a02b20",
+    "shortHead": "e267088",
+    "dirty": true,
+    "dirtyFiles": [
+      "M .gitignore",
+      " M docs/records/README.md",
+      " M docs/records/miniapp-ci-latest.json",
+      " M docs/records/miniapp-ci.jsonl",
+      " M docs/tasks/current.md",
+      " M docs/tools/windows-dev-environment.md",
+      " M package.json",
+      " M scripts/lib/weapp-preview-manifest.js",
+      " M scripts/lib/workflow-records.js",
+      " M scripts/mp-ci.js",
+      " M tests/weapp-preview-workflow.test.js",
+      " M tests/windows-dev-workflow.test.js",
+      " M tests/workflow-records.test.js",
+      "?? docs/tasks/session-logs/20260717-preview-qrcode-delivery.md",
+      "?? docs/tools/weapp-preview-qrcode-delivery.md",
+      "?? scripts/lib/exclusive-file-lock.js",
+      "?? scripts/lib/weapp-preview-delivery.js",
+      "?? scripts/lib/weapp-preview-sync.js",
+      "?? tests/preview-qrcode-delivery.test.js"
+    ]
   },
   "payload": {
-    "event": "upload_success",
-    "mode": "upload",
-    "version": "6.1.2-8209570-sharecard-ios",
-    "desc": "朋友圈排名卡片兼容 iPhone 分享菜单；保留真实小程序码、头像对齐与分享预热",
-    "robot": 1,
-    "appid": "wxf6f4e0b09e293521",
-    "rawProjectPath": "D:\\projects\\badminton-miniapp-preview",
-    "projectPath": "D:\\projects\\badminton-miniapp-preview",
-    "packageInfo": {
-      "subPackageInfo": {
-        "sizeBytes": 612766
-      }
+    "event": "preview_delivery_success",
+    "mode": "preview",
+    "previewOnly": true,
+    "releaseNotice": "preview-only / 微信小程序预览版，非正式版",
+    "expiryNotice": "微信预览二维码可能过期或失效；失效后请重新运行已授权的 preview 交付命令。",
+    "generatedAt": "2026-07-18T05:40:33.710Z",
+    "git": {
+      "branch": "codex/ui-optimization-v2",
+      "commit": "e2670887ef1972440d9dbea268d174e5e7a02b20",
+      "shortCommit": "e267088",
+      "dirty": true
     },
-    "command": "MP_VERSION='6.1.2-8209570-sharecard-ios' MP_DESC='朋友圈排名卡片兼容 iPhone 分享菜单；保留真实小程序码、头像对齐与分享预热' npm run mp:upload",
-    "source": "docs/tasks/session-logs/2026-06-02-share-card-verification.md",
-    "recordedBy": "migration-from-session-log"
+    "version": "6.1.2-e267088",
+    "robot": 1,
+    "qrcode": {
+      "historyPath": "D:\\projects(WIN)\\badminton-miniapp\\preview-qrcodes\\preview-qrcode-20260718T054033710Z-e267088.jpg",
+      "latestPath": "D:\\projects(WIN)\\badminton-miniapp\\preview-qrcodes\\latest-preview-qrcode.jpg",
+      "historyMetadataPath": "D:\\projects(WIN)\\badminton-miniapp\\preview-qrcodes\\preview-qrcode-20260718T054033710Z-e267088.json",
+      "latestMetadataPath": "D:\\projects(WIN)\\badminton-miniapp\\preview-qrcodes\\latest-preview-qrcode.json",
+      "format": "jpeg",
+      "bytes": 46982,
+      "width": 470,
+      "height": 470,
+      "sha256": "0fc18ce9b3c6b580b6a20a840e59443670fc0a2b8c7e77e24862a322ed4948e3"
+    },
+    "command": "npm run mp:preview:deliver",
+    "sourcePath": "D:\\projects(WIN)\\badminton-miniapp",
+    "rawProjectPath": "D:\\projects(WIN)\\badminton-miniapp-preview",
+    "projectPath": "D:\\projects(WIN)\\badminton-miniapp-preview",
+    "previewManifest": {
+      "path": "D:\\projects(WIN)\\badminton-miniapp-preview\\.weapp-preview-sync.json",
+      "syncedAt": "2026-07-18T05:40:21.468Z",
+      "signature": "41ffc3d1cc9e803ae8c21db83b5593188a9a3691"
+    }
   }
 }

@@ -5,8 +5,8 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 
 const MANIFEST_NAME = '.weapp-preview-sync.json';
-const WATCH_ROOT_FILES = ['project.config.json', 'project.private.config.json'];
-const WATCH_ROOT_DIRS = ['miniprogram', 'cloudfunctions', 'miniprogram_npm'];
+const WATCH_ROOT_FILES = Object.freeze(['project.config.json', 'project.private.config.json']);
+const WATCH_ROOT_DIRS = Object.freeze(['miniprogram', 'cloudfunctions', 'miniprogram_npm']);
 const PRUNED_DIR_NAMES = new Set(['.git', 'node_modules', '.idea', '.vscode', 'dist', 'coverage', 'tmp']);
 const EXCLUDED_FILE_SUFFIXES = ['.tmp', '.swp', '.swo', '.cache', '.log'];
 
@@ -82,7 +82,7 @@ function validatePreviewManifest(options) {
   const expectedSourceDir = options && options.expectedSourceDir;
   const expectedPreviewDir = options && options.expectedPreviewDir;
   if (!previewDir || !expectedSourceDir || !expectedPreviewDir) {
-    throw new Error('Preview sync manifest validation requires preview and expected WSL paths');
+    throw new Error('Preview sync manifest validation requires preview, authoritative source, and mirror paths');
   }
 
   const manifestPath = path.join(previewDir, MANIFEST_NAME);
@@ -106,10 +106,10 @@ function validatePreviewManifest(options) {
     throw new Error('Preview sync manifest is invalidated; run the explicit mirror sync before preview/upload');
   }
   if (normalizeManifestPath(manifest.sourceDir) !== normalizeManifestPath(expectedSourceDir)) {
-    throw new Error('Preview sync manifest sourceDir does not match the configured WSL source path');
+    throw new Error('Preview sync manifest sourceDir does not match the configured authoritative source path');
   }
   if (normalizeManifestPath(manifest.previewDir) !== normalizeManifestPath(expectedPreviewDir)) {
-    throw new Error('Preview sync manifest previewDir does not match the configured WSL preview path');
+    throw new Error('Preview sync manifest previewDir does not match the configured preview mirror path');
   }
   const previewSignature = computePreviewTreeSignature(previewDir);
   if (previewSignature !== manifest.signature) {
@@ -127,7 +127,10 @@ function validatePreviewManifest(options) {
 
 module.exports = {
   MANIFEST_NAME,
+  WATCH_ROOT_DIRS,
+  WATCH_ROOT_FILES,
   computePreviewTreeSignature,
   normalizeManifestPath,
+  shouldExcludeFile,
   validatePreviewManifest
 };

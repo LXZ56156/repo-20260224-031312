@@ -1,11 +1,12 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
+const { acquireExclusiveFileLock } = require('./exclusive-file-lock');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const DEFAULT_RECORD_DIR = path.join(ROOT, 'docs', 'records');
 const SCHEMA_VERSION = 1;
-const SENSITIVE_KEY_PATTERN = /secret|authorization|password|passwd|access[_-]?token|refresh[_-]?token|id[_-]?token|api[_-]?key|private[_-]?key/i;
+const SENSITIVE_KEY_PATTERN = /secret|authorization|password|passwd|access[_-]?token|refresh[_-]?token|id[_-]?token|api[_-]?key|private[_-]?key|open[_-]?id|union[_-]?id/i;
 
 class RemoteActionEvidenceError extends Error {
   constructor(stream, cause) {
@@ -29,11 +30,15 @@ function sanitizeStreamName(stream) {
 function redactString(value) {
   return String(value)
     .replace(
-      /((?:[?&]|^)(?:access[_-]?token|refresh[_-]?token|id[_-]?token|token|api[_-]?key|password)=)[^&\s"'#]+/gi,
+      /((?:[?&]|\b)(?:access[_-]?token|refresh[_-]?token|id[_-]?token|token|api[_-]?key|password|open[_-]?id|union[_-]?id)=)[^&\s"'#]+/gi,
       '$1<redacted>'
     )
     .replace(
-      /("(?:access[_-]?token|refresh[_-]?token|id[_-]?token|token|api[_-]?key|authorization|password|passwd|private[_-]?key|secret(?:id|key)?)"\s*:\s*")[^"]*/gi,
+      /("(?:access[_-]?token|refresh[_-]?token|id[_-]?token|token|api[_-]?key|authorization|password|passwd|private[_-]?key|secret(?:id|key)?|open[_-]?id|union[_-]?id)"\s*:\s*")[^"]*/gi,
+      '$1<redacted>'
+    )
+    .replace(
+      /(\b(?:access[_-]?token|refresh[_-]?token|id[_-]?token|token|api[_-]?key|password|passwd|private[_-]?key(?:[_-]?path)?|secret(?:id|key)?|open[_-]?id|union[_-]?id)\s*[:=]\s*)[^&\s,;"'#]+/gi,
       '$1<redacted>'
     )
     .replace(/(\bBearer\s+)[^\s"',;]+/gi, '$1<redacted>');
@@ -79,6 +84,37 @@ function buildGitState(rootDir = ROOT) {
     head,
     shortHead,
     dirty: !!status,
+    dirtyFiles: status ? status.split(/\r?\n/).filter(Boolean) : []
+  };
+}
+
+function runGitStrict(rootDir, args, options = {}) {
+  const execute = options.execFileSync || execFileSync;
+  try {
+    return execute('git', args, {
+      cwd: rootDir,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe']
+    }).trim();
+  } catch (error) {
+    const detail = error && error.message ? error.message : String(error || 'unknown Git error');
+    throw new Error(`Git provenance command failed (git ${args.join(' ')}): ${detail}`);
+  }
+}
+
+function buildStrictGitState(rootDir = ROOT, options = {}) {
+  const branchValue = runGitStrict(rootDir, ['rev-parse', '--abbrev-ref', 'HEAD'], options);
+  const head = runGitStrict(rootDir, ['rev-parse', 'HEAD'], options);
+  const shortHead = runGitStrict(rootDir, ['rev-parse', '--short', 'HEAD'], options);
+  const status = runGitStrict(rootDir, ['status', '--short'], options);
+  if (!/^[0-9a-f]{40,64}$/i.test(head) || !/^[0-9a-f]{7,64}$/i.test(shortHead)) {
+    throw new Error('Git provenance returned an invalid HEAD');
+  }
+  return {
+    branch: branchValue === 'HEAD' ? '(detached)' : branchValue,
+    head,
+    shortHead,
+    dirty: Boolean(status),
     dirtyFiles: status ? status.split(/\r?\n/).filter(Boolean) : []
   };
 }
@@ -141,7 +177,7 @@ function preflightWorkflowRecord(stream, options = {}) {
   }
 }
 
-function writeWorkflowRecord(stream, payload = {}, options = {}) {
+function writeWorkflowRecordUnlocked(stream, payload = {}, options = {}) {
   const safeStream = sanitizeStreamName(stream);
   const rootDir = options.rootDir || ROOT;
   const recordedAt = options.recordedAt || new Date().toISOString();
@@ -151,14 +187,109 @@ function writeWorkflowRecord(stream, payload = {}, options = {}) {
     schemaVersion: SCHEMA_VERSION,
     stream: safeStream,
     recordedAt,
-    git: buildGitState(rootDir),
+    git: options.gitState || buildGitState(rootDir),
     payload
   });
 
-  fs.appendFileSync(recordPath, `${JSON.stringify(record)}\n`, 'utf8');
-  fs.writeFileSync(latestPath, `${JSON.stringify(record, null, 2)}\n`, 'utf8');
+  const unique = `${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const pendingLatestPath = path.join(path.dirname(latestPath), `.${path.basename(latestPath)}.${unique}.pending`);
+  const backupLatestPath = path.join(path.dirname(latestPath), `.${path.basename(latestPath)}.${unique}.backup`);
+  const recordExisted = fs.existsSync(recordPath);
+  const originalRecordSize = recordExisted ? fs.statSync(recordPath).size : 0;
+  let recordTouched = false;
+  let previousLatestMoved = false;
+  let newLatestInstalled = false;
+
+  try {
+    fs.writeFileSync(pendingLatestPath, `${JSON.stringify(record, null, 2)}\n`, { encoding: 'utf8', flag: 'wx' });
+    const recordDescriptor = fs.openSync(recordPath, 'a');
+    try {
+      recordTouched = true;
+      fs.writeSync(recordDescriptor, `${JSON.stringify(record)}\n`, null, 'utf8');
+      fs.fsyncSync(recordDescriptor);
+    } finally {
+      fs.closeSync(recordDescriptor);
+    }
+
+    if (typeof options.beforeLatestPromote === 'function') options.beforeLatestPromote({ record, recordPath, latestPath });
+    if (fs.existsSync(latestPath)) {
+      fs.renameSync(latestPath, backupLatestPath);
+      previousLatestMoved = true;
+    }
+    if (typeof options.beforePendingLatestPromote === 'function') options.beforePendingLatestPromote();
+    fs.renameSync(pendingLatestPath, latestPath);
+    newLatestInstalled = true;
+  } catch (error) {
+    const rollbackErrors = [];
+    try {
+      if (newLatestInstalled) fs.rmSync(latestPath, { force: true });
+      if (previousLatestMoved && fs.existsSync(backupLatestPath) && !fs.existsSync(latestPath)) {
+        if (typeof options.beforeLatestRestore === 'function') options.beforeLatestRestore();
+        fs.renameSync(backupLatestPath, latestPath);
+        previousLatestMoved = false;
+      }
+    } catch (rollbackError) {
+      rollbackErrors.push(rollbackError);
+    }
+    try {
+      if (recordTouched || fs.existsSync(recordPath) !== recordExisted) {
+        if (recordExisted) fs.truncateSync(recordPath, originalRecordSize);
+        else fs.rmSync(recordPath, { force: true });
+      }
+    } catch (rollbackError) {
+      rollbackErrors.push(rollbackError);
+    }
+    const disposablePaths = previousLatestMoved ? [pendingLatestPath] : [pendingLatestPath, backupLatestPath];
+    for (const temporaryPath of disposablePaths) {
+      try {
+        fs.rmSync(temporaryPath, { force: true });
+      } catch (rollbackError) {
+        rollbackErrors.push(rollbackError);
+      }
+    }
+    if (rollbackErrors.length) {
+      const recovery = previousLatestMoved && fs.existsSync(backupLatestPath)
+        ? `; preserved latest backup: ${backupLatestPath}`
+        : '';
+      const wrapped = new Error(`Workflow record write failed and rollback also failed: ${error.message}; rollback: ${rollbackErrors[0].message}${recovery}`);
+      wrapped.cause = error;
+      throw wrapped;
+    }
+    throw error;
+  }
+
+  try {
+    fs.rmSync(backupLatestPath, { force: true });
+  } catch (_) {
+    // The JSONL append and latest record are complete; an old hidden backup can be cleaned later.
+  }
 
   return { record, recordPath, latestPath };
+}
+
+function writeWorkflowRecord(stream, payload = {}, options = {}) {
+  const safeStream = sanitizeStreamName(stream);
+  const { recordDir } = preflightWorkflowRecord(safeStream, options);
+  const lock = acquireExclusiveFileLock(path.join(recordDir, `.workflow-record-${safeStream}.lock`), {
+    purpose: `workflow-record:${safeStream}`
+  });
+  let result;
+  try {
+    result = writeWorkflowRecordUnlocked(safeStream, payload, { ...options, recordDir });
+  } catch (error) {
+    try {
+      lock.release();
+    } catch (releaseError) {
+      error.lockReleaseError = releaseError;
+    }
+    throw error;
+  }
+  try {
+    lock.release();
+  } catch (releaseError) {
+    result.lockCleanupWarning = releaseError.message;
+  }
+  return result;
 }
 
 function writeWorkflowRecordAfterRemoteSuccess(stream, payload = {}, options = {}) {
@@ -183,6 +314,7 @@ module.exports = {
   ROOT,
   SCHEMA_VERSION,
   buildGitState,
+  buildStrictGitState,
   preflightWorkflowRecord,
   readLatestWorkflowRecord,
   sanitizeValue,

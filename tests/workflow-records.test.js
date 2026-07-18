@@ -7,14 +7,16 @@ const { spawnSync } = require('node:child_process');
 
 const REPO_DIR = path.resolve(__dirname, '..');
 const {
+  buildStrictGitState,
   preflightWorkflowRecord,
   readLatestWorkflowRecord,
   sanitizeValue,
   writeWorkflowRecord,
   writeWorkflowRecordAfterRemoteSuccess
 } = require('../scripts/lib/workflow-records');
+const { acquireExclusiveFileLock } = require('../scripts/lib/exclusive-file-lock');
 const { resolveWeappLocalConfig, toGitBashPath } = require('../scripts/lib/weapp-local-config');
-const { preflightMpCiEvidence, recordMpCiSuccess } = require('../scripts/mp-ci');
+const { preflightMpCiEvidence, recordMpCiSuccess, redactRuntimeText } = require('../scripts/mp-ci');
 
 test('workflow record writer appends jsonl, updates latest, and redacts sensitive fields', () => {
   const recordDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-records-'));
@@ -53,6 +55,60 @@ test('workflow record sanitizer redacts nested token values', () => {
 
   assert.equal(sanitized.nested.accessToken, '<redacted>');
   assert.equal(sanitized.nested.message, '{"access_token":"<redacted>"}');
+});
+
+test('strict Git provenance fails closed when any Git command fails', () => {
+  assert.throws(
+    () => buildStrictGitState(REPO_DIR, {
+      execFileSync: () => { throw new Error('simulated git failure'); }
+    }),
+    /Git provenance command failed|simulated git failure/
+  );
+  const state = buildStrictGitState(REPO_DIR);
+  assert.match(state.head, /^[0-9a-f]{40,64}$/);
+  assert.ok(state.branch);
+  assert.equal(typeof state.dirty, 'boolean');
+});
+
+test('exclusive file lock refuses a concurrent owner and releases by token', () => {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-exclusive-lock-'));
+  const lockPath = path.join(rootDir, 'preview-delivery.lock');
+  const first = acquireExclusiveFileLock(lockPath, { purpose: 'test' });
+  try {
+    assert.throws(
+      () => acquireExclusiveFileLock(lockPath, { purpose: 'test' }),
+      /already running|lock is held/i
+    );
+  } finally {
+    first.release();
+  }
+  const second = acquireExclusiveFileLock(lockPath, { purpose: 'test' });
+  second.release();
+  assert.equal(fs.existsSync(lockPath), false);
+});
+
+test('workflow evidence and runtime errors redact openid, unionid, and configured private-key paths', () => {
+  const sanitized = sanitizeValue({
+    openid: 'openid-secret',
+    union_id: 'union-secret',
+    url: 'https://example.test/?openid=url-openid&unionid=url-union',
+    json: '{"openid":"json-openid","union_id":"json-union"}'
+  });
+  const privateKeyPath = 'D:\\private\\do-not-print.key';
+  const runtime = redactRuntimeText(
+    'private key failed at D:/PRIVATE/do-not-print.key; openid: runtime-openid',
+    { WX_PRIVATE_KEY_PATH: privateKeyPath }
+  );
+
+  assert.equal(sanitized.openid, '<redacted>');
+  assert.equal(sanitized.union_id, '<redacted>');
+  assert.equal(sanitized.url, 'https://example.test/?openid=<redacted>&unionid=<redacted>');
+  assert.equal(sanitized.json, '{"openid":"<redacted>","union_id":"<redacted>"}');
+  assert.doesNotMatch(runtime, /do-not-print|runtime-openid/i);
+  assert.doesNotMatch(
+    sanitizeValue('privateKeyPath=D:/private/key.pem; openid: embedded-openid'),
+    /key\.pem|embedded-openid/
+  );
 });
 
 test('workflow record sanitizer redacts authorization, refresh tokens, passwords, API keys, Bearer values, and token URLs', () => {
@@ -94,6 +150,54 @@ test('workflow record preflight fails before writing when the configured record 
     () => writeWorkflowRecord('miniapp-ci', { event: 'must-not-write' }, { recordDir: unusableRecordDir }),
     /workflow record preflight failed.*miniapp-ci/i
   );
+});
+
+test('workflow record transaction restores JSONL and latest when promotion fails after append', () => {
+  const recordDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-record-transaction-'));
+  const recordPath = path.join(recordDir, 'miniapp-ci.jsonl');
+  const latestPath = path.join(recordDir, 'miniapp-ci-latest.json');
+  fs.writeFileSync(recordPath, '{"previous":true}\n', 'utf8');
+  fs.writeFileSync(latestPath, '{"previousLatest":true}\n', 'utf8');
+  const previousRecord = fs.readFileSync(recordPath);
+  const previousLatest = fs.readFileSync(latestPath);
+
+  assert.throws(
+    () => writeWorkflowRecord('miniapp-ci', { event: 'must-roll-back' }, {
+      rootDir: REPO_DIR,
+      recordDir,
+      beforeLatestPromote: () => { throw new Error('simulated latest promotion failure'); }
+    }),
+    /simulated latest promotion failure/
+  );
+  assert.deepEqual(fs.readFileSync(recordPath), previousRecord);
+  assert.deepEqual(fs.readFileSync(latestPath), previousLatest);
+  assert.deepEqual(
+    fs.readdirSync(recordDir).sort(),
+    ['miniapp-ci-latest.json', 'miniapp-ci.jsonl']
+  );
+});
+
+test('workflow record rollback preserves the only old latest backup when restore fails', () => {
+  const recordDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-record-restore-failure-'));
+  const recordPath = path.join(recordDir, 'miniapp-ci.jsonl');
+  const latestPath = path.join(recordDir, 'miniapp-ci-latest.json');
+  const oldLatest = Buffer.from('{"previousLatest":true}\n');
+  fs.writeFileSync(recordPath, '{"previous":true}\n', 'utf8');
+  fs.writeFileSync(latestPath, oldLatest);
+
+  assert.throws(
+    () => writeWorkflowRecord('miniapp-ci', { event: 'must-preserve-backup' }, {
+      rootDir: REPO_DIR,
+      recordDir,
+      beforePendingLatestPromote: () => { throw new Error('simulated promote failure'); },
+      beforeLatestRestore: () => { throw new Error('simulated restore failure'); }
+    }),
+    /preserved latest backup/
+  );
+  const backupNames = fs.readdirSync(recordDir).filter((name) => name.endsWith('.backup'));
+  assert.equal(backupNames.length, 1);
+  assert.deepEqual(fs.readFileSync(path.join(recordDir, backupNames[0])), oldLatest);
+  assert.equal(fs.readFileSync(recordPath, 'utf8'), '{"previous":true}\n');
 });
 
 test('post-success evidence failure is explicitly distinguished from a remote action failure', () => {

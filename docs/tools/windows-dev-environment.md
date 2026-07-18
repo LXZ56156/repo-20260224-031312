@@ -149,6 +149,14 @@ WEAPP_CODEX_DEV_MODE=wsl-mirror node .codex/hooks/weapp_preflight.js
 
 The preview manifest currently records the renamed WSL/preview paths but is explicitly marked stale because its content signature predates the move. Run an explicitly authorized mirror sync before any preview/upload use; the stale manifest is not success evidence. Even after a valid sync, `mp-ci` recomputes the same SHA1 tree contract for both the preview and the authoritative repo source; either side drifting from the manifest blocks preview/upload before `miniprogram-ci` is loaded.
 
+For an explicitly authorized phone acceptance preview, use the Windows-native one-command delivery flow:
+
+```powershell
+npm run mp:preview:deliver
+```
+
+It transactionally rebuilds the preview mirror from the canonical Windows source, validates both signatures, calls `ci.preview` only, and publishes validated history/latest QR evidence under `D:\projects(WIN)\badminton-miniapp\preview-qrcodes`. It never calls `ci.upload`. Dynamic QR artifacts are Git-ignored; `latest-preview-qrcode.jpg` and `latest-preview-qrcode.json` remain unchanged on any failed or incomplete delivery. Full contract: `docs/tools/weapp-preview-qrcode-delivery.md`.
+
 ## Screenshot and Workflow Records
 
 ```powershell
@@ -173,7 +181,7 @@ The 2026-07-12 records belong to the retired product branch. The current `codex/
 The optional `.git/hooks/post-commit` is installed but must only be tested through `SKIP_CLOUD_POST_COMMIT_DEPLOY=1`. Guarded deploy/hook npm commands may use Git Bash through the explicit wrapper; they are not part of ordinary verification.
 
 - Do not upload the mini program.
-- Do not run preview upload.
+- Do not run preview upload or `npm run mp:preview:deliver` without explicit authorization in the current task.
 - Do not deploy cloud functions.
 - Do not write real cloud data.
 - Do not print secrets or private-key paths.

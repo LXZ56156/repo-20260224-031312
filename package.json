@@ -17,7 +17,7 @@
     "weapp:probe": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/dev/probe-weapp-automation.ps1 -Json",
     "records:latest": "node scripts/show-workflow-records.js",
     "verify:windows-env": "node scripts/dev/check-windows-env.js",
-    "verify:light": "node scripts/run-node-tests.js tests/weapp-hook-config.test.js tests/codex.user-prompt-hook.test.js tests/weapp-preview-workflow.test.js tests/squad.fairness.test.js tests/schedule.ui-copy.test.js tests/ui-screenshot-matrix.test.js tests/ui-screenshot-safety.test.js tests/workflow-records.test.js tests/windows-dev-workflow.test.js tests/windows-native-toolchain.test.js",
+    "verify:light": "node scripts/run-node-tests.js tests/weapp-hook-config.test.js tests/codex.user-prompt-hook.test.js tests/weapp-preview-workflow.test.js tests/preview-qrcode-delivery.test.js tests/squad.fairness.test.js tests/schedule.ui-copy.test.js tests/ui-screenshot-matrix.test.js tests/ui-screenshot-safety.test.js tests/workflow-records.test.js tests/windows-dev-workflow.test.js tests/windows-native-toolchain.test.js",
     "verify:full": "npm test && npm run check && npm run lint && git diff --check",
     "check:cloud-common": "node scripts/cloud-common.js check",
     "sync:cloud-common": "node scripts/cloud-common.js sync",
@@ -29,6 +29,7 @@
     "deploy:cloud:changed": "node scripts/run-bash-script.js scripts/deploy-changed-cloudfunctions.sh",
     "hooks:install-cloud-deploy": "node scripts/run-bash-script.js scripts/install-cloud-deploy-hook.sh",
     "mp:preview": "node scripts/mp-ci.js preview",
+    "mp:preview:deliver": "node scripts/mp-ci.js preview-deliver",
     "mp:upload": "node scripts/mp-ci.js upload"
   },
   "devDependencies": {

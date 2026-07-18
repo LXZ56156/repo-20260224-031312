@@ -2,14 +2,14 @@
 
 > AI session handoff. Keep this file concise; detailed evidence belongs in session logs.
 
-## Status: parallel_roadmap_integrated_and_verified_locally_online_master_unchanged
+## Status: preview_qrcode_delivery_real_preview_verified_phone_acceptance_pending
 
-## Version State (2026-07-17)
+## Version State (2026-07-18)
 
 - 当前线上正式版：`master` = `origin/master` = `5813ffc`。
-- 统一并行 checkpoint：`codex/ui-optimization-v2@70845c1`；本地功能集成 head：`530ecae`，其后仅追加本总控文档与验证记录。
+- 本轮起点：`codex/ui-optimization-v2@e267088`；手机远程验收二维码交付链路已完成并通过真实 preview-only 交付，未 push、未建 PR。
 - 远端开发分支仍为 `origin/codex/ui-optimization-v2@743b016`；本地集成未 push、未建 PR。
-- 开发分支尚未进行小程序 preview/upload 或正式发布；Git 本地提交不等于小程序发布，schedule 中央 `VS`/比分布局、打水 UI、Windows 工具链和本轮全部集成均未进入线上。
+- 开发分支已于 2026-07-17、2026-07-18 各完成一次 preview-only 二维码交付；尚未进行小程序 upload、正式发布或云函数部署。Git 提交和 preview 均不等于正式发布，schedule 中央 `VS`/比分布局、打水 UI、Windows 工具链和本轮全部集成仍未进入线上正式版。
 - `feature/core-flow-simplification` 已关闭，不得作为新任务基线。
 
 ## Integrated Roadmap
@@ -42,8 +42,8 @@
 
 - preview/upload 镜像：`D:\projects(WIN)\badminton-miniapp-preview`；显式 WSL fallback：`/home/lizixuan/projects(WSL)/badminton-miniapp`。
 - 禁用空壳：`D:\projects\badminton-miniapp`；自动化端口：`ws://127.0.0.1:39420`。
-- 日常 npm、hooks、DevTools 和截图使用 Windows 原生入口；preview manifest 保持 fail-closed。
+- 手机验收入口为 `npm run mp:preview:deliver`，固定输出到 Git-ignored `D:\projects(WIN)\badminton-miniapp\preview-qrcodes`；本地实现、`verify:light`、`verify:full` 与两次真实 preview-only 交付已通过，latest 二维码于 2026-07-18 13:40 更新，manifest 保持 fail-closed。
 
 ## Hard Boundaries
 
-本轮本地 worktree、收口提交和主分支集成已获用户明确授权并完成。继续禁止小程序 upload/preview upload、正式发布、云函数部署、真实云数据写入、push 或 PR；禁止启用 P04 事件采集；不 reset、clean 或 checkout 覆盖既有改动。未来任何远端、发布、部署或新的用户可见实现仍需当次明确授权。
+本轮本地 worktree、收口提交和主分支集成已获用户明确授权并完成。除已记录的两次 preview-only 交付外，继续禁止新的小程序 preview/upload、正式发布、云函数部署、真实云数据写入、push 或 PR；禁止启用 P04 事件采集；不 reset、clean 或 checkout 覆盖既有改动。未来任何远端、发布、部署或新的用户可见实现仍需当次明确授权。

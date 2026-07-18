@@ -13,6 +13,7 @@ test('package scripts expose the Windows agent workflow shortcuts', () => {
   assert.match(pkg.scripts['verify:light'], /tests\/squad\.fairness\.test\.js/);
   assert.match(pkg.scripts['verify:light'], /tests\/ui-screenshot-matrix\.test\.js/);
   assert.match(pkg.scripts['verify:light'], /tests\/workflow-records\.test\.js/);
+  assert.match(pkg.scripts['verify:light'], /tests\/preview-qrcode-delivery\.test\.js/);
   assert.match(pkg.scripts['verify:full'], /npm test/);
   assert.match(pkg.scripts['verify:full'], /git diff --check/);
   assert.equal(pkg.scripts['screenshot:schedule'], 'node scripts/dev/weapp-ui-screenshot.js scheduleRunning');
@@ -20,6 +21,7 @@ test('package scripts expose the Windows agent workflow shortcuts', () => {
   assert.match(pkg.scripts['screenshot:diagnose'], /scripts\/dev\/weapp-screenshot-diagnose\.js/);
   assert.match(pkg.scripts['weapp:probe'], /probe-weapp-automation\.ps1/);
   assert.equal(pkg.scripts['records:latest'], 'node scripts/show-workflow-records.js');
+  assert.equal(pkg.scripts['mp:preview:deliver'], 'node scripts/mp-ci.js preview-deliver');
 });
 
 test('Windows environment checker reports private config without printing secret values', () => {
@@ -51,6 +53,8 @@ test('Windows development docs document the main project and legacy preview boun
   assert.match(docs, /docs\/records/);
   assert.match(docs, /npm run records:latest/);
   assert.match(docs, /badminton-miniapp-preview/);
+  assert.match(docs, /mp:preview:deliver/);
+  assert.match(docs, /preview-qrcodes/);
   assert.match(docs, /Do not upload the mini program/);
 });
 
