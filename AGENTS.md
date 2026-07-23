@@ -16,6 +16,13 @@
 - `docs/tools/we-analysis-local-script.md` — we分析数据拉取脚本使用说明
 - `docs/tools/weapp-ui-screenshot-workflow.md` — 微信开发者工具真实截图流程
 
+## Frontend Design Skill
+
+- 2026-07-24 起，下一代 UI 新建或重做必须加载个人 skill `frontend-design`，并同时遵守 `weapp-regression-guard`。
+- 安装位置：`C:\Users\LIZIXUAN\.codex\skills\frontend-design`；官方来源与校验记录见 next-gen 集成树的 `docs/next-gen/FRONTEND-DESIGN-SKILL.md`。
+- skill 的 web 设计原则要翻译为原生微信小程序约束：WXML/WXSS/JS、包体、低端机、系统字体、44px 触达、reduced motion、无远程视觉依赖；不得照搬 hover、Web 字体或浏览器专属 CSS。
+- 旧的暖米色+酸绿、暗底+荧光绿、报纸规则线三种方案均已被用户判退，也正是该 skill 警示的常见 AI 默认风格；只能作为反例，不能继续微调复用。
+
 ## Commands
 
 ```powershell
