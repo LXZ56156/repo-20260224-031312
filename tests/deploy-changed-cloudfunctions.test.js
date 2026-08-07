@@ -3,13 +3,18 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { resolveGitBash, toGitBashPath } = require('../scripts/lib/git-bash');
+
+const REPO_DIR = path.resolve(__dirname, '..');
 
 function runDeployPlan(files) {
+  const command = resolveGitBash();
+  const script = path.join(REPO_DIR, 'scripts/deploy-changed-cloudfunctions.sh');
   return spawnSync(
-    process.env.BASH_BIN || 'bash',
-    ['scripts/deploy-changed-cloudfunctions.sh', '--files-from', '-', '--dry-run'],
+    command,
+    [process.platform === 'win32' ? toGitBashPath(script) : script, '--files-from', '-', '--dry-run'],
     {
-      cwd: process.cwd(),
+      cwd: REPO_DIR,
       input: `${files.join('\n')}\n`,
       encoding: 'utf8'
     }

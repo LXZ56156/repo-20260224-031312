@@ -31,9 +31,34 @@ def should_prepare_mcp(payload: object) -> bool:
     return any(keyword in haystack for keyword in WEAPP_KEYWORDS)
 
 
+def resolve_git_bash() -> Path:
+    candidates = (
+        os.environ.get("WEAPP_GIT_BASH"),
+        os.environ.get("BASH_BIN"),
+        r"D:\Soft\Git\bin\bash.exe",
+        str(Path(os.environ.get("ProgramFiles", "")) / "Git" / "bin" / "bash.exe"),
+        str(Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Git" / "bin" / "bash.exe"),
+    )
+    for candidate in candidates:
+        if candidate and Path(candidate).is_absolute() and Path(candidate).is_file():
+            return Path(candidate)
+    raise FileNotFoundError("Git Bash was not found; set WEAPP_GIT_BASH to bash.exe")
+
+
+def to_git_bash_path(file_path: Path) -> str:
+    normalized = str(file_path.resolve()).replace("\\", "/")
+    if len(normalized) >= 2 and normalized[1] == ":":
+        return f"/{normalized[0].lower()}{normalized[2:]}"
+    return normalized
+
+
 def run_helper(mode: str) -> subprocess.CompletedProcess[str]:
+    helper = helper_path()
+    command = [str(helper), mode]
+    if os.name == "nt" and helper.suffix.lower() == ".sh":
+        command = [str(resolve_git_bash()), to_git_bash_path(helper), mode]
     return subprocess.run(
-        [str(helper_path()), mode],
+        command,
         cwd=repo_root(),
         capture_output=True,
         text=True,
@@ -48,7 +73,10 @@ def main() -> int:
         payload = {}
 
     mode = "mcp" if should_prepare_mcp(payload) else "mirror"
-    result = run_helper(mode)
+    try:
+        result = run_helper(mode)
+    except OSError as error:
+        result = subprocess.CompletedProcess([], 1, "", str(error))
     if result.returncode == 0:
         return 0
 

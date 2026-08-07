@@ -4,10 +4,17 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
+const { resolveGitBash, toGitBashPath } = require('../scripts/lib/git-bash');
 
 const REPO_DIR = path.resolve(__dirname, '..');
 const SYNC_SCRIPT = path.join(REPO_DIR, 'scripts/dev/weapp-sync-preview.sh');
 const DEV_SCRIPT = path.join(REPO_DIR, 'scripts/dev/weapp-dev.sh');
+const WINDOWS_GIT_BASH = process.platform === 'win32' ? resolveGitBash() : null;
+const SKIP_LEGACY_RUNTIME = process.platform === 'win32' && process.env.WEAPP_PREVIEW_WORKFLOW_RUNTIME_TESTS !== '1';
+
+function legacyRuntimeTest(name, fn) {
+  test(name, { skip: SKIP_LEGACY_RUNTIME ? 'legacy WSL mirror runtime is static-checked on Windows' : false }, fn);
+}
 
 function writeFile(filePath, content) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -106,14 +113,30 @@ exit 0
 }
 
 function runScript(scriptPath, args, env) {
-  return execFileSync(scriptPath, args, {
+  const useGitBash = process.platform === 'win32' && scriptPath.endsWith('.sh');
+  const command = useGitBash ? WINDOWS_GIT_BASH : scriptPath;
+  const commandArgs = useGitBash ? [toGitBashPath(scriptPath), ...args] : args;
+  return execFileSync(command, commandArgs, {
     cwd: REPO_DIR,
     env,
     encoding: 'utf8',
   });
 }
 
-test('sync-once writes a manifest and status reports synced-but-stopped mirror', () => {
+test('legacy preview scripts retain their guarded action contract on Windows', () => {
+  const syncScript = fs.readFileSync(SYNC_SCRIPT, 'utf8');
+  const devScript = fs.readFileSync(DEV_SCRIPT, 'utf8');
+
+  assert.match(syncScript, /sync-once\)/);
+  assert.match(syncScript, /signature\)/);
+  assert.match(syncScript, /ensure_safe_preview_dir/);
+  assert.match(devScript, /mirror\)/);
+  assert.match(devScript, /mcp\|start\)/);
+  assert.match(devScript, /status\)/);
+  assert.match(devScript, /stop\)/);
+});
+
+legacyRuntimeTest('sync-once writes a manifest and status reports synced-but-stopped mirror', () => {
   const fixture = createFixture();
 
   runScript(SYNC_SCRIPT, ['sync-once'], fixture.env);
@@ -131,7 +154,7 @@ test('sync-once writes a manifest and status reports synced-but-stopped mirror',
   assert.match(statusOutput, /自动同步未运行/);
 });
 
-test('status reports stale mirror after source changes beyond the last synced manifest', () => {
+legacyRuntimeTest('status reports stale mirror after source changes beyond the last synced manifest', () => {
   const fixture = createFixture();
 
   runScript(SYNC_SCRIPT, ['sync-once'], fixture.env);
@@ -144,7 +167,7 @@ test('status reports stale mirror after source changes beyond the last synced ma
   assert.match(statusOutput, /源码已变化/);
 });
 
-test('status keeps mirror synced when source only has empty directories pruned by rsync', () => {
+legacyRuntimeTest('status keeps mirror synced when source only has empty directories pruned by rsync', () => {
   const fixture = createFixture();
 
   fs.mkdirSync(path.join(fixture.sourceDir, 'miniprogram/styles'), { recursive: true });
@@ -156,7 +179,7 @@ test('status keeps mirror synced when source only has empty directories pruned b
   assert.doesNotMatch(statusOutput, /镜像状态：已过期/);
 });
 
-test('mirror starts background sync and waits until updated source reaches preview', () => {
+legacyRuntimeTest('mirror starts background sync and waits until updated source reaches preview', () => {
   const fixture = createFixture();
 
   try {
@@ -183,7 +206,7 @@ test('mirror starts background sync and waits until updated source reaches previ
   }
 });
 
-test('mcp starts wechat preview script first when devtools is not running', () => {
+legacyRuntimeTest('mcp starts wechat preview script first when devtools is not running', () => {
   const fixture = createFixture();
 
   try {
@@ -205,7 +228,7 @@ test('mcp starts wechat preview script first when devtools is not running', () =
   }
 });
 
-test('mcp skips wechat preview startup when devtools is already running', () => {
+legacyRuntimeTest('mcp skips wechat preview startup when devtools is already running', () => {
   const fixture = createFixture();
 
   try {

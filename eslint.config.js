@@ -1,9 +1,11 @@
-import js from "@eslint/js";
+const js = require("@eslint/js");
 
-export default [
+module.exports = [
+  {
+    ignores: ["node_modules/**", ".claude/**", "miniprogram/miniprogram_npm/**"],
+  },
   js.configs.recommended,
   {
-    ignores: ["node_modules/", ".claude/"],
     languageOptions: {
       globals: {
         // Mini Program globals

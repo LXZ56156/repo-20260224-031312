@@ -7,6 +7,7 @@ const { execFileSync } = require('node:child_process');
 
 const REPO_DIR = path.resolve(__dirname, '..');
 const HOOK_SCRIPT = path.join(REPO_DIR, '.codex/hooks/user_prompt_sync_windows_mirror.py');
+const STOP_HOOK_SCRIPT = path.join(REPO_DIR, '.codex/hooks/stop_sync_windows_mirror.py');
 
 function createFixture() {
   const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-user-prompt-hook-'));
@@ -41,6 +42,15 @@ function runHook(payload, env) {
   });
 }
 
+function runStopHook(payload, env) {
+  return execFileSync('python3', [STOP_HOOK_SCRIPT], {
+    cwd: REPO_DIR,
+    env,
+    input: JSON.stringify(payload),
+    encoding: 'utf8',
+  });
+}
+
 test('user prompt hook prepares full mcp chain for weapp-related prompts', () => {
   const fixture = createFixture();
 
@@ -53,6 +63,14 @@ test('user prompt hook keeps mirror-only preflight for unrelated prompts', () =>
   const fixture = createFixture();
 
   runHook({ prompt: '整理一下这份审计文档' }, fixture.env);
+
+  assert.equal(fs.readFileSync(fixture.modeLog, 'utf8').trim(), 'mirror');
+});
+
+test('stop hook routes mirror helper through Git Bash on Windows', () => {
+  const fixture = createFixture();
+
+  runStopHook({}, fixture.env);
 
   assert.equal(fs.readFileSync(fixture.modeLog, 'utf8').trim(), 'mirror');
 });
