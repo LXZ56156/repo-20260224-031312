@@ -1,6 +1,8 @@
 const profileCore = require('../../core/profile');
 const waterApi = require('../../core/waterSession');
 const waterLedger = require('../../core/waterLedger');
+const actionGuard = require('../../core/actionGuard');
+const clientRequest = require('../../core/clientRequest');
 const lobbyImportActions = require('../lobby/lobbyImportActions');
 
 const unitOptions = Array.from({ length: 99 }, (_, index) => String(index + 1));
@@ -100,6 +102,10 @@ function isOlderSession(current, incoming) {
   return Number.isFinite(currentVersion) && Number.isFinite(incomingVersion) && incomingVersion < currentVersion;
 }
 
+function mutationFingerprint(sessionId, action, payload) {
+  return JSON.stringify([String(sessionId || ''), String(action || ''), payload]);
+}
+
 Page({
   data: {
     loading: true,
@@ -171,6 +177,7 @@ Page({
   onUnload() {
     this._isVisible = false;
     this.clearRefreshTimer();
+    this._mutationIntents = {};
   },
 
   ensureRefreshTimer() {
@@ -183,6 +190,45 @@ Page({
     this._refreshTimer = null;
   },
 
+  writeGuardKey(sessionId = this.data.sessionId) {
+    return `water:write:${String(sessionId || '').trim() || 'new'}`;
+  },
+
+  runWithWriteGuard(task, sessionId = this.data.sessionId) {
+    const guardKey = this.writeGuardKey(sessionId);
+    return actionGuard.runWithCriticalPageBusy(this, 'busy', guardKey, task);
+  },
+
+  mutationIntent(action, payload) {
+    const fingerprint = mutationFingerprint(this.data.sessionId, action, payload);
+    const intents = this._mutationIntents || {};
+    const current = intents[action];
+    if (current && current.fingerprint === fingerprint) return current;
+    const next = {
+      fingerprint,
+      clientRequestId: clientRequest.buildClientRequestId(`water_${action}`)
+    };
+    this._mutationIntents = { ...intents, [action]: next };
+    return next;
+  },
+
+  clearMutationIntent(action, fingerprint = '') {
+    const intents = this._mutationIntents || {};
+    const current = intents[action];
+    if (!current || fingerprint && current.fingerprint !== fingerprint) return;
+    const next = { ...intents };
+    delete next[action];
+    this._mutationIntents = next;
+  },
+
+  touchSheet() {
+    this._sheetGeneration = Number(this._sheetGeneration || 0) + 1;
+  },
+
+  beginSheet() {
+    this.touchSheet();
+  },
+
   async onPullDownRefresh() {
     await this.loadSession({ silent: true });
     wx.stopPullDownRefresh();
@@ -190,14 +236,22 @@ Page({
 
   async createOrContinue() {
     this.setData({ loading: true, loadError: '' });
-    const gate = await profileCore.ensureProfileForAction('generic', '/pages/water/index');
-    if (!gate.ok) {
-      this.setData({ loading: false, loadError: gate.reason === 'login_failed' ? '登录失败，请重试' : '' });
-      return;
-    }
     try {
-      const response = await waterApi.create(profileName(gate.profile));
-      this.applySession(sessionFrom(response));
+      const outcome = await this.runWithWriteGuard(async () => {
+        const gate = await profileCore.ensureProfileForAction('generic', '/pages/water/index');
+        if (!gate.ok) return { gate };
+        const ownerName = profileName(gate.profile);
+        const intent = this.mutationIntent('create', [ownerName]);
+        const response = await waterApi.create(ownerName, { clientRequestId: intent.clientRequestId });
+        this.clearMutationIntent('create', intent.fingerprint);
+        return { gate, response };
+      }, '');
+      if (!outcome || !outcome.gate || !outcome.gate.ok) {
+        const reason = outcome && outcome.gate && outcome.gate.reason;
+        this.setData({ loading: false, loadError: reason === 'login_failed' ? '登录失败，请重试' : '' });
+        return;
+      }
+      this.applySession(sessionFrom(outcome.response));
     } catch (err) {
       this.setData({ loading: false, loadError: String(err && err.message || '暂时无法开始打水') });
     }
@@ -232,6 +286,10 @@ Page({
 
   applySession(session) {
     if (!session || isOlderSession(this.data.session, session)) return false;
+    const incomingSessionId = String(session.id || '');
+    const intentSessionId = String(this._intentSessionId || '');
+    if (intentSessionId && incomingSessionId !== intentSessionId) this._mutationIntents = {};
+    this._intentSessionId = incomingSessionId;
     const participants = Array.isArray(session.participants) ? session.participants : [];
     const entries = Array.isArray(session.entries) ? session.entries : [];
     const nameMap = {};
@@ -283,6 +341,7 @@ Page({
   },
 
   openManualSheet() {
+    this.beginSheet();
     this.setData({
       manualSheetOpen: true,
       addMode: 'manual',
@@ -297,6 +356,7 @@ Page({
   },
 
   closeSheets() {
+    this.touchSheet();
     this.setData({ manualSheetOpen: false, gameSheetOpen: false, adjustSheetOpen: false });
   },
 
@@ -309,6 +369,8 @@ Page({
   onSelectAddMode(e) {
     const mode = String(e.currentTarget.dataset.mode || '');
     if (mode !== 'manual' && mode !== 'relay') return;
+    if (mode === this.data.addMode) return;
+    this.touchSheet();
     this.setData({ addMode: mode });
   },
 
@@ -321,10 +383,20 @@ Page({
   },
 
   async submitManual() {
-    if (!String(this.data.manualNames || '').trim()) return showError(null, '请输入球友名字');
+    const names = String(this.data.manualNames || '');
+    if (!names.trim()) return showError(null, '请输入球友名字');
+    const sessionId = this.data.sessionId;
+    const expectedVersion = this.data.session.version;
     await this.runMutation(
-      () => waterApi.addParticipants(this.data.sessionId, this.data.session.version, this.data.manualNames),
-      '已添加'
+      (clientRequestId) => waterApi.addParticipants(sessionId, expectedVersion, names, { clientRequestId }),
+      '已添加',
+      {
+        action: 'add_manual',
+        payload: [names],
+        currentPayload: () => [String(this.data.manualNames || '')],
+        isCurrentSheet: () => this.data.manualSheetOpen && this.data.addMode === 'manual',
+        closeSheet: true
+      }
     );
   },
 
@@ -334,14 +406,25 @@ Page({
       return showError(null, this.data.relayOverflowCount ? '这次打水最多 24 人' : '没有可添加的新球友');
     }
     const count = this.data.relayNewNames.length;
+    const names = this.data.relayNewNames.join('\n');
+    const sessionId = this.data.sessionId;
+    const expectedVersion = this.data.session.version;
     await this.runMutation(
-      () => waterApi.addParticipants(this.data.sessionId, this.data.session.version, this.data.relayNewNames.join('\n')),
-      `已添加 ${count} 人`
+      (clientRequestId) => waterApi.addParticipants(sessionId, expectedVersion, names, { clientRequestId }),
+      `已添加 ${count} 人`,
+      {
+        action: 'add_relay',
+        payload: [names],
+        currentPayload: () => [(this.data.relayNewNames || []).join('\n')],
+        isCurrentSheet: () => this.data.manualSheetOpen && this.data.addMode === 'relay',
+        closeSheet: true
+      }
     );
   },
 
   openGameSheet() {
     if (this.data.participants.length < 2) return showError(null, '至少添加 2 人才能记一局');
+    this.beginSheet();
     this.setData({
       gameSheetOpen: true,
       gameUnitIndex: 0,
@@ -402,16 +485,32 @@ Page({
   },
 
   onGameUnitChange(e) {
-    this.setData({ gameUnitIndex: Number(e.detail.value || 0) });
+    const gameUnitIndex = Number(e.detail.value || 0);
+    if (gameUnitIndex === this.data.gameUnitIndex) return;
+    this.setData({ gameUnitIndex });
   },
 
   async submitGame() {
-    const winners = this.data.winnerIds;
-    const losers = this.data.loserIds;
+    const winners = this.data.winnerIds.slice();
+    const losers = this.data.loserIds.slice();
     if (!winners.length || winners.length !== losers.length) return showError(null, '请选择人数相同的胜方和负方');
+    const sessionId = this.data.sessionId;
+    const expectedVersion = this.data.session.version;
+    const unitsPerPlayer = Number(this.data.gameUnitIndex) + 1;
     await this.runMutation(
-      () => waterApi.recordGame(this.data.sessionId, this.data.session.version, winners, losers, Number(this.data.gameUnitIndex) + 1),
-      '已记一局'
+      (clientRequestId) => waterApi.recordGame(sessionId, expectedVersion, winners, losers, unitsPerPlayer, { clientRequestId }),
+      '已记一局',
+      {
+        action: 'game',
+        payload: [winners, losers, unitsPerPlayer],
+        currentPayload: () => [
+          (this.data.winnerIds || []).slice(),
+          (this.data.loserIds || []).slice(),
+          Number(this.data.gameUnitIndex) + 1
+        ],
+        isCurrentSheet: () => this.data.gameSheetOpen,
+        closeSheet: true
+      }
     );
   },
 
@@ -420,6 +519,7 @@ Page({
     const target = this.data.participants.find((item) => item.id === targetId);
     const counterparties = this.data.participants.filter((item) => item.id !== targetId);
     if (!target || !counterparties.length) return showError(null, '请先添加另一位球友');
+    this.beginSheet();
     this.setData({
       adjustSheetOpen: true,
       adjustTargetId: targetId,
@@ -432,26 +532,51 @@ Page({
   },
 
   onAdjustUnitChange(e) {
-    this.setData({ adjustUnitIndex: Number(e.detail.value || 0) });
+    const adjustUnitIndex = Number(e.detail.value || 0);
+    if (adjustUnitIndex === this.data.adjustUnitIndex) return;
+    this.setData({ adjustUnitIndex });
   },
 
   onCounterpartyChange(e) {
-    this.setData({ counterpartyIndex: Number(e.detail.value || 0) });
+    const counterpartyIndex = Number(e.detail.value || 0);
+    if (counterpartyIndex === this.data.counterpartyIndex) return;
+    this.setData({ counterpartyIndex });
   },
 
   async submitAdjust() {
     const other = this.data.counterparties[this.data.counterpartyIndex];
     if (!other) return showError(null, '请选择算在谁头上');
+    const sessionId = this.data.sessionId;
+    const expectedVersion = this.data.session.version;
+    const targetId = this.data.adjustTargetId;
+    const direction = this.data.adjustDirection;
+    const units = Number(this.data.adjustUnitIndex) + 1;
     await this.runMutation(
-      () => waterApi.recordDirect(
-        this.data.sessionId,
-        this.data.session.version,
-        this.data.adjustTargetId,
+      (clientRequestId) => waterApi.recordDirect(
+        sessionId,
+        expectedVersion,
+        targetId,
         other.id,
-        this.data.adjustDirection,
-        Number(this.data.adjustUnitIndex) + 1
+        direction,
+        units,
+        { clientRequestId }
       ),
-      '已记账'
+      '已记账',
+      {
+        action: 'direct',
+        payload: [targetId, other.id, direction, units],
+        currentPayload: () => {
+          const currentOther = (this.data.counterparties || [])[this.data.counterpartyIndex];
+          return [
+            this.data.adjustTargetId,
+            currentOther ? currentOther.id : '',
+            this.data.adjustDirection,
+            Number(this.data.adjustUnitIndex) + 1
+          ];
+        },
+        isCurrentSheet: () => this.data.adjustSheetOpen,
+        closeSheet: true
+      }
     );
   },
 
@@ -460,41 +585,71 @@ Page({
   },
 
   async onJoin() {
-    const choice = this.data.joinChoices[this.data.joinIndex] || { id: '' };
-    const claimParticipantId = String(choice.id || '');
-    const gate = await profileCore.ensureProfileForAction('generic', `/pages/water/index?id=${this.data.sessionId}`);
-    if (!gate.ok) return;
-    await this.runMutation(
-      () => waterApi.join(this.data.sessionId, this.data.session.version, profileName(gate.profile), claimParticipantId),
-      '已加入'
-    );
+    const sessionId = this.data.sessionId;
+    return this.runWithWriteGuard(async () => {
+      const choice = this.data.joinChoices[this.data.joinIndex] || { id: '' };
+      const claimParticipantId = String(choice.id || '');
+      const gate = await profileCore.ensureProfileForAction('generic', `/pages/water/index?id=${sessionId}`);
+      if (!gate.ok || this.data.sessionId !== sessionId) return;
+      const nickname = profileName(gate.profile);
+      const expectedVersion = this.data.session.version;
+      await this.executeMutation(
+        (clientRequestId) => waterApi.join(sessionId, expectedVersion, nickname, claimParticipantId, { clientRequestId }),
+        '已加入',
+        { action: 'join', payload: [nickname, claimParticipantId], closeSheet: false }
+      );
+    }, sessionId);
   },
 
   async onUndoLast() {
     if (!this.data.entryCount) return;
-    const modal = await new Promise((resolve) => wx.showModal({
-      title: '撤销上一条？',
-      content: this.data.recentEntries[0] ? this.data.recentEntries[0].description : '',
-      confirmText: '撤销',
-      confirmColor: '#DC2626',
-      success: resolve,
-      fail: () => resolve({ confirm: false })
-    }));
-    if (!modal.confirm) return;
-    await this.runMutation(
-      () => waterApi.undoLast(this.data.sessionId, this.data.session.version),
-      '已撤销'
+    const sessionId = this.data.sessionId;
+    return this.runWithWriteGuard(async () => {
+      const expectedVersion = this.data.session.version;
+      const targetEntry = this.data.recentEntries[0] || {};
+      const targetEntryId = String(targetEntry.id || `${targetEntry.createdAtMs || ''}:${targetEntry.description || ''}`);
+      const modal = await new Promise((resolve) => wx.showModal({
+        title: '撤销上一条？',
+        content: String(targetEntry.description || ''),
+        confirmText: '撤销',
+        confirmColor: '#DC2626',
+        success: resolve,
+        fail: () => resolve({ confirm: false })
+      }));
+      if (!modal.confirm || this.data.sessionId !== sessionId) return;
+      await this.executeMutation(
+        (clientRequestId) => waterApi.undoLast(sessionId, expectedVersion, { clientRequestId }),
+        '已撤销',
+        { action: 'undo', payload: [targetEntryId], closeSheet: false }
+      );
+    }, sessionId);
+  },
+
+  runMutation(task, successText, options = {}) {
+    const sessionId = this.data.sessionId;
+    return this.runWithWriteGuard(
+      () => this.executeMutation(task, successText, options),
+      sessionId
     );
   },
 
-  async runMutation(task, successText) {
-    if (this.data.busy) return;
+  async executeMutation(task, successText, options = {}) {
+    const intent = options.action ? this.mutationIntent(options.action, options.payload) : null;
+    const sheetGeneration = Number(this._sheetGeneration || 0);
     this.setData({ busy: true });
     try {
-      const response = await task();
+      const response = await task(intent ? intent.clientRequestId : '');
+      const payloadUnchanged = !intent || typeof options.currentPayload !== 'function'
+        || mutationFingerprint(this.data.sessionId, options.action, options.currentPayload()) === intent.fingerprint;
       this.applySession(sessionFrom(response));
-      this.closeSheets();
+      if (intent) this.clearMutationIntent(options.action, intent.fingerprint);
+      const sameSheet = Number(this._sheetGeneration || 0) === sheetGeneration
+        || typeof options.isCurrentSheet === 'function' && options.isCurrentSheet();
+      if (options.closeSheet && payloadUnchanged && sameSheet) {
+        this.closeSheets();
+      }
       wx.showToast({ title: successText, icon: 'success' });
+      return response;
     } catch (err) {
       showError(err);
       if (String(err && err.state || '') === 'conflict') await this.loadSession({ silent: true, force: true });

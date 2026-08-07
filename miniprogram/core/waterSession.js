@@ -12,22 +12,24 @@ async function call(action, data = {}) {
 }
 
 module.exports = {
-  create(ownerName) { return call('create', { ownerName }); },
+  create(ownerName, options = {}) {
+    return call('create', { ownerName, clientRequestId: options.clientRequestId });
+  },
   get(sessionId) { return call('get', { sessionId }); },
   getMineActive() { return call('getMineActive'); },
-  join(sessionId, expectedVersion, nickname, claimParticipantId = '') {
-    return call('join', { sessionId, expectedVersion, nickname, claimParticipantId });
+  join(sessionId, expectedVersion, nickname, claimParticipantId = '', options = {}) {
+    return call('join', { sessionId, expectedVersion, nickname, claimParticipantId, clientRequestId: options.clientRequestId });
   },
-  addParticipants(sessionId, expectedVersion, names) {
-    return call('addParticipants', { sessionId, expectedVersion, names });
+  addParticipants(sessionId, expectedVersion, names, options = {}) {
+    return call('addParticipants', { sessionId, expectedVersion, names, clientRequestId: options.clientRequestId });
   },
-  recordGame(sessionId, expectedVersion, winnerIds, loserIds, unitsPerPlayer) {
-    return call('recordGame', { sessionId, expectedVersion, winnerIds, loserIds, unitsPerPlayer });
+  recordGame(sessionId, expectedVersion, winnerIds, loserIds, unitsPerPlayer, options = {}) {
+    return call('recordGame', { sessionId, expectedVersion, winnerIds, loserIds, unitsPerPlayer, clientRequestId: options.clientRequestId });
   },
-  recordDirect(sessionId, expectedVersion, playerId, counterpartyId, direction, units) {
-    return call('recordDirect', { sessionId, expectedVersion, playerId, counterpartyId, direction, units });
+  recordDirect(sessionId, expectedVersion, playerId, counterpartyId, direction, units, options = {}) {
+    return call('recordDirect', { sessionId, expectedVersion, playerId, counterpartyId, direction, units, clientRequestId: options.clientRequestId });
   },
-  undoLast(sessionId, expectedVersion) {
-    return call('undoLast', { sessionId, expectedVersion });
+  undoLast(sessionId, expectedVersion, options = {}) {
+    return call('undoLast', { sessionId, expectedVersion, clientRequestId: options.clientRequestId });
   }
 };

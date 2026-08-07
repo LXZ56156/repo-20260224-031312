@@ -2,6 +2,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const Module = require('node:module');
 
+const actionGuard = require('../miniprogram/core/actionGuard');
+
 const pagePath = require.resolve('../miniprogram/pages/water/index.js');
 
 function loadPageDefinition(overrides = {}) {
@@ -69,6 +71,73 @@ function deferred() {
   });
   return { promise, resolve, reject };
 }
+
+test('water create guard covers the profile gate and sends one write on repeated taps', async () => {
+  const gate = deferred();
+  let gateCalls = 0;
+  const createCalls = [];
+  const definition = loadPageDefinition({
+    profile: {
+      ensureProfileForAction() {
+        gateCalls += 1;
+        return gate.promise;
+      }
+    },
+    waterSession: {
+      async create(...args) {
+        createCalls.push(args);
+        return { session: sessionFixture(1) };
+      }
+    }
+  });
+  const ctx = createContext(definition);
+
+  const first = ctx.createOrContinue();
+  const second = ctx.createOrContinue();
+  assert.equal(ctx.data.busy, true);
+  gate.resolve({ ok: true, profile: { nickName: '阿杰' } });
+  try {
+    await Promise.all([first, second]);
+  } finally {
+    actionGuard.clear('water:write:new');
+  }
+
+  assert.equal(gateCalls, 1);
+  assert.equal(createCalls.length, 1);
+  assert.equal(createCalls[0][0], '阿杰');
+  assert.match(String(createCalls[0][1] && createCalls[0][1].clientRequestId || ''), /^water_create_/);
+  assert.equal(ctx.data.busy, false);
+  assert.equal(ctx.data.sessionId, 'water_1');
+});
+
+test('water create retry reuses its request id after an ambiguous failure', async () => {
+  const createCalls = [];
+  const definition = loadPageDefinition({
+    profile: {
+      async ensureProfileForAction() {
+        return { ok: true, profile: { nickName: '阿杰' } };
+      }
+    },
+    waterSession: {
+      async create(...args) {
+        createCalls.push(args);
+        throw new Error('network timeout');
+      }
+    }
+  });
+  const ctx = createContext(definition);
+
+  try {
+    await ctx.createOrContinue();
+    await ctx.createOrContinue();
+  } finally {
+    actionGuard.clear('water:write:new');
+  }
+
+  assert.equal(createCalls.length, 2);
+  assert.equal(createCalls[0][1].clientRequestId, createCalls[1][1].clientRequestId);
+  assert.equal(ctx.data.busy, false);
+});
 
 test('water page starts polling when first async session arrives after onShow', () => {
   const definition = loadPageDefinition();
@@ -275,7 +344,9 @@ test('water relay submit uses the existing addParticipants contract with parsed 
     global.wx = originalWx;
   }
 
-  assert.deepEqual(calls, [['water_1', 3, 'Chris\n王姐']]);
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].slice(0, 3), ['water_1', 3, 'Chris\n王姐']);
+  assert.match(String(calls[0][3] && calls[0][3].clientRequestId || ''), /^water_add_relay_/);
   assert.equal(toasts.at(-1).title, '已添加 2 人');
   assert.equal(ctx.data.manualSheetOpen, false);
 });
@@ -456,7 +527,9 @@ test('water join captures the intended claim before awaiting the profile gate', 
     global.wx = originalWx;
   }
 
-  assert.deepEqual(calls, [['water_1', 2, '访客', 'p3']]);
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].slice(0, 4), ['water_1', 2, '访客', 'p3']);
+  assert.match(String(calls[0][4] && calls[0][4].clientRequestId || ''), /^water_join_/);
 });
 
 test('water relay preview is recomputed when polling changes the roster', () => {
@@ -477,4 +550,504 @@ test('water relay preview is recomputed when polling changes the roster', () => 
 
   assert.deepEqual(ctx.data.relayNewNames, []);
   assert.equal(ctx.data.relayDuplicateCount, 1);
+});
+
+test('water game retry reuses the same request id until the draft changes', async () => {
+  const calls = [];
+  const definition = loadPageDefinition({
+    waterSession: {
+      async recordGame(...args) {
+        calls.push(args);
+        throw new Error('network timeout');
+      }
+    }
+  });
+  const ctx = createContext(definition);
+  const originalWx = global.wx;
+  global.wx = { showToast() {} };
+  ctx.applySession(sessionFixture(1));
+  ctx.openGameSheet();
+  ctx.onToggleGamePlayer({ currentTarget: { dataset: { id: 'p1' } } });
+  ctx.onSelectGameSide({ currentTarget: { dataset: { side: 'loser' } } });
+  ctx.onToggleGamePlayer({ currentTarget: { dataset: { id: 'p2' } } });
+
+  try {
+    await ctx.submitGame();
+    await ctx.submitGame();
+    ctx.onGameUnitChange({ detail: { value: 1 } });
+    await ctx.submitGame();
+  } finally {
+    global.wx = originalWx;
+    actionGuard.clear('water:write:water_1');
+  }
+
+  assert.equal(calls.length, 3);
+  assert.match(String(calls[0][5] && calls[0][5].clientRequestId || ''), /^water_game_/);
+  assert.equal(calls[1][5].clientRequestId, calls[0][5].clientRequestId);
+  assert.notEqual(calls[2][5].clientRequestId, calls[0][5].clientRequestId);
+});
+
+test('water game request id changes when the submitted player order changes', async () => {
+  const calls = [];
+  const definition = loadPageDefinition({
+    waterSession: {
+      async recordGame(...args) {
+        calls.push(args);
+        throw new Error('network timeout');
+      }
+    }
+  });
+  const ctx = createContext(definition);
+  const originalWx = global.wx;
+  global.wx = { showToast() {} };
+  ctx.applySession(sessionFixture(1, {
+    participants: [
+      { id: 'p1', name: '阿杰', claimed: true },
+      { id: 'p2', name: '小林', claimed: true },
+      { id: 'p3', name: 'Chris', claimed: false },
+      { id: 'p4', name: '王姐', claimed: false },
+    ]
+  }));
+  ctx.openGameSheet();
+  ctx.onToggleGamePlayer({ currentTarget: { dataset: { id: 'p1' } } });
+  ctx.onToggleGamePlayer({ currentTarget: { dataset: { id: 'p2' } } });
+  ctx.onSelectGameSide({ currentTarget: { dataset: { side: 'loser' } } });
+  ctx.onToggleGamePlayer({ currentTarget: { dataset: { id: 'p3' } } });
+  ctx.onToggleGamePlayer({ currentTarget: { dataset: { id: 'p4' } } });
+
+  try {
+    await ctx.submitGame();
+    ctx.onSelectGameSide({ currentTarget: { dataset: { side: 'winner' } } });
+    ctx.onToggleGamePlayer({ currentTarget: { dataset: { id: 'p1' } } });
+    ctx.onToggleGamePlayer({ currentTarget: { dataset: { id: 'p1' } } });
+    await ctx.submitGame();
+  } finally {
+    global.wx = originalWx;
+    actionGuard.clear('water:write:water_1');
+  }
+
+  assert.deepEqual(calls[0][2], ['p1', 'p2']);
+  assert.deepEqual(calls[1][2], ['p2', 'p1']);
+  assert.notEqual(calls[0][5].clientRequestId, calls[1][5].clientRequestId);
+});
+
+test('water game retry keeps its request id after closing and reopening the same failed draft', async () => {
+  const firstCall = deferred();
+  const calls = [];
+  const definition = loadPageDefinition({
+    waterSession: {
+      recordGame(...args) {
+        calls.push(args);
+        return calls.length === 1 ? firstCall.promise : Promise.reject(new Error('network timeout'));
+      }
+    }
+  });
+  const ctx = createContext(definition);
+  const originalWx = global.wx;
+  global.wx = { showToast() {} };
+  ctx.applySession(sessionFixture(1));
+
+  function selectSameGame() {
+    ctx.openGameSheet();
+    ctx.onToggleGamePlayer({ currentTarget: { dataset: { id: 'p1' } } });
+    ctx.onSelectGameSide({ currentTarget: { dataset: { side: 'loser' } } });
+    ctx.onToggleGamePlayer({ currentTarget: { dataset: { id: 'p2' } } });
+  }
+
+  selectSameGame();
+  const firstSubmit = ctx.submitGame();
+  ctx.closeSheets();
+  selectSameGame();
+  firstCall.reject(new Error('network timeout'));
+  await firstSubmit;
+  try {
+    await ctx.submitGame();
+  } finally {
+    global.wx = originalWx;
+    actionGuard.clear('water:write:water_1');
+  }
+
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0][5].clientRequestId, calls[1][5].clientRequestId);
+});
+
+test('a successful pending game closes the same draft rebuilt in a reopened sheet', async () => {
+  const pending = deferred();
+  let calls = 0;
+  const definition = loadPageDefinition({
+    waterSession: {
+      recordGame() {
+        calls += 1;
+        return pending.promise;
+      }
+    }
+  });
+  const ctx = createContext(definition);
+  const originalWx = global.wx;
+  global.wx = { showToast() {} };
+  ctx.applySession(sessionFixture(1));
+
+  function selectSameGame() {
+    ctx.openGameSheet();
+    ctx.onToggleGamePlayer({ currentTarget: { dataset: { id: 'p1' } } });
+    ctx.onSelectGameSide({ currentTarget: { dataset: { side: 'loser' } } });
+    ctx.onToggleGamePlayer({ currentTarget: { dataset: { id: 'p2' } } });
+  }
+
+  selectSameGame();
+  const submit = ctx.submitGame();
+  ctx.closeSheets();
+  selectSameGame();
+  pending.resolve({ session: sessionFixture(2) });
+  try {
+    await submit;
+  } finally {
+    global.wx = originalWx;
+    actionGuard.clear('water:write:water_1');
+  }
+
+  assert.equal(calls, 1);
+  assert.equal(ctx.data.gameSheetOpen, false);
+});
+
+test('water manual add changes its request id when the exact submitted text changes', async () => {
+  const calls = [];
+  const definition = loadPageDefinition({
+    waterSession: {
+      async addParticipants(...args) {
+        calls.push(args);
+        throw new Error('network timeout');
+      }
+    }
+  });
+  const ctx = createContext(definition);
+  const originalWx = global.wx;
+  global.wx = { showToast() {} };
+  ctx.applySession(sessionFixture(1));
+  ctx.openManualSheet();
+
+  try {
+    ctx.onManualInput({ detail: { value: '小陈' } });
+    await ctx.submitManual();
+    ctx.onManualInput({ detail: { value: ' 小陈 ' } });
+    await ctx.submitManual();
+  } finally {
+    global.wx = originalWx;
+    actionGuard.clear('water:write:water_1');
+  }
+
+  assert.equal(calls.length, 2);
+  assert.notEqual(calls[0][3].clientRequestId, calls[1][3].clientRequestId);
+});
+
+test('water direct adjustment retry reuses its request id until the amount changes', async () => {
+  const calls = [];
+  const definition = loadPageDefinition({
+    waterSession: {
+      async recordDirect(...args) {
+        calls.push(args);
+        throw new Error('network timeout');
+      }
+    }
+  });
+  const ctx = createContext(definition);
+  const originalWx = global.wx;
+  global.wx = { showToast() {} };
+  ctx.applySession(sessionFixture(1));
+  ctx.openAdjustSheet({ currentTarget: { dataset: { id: 'p1', direction: 'plus' } } });
+
+  try {
+    await ctx.submitAdjust();
+    await ctx.submitAdjust();
+    ctx.onAdjustUnitChange({ detail: { value: 1 } });
+    await ctx.submitAdjust();
+  } finally {
+    global.wx = originalWx;
+    actionGuard.clear('water:write:water_1');
+  }
+
+  assert.equal(calls.length, 3);
+  assert.match(String(calls[0][6] && calls[0][6].clientRequestId || ''), /^water_direct_/);
+  assert.equal(calls[1][6].clientRequestId, calls[0][6].clientRequestId);
+  assert.notEqual(calls[2][6].clientRequestId, calls[0][6].clientRequestId);
+});
+
+test('water undo guard covers the confirmation modal and sends only one write', async () => {
+  let modalCalls = 0;
+  const undoCalls = [];
+  const definition = loadPageDefinition({
+    waterSession: {
+      async undoLast(...args) {
+        undoCalls.push(args);
+        return { session: sessionFixture(2, { entries: [] }) };
+      }
+    }
+  });
+  const ctx = createContext(definition);
+  const originalWx = global.wx;
+  global.wx = {
+    showToast() {},
+    showModal(options) {
+      modalCalls += 1;
+      options.success({ confirm: true, cancel: false });
+    }
+  };
+  ctx.applySession(sessionFixture(1, {
+    entries: [{ id: 'entry_1', type: 'direct', createdAtMs: 1 }]
+  }));
+
+  try {
+    await Promise.all([ctx.onUndoLast(), ctx.onUndoLast()]);
+  } finally {
+    global.wx = originalWx;
+    actionGuard.clear('water:write:water_1');
+  }
+
+  assert.equal(modalCalls, 1);
+  assert.equal(undoCalls.length, 1);
+  assert.match(String(undoCalls[0][2] && undoCalls[0][2].clientRequestId || ''), /^water_undo_/);
+});
+
+test('water undo snapshots the confirmed entry version before the modal wait', async () => {
+  let modalOptions;
+  const undoCalls = [];
+  const definition = loadPageDefinition({
+    waterSession: {
+      async undoLast(...args) {
+        undoCalls.push(args);
+        throw Object.assign(new Error('账本已更新'), { state: 'conflict' });
+      },
+      async get() {
+        return { session: sessionFixture(2, { entries: [{ id: 'entry_2', type: 'direct' }] }) };
+      }
+    }
+  });
+  const ctx = createContext(definition);
+  const originalWx = global.wx;
+  global.wx = {
+    showToast() {},
+    showModal(options) { modalOptions = options; }
+  };
+  ctx.applySession(sessionFixture(1, {
+    entries: [{ id: 'entry_1', type: 'direct', createdAtMs: 1 }]
+  }));
+
+  const undoing = ctx.onUndoLast();
+  ctx.applySession(sessionFixture(2, {
+    entries: [{ id: 'entry_2', type: 'direct', createdAtMs: 2 }]
+  }));
+  modalOptions.success({ confirm: true, cancel: false });
+  try {
+    await undoing;
+  } finally {
+    global.wx = originalWx;
+    actionGuard.clear('water:write:water_1');
+  }
+
+  assert.equal(undoCalls.length, 1);
+  assert.equal(undoCalls[0][1], 1);
+});
+
+test('water undo retry reuses the id for the same top entry and rotates it for the next entry', async () => {
+  const undoCalls = [];
+  const definition = loadPageDefinition({
+    waterSession: {
+      async undoLast(...args) {
+        undoCalls.push(args);
+        throw new Error('network timeout');
+      }
+    }
+  });
+  const ctx = createContext(definition);
+  const originalWx = global.wx;
+  global.wx = {
+    showToast() {},
+    showModal(options) { options.success({ confirm: true, cancel: false }); }
+  };
+  ctx.applySession(sessionFixture(1, {
+    entries: [{ id: 'entry_1', type: 'direct', createdAtMs: 1 }]
+  }));
+
+  try {
+    await ctx.onUndoLast();
+    await ctx.onUndoLast();
+    ctx.applySession(sessionFixture(2, {
+      entries: [{ id: 'entry_2', type: 'direct', createdAtMs: 2 }]
+    }));
+    await ctx.onUndoLast();
+  } finally {
+    global.wx = originalWx;
+    actionGuard.clear('water:write:water_1');
+  }
+
+  assert.equal(undoCalls.length, 3);
+  assert.equal(undoCalls[1][2].clientRequestId, undoCalls[0][2].clientRequestId);
+  assert.notEqual(undoCalls[2][2].clientRequestId, undoCalls[0][2].clientRequestId);
+});
+
+test('water join guard starts before the asynchronous profile gate', async () => {
+  const gate = deferred();
+  let gateCalls = 0;
+  let joinCalls = 0;
+  const definition = loadPageDefinition({
+    profile: {
+      ensureProfileForAction() {
+        gateCalls += 1;
+        return gate.promise;
+      }
+    },
+    waterSession: {
+      async join() {
+        joinCalls += 1;
+        return { session: sessionFixture(2, { isOwner: false, viewerParticipantId: 'p3' }) };
+      }
+    }
+  });
+  const ctx = createContext(definition);
+  const originalWx = global.wx;
+  global.wx = { showToast() {} };
+  const viewerSession = sessionFixture(1, { isOwner: false, viewerParticipantId: '' });
+  ctx.applySession(viewerSession);
+  ctx.setData({ joinIndex: ctx.data.joinChoices.findIndex((item) => item.id === 'p3') });
+
+  const first = ctx.onJoin();
+  const second = ctx.onJoin();
+  assert.equal(ctx.data.busy, true);
+  gate.resolve({ ok: true, profile: { nickName: '访客' } });
+  try {
+    await Promise.all([first, second]);
+  } finally {
+    global.wx = originalWx;
+    actionGuard.clear('water:write:water_1');
+  }
+
+  assert.equal(gateCalls, 1);
+  assert.equal(joinCalls, 1);
+  assert.equal(ctx.data.busy, false);
+});
+
+test('an older mutation does not close a sheet opened while it was pending', async () => {
+  const pending = deferred();
+  const definition = loadPageDefinition({
+    waterSession: {
+      recordGame() { return pending.promise; }
+    }
+  });
+  const ctx = createContext(definition);
+  const originalWx = global.wx;
+  global.wx = { showToast() {} };
+  ctx.applySession(sessionFixture(1));
+  ctx.openGameSheet();
+  ctx.onToggleGamePlayer({ currentTarget: { dataset: { id: 'p1' } } });
+  ctx.onSelectGameSide({ currentTarget: { dataset: { side: 'loser' } } });
+  ctx.onToggleGamePlayer({ currentTarget: { dataset: { id: 'p2' } } });
+
+  const submit = ctx.submitGame();
+  ctx.closeSheets();
+  ctx.openManualSheet();
+  pending.resolve({ session: sessionFixture(2) });
+  try {
+    await submit;
+  } finally {
+    global.wx = originalWx;
+    actionGuard.clear('water:write:water_1');
+  }
+
+  assert.equal(ctx.data.manualSheetOpen, true);
+  assert.equal(ctx.data.gameSheetOpen, false);
+});
+
+test('a pending add does not close the sheet after the user switches add mode', async () => {
+  const pending = deferred();
+  const definition = loadPageDefinition({
+    waterSession: {
+      addParticipants() { return pending.promise; }
+    }
+  });
+  const ctx = createContext(definition);
+  const originalWx = global.wx;
+  global.wx = { showToast() {} };
+  ctx.applySession(sessionFixture(1));
+  ctx.openManualSheet();
+  ctx.onManualInput({ detail: { value: '小陈' } });
+
+  const submit = ctx.submitManual();
+  ctx.onSelectAddMode({ currentTarget: { dataset: { mode: 'relay' } } });
+  pending.resolve({ session: sessionFixture(2) });
+  try {
+    await submit;
+  } finally {
+    global.wx = originalWx;
+    actionGuard.clear('water:write:water_1');
+  }
+
+  assert.equal(ctx.data.manualSheetOpen, true);
+  assert.equal(ctx.data.addMode, 'relay');
+});
+
+test('a successful game closes when edits made during the request are changed back', async () => {
+  const pending = deferred();
+  const definition = loadPageDefinition({
+    waterSession: {
+      recordGame() { return pending.promise; }
+    }
+  });
+  const ctx = createContext(definition);
+  const originalWx = global.wx;
+  global.wx = { showToast() {} };
+  ctx.applySession(sessionFixture(1));
+  ctx.openGameSheet();
+  ctx.onToggleGamePlayer({ currentTarget: { dataset: { id: 'p1' } } });
+  ctx.onSelectGameSide({ currentTarget: { dataset: { side: 'loser' } } });
+  ctx.onToggleGamePlayer({ currentTarget: { dataset: { id: 'p2' } } });
+
+  const submit = ctx.submitGame();
+  ctx.onGameUnitChange({ detail: { value: 1 } });
+  ctx.onGameUnitChange({ detail: { value: 0 } });
+  pending.resolve({ session: sessionFixture(2) });
+  try {
+    await submit;
+  } finally {
+    global.wx = originalWx;
+    actionGuard.clear('water:write:water_1');
+  }
+
+  assert.equal(ctx.data.gameSheetOpen, false);
+});
+
+test('a successful game clears its request intent before the same matchup is recorded again', async () => {
+  const calls = [];
+  let version = 1;
+  const definition = loadPageDefinition({
+    waterSession: {
+      async recordGame(...args) {
+        calls.push(args);
+        version += 1;
+        return { session: sessionFixture(version) };
+      }
+    }
+  });
+  const ctx = createContext(definition);
+  const originalWx = global.wx;
+  global.wx = { showToast() {} };
+  ctx.applySession(sessionFixture(version));
+
+  async function recordSameGame() {
+    ctx.openGameSheet();
+    ctx.onToggleGamePlayer({ currentTarget: { dataset: { id: 'p1' } } });
+    ctx.onSelectGameSide({ currentTarget: { dataset: { side: 'loser' } } });
+    ctx.onToggleGamePlayer({ currentTarget: { dataset: { id: 'p2' } } });
+    await ctx.submitGame();
+  }
+
+  try {
+    await recordSameGame();
+    await recordSameGame();
+  } finally {
+    global.wx = originalWx;
+    actionGuard.clear('water:write:water_1');
+  }
+
+  assert.equal(calls.length, 2);
+  assert.notEqual(calls[0][5].clientRequestId, calls[1][5].clientRequestId);
 });
