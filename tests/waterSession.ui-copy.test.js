@@ -90,6 +90,32 @@ test('selected A direction uses one full-width primary row and one secondary row
   assert.doesNotMatch(wxss, /calc\(100% - 24rpx\)/);
 });
 
+test('approved B game selector renders one compact roster with explicit side assignment', () => {
+  const wxml = read('miniprogram/pages/water/index.wxml');
+  const wxss = read('miniprogram/pages/water/index.wxss');
+  const js = read('miniprogram/pages/water/index.js');
+  const gameSheetShow = wxml.indexOf('show="{{gameSheetOpen}}"');
+  const gameSheetStart = wxml.lastIndexOf('<van-popup', gameSheetShow);
+  const gameSheetEnd = wxml.indexOf('show="{{adjustSheetOpen}}"');
+  const gameSheet = wxml.slice(gameSheetStart, gameSheetEnd);
+
+  assert.match(gameSheet, /class="water-game-side-switch"/);
+  assert.match(gameSheet, /bindtap="onSelectGameSide"/);
+  assert.match(gameSheet, /class="water-game-match"/);
+  assert.match(gameSheet, /class="water-game-roster-label"/);
+  assert.match(gameSheet, /custom-class="water-popup water-game-popup"/);
+  assert.match(gameSheet, /data-id="{{item.id}}"[^>]*bindtap="onToggleGamePlayer"/s);
+  assert.equal((gameSheet.match(/wx:for="{{participants}}"/g) || []).length, 1);
+  assert.match(gameSheet, /item\.winnerSelected \? 'selected winner'/);
+  assert.match(gameSheet, /item\.loserSelected \? 'selected loser'/);
+  assert.match(wxss, /\.water-chip-grid\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\)/s);
+  assert.match(wxss, /\.water-chip\s*\{[^}]*width:\s*100%[^}]*min-width:\s*0[^}]*max-width:\s*100%[^}]*min-height:\s*44px/s);
+  assert.match(wxss, /\.water-game-side-tab\s*\{[^}]*width:\s*100%[^}]*min-width:\s*0[^}]*max-width:\s*100%[^}]*justify-self:\s*stretch[^}]*box-sizing:\s*border-box/s);
+  assert.match(wxss, /\.water-game-popup\s*\{[^}]*max-height:\s*92vh !important/s);
+  assert.match(js, /gameActiveSide:\s*'winner'/);
+  assert.match(js, /onSelectGameSide\(e\)/);
+});
+
 test('Vant spike pins the reviewed component version and package output mapping', () => {
   const packageConfig = JSON.parse(read('miniprogram/package.json'));
   const projectConfig = JSON.parse(read('project.config.json'));

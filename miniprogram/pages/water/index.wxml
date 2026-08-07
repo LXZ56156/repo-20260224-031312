@@ -113,18 +113,35 @@
   </view>
 </van-popup>
 
-<van-popup class="water-popup-host" custom-class="water-popup" show="{{gameSheetOpen}}" position="bottom" round safe-area-inset-bottom bind:close="closeSheets">
-  <view class="water-sheet">
+<van-popup class="water-popup-host" custom-class="water-popup water-game-popup" show="{{gameSheetOpen}}" position="bottom" round safe-area-inset-bottom bind:close="closeSheets">
+  <view class="water-sheet water-game-sheet">
     <view class="water-sheet-handle"></view>
-    <view class="water-sheet-title">记一局</view>
-    <view class="water-sheet-sub">双方人数相同即可，1 对 1 也能记</view>
-    <view class="water-side-label winner-label">胜方</view>
-    <view class="water-chip-grid">
-      <button class="water-chip {{item.winnerSelected ? 'selected winner' : ''}}" wx:for="{{participants}}" wx:key="id" data-id="{{item.id}}" data-side="winner" bindtap="onToggleGamePlayer">{{item.name}}</button>
+    <view class="water-game-title-row">
+      <view class="water-sheet-title">记一局</view>
+      <view class="water-game-available">{{participantCount}} 人可选</view>
     </view>
-    <view class="water-side-label loser-label">负方</view>
+    <view class="water-sheet-sub">双方人数相同即可，1 对 1 也能记</view>
+    <view class="water-game-side-switch">
+      <button class="water-game-side-tab winner {{gameActiveSide === 'winner' ? 'active' : ''}}" data-side="winner" bindtap="onSelectGameSide">选胜方 <text>{{winnerIds.length}}</text></button>
+      <button class="water-game-side-tab loser {{gameActiveSide === 'loser' ? 'active' : ''}}" data-side="loser" bindtap="onSelectGameSide">选负方 <text>{{loserIds.length}}</text></button>
+    </view>
+    <view class="water-game-match">
+      <view class="water-game-team winner">
+        <text class="water-game-team-label">胜方</text>
+        <text class="water-game-team-names">{{winnerSummary}}</text>
+      </view>
+      <view class="water-game-versus">VS</view>
+      <view class="water-game-team loser">
+        <text class="water-game-team-label">负方</text>
+        <text class="water-game-team-names">{{loserSummary}}</text>
+      </view>
+    </view>
+    <view class="water-game-roster-label">
+      <text>点姓名分到当前一方</text>
+      <view class="water-game-legend"><text class="winner">胜</text><text class="loser">负</text></view>
+    </view>
     <view class="water-chip-grid">
-      <button class="water-chip {{item.loserSelected ? 'selected loser' : ''}}" wx:for="{{participants}}" wx:key="id" data-id="{{item.id}}" data-side="loser" bindtap="onToggleGamePlayer">{{item.name}}</button>
+      <button class="water-chip {{item.winnerSelected ? 'selected winner' : (item.loserSelected ? 'selected loser' : '')}}" wx:for="{{participants}}" wx:key="id" data-id="{{item.id}}" bindtap="onToggleGamePlayer">{{item.name}}</button>
     </view>
     <picker mode="selector" range="{{unitOptions}}" value="{{gameUnitIndex}}" bindchange="onGameUnitChange">
       <view class="water-picker-row"><text>每人水数</text><text>{{unitOptions[gameUnitIndex]}} 水　⌄</text></view>

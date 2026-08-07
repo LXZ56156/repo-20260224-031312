@@ -83,3 +83,37 @@ test('water page starts polling when first async session arrives after onShow', 
     global.clearInterval = originalClearInterval;
   }
 });
+
+test('water game selector assigns one roster by active side and supports move or remove', () => {
+  const definition = loadPageDefinition();
+  const ctx = createContext(definition);
+  ctx.data.participants = [
+    { id: 'p1', name: '阿杰' },
+    { id: 'p2', name: '小林' },
+    { id: 'p3', name: 'Chris' },
+  ];
+
+  ctx.openGameSheet();
+  assert.equal(ctx.data.gameActiveSide, 'winner');
+  assert.deepEqual(ctx.data.winnerIds, []);
+  assert.deepEqual(ctx.data.loserIds, []);
+
+  ctx.onToggleGamePlayer({ currentTarget: { dataset: { id: 'p1' } } });
+  assert.deepEqual(ctx.data.winnerIds, ['p1']);
+  assert.deepEqual(ctx.data.loserIds, []);
+  assert.equal(ctx.data.winnerSummary, '阿杰');
+
+  ctx.onSelectGameSide({ currentTarget: { dataset: { side: 'loser' } } });
+  ctx.onToggleGamePlayer({ currentTarget: { dataset: { id: 'p2' } } });
+  assert.deepEqual(ctx.data.winnerIds, ['p1']);
+  assert.deepEqual(ctx.data.loserIds, ['p2']);
+  assert.equal(ctx.data.loserSummary, '小林');
+
+  ctx.onToggleGamePlayer({ currentTarget: { dataset: { id: 'p1' } } });
+  assert.deepEqual(ctx.data.winnerIds, []);
+  assert.deepEqual(ctx.data.loserIds, ['p2', 'p1']);
+
+  ctx.onToggleGamePlayer({ currentTarget: { dataset: { id: 'p1' } } });
+  assert.deepEqual(ctx.data.winnerIds, []);
+  assert.deepEqual(ctx.data.loserIds, ['p2']);
+});

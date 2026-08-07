@@ -569,6 +569,10 @@ page {
   background: #fbfdfc !important;
 }
 
+.water-game-popup {
+  max-height: 92vh !important;
+}
+
 .water-sheet {
   width: 100%;
   box-sizing: border-box;
@@ -607,7 +611,6 @@ page {
   font-size: 28rpx;
 }
 
-.water-side-label,
 .water-picker-label {
   margin: 22rpx 0 10rpx;
   color: #31473f;
@@ -615,31 +618,35 @@ page {
   font-weight: 700;
 }
 
-.winner-label {
-  color: #087a56;
-}
-
-.loser-label {
-  color: #b8443f;
-}
-
 .water-chip-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10rpx;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12rpx;
 }
 
 .water-chip {
-  min-width: 132rpx;
-  height: 68rpx;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: 88rpx;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
   margin: 0;
-  padding: 0 18rpx;
+  overflow: hidden;
+  padding: 0 8rpx;
   border: 1rpx solid #d7e2de;
-  border-radius: 999rpx;
+  border-radius: 18rpx;
   color: #31473f;
   background: #fbfdfc;
-  font-size: 24rpx;
-  line-height: 68rpx;
+  font-size: 22rpx;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-shadow: 0 4rpx 10rpx rgba(13, 58, 45, 0.035);
 }
 
 .water-chip::after {
@@ -656,6 +663,181 @@ page {
   border-color: rgba(184, 68, 63, 0.28);
   color: #b8443f;
   background: #fff1ef;
+}
+
+.water-game-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.water-game-available {
+  flex: 0 0 auto;
+  color: #71807b;
+  font-size: 21rpx;
+  font-weight: 650;
+}
+
+.water-game-side-switch {
+  display: grid;
+  overflow: hidden;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8rpx;
+  margin: 22rpx 0 18rpx;
+  padding: 8rpx;
+  border: 1rpx solid #d7e2de;
+  border-radius: 22rpx;
+  background: #edf3f1;
+}
+
+.water-game-side-tab {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: 84rpx;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  justify-self: stretch;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 12rpx;
+  border: 0;
+  border-radius: 17rpx;
+  color: #687a73;
+  background: transparent;
+  font-size: 23rpx;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.water-game-side-tab::after {
+  border: 0;
+}
+
+.water-game-side-tab text {
+  margin-left: 12rpx;
+  font-variant-numeric: tabular-nums;
+}
+
+.water-game-side-tab.active {
+  background: #fbfdfc;
+  box-shadow: 0 8rpx 22rpx rgba(17, 78, 60, 0.09);
+}
+
+.water-game-side-tab.active.winner {
+  color: #087a56;
+  box-shadow: 0 8rpx 22rpx rgba(17, 78, 60, 0.09), inset 0 -4rpx 0 #238b6b;
+}
+
+.water-game-side-tab.active.loser {
+  color: #b8443f;
+  box-shadow: 0 8rpx 22rpx rgba(89, 41, 36, 0.08), inset 0 -4rpx 0 #c45a53;
+}
+
+.water-game-match {
+  display: grid;
+  overflow: hidden;
+  grid-template-columns: minmax(0, 1fr) 66rpx minmax(0, 1fr);
+  min-height: 132rpx;
+  border: 1rpx solid #d7e2de;
+  border-radius: 22rpx;
+  background: #fbfdfc;
+  box-shadow: 0 7rpx 20rpx rgba(12, 57, 44, 0.045);
+}
+
+.water-game-team {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  padding: 16rpx 20rpx;
+}
+
+.water-game-team.loser {
+  text-align: right;
+}
+
+.water-game-team-label {
+  display: block;
+  margin-bottom: 7rpx;
+  font-size: 18rpx;
+  font-weight: 800;
+}
+
+.water-game-team.winner .water-game-team-label {
+  color: #087a56;
+}
+
+.water-game-team.loser .water-game-team-label {
+  color: #b8443f;
+}
+
+.water-game-team-names {
+  display: block;
+  overflow: hidden;
+  color: #243a32;
+  font-size: 22rpx;
+  font-weight: 750;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.water-game-versus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #85958e;
+  background: #f0f5f3;
+  font-size: 18rpx;
+  font-weight: 850;
+  letter-spacing: 1rpx;
+}
+
+.water-game-roster-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin: 18rpx 4rpx 12rpx;
+  color: #44574f;
+  font-size: 21rpx;
+  font-weight: 750;
+}
+
+.water-game-legend {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 18rpx;
+  color: #71807b;
+  font-size: 18rpx;
+  font-weight: 650;
+}
+
+.water-game-legend text::before {
+  display: inline-block;
+  width: 10rpx;
+  height: 10rpx;
+  margin-right: 7rpx;
+  border-radius: 999rpx;
+  background: currentColor;
+  content: '';
+  vertical-align: 1rpx;
+}
+
+.water-game-legend .winner {
+  color: #087a56;
+}
+
+.water-game-legend .loser {
+  color: #b8443f;
+}
+
+.water-game-sheet .water-picker-row {
+  margin-top: 20rpx;
 }
 
 .water-sheet .water-picker-row {

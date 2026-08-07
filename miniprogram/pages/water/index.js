@@ -35,8 +35,11 @@ Page({
     manualNames: '',
     gameSheetOpen: false,
     gameUnitIndex: 0,
+    gameActiveSide: 'winner',
     winnerIds: [],
     loserIds: [],
+    winnerSummary: '待选',
+    loserSummary: '待选',
     adjustSheetOpen: false,
     adjustTargetId: '',
     adjustTargetName: '',
@@ -177,14 +180,26 @@ Page({
 
   openGameSheet() {
     if (this.data.participants.length < 2) return showError(null, '至少添加 2 人才能记一局');
-    this.setData({ gameSheetOpen: true, winnerIds: [], loserIds: [], gameUnitIndex: 0 });
+    this.setData({
+      gameSheetOpen: true,
+      gameUnitIndex: 0,
+      gameActiveSide: 'winner',
+      winnerIds: [],
+      loserIds: [],
+      winnerSummary: '待选',
+      loserSummary: '待选'
+    });
     this.refreshGameParticipants([], []);
   },
 
   refreshGameParticipants(winnerIds, loserIds) {
+    const nameById = {};
+    this.data.participants.forEach((item) => { nameById[item.id] = item.name; });
     this.setData({
       winnerIds,
       loserIds,
+      winnerSummary: winnerIds.length ? winnerIds.map((id) => nameById[id]).filter(Boolean).join('、') : '待选',
+      loserSummary: loserIds.length ? loserIds.map((id) => nameById[id]).filter(Boolean).join('、') : '待选',
       participants: this.data.participants.map((item) => ({
         ...item,
         winnerSelected: winnerIds.includes(item.id),
@@ -193,9 +208,16 @@ Page({
     });
   },
 
+  onSelectGameSide(e) {
+    const side = String(e.currentTarget.dataset.side || '');
+    if (side !== 'winner' && side !== 'loser') return;
+    this.setData({ gameActiveSide: side });
+  },
+
   onToggleGamePlayer(e) {
     const id = String(e.currentTarget.dataset.id || '');
-    const side = String(e.currentTarget.dataset.side || '');
+    if (!id) return;
+    const side = this.data.gameActiveSide === 'loser' ? 'loser' : 'winner';
     let winners = this.data.winnerIds.slice();
     let losers = this.data.loserIds.slice();
     if (side === 'winner') {
