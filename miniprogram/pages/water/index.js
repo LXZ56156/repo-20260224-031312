@@ -67,6 +67,39 @@ function filteredGameParticipants(participants, query) {
   return list.filter((item) => String(item && item.name || '').toLocaleLowerCase().includes(keyword));
 }
 
+function gameSelectionState(participants, winnerIds, loserIds, query) {
+  const list = Array.isArray(participants) ? participants : [];
+  const knownIds = new Set(list.map((item) => String(item && item.id || '')).filter(Boolean));
+  const winners = (Array.isArray(winnerIds) ? winnerIds : []).filter((id) => knownIds.has(id));
+  const winnerSet = new Set(winners);
+  const losers = (Array.isArray(loserIds) ? loserIds : []).filter((id) => knownIds.has(id) && !winnerSet.has(id));
+  const loserSet = new Set(losers);
+  const nameById = {};
+  const decorated = list.map((item) => {
+    nameById[item.id] = item.name;
+    return {
+      ...item,
+      winnerSelected: winnerSet.has(item.id),
+      loserSelected: loserSet.has(item.id)
+    };
+  });
+  return {
+    participants: decorated,
+    gameParticipants: filteredGameParticipants(decorated, query),
+    winnerIds: winners,
+    loserIds: losers,
+    winnerSummary: winners.length ? winners.map((id) => nameById[id]).filter(Boolean).join('、') : '待选',
+    loserSummary: losers.length ? losers.map((id) => nameById[id]).filter(Boolean).join('、') : '待选'
+  };
+}
+
+function isOlderSession(current, incoming) {
+  if (!current || !incoming || String(current.id || '') !== String(incoming.id || '')) return false;
+  const currentVersion = Number(current.version);
+  const incomingVersion = Number(incoming.version);
+  return Number.isFinite(currentVersion) && Number.isFinite(incomingVersion) && incomingVersion < currentVersion;
+}
+
 Page({
   data: {
     loading: true,
@@ -124,7 +157,10 @@ Page({
 
   onShow() {
     this._isVisible = true;
+    const shouldCatchUp = !!(this._hasShown && this.data.sessionId);
+    this._hasShown = true;
     this.ensureRefreshTimer();
+    if (shouldCatchUp) this.loadSession({ silent: true });
   },
 
   onHide() {
@@ -168,18 +204,34 @@ Page({
   },
 
   async loadSession(options = {}) {
-    if (!this.data.sessionId || this.data.busy) return;
+    if (!this.data.sessionId || this.data.busy && !options.force) return;
+    const requestedSessionId = this.data.sessionId;
+    const requestSeq = Number(this._loadRequestSeq || 0) + 1;
+    const requestedVersion = Number(this.data.session && this.data.session.version);
+    this._loadRequestSeq = requestSeq;
     if (!options.silent) this.setData({ loading: true, loadError: '' });
     try {
-      const response = await waterApi.get(this.data.sessionId);
-      this.applySession(sessionFrom(response));
+      const response = await waterApi.get(requestedSessionId);
+      if (this.data.sessionId !== requestedSessionId) return;
+      if (this.applySession(sessionFrom(response))) {
+        this._latestSuccessfulLoadSeq = Math.max(Number(this._latestSuccessfulLoadSeq || 0), requestSeq);
+      }
     } catch (err) {
+      const currentVersion = Number(this.data.session && this.data.session.version);
+      const sessionAdvanced = Number.isFinite(requestedVersion)
+        && Number.isFinite(currentVersion)
+        && currentVersion > requestedVersion;
+      if (
+        this.data.sessionId !== requestedSessionId
+        || requestSeq < Number(this._latestSuccessfulLoadSeq || 0)
+        || sessionAdvanced
+      ) return;
       if (!options.silent) this.setData({ loading: false, loadError: String(err && err.message || '账本加载失败') });
     }
   },
 
   applySession(session) {
-    if (!session) return;
+    if (!session || isOlderSession(this.data.session, session)) return false;
     const participants = Array.isArray(session.participants) ? session.participants : [];
     const entries = Array.isArray(session.entries) ? session.entries : [];
     const nameMap = {};
@@ -192,6 +244,18 @@ Page({
     const joinChoices = [{ id: '', name: '以我的名字加入' }].concat(
       participants.filter((item) => !item.claimed).map((item) => ({ id: item.id, name: `认领「${item.name}」` }))
     );
+    const currentJoinChoice = (this.data.joinChoices || [])[Number(this.data.joinIndex || 0)];
+    const currentJoinId = String(currentJoinChoice && currentJoinChoice.id || '');
+    const matchedJoinIndex = joinChoices.findIndex((item) => String(item.id || '') === currentJoinId);
+    const selectionState = this.data.gameSheetOpen
+      ? gameSelectionState(participants, this.data.winnerIds, this.data.loserIds, this.data.gameSearchQuery)
+      : {
+          participants,
+          gameParticipants: filteredGameParticipants(participants, this.data.gameSearchQuery)
+        };
+    const relayState = this.data.manualSheetOpen && this.data.addMode === 'relay' && this.data.relayText
+      ? relayPreview(this.data.relayText, participants)
+      : {};
     this.setData({
       loading: false,
       loadError: '',
@@ -199,17 +263,18 @@ Page({
       session,
       isOwner: !!session.isOwner,
       viewerParticipantId: String(session.viewerParticipantId || ''),
-      participants,
-      gameParticipants: filteredGameParticipants(participants, this.data.gameSearchQuery),
+      ...selectionState,
+      ...relayState,
       ledger,
       recentEntries,
       participantCount: participants.length,
       entryCount: entries.length,
       totalNet: ledger.reduce((sum, item) => sum + item.net, 0),
       joinChoices,
-      joinIndex: 0
+      joinIndex: matchedJoinIndex >= 0 ? matchedJoinIndex : 0
     });
     this.ensureRefreshTimer();
+    return true;
   },
 
   onRetry() {
@@ -291,21 +356,12 @@ Page({
   },
 
   refreshGameParticipants(winnerIds, loserIds) {
-    const nameById = {};
-    this.data.participants.forEach((item) => { nameById[item.id] = item.name; });
-    const participants = this.data.participants.map((item) => ({
-      ...item,
-      winnerSelected: winnerIds.includes(item.id),
-      loserSelected: loserIds.includes(item.id)
-    }));
-    this.setData({
+    this.setData(gameSelectionState(
+      this.data.participants,
       winnerIds,
       loserIds,
-      winnerSummary: winnerIds.length ? winnerIds.map((id) => nameById[id]).filter(Boolean).join('、') : '待选',
-      loserSummary: loserIds.length ? loserIds.map((id) => nameById[id]).filter(Boolean).join('、') : '待选',
-      participants,
-      gameParticipants: filteredGameParticipants(participants, this.data.gameSearchQuery)
-    });
+      this.data.gameSearchQuery
+    ));
   },
 
   onGameSearchInput(e) {
@@ -404,11 +460,12 @@ Page({
   },
 
   async onJoin() {
+    const choice = this.data.joinChoices[this.data.joinIndex] || { id: '' };
+    const claimParticipantId = String(choice.id || '');
     const gate = await profileCore.ensureProfileForAction('generic', `/pages/water/index?id=${this.data.sessionId}`);
     if (!gate.ok) return;
-    const choice = this.data.joinChoices[this.data.joinIndex] || { id: '' };
     await this.runMutation(
-      () => waterApi.join(this.data.sessionId, this.data.session.version, profileName(gate.profile), choice.id),
+      () => waterApi.join(this.data.sessionId, this.data.session.version, profileName(gate.profile), claimParticipantId),
       '已加入'
     );
   },
@@ -440,7 +497,7 @@ Page({
       wx.showToast({ title: successText, icon: 'success' });
     } catch (err) {
       showError(err);
-      if (String(err && err.state || '') === 'conflict') await this.loadSession({ silent: true });
+      if (String(err && err.state || '') === 'conflict') await this.loadSession({ silent: true, force: true });
     } finally {
       this.setData({ busy: false });
     }
