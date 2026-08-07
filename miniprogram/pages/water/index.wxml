@@ -44,7 +44,7 @@
       </van-button>
       <view class="water-command-secondary">
         <van-button class="water-secondary" custom-class="water-secondary-surface" bind:click="openManualSheet">
-          <view class="water-secondary-content"><view class="water-action-icon add"></view><text>手动加人</text></view>
+          <view class="water-secondary-content"><view class="water-action-icon add"></view><text>添加球友</text></view>
         </van-button>
         <van-button class="water-secondary" custom-class="water-secondary-surface" open-type="share">
           <view class="water-secondary-content"><view class="water-action-icon invite">↗</view><text>邀请加入</text></view>
@@ -106,10 +106,33 @@
 <van-popup class="water-popup-host" custom-class="water-popup" show="{{manualSheetOpen}}" position="bottom" round safe-area-inset-bottom bind:close="closeSheets">
   <view class="water-sheet">
     <view class="water-sheet-handle"></view>
-    <view class="water-sheet-title">手动添加球友</view>
-    <view class="water-sheet-sub">每行一个名字，也支持逗号分隔</view>
-    <textarea class="water-name-input" value="{{manualNames}}" maxlength="300" placeholder="例如：小林、Chris、王姐" bindinput="onManualInput"></textarea>
-    <van-button class="water-submit-host" custom-class="water-submit" block loading="{{busy}}" bind:click="submitManual">添加到本局</van-button>
+    <view class="water-game-title-row">
+      <view class="water-sheet-title">添加球友</view>
+      <view class="water-game-available">已有 {{participantCount}} 人</view>
+    </view>
+    <view class="water-sheet-sub">选择一种添加方式，确认前不会改动当前名单</view>
+    <view class="water-add-mode-switch">
+      <button class="water-add-mode-tab {{addMode === 'manual' ? 'active' : ''}}" data-mode="manual" bindtap="onSelectAddMode">手动添加</button>
+      <button class="water-add-mode-tab {{addMode === 'relay' ? 'active' : ''}}" data-mode="relay" bindtap="onSelectAddMode">导入接龙</button>
+    </view>
+    <block wx:if="{{addMode === 'manual'}}">
+      <textarea class="water-name-input" value="{{manualNames}}" maxlength="300" placeholder="例如：小林、Chris、王姐" bindinput="onManualInput"></textarea>
+      <van-button class="water-submit-host" custom-class="water-submit" block loading="{{busy}}" bind:click="submitManual">添加到本局</van-button>
+    </block>
+    <block wx:else>
+      <textarea class="water-name-input water-relay-input" value="{{relayText}}" maxlength="2000" placeholder="粘贴微信群接龙，例如：1. 阿杰 2. 小林" bindinput="onRelayInput"></textarea>
+      <view class="water-relay-preview" wx:if="{{relayText}}">
+        <block wx:if="{{relayRecognizedCount}}">
+          <view class="water-relay-preview-head">
+            <view><text class="water-relay-count">识别到 {{relayRecognizedCount}} 人</text><text class="water-relay-note" wx:if="{{relayDuplicateCount}}">重复 {{relayDuplicateCount}} 人</text><text class="water-relay-note warning" wx:if="{{relayOverflowCount}}">超出名额 {{relayOverflowCount}} 人</text></view>
+            <text class="water-relay-new">新增 {{relayNewNames.length}} 人</text>
+          </view>
+          <view class="water-relay-chips"><text class="water-relay-chip" wx:for="{{relayPreviewNames}}" wx:key="*this">{{item}}</text></view>
+        </block>
+        <view class="water-relay-empty" wx:else>还没有识别到名字，请检查接龙格式</view>
+      </view>
+      <van-button class="water-submit-host" custom-class="water-submit" block loading="{{busy}}" disabled="{{!relayNewNames.length}}" bind:click="submitRelay">添加 {{relayNewNames.length}} 位新球友</van-button>
+    </block>
   </view>
 </van-popup>
 
@@ -140,9 +163,16 @@
       <text>点姓名分到当前一方</text>
       <view class="water-game-legend"><text class="winner">胜</text><text class="loser">负</text></view>
     </view>
-    <view class="water-chip-grid">
-      <button class="water-chip {{item.winnerSelected ? 'selected winner' : (item.loserSelected ? 'selected loser' : '')}}" wx:for="{{participants}}" wx:key="id" data-id="{{item.id}}" bindtap="onToggleGamePlayer">{{item.name}}</button>
+    <view class="water-game-search" wx:if="{{participantCount > 8}}">
+      <text class="water-game-search-icon">⌕</text>
+      <input class="water-game-search-input" type="text" confirm-type="search" value="{{gameSearchQuery}}" placeholder="搜索球友姓名" bindinput="onGameSearchInput" />
+      <button class="water-game-search-clear" wx:if="{{gameSearchQuery}}" aria-label="清除搜索" bindtap="clearGameSearch"><text class="water-game-search-clear-icon">×</text></button>
+      <text class="water-game-search-count" wx:else>{{gameParticipants.length}} 人</text>
     </view>
+    <view class="water-chip-grid {{participantCount > 8 ? 'searchable' : ''}}" wx:if="{{gameParticipants.length}}">
+      <button class="water-chip {{item.winnerSelected ? 'selected winner' : (item.loserSelected ? 'selected loser' : '')}}" wx:for="{{gameParticipants}}" wx:key="id" data-id="{{item.id}}" bindtap="onToggleGamePlayer">{{item.name}}</button>
+    </view>
+    <view class="water-game-search-empty" wx:else>没有找到“{{gameSearchQuery}}”</view>
     <picker mode="selector" range="{{unitOptions}}" value="{{gameUnitIndex}}" bindchange="onGameUnitChange">
       <view class="water-picker-row"><text>每人水数</text><text>{{unitOptions[gameUnitIndex]}} 水　⌄</text></view>
     </picker>

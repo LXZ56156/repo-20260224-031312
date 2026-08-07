@@ -23,7 +23,7 @@ test('standalone page keeps approved actions and native selector picker', () => 
 
   assert.ok(app.pages.includes('pages/water/index'));
   assert.match(wxml, /记一局/);
-  assert.match(wxml, /手动加人/);
+  assert.match(wxml, /添加球友/);
   assert.match(wxml, /邀请加入/);
   assert.match(wxml, /open-type="share"/);
   assert.equal((wxml.match(/open-type="share"/g) || []).length, 1);
@@ -33,6 +33,31 @@ test('standalone page keeps approved actions and native selector picker', () => 
   assert.doesNotMatch(wxml, /至少\s*4\s*人|满\s*4\s*人/);
   assert.match(wxml, /placeholder="例如：小林、Chris、王姐"/);
   assert.doesNotMatch(wxml, /&#10;/);
+});
+
+test('approved B add sheet combines manual and relay import with preview before writing', () => {
+  const wxml = read('miniprogram/pages/water/index.wxml');
+  const wxss = read('miniprogram/pages/water/index.wxss');
+  const js = read('miniprogram/pages/water/index.js');
+  const addSheetShow = wxml.indexOf('show="{{manualSheetOpen}}"');
+  const addSheetStart = wxml.lastIndexOf('<van-popup', addSheetShow);
+  const addSheetEnd = wxml.indexOf('show="{{gameSheetOpen}}"');
+  const addSheet = wxml.slice(addSheetStart, addSheetEnd);
+
+  assert.match(addSheet, /手动添加/);
+  assert.match(addSheet, /导入接龙/);
+  assert.match(addSheet, /data-mode="manual"/);
+  assert.match(addSheet, /data-mode="relay"/);
+  assert.match(addSheet, /bindinput="onRelayInput"/);
+  assert.match(addSheet, /maxlength="2000"/);
+  assert.match(addSheet, /wx:for="{{relayPreviewNames}}"/);
+  assert.match(addSheet, /添加 \{\{relayNewNames\.length\}\} 位新球友/);
+  assert.match(wxss, /\.water-add-mode-switch\s*\{[^}]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/s);
+  assert.match(wxss, /\.water-add-mode-tab\s*\{[^}]*width:\s*100%[^}]*min-width:\s*0[^}]*max-width:\s*100%[^}]*min-height:\s*44px[^}]*justify-self:\s*stretch[^}]*box-sizing:\s*border-box/s);
+  assert.match(js, /addMode:\s*'manual'/);
+  assert.match(js, /onSelectAddMode\(e\)/);
+  assert.match(js, /onRelayInput\(e\)/);
+  assert.match(js, /submitRelay\(\)/);
 });
 
 test('standalone page uses the approved B scoreboard information hierarchy', () => {
@@ -104,16 +129,28 @@ test('approved B game selector renders one compact roster with explicit side ass
   assert.match(gameSheet, /class="water-game-match"/);
   assert.match(gameSheet, /class="water-game-roster-label"/);
   assert.match(gameSheet, /custom-class="water-popup water-game-popup"/);
+  assert.match(gameSheet, /wx:if="{{participantCount > 8}}"/);
+  assert.match(gameSheet, /bindinput="onGameSearchInput"/);
+  assert.match(gameSheet, /bindtap="clearGameSearch"/);
+  assert.match(gameSheet, /aria-label="清除搜索"/);
+  assert.match(gameSheet, /class="water-game-search-clear-icon">×<\/text>/);
+  assert.doesNotMatch(gameSheet, /class="water-game-search-clear"[^>]*>[^<]*<text[^>]*>×<\/text><text>清除<\/text>/s);
   assert.match(gameSheet, /data-id="{{item.id}}"[^>]*bindtap="onToggleGamePlayer"/s);
-  assert.equal((gameSheet.match(/wx:for="{{participants}}"/g) || []).length, 1);
+  assert.equal((gameSheet.match(/wx:for="{{gameParticipants}}"/g) || []).length, 1);
+  assert.match(gameSheet, /water-chip-grid \{\{participantCount > 8 \? 'searchable' : ''\}\}/);
   assert.match(gameSheet, /item\.winnerSelected \? 'selected winner'/);
   assert.match(gameSheet, /item\.loserSelected \? 'selected loser'/);
   assert.match(wxss, /\.water-chip-grid\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\)/s);
   assert.match(wxss, /\.water-chip\s*\{[^}]*width:\s*100%[^}]*min-width:\s*0[^}]*max-width:\s*100%[^}]*min-height:\s*44px/s);
   assert.match(wxss, /\.water-game-side-tab\s*\{[^}]*width:\s*100%[^}]*min-width:\s*0[^}]*max-width:\s*100%[^}]*justify-self:\s*stretch[^}]*box-sizing:\s*border-box/s);
+  assert.match(wxss, /\.water-game-search\s*\{[^}]*min-height:\s*44px/s);
+  assert.match(wxss, /\.water-game-search-clear\s*\{[^}]*width:\s*44px[^}]*min-width:\s*44px[^}]*height:\s*44px[^}]*flex:\s*0 0 44px[^}]*border:\s*0[^}]*background:\s*transparent/s);
+  assert.match(wxss, /\.water-game-search-clear-icon\s*\{[^}]*display:\s*flex[^}]*width:\s*48rpx[^}]*height:\s*48rpx[^}]*border-radius:\s*50%[^}]*background:\s*#d5e5df/s);
+  assert.match(wxss, /\.water-chip-grid\.searchable\s*\{[^}]*max-height:[^}]*overflow-y:\s*auto/s);
   assert.match(wxss, /\.water-game-popup\s*\{[^}]*max-height:\s*92vh !important/s);
   assert.match(js, /gameActiveSide:\s*'winner'/);
   assert.match(js, /onSelectGameSide\(e\)/);
+  assert.match(js, /onGameSearchInput\(e\)/);
 });
 
 test('Vant spike pins the reviewed component version and package output mapping', () => {

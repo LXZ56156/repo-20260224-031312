@@ -1,8 +1,10 @@
 const profileCore = require('../../core/profile');
 const waterApi = require('../../core/waterSession');
 const waterLedger = require('../../core/waterLedger');
+const lobbyImportActions = require('../lobby/lobbyImportActions');
 
 const unitOptions = Array.from({ length: 99 }, (_, index) => String(index + 1));
+const MAX_PARTICIPANTS = 24;
 
 function sessionFrom(response) {
   return response && (response.session || response.data && response.data.session) || null;
@@ -14,6 +16,55 @@ function profileName(profile) {
 
 function showError(err, fallback = '操作失败，请重试') {
   wx.showToast({ title: String(err && err.message || fallback), icon: 'none' });
+}
+
+function normalizedPlayerName(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ').slice(0, 20);
+}
+
+function relayPreview(text, participants) {
+  const parsed = lobbyImportActions.parseImportPlayers(String(text || ''));
+  const existingNames = new Set((Array.isArray(participants) ? participants : [])
+    .map((item) => normalizedPlayerName(item && item.name).toLocaleLowerCase())
+    .filter(Boolean));
+  const seen = new Set();
+  const uniqueNames = [];
+  let duplicateCount = 0;
+
+  parsed.forEach((item) => {
+    const name = normalizedPlayerName(item && item.name);
+    const key = name.toLocaleLowerCase();
+    if (!name) return;
+    if (seen.has(key)) {
+      duplicateCount += 1;
+      return;
+    }
+    seen.add(key);
+    uniqueNames.push(name);
+  });
+
+  const newCandidates = uniqueNames.filter((name) => {
+    const exists = existingNames.has(name.toLocaleLowerCase());
+    if (exists) duplicateCount += 1;
+    return !exists;
+  });
+  const remaining = Math.max(0, MAX_PARTICIPANTS - (Array.isArray(participants) ? participants.length : 0));
+  const newNames = newCandidates.slice(0, remaining);
+
+  return {
+    relayRecognizedCount: uniqueNames.length,
+    relayDuplicateCount: duplicateCount,
+    relayOverflowCount: Math.max(0, newCandidates.length - newNames.length),
+    relayPreviewNames: uniqueNames.slice(0, 8),
+    relayNewNames: newNames
+  };
+}
+
+function filteredGameParticipants(participants, query) {
+  const keyword = String(query || '').trim().toLocaleLowerCase();
+  const list = Array.isArray(participants) ? participants : [];
+  if (!keyword) return list;
+  return list.filter((item) => String(item && item.name || '').toLocaleLowerCase().includes(keyword));
 }
 
 Page({
@@ -32,9 +83,18 @@ Page({
     totalNet: 0,
     unitOptions,
     manualSheetOpen: false,
+    addMode: 'manual',
     manualNames: '',
+    relayText: '',
+    relayRecognizedCount: 0,
+    relayDuplicateCount: 0,
+    relayOverflowCount: 0,
+    relayPreviewNames: [],
+    relayNewNames: [],
     gameSheetOpen: false,
     gameUnitIndex: 0,
+    gameSearchQuery: '',
+    gameParticipants: [],
     gameActiveSide: 'winner',
     winnerIds: [],
     loserIds: [],
@@ -140,6 +200,7 @@ Page({
       isOwner: !!session.isOwner,
       viewerParticipantId: String(session.viewerParticipantId || ''),
       participants,
+      gameParticipants: filteredGameParticipants(participants, this.data.gameSearchQuery),
       ledger,
       recentEntries,
       participantCount: participants.length,
@@ -157,7 +218,17 @@ Page({
   },
 
   openManualSheet() {
-    this.setData({ manualSheetOpen: true, manualNames: '' });
+    this.setData({
+      manualSheetOpen: true,
+      addMode: 'manual',
+      manualNames: '',
+      relayText: '',
+      relayRecognizedCount: 0,
+      relayDuplicateCount: 0,
+      relayOverflowCount: 0,
+      relayPreviewNames: [],
+      relayNewNames: []
+    });
   },
 
   closeSheets() {
@@ -170,6 +241,20 @@ Page({
     this.setData({ manualNames: e.detail.value });
   },
 
+  onSelectAddMode(e) {
+    const mode = String(e.currentTarget.dataset.mode || '');
+    if (mode !== 'manual' && mode !== 'relay') return;
+    this.setData({ addMode: mode });
+  },
+
+  onRelayInput(e) {
+    const relayText = String(e.detail.value || '');
+    this.setData({
+      relayText,
+      ...relayPreview(relayText, this.data.participants)
+    });
+  },
+
   async submitManual() {
     if (!String(this.data.manualNames || '').trim()) return showError(null, '请输入球友名字');
     await this.runMutation(
@@ -178,11 +263,24 @@ Page({
     );
   },
 
+  async submitRelay() {
+    if (!this.data.relayRecognizedCount) return showError(null, '没有识别到球友，请检查接龙内容');
+    if (!this.data.relayNewNames.length) {
+      return showError(null, this.data.relayOverflowCount ? '这次打水最多 24 人' : '没有可添加的新球友');
+    }
+    const count = this.data.relayNewNames.length;
+    await this.runMutation(
+      () => waterApi.addParticipants(this.data.sessionId, this.data.session.version, this.data.relayNewNames.join('\n')),
+      `已添加 ${count} 人`
+    );
+  },
+
   openGameSheet() {
     if (this.data.participants.length < 2) return showError(null, '至少添加 2 人才能记一局');
     this.setData({
       gameSheetOpen: true,
       gameUnitIndex: 0,
+      gameSearchQuery: '',
       gameActiveSide: 'winner',
       winnerIds: [],
       loserIds: [],
@@ -195,16 +293,33 @@ Page({
   refreshGameParticipants(winnerIds, loserIds) {
     const nameById = {};
     this.data.participants.forEach((item) => { nameById[item.id] = item.name; });
+    const participants = this.data.participants.map((item) => ({
+      ...item,
+      winnerSelected: winnerIds.includes(item.id),
+      loserSelected: loserIds.includes(item.id)
+    }));
     this.setData({
       winnerIds,
       loserIds,
       winnerSummary: winnerIds.length ? winnerIds.map((id) => nameById[id]).filter(Boolean).join('、') : '待选',
       loserSummary: loserIds.length ? loserIds.map((id) => nameById[id]).filter(Boolean).join('、') : '待选',
-      participants: this.data.participants.map((item) => ({
-        ...item,
-        winnerSelected: winnerIds.includes(item.id),
-        loserSelected: loserIds.includes(item.id)
-      }))
+      participants,
+      gameParticipants: filteredGameParticipants(participants, this.data.gameSearchQuery)
+    });
+  },
+
+  onGameSearchInput(e) {
+    const gameSearchQuery = String(e.detail.value || '');
+    this.setData({
+      gameSearchQuery,
+      gameParticipants: filteredGameParticipants(this.data.participants, gameSearchQuery)
+    });
+  },
+
+  clearGameSearch() {
+    this.setData({
+      gameSearchQuery: '',
+      gameParticipants: filteredGameParticipants(this.data.participants, '')
     });
   },
 

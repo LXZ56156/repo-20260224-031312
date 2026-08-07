@@ -611,6 +611,115 @@ page {
   font-size: 28rpx;
 }
 
+.water-add-mode-switch {
+  display: grid;
+  overflow: hidden;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8rpx;
+  margin-top: 20rpx;
+  padding: 8rpx;
+  border: 1rpx solid #d7e2de;
+  border-radius: 20rpx;
+  background: #edf3f1;
+}
+
+.water-add-mode-tab {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+  justify-self: stretch;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 12rpx;
+  border: 0;
+  border-radius: 15rpx;
+  color: #687a73;
+  background: transparent;
+  font-size: 23rpx;
+  font-weight: 750;
+  line-height: 84rpx;
+}
+
+.water-add-mode-tab::after {
+  border: 0;
+}
+
+.water-add-mode-tab.active {
+  color: #087a56;
+  background: #fbfdfc;
+  box-shadow: 0 8rpx 22rpx rgba(17, 78, 60, 0.09), inset 0 -4rpx 0 #238b6b;
+}
+
+.water-relay-input {
+  height: 250rpx;
+  font-size: 25rpx;
+  line-height: 1.55;
+}
+
+.water-relay-preview {
+  margin: -6rpx 0 20rpx;
+  padding: 18rpx;
+  border: 1rpx solid #cfe0da;
+  border-radius: 18rpx;
+  background: #edf7f3;
+}
+
+.water-relay-preview-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.water-relay-count,
+.water-relay-new {
+  color: #087a56;
+  font-size: 23rpx;
+  font-weight: 800;
+}
+
+.water-relay-new {
+  flex: 0 0 auto;
+}
+
+.water-relay-note {
+  display: block;
+  margin-top: 5rpx;
+  color: #71807b;
+  font-size: 19rpx;
+}
+
+.water-relay-note.warning {
+  color: #a8622f;
+}
+
+.water-relay-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-top: 14rpx;
+}
+
+.water-relay-chip {
+  max-width: 180rpx;
+  overflow: hidden;
+  padding: 7rpx 12rpx;
+  border: 1rpx solid #d7e5e0;
+  border-radius: 10rpx;
+  color: #36594d;
+  background: #fbfdfc;
+  font-size: 19rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.water-relay-empty {
+  color: #71807b;
+  font-size: 21rpx;
+  line-height: 1.45;
+}
+
 .water-picker-label {
   margin: 22rpx 0 10rpx;
   color: #31473f;
@@ -622,6 +731,12 @@ page {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12rpx;
+}
+
+.water-chip-grid.searchable {
+  max-height: 352rpx;
+  overflow-y: auto;
+  padding: 2rpx;
 }
 
 .water-chip {
@@ -806,6 +921,88 @@ page {
   color: #44574f;
   font-size: 21rpx;
   font-weight: 750;
+}
+
+.water-game-search {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  box-sizing: border-box;
+  gap: 12rpx;
+  margin-bottom: 12rpx;
+  padding: 0 16rpx;
+  border: 1rpx solid #d7e2de;
+  border-radius: 16rpx;
+  background: #f3f7f5;
+}
+
+.water-game-search-icon {
+  flex: 0 0 auto;
+  color: #5f746c;
+  font-size: 28rpx;
+}
+
+.water-game-search-input {
+  min-width: 0;
+  flex: 1;
+  color: #243a32;
+  font-size: 23rpx;
+}
+
+.water-game-search-clear {
+  display: flex;
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  flex: 0 0 44px;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  margin: 0 -12rpx 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: #245d4e;
+  background: transparent;
+  line-height: 1;
+}
+
+.water-game-search-clear::after {
+  border: 0;
+}
+
+.water-game-search-clear-icon {
+  display: flex;
+  width: 48rpx;
+  height: 48rpx;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 1rpx solid #c3d8d0;
+  border-radius: 50%;
+  color: #245d4e;
+  background: #d5e5df;
+  font-size: 27rpx;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.water-game-search-count {
+  flex: 0 0 auto;
+  color: #71807b;
+  font-size: 19rpx;
+  font-variant-numeric: tabular-nums;
+}
+
+.water-game-search-empty {
+  display: flex;
+  min-height: 176rpx;
+  align-items: center;
+  justify-content: center;
+  color: #71807b;
+  font-size: 22rpx;
 }
 
 .water-game-legend {
