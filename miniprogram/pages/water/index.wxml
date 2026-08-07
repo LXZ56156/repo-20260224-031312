@@ -1,0 +1,144 @@
+<view class="container safe-bottom water-page">
+  <view class="water-loading" wx:if="{{loading}}">正在打开账本…</view>
+
+  <view class="card water-error" wx:elif="{{loadError}}">
+    <view class="water-error-title">暂时打不开</view>
+    <view class="text-caption">{{loadError}}</view>
+    <button class="btn btn-primary btn-sm" bindtap="onRetry">重试</button>
+  </view>
+
+  <block wx:else>
+    <view class="water-scoreboard">
+      <view class="water-score-head">
+        <view class="water-kicker">WATER BOARD · 独立账本</view>
+        <button class="water-share" open-type="share">邀请加入</button>
+      </view>
+      <view class="water-title">{{session.title}}</view>
+      <view class="water-score-strip">
+        <view class="water-stat"><text class="water-stat-value">{{participantCount}}</text><text class="water-stat-label">球友</text></view>
+        <view class="water-stat"><text class="water-stat-value">{{entryCount}}</text><text class="water-stat-label">记录</text></view>
+        <view class="water-stat"><text class="water-stat-value water-stat-balanced">{{totalNet}}</text><text class="water-stat-label">总账差</text></view>
+      </view>
+    </view>
+
+    <view class="card water-join-card" wx:if="{{!isOwner && !viewerParticipantId}}">
+      <view class="section-title">加入这次打水</view>
+      <view class="text-caption">可以使用自己的昵称，或认领发起人预先添加的名字。</view>
+      <picker mode="selector" range="{{joinChoices}}" range-key="name" value="{{joinIndex}}" bindchange="onJoinChoiceChange">
+        <view class="water-picker-row">{{joinChoices[joinIndex].name}}<text>⌄</text></view>
+      </picker>
+      <button class="btn btn-primary" loading="{{busy}}" bindtap="onJoin">确认加入</button>
+    </view>
+
+    <view class="water-command-board" wx:if="{{isOwner}}">
+      <button class="water-game-cta" bindtap="openGameSheet">
+        <view class="water-game-icon">▶</view>
+        <view class="water-game-copy">
+          <text class="water-game-hint">快速记录比赛</text>
+          <text class="water-game-title">记一局</text>
+        </view>
+      </button>
+      <view class="water-command-secondary">
+        <button class="water-secondary" bindtap="openManualSheet"><text>＋</text><text>手动加人</text></button>
+        <button class="water-secondary" open-type="share"><text>↗</text><text>邀请加入</text></button>
+      </view>
+    </view>
+
+    <view class="water-ledger-card">
+      <view class="water-card-head">
+        <view>
+          <view class="water-section-title">总账</view>
+          <view class="water-section-sub">赢水 − 请水</view>
+        </view>
+        <view class="water-balance"><text class="water-balance-dot"></text>平衡 {{totalNet}}</view>
+      </view>
+
+      <view class="water-empty" wx:if="{{!ledger.length}}">先添加球友，就可以开始记水</view>
+      <view class="water-column-head" wx:if="{{ledger.length && isOwner && participantCount > 1}}">
+        <text>球友 / 明细</text>
+        <text>净水</text>
+        <text>调整</text>
+      </view>
+      <view class="water-column-head view-only" wx:elif="{{ledger.length}}">
+        <text>球友 / 明细</text>
+        <text>净水</text>
+      </view>
+      <view class="water-ledger-row {{isOwner && participantCount > 1 ? '' : 'view-only'}}" wx:for="{{ledger}}" wx:key="id">
+        <view class="water-person-cell">
+          <view class="water-rank">{{index + 1}}</view>
+          <view class="water-person">
+            <view class="water-name">{{item.name}}</view>
+            <view class="water-person-meta">赢 {{item.won}}　请 {{item.treat}}</view>
+          </view>
+        </view>
+        <view class="water-net {{item.netClass}}">{{item.netText}}</view>
+        <view class="water-adjust-actions" wx:if="{{isOwner && participantCount > 1}}">
+          <button class="water-adjust minus" data-id="{{item.id}}" data-direction="minus" bindtap="openAdjustSheet">−</button>
+          <button class="water-adjust plus" data-id="{{item.id}}" data-direction="plus" bindtap="openAdjustSheet">＋</button>
+        </view>
+      </view>
+    </view>
+
+    <view class="water-recent-card">
+      <view class="water-card-head">
+        <view>
+          <view class="water-section-title">最近记录</view>
+          <view class="water-section-sub">刚刚发生的 {{recentEntries.length}} 笔</view>
+        </view>
+        <button class="water-undo" wx:if="{{isOwner && entryCount}}" bindtap="onUndoLast">撤销上一条</button>
+      </view>
+      <view class="water-empty" wx:if="{{!recentEntries.length}}">第一条记录会出现在这里</view>
+      <view class="water-record" wx:for="{{recentEntries}}" wx:key="id">
+        <view class="water-record-type">{{item.type === 'game' ? '局' : '单'}}</view>
+        <view class="water-record-text">{{item.description}}</view>
+      </view>
+    </view>
+  </block>
+</view>
+
+<view class="water-sheet-mask" wx:if="{{manualSheetOpen}}" bindtap="closeSheets">
+  <view class="water-sheet" catchtap="stopSheetTap">
+    <view class="water-sheet-handle"></view>
+    <view class="water-sheet-title">手动添加球友</view>
+    <view class="water-sheet-sub">每行一个名字，也支持逗号分隔</view>
+    <textarea class="water-name-input" value="{{manualNames}}" maxlength="300" placeholder="例如：小林&#10;Chris&#10;王姐" bindinput="onManualInput"></textarea>
+    <button class="btn btn-primary" loading="{{busy}}" bindtap="submitManual">添加到本局</button>
+  </view>
+</view>
+
+<view class="water-sheet-mask" wx:if="{{gameSheetOpen}}" bindtap="closeSheets">
+  <view class="water-sheet" catchtap="stopSheetTap">
+    <view class="water-sheet-handle"></view>
+    <view class="water-sheet-title">记一局</view>
+    <view class="water-sheet-sub">双方人数相同即可，1 对 1 也能记</view>
+    <view class="water-side-label winner-label">胜方</view>
+    <view class="water-chip-grid">
+      <button class="water-chip {{item.winnerSelected ? 'selected winner' : ''}}" wx:for="{{participants}}" wx:key="id" data-id="{{item.id}}" data-side="winner" bindtap="onToggleGamePlayer">{{item.name}}</button>
+    </view>
+    <view class="water-side-label loser-label">负方</view>
+    <view class="water-chip-grid">
+      <button class="water-chip {{item.loserSelected ? 'selected loser' : ''}}" wx:for="{{participants}}" wx:key="id" data-id="{{item.id}}" data-side="loser" bindtap="onToggleGamePlayer">{{item.name}}</button>
+    </view>
+    <picker mode="selector" range="{{unitOptions}}" value="{{gameUnitIndex}}" bindchange="onGameUnitChange">
+      <view class="water-picker-row"><text>每人水数</text><text>{{unitOptions[gameUnitIndex]}} 水　⌄</text></view>
+    </picker>
+    <button class="btn btn-primary" loading="{{busy}}" bindtap="submitGame">确认记一局</button>
+  </view>
+</view>
+
+<view class="water-sheet-mask" wx:if="{{adjustSheetOpen}}" bindtap="closeSheets">
+  <view class="water-sheet" catchtap="stopSheetTap">
+    <view class="water-sheet-handle"></view>
+    <view class="water-sheet-title">{{adjustTargetName}} {{adjustDirection === 'plus' ? '加水' : '减水'}}</view>
+    <view class="water-sheet-sub">{{adjustDirection === 'plus' ? '表示别人请 Ta' : '表示 Ta 请别人'}}</view>
+    <view class="water-picker-label">算在谁头上</view>
+    <picker mode="selector" range="{{counterparties}}" range-key="name" value="{{counterpartyIndex}}" bindchange="onCounterpartyChange">
+      <view class="water-picker-row">{{counterparties[counterpartyIndex].name}}<text>⌄</text></view>
+    </picker>
+    <view class="water-picker-label">水的数量</view>
+    <picker mode="selector" range="{{unitOptions}}" value="{{adjustUnitIndex}}" bindchange="onAdjustUnitChange">
+      <view class="water-picker-row">{{unitOptions[adjustUnitIndex]}} 水<text>⌄</text></view>
+    </picker>
+    <button class="btn btn-primary" loading="{{busy}}" bindtap="submitAdjust">确认记账</button>
+  </view>
+</view>

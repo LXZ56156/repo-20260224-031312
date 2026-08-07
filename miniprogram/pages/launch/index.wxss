@@ -40,6 +40,39 @@
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(248, 251, 249, 0.98) 100%);
 }
 
+.launch-water-card {
+  border-color: rgba(39, 123, 214, 0.18);
+  background: linear-gradient(135deg, #f4f9ff 0%, #ffffff 74%);
+  box-shadow: 0 10rpx 28rpx rgba(39, 123, 214, 0.1);
+}
+
+.launch-water-accent {
+  width: 8rpx;
+  background: #277bd6;
+}
+
+.launch-water-kicker {
+  margin-left: var(--space-tight);
+  margin-bottom: 8rpx;
+  color: #277bd6;
+  font-size: 22rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+}
+
+.launch-water-btn {
+  color: #ffffff;
+  background: #277bd6;
+}
+
+.launch-section-label {
+  margin: 28rpx 4rpx 0;
+  color: var(--neutral-500);
+  font-size: 22rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+}
+
 /* 左侧色彩暗示条 */
 .launch-card-accent {
   position: absolute;

@@ -116,6 +116,41 @@ function withPreview(patch) {
 }
 
 const cases = {
+  water: {
+    path: '/pages/water/index?id=water_demo',
+    selectors: ['.water-scoreboard', '.water-game-cta', '.water-ledger-row', '.water-adjust-actions', '.water-recent-card'],
+    data: {
+      loading: false,
+      loadError: '',
+      sessionId: 'water_demo',
+      session: { id: 'water_demo', title: '8月6日打水局', version: 6, isOwner: true, entries: [] },
+      isOwner: true,
+      viewerParticipantId: 'p1',
+      participants: [
+        { id: 'p1', name: '阿杰', claimed: true },
+        { id: 'p2', name: '小林', claimed: true },
+        { id: 'p3', name: 'Chris', claimed: false },
+        { id: 'p4', name: '王姐', claimed: false },
+      ],
+      ledger: [
+        { id: 'p1', name: '阿杰', initial: '阿', won: 5, treat: 1, net: 4, netText: '+4', netClass: 'is-positive' },
+        { id: 'p2', name: '小林', initial: '林', won: 3, treat: 2, net: 1, netText: '+1', netClass: 'is-positive' },
+        { id: 'p3', name: 'Chris', initial: 'C', won: 1, treat: 3, net: -2, netText: '-2', netClass: 'is-negative' },
+        { id: 'p4', name: '王姐', initial: '王', won: 0, treat: 3, net: -3, netText: '-3', netClass: 'is-negative' },
+      ],
+      recentEntries: [
+        { id: 'e2', type: 'transfer', description: '小林 请 阿杰 · 2 水' },
+        { id: 'e1', type: 'game', description: '阿杰、Chris 胜 小林、王姐 · 每人 1 水' },
+      ],
+      participantCount: 4,
+      entryCount: 2,
+      totalNet: 0,
+      manualSheetOpen: false,
+      gameSheetOpen: false,
+      adjustSheetOpen: false,
+      busy: false,
+    },
+  },
   home: {
     path: '/pages/home/index',
     route: 'switchTab',

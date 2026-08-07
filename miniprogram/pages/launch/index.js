@@ -7,6 +7,10 @@ Page({
     modeCards: flow.getLaunchModes()
   },
 
+  onStartWater() {
+    wx.navigateTo({ url: '/pages/water/index' });
+  },
+
   async onStart(e) {
     const dataset = e && e.currentTarget && e.currentTarget.dataset
       ? e.currentTarget.dataset

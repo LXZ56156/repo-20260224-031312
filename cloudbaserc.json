@@ -88,6 +88,10 @@
       "installDependency": true
     },
     {
+      "name": "waterSession",
+      "installDependency": true
+    },
+    {
       "name": "updateSettings",
       "installDependency": true
     }

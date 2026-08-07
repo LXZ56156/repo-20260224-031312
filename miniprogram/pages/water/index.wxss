@@ -1,0 +1,610 @@
+.water-page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 40rpx);
+  background: #eef1f5;
+}
+
+.water-loading,
+.water-empty {
+  padding: 56rpx 20rpx;
+  color: #7c8998;
+  font-size: 24rpx;
+  text-align: center;
+}
+
+.water-error-title {
+  margin-bottom: 8rpx;
+  color: #111827;
+  font-size: 30rpx;
+  font-weight: 750;
+}
+
+.water-error .btn {
+  margin-top: 24rpx;
+}
+
+.water-scoreboard {
+  overflow: hidden;
+  padding: 32rpx 32rpx 0;
+  border-radius: 30rpx;
+  background: #17263b;
+  color: #ffffff;
+  box-shadow: 0 20rpx 44rpx rgba(21, 36, 56, 0.18);
+}
+
+.water-score-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.water-kicker {
+  overflow: hidden;
+  color: #86d8cf;
+  font-size: 18rpx;
+  font-weight: 800;
+  letter-spacing: 1.6rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.water-title {
+  overflow: hidden;
+  margin: 20rpx 0 30rpx;
+  color: #ffffff;
+  font-size: 44rpx;
+  font-weight: 850;
+  line-height: 1.2;
+  letter-spacing: -1rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.water-share {
+  width: 120rpx !important;
+  min-width: 120rpx;
+  height: 68rpx;
+  margin: 0;
+  padding: 0;
+  border: 1rpx solid rgba(255, 255, 255, 0.28);
+  border-radius: 16rpx;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 22rpx;
+  font-weight: 750;
+  line-height: 68rpx;
+}
+
+.water-score-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 0 -32rpx;
+  border-top: 1rpx solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.water-stat {
+  display: flex;
+  min-height: 126rpx;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 32rpx;
+  border-left: 1rpx solid rgba(255, 255, 255, 0.12);
+}
+
+.water-stat:first-child {
+  border-left: 0;
+}
+
+.water-stat-value {
+  color: #ffffff;
+  font-size: 38rpx;
+  font-weight: 850;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.water-stat-balanced {
+  color: #73d6a8;
+}
+
+.water-stat-label {
+  margin-top: 8rpx;
+  color: #9cabbc;
+  font-size: 18rpx;
+  font-weight: 600;
+  letter-spacing: 1rpx;
+}
+
+.water-share::after,
+.water-undo::after,
+.water-secondary::after,
+.water-game-cta::after,
+.water-adjust::after,
+.water-chip::after {
+  border: none;
+}
+
+.water-command-board {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  gap: 16rpx;
+  margin-top: 24rpx;
+}
+
+.water-game-cta {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 176rpx;
+  align-items: center;
+  gap: 20rpx;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 24rpx;
+  border-radius: 28rpx;
+  color: #ffffff;
+  background: #16756e;
+  box-shadow: 0 14rpx 30rpx rgba(22, 117, 110, 0.18);
+  line-height: 1;
+  text-align: left;
+}
+
+.water-game-icon {
+  display: flex;
+  width: 76rpx;
+  height: 76rpx;
+  flex: 0 0 76rpx;
+  align-items: center;
+  justify-content: center;
+  border-radius: 22rpx;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 24rpx;
+}
+
+.water-game-copy {
+  min-width: 0;
+}
+
+.water-game-hint,
+.water-game-title {
+  display: block;
+}
+
+.water-game-hint {
+  overflow: hidden;
+  color: #bce3df;
+  font-size: 18rpx;
+  font-weight: 600;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.water-game-title {
+  margin-top: 8rpx;
+  color: #ffffff;
+  font-size: 38rpx;
+  font-weight: 850;
+  line-height: 1.1;
+}
+
+.water-command-secondary {
+  display: grid;
+  min-width: 0;
+  grid-template-rows: repeat(2, 80rpx);
+  gap: 16rpx;
+}
+
+.water-secondary {
+  display: flex;
+  width: calc(100% - 24rpx) !important;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  align-self: stretch;
+  justify-self: start;
+  height: 80rpx;
+  align-items: center;
+  gap: 12rpx;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 20rpx;
+  border: 0;
+  border-radius: 22rpx;
+  color: #3a4858;
+  background: #ffffff;
+  font-size: 22rpx;
+  font-weight: 750;
+  line-height: 1;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.water-secondary text:first-child {
+  color: #16756e;
+  font-size: 32rpx;
+  font-weight: 800;
+}
+
+.water-join-card {
+  margin-top: 24rpx;
+  border-radius: 28rpx;
+  background: #ffffff;
+}
+
+.water-join-card .text-caption {
+  margin: 8rpx 0 16rpx;
+}
+
+.water-join-card .btn {
+  margin-top: 16rpx;
+}
+
+.water-ledger-card,
+.water-recent-card {
+  overflow: hidden;
+  margin-top: 24rpx;
+  border: 1rpx solid rgba(23, 38, 59, 0.06);
+  border-radius: 28rpx;
+  background: #ffffff;
+  box-shadow: 0 10rpx 28rpx rgba(30, 43, 58, 0.055);
+}
+
+.water-card-head {
+  display: flex;
+  min-height: 132rpx;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  box-sizing: border-box;
+  padding: 24rpx 32rpx;
+}
+
+.water-section-title {
+  color: #111827;
+  font-size: 32rpx;
+  font-weight: 850;
+  line-height: 1.2;
+}
+
+.water-section-sub {
+  margin-top: 7rpx;
+  color: #8995a3;
+  font-size: 19rpx;
+  line-height: 1.3;
+}
+
+.water-balance {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10rpx;
+  color: #4e625f;
+  font-size: 20rpx;
+  font-weight: 750;
+}
+
+.water-balance-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background: #21a66d;
+  box-shadow: 0 0 0 8rpx #e7f6ef;
+}
+
+.water-column-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 64rpx 192rpx;
+  align-items: center;
+  min-height: 52rpx;
+  box-sizing: border-box;
+  padding: 0 32rpx;
+  background: #f4f6f8;
+  color: #8995a3;
+  font-size: 18rpx;
+  font-weight: 750;
+  letter-spacing: 0.5rpx;
+}
+
+.water-column-head.view-only {
+  grid-template-columns: minmax(0, 1fr) 64rpx;
+}
+
+.water-column-head text:nth-child(2),
+.water-column-head text:last-child {
+  text-align: right;
+}
+
+.water-ledger-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 64rpx 192rpx;
+  align-items: center;
+  min-height: 140rpx;
+  margin: 0 32rpx;
+  border-top: 1rpx solid #edf0f3;
+}
+
+.water-ledger-row.view-only {
+  grid-template-columns: minmax(0, 1fr) 64rpx;
+}
+
+.water-ledger-row:nth-of-type(3) {
+  border-top: 0;
+}
+
+.water-person-cell {
+  display: grid;
+  grid-template-columns: 48rpx minmax(0, 1fr);
+  align-items: center;
+  min-width: 0;
+}
+
+.water-rank {
+  color: #9aa5b1;
+  font-size: 19rpx;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.water-person {
+  min-width: 0;
+}
+
+.water-name {
+  overflow: hidden;
+  color: #172033;
+  font-size: 28rpx;
+  font-weight: 780;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.water-person-meta {
+  overflow: hidden;
+  margin-top: 7rpx;
+  color: #8995a3;
+  font-size: 19rpx;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.water-net {
+  font-size: 34rpx;
+  font-weight: 850;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.water-net.is-positive {
+  color: #0b8a58;
+}
+
+.water-net.is-negative {
+  color: #d84f47;
+}
+
+.water-net.is-even {
+  color: #6d7a89;
+}
+
+.water-adjust-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 88rpx);
+  justify-content: end;
+  gap: 0;
+  margin-left: 0;
+}
+
+.water-adjust-actions .water-adjust {
+  display: flex;
+  width: 88rpx !important;
+  min-width: 88rpx;
+  max-width: 88rpx;
+  min-height: 84rpx;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 1rpx solid #dfe5ea;
+  border-radius: 0;
+  background: #ffffff;
+  font-size: 31rpx;
+  font-weight: 700;
+  line-height: 84rpx;
+}
+
+.water-adjust-actions .water-adjust:first-child {
+  border-radius: 18rpx 0 0 18rpx;
+}
+
+.water-adjust-actions .water-adjust:last-child {
+  border-radius: 0 18rpx 18rpx 0;
+}
+
+.water-adjust.minus {
+  color: #d34b43;
+}
+
+.water-adjust.plus {
+  color: #15855b;
+}
+
+.water-undo {
+  min-height: 64rpx;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: #687789;
+  background: transparent;
+  font-size: 20rpx;
+  font-weight: 650;
+  line-height: 64rpx;
+}
+
+.water-record {
+  display: grid;
+  grid-template-columns: 60rpx minmax(0, 1fr);
+  align-items: center;
+  gap: 20rpx;
+  min-height: 116rpx;
+  margin: 0 32rpx;
+  border-top: 1rpx solid #edf0f3;
+}
+
+.water-record-type {
+  display: flex;
+  width: 58rpx;
+  height: 58rpx;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18rpx;
+  color: #21746e;
+  background: #edf4f4;
+  font-size: 20rpx;
+  font-weight: 850;
+}
+
+.water-record-text {
+  min-width: 0;
+  color: #465568;
+  font-size: 23rpx;
+  line-height: 1.5;
+}
+
+.water-picker-row {
+  display: flex;
+  min-height: 84rpx;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  padding: 0 20rpx;
+  border: 1rpx solid #dfe5ea;
+  border-radius: 16rpx;
+  color: #3a4858;
+  background: #f6f8fa;
+  font-size: 27rpx;
+}
+
+.water-sheet-mask {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.water-sheet {
+  width: 100%;
+  max-height: 84vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 14rpx 24rpx calc(env(safe-area-inset-bottom) + 28rpx);
+  border-radius: 28rpx 28rpx 0 0;
+  background: #ffffff;
+}
+
+.water-sheet-handle {
+  width: 72rpx;
+  height: 8rpx;
+  margin: 0 auto 20rpx;
+  border-radius: 999rpx;
+  background: #dfe5ea;
+}
+
+.water-sheet-title {
+  color: #111827;
+  font-size: 34rpx;
+  font-weight: 800;
+}
+
+.water-sheet-sub {
+  margin-top: 4rpx;
+  color: #7c8998;
+  font-size: 23rpx;
+}
+
+.water-name-input {
+  width: 100%;
+  height: 220rpx;
+  box-sizing: border-box;
+  margin: 20rpx 0;
+  padding: 18rpx;
+  border: 1rpx solid #dfe5ea;
+  border-radius: 16rpx;
+  background: #f6f8fa;
+  font-size: 28rpx;
+}
+
+.water-side-label,
+.water-picker-label {
+  margin: 22rpx 0 10rpx;
+  color: #3a4858;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.winner-label {
+  color: #15855b;
+}
+
+.loser-label {
+  color: #b9423b;
+}
+
+.water-chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.water-chip {
+  min-width: 132rpx;
+  height: 68rpx;
+  margin: 0;
+  padding: 0 18rpx;
+  border: 1rpx solid #dfe5ea;
+  border-radius: 999rpx;
+  color: #3a4858;
+  background: #ffffff;
+  font-size: 24rpx;
+  line-height: 68rpx;
+}
+
+.water-chip.selected.winner {
+  border-color: rgba(21, 133, 91, 0.35);
+  color: #0c744e;
+  background: #eaf7f0;
+}
+
+.water-chip.selected.loser {
+  border-color: rgba(185, 66, 59, 0.28);
+  color: #b9423b;
+  background: #fff1ef;
+}
+
+.water-sheet .water-picker-row {
+  margin: 10rpx 0 20rpx;
+}
+
+.water-sheet .btn-primary {
+  background: #16756e;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .water-scoreboard,
+  .water-game-cta,
+  .water-ledger-card,
+  .water-recent-card {
+    box-shadow: none;
+  }
+}
