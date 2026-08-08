@@ -14,6 +14,7 @@
       </view>
     </view>
     <view class="launch-actions">
+      <text class="launch-rule-link launch-action-spacer" aria-hidden="true">规则说明</text>
       <button class="btn btn-sm btn-inline launch-btn launch-water-btn" bindtap="onStartWater">开始记水</button>
     </view>
   </view>

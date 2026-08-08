@@ -4,6 +4,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { validateHorizontalAlignment } = require('./weapp-screenshot-layout');
 
 function resolveAutomator() {
   try {
@@ -150,6 +151,16 @@ const cases = {
       adjustSheetOpen: false,
       busy: false,
     },
+  },
+  launch: {
+    path: '/pages/launch/index',
+    route: 'switchTab',
+    selectors: ['.launch-water-card', '.launch-water-btn', '.launch-card.is-default .launch-btn'],
+    horizontalAlignment: {
+      selectors: ['.launch-water-btn', '.launch-card.is-default .launch-btn'],
+      tolerance: 1,
+    },
+    data: {},
   },
   home: {
     path: '/pages/home/index',
@@ -367,9 +378,12 @@ async function runCase(name, miniProgram) {
   await page.setData(item.data);
   await page.waitFor(1800);
   const dom = await collectDom(page, item.selectors);
+  const horizontalAlignment = item.horizontalAlignment
+    ? validateHorizontalAlignment(dom, item.horizontalAlignment)
+    : null;
   await timeout(miniProgram.screenshot({ path: output }), screenshotTimeoutMs, `${name}:screenshot`);
-  const ok = fileLooksNonBlank(output);
-  return { name, ok, output, dom };
+  const ok = fileLooksNonBlank(output) && (!horizontalAlignment || horizontalAlignment.ok);
+  return { name, ok, output, dom, horizontalAlignment };
 }
 
 async function main() {

@@ -158,13 +158,22 @@ test('match score tools keep larger legacy controls with containment', () => {
   assert.match(toolRule, /overflow:\s*hidden/);
 });
 
-test('launch action row uses grouped alignment instead of full spread', () => {
+test('launch quick-water and tournament CTAs share one action column', () => {
+  const wxml = read('miniprogram/pages/launch/index.wxml');
   const wxss = read('miniprogram/pages/launch/index.wxss');
   const actionsRule = getCssRuleBody(wxss, '.launch-actions');
+  const spacerRule = getCssRuleBody(wxss, '.launch-action-spacer');
   const ruleLinkRule = getCssRuleBody(wxss, '.launch-rule-link');
 
+  assert.match(
+    wxml,
+    /class="launch-rule-link launch-action-spacer" aria-hidden="true">规则说明<\/text>[\s\S]*?class="btn btn-sm btn-inline launch-btn launch-water-btn"/
+  );
+  assert.match(actionsRule, /display:\s*flex/);
   assert.match(actionsRule, /justify-content:\s*flex-end/);
   assert.doesNotMatch(actionsRule, /space-between/);
+  assert.match(spacerRule, /visibility:\s*hidden/);
+  assert.match(spacerRule, /pointer-events:\s*none/);
   assert.match(ruleLinkRule, /min-height:\s*64rpx/);
 });
 

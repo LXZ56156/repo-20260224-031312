@@ -153,6 +153,11 @@
   text-underline-offset: 4rpx;
 }
 
+.launch-action-spacer {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 /* 发起按钮 — primary CTA */
 .launch-btn {
   min-width: 160rpx;
