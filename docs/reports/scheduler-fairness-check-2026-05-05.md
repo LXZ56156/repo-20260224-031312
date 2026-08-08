@@ -1,10 +1,10 @@
 # 多人转 / 小队转排阵检查结果与优化方案
 
 - 日期: `2026-05-05`
-- 计划文档: `docs/scheduler-fairness-check-plan-2026-05-05.md`
-- 主要输入: `docs/scheduler-full-audit.md`
+- 计划文档: `docs/archive/scheduler-fairness-check-plan-2026-05-05.md`
+- 主要输入: `docs/reports/scheduler-full-audit.md`
 - 检查范围: `multi_rotate`、`squad_doubles` 的排阵输出、可选场次、默认场次
-- 本文为优化前检查结论与方案；优化执行记录见 `docs/scheduler-optimization-implementation-2026-05-05.md`
+- 本文为优化前检查结论与方案；优化执行记录见 `docs/archive/scheduler-optimization-implementation-2026-05-05.md`
 
 ## 检查摘要
 
@@ -38,7 +38,7 @@ npm run report:scheduler-full-audit
 结果：
 
 - `npm run audit:scheduler-scenarios`: `scenarios=990 warnings=0 failures=0`
-- `npm run report:scheduler-full-audit`: `wrote docs/scheduler-full-audit.md scenarios=990 warnings=0 failures=0`
+- `npm run report:scheduler-full-audit`: 当时输出后现归档为 `docs/reports/scheduler-full-audit.md`，`scenarios=990 warnings=0 failures=0`
 
 另外运行了临时 Node 聚焦统计，直接调用：
 

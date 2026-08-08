@@ -259,7 +259,7 @@ npm run preview:share-card
 
 ## 相关文档
 
-- `docs/tasks/growth-optimization.md` — 增长优化待办事项总览
+- `docs/specs/growth-flywheel-optimization.md` — 当前增长飞轮方案与 backlog
 - `data/we-analysis/search-optimization-plan-verified.md` — 搜索优化方案
 - `miniprogram/core/shareCard.js` — 源码注释
 

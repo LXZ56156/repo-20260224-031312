@@ -1,50 +1,50 @@
 # Current Task
 
-> AI session handoff file. Keep it short enough for the next session to continue without re-investigation.
+> AI session handoff. Keep this file concise; detailed evidence belongs in the linked session log.
 
-## Status: phase2_planning
+## Status: standalone_water_and_launch_alignment_accepted
 
-## Phase 1 Completed (2026-06-15)
+## Exact State (2026-08-08)
 
-增长飞轮第一阶段 Task 1–6 已完成实现、截图验证、回归测试，已推送 `origin/master`。
+- Online/product baseline remains `master` = `origin/master` = `5813ffc79f94c180fa5573eb25fb0d57f53b85df`.
+- Active development worktree: `D:\projects(WIN)\badminton-miniapp-worktrees\water-court-vant-spike-20260807` on `codex/water-court-vant-spike-20260807`.
+- Current product implementation is `c2f438a922f3bd17dfd697e70efac33c1d06acd0`; the branch has no upstream and has not been pushed.
+- Original overlay `38d6ea4` was applied as cherry-pick `178e5dd`; both have patch-id `2cf91c83878e94c9b39fb57694c5b2cf09c4028d`.
 
-| Commit | 内容 |
-|--------|------|
-| `03fb80e` | `chore(growth): add analysis and screenshot tooling` |
-| `5f0aa67` | `feat(growth): wire lightweight flywheel tracking` |
-| `08fa322` | `feat(growth): polish flywheel UI surfaces` |
-| `42deb17` | `docs(growth): record phase one completion` |
-| `e2f7a18` | `fix(growth): harden phase one tracking routes` |
-| `2537b19` | `fix(growth): stabilize tracking payloads` |
+## Approved Increment Chain
 
-验证通过：1096/1096 tests pass, 8 UI screenshots ok, no new cloud functions/DB collections.
+| Commit | Approved scope |
+|---|---|
+| `178e5dd` | schedule central `VS` / score overlay |
+| `34193f1` | standalone water ledger, launch entry and `waterSession` |
+| `ce73118` | approved water controls and scoped Vant Weapp build |
+| `6da0cc5` | compact equal-side game selection, including 1v1 |
+| `6939688` | relay import and roster search |
+| `ab1e6c5` | minimal Windows shell/tooling hardening |
+| `7c6ba81` | refresh, polling and stale-response protection |
+| `3449cad` | repeated-write idempotency and conflict recovery |
+| `c2f438a` | align quick-water CTA with tournament CTAs |
 
-详细记录：`docs/tasks/session-logs/2026-06-15-growth-flywheel-phase1.md`
+## Product Boundary
 
-## Phase 2 入口
+- Quick water works without creating a tournament. The owner may add names manually or from relay text, invite/claim participants, record one equal-side game from 1v1 upward, directly add/subtract 1–99 water with a native picker (default 1), search large rosters and undo the latest entry.
+- There is no user-visible “结束 / 完成 / 另开账本” action. The cloud `finish` branch is compatibility code and must not be exposed or removed without separate approval.
+- Next-gen/C3/Home redesign, a global design system and cross-page visual unification remain out of scope.
 
-方案文档：`docs/specs/growth-flywheel-optimization.md` v1.2.3 Section "Task 7：第二阶段 Backlog（Phase 2 入口）"。
+## Acceptance and Delivery Facts
 
-Phase 2 Backlog 项（按优先级）：
-1. **订阅消息** — 开赛/完赛/排名通知，需先确认 MP 模板可用性 + 新增 `subscribeMessage` 云函数
-2. **添加到我的小程序引导** — 创建赛事后/首次录分后弹窗引导
-3. **match 单场比分分享** — 录分完成后轻量分享单场比分卡
-4. **mine 长期个人战绩分享** — 累计战绩卡、最近 N 场表现
-5. **细分转化漏斗看板** — 入口转化率、海报保存率、再办一场率
+- User accepted the launch alignment and authorized its commit. Real DevTools geometry was `left=136.0969px`, `width=184px` for both CTAs; focused tests are 11/11 and `git diff --check` passes.
+- `waterSession` was deployed once under explicit authorization and its remote hash was verified. This does not authorize another deployment.
+- A preview QR was generated before the final `c2f438a` alignment; it is not current launch acceptance or a formal release. No `mp:upload`, formal release, push or PR has occurred, and no real business data was written.
+- Full-suite runs after `c2f438a` were not green because `tests/squad.fairness.test.js` reproduced pre-existing wall-clock deadline variance; do not report the suite as passed. Exact evidence and screenshot limitations are in the session log.
 
-Phase 2 前置条件：
-- 等待 Phase 1 上线后 7–14 天，积累足够的埋点数据和 we 分析数据
-- 拉取最新 we 分析数据对比 Phase 1 前后变化
-- 根据数据决定 Phase 2 优先级是否调整
+## Next Action
 
-## Next Steps
-- 等待 Phase 1 真机验收 + 线上数据积累（≥7 天）
-- 拉取最新 we 分析数据，对比 Phase 1 前后指标变化
-- 确认 MP 后台订阅消息模板可用性
-- 根据数据决定 Phase 2 启动时机和优先级
+Documentation is synchronized. Wait for the user's next single UI point; follow browser direction approval → tests first → minimal native implementation → current-source DevTools image → user confirmation → necessary size/state checks → separate commit.
 
-## Key Files
-- 方案: `docs/specs/growth-flywheel-optimization.md`
-- 分析数据: `data/we-analysis/`
-- 埋点: `miniprogram/core/growthTracker.js`
-- 截图: `docs/tools/weapp-ui-screenshot-workflow.md`
+## Authority
+
+- Product spec: `docs/specs/standalone-water-ledger.md`
+- Route and boundaries: `docs/tasks/incremental-ui-optimization-plan.md`
+- Detailed evidence: `docs/tasks/session-logs/2026-08-08-standalone-water-launch-acceptance.md`
+- Screenshot procedure: `docs/tools/weapp-ui-screenshot-workflow.md`

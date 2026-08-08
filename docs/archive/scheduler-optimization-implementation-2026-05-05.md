@@ -1,8 +1,8 @@
 # 排阵优化执行记录
 
 - 日期: `2026-05-05`
-- 对应检查文档: `docs/scheduler-fairness-check-2026-05-05.md`
-- 刷新后的总审计: `docs/scheduler-full-audit.md`
+- 对应检查文档: `docs/reports/scheduler-fairness-check-2026-05-05.md`
+- 刷新后的总审计: `docs/reports/scheduler-full-audit.md`
 - 执行范围: `multi_rotate`、`squad_doubles`
 - 未改范围: 页面结构、页面文案、设置页默认选择、多人转默认场次
 
@@ -43,8 +43,8 @@
 
 - `scripts/scheduler-scenario-common.js` 增加 `squad_total_rounds_audit` 场景。
 - 全量 scheduler 矩阵从 `990` 扩展到 `1038`。
-- `docs/scheduler-full-audit.md` 增加 `squad_doubles total_rounds matrix`。
-- `docs/scheduler-full-audit.md` 增加 `multi_rotate 默认/可选场次质量` 段。
+- `docs/reports/scheduler-full-audit.md` 增加 `squad_doubles total_rounds matrix`。
+- `docs/reports/scheduler-full-audit.md` 增加 `multi_rotate 默认/可选场次质量` 段。
 - 新增/更新测试覆盖:
   - `total_rounds` 质量路径不退化到 greedy。
   - `total_rounds` 有效场次校验。
@@ -53,7 +53,7 @@
 
 ## 最新审计结果
 
-`docs/scheduler-full-audit.md` 当前结果:
+`docs/reports/scheduler-full-audit.md` 当前结果:
 
 | item | result |
 | --- | --- |

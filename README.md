@@ -1,128 +1,86 @@
-# 羽毛球轮转赛（CloudBase）
+# 羽毛球赛事与独立打水小程序（CloudBase）
 
-> 当前包已预置云环境 ID：`cloud1-1ghmqjyt6428702b`。
+原生微信小程序，包含完整羽毛球赛事管理链路和无需创建比赛的独立打水账本。Agent/开发者开始前先读 `AGENTS.md` 与 `docs/tasks/current.md`。
 
-## 1. 导入项目
-1. 打开 **微信开发者工具** → 选择 **导入项目**
-2. 目录选择到 **包含 `project.config.json` 的那一层**（不要选到上一级）
-3. 如果你有自己的小程序 AppID：填你的 AppID（或使用测试号）
-4. 导入成功后，确认：
-   - `miniprogramRoot` = `miniprogram/`
-   - `cloudbaseRoot` = `./`
-   - `cloudfunctionRoot` = `cloudfunctions/`
+## 功能概览
 
-## 2. 绑定云开发环境
-1. 右上角 **云开发** → 选择环境
-2. 选择/创建云环境后，确认 `miniprogram/config/env.js` 中对应环境的 `cloudEnvId`
-3. 默认已内置：`cloud1-1ghmqjyt6428702b`
-4. 开发版/体验版/正式版会按 `envVersion` 读取对应配置；首页在非正式环境会显示环境标识
-5. 如果上传云函数时出现 `请在编辑器云函数根目录（cloudfunctionRoot）选择一个云环境`：
-   - 这不是函数代码问题，而是微信开发者工具本地还没选定默认云环境
-   - 在开发者工具文件树中右键 `cloudfunctions/`
-   - 选择 **“选择想要上传的目标环境”**
-   - 选中环境 `cloud1-1ghmqjyt6428702b`
-   - 再执行“上传并部署：所有云函数”或单独上传 `addPlayers`
-6. 仓库已补充 `.cloudbaserc.json`，固定 CloudBase 默认 `envId` 和 `functionRoot`，避免运行时环境和部署环境继续漂移
+- 赛事：创建、配置、开赛、录分、排名、赛后复盘与分享；
+- 模式：多人轮转、团队双打、固定搭档循环；
+- 独立打水：手动/接龙/邀请添加球友，1v1 起记一局，直接加减水，搜索大名单和撤销上一条；
+- 独立打水不创建 tournament，当前没有用户可见的结束/另开账本入口。
 
-## 3. 数据库初始化（必须）
-> 你遇到的 `database collection not exists: tournaments` 就是因为没有创建集合。
+线上、开发、云部署和 preview 状态请看 `docs/tasks/current.md`，不要从本地 Git HEAD 推导线上版本。
 
-1. 云开发控制台 → **数据库** → **新建集合**
-2. 创建集合名：`tournaments`
-3. 建议权限规则（仅示例，按你实际需求调整）：
-   - `tournaments`：所有用户可读；写入只通过云函数
-   - 规则（在集合权限里配置）示例：
-     ```json
-     {"read": true, "write": false}
-     ```
+## 导入项目
 
-## 4. 部署云函数（必须）
-1. 先在项目根目录执行：
-   ```bash
-   ./scripts/sync-cloud-common.sh
-   ```
-   用于同步云函数公共库、模式工具、权限工具到各函数目录。
-2. 在开发者工具左侧资源管理器里，找到 `cloudfunctions/`
-3. 右键 `cloudfunctions` → **上传并部署：所有云函数**
-4. 部署完成后再运行项目，否则会出现 `FUNCTION_NOT_FOUND`。
+1. 微信开发者工具选择“导入项目”；
+2. 选择包含 `project.config.json` 的 checkout/worktree 根目录；
+3. 确认 `miniprogramRoot=miniprogram/`、`cloudbaseRoot=./`、`cloudfunctionRoot=cloudfunctions/`；
+4. 在云开发中选择与 `miniprogram/config/env.js` 对应的环境。
 
-当前云函数列表：
-- addPlayers
-- cloneTournament
-- createTournament
-- deleteTournament
-- feedbackSubmit
-- getMyPerformanceStats
-- getUserProfile
-- joinTournament
-- login
-- managePairTeams
-- rebuildRankings
-- removePlayer
-- resetTournament
-- saveUserProfile
-- scoreLock
-- setPlayerSquad
-- setReferee
-- startTournament
-- submitScore
-- updateSettings
+当前 Windows 路径和 DevTools endpoint 规则见 `docs/tools/windows-dev-environment.md`。不要使用元数据空壳 `D:\projects\badminton-miniapp`，也不要把 preview mirror 当成源码。
 
-## 5. 目录结构说明
-- `miniprogram/`：小程序前端运行时代码（页面、核心模块、样式、静态资源）
-- `cloudfunctions/`：云函数目录，每个子目录对应一个独立函数入口与依赖
-- `tests/`：Node.js 单元测试（核心逻辑与权限/赛程算法回归）
-- `project.config.json`：微信开发者工具项目配置（应纳入版本控制）
-- `project.private.config.json`：本地私有配置（不纳入版本控制）
+## 数据库
 
-## 5.1 开发检查命令
-在项目根目录可直接执行：
+主要集合：
 
-```bash
-# 全量单测
+- `tournaments`：赛事、名单、赛程和比分；
+- `waterSessions`：独立打水名单、entries、version 和幂等请求记录。
+
+建议客户端只读、所有写入走云函数。任何真实环境初始化/写入必须先获明确授权。
+
+## 开发检查
+
+在当前 worktree 的 PowerShell 中运行：
+
+```powershell
 npm test
-
-# 单个核心测试
 npm run test:ranking
-
-# 检查云函数共享库是否同步
-npm run check:cloud-common
-
-# 检查是否引入已废弃微信 API
-npm run check:deprecated-wx-api
-
-# 执行常用本地检查
 npm run check
+npm run lint
+npm run ui:screenshot -- --list
 ```
 
-其中 `npm run check:deprecated-wx-api` 会拦截以下废弃 API：
-- `wx.getSystemInfo`
-- `wx.getSystemInfoSync`
-- `wx.saveFile`
-- `wx.removeSavedFile`
+云共享库的源是 `scripts/*-common.template.js`。需要同步时使用 Windows guard：
 
-## 6. 运行 & 典型流程
-### 6.1 创建赛事（管理员）
-1. 首页 → **去创建**
-2. 填：赛事名、昵称/头像（可选）
-3. 创建并进入大厅
-4. 在“赛事设置”中填写总场次 M、并行场地数 C（可选），并保存
-5. 在大厅添加/导入参赛者（管理员可操作）
-6. 点击 **开赛**（开赛后赛程锁定，生成完整对阵表）
+```powershell
+node scripts/run-bash-script.js scripts/sync-cloud-common.sh
+npm run check:cloud-common
+```
 
-### 6.2 分享观赛/自愿加入
-1. 管理员在大厅点 **分享**
-2. 群聊成员打开后：默认 **只观赛**（可看实时排名/赛程）
-3. 成员点击 **加入比赛** 才会入参赛列表（不强制加入）
+不要直接编辑 `cloudfunctions/*/lib/*`，不要调用裸 `bash`。当前精确命令及已知测试波动见 `docs/tools/windows-dev-environment.md`。
 
-### 6.3 录入比分
-1. 赛程页选择某一场 → 进入 **录入比分**
-2. 输入左右两队得分 → 提交
-3. 完赛后：
-   - 观众页显示静态比分
-   - 管理员/裁判可再次修改（需要权限）
+## 典型赛事流程
 
-## 7. 常见报错排查
-- `FunctionName parameter could not be found`：没部署云函数 / 没选对云环境 / 目录没导入到包含 `project.config.json` 的层级
-- `database collection not exists: tournaments`：未创建数据库集合 `tournaments`
-- 模拟器提示实时监听不支持：不影响真机；本包在关键写入后会主动拉取一次最新数据作为兜底
+1. launch 选择赛制并发起；
+2. 创建/确认赛事后进入大厅；
+3. 添加或邀请参赛者，配置场地和规则；
+4. 开赛后进入赛程，录入或修正比分；
+5. 查看排名与赛后分析，按现有入口分享。
+
+## 独立打水流程
+
+1. launch 点击“开始记水”；
+2. 创建或继续发起人的 active 账本；
+3. 手动添加、粘贴接龙或分享邀请；
+4. 选择等人数胜负方记一局，或点名单 `＋/−` 直接记账；
+5. 查看净水和最近 4 条记录，必要时撤销上一条。
+
+完整合同见 `docs/specs/standalone-water-ledger.md`。
+
+## 云函数部署
+
+仓库当前有 23 个云函数。只部署本次实际受影响且已获授权的函数：先同步/检查共享库，再通过微信开发者工具选择正确环境并“上传并部署：云端安装依赖”。不要默认“部署所有云函数”。
+
+`waterSession` 曾在一次性授权下部署；该事实不授权再次部署，也不代表小程序客户端已经发布。
+
+## 发布边界
+
+local commit、push、PR、preview QR、preview、`mp:upload`、正式发布、云函数部署和真实数据写入是独立动作。除非当前任务明确授权对应动作，否则不得执行。Git push 或二维码都不等于线上正式版。
+
+## 常见问题
+
+- `FUNCTION_NOT_FOUND`：目标环境没有部署所需云函数，或 DevTools 选择了错误环境；先核对环境和函数名，不要直接全量部署。
+- `database collection not exists`：目标环境缺少集合或初始化权限；真实环境操作前先确认授权。
+- 截图连接失败：端口角色是会话动态值，验证 exact worktree 的 automation endpoint 后设置 `WEAPP_WS_ENDPOINT`；不要盲信脚本默认 `39420`。
+- 截图超时：DevTools 最小化可能没有可靠 surface；保持 restored-but-background，详见 `docs/tools/weapp-ui-screenshot-workflow.md`。

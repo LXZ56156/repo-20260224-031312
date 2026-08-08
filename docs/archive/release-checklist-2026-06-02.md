@@ -24,4 +24,4 @@
 
 ## MCP 验收报告
 
-执行结果记录在 `docs/tasks/wechat-mcp-release-report-2026-06-02.md`。
+执行结果记录在 `docs/reports/wechat-mcp-release-report-2026-06-02.md`。

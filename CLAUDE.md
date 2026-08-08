@@ -1,97 +1,24 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+本仓库的 Agent 权威规则统一维护在 `AGENTS.md`。Claude Code 会话必须先完整读取并遵守它；不要在本文维护第二套页面数、云函数数、命令、端口、分支或发布状态。
 
-## AI Collaboration Files
+## Session Entry
 
-| File | Purpose | When to read |
-|------|---------|-------------|
-| `docs/context/architecture.md` | Stable architecture reference (layers, patterns, modes) | When touching unfamiliar modules or cross-cutting changes |
-| `docs/tasks/current.md` | Current task state and next steps | At session start, to continue prior work |
-| `docs/tasks/session-logs/` | Detailed verification logs from completed sessions | When investigating past test results or deployment history |
-| `docs/specs/` | Feature design docs and implementation plans | When starting new feature work |
-| `docs/notes/learnings.md` | Temporary rules, gotchas, accumulated discoveries | Before making assumptions about edge cases |
-| `docs/tools/we-analysis-local-script.md` | 微信 we分析 datacube 本地拉取脚本使用说明 | 当需要拉取小程序访问数据/用户画像/留存等分析数据时 |
+依次读取：
 
-Update `docs/tasks/current.md` when starting or completing significant work. Record temporary discoveries in `docs/notes/learnings.md`, not here.
+1. `AGENTS.md`
+2. `docs/tasks/current.md`
+3. `docs/tasks/incremental-ui-restart-handoff-2026-07-29.md`
+4. `docs/tasks/incremental-ui-optimization-plan.md`
 
-## Project Overview
+再按任务读取 `docs/specs/`、`docs/context/architecture.md`、`docs/tools/` 和 `docs/notes/learnings.md`。文档分层与生命周期规则见 `docs/notes/learnings.md`。
 
-WeChat Mini Program for badminton round-robin tournament management. Native WeChat framework (WXML/WXSS/JS) + CloudBase backend. Full lifecycle: create > configure > start > score > rank > analytics.
+## Non-Negotiable Boundaries
 
-## Commands
+- 当前工作必须使用 `docs/tasks/current.md` 指定的隔离 worktree；不得在 canonical 工作区切分支或覆盖用户 dirty 内容。
+- 用户可见 UI/文案/CTA/导航/流程先审批；浏览器稿不能替代当前源码微信 DevTools 实图。
+- commit、push、PR、preview QR、preview、upload、正式发布、云部署和真实数据写入分别授权。
+- Windows 不调用裸 `bash`；命令以当前 `package.json` 和 `docs/tools/windows-dev-environment.md` 为准。
+- 独立打水没有用户可见结束选项；Next-Gen/C3/Home 全面重做仍暂停。
 
-```bash
-# Run all tests (Node.js native test runner)
-node --test tests/*.test.js
-
-# Run a single test
-node --test tests/ranking-core.consistency.test.js
-
-# Sync shared libraries to cloud functions (required before deploying)
-./scripts/sync-cloud-common.sh
-
-# Check if cloud common libs are in sync
-./scripts/check-cloud-common.sh
-
-# Pull WeChat official analytics data (we分析 / datacube)
-node scripts/fetch-we-analysis.js <type> <begin_date> <end_date>
-# See docs/tools/we-analysis-local-script.md for supported types and usage
-# Data saved to data/we-analysis/ (check existing files before re-pulling)
-```
-
-Deploy cloud functions via WeChat DevTools: right-click `cloudfunctions/` > upload and deploy.
-
-## Architecture (Summary)
-
-> Full details: `docs/context/architecture.md`
-
-- `miniprogram/pages/` — 14 UI pages, tabBar: home/launch/mine
-- `miniprogram/core/` — Shared business logic
-- `cloudfunctions/` — 20 cloud functions, shared code via `scripts/*-common.template.js` (source of truth, never edit `lib/` directly)
-- `tests/` — ~170 test files, `node:test` + `node:assert/strict`
-- Tournament states: `draft` > `running` > `finished`
-- Ranking: wins > point diff > points scored > name
-- Game modes: `multi_rotate`, `squad_doubles`, `fixed_pair_rr`
-
-## Testing Conventions
-
-- Framework: `node:test` + `node:assert/strict` (no external dependencies)
-- Tests mock wx APIs and cloud calls by stubbing globals — follow existing patterns
-- File naming: `*.test.js` (unit/integration), `*.consistency.test.js` (client-cloud parity), `*.smoke.test.js` (e2e), `*.async-stale-response.test.js` (weak network)
-
-## Deprecated APIs
-
-- `wx.saveFile` / `wx.removeSavedFile` > use `wx.getFileSystemManager().*`
-- `wx.getSystemInfo` / `wx.getSystemInfoSync` > use `miniprogram/core/systemInfo.js`
-- Check: `scripts/check-deprecated-wx-api.sh`
-
-## MCP Configuration
-
-- Verify working directory matches `.mcp.json` location. After config changes, restart Claude Code before testing.
-- weapp_dev MCP: auto-launch on connection failure before reporting errors.
-
-## Style & Commit
-
-- Respond in Chinese; keep technical terms and code identifiers in original form
-- Commit: conventional commits (feat/fix/refactor/chore), Chinese messages
-- Before commit: review all changes, run full test suite, confirm all pass
-
-## Tool Usage
-
-- Wx API / third-party / Node.js usage > query context7 docs first
-- PR / Issue / CI / branch management > use github MCP, don't manually construct URLs
-- Changes to state flow (draft/running/finished), scoring, ranking, schedule generation, share entry > list affected pages and cloud functions before coding
-
-## Execution Mode
-
-- Default: execute directly for non-functional changes (refactor, test, fix, config). No extra confirmation.
-- Pause and confirm when: ambiguity, destructive consequences, production deploy, external credentials, real data writes.
-- User-visible changes require explicit approval before implementation:
-  - Page structure, copy, CTAs, navigation paths, user flows, action semantics
-  - Even small changes to what users see or how they operate must be reviewed first.
-- Non-functional changes (stability fix, test, refactor, perf, config): execute and report.
-
-## Skill Policy
-
-Only use: `systematic-debugging`, `test-driven-development`, `verification-before-completion`, `brainstorming`, `simplify`. Do not invoke any other skills.
+使用当前宿主提供且与任务匹配的 skills；不要沿用旧的静态 skill whitelist。
