@@ -61,4 +61,7 @@ Documentation synchronization revalidation:
 
 - `waterSession` was deployed once after explicit user authorization and its remote content hash was checked against the local function. That authorization is exhausted and does not cover another deployment.
 - `tmp/preview-qrcode.jpg` was generated on 2026-08-07 before the final launch alignment (`470×470`, `47537` bytes, SHA-256 `59fd815a83c6e649e1a54718c52a81b8c55df0fd3bb3e12cf5fdd74718d60931`). It is an ignored, ephemeral preview artifact and does not validate `c2f438a`.
-- No `mp:upload`, formal mini-program release, push or PR occurred. No real business data was written.
+- After explicit user authorization, `miniprogram-ci` uploaded version `6.1.2-10402ac` from this exact worktree on 2026-08-08 at about 12:01 CST using robot 1. The uploaded source marker was branch HEAD `10402ac1569dc9e6b2574d23c6fa25c2285b285d`; the product implementation inside it remains `c2f438a922f3bd17dfd697e70efac33c1d06acd0`.
+- Upload description: `新增独立打水接龙搜索与记账；优化赛程比分和发起页对齐`.
+- CI returned success for the full package (`__FULL__`, `1,018,647` bytes). Immediately before upload, the focused water suite was 49/49, launch/screenshot-tool suite 11/11, schedule UI-copy suite 2/2, and `git diff --check` passed.
+- This action uploaded code only. It did not perform a formal mini-program release, regenerate a preview QR, push Git, create a PR, redeploy cloud functions or write real business data.

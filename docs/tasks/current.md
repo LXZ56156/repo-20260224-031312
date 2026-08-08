@@ -2,7 +2,7 @@
 
 > AI session handoff. Keep this file concise; detailed evidence belongs in the linked session log.
 
-## Status: standalone_water_and_launch_alignment_accepted
+## Status: standalone_water_and_launch_alignment_uploaded
 
 ## Exact State (2026-08-08)
 
@@ -35,12 +35,12 @@
 
 - User accepted the launch alignment and authorized its commit. Real DevTools geometry was `left=136.0969px`, `width=184px` for both CTAs; focused tests are 11/11 and `git diff --check` passes.
 - `waterSession` was deployed once under explicit authorization and its remote hash was verified. This does not authorize another deployment.
-- A preview QR was generated before the final `c2f438a` alignment; it is not current launch acceptance or a formal release. No `mp:upload`, formal release, push or PR has occurred, and no real business data was written.
+- A preview QR was generated before the final `c2f438a` alignment and remains stale. Mini-program code `6.1.2-10402ac` was uploaded successfully from this exact worktree via robot 1 on 2026-08-08; this was not a formal release. No push, PR, additional cloud deploy or real business data write occurred.
 - Full-suite runs after `c2f438a` were not green because `tests/squad.fairness.test.js` reproduced pre-existing wall-clock deadline variance; do not report the suite as passed. Exact evidence and screenshot limitations are in the session log.
 
 ## Next Action
 
-Documentation is synchronized. Wait for the user's next single UI point; follow browser direction approval → tests first → minimal native implementation → current-source DevTools image → user confirmation → necessary size/state checks → separate commit.
+The current version is uploaded but not formally released. Wait for the user's next single UI point; follow browser direction approval → tests first → minimal native implementation → current-source DevTools image → user confirmation → necessary size/state checks → separate commit.
 
 ## Authority
 
