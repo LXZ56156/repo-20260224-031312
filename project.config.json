@@ -52,6 +52,10 @@
       {
         "value": "miniprogram/assets/share-bg-*.png",
         "type": "glob"
+      },
+      {
+        "value": "miniprogram_npm/@vant/weapp/uploader/**",
+        "type": "glob"
       }
     ],
     "include": []
