@@ -65,3 +65,11 @@ Documentation synchronization revalidation:
 - Upload description: `新增独立打水接龙搜索与记账；优化赛程比分和发起页对齐`.
 - CI returned success for the full package (`__FULL__`, `1,018,647` bytes). Immediately before upload, the focused water suite was 49/49, launch/screenshot-tool suite 11/11, schedule UI-copy suite 2/2, and `git diff --check` passed.
 - This action uploaded code only. It did not perform a formal mini-program release, regenerate a preview QR, push Git, create a PR, redeploy cloud functions or write real business data.
+
+Privacy API package cleanup and replacement upload:
+
+- Commit `911a9c76dff449215f28623682258eef5bd78b62` added one `packOptions.ignore` rule for the unused `miniprogram_npm/@vant/weapp/uploader/**` directory and a package-candidate regression test. No `miniprogram/` application file or `cloudfunctions/` file changed.
+- The guard failed before the rule and passed afterward. The real `miniprogram-ci@2.1.31` candidate filter then reported 526 candidates, zero uploader files and zero `wx.getClipboardData` / `wx.chooseImage` / `wx.chooseMedia` / `wx.chooseVideo` / `wx.chooseMessageFile` hits; the used Vant button, popup and tag remained present.
+- Focused verification recorded 111 pass, 0 fail and 6 Windows-only skips. Lint exited 0 with 64 pre-existing warnings, the deprecated WeChat API check passed and `git diff --check` passed. The full suite still reproduced the previously documented scheduler wall-clock failures; the isolated scheduler audit/beam/fairness rerun recorded 39 pass and 4 fail, with no dependency path from this upload-only change.
+- At 2026-08-08 12:37 CST, `miniprogram-ci` robot 1 successfully uploaded replacement version `6.1.2-911a9c7` with description `移除未使用的文件与照片视频选择接口，保留现有功能`. The compiler included 428 code files; the returned full package size was `1,005,991` bytes.
+- The replacement upload supersedes `6.1.2-10402ac` for review purposes but is still code upload only: no formal release, preview QR generation, Git push/PR, cloud deployment or real business data write occurred.
