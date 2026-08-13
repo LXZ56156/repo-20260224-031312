@@ -1,0 +1,126 @@
+{
+  "formatVersion": 1,
+  "kind": "water-v2-cloud-bootstrap",
+  "mode": "declaration-only",
+  "remoteAccess": false,
+  "applySupported": false,
+  "environmentBinding": "explicit-at-execution",
+  "preserveCollections": [
+    "waterSessions"
+  ],
+  "collections": [
+    {
+      "name": "waterRooms",
+      "clientAccess": "none"
+    },
+    {
+      "name": "waterRoomMembers",
+      "clientAccess": "none"
+    },
+    {
+      "name": "waterRounds",
+      "clientAccess": "none"
+    },
+    {
+      "name": "waterEntries",
+      "clientAccess": "none"
+    },
+    {
+      "name": "client_request_logs",
+      "clientAccess": "none"
+    },
+    {
+      "name": "waterMigrations",
+      "clientAccess": "none"
+    },
+    {
+      "name": "water_feature_flags",
+      "clientAccess": "none"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "waterRounds_roomId_number_desc",
+      "collection": "waterRounds",
+      "fields": [
+        {
+          "path": "roomId",
+          "order": "asc"
+        },
+        {
+          "path": "number",
+          "order": "desc"
+        }
+      ]
+    },
+    {
+      "name": "waterEntries_roomId_roundId_seq_desc",
+      "collection": "waterEntries",
+      "fields": [
+        {
+          "path": "roomId",
+          "order": "asc"
+        },
+        {
+          "path": "roundId",
+          "order": "asc"
+        },
+        {
+          "path": "seq",
+          "order": "desc"
+        }
+      ]
+    },
+    {
+      "name": "waterEntries_roundId_category_seq_desc",
+      "collection": "waterEntries",
+      "fields": [
+        {
+          "path": "roundId",
+          "order": "asc"
+        },
+        {
+          "path": "category",
+          "order": "asc"
+        },
+        {
+          "path": "seq",
+          "order": "desc"
+        }
+      ]
+    },
+    {
+      "name": "waterEntries_rootEntryId_seq_asc",
+      "collection": "waterEntries",
+      "fields": [
+        {
+          "path": "rootEntryId",
+          "order": "asc"
+        },
+        {
+          "path": "seq",
+          "order": "asc"
+        }
+      ]
+    }
+  ],
+  "initialDocuments": [
+    {
+      "collection": "water_feature_flags",
+      "documentId": "collaborative_v2",
+      "data": {
+        "emergencyReadOnly": false,
+        "v2Read": false,
+        "rosterWrite": false,
+        "ownerWrite": false,
+        "memberWrite": false,
+        "correctWrite": false,
+        "reverseWrite": false,
+        "createRoundWrite": false,
+        "canaryRoomIds": [],
+        "canaryOpenids": [],
+        "revision": 1
+      }
+    }
+  ]
+}
