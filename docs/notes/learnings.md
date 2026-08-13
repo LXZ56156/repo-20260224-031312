@@ -4,6 +4,7 @@
 > Periodically review: promote stable rules to AGENTS.md or the matching spec/tool document, and archive resolved items.
 
 ## Active
+- [2026-08-11] 高风险 UI 必须做两次相互隔离的盲审，并由主控记录共同结论、分歧和采纳/拒绝理由。双盲审最低规则：同一状态最多“主显示 + 一次校验”；主 CTA 不承载动态摘要，真实图中必须 ≥44px、全宽/对齐且默认单行；长名单采用固定 header/footer + 单一中部滚动；safe-area 只有一个 owner；选择状态至少使用文字/符号与边框/填充中的两类线索，不能只靠红绿或伪元素；高密度状态先测 24 人、长昵称、320/390/430、字体放大、搜索空态、键盘和原生 picker。实现后盲审还必须核对：当前操作侧与首屏名单一致、滚动有显式可发现线索、人数/单位等语义原子不会被截断、关键弹层有 ≥44px 可访问关闭入口、24rpx 辅助文字达到 4.5:1；筛选空态不得保留已经失效的滑动/点选提示，必须提供可见且 ≥44px 的清除或恢复入口；户外高频页面的禁用关键 CTA 即使属于 WCAG 豁免，也按至少 4.5:1 保证可辨认性。完整双盲审记录见 `docs/reports/2026-08-11-water-ui-blind-review.md`。
 - [2026-08-08] 增量 UI 的“从 master + 单一 overlay 建基线”是一次性启动门槛，不是每个后续对话都重做的动作。基线后逐点批准的功能必须写入 `current.md` 和路线文档；继续任务从当前批准链出发。初始“仅 schedule 两文件、cloud 空”只能标为历史建基线证据，不能覆盖后来已批准的 water/launch/cloud 差异。
 - [2026-08-08] UI 证据必须分三类表述：真实 DevTools 图、结构/数学检查、浏览器近似稿。只有第一类可作当前源码小程序像素验收；320/390/430 未分别截图时，必须逐档写“结构/数学等效”，不得称“三档实图”。44px 触达按每个 viewport 的最终 CSS px 核对，不能只看 rpx 数字。
 - [2026-08-08] DevTools 端口没有固定协议角色。一次会话中的 `39420` IDE HTTP、`39424` CDP、`39432` automation 不能推广成永久映射；必须验证进程树、exact project path、`Tool.getInfo` 和 `App.getCurrentPage`，再显式设置 `WEAPP_WS_ENDPOINT`。最小化 surface 可能截图超时，优先 restored-but-background，并如实记录当前脚本没有窗口/焦点证明。

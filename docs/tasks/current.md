@@ -2,13 +2,14 @@
 
 > AI session handoff. Keep this file concise; detailed evidence belongs in the linked session log.
 
-## Status: standalone_water_and_launch_alignment_uploaded
+## Status: collaborative_water_v2_local_release_candidate_committed
 
-## Exact State (2026-08-08)
+## Exact State (2026-08-13)
 
 - Online/product baseline remains `master` = `origin/master` = `5813ffc79f94c180fa5573eb25fb0d57f53b85df`.
-- Active development worktree: `D:\projects(WIN)\badminton-miniapp-worktrees\water-court-vant-spike-20260807` on `codex/water-court-vant-spike-20260807`.
-- Current product implementation is `c2f438a922f3bd17dfd697e70efac33c1d06acd0`; the branch has no upstream and has not been pushed.
+- Active development worktree: `C:\Users\LIZIXUAN\.codex\worktrees\ba45\badminton-miniapp` on `codex/collaborative-water-v2-20260809`.
+- V2 implementation parent is `9b3f94aafc3217062c30b5c49f14b3f102ec3df6`. The local release candidate is the current branch tip after the approved commit series; resolve its exact identity with `git rev-parse HEAD`. The branch has no upstream and has not been pushed.
+- The last uploaded mini-program remains `6.1.2-911a9c7`; the deployed `waterSession` remains the pre-V2 compatible production version.
 - Original overlay `38d6ea4` was applied as cherry-pick `178e5dd`; both have patch-id `2cf91c83878e94c9b39fb57694c5b2cf09c4028d`.
 
 ## Approved Increment Chain
@@ -31,20 +32,33 @@
 - There is no user-visible “结束 / 完成 / 另开账本” action. The cloud `finish` branch is compatibility code and must not be exposed or removed without separate approval.
 - Next-gen/C3/Home redesign, a global design system and cross-page visual unification remain out of scope.
 
+## Collaborative V2 Implementation
+
+- User approved rebuilding standalone water as a stable shared room with independent rounds and an append-only, attributable event ledger.
+- Joined members may record games and direct water, view the complete feed, and correct/reverse their own records; the owner may handle any current-round record.
+- The target page uses `总账 / 流水 / 球友` with persistent `记一局 / 单独记水` actions. It removes user-facing balance-difference output and the ambiguous global `撤销上一条`.
+- `新一轮` archives the current round, retains the roster, claimed identities and stable invite link, and does not expose an end action.
+- The client, page, backward-compatible cloud function, migration library and regression coverage now exist in this worktree. Full behavior, cloud contract, migration and rollout requirements remain in `docs/specs/collaborative-water-ledger-v2.md`.
+- Production tests no longer depend on DevTools screenshot fixtures. Screenshot tooling remains dev-only evidence and is not part of the runtime deployment set.
+
 ## Acceptance and Delivery Facts
 
-- User accepted the launch alignment and authorized its commit. Real DevTools geometry was `left=136.0969px`, `width=184px` for both CTAs; focused tests are 11/11 and `git diff --check` passes.
-- `waterSession` was deployed once under explicit authorization and its remote hash was verified. This does not authorize another deployment.
-- A preview QR generated before `c2f438a` remains stale. Mini-program code `6.1.2-911a9c7` was uploaded successfully from this exact worktree via robot 1 on 2026-08-08, superseding `6.1.2-10402ac`; it excludes the unused Vant uploader privacy APIs without changing product behavior. This was not a formal release, push, PR, cloud deploy or real business data write.
-- Full-suite runs after `c2f438a` were not green because `tests/squad.fairness.test.js` reproduced pre-existing wall-clock deadline variance; do not report the suite as passed. Exact evidence and screenshot limitations are in the session log.
+- Current-source 390px real WeChat DevTools images cover visitor long feed, 24-player member, owner empty state, game sheet, entry detail and archived round. Two isolated UI reviews and the main agent found P0=0/P1=0.
+- Final image evidence is under `C:\Users\LIZIXUAN\.codex\visualizations\2026\08\13\019ff4d8-3761-7262-9d8b-5cfcc4915554\water-v2-approved-fix-final-r4`.
+- Frozen local release-prep verification: focused release tests 159/159; `npm run check` passed; lint has 0 errors and 64 existing warnings; syntax and `git diff --check` passed. A pre-commit glob run hit the documented `squad.fairness` wall-clock fluctuation; its file rerun passed 17/17. The exact committed candidate was then tested from 262 tracked test files: 1350 total, 1344 passed, 0 failed and 6 Windows-only skips.
+- 320px and 430px remain structural/browser-approximation evidence rather than separately captured real DevTools images. Capture them or record an explicit release exception before client upload.
+- The V2 candidate is committed locally but not pushed. No V2 cloud collection/index/config write, cloud deployment, real migration, canary, preview, upload, review submission or formal release has occurred.
 
 ## Next Action
 
-The current version is uploaded but not formally released. Wait for the user's next single UI point; follow browser direction approval → tests first → minimal native implementation → current-source DevTools image → user confirmation → necessary size/state checks → separate commit.
+Finish the local release candidate and follow `docs/tasks/collaborative-water-v2-release-handoff-2026-08-13.md`. The next external gate is not client upload: first create the private collections, indexes and fully disabled feature config, then deploy only the backward-compatible `waterSession`, run V1 remote smoke, and run the zero-write migration dry-run. Each external write/deploy/migration/flag/preview/upload/release action remains separately authorized. The private-Desktop/plan/lock/network-proof route is historical only.
 
 ## Authority
 
 - Product spec: `docs/specs/standalone-water-ledger.md`
+- Approved V2 target: `docs/specs/collaborative-water-ledger-v2.md`
 - Route and boundaries: `docs/tasks/incremental-ui-optimization-plan.md`
 - Detailed evidence: `docs/tasks/session-logs/2026-08-08-standalone-water-launch-acceptance.md`
 - Screenshot procedure: `docs/tools/weapp-ui-screenshot-workflow.md`
+- Release handoff: `docs/tasks/collaborative-water-v2-release-handoff-2026-08-13.md`
+- Completed screenshot handoff (historical): `docs/tasks/weapp-real-devtools-screenshot-simplified-handoff-2026-08-12.md`
