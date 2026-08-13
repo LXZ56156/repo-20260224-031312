@@ -5,7 +5,23 @@ const fs = require('node:fs');
 
 const mainPath = require.resolve('../cloudfunctions/waterSession/index.js');
 
-function makeDb(seed = null) {
+function enabledFeatureConfig() {
+  return {
+    emergencyReadOnly: false,
+    v2Read: true,
+    rosterWrite: true,
+    ownerWrite: true,
+    memberWrite: true,
+    correctWrite: true,
+    reverseWrite: true,
+    createRoundWrite: true,
+    canaryRoomIds: [],
+    canaryOpenids: [],
+    revision: 1
+  };
+}
+
+function makeDb(seed = null, featureConfig = enabledFeatureConfig()) {
   let doc = seed ? { ...seed } : null;
   const touched = [];
   const docApi = {
@@ -30,6 +46,18 @@ function makeDb(seed = null) {
     collection(name) {
       touched.push(name);
       assert.notEqual(name, 'tournaments');
+      if (name === 'water_feature_flags') {
+        return {
+          doc() {
+            return {
+              async get() {
+                if (!featureConfig) throw new Error('document.get:fail document does not exist');
+                return { data: { ...featureConfig } };
+              }
+            };
+          }
+        };
+      }
       return { doc() { return docApi; } };
     },
     async runTransaction(handler) {
