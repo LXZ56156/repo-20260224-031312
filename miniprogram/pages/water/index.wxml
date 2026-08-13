@@ -1,198 +1,354 @@
-<view class="container safe-bottom water-page">
-  <view class="water-loading" wx:if="{{loading}}">正在打开账本…</view>
+<view class="water-page {{bottomActionMode ? 'has-dock' : ''}}">
+  <view class="water-loading-shell" wx:if="{{loading}}" aria-label="正在打开打水账本">
+    <view class="water-loading-line is-title"></view>
+    <view class="water-loading-line"></view>
+    <view class="water-loading-tabs"></view>
+  </view>
 
-  <view class="card water-error" wx:elif="{{loadError}}">
-    <view class="water-error-title">暂时打不开</view>
-    <view class="text-caption">{{loadError}}</view>
-    <van-button class="water-retry-host" custom-class="water-retry" loading="{{busy}}" bind:click="onRetry">重试</van-button>
+  <view class="water-error" wx:elif="{{loadError}}">
+    <view class="water-error-title">{{invalidRoom ? '找不到打水房' : '暂时打不开'}}</view>
+    <view class="water-support-text">{{loadError}}</view>
+    <button class="water-primary-button" wx:if="{{invalidRoom}}" bindtap="returnToLaunch">返回发起页</button>
+    <button class="water-primary-button" wx:else loading="{{busyByAction.create}}" bindtap="onRetry">重试</button>
   </view>
 
   <block wx:else>
-    <view class="water-scoreboard">
-      <view class="water-score-content">
-        <view class="water-score-head">
-          <view class="water-kicker">WATER BOARD · 独立账本</view>
-        </view>
-        <view class="water-title">{{session.title}}</view>
-        <view class="water-score-strip">
-          <view class="water-stat"><text class="water-stat-value">{{participantCount}}</text><text class="water-stat-label">球友</text></view>
-          <view class="water-stat"><text class="water-stat-value">{{entryCount}}</text><text class="water-stat-label">记录</text></view>
-          <view class="water-stat"><text class="water-stat-value water-stat-balanced">{{totalNet}}</text><text class="water-stat-label">总账差</text></view>
-        </view>
+    <view class="water-round-head">
+      <view class="water-round-seal" aria-label="当前流水 {{eventCount}} 条">
+        <text class="water-round-seq">{{roundSeqText}}</text>
+        <text class="water-round-seal-label">流水</text>
       </view>
+      <view class="water-round-copy">
+        <view class="water-round-title-line">
+          <text class="water-round-title-text">{{round.title || session.title || '打水局'}}</text>
+          <text class="water-round-number">第{{round.number || 1}}轮</text>
+        </view>
+        <view class="water-round-stats"><text>{{participantCount}} 位球友</text><text>· {{recordCount}} 笔账</text><text>· {{eventCount}} 条流水</text></view>
+      </view>
+      <button class="water-history-link" wx:if="{{canUseV2Features && isMember}}" aria-label="查看往期轮次" bindtap="openHistorySheet">往期 ›</button>
     </view>
 
-    <view class="card water-join-card" wx:if="{{!isOwner && !viewerParticipantId}}">
-      <view class="section-title">加入这次打水</view>
-      <view class="text-caption">可以使用自己的昵称，或认领发起人预先添加的名字。</view>
-      <picker mode="selector" range="{{joinChoices}}" range-key="name" value="{{joinIndex}}" bindchange="onJoinChoiceChange">
-        <view class="water-picker-row">{{joinChoices[joinIndex].name}}<text>⌄</text></view>
-      </picker>
-      <van-button class="water-submit-host" custom-class="water-submit" block loading="{{busy}}" bind:click="onJoin">确认加入</van-button>
+    <view class="water-sync-banner" wx:if="{{syncMessage}}" role="status">{{syncMessage}}</view>
+
+    <view class="water-tabs" role="tablist" aria-label="打水账本视图">
+      <button class="water-tab {{activeTab === 'ledger' ? 'is-active' : ''}}" data-tab="ledger" role="tab" aria-selected="{{activeTab === 'ledger'}}" bindtap="onSelectTab">总账</button>
+      <button class="water-tab {{activeTab === 'feed' ? 'is-active' : ''}}" data-tab="feed" role="tab" aria-selected="{{activeTab === 'feed'}}" bindtap="onSelectTab">流水</button>
+      <button class="water-tab {{activeTab === 'players' ? 'is-active' : ''}}" data-tab="players" role="tab" aria-selected="{{activeTab === 'players'}}" bindtap="onSelectTab">球友</button>
     </view>
 
-    <view class="water-command-board" wx:if="{{isOwner}}">
-      <van-button class="water-game-cta" custom-class="water-game-surface" bind:click="openGameSheet">
-        <view class="water-game-content">
-          <view class="water-game-icon"><view class="water-play-triangle"></view></view>
-          <view class="water-game-copy">
-            <text class="water-game-hint">快速记录比赛</text>
-            <text class="water-game-title">记一局</text>
+    <block wx:if="{{activeTab === 'ledger'}}">
+      <view class="water-latest-receipt" wx:if="{{latestReceipt.visible}}" role="status">
+        <view class="water-receipt-dot"></view>
+        <text>{{latestReceipt.text}}</text>
+      </view>
+      <view class="water-section-caption">
+        <text>赢水 − 请水</text>
+        <text>按净水排序</text>
+      </view>
+      <view class="water-empty" wx:if="{{!ledger.length}}">
+        <view class="water-empty-title">还没有球友</view>
+        <view class="water-support-text">添加或邀请球友后，就可以开始记水</view>
+      </view>
+      <view class="water-one-person" wx:elif="{{participantCount === 1}}">再添加或邀请 1 位球友，就能开始记水</view>
+      <view class="water-ledger-table" wx:if="{{ledger.length}}">
+        <view class="water-ledger-row {{canWrite && participantCount > 1 ? '' : 'is-readonly'}}" wx:for="{{ledger}}" wx:key="id">
+          <view class="water-ledger-person">
+            <view class="water-ledger-name">{{item.name}}</view>
+            <view class="water-ledger-meta">赢 {{item.won}}　请 {{item.treat}}</view>
           </view>
-          <view class="water-game-arrow">›</view>
-        </view>
-      </van-button>
-      <view class="water-command-secondary">
-        <van-button class="water-secondary" custom-class="water-secondary-surface" bind:click="openManualSheet">
-          <view class="water-secondary-content"><view class="water-action-icon add"></view><text>添加球友</text></view>
-        </van-button>
-        <van-button class="water-secondary" custom-class="water-secondary-surface" open-type="share">
-          <view class="water-secondary-content"><view class="water-action-icon invite">↗</view><text>邀请加入</text></view>
-        </van-button>
-      </view>
-    </view>
-
-    <view class="water-ledger-card">
-      <view class="water-card-head">
-        <view>
-          <view class="water-section-title">总账</view>
-          <view class="water-section-sub">赢水 − 请水</view>
-        </view>
-      </view>
-
-      <view class="water-empty" wx:if="{{!ledger.length}}">先添加球友，就可以开始记水</view>
-      <view class="water-column-head" wx:if="{{ledger.length && isOwner && participantCount > 1}}">
-        <text>球友 / 明细</text>
-        <text>净水</text>
-        <text>调整</text>
-      </view>
-      <view class="water-column-head view-only" wx:elif="{{ledger.length}}">
-        <text>球友 / 明细</text>
-        <text>净水</text>
-      </view>
-      <view class="water-ledger-row {{isOwner && participantCount > 1 ? '' : 'view-only'}}" wx:for="{{ledger}}" wx:key="id">
-        <view class="water-person-cell">
-          <view class="water-rank">{{index + 1}}</view>
-          <view class="water-person">
-            <view class="water-name">{{item.name}}</view>
-            <view class="water-person-meta">赢 {{item.won}}　请 {{item.treat}}</view>
+          <view class="water-ledger-net {{item.netClass}} {{item.netSizeClass}}">{{item.netText}}</view>
+          <view class="water-ledger-adjust" wx:if="{{canWrite && participantCount > 1}}">
+            <button class="water-adjust-button is-minus" data-id="{{item.id}}" data-direction="minus" aria-label="记录{{item.name}}请水" bindtap="openAdjustSheet">−</button>
+            <button class="water-adjust-button is-plus" data-id="{{item.id}}" data-direction="plus" aria-label="给{{item.name}}记赢水" bindtap="openAdjustSheet">＋</button>
           </view>
         </view>
-        <view class="water-net {{item.netClass}}">{{item.netText}}</view>
-        <view class="water-adjust-actions" wx:if="{{isOwner && participantCount > 1}}">
-          <van-button class="water-adjust minus" custom-class="water-adjust-surface" custom-style="color:#c94b45;" data-id="{{item.id}}" data-direction="minus" bind:click="openAdjustSheet">−</van-button>
-          <van-button class="water-adjust plus" custom-class="water-adjust-surface" custom-style="color:#087a56;" data-id="{{item.id}}" data-direction="plus" bind:click="openAdjustSheet">＋</van-button>
-        </view>
       </view>
-    </view>
+    </block>
 
-    <view class="water-recent-card">
-      <view class="water-card-head">
-        <view>
-          <view class="water-section-title">最近记录</view>
-          <view class="water-section-sub">刚刚发生的 {{recentEntries.length}} 笔</view>
+    <block wx:elif="{{activeTab === 'feed'}}">
+      <view class="water-feed-filters" wx:if="{{canUseV2Features}}" role="tablist" aria-label="流水类型">
+        <button class="water-feed-filter {{feedFilter === 'all' ? 'is-active' : ''}}" data-filter="all" role="tab" aria-selected="{{feedFilter === 'all'}}" bindtap="onSelectFeedFilter">全部</button>
+        <button class="water-feed-filter {{feedFilter === 'game' ? 'is-active' : ''}}" data-filter="game" role="tab" aria-selected="{{feedFilter === 'game'}}" bindtap="onSelectFeedFilter">对局</button>
+        <button class="water-feed-filter {{feedFilter === 'direct' ? 'is-active' : ''}}" data-filter="direct" role="tab" aria-selected="{{feedFilter === 'direct'}}" bindtap="onSelectFeedFilter">单独</button>
+      </view>
+      <button class="water-new-events" wx:if="{{canUseV2Features && newEventCount}}" bindtap="returnToLatest">
+        <text>有 {{newEventCount}} 条新记录</text><text>回到最新 ↑</text>
+      </button>
+      <view class="water-feed-loading" wx:if="{{feedLoading}}">正在加载流水…</view>
+      <view class="water-empty" wx:elif="{{!feedItems.length && !feedError}}">
+        <view class="water-empty-title">{{feedFilter === 'all' ? '还没有记录' : '没有这类流水'}}</view>
+        <view class="water-support-text" wx:if="{{feedFilter === 'all'}}">记一局或单独记水后会显示在这里</view>
+      </view>
+      <view class="water-audit-track" wx:if="{{feedItems.length}}">
+        <view id="water-feed-{{item.id}}" class="water-feed-item {{item.isMuted ? 'is-muted' : ''}} {{highlightedEntryId === item.id ? 'is-highlighted' : ''}}" wx:for="{{feedItems}}" wx:key="id">
+          <view class="water-feed-node {{item.isAuditEvent ? 'is-audit' : 'is-business'}}"></view>
+          <view class="water-feed-main">
+            <button class="water-feed-open" data-root="{{item.rootEntryId}}" aria-label="{{item.detailAriaLabel}}" bindtap="openEntryDetail">
+              <view class="water-feed-top">
+                <text class="water-feed-kind">{{item.kindText}}</text>
+                <text class="water-feed-description">{{item.displayDescription}}</text>
+              </view>
+              <view class="water-feed-detail-meta"><text>{{item.metaText}}</text><text class="water-feed-status {{item.statusText === '已撤销' ? 'is-reversed' : ''}}" wx:if="{{item.statusText}}"> · {{item.statusText}}</text><text class="water-feed-detail-cue">查看详情</text></view>
+            </button>
+            <view class="water-feed-meta" wx:if="{{item.canEdit || item.canReverse}}">
+              <view class="water-feed-actions">
+                <button wx:if="{{item.canEdit}}" data-root="{{item.rootEntryId}}" data-expected="{{item.expectedEntryId}}" aria-label="修改这条记录" catchtap="openCorrectEntry">修改</button>
+                <button wx:if="{{item.canReverse}}" data-root="{{item.rootEntryId}}" data-expected="{{item.expectedEntryId}}" data-description="{{item.description}}" aria-label="撤销这条记录" catchtap="onReverseEntry">撤销</button>
+              </view>
+            </view>
+          </view>
         </view>
-        <van-button class="water-undo-host" custom-class="water-undo" wx:if="{{isOwner && entryCount}}" bind:click="onUndoLast">撤销上一条</van-button>
       </view>
-      <view class="water-empty" wx:if="{{!recentEntries.length}}">第一条记录会出现在这里</view>
-      <view class="water-record" wx:for="{{recentEntries}}" wx:key="id">
-        <view class="water-record-type"><van-tag custom-class="water-record-tag" plain round>{{item.type === 'game' ? '局' : '单'}}</van-tag></view>
-        <view class="water-record-text">{{item.description}}</view>
+      <view class="water-feed-tail">
+        <view wx:if="{{feedLoadingMore}}">正在加载更早流水…</view>
+        <button wx:elif="{{feedError}}" bindtap="loadMoreEntries">{{feedError}} · 重试</button>
+        <view wx:elif="{{feedExhausted && feedItems.length}}">已加载全部</view>
+        <button wx:elif="{{feedHasMore}}" bindtap="loadMoreEntries">加载更早流水</button>
       </view>
-    </view>
+    </block>
+
+    <block wx:else>
+      <view class="water-player-tools">
+        <button wx:if="{{canManageRoster}}" class="water-player-tool" disabled="{{!canAddParticipants}}" bindtap="openManualSheet">{{participantCount >= 24 ? '球友已满 24 人' : '添加球友'}}</button>
+        <button wx:if="{{canShare}}" class="water-player-tool is-primary" open-type="share">邀请加入</button>
+        <view class="water-player-readonly" wx:if="{{!canManageRoster && !canShare}}">{{participantCount >= 24 ? '球友已满 24 人' : '当前名单'}}</view>
+      </view>
+      <view class="water-search" wx:if="{{participantCount > 8}}">
+        <text class="water-search-icon">⌕</text>
+        <input value="{{rosterSearchQuery}}" placeholder="搜索 {{participantCount}} 位球友" aria-label="搜索球友姓名" bindinput="onRosterSearchInput" />
+        <button wx:if="{{rosterSearchQuery}}" aria-label="清除球友搜索" bindtap="clearRosterSearch">×</button>
+      </view>
+      <view class="water-player-count">显示 {{rosterParticipants.length}}/{{participantCount}} 位</view>
+      <view class="water-search-empty water-roster-search-empty" wx:if="{{rosterSearchQuery && !rosterParticipants.length}}">
+        <text>没有找到“{{rosterSearchQuery}}”</text>
+        <button class="water-search-empty-clear" bindtap="clearRosterSearch">清除搜索</button>
+      </view>
+      <view class="water-player-list" wx:else>
+        <view class="water-player-row" wx:for="{{rosterParticipants}}" wx:key="id">
+          <view class="water-player-name">
+            <text class="water-player-name-text">{{item.name}}</text>
+            <text class="water-player-self" wx:if="{{item.isSelf}}">我</text>
+          </view>
+          <view class="water-player-state {{item.claimed ? 'is-joined' : ''}}">{{item.joinedText}}</view>
+        </view>
+      </view>
+    </block>
   </block>
 </view>
 
-<van-popup class="water-popup-host" custom-class="water-popup" show="{{manualSheetOpen}}" position="bottom" round safe-area-inset-bottom bind:close="closeSheets">
-  <view class="water-sheet">
+<view class="water-receipt-feedback" wx:if="{{receiptFeedback}}" role="status">
+  <text>{{receiptFeedback.text}}</text>
+  <button bindtap="reverseReceiptFeedback">撤销</button>
+</view>
+
+<view class="water-action-dock {{bottomActionMode === 'write' ? '' : 'is-single'}}" wx:if="{{!loading && !loadError}}">
+  <block wx:if="{{bottomActionMode === 'write'}}">
+    <button class="water-dock-button" disabled="{{writeDisabled}}" bindtap="openGameSheet">记一局</button>
+    <button class="water-dock-button" disabled="{{writeDisabled}}" bindtap="openDirectSheet">单独记水</button>
+  </block>
+  <button class="water-dock-button is-wide" wx:elif="{{bottomActionMode === 'join'}}" bindtap="openJoinSheet">加入后一起记水</button>
+  <view class="water-dock-readonly" wx:elif="{{bottomActionMode === 'archived'}}">本轮已归档</view>
+  <view class="water-dock-readonly" wx:elif="{{bottomActionMode === 'full'}}">球友已满 24 人，暂时无法加入</view>
+  <view class="water-dock-readonly" wx:else>{{capabilities.emergencyReadOnly ? '打水账本暂时只读' : '当前只读'}}</view>
+</view>
+
+<van-popup custom-class="water-popup water-game-popup" show="{{gameSheetOpen}}" position="bottom" round safe-area-inset-bottom bind:close="closeSheets">
+  <view class="water-game-sheet">
+    <view class="water-game-header">
+      <view class="water-sheet-handle"></view>
+      <view class="water-sheet-head water-game-sheet-head">
+        <view class="water-sheet-title">{{editingEntry ? '修改对局' : '记一局'}}</view>
+        <view class="water-game-head-actions">
+          <view class="water-sheet-count">{{participantCount}} 人可选</view>
+          <button class="water-game-close water-sheet-close" aria-label="关闭记一局" bindtap="closeSheets">×</button>
+        </view>
+      </view>
+      <view class="water-sheet-sub">双方人数相同即可，1 对 1 也能记</view>
+      <view class="water-sheet-alert" wx:if="{{sheetBlockedReason || sheetError}}" role="alert">{{sheetBlockedReason || sheetError}}</view>
+      <view class="water-side-switch water-game-side-switch" role="tablist" aria-label="选择对局一方">
+        <button class="water-game-side-tab is-winner {{gameActiveSide === 'winner' ? 'is-active' : ''}}" data-side="winner" role="tab" aria-selected="{{gameActiveSide === 'winner'}}" bindtap="onSelectGameSide">选胜方 <text>{{winnerIds.length}}</text></button>
+        <button class="water-game-side-tab is-loser {{gameActiveSide === 'loser' ? 'is-active' : ''}}" data-side="loser" role="tab" aria-selected="{{gameActiveSide === 'loser'}}" bindtap="onSelectGameSide">选负方 <text>{{loserIds.length}}</text></button>
+      </view>
+    </view>
+    <scroll-view class="water-game-body" scroll-y enhanced show-scrollbar="{{true}}" scroll-top="{{gameBodyScrollTop}}">
+      <view class="water-match-summary {{gameSummaryExpanded ? 'is-expanded' : ''}}">
+        <view class="water-team-summary" aria-label="胜方 {{winnerIds.length}} 人，{{winnerFullSummary}}"><text class="water-team-label">胜方</text><text class="water-team-names">{{gameSummaryExpanded ? winnerFullSummary : winnerSummary}}</text></view>
+        <view class="water-versus">VS</view>
+        <view class="water-team-summary is-loser" aria-label="负方 {{loserIds.length}} 人，{{loserFullSummary}}"><text class="water-team-label">负方</text><text class="water-team-names">{{gameSummaryExpanded ? loserFullSummary : loserSummary}}</text></view>
+      </view>
+      <button class="water-game-summary-toggle" wx:if="{{winnerIds.length > 2 || loserIds.length > 2}}" aria-expanded="{{gameSummaryExpanded}}" bindtap="toggleGameSummary">{{gameSummaryExpanded ? '收起完整阵容' : '查看完整阵容'}}</button>
+      <view class="water-search" wx:if="{{participantCount > 8}}">
+        <text class="water-search-icon">⌕</text>
+        <input value="{{gameSearchQuery}}" placeholder="搜索球友姓名" placeholder-class="water-game-search-placeholder" aria-label="搜索球友姓名" bindinput="onGameSearchInput" />
+        <button wx:if="{{gameSearchQuery}}" aria-label="清除搜索" bindtap="clearGameSearch"><text>×</text></button>
+        <text class="water-search-count" wx:else>{{gameParticipants.length}} 人</text>
+      </view>
+      <view class="water-roster-label" wx:if="{{gameParticipants.length}}"><text>上下滑动 · 点姓名移入{{gameActiveSide === 'loser' ? '负方' : '胜方'}}</text><text class="water-current-side {{gameActiveSide === 'loser' ? 'is-loser' : ''}}">当前：{{gameActiveSide === 'loser' ? '负方' : '胜方'}}</text></view>
+      <view class="water-player-grid {{hasLongGameNames ? 'has-long-names' : ''}}">
+        <button class="water-player-chip {{item.winnerSelected ? 'is-winner' : (item.loserSelected ? 'is-loser' : '')}}" wx:for="{{gameParticipants}}" wx:key="id" data-id="{{item.id}}" aria-label="{{item.selectionLabel}}" aria-pressed="{{item.winnerSelected || item.loserSelected}}" bindtap="onToggleGamePlayer">
+          <text class="water-player-chip-state" wx:if="{{item.winnerSelected || item.loserSelected}}">{{item.winnerSelected ? '胜' : '负'}}</text>
+          <text class="water-player-chip-name">{{item.name}}</text>
+        </button>
+      </view>
+      <view class="water-search-empty water-roster-search-empty" wx:if="{{gameSearchQuery && !gameParticipants.length}}">
+        <text>没有找到“{{gameSearchQuery}}”</text>
+        <button class="water-search-empty-clear" bindtap="clearGameSearch">清除搜索</button>
+      </view>
+    </scroll-view>
+    <view class="water-sheet-bottom">
+      <picker mode="selector" range="{{unitOptions}}" value="{{gameUnitIndex}}" aria-label="选择每人水数，当前 {{unitOptions[gameUnitIndex]}} 水" bindchange="onGameUnitChange">
+        <view class="water-picker-row"><text>每人水数</text><text>{{unitOptions[gameUnitIndex]}} 水　⌄</text></view>
+      </picker>
+      <view class="water-game-validation {{gameSelectionValid ? 'is-ready' : ''}}" role="status"><block wx:if="{{gameSelectionValid}}">双方人数相同 · 每人 {{unitOptions[gameUnitIndex]}} 水</block><block wx:else>{{gameValidationMessage}}</block></view>
+      <button class="water-confirm-button" disabled="{{!!sheetBlockedReason || !gameSelectionValid}}" loading="{{busyByAction.record_game || busyByAction.correct_entry}}" bindtap="submitGame">{{editingEntry ? '保存修改' : '确认记一局'}}</button>
+    </view>
+  </view>
+</van-popup>
+
+<van-popup custom-class="water-popup" show="{{directSheetOpen}}" position="bottom" round safe-area-inset-bottom bind:close="closeSheets">
+  <view class="water-sheet water-form-sheet">
+    <view class="water-form-sheet-header">
+      <view class="water-sheet-handle"></view>
+      <view class="water-sheet-head"><view class="water-sheet-title">{{editingEntry ? '修改单独记水' : '单独记水'}}</view><button class="water-sheet-close" aria-label="关闭单独记水" bindtap="closeSheets">×</button></view>
+    </view>
+    <view class="water-form-sheet-body">
+      <view class="water-sheet-alert" wx:if="{{sheetBlockedReason || sheetError}}" role="alert">{{sheetBlockedReason || sheetError}}</view>
+      <view class="water-direct-preview {{directSelectionValid ? 'is-ready' : ''}}">{{directPreview}}</view>
+      <view class="water-field-label">请水方</view>
+      <picker mode="selector" range="{{directChoices}}" range-key="name" value="{{directFromIndex}}" aria-label="选择请水方，当前 {{directChoices[directFromIndex].name}}" bindchange="onDirectFromChange"><view class="water-picker-row">{{directChoices[directFromIndex].name}}<text>⌄</text></view></picker>
+      <view class="water-field-label">赢水方</view>
+      <picker mode="selector" range="{{directChoices}}" range-key="name" value="{{directToIndex}}" aria-label="选择赢水方，当前 {{directChoices[directToIndex].name}}" bindchange="onDirectToChange"><view class="water-picker-row">{{directChoices[directToIndex].name}}<text>⌄</text></view></picker>
+      <view class="water-field-label">水的数量</view>
+      <picker mode="selector" range="{{unitOptions}}" value="{{directUnitIndex}}" aria-label="选择水的数量，当前 {{unitOptions[directUnitIndex]}} 水" bindchange="onDirectUnitChange"><view class="water-picker-row">{{unitOptions[directUnitIndex]}} 水<text>⌄</text></view></picker>
+    </view>
+    <view class="water-form-sheet-footer">
+      <view class="water-direct-validation {{directSelectionValid ? 'is-ready' : ''}}" role="status">{{directValidationMessage}}</view>
+      <button class="water-confirm-button" disabled="{{!!sheetBlockedReason || !directSelectionValid}}" loading="{{busyByAction.record_direct || busyByAction.correct_entry}}" bindtap="submitDirect">{{editingEntry ? '保存修改' : '确认单独记水'}}</button>
+    </view>
+  </view>
+</van-popup>
+
+<van-popup custom-class="water-popup" show="{{manualSheetOpen}}" position="bottom" round safe-area-inset-bottom bind:close="closeSheets">
+  <view class="water-sheet water-form-sheet">
+    <view class="water-form-sheet-header">
+      <view class="water-sheet-handle"></view>
+      <view class="water-sheet-head"><view class="water-sheet-title">添加球友</view><view class="water-sheet-head-actions"><view class="water-sheet-count">已有 {{participantCount}} 人</view><button class="water-sheet-close" aria-label="关闭添加球友" bindtap="closeSheets">×</button></view></view>
+    </view>
+    <view class="water-form-sheet-body">
+      <view class="water-sheet-alert" wx:if="{{sheetBlockedReason || sheetError}}" role="alert">{{sheetBlockedReason || sheetError}}</view>
+      <view class="water-support-text">选择一种添加方式，确认前不会改动当前名单</view>
+      <view class="water-add-switch" role="tablist" aria-label="添加方式">
+        <button class="{{addMode === 'manual' ? 'is-active' : ''}}" data-mode="manual" role="tab" aria-selected="{{addMode === 'manual'}}" bindtap="onSelectAddMode">手动添加</button>
+        <button class="{{addMode === 'relay' ? 'is-active' : ''}}" data-mode="relay" role="tab" aria-selected="{{addMode === 'relay'}}" bindtap="onSelectAddMode">导入接龙</button>
+      </view>
+      <block wx:if="{{addMode === 'manual'}}">
+        <textarea class="water-name-input" value="{{manualNames}}" maxlength="300" cursor-spacing="160" placeholder="例如：小林、Chris、王姐" aria-label="手动添加球友姓名，当前 {{manualNames || '未输入'}}" bindinput="onManualInput"></textarea>
+      </block>
+      <block wx:else>
+        <textarea class="water-name-input is-relay" value="{{relayText}}" maxlength="2000" cursor-spacing="160" placeholder="粘贴微信群接龙，例如：1. 阿杰 2. 小林" aria-label="导入接龙文本，当前 {{relayText || '未输入'}}" bindinput="onRelayInput"></textarea>
+        <view class="water-relay-preview" wx:if="{{relayText}}">
+          <block wx:if="{{relayRecognizedCount}}">
+            <view class="water-relay-count">识别到 {{relayRecognizedCount}} 人 · 新增 {{relayNewNames.length}} 人</view>
+            <view class="water-support-text" wx:if="{{relayDuplicateCount || relayOverflowCount}}">重复 {{relayDuplicateCount}} 人　超出名额 {{relayOverflowCount}} 人</view>
+            <view class="water-relay-names"><text wx:for="{{relayPreviewNames}}" wx:key="*this">{{item}}</text></view>
+          </block>
+          <view class="water-support-text" wx:else>还没有识别到名字，请检查接龙格式</view>
+        </view>
+      </block>
+    </view>
+    <view class="water-form-sheet-footer">
+      <button class="water-confirm-button" wx:if="{{addMode === 'manual'}}" disabled="{{!!sheetBlockedReason || !manualNamesValid}}" loading="{{busyByAction.add_manual}}" bindtap="submitManual">添加到本局</button>
+      <button class="water-confirm-button" wx:else disabled="{{!relayNewNames.length || !!sheetBlockedReason}}" loading="{{busyByAction.add_relay}}" bindtap="submitRelay">添加 {{relayNewNames.length}} 位新球友</button>
+    </view>
+  </view>
+</van-popup>
+
+<van-popup custom-class="water-popup" show="{{joinSheetOpen}}" position="bottom" round safe-area-inset-bottom bind:close="closeSheets">
+  <view class="water-sheet water-form-sheet">
+    <view class="water-form-sheet-header">
+      <view class="water-sheet-handle"></view>
+      <view class="water-sheet-head"><view class="water-sheet-title">加入这次打水</view><button class="water-sheet-close" aria-label="关闭加入打水" bindtap="closeSheets">×</button></view>
+    </view>
+    <view class="water-form-sheet-body">
+      <view class="water-sheet-alert" wx:if="{{sheetBlockedReason || sheetError}}" role="alert">{{sheetBlockedReason || sheetError}}</view>
+      <view class="water-support-text">优先认领发起人预先添加的名字，也可以使用自己的本局称呼。</view>
+      <picker mode="selector" range="{{joinChoices}}" range-key="name" value="{{joinIndex}}" aria-label="选择加入身份，当前 {{joinChoices[joinIndex].name}}" bindchange="onJoinChoiceChange"><view class="water-picker-row">{{joinChoices[joinIndex].name}}<text>⌄</text></view></picker>
+      <block wx:if="{{joinChoices[joinIndex].id === ''}}">
+        <view class="water-field-label">本局称呼</view>
+        <input class="water-join-name-input {{joinNameError ? 'has-error' : ''}}" value="{{joinNickname}}" maxlength="20" cursor-spacing="120" placeholder="输入一个不重复的称呼" aria-label="本局称呼" bindinput="onJoinNicknameInput" />
+        <view class="water-field-error" wx:if="{{joinNameError}}" role="alert">{{joinNameError}}</view>
+      </block>
+      <view class="water-claim-note" wx:else>加入后将认领这个球友身份，并可查看该身份参与过的往期。</view>
+    </view>
+    <view class="water-form-sheet-footer">
+      <button class="water-confirm-button" disabled="{{!!sheetBlockedReason || joinChoices[joinIndex].id === '__full__' || (joinChoices[joinIndex].id === '' && !!joinNameError)}}" loading="{{busyByAction.join}}" bindtap="onJoin">确认加入</button>
+    </view>
+  </view>
+</van-popup>
+
+<van-popup custom-class="water-popup water-detail-popup" show="{{canUseV2Features && detailSheetOpen}}" position="bottom" round safe-area-inset-bottom bind:close="closeSheets">
+  <view class="water-sheet water-detail-sheet">
     <view class="water-sheet-handle"></view>
-    <view class="water-game-title-row">
-      <view class="water-sheet-title">添加球友</view>
-      <view class="water-game-available">已有 {{participantCount}} 人</view>
+    <view class="water-sheet-head"><view class="water-sheet-title">记录详情</view><button class="water-sheet-close" aria-label="关闭记录详情" bindtap="closeSheets">×</button></view>
+    <view class="water-feed-loading" wx:if="{{detailLoading}}">正在加载…</view>
+    <view class="water-inline-error" wx:elif="{{detailError}}">
+      <text>{{detailError}}</text>
+      <button bindtap="retryEntryDetail">重试</button>
     </view>
-    <view class="water-sheet-sub">选择一种添加方式，确认前不会改动当前名单</view>
-    <view class="water-add-mode-switch">
-      <button class="water-add-mode-tab {{addMode === 'manual' ? 'active' : ''}}" data-mode="manual" bindtap="onSelectAddMode">手动添加</button>
-      <button class="water-add-mode-tab {{addMode === 'relay' ? 'active' : ''}}" data-mode="relay" bindtap="onSelectAddMode">导入接龙</button>
-    </view>
-    <block wx:if="{{addMode === 'manual'}}">
-      <textarea class="water-name-input" value="{{manualNames}}" maxlength="300" placeholder="例如：小林、Chris、王姐" bindinput="onManualInput"></textarea>
-      <van-button class="water-submit-host" custom-class="water-submit" block loading="{{busy}}" bind:click="submitManual">添加到本局</van-button>
+    <block wx:elif="{{entryDetail}}">
+      <view class="water-detail-current"><view class="water-detail-summary"><text class="water-feed-kind">{{entryDetail.kindText}}</text><text class="water-detail-description">{{entryDetail.displayDescription}}</text></view><view class="water-support-text">{{entryDetail.metaText}} {{entryDetail.statusText}}</view></view>
+      <view class="water-detail-actions" wx:if="{{entryDetail.canEdit || entryDetail.canReverse}}">
+        <button wx:if="{{entryDetail.canEdit}}" data-root="{{entryDetail.rootEntryId}}" data-expected="{{entryDetail.expectedEntryId}}" bindtap="openCorrectEntry">修改</button>
+        <button wx:if="{{entryDetail.canReverse}}" data-root="{{entryDetail.rootEntryId}}" data-expected="{{entryDetail.expectedEntryId}}" data-description="{{entryDetail.description}}" bindtap="onReverseEntry">撤销</button>
+      </view>
+      <view class="water-detail-history-title">修订历史</view>
+      <scroll-view class="water-detail-history water-audit-track" scroll-y>
+        <view class="water-feed-item" wx:for="{{entryHistory}}" wx:key="id"><view class="water-feed-node {{item.isAuditEvent ? 'is-audit' : 'is-business'}}"></view><view class="water-feed-main"><view class="water-feed-top"><text class="water-feed-kind">{{item.kindText}}</text><text class="water-feed-description">{{item.displayDescription}}</text></view><view class="water-support-text">{{item.metaText}}</view></view></view>
+      </scroll-view>
+    </block>
+  </view>
+</van-popup>
+
+<van-popup custom-class="water-popup water-history-popup" show="{{historySheetOpen}}" position="bottom" round safe-area-inset-bottom bind:close="closeHistorySheet">
+  <view class="water-sheet water-history-sheet">
+    <view class="water-sheet-handle"></view>
+    <block wx:if="{{historyRound || historyRoundTargetId}}">
+      <view class="water-sheet-head"><button class="water-sheet-back" aria-label="返回往期列表" bindtap="backToHistoryList">‹ 往期</button><view class="water-history-round-heading"><text class="water-history-round-title">{{historyRound ? historyRound.title : '往期账本'}}</text><text class="water-history-round-number" wx:if="{{historyRound}}">第{{historyRound.number}}轮</text></view><button class="water-sheet-close" aria-label="关闭往期" bindtap="closeHistorySheet">×</button></view>
+      <view class="water-feed-loading" wx:if="{{historyRoundLoading}}">正在加载往期账本…</view>
+      <view class="water-inline-error" wx:elif="{{historyRoundError}}"><text>{{historyRoundError}}</text><button bindtap="retryOpenHistoryRound">重试</button></view>
+      <block wx:elif="{{historyRound}}">
+      <view class="water-archived-note">本轮已归档 · {{historyRound.recordCount}} 笔账 · {{historyRound.eventCount}} 条流水</view>
+      <scroll-view class="water-history-scroll" scroll-y bindscrolltolower="loadMoreHistoryRoundEntries">
+        <view class="water-section-caption"><text>归档总账</text><text>只读</text></view>
+        <view class="water-ledger-row is-readonly" wx:for="{{historyRoundLedger}}" wx:key="id"><view class="water-ledger-person"><view class="water-ledger-name">{{item.name}}</view><view class="water-ledger-meta">赢 {{item.won}}　请 {{item.treat}}</view></view><view class="water-ledger-net {{item.netClass}} {{item.netSizeClass}}">{{item.netText}}</view></view>
+        <view class="water-section-caption"><text>归档流水</text><text>{{historyRoundFeed.length}} 条已加载</text></view>
+        <view class="water-audit-track" wx:if="{{historyRoundFeed.length}}">
+          <view class="water-feed-item {{item.isMuted ? 'is-muted' : ''}}" wx:for="{{historyRoundFeed}}" wx:key="id">
+            <view class="water-feed-node {{item.isAuditEvent ? 'is-audit' : 'is-business'}}"></view>
+            <view class="water-feed-main"><view class="water-feed-top"><text class="water-feed-kind">{{item.kindText}}</text><text class="water-feed-description">{{item.displayDescription}}</text></view><view class="water-support-text">{{item.metaText}} {{item.statusText}}</view></view>
+          </view>
+        </view>
+        <view class="water-empty" wx:else>本轮没有流水</view>
+        <view class="water-history-tail" wx:if="{{historyRoundFeedLoadingMore}}">正在加载更早流水…</view>
+        <button class="water-history-more" wx:elif="{{historyRoundFeedError}}" bindtap="retryHistoryRoundEntries">{{historyRoundFeedError}} · 重试</button>
+        <button class="water-history-more" wx:elif="{{historyRoundFeedHasMore}}" bindtap="loadMoreHistoryRoundEntries">加载更早流水</button>
+        <view class="water-history-tail" wx:else>已加载全部归档流水</view>
+      </scroll-view>
+      </block>
     </block>
     <block wx:else>
-      <textarea class="water-name-input water-relay-input" value="{{relayText}}" maxlength="2000" placeholder="粘贴微信群接龙，例如：1. 阿杰 2. 小林" bindinput="onRelayInput"></textarea>
-      <view class="water-relay-preview" wx:if="{{relayText}}">
-        <block wx:if="{{relayRecognizedCount}}">
-          <view class="water-relay-preview-head">
-            <view><text class="water-relay-count">识别到 {{relayRecognizedCount}} 人</text><text class="water-relay-note" wx:if="{{relayDuplicateCount}}">重复 {{relayDuplicateCount}} 人</text><text class="water-relay-note warning" wx:if="{{relayOverflowCount}}">超出名额 {{relayOverflowCount}} 人</text></view>
-            <text class="water-relay-new">新增 {{relayNewNames.length}} 人</text>
-          </view>
-          <view class="water-relay-chips"><text class="water-relay-chip" wx:for="{{relayPreviewNames}}" wx:key="*this">{{item}}</text></view>
-        </block>
-        <view class="water-relay-empty" wx:else>还没有识别到名字，请检查接龙格式</view>
-      </view>
-      <van-button class="water-submit-host" custom-class="water-submit" block loading="{{busy}}" disabled="{{!relayNewNames.length}}" bind:click="submitRelay">添加 {{relayNewNames.length}} 位新球友</van-button>
+      <view class="water-sheet-head"><view class="water-sheet-title">往期</view><view class="water-sheet-head-actions"><view class="water-sheet-count">{{historyRounds.length}} 轮</view><button class="water-sheet-close" aria-label="关闭往期" bindtap="closeHistorySheet">×</button></view></view>
+      <button class="water-new-round" wx:if="{{canCreateRound}}" disabled="{{!recordCount}}" loading="{{busyByAction.create_round}}" bindtap="onCreateRound">新一轮</button>
+      <view class="water-new-round-note" wx:if="{{canCreateRound && !recordCount}}">本轮还没有记录</view>
+      <view class="water-feed-loading" wx:if="{{historyLoading}}">正在加载往期…</view>
+      <view class="water-empty" wx:elif="{{!historyRounds.length && !historyError}}">还没有往期记录</view>
+      <scroll-view class="water-history-scroll" scroll-y bindscrolltolower="loadMoreHistoryRounds" wx:else>
+        <button class="water-round-row" wx:for="{{historyRounds}}" wx:key="id" data-id="{{item.id}}" aria-label="查看第{{item.number}}轮，{{item.title}}" bindtap="openHistoryRound"><view class="water-round-row-main"><view class="water-round-row-heading"><text class="water-round-row-title">{{item.title}}</text><text class="water-round-row-number">第{{item.number}}轮</text></view><view class="water-support-text">{{item.timeText}} · {{item.recordCount}} 笔账 · {{item.participantCount}} 位球友 · 已归档</view></view><text>›</text></button>
+        <view class="water-history-tail" wx:if="{{historyLoadingMore}}">正在加载更早轮次…</view>
+        <button class="water-history-more" wx:elif="{{historyHasMore}}" bindtap="loadMoreHistoryRounds">加载更早轮次</button>
+        <view class="water-history-tail" wx:else>已加载全部往期</view>
+      </scroll-view>
+      <button class="water-history-retry" wx:if="{{historyError}}" bindtap="retryHistoryRounds">{{historyError}} · 重试</button>
     </block>
-  </view>
-</van-popup>
-
-<van-popup class="water-popup-host" custom-class="water-popup water-game-popup" show="{{gameSheetOpen}}" position="bottom" round safe-area-inset-bottom bind:close="closeSheets">
-  <view class="water-sheet water-game-sheet">
-    <view class="water-sheet-handle"></view>
-    <view class="water-game-title-row">
-      <view class="water-sheet-title">记一局</view>
-      <view class="water-game-available">{{participantCount}} 人可选</view>
-    </view>
-    <view class="water-sheet-sub">双方人数相同即可，1 对 1 也能记</view>
-    <view class="water-game-side-switch">
-      <button class="water-game-side-tab winner {{gameActiveSide === 'winner' ? 'active' : ''}}" data-side="winner" bindtap="onSelectGameSide">选胜方 <text>{{winnerIds.length}}</text></button>
-      <button class="water-game-side-tab loser {{gameActiveSide === 'loser' ? 'active' : ''}}" data-side="loser" bindtap="onSelectGameSide">选负方 <text>{{loserIds.length}}</text></button>
-    </view>
-    <view class="water-game-match">
-      <view class="water-game-team winner">
-        <text class="water-game-team-label">胜方</text>
-        <text class="water-game-team-names">{{winnerSummary}}</text>
-      </view>
-      <view class="water-game-versus">VS</view>
-      <view class="water-game-team loser">
-        <text class="water-game-team-label">负方</text>
-        <text class="water-game-team-names">{{loserSummary}}</text>
-      </view>
-    </view>
-    <view class="water-game-roster-label">
-      <text>点姓名分到当前一方</text>
-      <view class="water-game-legend"><text class="winner">胜</text><text class="loser">负</text></view>
-    </view>
-    <view class="water-game-search" wx:if="{{participantCount > 8}}">
-      <text class="water-game-search-icon">⌕</text>
-      <input class="water-game-search-input" type="text" confirm-type="search" value="{{gameSearchQuery}}" placeholder="搜索球友姓名" bindinput="onGameSearchInput" />
-      <button class="water-game-search-clear" wx:if="{{gameSearchQuery}}" aria-label="清除搜索" bindtap="clearGameSearch"><text class="water-game-search-clear-icon">×</text></button>
-      <text class="water-game-search-count" wx:else>{{gameParticipants.length}} 人</text>
-    </view>
-    <view class="water-chip-grid {{participantCount > 8 ? 'searchable' : ''}}" wx:if="{{gameParticipants.length}}">
-      <button class="water-chip {{item.winnerSelected ? 'selected winner' : (item.loserSelected ? 'selected loser' : '')}}" wx:for="{{gameParticipants}}" wx:key="id" data-id="{{item.id}}" bindtap="onToggleGamePlayer">{{item.name}}</button>
-    </view>
-    <view class="water-game-search-empty" wx:else>没有找到“{{gameSearchQuery}}”</view>
-    <picker mode="selector" range="{{unitOptions}}" value="{{gameUnitIndex}}" bindchange="onGameUnitChange">
-      <view class="water-picker-row"><text>每人水数</text><text>{{unitOptions[gameUnitIndex]}} 水　⌄</text></view>
-    </picker>
-    <van-button class="water-submit-host" custom-class="water-submit" block loading="{{busy}}" bind:click="submitGame">确认记一局</van-button>
-  </view>
-</van-popup>
-
-<van-popup class="water-popup-host" custom-class="water-popup" show="{{adjustSheetOpen}}" position="bottom" round safe-area-inset-bottom bind:close="closeSheets">
-  <view class="water-sheet">
-    <view class="water-sheet-handle"></view>
-    <view class="water-sheet-title">{{adjustTargetName}} {{adjustDirection === 'plus' ? '加水' : '减水'}}</view>
-    <view class="water-sheet-sub">{{adjustDirection === 'plus' ? '表示别人请 Ta' : '表示 Ta 请别人'}}</view>
-    <view class="water-picker-label">算在谁头上</view>
-    <picker mode="selector" range="{{counterparties}}" range-key="name" value="{{counterpartyIndex}}" bindchange="onCounterpartyChange">
-      <view class="water-picker-row">{{counterparties[counterpartyIndex].name}}<text>⌄</text></view>
-    </picker>
-    <view class="water-picker-label">水的数量</view>
-    <picker mode="selector" range="{{unitOptions}}" value="{{adjustUnitIndex}}" bindchange="onAdjustUnitChange">
-      <view class="water-picker-row">{{unitOptions[adjustUnitIndex]}} 水<text>⌄</text></view>
-    </picker>
-    <van-button class="water-submit-host" custom-class="water-submit" block loading="{{busy}}" bind:click="submitAdjust">确认记账</van-button>
   </view>
 </van-popup>
