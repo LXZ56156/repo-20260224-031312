@@ -196,4 +196,19 @@ test('checked-in control registry and release ledger remain machine readable', (
   const mpUpload = uploadManifests.find((manifest) => manifest.worktreeId === 'upload-e60d827');
   assert.equal(mpUpload.verification.allFileHashesMatchAfterRawOverlay, true);
   assert.equal(fs.existsSync(mpUpload.artifacts.rawTrackedOverlay.path), true);
+
+  const waterManifests = [
+    'standalone-water-v1.json',
+    'water-vant-spike.json',
+    'water-tdesign-spike.json'
+  ].map((name) => JSON.parse(fs.readFileSync(path.join(ROOT, 'control', 'archives', name), 'utf8')));
+  for (const manifest of waterManifests) {
+    assert.equal(manifest.verification.result, 'passed');
+    assert.equal(manifest.verification.allFileHashesMatch, true);
+    assert.equal(fs.existsSync(manifest.artifacts.bundle.path), true);
+    assert.equal(fs.existsSync(manifest.artifacts.trackedBinaryPatch.path), true);
+    assert.equal(fs.existsSync(manifest.artifacts.untrackedArchive.path), true);
+    assert.equal(fs.existsSync(manifest.verification.restoreClone), true);
+    assert.equal(manifest.removal.worktreeStillMounted, false);
+  }
 });

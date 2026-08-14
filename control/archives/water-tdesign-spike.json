@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "archivedAt": "2026-08-14",
+  "worktreeId": "water-tdesign-spike",
+  "source": {
+    "path": "D:/projects(WIN)/badminton-miniapp-worktrees/water-tdesign-spike-20260807",
+    "branch": "codex/water-tdesign-spike-20260807",
+    "head": "178e5ddbac108ff58a548bb016425c26e62b18bb",
+    "trackedChanged": 8,
+    "untracked": 2426,
+    "clean": false
+  },
+  "artifacts": {
+    "bundle": { "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-water/water-group-source.bundle", "bytes": 7241944, "sha256": "484ba1395b96892e7f1db1fa83736a1e0a1aa2d96c785e4f9d6f3d9470818eef" },
+    "trackedBinaryPatch": { "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-water/water-tdesign-tracked.patch", "bytes": 7836, "sha256": "7fe048f1585af41402212797c651bf6b0f53a48568f1a8117da6af1e0974f3ad" },
+    "untrackedArchive": { "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-water/water-tdesign-untracked.zip", "bytes": 1919918, "sha256": "c0fc5e20a1d151584bc3c5987acd941a3c5afd3e0e0240cc38751e632d0a0ee7" },
+    "untrackedList": { "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-water/water-tdesign-untracked.list", "bytes": 193146, "sha256": "5fbc2a13ec78f5ec41308ec0ab0eaa4fc46a734fd4a53a9e68374f9a2341839e" }
+  },
+  "verification": {
+    "bundleVerify": "complete_history",
+    "restoreClone": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-water/restore-water-tdesign/repo",
+    "restoredHead": "178e5ddbac108ff58a548bb016425c26e62b18bb",
+    "statusMatchesSource": true,
+    "verifiedChangedAndUntrackedFiles": 2434,
+    "allFileHashesMatch": true,
+    "result": "passed"
+  },
+  "removal": { "authorized": true, "removedAt": "2026-08-14", "worktreeStillMounted": false, "branchMustBeRetained": true }
+}

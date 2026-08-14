@@ -163,26 +163,35 @@
     {
       "id": "standalone-water-v1",
       "role": "CANDIDATE",
-      "lifecycle": "archive_pending",
+      "lifecycle": "archived",
       "path": "D:/projects(WIN)/badminton-miniapp-worktrees/standalone-water-a-20260806",
       "branch": "codex/standalone-water-a-20260806",
-      "head": "178e5dd"
+      "head": "178e5dd",
+      "backupStatus": "full_restore_verified",
+      "backupManifest": "control/archives/standalone-water-v1.json",
+      "unmountedAt": "2026-08-14"
     },
     {
       "id": "water-vant-spike",
       "role": "CANDIDATE",
-      "lifecycle": "archive_pending",
+      "lifecycle": "archived",
       "path": "D:/projects(WIN)/badminton-miniapp-worktrees/water-court-vant-spike-20260807",
       "branch": "codex/water-court-vant-spike-20260807",
-      "head": "9b3f94a"
+      "head": "9b3f94a",
+      "backupStatus": "full_restore_verified",
+      "backupManifest": "control/archives/water-vant-spike.json",
+      "unmountedAt": "2026-08-14"
     },
     {
       "id": "water-tdesign-spike",
       "role": "CANDIDATE",
-      "lifecycle": "archive_pending",
+      "lifecycle": "archived",
       "path": "D:/projects(WIN)/badminton-miniapp-worktrees/water-tdesign-spike-20260807",
       "branch": "codex/water-tdesign-spike-20260807",
-      "head": "178e5dd"
+      "head": "178e5dd",
+      "backupStatus": "full_restore_verified",
+      "backupManifest": "control/archives/water-tdesign-spike.json",
+      "unmountedAt": "2026-08-14"
     }
   ]
 }

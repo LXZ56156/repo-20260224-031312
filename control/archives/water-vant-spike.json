@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "archivedAt": "2026-08-14",
+  "worktreeId": "water-vant-spike",
+  "source": {
+    "path": "D:/projects(WIN)/badminton-miniapp-worktrees/water-court-vant-spike-20260807",
+    "branch": "codex/water-court-vant-spike-20260807",
+    "head": "9b3f94aafc3217062c30b5c49f14b3f102ec3df6",
+    "trackedChanged": 2,
+    "untracked": 1,
+    "clean": false
+  },
+  "artifacts": {
+    "bundle": { "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-water/water-group-source.bundle", "bytes": 7241944, "sha256": "484ba1395b96892e7f1db1fa83736a1e0a1aa2d96c785e4f9d6f3d9470818eef" },
+    "trackedBinaryPatch": { "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-water/water-vant-tracked.patch", "bytes": 3582, "sha256": "8242859d02204d6a700a60896ef6630f4475dfc2e882f11fb605488ef2879022" },
+    "untrackedArchive": { "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-water/water-vant-untracked.zip", "bytes": 28644, "sha256": "c474ca6c7d763de099c840d6761f4a66e2ceedc7cafdea8bf3e1e56cacf86571" },
+    "untrackedList": { "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-water/water-vant-untracked.list", "bytes": 45, "sha256": "68a404562184c5ffe82c9c2888e2a533db2421be5a87bc559baba15f3358ba05" }
+  },
+  "verification": {
+    "bundleVerify": "complete_history",
+    "restoreClone": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-water/restore-water-vant/repo",
+    "restoredHead": "9b3f94aafc3217062c30b5c49f14b3f102ec3df6",
+    "statusMatchesSource": true,
+    "verifiedChangedAndUntrackedFiles": 3,
+    "allFileHashesMatch": true,
+    "result": "passed"
+  },
+  "removal": { "authorized": true, "removedAt": "2026-08-14", "worktreeStillMounted": false, "branchMustBeRetained": true }
+}

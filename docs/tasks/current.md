@@ -30,7 +30,8 @@
 - `local-ops-dashboard` 锁定进程已通过 Restart Manager 确认为本地 Node 看板并停止；非 Git 残留已移动到备份区，原路径已清除。
 - Phase 3 第一组 `07af`、`a6ba` 已完成四件套、实际恢复验证和卸载。
 - Phase 3 upload 组 `ba45`、`mp-upload-e60d827`、feedback-r3 已完成恢复验证和卸载；私密 `.codex` 证据单独离线保存。
-- worktree 总数从 13 降至 10；剩余 8 个历史挂载树仍为 `archive_pending`。
+- Phase 3 旧打水组 V1、Vant、TDesign 已完成逐文件恢复验证和卸载。
+- worktree 总数从 10 降至 7；剩余 5 个历史挂载树仍为 `archive_pending`。
 
 ## Current Branch
 
@@ -40,5 +41,5 @@
 
 ## Next Action
 
-1. 按“旧打水 → Next-Gen”顺序继续归档和卸载。
+1. 归档并卸载 4 棵 Next-Gen 历史 worktree。
 2. 最后单独处理不可直接 `git worktree remove` 的主 Git 工作区。
