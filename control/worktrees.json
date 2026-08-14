@@ -44,7 +44,9 @@
       "lifecycle": "archive_pending",
       "path": "C:/Users/LIZIXUAN/.codex/worktrees/07af/badminton-miniapp",
       "branch": "codex/weapp-devtools-screenshot-diagnostic-20260806",
-      "head": "5813ffc"
+      "head": "5813ffc",
+      "backupStatus": "full_restore_verified",
+      "backupManifest": "control/archives/screenshot-diagnostic-07af.json"
     },
     {
       "id": "incremental-ui-handoff-a6ba",
@@ -52,7 +54,9 @@
       "lifecycle": "archive_pending",
       "path": "C:/Users/LIZIXUAN/.codex/worktrees/a6ba/badminton-miniapp",
       "branch": "(detached)",
-      "head": "d0435f6"
+      "head": "d0435f6",
+      "backupStatus": "full_restore_verified",
+      "backupManifest": "control/archives/incremental-ui-handoff-a6ba.json"
     },
     {
       "id": "online-source-evidence-ba45",

@@ -28,6 +28,7 @@
 - Phase 2 的 3 个 clean 历史 worktree 已完成 bundle、SHA-256、实际 clone 恢复验证和 Git worktree 卸载；branch 与 bundle 保留。
 - worktree 总数从 18 降至 15；剩余 13 个历史挂载树仍为 `archive_pending`。
 - `local-ops-dashboard` 锁定进程已通过 Restart Manager 确认为本地 Node 看板并停止；非 Git 残留已移动到备份区，原路径已清除。
+- Phase 3 第一组 `07af`、`a6ba` 已完成四件套与实际恢复验证，原 dirty worktree 尚未卸载。
 
 ## Current Branch
 
@@ -37,5 +38,5 @@
 
 ## Next Action
 
-1. Phase 3 按“截图/文档 → upload 隔离 → 旧打水 → Next-Gen”顺序归档 dirty worktree。
-2. 每棵先生成完整四件套和恢复验证，再逐路径取得卸载授权。
+1. 逐路径取得 `07af`、`a6ba` 两棵已验证 dirty worktree 的卸载授权。
+2. 随后按“upload 隔离 → 旧打水 → Next-Gen”顺序继续归档。

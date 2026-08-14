@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "archivedAt": "2026-08-14",
+  "worktreeId": "incremental-ui-handoff-a6ba",
+  "source": {
+    "path": "C:/Users/LIZIXUAN/.codex/worktrees/a6ba/badminton-miniapp",
+    "branch": "(detached)",
+    "head": "d0435f6ce170cc25883763011840e0a28e857591",
+    "trackedChanged": 9,
+    "untracked": 2,
+    "clean": false
+  },
+  "artifacts": {
+    "bundle": {
+      "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-screenshot-docs/a6ba-detached-source.bundle",
+      "sourceRef": "codex/local-ops-dashboard",
+      "bytes": 7709628,
+      "sha256": "6b3b83b48ea736b25744251d4f1c039d177a9774725c97d8e83a57cdfd9a49ce"
+    },
+    "trackedBinaryPatch": {
+      "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-screenshot-docs/a6ba-tracked.patch",
+      "bytes": 26778,
+      "sha256": "b7dca480cfbbbe5e5921efbd58d3107197e6791feae48272df12e7bfc16ce41d"
+    },
+    "untrackedArchive": {
+      "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-screenshot-docs/a6ba-untracked.zip",
+      "bytes": 4990,
+      "sha256": "fdff8515fec478807f09a58750eaed3b80a16dbbf9271b540014f94f821ca4c9"
+    }
+  },
+  "verification": {
+    "bundleVerify": "complete_history",
+    "restoreClone": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-screenshot-docs/restore-a6ba/repo",
+    "restoredHead": "d0435f6ce170cc25883763011840e0a28e857591",
+    "statusMatchesSource": true,
+    "verifiedChangedAndUntrackedFiles": 11,
+    "allFileHashesMatch": true,
+    "result": "passed"
+  },
+  "removal": {
+    "authorized": false,
+    "worktreeStillMounted": true,
+    "detachedHeadMustRemainRecoverable": true
+  }
+}

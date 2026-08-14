@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "archivedAt": "2026-08-14",
+  "worktreeId": "screenshot-diagnostic-07af",
+  "source": {
+    "path": "C:/Users/LIZIXUAN/.codex/worktrees/07af/badminton-miniapp",
+    "branch": "codex/weapp-devtools-screenshot-diagnostic-20260806",
+    "head": "5813ffc79f94c180fa5573eb25fb0d57f53b85df",
+    "trackedChanged": 3,
+    "untracked": 4,
+    "clean": false
+  },
+  "artifacts": {
+    "bundle": {
+      "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-screenshot-docs/07af-screenshot-diagnostic.bundle",
+      "bytes": 6982335,
+      "sha256": "b96e5c7904bc6f1e20e17d9bbdb42b6a3ca161644f5794095afb74d6dc82b0dc"
+    },
+    "trackedBinaryPatch": {
+      "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-screenshot-docs/07af-tracked.patch",
+      "bytes": 35746,
+      "sha256": "c04b4cfe6420ae2827efab9232bac9d4474bdd909a91dc59b4c30dd221e44c6c"
+    },
+    "untrackedArchive": {
+      "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-screenshot-docs/07af-untracked.zip",
+      "bytes": 33044,
+      "sha256": "5d2811c4655163cb267d803ffcf53a79379ccb5beef24341df91852b041ac860"
+    }
+  },
+  "verification": {
+    "bundleVerify": "complete_history",
+    "restoreClone": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-screenshot-docs/restore-07af/repo",
+    "restoredHead": "5813ffc79f94c180fa5573eb25fb0d57f53b85df",
+    "statusMatchesSource": true,
+    "verifiedChangedAndUntrackedFiles": 7,
+    "allFileHashesMatch": true,
+    "result": "passed"
+  },
+  "removal": {
+    "authorized": false,
+    "worktreeStillMounted": true,
+    "branchMustBeRetained": true
+  }
+}

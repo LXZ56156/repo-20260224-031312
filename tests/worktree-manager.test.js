@@ -159,4 +159,21 @@ test('checked-in control registry and release ledger remain machine readable', (
   assert.equal(localOps.removal.filesystemResidual.originalPathExists, false);
   assert.equal(fs.existsSync(localOps.removal.filesystemResidual.originalPath), false);
   assert.equal(fs.existsSync(localOps.removal.filesystemResidual.lockedFilesBackup), true);
+
+  const dirtyManifests = [
+    'screenshot-diagnostic-07af.json',
+    'incremental-ui-handoff-a6ba.json'
+  ].map((name) => JSON.parse(fs.readFileSync(path.join(ROOT, 'control', 'archives', name), 'utf8')));
+  for (const manifest of dirtyManifests) {
+    assert.equal(manifest.source.clean, false);
+    assert.equal(manifest.verification.result, 'passed');
+    assert.equal(manifest.verification.statusMatchesSource, true);
+    assert.equal(manifest.verification.allFileHashesMatch, true);
+    assert.equal(fs.existsSync(manifest.artifacts.bundle.path), true);
+    assert.equal(fs.existsSync(manifest.artifacts.trackedBinaryPatch.path), true);
+    assert.equal(fs.existsSync(manifest.artifacts.untrackedArchive.path), true);
+    assert.equal(fs.existsSync(manifest.verification.restoreClone), true);
+    assert.equal(manifest.removal.authorized, false);
+    assert.equal(manifest.removal.worktreeStillMounted, true);
+  }
 });
