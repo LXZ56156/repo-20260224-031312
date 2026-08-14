@@ -120,34 +120,46 @@
     {
       "id": "nextgen-design-system",
       "role": "CANDIDATE",
-      "lifecycle": "archive_pending",
+      "lifecycle": "archived",
       "path": "D:/projects(WIN)/badminton-miniapp-worktrees/nextgen-design-system",
       "branch": "codex/nextgen-design-system",
-      "head": "983837d"
+      "head": "983837d",
+      "backupStatus": "full_restore_verified",
+      "backupManifest": "control/archives/nextgen-design-system.json",
+      "unmountedAt": "2026-08-14"
     },
     {
       "id": "nextgen-integration",
       "role": "CANDIDATE",
-      "lifecycle": "archive_pending",
+      "lifecycle": "archived",
       "path": "D:/projects(WIN)/badminton-miniapp-worktrees/nextgen-integration",
       "branch": "codex/next-gen-badminton",
-      "head": "ffe98aa"
+      "head": "ffe98aa",
+      "backupStatus": "full_restore_verified",
+      "backupManifest": "control/archives/nextgen-integration.json",
+      "unmountedAt": "2026-08-14"
     },
     {
       "id": "nextgen-typography",
       "role": "CANDIDATE",
-      "lifecycle": "archive_pending",
+      "lifecycle": "archived",
       "path": "D:/projects(WIN)/badminton-miniapp-worktrees/nextgen-typography",
       "branch": "codex/nextgen-typography",
-      "head": "17f444f"
+      "head": "17f444f",
+      "backupStatus": "full_restore_verified",
+      "backupManifest": "control/archives/nextgen-typography.json",
+      "unmountedAt": "2026-08-14"
     },
     {
       "id": "nextgen-ui-redesign",
       "role": "CANDIDATE",
-      "lifecycle": "archive_pending",
+      "lifecycle": "archived",
       "path": "D:/projects(WIN)/badminton-miniapp-worktrees/nextgen-ui-redesign-20260724",
       "branch": "codex/nextgen-ui-redesign-20260724",
-      "head": "f792b75"
+      "head": "f792b75",
+      "backupStatus": "full_restore_verified",
+      "backupManifest": "control/archives/nextgen-ui-redesign.json",
+      "unmountedAt": "2026-08-14"
     },
     {
       "id": "share-activity-collection",

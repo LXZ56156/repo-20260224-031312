@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "archivedAt": "2026-08-14",
+  "worktreeId": "nextgen-typography",
+  "source": {
+    "path": "D:/projects(WIN)/badminton-miniapp-worktrees/nextgen-typography",
+    "branch": "codex/nextgen-typography",
+    "head": "17f444f0e289f8f207dda01762a0172d8bfc72e6",
+    "trackedChanged": 19,
+    "untracked": 3,
+    "clean": false
+  },
+  "artifacts": {
+    "bundle": { "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-nextgen/nextgen-group-source.bundle", "bytes": 8327087, "sha256": "83d941dc78882555165dce470419f3f5b16fd4811f6b28f22ae570d5a1a99ae2" },
+    "trackedBinaryPatch": { "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-nextgen/typography-tracked.patch", "bytes": 68955, "sha256": "8cfccea2bd843ad48c13c2813a47a1da34ed2c7af7a02bba3ada5f124eb2b116" },
+    "untrackedArchive": { "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-nextgen/typography-untracked.zip", "bytes": 3879, "sha256": "207f36e8e4fe15d28aaf34878443305f252db84faa52a721a321ac945f296a9b" },
+    "untrackedList": { "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-nextgen/typography-untracked.list", "bytes": 100, "sha256": "99a04c4de55e0ab49142e64b3ce49fb5b2bfc43f0f39b6ea54873d056bb88984" }
+  },
+  "verification": {
+    "bundleVerify": "complete_history",
+    "restoreClone": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-nextgen/restore-typography/repo",
+    "restoredHead": "17f444f0e289f8f207dda01762a0172d8bfc72e6",
+    "statusMatchesSource": true,
+    "verifiedChangedAndUntrackedFiles": 22,
+    "allFileHashesMatch": true,
+    "result": "passed"
+  },
+  "removal": { "authorized": true, "removedAt": "2026-08-14", "worktreeStillMounted": false, "branchMustBeRetained": true }
+}

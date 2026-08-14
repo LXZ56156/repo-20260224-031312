@@ -2,13 +2,14 @@
 
 > 当前 CONTROL 分支任务入口。跨分支产品、发布和 worktree 事实统一见 `control/`。
 
-## Status: worktree_control_plane_phase_1_completed
+## Status: worktree_consolidation_finalizing
 
 ## Scope
 
 - 用户要求按顺序执行项目文档与工作流整理方案。
 - 已落地唯一 CONTROL、干净 PRODUCTION、注册表和只读状态检查；不修改用户可见产品行为。
-- 不删除、移动或 prune 任何 dirty worktree，不执行 push、preview/upload、正式发布或真实数据写入。
+- dirty worktree 仅在完整 bundle、patch、未跟踪归档与逐文件恢复验证通过后，按用户统一授权卸载。
+- 不执行 push、preview/upload、正式发布、cloud deploy 或真实数据写入。
 
 ## Completed
 
@@ -31,15 +32,16 @@
 - Phase 3 第一组 `07af`、`a6ba` 已完成四件套、实际恢复验证和卸载。
 - Phase 3 upload 组 `ba45`、`mp-upload-e60d827`、feedback-r3 已完成恢复验证和卸载；私密 `.codex` 证据单独离线保存。
 - Phase 3 旧打水组 V1、Vant、TDesign 已完成逐文件恢复验证和卸载。
-- worktree 总数从 10 降至 7；剩余 5 个历史挂载树仍为 `archive_pending`。
+- Phase 3 Next-Gen 组 4 棵树的 127 个变更/未跟踪文件已完成状态与 SHA-256 恢复验证并卸载。
+- worktree 总数从 20 收敛至 3；15 个历史 worktree 已归档，剩余主 Git 工作区 1 个待登记为元数据根。
 
 ## Current Branch
 
 - 工作区：`D:\projects(WIN)\badminton-miniapp-control`
 - 分支：`codex/project-control`
-- 当前任务：Phase 1 已完成，等待进入安全归档阶段。
+- 当前任务：安全归档已完成，正在收敛主 Git 元数据根并执行最终验证。
 
 ## Next Action
 
-1. 归档并卸载 4 棵 Next-Gen 历史 worktree。
-2. 最后单独处理不可直接 `git worktree remove` 的主 Git 工作区。
+1. 将主 Git 工作区登记为 clean、只读的 `METADATA_ROOT`，保留 linked worktree 共用 Git 元数据。
+2. 运行控制面对账与最终全量验证，完成整理。

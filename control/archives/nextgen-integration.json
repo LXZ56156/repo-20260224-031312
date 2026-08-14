@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "archivedAt": "2026-08-14",
+  "worktreeId": "nextgen-integration",
+  "source": {
+    "path": "D:/projects(WIN)/badminton-miniapp-worktrees/nextgen-integration",
+    "branch": "codex/next-gen-badminton",
+    "head": "ffe98aa304e2b2aa1a4408b26b550720b1a0feea",
+    "trackedChanged": 19,
+    "untracked": 1,
+    "clean": false
+  },
+  "artifacts": {
+    "bundle": { "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-nextgen/nextgen-group-source.bundle", "bytes": 8327087, "sha256": "83d941dc78882555165dce470419f3f5b16fd4811f6b28f22ae570d5a1a99ae2" },
+    "trackedBinaryPatch": { "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-nextgen/integration-tracked.patch", "bytes": 48894, "sha256": "97b58ca0a5149a33d508bd6ac1341d13215eae7cfc07c53d7a2168e4af8ca7f1" },
+    "untrackedArchive": { "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-nextgen/integration-untracked.zip", "bytes": 2402, "sha256": "f959271476e7db3262b9f4c72d08f911b28b2040441c735ce6ae5bed357c7bb1" },
+    "untrackedList": { "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-nextgen/integration-untracked.list", "bytes": 43, "sha256": "e307f26b583d1e86ee03538ccb76c8e545d42f5251fc51ca12eda0082f8964d9" }
+  },
+  "verification": {
+    "bundleVerify": "complete_history",
+    "restoreClone": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-nextgen/restore-integration/repo",
+    "restoredHead": "ffe98aa304e2b2aa1a4408b26b550720b1a0feea",
+    "statusMatchesSource": true,
+    "verifiedChangedAndUntrackedFiles": 20,
+    "allFileHashesMatch": true,
+    "result": "passed"
+  },
+  "removal": { "authorized": true, "removedAt": "2026-08-14", "worktreeStillMounted": false, "branchMustBeRetained": true }
+}

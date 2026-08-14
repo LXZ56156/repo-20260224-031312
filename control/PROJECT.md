@@ -17,7 +17,8 @@
 - PRODUCTION：1 个，已占用并要求始终 clean。
 - ACTIVE：0 个。
 - RELEASE：0 个。
-- 历史挂载树：5 个，全部登记为 `archive_pending`；另有 11 个已归档卸载。
+- Git 挂载总数：3 个（主 Git 工作区、CONTROL、PRODUCTION）。
+- 历史挂载树：仅主 Git 工作区 1 个登记为 `archive_pending`；另有 15 个已归档卸载。
 
 ## Current Work
 
@@ -27,7 +28,8 @@
 - Phase 3 第一组已完成：`07af` 与 `a6ba` 的完整恢复验证通过并已卸载。
 - Phase 3 upload 组已完成：三棵树及 6579 个私密证据文件均逐字节恢复验证并卸载。
 - Phase 3 旧打水组已完成：V1、Vant、TDesign 共 2466 个变更/未跟踪文件恢复验证并卸载。
-- 下一动作：归档 4 棵 Next-Gen 历史树；主 Git 工作区最后单独处理。
+- Phase 3 Next-Gen 组已完成：四棵树共 127 个变更/未跟踪文件逐文件恢复验证并卸载。
+- 下一动作：把不可直接卸载、承载 linked worktree 共用 `.git` 的主工作区登记为只读元数据根。
 - 禁止在迁移完成前新增未登记 worktree。
 
 ## Verify

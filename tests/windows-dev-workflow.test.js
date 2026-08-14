@@ -87,15 +87,15 @@ test('governance separates current status, product boundary and archived restart
   assert.match(agents, /control\/PROJECT\.md/);
   assert.match(agents, /control\/worktrees\.json/);
   assert.doesNotMatch(agents, /\b[0-9a-f]{7,40}\b/i);
-  assert.match(current, /worktree_control_plane_phase_1_completed/);
+  assert.match(current, /worktree_consolidation_finalizing/);
   assert.ok(current.trimEnd().split(/\r?\n/).length <= 50);
   assert.match(project, /6\.1\.2-e60d827-r3/);
   assert.match(project, /55bfc4fa319ab74a33d406f05fbdab975ab8cfb7/);
   assert.match(project, /云函数[\s\S]*不能由客户端版本推断[\s\S]*独立盘点/);
   assert.equal(registry.worktrees.filter((item) => item.role === 'CONTROL' && item.lifecycle !== 'archive_pending').length, 1);
   assert.equal(registry.worktrees.filter((item) => item.role === 'PRODUCTION' && item.lifecycle !== 'archive_pending').length, 1);
-  assert.equal(registry.worktrees.filter((item) => item.lifecycle === 'archive_pending').length, 5);
-  assert.equal(registry.worktrees.filter((item) => item.lifecycle === 'archived').length, 11);
+  assert.equal(registry.worktrees.filter((item) => item.lifecycle === 'archive_pending').length, 1);
+  assert.equal(registry.worktrees.filter((item) => item.lifecycle === 'archived').length, 15);
   assert.match(cloudDecision, /兼容变更自动部署/);
   assert.match(cloudDecision, /不兼容[\s\S]*授权/);
   assert.match(plan, /线上版本[\s\S]*master[\s\S]*5813ffc/);
