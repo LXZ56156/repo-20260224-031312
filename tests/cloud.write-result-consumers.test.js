@@ -99,7 +99,6 @@ test('feedback onSubmit treats structured ok:false result as failure instead of 
       blocked: false,
       content: '这是一条足够长的反馈内容，用于验证结构化失败消费。',
       contentLength: 24,
-      contact: 'wx:test',
       submitting: false
     });
 

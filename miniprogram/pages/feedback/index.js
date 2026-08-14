@@ -14,7 +14,6 @@ Page({
     categoryIndex: 0,
     content: '',
     contentLength: 0,
-    contact: '',
     submitting: false
   },
 
@@ -54,10 +53,6 @@ Page({
     });
   },
 
-  onContactInput(e) {
-    this.setData({ contact: String(e.detail.value || '').trim() });
-  },
-
   async onSubmit(options = {}) {
     if (this.data.blocked) return;
     const content = String(this.data.content || '').trim();
@@ -75,7 +70,6 @@ Page({
         const res = cloud.assertWriteResult(await cloud.call('feedbackSubmit', {
           category: this.data.categoryOptions[this.data.categoryIndex] || '其他',
           content,
-          contact: String(this.data.contact || '').trim(),
           clientRequestId
         }), '提交失败');
         wx.hideLoading();
@@ -86,8 +80,7 @@ Page({
           success: () => {
             this.setData({
               content: '',
-              contentLength: 0,
-              contact: ''
+              contentLength: 0
             });
           }
         });

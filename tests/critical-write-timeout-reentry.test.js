@@ -846,7 +846,6 @@ test('feedback onSubmit keeps submitting true after timeout while request is pen
       blocked: false,
       content: '这是一个足够长的反馈内容，用来验证 timeout reentry。',
       contentLength: 24,
-      contact: 'wx:test',
       submitting: false
     });
 

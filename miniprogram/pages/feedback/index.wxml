@@ -26,10 +26,6 @@
       <view class="muted small">{{contentLength}} / 500</view>
     </view>
 
-    <view class="form-item">
-      <view class="form-label">联系方式（可选）</view>
-      <input class="input" maxlength="40" placeholder="微信号/手机号/邮箱" value="{{contact}}" bindinput="onContactInput" />
-    </view>
   </view>
 
   <view class="feedback-actions">
