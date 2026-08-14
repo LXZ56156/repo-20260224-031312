@@ -2,14 +2,16 @@
 
 > 盘点时间：2026-08-14。下方 20 项表格是整理前保护快照，不是当前删除清单。
 > 硬规则：dirty worktree 未备份、未确认归属、未获用户批准前不得删除、移动或 prune。
+> 当前状态：整理已完成；实时事实只查 `control/worktrees.json`，逐树恢复证据查 `control/archives/`。
 
 ## 汇总
 
 - 本地分支：36
 - origin 远端引用：5
 - 整理前 worktree：20，其中 dirty 12，主工作区 clean
-- 整理后 worktree：16，其中 dirty 13；新增的 1 个 dirty 是当前文档治理修改
-- 本轮只移除 4 个已批准且 clean 的 worktree；36 个本地分支数量未变
+- 最终挂载 worktree：3，分别为 CONTROL、PRODUCTION、METADATA_ROOT，均要求 clean
+- 已归档卸载历史 worktree：15；所有 dirty 树均先完成 bundle、patch、未跟踪文件和逐文件恢复验证
+- `archive_pending`：0；分支与离线恢复材料均保留
 
 ## 2026-08-14 已授权清理结果
 

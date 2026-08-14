@@ -130,6 +130,34 @@ test('reconcileRegistry fails closed on unregistered worktrees and dirty product
   assert.match(output, /archive pending：1/);
 });
 
+test('reconcileRegistry keeps a required metadata root mounted and clean', () => {
+  const registry = sampleRegistry();
+  registry.worktrees[2] = {
+    id: 'metadata-root',
+    role: 'METADATA_ROOT',
+    lifecycle: 'readonly',
+    path: 'D:/repo-root',
+    branch: 'codex/metadata-root',
+    head: '2222222'
+  };
+  const inventory = sampleInventory();
+  inventory.worktrees[2] = {
+    path: 'D:/repo-root',
+    branch: 'codex/metadata-root',
+    head: '2222222',
+    dirtyFiles: []
+  };
+
+  const clean = reconcileRegistry(registry, inventory);
+  assert.equal(clean.metadataRootCount, 1);
+  assert.equal(clean.archivePendingCount, 0);
+  assert.deepEqual(clean.violations, []);
+
+  inventory.worktrees[2].dirtyFiles.push(' M README.md');
+  const dirty = reconcileRegistry(registry, inventory);
+  assert.match(dirty.violations.join('\n'), /METADATA_ROOT worktree must be clean/);
+});
+
 test('checked-in control registry and release ledger remain machine readable', () => {
   const registry = JSON.parse(fs.readFileSync(path.join(ROOT, 'control', 'worktrees.json'), 'utf8'));
   validateRegistry(registry);

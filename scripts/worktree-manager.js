@@ -13,7 +13,8 @@ const ALLOWED_ROLES = new Set([
   ...MANAGED_ROLES,
   'EVIDENCE',
   'CANDIDATE',
-  'MIGRATION_SOURCE'
+  'MIGRATION_SOURCE',
+  'METADATA_ROOT'
 ]);
 
 function normalizePath(value) {
@@ -128,6 +129,9 @@ function reconcileRegistry(registry, inventory) {
         violations.push(`PRODUCTION HEAD must match online client source ${expected}: ${live.head}`);
       }
     }
+    if (registered.role === 'METADATA_ROOT' && live.dirtyFiles.length > 0) {
+      violations.push(`METADATA_ROOT worktree must be clean: ${registered.path}`);
+    }
   }
 
   return {
@@ -137,6 +141,7 @@ function reconcileRegistry(registry, inventory) {
     liveCount: inventory.worktrees.length,
     archivePendingCount: registry.worktrees.filter((item) => item.lifecycle === 'archive_pending').length,
     archivedCount: registry.worktrees.filter((item) => item.lifecycle === 'archived').length,
+    metadataRootCount: registry.worktrees.filter((item) => item.role === 'METADATA_ROOT').length,
     slotCounts: countManagedSlots(registry.worktrees),
     unregistered,
     missing,
@@ -154,6 +159,7 @@ function renderStatus(result) {
     `客户端源码：${result.online.clientSource}`,
     `registered：${result.registeredCount}  live：${result.liveCount}`,
     `managed slots：CONTROL ${slots.CONTROL} / PRODUCTION ${slots.PRODUCTION} / ACTIVE ${slots.ACTIVE} / RELEASE ${slots.RELEASE}`,
+    `metadata roots：${result.metadataRootCount}`,
     `archive pending：${result.archivePendingCount}`,
     `archived：${result.archivedCount}`,
     `unregistered：${result.unregistered.length}`,

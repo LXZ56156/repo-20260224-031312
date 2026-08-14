@@ -1,7 +1,7 @@
 # 项目状态事实源
 
 > 更新时间：2026-08-14
-> 范围：跨分支的产品、研发、发布和授权事实。分支局部任务见 `docs/tasks/current.md`。
+> 范围：跨分支产品边界的说明页。实时 worktree 与发布事实以 `control/` 为唯一权威源；分支局部任务见 `docs/tasks/current.md`。
 > 安全规则：兼容云函数变更按决策记录自动部署；其他远程或破坏性动作仍采用逐次授权。
 
 ## 已确认事实
@@ -12,17 +12,17 @@
 | 历史线上基线 | `master` = `origin/master` = `5813ffc79f94c180fa5573eb25fb0d57f53b85df` | 2026-07-15 曾确认，已被 `6.1.2-e60d827-r3` 取代 |
 | 当前产品决策 | 需求、回归和后续产品分支从线上客户端源码 `55bfc4f` 建立干净隔离 worktree；不直接使用 dirty ba45 worktree | 用户于 2026-08-14 确认 |
 | schedule 单点基线 | `codex/incremental-ui-score-baseline-20260729@51fe6dc`，相对 master 仅改 schedule WXML/WXSS 和聚焦测试 | 2026-08-14 重新核对 clean worktree、3 文件 diff、2/2 聚焦测试和 `git diff --check` |
-| 主工作区 | `D:\projects(WIN)\badminton-miniapp`，`codex/ui-optimization-v2@5c2e563`，当前含本轮未提交的文档治理与验证工作，整理前领先 upstream 2 个提交 | 2026-08-14 本地 Git 实查 |
-| 协作打水 V2 | `codex/collaborative-water-v2-20260809@e60d827` 是本地 release candidate；无 upstream，当前 worktree 有 10 项未提交变化 | 2026-08-14 本地 Git 实查 |
-| share activity | `codex/share-activity-collection@fb8ea52` clean；代码默认关闭 | 2026-08-14 本地 Git 与该分支 handoff |
-| worktree 安全 | 已按用户授权将 4 个 clean 研究 worktree 备份后移除；现有 16 个 worktree 中 13 个 dirty，原有 dirty worktree 未触碰 | 2026-08-14 清理后重新运行 `repo:inventory` |
+| 主 Git 元数据根 | `D:\projects(WIN)\badminton-miniapp` / `codex/ui-optimization-v2@0157c66`，clean、只读；CONTROL 与 PRODUCTION 的 linked worktree 共用其 `.git` | `control/worktrees.json` 与 `npm run worktree:status` |
+| 协作打水 V2 | worktree 已归档；branch、bundle、patch、私密证据归档与逐文件恢复结果均保留 | `control/archives/online-source-evidence-ba45.json` |
+| share activity | worktree 已归档；branch 与 bundle 恢复副本保留，代码默认关闭 | `control/archives/share-activity-collection.json` |
+| worktree 安全 | 初始 20 个 worktree 已收敛为 CONTROL、PRODUCTION、METADATA_ROOT 共 3 个；15 个历史 worktree 完成恢复验证后卸载，`archive_pending` 为 0 | `control/worktrees.json` 与 `control/archives/` |
 
 ## 发布事实分层
 
 - “Git commit/push”“preview/upload”“云函数部署”“正式线上版本”是四种独立状态，不得相互推断。
 - `6.1.2-e60d827-r3` 已由用户确认为正式线上版本；其客户端源码与 `55bfc4f` 的 633 个 `miniprogram` 文件一致。
-- 协作打水 V2 文档明确记录：尚未执行 V2 collection/index/config 写入、V2 云部署、迁移、canary、preview、upload、审核或正式发布。
-- share activity 分支记录 `joinTournament` 与 `reportOpsActivityEvents` 曾由 post-commit hook 部署，双端开关仍关闭；该事实需要后续并入统一发布账本。
+- 协作打水 V2 的归档文档记录：尚未执行 V2 collection/index/config 写入、V2 云部署、迁移、canary、preview、upload、审核或正式发布。
+- share activity 历史分支记录的云函数部署与关闭开关属于历史证据；后续若启用，必须新增发布账本记录。
 
 ## 云函数部署授权
 

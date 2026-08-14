@@ -1,7 +1,7 @@
 # Worktree 单一控制面方案
 
-> 状态：Executing，Phase 1–2 已完成；3 个 clean worktree 已安全卸载，剩余 13 个历史挂载树待归档。更新时间：2026-08-14。
-> 目标：不丢任何成果，把 16 个挂载 worktree 收敛到最多 4 个，并彻底消除“每个分支各写一套线上/发布事实”。
+> 状态：Completed，Phase 0–4 已完成。更新时间：2026-08-14。
+> 结果：不丢任何成果，把初始 20 个 worktree 收敛为 3 个，并消除“每个分支各写一套线上/发布事实”。
 
 ## 根因
 
@@ -17,6 +17,7 @@ Git worktree 共享对象库和分支，但每个 worktree 读取自己分支中
 | PRODUCTION | 1 | 从当前线上客户端源码 `55bfc4f` 创建的只读干净基线 | 否 |
 | ACTIVE | 1 | 当前唯一开发任务，从 PRODUCTION 创建 | 可以，但必须登记 |
 | RELEASE | 1 | preview/upload/release 临时隔离树，动作结束即归档移除 | 否 |
+| METADATA_ROOT | 1 | 保留 linked worktree 共用 `.git`，不承载日常开发 | 否 |
 | PAUSED / ARCHIVED | 0 个挂载 | 以 branch + bundle + patch + untracked archive 保存，不常驻磁盘 | 不适用 |
 
 推荐固定控制面路径为 `D:\projects(WIN)\badminton-miniapp-control`。控制面使用独立 `codex/project-control` branch/worktree；业务分支不得复制全局状态，只链接控制面。
@@ -27,6 +28,7 @@ flowchart TD
   C --> A["ACTIVE：最多一个开发任务"]
   C --> R["RELEASE：临时干净交付树"]
   C --> X["ARCHIVE：branch + bundle + patch + untracked archive"]
+  C --> M["METADATA_ROOT：共享 Git 元数据"]
   P --> A
   A --> R
   R --> C
@@ -44,17 +46,15 @@ flowchart TD
 
 ## 生命周期与命令合同
 
-控制面提供一个 `worktree-manager`，只从 CONTROL 运行：
+控制面提供 `worktree-manager`，只从 CONTROL 运行。当前 v1 已实现并用于日常门禁的是：
 
 - `status`：实时读取 Git，显示线上版本、4 类槽位和漂移，不修改状态。
-- `create <task>`：只允许从 PRODUCTION 创建一个 ACTIVE；已有 ACTIVE 时拒绝。
-- `pause <id>`：只改 registry，不删除。
-- `archive <id> --dry-run`：生成备份计划和预计产物，不删除。
-- `archive <id> --execute`：必须有具体路径授权；依次生成 branch bundle、tracked binary patch、untracked archive、SHA-256 manifest，并在临时目录完成恢复验证后才移除 worktree；分支默认保留。
-- `release-start`：从确切 commit 创建干净 RELEASE；dirty 或来源不登记时拒绝。
-- `release-finish`：写入 receipt 后移除临时 RELEASE，不把它长期保留为另一条开发线。
+- fail-closed 检查：未登记、缺失、HEAD/branch 漂移、dirty PRODUCTION、dirty METADATA_ROOT。
+- ACTIVE/RELEASE/CONTROL/PRODUCTION 的数量上限由注册表校验强制执行。
 
-## 当前 16 个 worktree 的迁移分类
+`create`、`pause`、`archive`、`release-start`、`release-finish` 仍是后续自动化方向，当前未实现，不应作为可执行命令使用。
+
+## 迁移前 worktree 分类快照（已全部处理）
 
 ### 暂时保留到控制面建立
 
@@ -104,10 +104,10 @@ manager 和治理检查共同拒绝：未登记 worktree、第二个 ACTIVE、�
 
 ## 验收标准
 
-- 挂载 worktree ≤ 4，ACTIVE ≤ 1，RELEASE 平时为 0。
+- 挂载 worktree 为 3，ACTIVE 为 0，RELEASE 为 0。
 - 任意会话只读 CONTROL 即可回答：当前线上、源码身份、云端状态、活跃任务、每棵树是否可删除。
 - PAUSED 分支无需同步文档；恢复时以 CONTROL archive manifest 为准。
-- 所有 16 棵树都有 registry 记录；所有被卸载的 dirty 树都通过临时恢复验证。
+- 18 条工作区记录均在 registry 中；15 个已卸载历史 worktree 都有恢复 manifest，被卸载的 dirty 树均通过临时恢复验证。
 - Git branch、upload、正式 release、cloud deploy 和数据迁移继续分层记录。
 
 ## 不采用的方案

@@ -32,11 +32,13 @@
     },
     {
       "id": "legacy-main-workspace",
-      "role": "MIGRATION_SOURCE",
-      "lifecycle": "archive_pending",
+      "role": "METADATA_ROOT",
+      "lifecycle": "readonly",
       "path": "D:/projects(WIN)/badminton-miniapp",
       "branch": "codex/ui-optimization-v2",
-      "head": "0157c66"
+      "head": "0157c66",
+      "purpose": "owns shared .git metadata for CONTROL and PRODUCTION linked worktrees",
+      "cleanRequired": true
     },
     {
       "id": "screenshot-diagnostic-07af",

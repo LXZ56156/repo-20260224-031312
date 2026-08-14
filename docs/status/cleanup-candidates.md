@@ -1,18 +1,18 @@
 # Worktree Cleanup Candidates
 
-> 2026-08-14 评估与执行结果：没有 worktree 获得“自动清理”资格；用户明确批准的 4 个 clean worktree 已按备份门槛完成移除。
+> 2026-08-14 最终结果：本页保留迁移前分类依据，不再是待执行清单。实时状态见 `control/worktrees.json`；15 个历史 worktree 已按授权完成可恢复归档和卸载。
 
-## A. 持续保留
+## A. 迁移前持续保留组（现已收敛）
 
-- `D:/projects(WIN)/badminton-miniapp`：当前整理工作区。
+- `D:/projects(WIN)/badminton-miniapp`：现为 clean、只读 `METADATA_ROOT`。
 - `incremental-ui-score-baseline-20260729`：唯一干净 score-only 产品基线。
 - `collaborative-water-v2-20260809`：本地 RC 且有 10 项后续未提交变化。
 - `share-activity-collection`：最新运营能力与部署规则证据。
 - `local-ops-dashboard`：share activity 的祖先和独立运营工具入口。
 
-## B. 先备份再决定
+## B. 迁移前 dirty 组（现已完成归档）
 
-以下 worktree 全部 dirty，必须先确认归属并选择 commit、patch 或 bundle 级备份：
+以下 worktree 当时全部 dirty；现均已保存 bundle、binary patch、untracked archive、manifest 与恢复 clone：
 
 - 截图诊断：`07af/badminton-miniapp`。
 - detached UI 文档收尾：`a6ba/badminton-miniapp`。
@@ -29,9 +29,9 @@
 - `water-mvp@74cc333`
 - `nextgen-game-mode-engine@5f1f674`
 
-备份目录：`D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14`。当前 worktree 总数为 16；所有原有 dirty worktree 均未触碰。
+备份目录：`D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14`。最终 Git worktree 总数为 3；恢复证据索引见 `control/archives/`。
 
-## 执行门槛
+## 已执行的安全门槛
 
 每个路径必须依次满足：
 

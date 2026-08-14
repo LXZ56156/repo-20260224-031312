@@ -18,7 +18,8 @@
 - ACTIVE：0 个。
 - RELEASE：0 个。
 - Git 挂载总数：3 个（主 Git 工作区、CONTROL、PRODUCTION）。
-- 历史挂载树：仅主 Git 工作区 1 个登记为 `archive_pending`；另有 15 个已归档卸载。
+- METADATA_ROOT：`D:\projects(WIN)\badminton-miniapp`，必须 clean；它承载 CONTROL 与 PRODUCTION 共用 `.git`，不作为日常开发区。
+- 历史 worktree：15 个已归档卸载；`archive_pending` 为 0。
 
 ## Current Work
 
@@ -29,8 +30,8 @@
 - Phase 3 upload 组已完成：三棵树及 6579 个私密证据文件均逐字节恢复验证并卸载。
 - Phase 3 旧打水组已完成：V1、Vant、TDesign 共 2466 个变更/未跟踪文件恢复验证并卸载。
 - Phase 3 Next-Gen 组已完成：四棵树共 127 个变更/未跟踪文件逐文件恢复验证并卸载。
-- 下一动作：把不可直接卸载、承载 linked worktree 共用 `.git` 的主工作区登记为只读元数据根。
-- 禁止在迁移完成前新增未登记 worktree。
+- 收敛完成：20 个初始 worktree 减至 3 个；CONTROL、PRODUCTION、METADATA_ROOT 职责分离。
+- 禁止新增未登记 worktree；产品开发时只允许创建至多 1 个 ACTIVE，发布时至多 1 个 RELEASE。
 
 ## Verify
 
