@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "archivedAt": "2026-08-14",
+  "worktreeId": "online-source-evidence-ba45",
+  "source": {
+    "path": "C:/Users/LIZIXUAN/.codex/worktrees/ba45/badminton-miniapp",
+    "branch": "codex/collaborative-water-v2-20260809",
+    "head": "55bfc4fa319ab74a33d406f05fbdab975ab8cfb7",
+    "trackedChanged": 2,
+    "untracked": 8,
+    "clean": false
+  },
+  "artifacts": {
+    "bundle": {
+      "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-upload/upload-group-source.bundle",
+      "bytes": 7484698,
+      "sha256": "425cc3a6b5885a77e58d7a4d63423613d8ea3a9cefa92be3b6f06baf20533589"
+    },
+    "trackedBinaryPatch": {
+      "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-upload/ba45-tracked.patch",
+      "bytes": 12432,
+      "sha256": "3ebf9c3332746bc95f84cbc05259a129499cea51aca99ffe841c6ad629427c31"
+    },
+    "untrackedArchive": {
+      "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-upload/ba45-untracked.zip",
+      "bytes": 31815,
+      "sha256": "263ac7f1ad8fe2da696bb1b5c7f96208d3dbae783e62a2ad3b507c00a359c01a"
+    },
+    "privateEvidenceArchive": {
+      "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-upload/ba45-codex-private-evidence.zip",
+      "bytes": 23467225,
+      "sha256": "b933692a8c005441682201ec491c88c8b9d756756c4df9df4c70685154d50120",
+      "containsSecrets": true,
+      "mustNotBeCommittedOrDisplayed": true
+    }
+  },
+  "verification": {
+    "bundleVerify": "complete_history",
+    "restoreClone": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-upload/restore-ba45/repo",
+    "restoredHead": "55bfc4fa319ab74a33d406f05fbdab975ab8cfb7",
+    "statusMatchesSource": true,
+    "verifiedChangedAndUntrackedFiles": 10,
+    "privateEvidenceFilesVerified": 6579,
+    "allFileHashesMatch": true,
+    "result": "passed"
+  },
+  "removal": {
+    "authorized": true,
+    "removedAt": "2026-08-14",
+    "worktreeStillMounted": false,
+    "branchMustBeRetained": true,
+    "filesystemResidual": "empty_directory_locked_by_wechat_devtools_file_watcher"
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "archivedAt": "2026-08-14",
+  "worktreeId": "upload-e60d827",
+  "source": {
+    "path": "C:/Users/LIZIXUAN/.codex/worktrees/mp-upload-e60d827",
+    "branch": "(detached)",
+    "head": "e60d82706b663165c972c46b9b0b3eb5a2747188",
+    "trackedChanged": 1,
+    "untracked": 0,
+    "clean": false
+  },
+  "artifacts": {
+    "bundle": {
+      "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-upload/upload-group-source.bundle",
+      "sourceRef": "codex/collaborative-water-v2-20260809",
+      "bytes": 7484698,
+      "sha256": "425cc3a6b5885a77e58d7a4d63423613d8ea3a9cefa92be3b6f06baf20533589"
+    },
+    "trackedBinaryPatch": {
+      "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-upload/mp-upload-tracked.patch",
+      "bytes": 268,
+      "sha256": "9e21768bf331f13255b58488c18060e807e315a516ec1927482128297073687"
+    },
+    "rawTrackedOverlay": {
+      "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-upload/mp-upload-raw-tracked.zip",
+      "bytes": 805,
+      "sha256": "5b181a9564ff3bad301991487046613b2898d293758f01a846ed72f43c0da9cb",
+      "reason": "Preserves original CRLF bytes that git apply normalizes."
+    },
+    "untrackedArchive": "not_required_no_untracked_files"
+  },
+  "verification": {
+    "bundleVerify": "complete_history",
+    "restoreClone": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-upload/restore-mp-upload/repo",
+    "restoredHead": "e60d82706b663165c972c46b9b0b3eb5a2747188",
+    "statusMatchesSource": true,
+    "verifiedChangedAndUntrackedFiles": 1,
+    "allFileHashesMatchAfterRawOverlay": true,
+    "result": "passed"
+  },
+  "removal": {
+    "authorized": true,
+    "removedAt": "2026-08-14",
+    "worktreeStillMounted": false,
+    "detachedHeadMustRemainRecoverable": true
+  }
+}

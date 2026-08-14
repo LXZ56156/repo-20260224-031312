@@ -176,4 +176,24 @@ test('checked-in control registry and release ledger remain machine readable', (
     assert.equal(manifest.removal.authorized, true);
     assert.equal(manifest.removal.worktreeStillMounted, false);
   }
+
+  const uploadManifests = [
+    'online-source-evidence-ba45.json',
+    'upload-e60d827.json',
+    'upload-feedback-r3.json'
+  ].map((name) => JSON.parse(fs.readFileSync(path.join(ROOT, 'control', 'archives', name), 'utf8')));
+  for (const manifest of uploadManifests) {
+    assert.equal(manifest.verification.result, 'passed');
+    assert.equal(fs.existsSync(manifest.artifacts.bundle.path), true);
+    assert.equal(fs.existsSync(manifest.artifacts.trackedBinaryPatch.path), true);
+    assert.equal(fs.existsSync(manifest.verification.restoreClone), true);
+    assert.equal(manifest.removal.authorized, true);
+    assert.equal(manifest.removal.worktreeStillMounted, false);
+  }
+  const ba45 = uploadManifests.find((manifest) => manifest.worktreeId === 'online-source-evidence-ba45');
+  assert.equal(ba45.verification.privateEvidenceFilesVerified, 6579);
+  assert.equal(fs.existsSync(ba45.artifacts.privateEvidenceArchive.path), true);
+  const mpUpload = uploadManifests.find((manifest) => manifest.worktreeId === 'upload-e60d827');
+  assert.equal(mpUpload.verification.allFileHashesMatchAfterRawOverlay, true);
+  assert.equal(fs.existsSync(mpUpload.artifacts.rawTrackedOverlay.path), true);
 });

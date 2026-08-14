@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "archivedAt": "2026-08-14",
+  "worktreeId": "upload-feedback-r3",
+  "source": {
+    "path": "C:/Users/LIZIXUAN/.codex/worktrees/upload-e60d827-feedback-r3-badminton-miniapp",
+    "branch": "(detached)",
+    "head": "e60d82706b663165c972c46b9b0b3eb5a2747188",
+    "trackedChanged": 2,
+    "untracked": 0,
+    "clean": false
+  },
+  "artifacts": {
+    "bundle": {
+      "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-upload/upload-group-source.bundle",
+      "sourceRef": "codex/collaborative-water-v2-20260809",
+      "bytes": 7484698,
+      "sha256": "425cc3a6b5885a77e58d7a4d63423613d8ea3a9cefa92be3b6f06baf20533589"
+    },
+    "trackedBinaryPatch": {
+      "path": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-upload/feedback-r3-tracked.patch",
+      "bytes": 1809,
+      "sha256": "6973a942a1c86d91e69bf5396948cfd42f0a2b8a867cea811a3d2959e206f80e"
+    },
+    "untrackedArchive": "not_required_no_untracked_files"
+  },
+  "verification": {
+    "bundleVerify": "complete_history",
+    "restoreClone": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase3-upload/restore-feedback-r3/repo",
+    "restoredHead": "e60d82706b663165c972c46b9b0b3eb5a2747188",
+    "statusMatchesSource": true,
+    "verifiedChangedAndUntrackedFiles": 2,
+    "allFileHashesMatch": true,
+    "result": "passed"
+  },
+  "removal": {
+    "authorized": true,
+    "removedAt": "2026-08-14",
+    "worktreeStillMounted": false,
+    "detachedHeadMustRemainRecoverable": true
+  }
+}

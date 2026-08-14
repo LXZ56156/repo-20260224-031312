@@ -63,26 +63,36 @@
     {
       "id": "online-source-evidence-ba45",
       "role": "EVIDENCE",
-      "lifecycle": "archive_pending",
+      "lifecycle": "archived",
       "path": "C:/Users/LIZIXUAN/.codex/worktrees/ba45/badminton-miniapp",
       "branch": "codex/collaborative-water-v2-20260809",
-      "head": "55bfc4f"
+      "head": "55bfc4f",
+      "backupStatus": "full_private_restore_verified",
+      "backupManifest": "control/archives/online-source-evidence-ba45.json",
+      "unmountedAt": "2026-08-14",
+      "filesystemResidual": "empty_directory_locked_by_wechat_devtools_file_watcher"
     },
     {
       "id": "upload-e60d827",
       "role": "EVIDENCE",
-      "lifecycle": "archive_pending",
+      "lifecycle": "archived",
       "path": "C:/Users/LIZIXUAN/.codex/worktrees/mp-upload-e60d827",
       "branch": "(detached)",
-      "head": "e60d827"
+      "head": "e60d827",
+      "backupStatus": "full_restore_verified_with_raw_overlay",
+      "backupManifest": "control/archives/upload-e60d827.json",
+      "unmountedAt": "2026-08-14"
     },
     {
       "id": "upload-feedback-r3",
       "role": "EVIDENCE",
-      "lifecycle": "archive_pending",
+      "lifecycle": "archived",
       "path": "C:/Users/LIZIXUAN/.codex/worktrees/upload-e60d827-feedback-r3-badminton-miniapp",
       "branch": "(detached)",
-      "head": "e60d827"
+      "head": "e60d827",
+      "backupStatus": "full_restore_verified",
+      "backupManifest": "control/archives/upload-feedback-r3.json",
+      "unmountedAt": "2026-08-14"
     },
     {
       "id": "score-overlay-baseline",
