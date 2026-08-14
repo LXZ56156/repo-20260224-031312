@@ -173,7 +173,7 @@ test('checked-in control registry and release ledger remain machine readable', (
     assert.equal(fs.existsSync(manifest.artifacts.trackedBinaryPatch.path), true);
     assert.equal(fs.existsSync(manifest.artifacts.untrackedArchive.path), true);
     assert.equal(fs.existsSync(manifest.verification.restoreClone), true);
-    assert.equal(manifest.removal.authorized, false);
-    assert.equal(manifest.removal.worktreeStillMounted, true);
+    assert.equal(manifest.removal.authorized, true);
+    assert.equal(manifest.removal.worktreeStillMounted, false);
   }
 });

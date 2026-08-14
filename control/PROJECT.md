@@ -17,15 +17,15 @@
 - PRODUCTION：1 个，已占用并要求始终 clean。
 - ACTIVE：0 个。
 - RELEASE：0 个。
-- 历史挂载树：13 个，全部登记为 `archive_pending`；另有 3 个已归档卸载。
+- 历史挂载树：11 个，全部登记为 `archive_pending`；另有 5 个已归档卸载。
 
 ## Current Work
 
 - Phase 1 已完成：控制面、生产基线、18 棵已挂载树注册和 fail-closed 状态检查均已落地。
 - Phase 2 已完成：3 个 clean 历史 worktree 的 bundle、SHA-256 和恢复 clone 均已验证，Git worktree 已卸载；branch 与 bundle 保留。
 - `local-ops-dashboard` 的本地 Node 看板进程已停止；非 Git 残留已移动到备份区，原路径已清除。
-- Phase 3 第一组已备份：`07af` 与 `a6ba` 的 bundle、binary patch、untracked archive 和恢复 clone 均验证通过；尚未卸载。
-- 下一动作：逐路径取得这 2 个 dirty worktree 的卸载授权；其余 11 个历史挂载树继续保持原状。
+- Phase 3 第一组已完成：`07af` 与 `a6ba` 的完整恢复验证通过并已卸载。
+- 下一动作：归档 upload 隔离组；其余 11 个历史挂载树继续保持原状。
 - 禁止在迁移完成前新增未登记 worktree。
 
 ## Verify

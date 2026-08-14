@@ -41,22 +41,24 @@
     {
       "id": "screenshot-diagnostic-07af",
       "role": "EVIDENCE",
-      "lifecycle": "archive_pending",
+      "lifecycle": "archived",
       "path": "C:/Users/LIZIXUAN/.codex/worktrees/07af/badminton-miniapp",
       "branch": "codex/weapp-devtools-screenshot-diagnostic-20260806",
       "head": "5813ffc",
       "backupStatus": "full_restore_verified",
-      "backupManifest": "control/archives/screenshot-diagnostic-07af.json"
+      "backupManifest": "control/archives/screenshot-diagnostic-07af.json",
+      "unmountedAt": "2026-08-14"
     },
     {
       "id": "incremental-ui-handoff-a6ba",
       "role": "EVIDENCE",
-      "lifecycle": "archive_pending",
+      "lifecycle": "archived",
       "path": "C:/Users/LIZIXUAN/.codex/worktrees/a6ba/badminton-miniapp",
       "branch": "(detached)",
       "head": "d0435f6",
       "backupStatus": "full_restore_verified",
-      "backupManifest": "control/archives/incremental-ui-handoff-a6ba.json"
+      "backupManifest": "control/archives/incremental-ui-handoff-a6ba.json",
+      "unmountedAt": "2026-08-14"
     },
     {
       "id": "online-source-evidence-ba45",

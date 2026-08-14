@@ -38,8 +38,9 @@
     "result": "passed"
   },
   "removal": {
-    "authorized": false,
-    "worktreeStillMounted": true,
+    "authorized": true,
+    "removedAt": "2026-08-14",
+    "worktreeStillMounted": false,
     "detachedHeadMustRemainRecoverable": true
   }
 }
