@@ -11,7 +11,7 @@
 - The 2026-07-14 cold-start/final review fixed four additional non-functional gaps: empty process collections after CLI quit, a premature second `auto` that could race a slow AppService compile, unstable DevTools top-level window selection/foreground restoration, and squad-quality regressions varying with wall-clock CPU contention. A single-auto cold start completed in `65.524s`; the final runner serializes files and gives fairness-only tests a deterministic operation clock, while the separate performance suite retains real time. Production scheduling and fairness thresholds are unchanged.
 - The current `launch + scheduleRunning + home` smoke completed in `58.369s`, wrote the canonical current-branch record, restored minimized `showCmd=2` and the original foreground, and reported zero deprecated-file API warnings and fake-fixture sync errors.
 - Final current-branch verification passed 1165 tests (1159 passed, 6 skipped, 0 failed), deprecated API and cloud-common checks, lint with 0 errors, and `git diff --check`.
-- Current task authority lives in `docs/tasks/current.md` and `docs/tasks/incremental-ui-optimization-plan.md`. The original prompt and branch details below remain historical and must not be executed as current instructions.
+- Current task authority lives in `docs/tasks/current.md`, `docs/status/project-state.md` and `docs/specs/incremental-ui-optimization.md`. The original prompt and branch details below remain historical and must not be executed as current instructions.
 
 ## Completion Update (2026-07-12)
 
@@ -110,7 +110,7 @@ The original execution prompt is retained below for audit history; it is not an 
 
 开始前必须完整阅读：
 1. AGENTS.md
-2. docs/tasks/windows-native-toolchain-migration-handoff.md
+2. docs/archive/2026/handoffs/windows-native-toolchain-migration-handoff.md
 3. docs/tasks/current.md
 4. docs/context/architecture.md
 5. docs/tools/windows-dev-environment.md

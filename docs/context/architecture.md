@@ -3,12 +3,12 @@
 ## Layers
 
 ```
-miniprogram/pages/        UI pages (WXML/WXSS/JS), 14 pages, tabBar: home/launch/mine
+miniprogram/pages/        UI pages (WXML/WXSS/JS); query app.json/current tree for page count
 miniprogram/core/         Business logic shared across pages
 miniprogram/core/storage/ Local storage with TTL caching
 miniprogram/permission/   Permission checks (isAdmin, isParticipant, canEditScore)
 miniprogram/config/env.js Cloud environment config (develop/trial/release)
-cloudfunctions/           22 cloud functions, each: index.js entry + lib/ shared code
+cloudfunctions/           Cloud functions; query the current tree for count and deployed subset
 scripts/                  Build tooling; *-common.template.js = source of truth for cloud libs
 tests/                    node:test + node:assert/strict; count from the live tree when needed
 ```
@@ -30,13 +30,11 @@ Shared modules: `common.js`, `mode.js`, `permission.js`, `player.js`, `rankingCo
 - **Retry action** (`core/retryAction.js`): Reusable retry method factory, mixable into pages.
 - **Sync status** (`core/syncStatus.js`): Sync state machine (loading/stale/offline) for UI indicators.
 
-## Current Product Baseline
+## Product State Separation
 
-The user confirmed on 2026-07-15 that the online mini-program corresponds to `master` = `origin/master` = `5813ffc`. The historical `codex/ui-optimization-v2` branch later accumulated several unrelated product and cloud experiments; it remains neither the online version nor the 2026-07-29 incremental UI baseline.
+Architecture does not define the current online version, active branch or deployment state. Those volatile facts live in `docs/status/project-state.md` and `docs/status/release-ledger.md`.
 
-The current target baseline must be reconstructed in a new isolated worktree from `master@5813ffc`, then receive only commit `38d6ea4`. It preserves the full create/configure/start/score/rank/review-share flow. The retired `feature/core-flow-simplification`, expanded `codex/ui-optimization-v2`, and all next-gen UI branches are historical evidence only; their additional flows, features and global visual systems are not part of this architecture baseline.
-
-The only approved product overlay is commit `38d6ea4`, local to `pages/schedule/index.wxml` and `index.wxss` plus its focused test: pending `VS` and completed score sit between both teams, while names may use two lines. It must not change routing, scoring, filters, permissions, cloud contracts, or any other page.
+Product overlays and UI approval boundaries live in `docs/specs/incremental-ui-optimization.md`. Historical branches and handoffs can explain why a design was rejected, but cannot override the current state source or authorize implementation.
 
 ## Game Modes
 

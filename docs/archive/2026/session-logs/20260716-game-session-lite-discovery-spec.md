@@ -18,7 +18,7 @@
 
 - `AGENTS.md`
 - `docs/tasks/current.md`
-- `docs/tasks/parallel-development-roadmap.md`
+- `docs/archive/2026/plans/parallel-development-roadmap.md`
 - `docs/tasks/parallel-development/06-game-session-lite-spec.md`
 - `docs/context/architecture.md`
 - `weapp-regression-guard` 与 `weapp-cloud-contract-audit` 的完整技能说明及相关 reference

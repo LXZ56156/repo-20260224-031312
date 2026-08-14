@@ -58,37 +58,42 @@ test('Windows development docs document the main project and legacy preview boun
   assert.match(docs, /Do not upload the mini program/);
 });
 
-test('GitHub agent instructions point agents to the same Windows workflow', () => {
+test('GitHub agent instructions remain a thin adapter to canonical governance', () => {
   const docs = fs.readFileSync(path.join(REPO_DIR, '.github/copilot-instructions.md'), 'utf8');
 
   assert.match(docs, /AGENTS\.md/);
-  assert.match(docs, /windows-native-toolchain-migration-handoff\.md/);
-  assert.match(docs, /docs\/tools\/windows-dev-environment\.md/);
-  assert.match(docs, /npm run verify:light/);
-  assert.match(docs, /Do not deploy cloud functions/);
-  assert.match(docs, /D:\\projects\(WIN\)\\badminton-miniapp/);
+  assert.match(docs, /docs\/tasks\/current\.md/);
+  assert.match(docs, /docs\/status\/project-state\.md/);
+  assert.doesNotMatch(docs, /\b[0-9a-f]{7,40}\b/i);
+  assert.doesNotMatch(docs, /ws:\/\/127\.0\.0\.1:\d+/i);
 });
 
-test('active handoff pins the master plus score overlay baseline and freezes historical branches', () => {
+test('governance separates current status, product boundary and archived restart evidence', () => {
   const agents = fs.readFileSync(path.join(REPO_DIR, 'AGENTS.md'), 'utf8');
   const current = fs.readFileSync(path.join(REPO_DIR, 'docs/tasks/current.md'), 'utf8');
-  const plan = fs.readFileSync(path.join(REPO_DIR, 'docs/tasks/incremental-ui-optimization-plan.md'), 'utf8');
-  const restart = fs.readFileSync(path.join(REPO_DIR, 'docs/tasks/incremental-ui-restart-handoff-2026-07-29.md'), 'utf8');
+  const status = fs.readFileSync(path.join(REPO_DIR, 'docs/status/project-state.md'), 'utf8');
+  const plan = fs.readFileSync(path.join(REPO_DIR, 'docs/specs/incremental-ui-optimization.md'), 'utf8');
+  const restart = fs.readFileSync(path.join(REPO_DIR, 'docs/archive/2026/handoffs/incremental-ui-restart-2026-07-29.md'), 'utf8');
   const windowsDocs = fs.readFileSync(path.join(REPO_DIR, 'docs/tools/windows-dev-environment.md'), 'utf8');
   const screenshotDocs = fs.readFileSync(path.join(REPO_DIR, 'docs/tools/weapp-ui-screenshot-workflow.md'), 'utf8');
   const recordsDocs = fs.readFileSync(path.join(REPO_DIR, 'docs/records/README.md'), 'utf8');
-  const historicalPlan = fs.readFileSync(path.join(REPO_DIR, 'docs/tasks/core-flow-simplification-ui-fix-plan.md'), 'utf8');
-  const historicalLog = fs.readFileSync(path.join(REPO_DIR, 'docs/tasks/session-logs/20260622-core-flow-simplification-ui-fix.md'), 'utf8');
+  const historicalPlan = fs.readFileSync(path.join(REPO_DIR, 'docs/archive/2026/plans/core-flow-simplification-ui-fix-plan.md'), 'utf8');
+  const historicalLog = fs.readFileSync(path.join(REPO_DIR, 'docs/archive/2026/session-logs/20260622-core-flow-simplification-ui-fix.md'), 'utf8');
 
-  assert.match(agents, /线上正式版[\s\S]*master[\s\S]*origin\/master[\s\S]*5813ffc/);
-  assert.match(current, /线上正式版[\s\S]*master[\s\S]*origin\/master[\s\S]*5813ffc/);
-  assert.match(current, /38d6ea4[\s\S]*schedule/);
-  assert.match(current, /nextgen-ui-redesign-20260724[\s\S]*暂停/);
+  assert.match(agents, /docs\/tasks\/current\.md/);
+  assert.match(agents, /docs\/status\/project-state\.md/);
+  assert.doesNotMatch(agents, /\b[0-9a-f]{7,40}\b/i);
+  assert.match(current, /docs_governance_consolidation_completed_online_baseline_confirmed/);
   assert.ok(current.trimEnd().split(/\r?\n/).length <= 50);
+  assert.match(status, /master[\s\S]*5813ffc/);
+  assert.match(status, /云函数部署授权[\s\S]*兼容变更自动部署/);
+  assert.match(status, /不授权[\s\S]*不兼容迁移/);
   assert.match(plan, /线上版本[\s\S]*master[\s\S]*5813ffc/);
   assert.match(plan, /38d6ea4/);
+  assert.match(plan, /score-only 基线已于 2026-07-29 建立/);
   assert.match(plan, /新路线工具链边界[\s\S]*不得同时迁入旧分支的 workflow records/);
   assert.match(plan, /历史提交批次（不得重放）[\s\S]*新路线首批只能是 `38d6ea4`/);
+  assert.match(restart, /生命周期：已完成并归档/);
   assert.match(restart, /patch-id[\s\S]*2cf91c83878e94c9b39fb57694c5b2cf09c4028d/);
   assert.match(restart, /git diff --name-only master -- cloudfunctions[\s\S]*必须为空/);
   assert.match(restart, /冻结入口的 15 个 implementation\/evidence tracked modified[\s\S]*收尾审计状态是 43 tracked modified \+ 2 个顶层 untracked/);

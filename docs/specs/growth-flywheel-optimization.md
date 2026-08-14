@@ -5,7 +5,7 @@
 > 数据来源: we分析 121 天数据 (2026.02.13–2026.06.13) + CloudBase 后端审计
 > v1.2 变更: 从 P0–P5 分散功能清单重构为"方案 A + E + 轻量 D"第一阶段增长方案。目标是最短可验证增长闭环，不再一次性做完所有增长功能。
 > 最新状态: 第一阶段 Task 1–6 已完成实现、真实截图检查、回归验证，并推送到 `origin/master`。Task 7 已升级为 Phase 2 入口（含前置条件和优先级）。Phase 2 待 Phase 1 线上数据积累后启动。
-> Lifecycle note (2026-07-13): 本文是 Phase 1 历史方案与 Phase 2 候选入口，不自动授权新功能或 UI 改动。`feature/core-flow-simplification` 已关闭；当前 master-based UI 边界见 `docs/tasks/incremental-ui-optimization-plan.md`。
+> Lifecycle note (2026-07-13): 本文是 Phase 1 历史方案与 Phase 2 候选入口，不自动授权新功能或 UI 改动。当前产品状态与 UI 边界见 `docs/status/project-state.md` 和 `docs/specs/incremental-ui-optimization.md`。
 > Online note (2026-07-15): 用户确认当前线上正式版对应 `master` = `origin/master` = `5813ffc`；这不自动证明 Phase 2 的数据时长/质量条件已满足，启动前仍须刷新 we分析证据并单独批准。
 > Evidence note: 本文引用的 `data/we-analysis/user-behavior-analysis-2026-06-13.md` 不在当前工作区。下文数值是当时结论；更新决策前应按 `docs/tools/we-analysis-local-script.md` 拉取新证据。
 
@@ -59,7 +59,7 @@ v1.2 做出以下明确决策：
 | `npm run check` | deprecated wx API 与 cloud common 检查通过 |
 | 云函数 / 数据库集合 | 未新增云函数，未新增数据库集合 |
 
-详细执行记录见 `docs/tasks/session-logs/2026-06-15-growth-flywheel-phase1.md`。
+详细执行记录见 `docs/archive/2026/session-logs/2026-06-15-growth-flywheel-phase1.md`。
 
 ---
 

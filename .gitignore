@@ -73,7 +73,10 @@ docs/records/.*.backup
 
 # local docs (allow managed directories, ignore ad-hoc files)
 docs/*
+!docs/README.md
 !docs/context/
+!docs/decisions/
+!docs/status/
 !docs/tasks/
 !docs/notes/
 !docs/specs/

@@ -1,6 +1,6 @@
 # 朋友圈/群聊分享方案优化 实施计划
 
-> **Lifecycle (2026-07-13): completed historical plan.** 分享卡、timeline card、poster 和 mixin 已落地；下文未勾选 checkbox 保留原执行模板，不代表当前待办。当前 master-based UI 范围以 `docs/tasks/current.md` 和 `docs/tasks/incremental-ui-optimization-plan.md` 为准。
+> **Lifecycle (2026-07-13): completed historical plan.** 分享卡、timeline card、poster 和 mixin 已落地；下文未勾选 checkbox 保留原执行模板，不代表当前待办。当前 UI 范围以 `docs/status/project-state.md` 和 `docs/specs/incremental-ui-optimization.md` 为准。
 
 > **Historical execution template:** 下文的 skill 建议和 task-by-task checkbox 仅供追溯，当前会话不要重新执行。
 

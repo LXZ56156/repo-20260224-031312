@@ -104,4 +104,4 @@
 - The user rejected the overall simplified UI/flow direction. UI points 4 and 5 are cancelled and the old branch will not be repaired further.
 - UI point 3 is the sole accepted extraction: on the new `master`-based branch, pending `VS` and finished score stay centered between both teams to give names more room.
 - All other launch/create/lobby/match/ranking/analytics/home/share-entry behavior and visual structure return to the `master@5813ffc` baseline.
-- New work is governed by `docs/tasks/incremental-ui-optimization-plan.md`; this addendum does not alter the historical verification statements above.
+- New work is governed by `docs/specs/incremental-ui-optimization.md`; this addendum does not alter the historical verification statements above.

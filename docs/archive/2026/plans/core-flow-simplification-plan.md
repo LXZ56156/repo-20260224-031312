@@ -182,4 +182,4 @@
 - 该分支的创建直达、页面减法、导航/排名/复盘/首页/分享入口简化和全局扁平化视觉均不再作为后续开发基线，也不继续修补。
 - 新工作从 `master@5813ffc` 创建 `codex/ui-optimization-v2`，保留 master 原有产品流程与视觉。
 - 唯一获准提取的产品改动是 `pages/schedule/index` 对阵卡：待录分 `VS`、完赛比分位于双方头像与姓名之间，以释放姓名宽度；不得夹带该实验的其他 UI 或流程变化。
-- 后续增量 UI 工作以 `docs/tasks/incremental-ui-optimization-plan.md` 为准。本文件仅保留为失败方向的历史审计记录。
+- 后续增量 UI 产品边界见 `docs/specs/incremental-ui-optimization.md`。本文件仅保留为失败方向的历史审计记录。

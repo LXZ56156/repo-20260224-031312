@@ -7,14 +7,14 @@
 ## 本轮成果（2026-07-16）
 
 - 完整规格：[`docs/specs/game-session-lite-discovery-spec.md`](../../specs/game-session-lite-discovery-spec.md)
-- Session log：[`docs/tasks/session-logs/20260716-game-session-lite-discovery-spec.md`](../session-logs/20260716-game-session-lite-discovery-spec.md)
+- Session log：[`docs/archive/2026/session-logs/20260716-game-session-lite-discovery-spec.md`](../../archive/2026/session-logs/20260716-game-session-lite-discovery-spec.md)
 - 当前门槛：等待用户逐点批准规格中的页面、文案、CTA、导航、分享、默认行为和隐私选择；批准前继续禁止生产实现。
 
 ## 统一基线
 
 - 权威源码：`D:\projects(WIN)\badminton-miniapp`。
 - 路径中的 `(WIN)` 是目录名的一部分；不得写成 `D:\projects\WIN\badminton-miniapp`。
-- 开发起点：由 `codex/ui-optimization-v2@743b016` 建立的统一 docs checkpoint；实际 SHA 以 `docs/tasks/current.md` 和 `docs/tasks/parallel-development-roadmap.md` 为准。
+- 历史开发起点：`codex/ui-optimization-v2@743b016`；总路线图现归档于 `docs/archive/2026/plans/parallel-development-roadmap.md`。
 - 产品差异基线：`master@5813ffc`，也是用户确认的当前线上正式版。
 - `feature/core-flow-simplification` 已关闭，不得作为设计或实现基线。
 - 本任务只拥有本文件、自己的 session log，以及后续明确约定的规格报告；不得修改总路线图或其他并行任务文档。
@@ -154,7 +154,7 @@
 ## 可复制启动提示词
 
 ```text
-你负责 P06「组局 Lite discovery/spec」。权威仓库是 D:\projects(WIN)\badminton-miniapp。先只读检查 git 状态，并完整阅读 AGENTS.md、docs/tasks/current.md、docs/tasks/parallel-development-roadmap.md、docs/tasks/parallel-development/06-game-session-lite-spec.md、docs/context/architecture.md，以及现有 create/join/share/clone/permission 契约。
+本页是 P06「组局 Lite discovery/spec」历史提示，不得直接恢复执行。需要重启时先基于当前 `AGENTS.md`、`docs/status/project-state.md` 和用户新授权重写计划。
 
 本轮只做 discovery 和规格，不得修改任何生产代码、测试、配置、package.json 或 miniprogram/app.json，不得创建集合/云函数/页面，不得读取或写入真实数据。请设计独立的 game_sessions 和 session_signups，完整覆盖报名、取消、候补自动补位、到场确认、从到场成员幂等转为多人转赛事，以及使用整数分且余数确定性分配的 AA 计算。首版明确排除附近、匹配、聊天、支付和精确位置。
 

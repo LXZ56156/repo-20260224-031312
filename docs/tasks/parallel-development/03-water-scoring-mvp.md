@@ -48,7 +48,7 @@
 
 审批前只允许整理和汇报，不得编辑产品代码。
 
-用户于 2026-07-16 明确回复“全部批准”。实现与验收证据见 `docs/tasks/session-logs/20260716-water-scoring-mvp.md`。
+用户于 2026-07-16 明确回复“全部批准”。实现与验收证据见 `docs/archive/2026/session-logs/20260716-water-scoring-mvp.md`。
 
 ## 数据契约
 

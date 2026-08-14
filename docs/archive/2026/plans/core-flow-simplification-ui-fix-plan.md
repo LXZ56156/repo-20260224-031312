@@ -1,7 +1,7 @@
 # Core Flow Simplification UI Fix Plan
 
 > Status: cancelled on 2026-07-13. Historical point 3 is extracted separately; points 4 and 5 will not continue.
-> Reading rule: all approval, pending, blocked, and next-gate wording below is a historical checkpoint superseded by the 2026-07-13 cancellation. Current authority lives in `docs/tasks/current.md` and `docs/tasks/incremental-ui-optimization-plan.md`.
+> Reading rule: all approval, pending, blocked, and next-gate wording below is a historical checkpoint superseded by the 2026-07-13 cancellation. Current authority lives in `docs/status/project-state.md` and `docs/specs/incremental-ui-optimization.md`.
 
 ## Baseline
 
@@ -95,4 +95,4 @@
 - Status: **cancelled / superseded**. The user rejected the overall simplified visual and flow direction after reviewing the branch.
 - UI points 4 and 5 are cancelled rather than deferred. Continuing them would repair pages on top of a product baseline that is no longer accepted.
 - UI point 3 is the only accepted extraction: the schedule card keeps pending `VS` and finished score between both teams so names receive more width. It is reimplemented as a focused two-file change on `codex/ui-optimization-v2`; this does not approve any other change from the old branch.
-- The new source of truth is `docs/tasks/incremental-ui-optimization-plan.md`.
+- The successor product boundary is `docs/specs/incremental-ui-optimization.md`.

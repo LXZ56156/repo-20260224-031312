@@ -1,5 +1,7 @@
 # 增量 UI 重启交接（2026-07-29）
 
+> 生命周期：已完成并归档。score-only worktree 已建立；以下命令、HEAD 和“下一步”只用于历史追溯，不得直接恢复执行。当前事实见 `docs/status/project-state.md`，产品边界见 `docs/specs/incremental-ui-optimization.md`。
+
 > 当前权威结论：暂停下一代全面升级及 C3/Home 全面重设计；后续从 `master@5813ffc` 加唯一 schedule 中央比分位置 overlay 开始，按单点审批、单点实现、真实截图确认的方式微调。
 
 ## 1. 用户最新决定
@@ -65,7 +67,7 @@ codex/nextgen-ui-redesign-20260724@f792b75
 
 ## 4. 新对话的第一组操作
 
-新主控应先完整读取 `AGENTS.md`、`docs/tasks/current.md`、本文和 `docs/tasks/incremental-ui-optimization-plan.md`，随后：
+当时的新主控被要求读取 `AGENTS.md`、`docs/tasks/current.md`、本文和现已迁移的 `docs/specs/incremental-ui-optimization.md`，随后：
 
 1. 只读确认 `master` 与 `origin/master` 仍指向 `5813ffc`；若远端已变化，先报告，不擅自改基线。
 2. 不切换 `D:\projects(WIN)\badminton-miniapp` 的当前分支；从 `master@5813ffc` 创建新的隔离 `codex/` branch 与 worktree。建议名：

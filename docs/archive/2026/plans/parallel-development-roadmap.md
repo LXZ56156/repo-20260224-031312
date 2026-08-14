@@ -115,7 +115,7 @@
 以下文件仅由集成对话维护，worker 不得修改：
 
 - `docs/tasks/current.md`
-- `docs/tasks/parallel-development-roadmap.md`
+- `docs/archive/2026/plans/parallel-development-roadmap.md`
 - `AGENTS.md`
 - `package.json`
 - `miniprogram/app.json`
@@ -169,10 +169,10 @@
 
 ## 8. 工作线索引
 
-- [01 数据基线](parallel-development/01-data-baseline.md)
-- [02 排阵观测与覆盖审计](parallel-development/02-scheduler-observability.md)
-- [03 打水 MVP](parallel-development/03-water-scoring-mvp.md)
-- [04 产品事件管道 Phase A](parallel-development/04-product-event-pipeline.md)
-- [05 clone 复办基础](parallel-development/05-repeat-organizer-foundation.md)
-- [06 组局 Lite 规格](parallel-development/06-game-session-lite-spec.md)
-- [07 UI 组件调研](parallel-development/07-ui-component-spike.md)
+- [01 数据基线](../../../tasks/parallel-development/01-data-baseline.md)
+- [02 排阵观测与覆盖审计](../../../tasks/parallel-development/02-scheduler-observability.md)
+- [03 打水 MVP](../../../tasks/parallel-development/03-water-scoring-mvp.md)
+- [04 产品事件管道 Phase A](../../../tasks/parallel-development/04-product-event-pipeline.md)
+- [05 clone 复办基础](../../../tasks/parallel-development/05-repeat-organizer-foundation.md)
+- [06 组局 Lite 规格](../../../tasks/parallel-development/06-game-session-lite-spec.md)
+- [07 UI 组件调研](../../../tasks/parallel-development/07-ui-component-spike.md)

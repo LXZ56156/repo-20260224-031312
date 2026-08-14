@@ -2,101 +2,73 @@
 
 ## Project Overview
 
-微信小程序羽毛球赛事管理项目，使用原生微信框架（WXML / WXSS / JS）和微信云开发。核心链路：创建 > 配置 > 开赛 > 录分 > 排名 > 复盘。
+微信原生小程序羽毛球赛事管理项目，使用 WXML / WXSS / JavaScript 和微信云开发。核心链路：创建 > 配置 > 开赛 > 录分 > 排名 > 复盘。
 
-## Reference Files
+## Session Entry
 
-- `docs/context/architecture.md` — 完整架构参考（层级、模式、关键 pattern）
-- `docs/tasks/current.md` — 当前任务状态，会话开始时先读
-- `docs/tasks/incremental-ui-optimization-plan.md` — 当前增量 UI 优化边界与验收门槛
-- `docs/tasks/incremental-ui-restart-handoff-2026-07-29.md` — master + 唯一比分 overlay 的新对话恢复合同
-- `docs/tasks/windows-native-toolchain-migration-handoff.md` — Windows 原生工具链迁移事实与历史验收
-- `docs/specs/` — 功能设计文档和实现计划
-- `docs/notes/learnings.md` — 临时规则与经验积累
-- `docs/tools/windows-dev-environment.md` — Windows 主开发环境与本地配置契约
-- `docs/tools/we-analysis-local-script.md` — we分析数据拉取脚本使用说明
-- `docs/tools/weapp-ui-screenshot-workflow.md` — 微信开发者工具真实截图流程
+每次会话先读：
 
-## Frontend Design Skill
+1. `docs/tasks/current.md` — 当前分支任务、边界和下一步。
+2. `docs/status/project-state.md` — 跨分支产品、发布和授权事实。
 
-- 2026-07-24 起，下一代 UI 新建或重做必须加载个人 skill `frontend-design`，并同时遵守 `weapp-regression-guard`。
-- 安装位置：`C:\Users\LIZIXUAN\.codex\skills\frontend-design`；官方来源与校验记录见 next-gen 集成树的 `docs/next-gen/FRONTEND-DESIGN-SKILL.md`。
-- skill 的 web 设计原则要翻译为原生微信小程序约束：WXML/WXSS/JS、包体、低端机、系统字体、44px 触达、reduced motion、无远程视觉依赖；不得照搬 hover、Web 字体或浏览器专属 CSS。
-- 旧的暖米色+酸绿、暗底+荧光绿、报纸规则线三种方案均已被用户判退，也正是该 skill 警示的常见 AI 默认风格；只能作为反例，不能继续微调复用。
+再按任务选择：
 
-## Current UI Route (2026-07-29)
+- `docs/README.md` — 文档总导航和生命周期规则。
+- `docs/context/architecture.md` — 架构、领域状态和关键 pattern。
+- `docs/specs/` — 产品规格与批准边界。
+- `docs/tools/` — Windows、DevTools、截图、分析和交付 runbook。
+- `docs/status/worktree-inventory.md` — branch/worktree 保护台账。
+- `docs/notes/learnings.md` — 尚未提升为稳定规则的临时经验。
 
-- 下一代全面升级与 C3/Home 重设计已暂停；`nextgen-ui-redesign-20260724` 及其代码、资产、截图、浏览器稿只作历史证据，不得作为当前产品基线。
-- 当前路线是 `master@5813ffc` 加唯一批准的 `38d6ea4` schedule 中央 `VS`/比分位置 overlay，再逐点微调。
-- 新任务必须先读 `docs/tasks/incremental-ui-restart-handoff-2026-07-29.md`；从 master 创建新的隔离 `codex/` branch/worktree 并精确 cherry-pick `38d6ea4`。不要切换主工作区分支，也不要从当前 `codex/ui-optimization-v2` head 或 next-gen worktree 起步。
-- 每个新 UI 点先用浏览器近似稿取得用户选择，再做原生实现和真实 DevTools 实图；浏览器渲染不能代替小程序验收。
+历史 task、handoff、截图、QR 和 workflow record 不能覆盖 `docs/status/` 的当前事实。
 
-## Commands
+## Product and UI Governance
 
-```powershell
-npm run verify:light                 # 常用轻量回归
-npm run verify:full                  # 全量测试 + check + lint + diff check
-npm run verify:windows-env           # Windows 本地配置/launcher 审计，不打印 secret
-npm run ui:screenshot -- --list      # 列出真实截图 case
-npm run screenshot:smoke             # launch + scheduleRunning + home 实图验收
-npm run screenshot:schedule          # scheduleRunning 单页实图
-npm run screenshot:diagnose -- scheduleRunning
-npm run weapp:probe                   # 验证 39420 的真实 Tool.getInfo/App.getCurrentPage
-npm run records:latest               # 查看上传/部署/截图成功记录
-npm test                             # 全量测试
-npm run sync:cloud-common            # 同步云函数共享库
-npm run check:cloud-common           # 检查共享库同步状态
-```
+- 当前产品基准固定为用户已确认的线上版本；精确提交以 `docs/status/project-state.md` 和 `docs/decisions/0002-online-version-product-baseline.md` 为准。新产品工作必须从该基准创建隔离 `codex/` branch/worktree；其他本地 RC、overlay、运营能力和暂停路线都不是默认集成基线。
+- 已暂停或被否定的 Next-Gen/C3/Home 全面重做只作历史证据，不得整体复用、合并或迁移。
+- 用户可见变化必须先明确批准：页面结构、文案、CTA、导航、流程、默认行为、权限和操作语义均包含在内。
+- UI 工作一次只处理一个页面或一个明确问题；先给浏览器近似方向，用户选定后再实现原生 WXML/WXSS，并用当前源码的真实微信 DevTools 截图验收。
+- 浏览器稿不能代替小程序验收；未经批准不得以“精简”“统一”为由删除信息、入口、确认或复盘能力。
+- 新 UI 或明显视觉重做必须加载 `frontend-design`，并同时遵守 `weapp-regression-guard`；web 原则必须翻译为原生小程序、低端机、系统字体、44px 触达、reduced motion 和无远程视觉依赖。
 
-Windows 主开发路径为 `D:\projects(WIN)\badminton-miniapp`，preview/upload 镜像为 `D:\projects(WIN)\badminton-miniapp-preview`，WSL fallback 为 `/home/lizixuan/projects(WSL)/badminton-miniapp`。`D:\projects\badminton-miniapp` 只是元数据空壳，禁止使用。日常 npm、hooks、DevTools 和截图走 Windows 原生入口；WSL mirror 只有显式设置 `WEAPP_CODEX_DEV_MODE=wsl-mirror` 才启用。自动化端口为 `ws://127.0.0.1:39420`。
+## Safety and External Actions
 
-用户于 2026-07-15 确认：当前线上正式版对应 `master` = `origin/master` = `5813ffc`。历史 `codex/ui-optimization-v2` 后来已叠加 schedule 中央比分、Windows 工具链、打水、事件管道、clone 等多批本地/已推送研发成果，但均未因此进入小程序线上；Git push 不等于小程序发布。2026-07-29 的新增量路线不得直接复用该分支 head。
+- Git push、preview/upload、正式发布、云函数部署、集合/索引/权限/secret/开关、真实数据写入和不可恢复删除是不同动作，不能相互推断授权。
+- 向后兼容云函数变更提交后允许受保护的 post-commit hook 自动部署；必须满足 `docs/decisions/0001-compatible-cloud-auto-deploy.md` 的旧客户端、旧参数、旧数据、返回 shape、权限、幂等和默认关闭合同。
+- 不兼容云变更、集合/索引/权限/secret/开关、迁移和真实数据写入仍需明确授权。
+- 不执行 `npm run mp:preview`、`npm run mp:preview:deliver`、`npm run mp:upload` 或正式发布，除非当前任务得到明确授权。
+- dirty worktree 未备份、未确认归属、未获用户批准前不得删除、移动或 prune。
+- 不打印 `.env.local`、`.mcp.json`、`project.private.config.json`、私钥路径、token 或 secret。
 
-云函数部署通过微信开发者工具完成。不要执行 `npm run mp:upload`、`npm run mp:preview`、云函数 deploy、preview upload 或真实发布，除非用户明确要求。
+## Development Environment
 
-## Architecture (Summary)
+- Windows 权威主工作区：`D:\projects(WIN)\badminton-miniapp`。
+- preview/upload 镜像：`D:\projects(WIN)\badminton-miniapp-preview`，不是源码权威。
+- `D:\projects\badminton-miniapp` 是元数据空壳，禁止作为源码。
+- WSL 只在显式兼容任务中使用；普通 npm、hooks、DevTools 和截图走 Windows 原生入口。
+- 端口、launcher 和当前 worktree 能力以 `docs/tools/windows-dev-environment.md`、当前 `package.json` 和真实 probe 为准，不从历史 handoff 复制。
 
-- `miniprogram/pages/`：14 个页面，tabBar: home/launch/mine
-- `miniprogram/core/`：跨页面业务逻辑
-- `cloudfunctions/`：22 个云函数
-- 云函数共享代码以 `scripts/*-common.template.js` 为准，不直接修改 `cloudfunctions/*/lib/*`
-- Tournament states: `draft` > `running` > `finished`
-- Ranking: wins > point diff > points scored > name
-- Game modes: `multi_rotate`, `squad_doubles`, `fixed_pair_rr`
+## Architecture and Cloud Contracts
 
-## Testing Conventions
+- `miniprogram/pages/`：页面；`miniprogram/core/`：跨页面业务逻辑；`cloudfunctions/`：云函数。数量必须查询当前树，不写入稳定规则。
+- Tournament states: `draft` > `running` > `finished`。
+- Ranking: wins > point diff > points scored > name。
+- Game modes: `multi_rotate`, `squad_doubles`, `fixed_pair_rr`。
+- `scripts/*-common.template.js` 是云函数共享代码唯一源；不要直接编辑 `cloudfunctions/*/lib/*`。
+- 修改共享模板后运行 `npm run sync:cloud-common` 和 `npm run check:cloud-common`。
+- 涉及云函数时使用 `weapp-cloud-contract-audit` 检查返回 shape、错误码、权限、模板同步和聚焦测试。
 
-- Framework: `node:test` + `node:assert/strict` (no external dependencies)
-- Tests mock wx APIs and cloud calls by stubbing globals — follow existing patterns
-- File naming: `*.test.js` (unit/integration), `*.consistency.test.js` (client-cloud parity), `*.smoke.test.js` (e2e), `*.async-stale-response.test.js` (weak network)
+## Testing and Verification
 
-## Deprecated APIs
+- 测试使用 `node:test` + `node:assert/strict`，通过 stub global wx/cloud API 隔离运行。
+- 实现或修复前先增加或确认直接覆盖；完成前先跑聚焦测试，再按风险运行全量测试、`npm run check`、`npm run lint` 和 `git diff --check`。
+- 当前分支的公共命令以 `package.json` 为准；不要假设其他 worktree 拥有相同 alias。
+- 微信 API 先查当前官方文档；禁止引入 `wx.saveFile`、`wx.removeSavedFile`、`wx.getSystemInfo`、`wx.getSystemInfoSync`，使用仓库替代封装。
+- 修改云函数后在最终汇报中列出兼容证据、受影响函数和实际部署结果；无法证明兼容时使用停止开关并先申请迁移授权。
 
-- `wx.saveFile` / `wx.removeSavedFile` > use `wx.getFileSystemManager().*`
-- `wx.getSystemInfo` / `wx.getSystemInfoSync` > use `miniprogram/core/systemInfo.js`
-- Check: `npm run check:deprecated-wx-api`
+## Execution and Style
 
-## Execution Mode
-
-- Default: execute directly for non-functional changes (refactor, test, fix, config). No extra confirmation.
-- Pause and confirm when: ambiguity, destructive consequences, production deploy, external credentials, real data writes.
-- User-visible changes require explicit approval before implementation:
-  - Page structure, copy, CTAs, navigation paths, user flows, action semantics
-  - Even small changes to what users see or how they operate must be reviewed first.
-- Non-functional changes (stability fix, test, refactor, perf, config): execute and report.
-
-## Methodology
-
-1. **测试先行**：实现/修复前，先写或确认测试覆盖
-2. **验证后完成**：宣称完成前按风险运行 `npm run verify:light` 或 `npm run verify:full`
-3. **微信 API**：查文档再写代码，避免废弃 API
-4. **云函数模板**：改 `scripts/*-common.template.js`，改完运行 `npm run sync:cloud-common`
-5. **云函数上传提醒**：完成改动后检查是否涉及 `cloudfunctions/`；如有需要通过微信开发者工具上传的云函数，在最终汇报中提醒一次具体函数名，不反复提醒
-6. **Windows shell**：普通 npm 开发/验证不得依赖全局 `script-shell` 或裸 `bash`；guarded deploy/hook 与显式 compatibility flow 统一通过 `scripts/run-bash-script.js`。
-7. **增量 UI**：目标产品基线固定为 `master@5813ffc` + `38d6ea4` 的 schedule 中央 `VS`/比分布局；任何其他页面结构、视觉或流程调整都必须先经浏览器方案选择，再做原生实现、真实 DevTools 实图验收和单独提交。
-
-## Style & Commit
-
-- 回复使用中文，技术名词和代码标识保持原文
-- 提交信息使用 conventional commits 风格（feat/fix/refactor/chore）
-- Before commit: review all changes, run full test suite, confirm all pass
+- 非功能性修改（测试、重构、稳定性、性能、配置、文档）默认直接执行并报告。
+- 歧义、破坏性后果、生产动作、外部凭据或真实数据写入必须暂停确认。
+- 回复使用中文，技术名词和代码标识保持原文。
+- 提交信息使用 conventional commits；提交前审查全部差异并运行与风险匹配的完整验证。

@@ -6,7 +6,7 @@
 
 ## 本次交付
 
-- 新增总路线图 `docs/tasks/parallel-development-roadmap.md`。
+- 当时新增总路线图；现归档为 `docs/archive/2026/plans/parallel-development-roadmap.md`。
 - 新增 `docs/tasks/parallel-development/01-07` 七份独立任务文档及启动提示词。
 - 更新 `docs/tasks/current.md`，将并行路线设为当前入口并恢复到 50 行以内。
 - 更新 `docs/notes/learnings.md`，固化 worktree、文档所有权和用户可见审批约束。

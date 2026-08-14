@@ -27,7 +27,7 @@
 
 - `AGENTS.md`
 - `docs/tasks/current.md`
-- `docs/tasks/parallel-development-roadmap.md`
+- `docs/archive/2026/plans/parallel-development-roadmap.md`
 - `docs/tasks/parallel-development/02-scheduler-observability.md`
 - `docs/context/architecture.md`
 - 现有 scheduler/rotation 审计脚本和对应测试
@@ -159,7 +159,7 @@
 统一开发基线：codex/ui-optimization-v2@743b016
 线上产品基线：master@5813ffc
 
-开始前完整阅读 AGENTS.md、docs/tasks/current.md、docs/tasks/parallel-development-roadmap.md、docs/tasks/parallel-development/02-scheduler-observability.md 和 docs/context/architecture.md，并盘点现有 scheduler/rotation 审计脚本与测试。先核对绝对路径、branch、HEAD 和 git status；若不是该独立 worktree，或存在不属于本任务的改动，不要 checkout/reset/clean，先报告。
+历史启动上下文现位于 docs/archive/2026/plans/parallel-development-roadmap.md；本页不再是当前启动提示。复查 scheduler/rotation 证据时仍须先核对 branch、HEAD 与 git status，且不得覆盖既有改动。
 
 本阶段只做观测与覆盖审计。允许修改 02 任务文档、02-* 独立证据、本地 scheduler audit 脚本和对应聚焦测试。cloudfunctions/startTournament/index.js、rotation.js、rotationDoublesEngine.js、rotation.templates.js、scheduleModes.js 全部只读。不要新增或刷新模板，不要改变算法、搜索预算、阈值、fallback、seed、排名、赛事规则或任何 UI。
 

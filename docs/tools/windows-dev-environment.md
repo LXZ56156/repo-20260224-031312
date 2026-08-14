@@ -178,10 +178,10 @@ The 2026-07-12 records belong to the retired product branch. The current `codex/
 
 ## Post-Commit Hook and Boundaries
 
-The optional `.git/hooks/post-commit` is installed but must only be tested through `SKIP_CLOUD_POST_COMMIT_DEPLOY=1`. Guarded deploy/hook npm commands may use Git Bash through the explicit wrapper; they are not part of ordinary verification.
+The managed `.git/hooks/post-commit` is installed. Backward-compatible cloud-function commits may deploy automatically after the protected checks in `docs/decisions/0001-compatible-cloud-auto-deploy.md`; incompatible or intentionally deferred cloud changes must set `SKIP_CLOUD_POST_COMMIT_DEPLOY=1`. Guarded deploy/hook npm commands may use Git Bash through the explicit wrapper and are not part of ordinary verification.
 
 - Do not upload the mini program.
 - Do not run preview upload or `npm run mp:preview:deliver` without explicit authorization in the current task.
-- Do not deploy cloud functions.
+- Do not manually deploy incompatible or unreviewed cloud functions; compatible post-commit deployment follows the accepted decision contract.
 - Do not write real cloud data.
 - Do not print secrets or private-key paths.

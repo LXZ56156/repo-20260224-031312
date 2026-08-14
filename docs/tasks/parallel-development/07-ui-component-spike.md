@@ -16,7 +16,7 @@
 
 - 权威源码：`D:\projects(WIN)\badminton-miniapp`。
 - 路径中的 `(WIN)` 是目录名的一部分；不得写成 `D:\projects\WIN\badminton-miniapp`。
-- 开发起点：由 `codex/ui-optimization-v2@743b016` 建立的统一 docs checkpoint；实际 SHA 以 `docs/tasks/current.md` 和 `docs/tasks/parallel-development-roadmap.md` 为准。
+- 历史开发起点：`codex/ui-optimization-v2@743b016`；总路线图现归档于 `docs/archive/2026/plans/parallel-development-roadmap.md`。
 - 产品差异基线：`master@5813ffc`，也是用户确认的当前线上正式版。
 - 当前唯一已批准的 UI 差异仍是 schedule 中央 `VS`/比分布局；其他页面不得借组件调研改变。
 - `feature/core-flow-simplification` 已关闭，其扁平化和删减信息方向不能作为试点目标。
@@ -38,7 +38,7 @@
 ## 必读本地事实
 
 - `docs/tasks/current.md`
-- `docs/tasks/incremental-ui-optimization-plan.md`
+- `docs/specs/incremental-ui-optimization.md`
 - `docs/context/architecture.md`
 - `docs/tools/weapp-ui-screenshot-workflow.md`
 - `miniprogram/app.json`
@@ -147,7 +147,7 @@
 ## 可复制启动提示词
 
 ```text
-你负责 P07「小程序 UI 组件库 discovery」。权威仓库是 D:\projects(WIN)\badminton-miniapp。先只读检查 git 状态，并完整阅读 AGENTS.md、docs/tasks/current.md、docs/tasks/incremental-ui-optimization-plan.md、docs/tasks/parallel-development-roadmap.md、docs/tasks/parallel-development/07-ui-component-spike.md、docs/context/architecture.md、docs/tools/weapp-ui-screenshot-workflow.md、miniprogram/app.json、miniprogram/app.wxss、project.config.json 和 package.json。
+本页是 P07「小程序 UI 组件库 discovery」历史提示，不得直接恢复执行。需要重启时先基于当前 `AGENTS.md`、`docs/status/project-state.md` 和用户新授权重写计划。
 
 本轮只做 discovery。请从官方 GitHub/release、官方文档、npm 和微信开放文档的一手资料，对 TDesign Miniprogram、WeUI Miniprogram、Vant Weapp 按同一 100 分框架评分，记录版本、日期、直接链接和不确定性，最后给一个唯一推荐。输出当前本地基线、按需引入与包体估算、包装层/主题/样式隔离/回滚方案，并为一个低耦合页面设计仅含 3–5 个组件的试点审批矩阵。
 

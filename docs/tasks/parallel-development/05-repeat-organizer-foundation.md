@@ -12,7 +12,7 @@
 >
 > 实现工作线：`codex/roadmap-clone-retention`
 >
-> 交付日志：[20260716-p05-clone-preset-contract.md](../session-logs/20260716-p05-clone-preset-contract.md)
+> 交付日志：[20260716-p05-clone-preset-contract.md](../../archive/2026/session-logs/20260716-p05-clone-preset-contract.md)
 >
 > 发布状态：仅本地提交，待总控集成；未 push、未 preview/upload、未发布、未部署
 >

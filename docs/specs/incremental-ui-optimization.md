@@ -1,17 +1,18 @@
-# 增量 UI 优化计划
+# 增量 UI 产品边界
 
-> 状态：2026-07-29 重新成为当前产品路线；新对话从 master + 唯一比分 overlay 建立隔离基线后，等待第一项逐点批准
+> 状态：score-only 基线已于 2026-07-29 建立；本文保留已批准的 UI 产品边界，不再提供 worktree 启动操作
 > 决策日期：2026-07-13
 > 历史实现提交：`38d6ea4`（从 master 精确 cherry-pick；不得使用现有 `codex/ui-optimization-v2` head 作为新基线）
 > 产品基线：`master@5813ffc`
 > 线上版本：用户于 2026-07-15 确认 `master` = `origin/master` = `5813ffc`
+> 当前 branch、release 和 worktree 状态：见 `docs/status/project-state.md`
 
 ## 2026-07-29 重启边界
 
 - 下一代全面升级、C3/Home 全面重做以及 next-gen ROADMAP 已暂停；不把其代码、资产、浏览器稿或截图迁入本计划。
-- 新对话必须从 `master@5813ffc` 创建新的隔离 `codex/` branch/worktree，再只 cherry-pick `38d6ea4`。
+- 该隔离基线现已存在于 `codex/incremental-ui-score-baseline-20260729@51fe6dc`；不得重复创建或把本节当作新任务启动提示。
 - 当前主工作区的 `codex/ui-optimization-v2@d0435f6` 已叠加其他功能与云改动，只保留为历史研发分支，不能直接 preview 或作为增量 UI 起点。
-- 精确恢复步骤、分支防误用和证据位置见 `docs/tasks/incremental-ui-restart-handoff-2026-07-29.md`。
+- 历史恢复步骤和证据见 `docs/archive/2026/handoffs/incremental-ui-restart-2026-07-29.md`。
 
 ## 决策背景
 

@@ -21,7 +21,7 @@
 
 - `AGENTS.md`
 - `docs/tasks/current.md`
-- `docs/tasks/parallel-development-roadmap.md`
+- `docs/archive/2026/plans/parallel-development-roadmap.md`
 - `docs/tools/we-analysis-local-script.md`
 - `docs/context/architecture.md`
 - `docs/specs/growth-flywheel-optimization.md`，仅作为历史基线，不视为当前结论
@@ -149,7 +149,7 @@ mode × playersCount × courts × totalMatches × presetKey × templateKey × en
 统一开发基线：codex/ui-optimization-v2@743b016
 线上产品基线：master@5813ffc
 
-开始前完整阅读 AGENTS.md、docs/tasks/current.md、docs/tasks/parallel-development-roadmap.md、docs/tasks/parallel-development/01-data-baseline.md、docs/tools/we-analysis-local-script.md、docs/context/architecture.md 和 docs/specs/growth-flywheel-optimization.md。先核对绝对路径、branch、HEAD 与 git status；若不是该独立 worktree，或已有不属于本任务的改动，不要 checkout/reset/clean，先报告。
+历史启动上下文现位于 docs/archive/2026/plans/parallel-development-roadmap.md；本页不再是当前启动提示。若复查证据，仍应先核对绝对路径、branch、HEAD 与 git status，且不得覆盖既有改动。
 
 允许只读调用 We 分析和云数据库，允许写本地脱敏缓存、独立分析脚本、聚焦测试及 01-* 证据。禁止修改 miniprogram/**、cloudfunctions/**、docs/tasks/current.md、总路线图和其他工作线文档。不得打印或提交 secret、openid、昵称、头像、手机号、精确位置等信息；凭据缺失时只报告安全配置缺口，不要让我在聊天中粘贴 secret。
 
