@@ -27,7 +27,7 @@
     "worktreeStillMounted": false,
     "branchMustBeRetained": true,
     "filesystemResidual": {
-      "status": "retained_locked_non_git_files",
+      "status": "moved_to_backup_original_path_removed",
       "originalPath": "D:/projects(WIN)/badminton-miniapp-worktrees/local-ops-dashboard",
       "remainingFiles": [
         "data/ops-dashboard/dashboard.db",
@@ -36,7 +36,11 @@
         "tools/ops-dashboard"
       ],
       "partialMoveBackup": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase2-clean/residual-local-ops-dashboard",
-      "note": "Git worktree metadata is removed. Windows refused final filesystem cleanup because files or directories were in use; no process was force-terminated."
+      "lockedFilesBackup": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase2-clean/residual-local-ops-dashboard-locked",
+      "lockingProcess": "node.exe server/index.mjs",
+      "lockingProcessStopped": true,
+      "originalPathExists": false,
+      "note": "Restart Manager identified the local ops dashboard process holding dashboard.db. The process was stopped and all remaining non-Git files were moved into the backup root."
     }
   }
 }

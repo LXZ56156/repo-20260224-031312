@@ -99,7 +99,7 @@
       "backupStatus": "bundle_restore_verified",
       "backupManifest": "control/archives/local-ops-dashboard.json",
       "unmountedAt": "2026-08-14",
-      "filesystemResidual": "locked_non_git_directory_at_original_path"
+      "filesystemResidual": "moved_to_backup_original_path_removed"
     },
     {
       "id": "nextgen-design-system",

@@ -8,8 +8,10 @@ const test = require('node:test');
 const REPO_DIR = path.resolve(__dirname, '..');
 const {
   extractMarkdownLinks,
+  findMalformedProjectPaths,
   findVolatileFacts,
-  validateRepositoryDocs
+  validateRepositoryDocs,
+  walkGovernancePathFiles
 } = require('../scripts/check-docs');
 
 test('extractMarkdownLinks ignores external and anchor-only links', () => {
@@ -20,6 +22,15 @@ test('extractMarkdownLinks ignores external and anchor-only links', () => {
     '![image](./image.png)'
   ].join('\n'));
   assert.deepEqual(links, ['../status/project-state.md', './image.png']);
+});
+
+test('current governance rejects malformed parenthesized Windows paths', () => {
+  assert.equal(findMalformedProjectPaths('D:/projects(WIN)/badminton-miniapp'), false);
+  assert.equal(findMalformedProjectPaths('D:\\projects(WIN)\\badminton-miniapp'), false);
+  assert.equal(findMalformedProjectPaths('D:/projects/WIN/badminton-miniapp'), true);
+  assert.equal(findMalformedProjectPaths('D:/projects/WIN)/badminton-miniapp'), true);
+  assert.equal(findMalformedProjectPaths('D:\\projects\\WIN\\badminton-miniapp'), true);
+  assert.ok(walkGovernancePathFiles(REPO_DIR).some((file) => file.endsWith('control\\worktrees.json')));
 });
 
 test('stable agent entry files reject branch hashes and fixed automation ports', () => {

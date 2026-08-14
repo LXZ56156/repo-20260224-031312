@@ -27,7 +27,7 @@
 - 全量验证通过：1359 tests / 0 failed / 7 skipped，lint 0 errors。
 - Phase 2 的 3 个 clean 历史 worktree 已完成 bundle、SHA-256、实际 clone 恢复验证和 Git worktree 卸载；branch 与 bundle 保留。
 - worktree 总数从 18 降至 15；剩余 13 个历史挂载树仍为 `archive_pending`。
-- `local-ops-dashboard` 原路径存在被运行中进程锁定的非 Git 残留，已登记，未强杀进程。
+- `local-ops-dashboard` 锁定进程已通过 Restart Manager 确认为本地 Node 看板并停止；非 Git 残留已移动到备份区，原路径已清除。
 
 ## Current Branch
 

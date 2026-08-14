@@ -58,7 +58,7 @@ flowchart TD
 
 ### 暂时保留到控制面建立
 
-- `D:/projects/WIN/badminton-miniapp`：承载本轮治理改动；迁入 CONTROL 后再决定主工作区用途。
+- `D:/projects(WIN)/badminton-miniapp`：承载本轮治理改动；迁入 CONTROL 后再决定主工作区用途。
 - `C:/Users/LIZIXUAN/.codex/worktrees/ba45/badminton-miniapp`：包含线上客户端源码提交 `55bfc4f` 和未跟踪证据；先做完整归档，再用该提交创建干净 PRODUCTION。
 
 ### clean，可优先 bundle 后卸载

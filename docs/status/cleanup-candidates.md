@@ -29,7 +29,7 @@
 - `water-mvp@74cc333`
 - `nextgen-game-mode-engine@5f1f674`
 
-备份目录：`D:/projects/WIN/badminton-miniapp-worktree-backups/2026-08-14`。当前 worktree 总数为 16；所有原有 dirty worktree 均未触碰。
+备份目录：`D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14`。当前 worktree 总数为 16；所有原有 dirty worktree 均未触碰。
 
 ## 执行门槛
 

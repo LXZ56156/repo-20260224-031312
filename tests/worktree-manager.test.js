@@ -155,4 +155,8 @@ test('checked-in control registry and release ledger remain machine readable', (
     assert.equal(manifest.removal.authorized, true);
     assert.equal(manifest.removal.worktreeStillMounted, false);
   }
+  const localOps = manifests.find((manifest) => manifest.worktreeId === 'local-ops-dashboard');
+  assert.equal(localOps.removal.filesystemResidual.originalPathExists, false);
+  assert.equal(fs.existsSync(localOps.removal.filesystemResidual.originalPath), false);
+  assert.equal(fs.existsSync(localOps.removal.filesystemResidual.lockedFilesBackup), true);
 });

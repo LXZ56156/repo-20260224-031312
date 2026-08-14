@@ -37,6 +37,22 @@ function walkMarkdownFiles(rootDir) {
   return results.sort();
 }
 
+function walkGovernancePathFiles(repoDir) {
+  const results = [];
+  const roots = ['control', 'docs/status'];
+  const extensions = new Set(['.md', '.json', '.jsonl']);
+  function visit(dir) {
+    if (!fs.existsSync(dir)) return;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) visit(fullPath);
+      else if (entry.isFile() && extensions.has(path.extname(entry.name))) results.push(fullPath);
+    }
+  }
+  for (const root of roots) visit(path.join(repoDir, root));
+  return results.sort();
+}
+
 function extractMarkdownLinks(text) {
   const links = [];
   const pattern = /!?\[[^\]]*\]\(([^)]+)\)/g;
@@ -55,6 +71,16 @@ function findVolatileFacts(text) {
   if (/\b[0-9a-f]{7,40}\b/i.test(text)) facts.push('commit hash');
   if (/ws:\/\/127\.0\.0\.1:\d+/i.test(text)) facts.push('fixed automation endpoint');
   return facts;
+}
+
+function findMalformedProjectPaths(text) {
+  const malformed = [
+    /D:\/projects\/WIN\//i,
+    /D:\/projects\/WIN\)/i,
+    /D:\\projects\\WIN\\/i,
+    /D:\\projects\\WIN\)/i
+  ];
+  return malformed.some((pattern) => pattern.test(String(text)));
 }
 
 function validateRepositoryDocs(repoDir = ROOT) {
@@ -83,6 +109,14 @@ function validateRepositoryDocs(repoDir = ROOT) {
       if (!fs.existsSync(resolved)) {
         errors.push(`broken local link: ${path.relative(repoDir, filePath)} -> ${target}`);
       }
+    }
+  }
+
+  for (const filePath of walkGovernancePathFiles(repoDir)) {
+    const text = fs.readFileSync(filePath, 'utf8');
+    if (findMalformedProjectPaths(text)) {
+      const relativePath = path.relative(repoDir, filePath).replace(/\\/g, '/');
+      errors.push(`malformed Windows project path in current governance: ${relativePath}`);
     }
   }
 
@@ -131,7 +165,9 @@ if (require.main === module) process.exit(main());
 
 module.exports = {
   extractMarkdownLinks,
+  findMalformedProjectPaths,
   findVolatileFacts,
   validateRepositoryDocs,
+  walkGovernancePathFiles,
   walkMarkdownFiles
 };

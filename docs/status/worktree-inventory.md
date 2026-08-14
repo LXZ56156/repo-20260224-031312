@@ -17,10 +17,10 @@
 
 | 已移除路径 | 保留分支 | HEAD | 可恢复 bundle |
 |---|---|---|---|
-| `D:/projects(WIN)/badminton-miniapp-worktrees/data-baseline` | `codex/roadmap-data-baseline` | `611207f` | `D:/projects/WIN/badminton-miniapp-worktree-backups/2026-08-14/codex-roadmap-data-baseline-611207f.bundle` |
-| `D:/projects(WIN)/badminton-miniapp-worktrees/scheduler-observability` | `codex/roadmap-scheduler-observability` | `d48d19d` | `D:/projects/WIN/badminton-miniapp-worktree-backups/2026-08-14/codex-roadmap-scheduler-observability-d48d19d.bundle` |
-| `D:/projects/WIN)/badminton-miniapp-worktrees/water-mvp` | `codex/roadmap-water-mvp` | `74cc333` | `D:/projects/WIN/badminton-miniapp-worktree-backups/2026-08-14/codex-roadmap-water-mvp-74cc333.bundle` |
-| `D:/projects/WIN/badminton-miniapp-worktrees/nextgen-game-mode-engine` | `codex/nextgen-game-mode-engine` | `5f1f674` | `D:/projects/WIN/badminton-miniapp-worktree-backups/2026-08-14/codex-nextgen-game-mode-engine-5f1f674.bundle` |
+| `D:/projects(WIN)/badminton-miniapp-worktrees/data-baseline` | `codex/roadmap-data-baseline` | `611207f` | `D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/codex-roadmap-data-baseline-611207f.bundle` |
+| `D:/projects(WIN)/badminton-miniapp-worktrees/scheduler-observability` | `codex/roadmap-scheduler-observability` | `d48d19d` | `D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/codex-roadmap-scheduler-observability-d48d19d.bundle` |
+| `D:/projects(WIN)/badminton-miniapp-worktrees/water-mvp` | `codex/roadmap-water-mvp` | `74cc333` | `D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/codex-roadmap-water-mvp-74cc333.bundle` |
+| `D:/projects(WIN)/badminton-miniapp-worktrees/nextgen-game-mode-engine` | `codex/nextgen-game-mode-engine` | `5f1f674` | `D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/codex-nextgen-game-mode-engine-5f1f674.bundle` |
 
 四个 bundle 均已通过 `git bundle verify` 和分支 HEAD 校验。`nextgen-game-mode-engine` 注销后只残留一个 `node_modules` junction；已仅移除该 junction 与空目录，junction 指向的其他 worktree 未被修改。
 

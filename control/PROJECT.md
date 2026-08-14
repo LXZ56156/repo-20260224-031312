@@ -23,7 +23,7 @@
 
 - Phase 1 已完成：控制面、生产基线、18 棵已挂载树注册和 fail-closed 状态检查均已落地。
 - Phase 2 已完成：3 个 clean 历史 worktree 的 bundle、SHA-256 和恢复 clone 均已验证，Git worktree 已卸载；branch 与 bundle 保留。
-- `local-ops-dashboard` 有被运行中进程占用的非 Git 磁盘残留，已单独登记；未强杀进程。
+- `local-ops-dashboard` 的本地 Node 看板进程已停止；非 Git 残留已移动到备份区，原路径已清除。
 - 下一阶段（Phase 3）：按成果族为 13 个历史挂载树生成完整恢复四件套，再逐路径申请卸载。
 - 禁止在迁移完成前新增未登记 worktree。
 
