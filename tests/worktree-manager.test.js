@@ -129,4 +129,17 @@ test('checked-in control registry and release ledger remain machine readable', (
     .map((line) => JSON.parse(line));
   assert.ok(ledger.some((entry) => entry.type === 'formal_online_confirmation'));
   assert.ok(ledger.some((entry) => entry.type === 'production_baseline_verification'));
+
+  const manifests = [
+    'incremental-ui-score-baseline-20260729.json',
+    'local-ops-dashboard.json',
+    'share-activity-collection.json'
+  ].map((name) => JSON.parse(fs.readFileSync(path.join(ROOT, 'control', 'archives', name), 'utf8')));
+  for (const manifest of manifests) {
+    assert.equal(manifest.source.clean, true);
+    assert.equal(manifest.verification.result, 'passed');
+    assert.equal(fs.existsSync(manifest.verification.restoreClone), true);
+    assert.equal(manifest.removal.authorized, false);
+    assert.equal(manifest.removal.worktreeStillMounted, true);
+  }
 });

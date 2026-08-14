@@ -25,6 +25,7 @@
 - 已登记全部 18 个挂载 worktree：CONTROL 1、PRODUCTION 1、ACTIVE 0、RELEASE 0、archive pending 16；实时对账无漂移。
 - 已验证 PRODUCTION 的 633 个 tracked `miniprogram` 文件及两个 upload overlay SHA-256，并保存控制面 receipt。
 - 全量验证通过：1359 tests / 0 failed / 7 skipped，lint 0 errors。
+- Phase 2 的 3 个 clean 历史 worktree 已完成 bundle、SHA-256 和实际 clone 恢复验证；尚未卸载。
 
 ## Current Branch
 
@@ -34,5 +35,5 @@
 
 ## Next Action
 
-1. Phase 2 先为 3 个 clean 历史 worktree 生成和恢复验证 bundle。
-2. 逐路径取得卸载授权；dirty worktree 继续保持原状。
+1. 逐路径取得 3 个已备份 clean worktree 的卸载授权；branch 与 bundle 保留。
+2. dirty worktree 继续保持原状，随后按成果族逐棵生成完整四件套。

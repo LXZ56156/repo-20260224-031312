@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "archivedAt": "2026-08-14",
+  "worktreeId": "score-overlay-baseline",
+  "source": {
+    "path": "D:/projects(WIN)/badminton-miniapp-worktrees/incremental-ui-score-baseline-20260729",
+    "branch": "codex/incremental-ui-score-baseline-20260729",
+    "head": "51fe6dcd52dcfebfed9862782951c00df19d30f9",
+    "clean": true
+  },
+  "artifacts": {
+    "bundle": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase2-clean/incremental-ui-score-baseline-20260729.bundle",
+    "bundleBytes": 6982678,
+    "bundleSha256": "4d39c271b412a6246470f1b34e4bb79a120dcf2a4d0f8daa9981b6341bf17423",
+    "trackedBinaryPatch": "not_required_source_clean",
+    "untrackedArchive": "not_required_source_clean"
+  },
+  "verification": {
+    "bundleVerify": "complete_history",
+    "restoreClone": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase2-clean/restore-score/repo",
+    "restoredHead": "51fe6dcd52dcfebfed9862782951c00df19d30f9",
+    "result": "passed"
+  },
+  "removal": {
+    "authorized": false,
+    "worktreeStillMounted": true,
+    "branchMustBeRetained": true
+  }
+}

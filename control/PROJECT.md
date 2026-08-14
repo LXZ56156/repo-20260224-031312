@@ -22,7 +22,8 @@
 ## Current Work
 
 - Phase 1 已完成：控制面、生产基线、18 棵已挂载树注册和 fail-closed 状态检查均已落地。
-- 下一阶段（Phase 2）：为 3 个 clean 历史 worktree 生成并验证 bundle，再逐路径申请卸载授权。
+- Phase 2 备份已完成：3 个 clean 历史 worktree 的 bundle、SHA-256 和恢复 clone 均已验证。
+- 下一动作：取得这 3 个精确路径的卸载授权；branch 与 bundle 必须保留。
 - 禁止在迁移完成前新增未登记 worktree。
 
 ## Verify

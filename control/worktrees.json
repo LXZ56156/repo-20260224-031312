@@ -84,7 +84,9 @@
       "lifecycle": "archive_pending",
       "path": "D:/projects(WIN)/badminton-miniapp-worktrees/incremental-ui-score-baseline-20260729",
       "branch": "codex/incremental-ui-score-baseline-20260729",
-      "head": "51fe6dc"
+      "head": "51fe6dc",
+      "backupStatus": "bundle_restore_verified",
+      "backupManifest": "control/archives/incremental-ui-score-baseline-20260729.json"
     },
     {
       "id": "local-ops-dashboard",
@@ -92,7 +94,9 @@
       "lifecycle": "archive_pending",
       "path": "D:/projects(WIN)/badminton-miniapp-worktrees/local-ops-dashboard",
       "branch": "codex/local-ops-dashboard",
-      "head": "006205c"
+      "head": "006205c",
+      "backupStatus": "bundle_restore_verified",
+      "backupManifest": "control/archives/local-ops-dashboard.json"
     },
     {
       "id": "nextgen-design-system",
@@ -132,7 +136,9 @@
       "lifecycle": "archive_pending",
       "path": "D:/projects(WIN)/badminton-miniapp-worktrees/share-activity-collection",
       "branch": "codex/share-activity-collection",
-      "head": "fb8ea52"
+      "head": "fb8ea52",
+      "backupStatus": "bundle_restore_verified",
+      "backupManifest": "control/archives/share-activity-collection.json"
     },
     {
       "id": "standalone-water-v1",

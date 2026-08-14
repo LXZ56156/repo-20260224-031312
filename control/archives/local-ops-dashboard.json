@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "archivedAt": "2026-08-14",
+  "worktreeId": "local-ops-dashboard",
+  "source": {
+    "path": "D:/projects(WIN)/badminton-miniapp-worktrees/local-ops-dashboard",
+    "branch": "codex/local-ops-dashboard",
+    "head": "006205cd02ea87cbbecfd8c132015a5b54cd3f7c",
+    "clean": true
+  },
+  "artifacts": {
+    "bundle": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase2-clean/local-ops-dashboard.bundle",
+    "bundleBytes": 7709628,
+    "bundleSha256": "6b3b83b48ea736b25744251d4f1c039d177a9774725c97d8e83a57cdfd9a49ce",
+    "trackedBinaryPatch": "not_required_source_clean",
+    "untrackedArchive": "not_required_source_clean"
+  },
+  "verification": {
+    "bundleVerify": "complete_history",
+    "restoreClone": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase2-clean/restore-ops/repo",
+    "restoredHead": "006205cd02ea87cbbecfd8c132015a5b54cd3f7c",
+    "result": "passed"
+  },
+  "removal": {
+    "authorized": false,
+    "worktreeStillMounted": true,
+    "branchMustBeRetained": true
+  }
+}

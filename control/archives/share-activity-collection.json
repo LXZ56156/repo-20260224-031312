@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "archivedAt": "2026-08-14",
+  "worktreeId": "share-activity-collection",
+  "source": {
+    "path": "D:/projects(WIN)/badminton-miniapp-worktrees/share-activity-collection",
+    "branch": "codex/share-activity-collection",
+    "head": "fb8ea52b49541609f9d690de72ad55579e4f3fae",
+    "clean": true
+  },
+  "artifacts": {
+    "bundle": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase2-clean/share-activity-collection.bundle",
+    "bundleBytes": 7767918,
+    "bundleSha256": "6f0628f21d9a0ee0b1253e7e6d1e823975f8a909af431dd19057f151fa068ea0",
+    "trackedBinaryPatch": "not_required_source_clean",
+    "untrackedArchive": "not_required_source_clean"
+  },
+  "verification": {
+    "bundleVerify": "complete_history",
+    "restoreClone": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase2-clean/restore-share/repo",
+    "restoredHead": "fb8ea52b49541609f9d690de72ad55579e4f3fae",
+    "result": "passed"
+  },
+  "removal": {
+    "authorized": false,
+    "worktreeStillMounted": true,
+    "branchMustBeRetained": true
+  }
+}
