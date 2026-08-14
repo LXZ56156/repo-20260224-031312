@@ -49,6 +49,8 @@
     "removedAt": "2026-08-14",
     "worktreeStillMounted": false,
     "branchMustBeRetained": true,
-    "filesystemResidual": "empty_directory_locked_by_wechat_devtools_file_watcher"
+    "filesystemResidual": "none",
+    "emptyDirectoryRemovedAt": "2026-08-14",
+    "lockingProcessStopped": "wxfilewatcher_x64.exe and direct wechatdevtools renderer"
   }
 }

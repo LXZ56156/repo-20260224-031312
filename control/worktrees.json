@@ -72,7 +72,7 @@
       "backupStatus": "full_private_restore_verified",
       "backupManifest": "control/archives/online-source-evidence-ba45.json",
       "unmountedAt": "2026-08-14",
-      "filesystemResidual": "empty_directory_locked_by_wechat_devtools_file_watcher"
+      "filesystemResidual": "none"
     },
     {
       "id": "upload-e60d827",
