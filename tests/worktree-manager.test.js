@@ -97,6 +97,19 @@ test('reconcileRegistry keeps archive-pending worktrees outside managed slot lim
   assert.deepEqual(result.violations, []);
 });
 
+test('reconcileRegistry keeps archived records without requiring them to stay mounted', () => {
+  const registry = sampleRegistry();
+  registry.worktrees[2].lifecycle = 'archived';
+  const inventory = sampleInventory();
+  inventory.worktrees.pop();
+
+  const result = reconcileRegistry(registry, inventory);
+  assert.equal(result.archivePendingCount, 0);
+  assert.equal(result.archivedCount, 1);
+  assert.deepEqual(result.missing, []);
+  assert.deepEqual(result.violations, []);
+});
+
 test('reconcileRegistry fails closed on unregistered worktrees and dirty production', () => {
   const inventory = sampleInventory();
   inventory.worktrees[1].dirtyFiles.push(' M miniprogram/app.js');
@@ -139,7 +152,7 @@ test('checked-in control registry and release ledger remain machine readable', (
     assert.equal(manifest.source.clean, true);
     assert.equal(manifest.verification.result, 'passed');
     assert.equal(fs.existsSync(manifest.verification.restoreClone), true);
-    assert.equal(manifest.removal.authorized, false);
-    assert.equal(manifest.removal.worktreeStillMounted, true);
+    assert.equal(manifest.removal.authorized, true);
+    assert.equal(manifest.removal.worktreeStillMounted, false);
   }
 });

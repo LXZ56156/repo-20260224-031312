@@ -22,8 +22,21 @@
     "result": "passed"
   },
   "removal": {
-    "authorized": false,
-    "worktreeStillMounted": true,
-    "branchMustBeRetained": true
+    "authorized": true,
+    "removedAt": "2026-08-14",
+    "worktreeStillMounted": false,
+    "branchMustBeRetained": true,
+    "filesystemResidual": {
+      "status": "retained_locked_non_git_files",
+      "originalPath": "D:/projects(WIN)/badminton-miniapp-worktrees/local-ops-dashboard",
+      "remainingFiles": [
+        "data/ops-dashboard/dashboard.db",
+        "data/ops-dashboard/dashboard.db-shm",
+        "data/ops-dashboard/dashboard.db-wal",
+        "tools/ops-dashboard"
+      ],
+      "partialMoveBackup": "D:/projects(WIN)/badminton-miniapp-worktree-backups/2026-08-14/phase2-clean/residual-local-ops-dashboard",
+      "note": "Git worktree metadata is removed. Windows refused final filesystem cleanup because files or directories were in use; no process was force-terminated."
+    }
   }
 }

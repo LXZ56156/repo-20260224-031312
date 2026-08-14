@@ -94,7 +94,8 @@ test('governance separates current status, product boundary and archived restart
   assert.match(project, /云函数[\s\S]*不能由客户端版本推断[\s\S]*独立盘点/);
   assert.equal(registry.worktrees.filter((item) => item.role === 'CONTROL' && item.lifecycle !== 'archive_pending').length, 1);
   assert.equal(registry.worktrees.filter((item) => item.role === 'PRODUCTION' && item.lifecycle !== 'archive_pending').length, 1);
-  assert.equal(registry.worktrees.filter((item) => item.lifecycle === 'archive_pending').length, 16);
+  assert.equal(registry.worktrees.filter((item) => item.lifecycle === 'archive_pending').length, 13);
+  assert.equal(registry.worktrees.filter((item) => item.lifecycle === 'archived').length, 3);
   assert.match(cloudDecision, /兼容变更自动部署/);
   assert.match(cloudDecision, /不兼容[\s\S]*授权/);
   assert.match(plan, /线上版本[\s\S]*master[\s\S]*5813ffc/);

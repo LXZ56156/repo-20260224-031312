@@ -81,22 +81,25 @@
     {
       "id": "score-overlay-baseline",
       "role": "CANDIDATE",
-      "lifecycle": "archive_pending",
+      "lifecycle": "archived",
       "path": "D:/projects(WIN)/badminton-miniapp-worktrees/incremental-ui-score-baseline-20260729",
       "branch": "codex/incremental-ui-score-baseline-20260729",
       "head": "51fe6dc",
       "backupStatus": "bundle_restore_verified",
-      "backupManifest": "control/archives/incremental-ui-score-baseline-20260729.json"
+      "backupManifest": "control/archives/incremental-ui-score-baseline-20260729.json",
+      "unmountedAt": "2026-08-14"
     },
     {
       "id": "local-ops-dashboard",
       "role": "CANDIDATE",
-      "lifecycle": "archive_pending",
+      "lifecycle": "archived",
       "path": "D:/projects(WIN)/badminton-miniapp-worktrees/local-ops-dashboard",
       "branch": "codex/local-ops-dashboard",
       "head": "006205c",
       "backupStatus": "bundle_restore_verified",
-      "backupManifest": "control/archives/local-ops-dashboard.json"
+      "backupManifest": "control/archives/local-ops-dashboard.json",
+      "unmountedAt": "2026-08-14",
+      "filesystemResidual": "locked_non_git_directory_at_original_path"
     },
     {
       "id": "nextgen-design-system",
@@ -133,12 +136,13 @@
     {
       "id": "share-activity-collection",
       "role": "CANDIDATE",
-      "lifecycle": "archive_pending",
+      "lifecycle": "archived",
       "path": "D:/projects(WIN)/badminton-miniapp-worktrees/share-activity-collection",
       "branch": "codex/share-activity-collection",
       "head": "fb8ea52",
       "backupStatus": "bundle_restore_verified",
-      "backupManifest": "control/archives/share-activity-collection.json"
+      "backupManifest": "control/archives/share-activity-collection.json",
+      "unmountedAt": "2026-08-14"
     },
     {
       "id": "standalone-water-v1",

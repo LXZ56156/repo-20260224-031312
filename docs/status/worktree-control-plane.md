@@ -1,6 +1,6 @@
 # Worktree 单一控制面方案
 
-> 状态：Executing，Phase 1 已完成；Phase 2 的 3 个 clean bundle 已恢复验证，待卸载授权。更新时间：2026-08-14。
+> 状态：Executing，Phase 1–2 已完成；3 个 clean worktree 已安全卸载，剩余 13 个历史挂载树待归档。更新时间：2026-08-14。
 > 目标：不丢任何成果，把 16 个挂载 worktree 收敛到最多 4 个，并彻底消除“每个分支各写一套线上/发布事实”。
 
 ## 根因

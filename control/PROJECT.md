@@ -17,13 +17,14 @@
 - PRODUCTION：1 个，已占用并要求始终 clean。
 - ACTIVE：0 个。
 - RELEASE：0 个。
-- 历史挂载树：16 个，全部登记为 `archive_pending`；未经逐路径授权不移除。
+- 历史挂载树：13 个，全部登记为 `archive_pending`；另有 3 个已归档卸载。
 
 ## Current Work
 
 - Phase 1 已完成：控制面、生产基线、18 棵已挂载树注册和 fail-closed 状态检查均已落地。
-- Phase 2 备份已完成：3 个 clean 历史 worktree 的 bundle、SHA-256 和恢复 clone 均已验证。
-- 下一动作：取得这 3 个精确路径的卸载授权；branch 与 bundle 必须保留。
+- Phase 2 已完成：3 个 clean 历史 worktree 的 bundle、SHA-256 和恢复 clone 均已验证，Git worktree 已卸载；branch 与 bundle 保留。
+- `local-ops-dashboard` 有被运行中进程占用的非 Git 磁盘残留，已单独登记；未强杀进程。
+- 下一阶段（Phase 3）：按成果族为 13 个历史挂载树生成完整恢复四件套，再逐路径申请卸载。
 - 禁止在迁移完成前新增未登记 worktree。
 
 ## Verify

@@ -27,7 +27,7 @@ function loadRegistry(file = DEFAULT_REGISTRY) {
 function countManagedSlots(worktrees) {
   const counts = { CONTROL: 0, PRODUCTION: 0, ACTIVE: 0, RELEASE: 0 };
   for (const item of worktrees) {
-    if (item.lifecycle !== 'archive_pending' && MANAGED_ROLES.includes(item.role)) {
+    if (!['archive_pending', 'archived'].includes(item.lifecycle) && MANAGED_ROLES.includes(item.role)) {
       counts[item.role] += 1;
     }
   }
@@ -100,7 +100,7 @@ function reconcileRegistry(registry, inventory) {
     .filter((item) => !registeredByPath.has(normalizePath(item.path)))
     .map((item) => item.path);
   const missing = registry.worktrees
-    .filter((item) => !liveByPath.has(normalizePath(item.path)))
+    .filter((item) => item.lifecycle !== 'archived' && !liveByPath.has(normalizePath(item.path)))
     .map((item) => item.path);
   const headDrift = [];
   const branchDrift = [];
@@ -109,6 +109,9 @@ function reconcileRegistry(registry, inventory) {
   for (const registered of registry.worktrees) {
     const live = liveByPath.get(normalizePath(registered.path));
     if (!live) continue;
+    if (registered.lifecycle === 'archived') {
+      violations.push(`archived worktree must not remain mounted: ${registered.path}`);
+    }
     if (registered.head && !String(registered.head).startsWith(String(live.head)) &&
         !String(live.head).startsWith(String(registered.head))) {
       headDrift.push(`${registered.id}: ${registered.head} -> ${live.head}`);
@@ -133,6 +136,7 @@ function reconcileRegistry(registry, inventory) {
     registeredCount: registry.worktrees.length,
     liveCount: inventory.worktrees.length,
     archivePendingCount: registry.worktrees.filter((item) => item.lifecycle === 'archive_pending').length,
+    archivedCount: registry.worktrees.filter((item) => item.lifecycle === 'archived').length,
     slotCounts: countManagedSlots(registry.worktrees),
     unregistered,
     missing,
@@ -151,6 +155,7 @@ function renderStatus(result) {
     `registered：${result.registeredCount}  live：${result.liveCount}`,
     `managed slots：CONTROL ${slots.CONTROL} / PRODUCTION ${slots.PRODUCTION} / ACTIVE ${slots.ACTIVE} / RELEASE ${slots.RELEASE}`,
     `archive pending：${result.archivePendingCount}`,
+    `archived：${result.archivedCount}`,
     `unregistered：${result.unregistered.length}`,
     `missing：${result.missing.length}`,
     `HEAD drift：${result.headDrift.length}`,
