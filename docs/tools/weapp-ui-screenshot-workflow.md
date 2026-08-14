@@ -2,6 +2,8 @@
 
 > 用于小程序 UI 改动后的真实视觉检查。Windows 工具链于 2026-07-12 在带括号的主路径完成迁移；`codex/ui-optimization-v2` 于 2026-07-14 完成 master fixture 的真实三页 smoke 与人工视觉复验。
 
+> 2026-07-29：现有 canonical screenshot 只作旧 capture-time 证据。新的 master + `38d6ea4` 隔离分支建立后，必须从该源码重新生成 `scheduleRunning` 证据；不得沿用旧 next-gen 图片或浏览器稿。master 未必包含本文列出的全部后续 npm alias，运行前先以新 worktree 的 `package.json` 为准。
+
 ## 当前链路
 
 - 主源码：`D:\projects(WIN)\badminton-miniapp`

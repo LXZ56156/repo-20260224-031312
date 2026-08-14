@@ -32,11 +32,11 @@ Shared modules: `common.js`, `mode.js`, `permission.js`, `player.js`, `rankingCo
 
 ## Current Product Baseline
 
-The user confirmed on 2026-07-15 that the online mini-program corresponds to `master` = `origin/master` = `5813ffc`. `codex/ui-optimization-v2` is a pushed development branch, not an uploaded or released mini-program version.
+The user confirmed on 2026-07-15 that the online mini-program corresponds to `master` = `origin/master` = `5813ffc`. The historical `codex/ui-optimization-v2` branch later accumulated several unrelated product and cloud experiments; it remains neither the online version nor the 2026-07-29 incremental UI baseline.
 
-The development branch starts from `master@5813ffc` and preserves its full create/configure/start/score/rank/review-share flow. The retired `feature/core-flow-simplification` branch is historical evidence only; its direct-create flow, removed analytics/review surfaces, reduced lobby/home/share context, navigation rewrite, and flattened global visual system are not part of the architecture baseline.
+The current target baseline must be reconstructed in a new isolated worktree from `master@5813ffc`, then receive only commit `38d6ea4`. It preserves the full create/configure/start/score/rank/review-share flow. The retired `feature/core-flow-simplification`, expanded `codex/ui-optimization-v2`, and all next-gen UI branches are historical evidence only; their additional flows, features and global visual systems are not part of this architecture baseline.
 
-The only approved product overlay is local to `pages/schedule/index.wxml` and `index.wxss`: pending `VS` and completed score sit between both teams, while names may use two lines. It must not change routing, scoring, filters, permissions, cloud contracts, or any other page.
+The only approved product overlay is commit `38d6ea4`, local to `pages/schedule/index.wxml` and `index.wxss` plus its focused test: pending `VS` and completed score sit between both teams, while names may use two lines. It must not change routing, scoring, filters, permissions, cloud contracts, or any other page.
 
 ## Game Modes
 

@@ -69,10 +69,11 @@ test('GitHub agent instructions point agents to the same Windows workflow', () =
   assert.match(docs, /D:\\projects\(WIN\)\\badminton-miniapp/);
 });
 
-test('active handoff docs distinguish the pushed Git branch from the online mini-program release', () => {
+test('active handoff pins the master plus score overlay baseline and freezes historical branches', () => {
   const agents = fs.readFileSync(path.join(REPO_DIR, 'AGENTS.md'), 'utf8');
   const current = fs.readFileSync(path.join(REPO_DIR, 'docs/tasks/current.md'), 'utf8');
   const plan = fs.readFileSync(path.join(REPO_DIR, 'docs/tasks/incremental-ui-optimization-plan.md'), 'utf8');
+  const restart = fs.readFileSync(path.join(REPO_DIR, 'docs/tasks/incremental-ui-restart-handoff-2026-07-29.md'), 'utf8');
   const windowsDocs = fs.readFileSync(path.join(REPO_DIR, 'docs/tools/windows-dev-environment.md'), 'utf8');
   const screenshotDocs = fs.readFileSync(path.join(REPO_DIR, 'docs/tools/weapp-ui-screenshot-workflow.md'), 'utf8');
   const recordsDocs = fs.readFileSync(path.join(REPO_DIR, 'docs/records/README.md'), 'utf8');
@@ -81,10 +82,18 @@ test('active handoff docs distinguish the pushed Git branch from the online mini
 
   assert.match(agents, /线上正式版[\s\S]*master[\s\S]*origin\/master[\s\S]*5813ffc/);
   assert.match(current, /线上正式版[\s\S]*master[\s\S]*origin\/master[\s\S]*5813ffc/);
-  assert.match(current, /origin\/codex\/ui-optimization-v2/);
-  assert.match(current, /尚未[^\n]*小程序[^\n]*发布/);
+  assert.match(current, /38d6ea4[\s\S]*schedule/);
+  assert.match(current, /nextgen-ui-redesign-20260724[\s\S]*暂停/);
   assert.ok(current.trimEnd().split(/\r?\n/).length <= 50);
   assert.match(plan, /线上版本[\s\S]*master[\s\S]*5813ffc/);
+  assert.match(plan, /38d6ea4/);
+  assert.match(plan, /新路线工具链边界[\s\S]*不得同时迁入旧分支的 workflow records/);
+  assert.match(plan, /历史提交批次（不得重放）[\s\S]*新路线首批只能是 `38d6ea4`/);
+  assert.match(restart, /patch-id[\s\S]*2cf91c83878e94c9b39fb57694c5b2cf09c4028d/);
+  assert.match(restart, /git diff --name-only master -- cloudfunctions[\s\S]*必须为空/);
+  assert.match(restart, /冻结入口的 15 个 implementation\/evidence tracked modified[\s\S]*收尾审计状态是 43 tracked modified \+ 2 个顶层 untracked/);
+  assert.match(restart, /浏览器[^\n]*近似方案[\s\S]*DevTools 实图/);
+  assert.match(restart, /未 push、未建 PR[\s\S]*未 upload[\s\S]*未部署/);
   assert.match(windowsDocs, /Git push[^\n]*not[^\n]*(mini-program|online)[^\n]*(release|state)/i);
   assert.match(screenshotDocs, /pre-commit acceptance snapshot/);
   assert.match(screenshotDocs, /dirty=true/);

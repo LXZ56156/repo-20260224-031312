@@ -8,6 +8,8 @@
 
 每次请求授权前必须提醒实际打包范围。当前 `codex/ui-optimization-v2` 的 preview 会包含尚未上线的 schedule 中央 `VS`/比分布局和 P03 打水 UI，也包含 P05 clone 修复以及默认关闭、未部署启用的 P04 事件管道基础设施。线上正式版仍是 `master = origin/master = 5813ffc`。
 
+2026-07-29 起，该分支及既有二维码全部是历史扩展包证据，不能代表新的“master + 仅比分位置”基线。新隔离分支在获得单次 preview 明确授权前不得复用旧 latest、不得生成新 QR；授权后也必须重新记录实际打包 diff。
+
 ## Fixed Delivery Directory
 
 专用绝对目录固定为：

@@ -65,6 +65,7 @@ private.*.key
 # Temp / tool artifacts
 tmp/
 .ui-audit-tmp/
+.playwright-cli/
 preview-qrcodes/
 docs/records/.workflow-record-*.lock*
 docs/records/.*.pending

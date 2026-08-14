@@ -1,10 +1,17 @@
 # 增量 UI 优化计划
 
-> 状态：开发分支已推送，尚未小程序发布；等待下一项逐点批准
+> 状态：2026-07-29 重新成为当前产品路线；新对话从 master + 唯一比分 overlay 建立隔离基线后，等待第一项逐点批准
 > 决策日期：2026-07-13
-> 分支：`codex/ui-optimization-v2`
+> 历史实现提交：`38d6ea4`（从 master 精确 cherry-pick；不得使用现有 `codex/ui-optimization-v2` head 作为新基线）
 > 产品基线：`master@5813ffc`
 > 线上版本：用户于 2026-07-15 确认 `master` = `origin/master` = `5813ffc`
+
+## 2026-07-29 重启边界
+
+- 下一代全面升级、C3/Home 全面重做以及 next-gen ROADMAP 已暂停；不把其代码、资产、浏览器稿或截图迁入本计划。
+- 新对话必须从 `master@5813ffc` 创建新的隔离 `codex/` branch/worktree，再只 cherry-pick `38d6ea4`。
+- 当前主工作区的 `codex/ui-optimization-v2@d0435f6` 已叠加其他功能与云改动，只保留为历史研发分支，不能直接 preview 或作为增量 UI 起点。
+- 精确恢复步骤、分支防误用和证据位置见 `docs/tasks/incremental-ui-restart-handoff-2026-07-29.md`。
 
 ## 决策背景
 
@@ -45,13 +52,15 @@
 
 验收时，除两个 schedule 文件外，`miniprogram/` 应与 master 零差异；`cloudfunctions/` 应与 master 零差异。
 
-## 非产品迁移范围
+## 新路线工具链边界
 
-Windows 原生工具链、workflow records、hooks、DevTools session provenance、截图窗口恢复和故障分型可以从已验证实现中按白名单迁入。这些变更不得改变页面、业务逻辑或云端行为，并应与产品改动分批提交。
+建立新基线时只允许从 master 精确 cherry-pick `38d6ea4`，不得同时迁入旧分支的 workflow records、Windows tooling、hooks、截图记录或公平性测试。master 若缺少后来新增的 command alias，不得为了方便重放整批工具链提交。
 
-2026-07-12 在旧分支生成的前 5 条截图记录只作为工具链历史证据。新分支针对 master 页面结构重新适配 selector/fixture 后，于 2026-07-14 完成三页 smoke；`ui-screenshot.jsonl` 第 6 条和 canonical latest 已指向当前分支。该记录是 `git.head=5813ffc`、`dirty=true` 的 pre-commit acceptance snapshot，只证明被捕获工作区的产品像素验收，不证明干净 commit、Git push 或线上发布。
+只有在当前源码真实 `scheduleRunning` 截图确实受阻时，才先审查 master 已有脚本，再对必要工具做最小、独立且可审计的本地适配；它不能混入产品基线，不能复制历史截图记录，也不能绕过用户可见变更审批。
 
-## 本轮提交批次
+2026-07-12/14 的旧截图记录、selector/fixture 适配与 `git.head=5813ffc`、`dirty=true` pre-commit acceptance snapshot 仅是历史工具链证据，不是新分支输入，也不证明干净 commit、Git push 或线上发布。
+
+## 2026-07-13/15 历史提交批次（不得重放）
 
 1. `chore(records): port workflow record infrastructure`
 2. `fix(tooling): port Windows-native development workflow`
@@ -59,28 +68,30 @@ Windows 原生工具链、workflow records、hooks、DevTools session provenance
 4. `docs: retire core-flow experiment and start incremental UI plan`
 5. `test(squad): stabilize fairness quality regressions`
 
-每批只使用精确文件清单，提交前审查完整差异；禁止 `git add .`、reset、clean 或 checkout 覆盖。计划执行阶段最初没有 push 授权；用户于 2026-07-15 另行授权后，完成提交已推送到 `origin/codex/ui-optimization-v2`。该 Git push 不代表小程序发布；仍未执行 preview/upload、正式发布或云函数部署。
+以上五批只记录 `codex/ui-optimization-v2` 的历史执行，不是新路线待办。新路线首批只能是 `38d6ea4`；不得重放其余四批。历史 Git push 不代表小程序发布；仍未执行正式 upload、发布或云函数部署。
 
-## 当前轮验收
+## 新路线基线验收
 
 - `git diff master -- miniprogram` 只列出 schedule 的 WXML/WXSS；
 - `git diff master -- cloudfunctions` 为空；
 - schedule 聚焦结构/样式测试覆盖中央 `VS`、中央比分、两行长名称和无固定右侧栏；
-- `npm run verify:windows-env`、`npm run verify:light`、`npm run verify:full` 和 `git diff --check` 全部通过；
+- `node --test tests/schedule.ui-copy.test.js` 与 `git diff --check` 通过；其他命令以 master 实际脚本为准，不为补 alias 引入历史工具链；
 - 真实 `scheduleRunning` 截图同时覆盖待录分、已完赛、长中文名和长英文名，并人工检查无重叠、裁切或信息丢失；
-- 截图脚本必须从 `D:\projects(WIN)\badminton-miniapp` 运行，成功证据在本分支重新写入，失败不得覆盖上一张好图；
+- 截图必须标记新 worktree、当前 HEAD 与 dirty provenance；历史 canonical record 和旧图不能替代当前源码证据；
 - 不执行小程序 upload/preview、发布、云函数部署或真实云数据写入。
+- 完成以上基线验收后停止，等待用户指定第一个微调点。
 
-## 后续 UI 工作规则
+## 后续逐点 UI 工作规则
 
-本轮完成后不自动扩展到其他页面。后续每个 UI 点采用以下闭环：
+基线建立后不自动扩展到其他页面。后续每个 UI 点采用以下闭环：
 
 ```text
 选择一个页面/问题
   -> 列出保留、调整、删除内容
-  -> 用户批准可见变化
+  -> 浏览器给出近似方案
+  -> 用户选择并批准可见变化
   -> 测试先行并实现
-  -> 真实截图与人工检查
+  -> 原生微信当前源码真实 DevTools 截图与人工检查
   -> 用户确认
   -> 单独提交
 ```

@@ -9,6 +9,7 @@
 - `docs/context/architecture.md` — 完整架构参考（层级、模式、关键 pattern）
 - `docs/tasks/current.md` — 当前任务状态，会话开始时先读
 - `docs/tasks/incremental-ui-optimization-plan.md` — 当前增量 UI 优化边界与验收门槛
+- `docs/tasks/incremental-ui-restart-handoff-2026-07-29.md` — master + 唯一比分 overlay 的新对话恢复合同
 - `docs/tasks/windows-native-toolchain-migration-handoff.md` — Windows 原生工具链迁移事实与历史验收
 - `docs/specs/` — 功能设计文档和实现计划
 - `docs/notes/learnings.md` — 临时规则与经验积累
@@ -22,6 +23,13 @@
 - 安装位置：`C:\Users\LIZIXUAN\.codex\skills\frontend-design`；官方来源与校验记录见 next-gen 集成树的 `docs/next-gen/FRONTEND-DESIGN-SKILL.md`。
 - skill 的 web 设计原则要翻译为原生微信小程序约束：WXML/WXSS/JS、包体、低端机、系统字体、44px 触达、reduced motion、无远程视觉依赖；不得照搬 hover、Web 字体或浏览器专属 CSS。
 - 旧的暖米色+酸绿、暗底+荧光绿、报纸规则线三种方案均已被用户判退，也正是该 skill 警示的常见 AI 默认风格；只能作为反例，不能继续微调复用。
+
+## Current UI Route (2026-07-29)
+
+- 下一代全面升级与 C3/Home 重设计已暂停；`nextgen-ui-redesign-20260724` 及其代码、资产、截图、浏览器稿只作历史证据，不得作为当前产品基线。
+- 当前路线是 `master@5813ffc` 加唯一批准的 `38d6ea4` schedule 中央 `VS`/比分位置 overlay，再逐点微调。
+- 新任务必须先读 `docs/tasks/incremental-ui-restart-handoff-2026-07-29.md`；从 master 创建新的隔离 `codex/` branch/worktree 并精确 cherry-pick `38d6ea4`。不要切换主工作区分支，也不要从当前 `codex/ui-optimization-v2` head 或 next-gen worktree 起步。
+- 每个新 UI 点先用浏览器近似稿取得用户选择，再做原生实现和真实 DevTools 实图；浏览器渲染不能代替小程序验收。
 
 ## Commands
 
@@ -42,7 +50,7 @@ npm run check:cloud-common           # 检查共享库同步状态
 
 Windows 主开发路径为 `D:\projects(WIN)\badminton-miniapp`，preview/upload 镜像为 `D:\projects(WIN)\badminton-miniapp-preview`，WSL fallback 为 `/home/lizixuan/projects(WSL)/badminton-miniapp`。`D:\projects\badminton-miniapp` 只是元数据空壳，禁止使用。日常 npm、hooks、DevTools 和截图走 Windows 原生入口；WSL mirror 只有显式设置 `WEAPP_CODEX_DEV_MODE=wsl-mirror` 才启用。自动化端口为 `ws://127.0.0.1:39420`。
 
-用户于 2026-07-15 确认：当前线上正式版对应 `master` = `origin/master` = `5813ffc`。`codex/ui-optimization-v2` 是已推送到 GitHub 的后续开发分支，但其 schedule 中央比分、Windows 工具链和文档提交尚未通过小程序上传/发布进入线上；Git push 不等于小程序发布。
+用户于 2026-07-15 确认：当前线上正式版对应 `master` = `origin/master` = `5813ffc`。历史 `codex/ui-optimization-v2` 后来已叠加 schedule 中央比分、Windows 工具链、打水、事件管道、clone 等多批本地/已推送研发成果，但均未因此进入小程序线上；Git push 不等于小程序发布。2026-07-29 的新增量路线不得直接复用该分支 head。
 
 云函数部署通过微信开发者工具完成。不要执行 `npm run mp:upload`、`npm run mp:preview`、云函数 deploy、preview upload 或真实发布，除非用户明确要求。
 
@@ -85,7 +93,7 @@ Windows 主开发路径为 `D:\projects(WIN)\badminton-miniapp`，preview/upload
 4. **云函数模板**：改 `scripts/*-common.template.js`，改完运行 `npm run sync:cloud-common`
 5. **云函数上传提醒**：完成改动后检查是否涉及 `cloudfunctions/`；如有需要通过微信开发者工具上传的云函数，在最终汇报中提醒一次具体函数名，不反复提醒
 6. **Windows shell**：普通 npm 开发/验证不得依赖全局 `script-shell` 或裸 `bash`；guarded deploy/hook 与显式 compatibility flow 统一通过 `scripts/run-bash-script.js`。
-7. **增量 UI**：线上与产品基线保持 `master@5813ffc` 的原流程；开发分支除已批准的 schedule 中央 `VS`/比分布局外，任何页面结构、视觉或流程调整都必须逐点批准、实图验收、单独提交。
+7. **增量 UI**：目标产品基线固定为 `master@5813ffc` + `38d6ea4` 的 schedule 中央 `VS`/比分布局；任何其他页面结构、视觉或流程调整都必须先经浏览器方案选择，再做原生实现、真实 DevTools 实图验收和单独提交。
 
 ## Style & Commit
 

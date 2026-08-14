@@ -4,6 +4,7 @@
 > Periodically review: promote stable items to CLAUDE.md, delete resolved items.
 
 ## Active
+- [2026-07-29] 用户暂停下一代全面升级与 C3/Home 重设计，产品路线回到 `master@5813ffc` + 唯一 `38d6ea4` schedule 中央 `VS`/比分位置 overlay。现有 `codex/ui-optimization-v2` head 已包含更多功能，next-gen worktree 也只作历史证据；新 UI 必须另建 master-based 隔离 worktree，浏览器先选方向、用户批准后再做原生实现与真实 DevTools 验收，每次只处理一个点。
 - [2026-07-16] 后续产品研发采用 `docs/tasks/parallel-development-roadmap.md` 统一编排：每个对话使用独立 worktree/`codex/roadmap-*` 分支，只维护自己的任务文档和 session log；`current.md` 与总路线图由集成对话维护。事件管道 Phase A 不接入现有业务热函数，任何用户可见页面、文案、CTA、导航、分享、默认行为或操作语义仍须先提交审批矩阵并获得明确批准。
 - [2026-07-15] 用户确认当前线上正式版对应 `master` = `origin/master` = `5813ffc`。`codex/ui-optimization-v2` 虽已推送到 GitHub，但尚未执行小程序上传/发布，其 schedule/tooling/docs 变化不在线上；后续交接必须把 Git branch、preview/upload 和线上 release 三种状态分开描述。
 - [2026-07-14] DevTools 冷启动只执行一次 exact `auto --project`，为同一 AppService 保留 75 秒；CLI quit 后空进程集合表示目标树已退出。截图窗口必须按同一 PID 下带 DevTools 标题的可见顶层窗口选择，恢复时校验原句柄仍归属该 PID，不能假设 `.NET MainWindowHandle` 全程稳定。全量 `node:test` 按文件串行；squad 公平性质量回归用每次 deadline read 前进 `0.002ms` 的 operation clock，使相同输入获得相同操作预算，不能用放宽阈值掩盖抖动。真实墙钟性能继续由 `squad.beam.performance.test.js` 覆盖。

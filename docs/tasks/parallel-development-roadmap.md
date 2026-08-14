@@ -1,12 +1,14 @@
 # 羽毛球小程序并行开发路线图
 
-> 状态：`locally_integrated_verified_pending_release_plan`
+> 状态：`paused_reference_only`（2026-07-29；不得进入新的 master + score-only UI 基线）
 > 规划日期：2026-07-16
 > 统一开发 checkpoint：`codex/ui-optimization-v2@70845c1`
 > 本地功能集成 head：`codex/ui-optimization-v2@530ecae`
 > 远端开发分支：`origin/codex/ui-optimization-v2@743b016`
 > 线上产品基线：`master@5813ffc`
 > 远程操作：未授权、未执行
+
+> 最新覆盖规则：本路线图及 P03/P04/P05 等本地集成结果只保留为历史研发证据。用户当前只授权从 `master@5813ffc` 加 `38d6ea4` 中央比分布局后逐点微调 UI；不得整体复用本路线图的 checkpoint、分支或产品实现。
 
 ## 1. 目标与边界
 
