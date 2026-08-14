@@ -1,0 +1,17 @@
+{
+  "kind": "production-client-baseline-verification-v1",
+  "recordedAt": "2026-08-14",
+  "onlineVersion": "6.1.2-e60d827-r3",
+  "productionPath": "D:/projects(WIN)/badminton-miniapp-production",
+  "branch": "codex/production-baseline-20260814",
+  "head": "55bfc4fa319ab74a33d406f05fbdab975ab8cfb7",
+  "status": "clean",
+  "miniprogramTree": "f417bfe52433cf43a5dabc85455fce48d3ec4321",
+  "trackedMiniprogramFiles": 633,
+  "uploadOverlayVerification": {
+    "miniprogram/pages/feedback/index.js": "c93b2301bae531a3e3c9f1cf5300d9d18f7440af460779ef95873a8eb91de780",
+    "miniprogram/pages/feedback/index.wxml": "e7158a261664c27c046428b64a48121b549e69f27e1e02301a0c2d23b615f8a3",
+    "matchesUploadReceipt": true
+  },
+  "boundary": "This verifies the client source baseline only. It does not prove review, formal release, cloud function rollout, database migration, permissions, indexes, switches or production data state."
+}

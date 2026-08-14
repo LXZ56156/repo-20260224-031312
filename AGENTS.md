@@ -8,8 +8,9 @@
 
 每次会话先读：
 
-1. `docs/tasks/current.md` — 当前分支任务、边界和下一步。
-2. `docs/status/project-state.md` — 跨分支产品、发布和授权事实。
+1. `control/PROJECT.md` — 跨分支产品、发布、云端核验和槽位事实。
+2. `control/worktrees.json` — 全部已挂载 worktree 的机器可读注册表。
+3. `docs/tasks/current.md` — 当前 CONTROL 分支任务、边界和下一步。
 
 再按任务选择：
 
@@ -20,11 +21,11 @@
 - `docs/status/worktree-inventory.md` — branch/worktree 保护台账。
 - `docs/notes/learnings.md` — 尚未提升为稳定规则的临时经验。
 
-历史 task、handoff、截图、QR 和 workflow record 不能覆盖 `docs/status/` 的当前事实。
+历史 task、handoff、截图、QR、workflow record 和业务 worktree 文档不能覆盖 `control/` 的当前事实。
 
 ## Product and UI Governance
 
-- 当前产品基准固定为用户已确认的线上版本；精确提交以 `docs/status/project-state.md` 和 `docs/decisions/0002-online-version-product-baseline.md` 为准。新产品工作必须从该基准创建隔离 `codex/` branch/worktree；其他本地 RC、overlay、运营能力和暂停路线都不是默认集成基线。
+- 当前产品基准固定为用户已确认的线上版本；精确版本和提交只读 `control/PROJECT.md`。新产品工作必须从登记的 PRODUCTION 创建隔离 `codex/` branch/worktree；其他本地 RC、overlay、运营能力和暂停路线都不是默认集成基线。
 - 已暂停或被否定的 Next-Gen/C3/Home 全面重做只作历史证据，不得整体复用、合并或迁移。
 - 用户可见变化必须先明确批准：页面结构、文案、CTA、导航、流程、默认行为、权限和操作语义均包含在内。
 - UI 工作一次只处理一个页面或一个明确问题；先给浏览器近似方向，用户选定后再实现原生 WXML/WXSS，并用当前源码的真实微信 DevTools 截图验收。
@@ -42,7 +43,7 @@
 
 ## Development Environment
 
-- Windows 权威主工作区：`D:\projects(WIN)\badminton-miniapp`。
+- 项目治理权威工作区：`D:\projects(WIN)\badminton-miniapp-control`。原 `D:\projects(WIN)\badminton-miniapp` 在迁移期只作历史治理来源，不再承载跨 worktree 当前事实。
 - preview/upload 镜像：`D:\projects(WIN)\badminton-miniapp-preview`，不是源码权威。
 - `D:\projects\badminton-miniapp` 是元数据空壳，禁止作为源码。
 - WSL 只在显式兼容任务中使用；普通 npm、hooks、DevTools 和截图走 Windows 原生入口。

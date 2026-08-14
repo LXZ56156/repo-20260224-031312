@@ -63,7 +63,8 @@ test('GitHub agent instructions remain a thin adapter to canonical governance', 
 
   assert.match(docs, /AGENTS\.md/);
   assert.match(docs, /docs\/tasks\/current\.md/);
-  assert.match(docs, /docs\/status\/project-state\.md/);
+  assert.match(docs, /control\/PROJECT\.md/);
+  assert.match(docs, /control\/worktrees\.json/);
   assert.doesNotMatch(docs, /\b[0-9a-f]{7,40}\b/i);
   assert.doesNotMatch(docs, /ws:\/\/127\.0\.0\.1:\d+/i);
 });
@@ -71,7 +72,9 @@ test('GitHub agent instructions remain a thin adapter to canonical governance', 
 test('governance separates current status, product boundary and archived restart evidence', () => {
   const agents = fs.readFileSync(path.join(REPO_DIR, 'AGENTS.md'), 'utf8');
   const current = fs.readFileSync(path.join(REPO_DIR, 'docs/tasks/current.md'), 'utf8');
-  const status = fs.readFileSync(path.join(REPO_DIR, 'docs/status/project-state.md'), 'utf8');
+  const project = fs.readFileSync(path.join(REPO_DIR, 'control/PROJECT.md'), 'utf8');
+  const registry = JSON.parse(fs.readFileSync(path.join(REPO_DIR, 'control/worktrees.json'), 'utf8'));
+  const cloudDecision = fs.readFileSync(path.join(REPO_DIR, 'docs/decisions/0001-compatible-cloud-auto-deploy.md'), 'utf8');
   const plan = fs.readFileSync(path.join(REPO_DIR, 'docs/specs/incremental-ui-optimization.md'), 'utf8');
   const restart = fs.readFileSync(path.join(REPO_DIR, 'docs/archive/2026/handoffs/incremental-ui-restart-2026-07-29.md'), 'utf8');
   const windowsDocs = fs.readFileSync(path.join(REPO_DIR, 'docs/tools/windows-dev-environment.md'), 'utf8');
@@ -81,13 +84,19 @@ test('governance separates current status, product boundary and archived restart
   const historicalLog = fs.readFileSync(path.join(REPO_DIR, 'docs/archive/2026/session-logs/20260622-core-flow-simplification-ui-fix.md'), 'utf8');
 
   assert.match(agents, /docs\/tasks\/current\.md/);
-  assert.match(agents, /docs\/status\/project-state\.md/);
+  assert.match(agents, /control\/PROJECT\.md/);
+  assert.match(agents, /control\/worktrees\.json/);
   assert.doesNotMatch(agents, /\b[0-9a-f]{7,40}\b/i);
-  assert.match(current, /docs_governance_consolidation_completed_online_baseline_confirmed/);
+  assert.match(current, /worktree_control_plane_phase_1_completed/);
   assert.ok(current.trimEnd().split(/\r?\n/).length <= 50);
-  assert.match(status, /master[\s\S]*5813ffc/);
-  assert.match(status, /云函数部署授权[\s\S]*兼容变更自动部署/);
-  assert.match(status, /不授权[\s\S]*不兼容迁移/);
+  assert.match(project, /6\.1\.2-e60d827-r3/);
+  assert.match(project, /55bfc4fa319ab74a33d406f05fbdab975ab8cfb7/);
+  assert.match(project, /云函数[\s\S]*不能由客户端版本推断[\s\S]*独立盘点/);
+  assert.equal(registry.worktrees.filter((item) => item.role === 'CONTROL' && item.lifecycle !== 'archive_pending').length, 1);
+  assert.equal(registry.worktrees.filter((item) => item.role === 'PRODUCTION' && item.lifecycle !== 'archive_pending').length, 1);
+  assert.equal(registry.worktrees.filter((item) => item.lifecycle === 'archive_pending').length, 16);
+  assert.match(cloudDecision, /兼容变更自动部署/);
+  assert.match(cloudDecision, /不兼容[\s\S]*授权/);
   assert.match(plan, /线上版本[\s\S]*master[\s\S]*5813ffc/);
   assert.match(plan, /38d6ea4/);
   assert.match(plan, /score-only 基线已于 2026-07-29 建立/);

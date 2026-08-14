@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-08-14",
+  "online": {
+    "version": "6.1.2-e60d827-r3",
+    "clientSource": "55bfc4fa319ab74a33d406f05fbdab975ab8cfb7",
+    "cloudState": "unverified_separately"
+  },
+  "limits": {
+    "control": 1,
+    "production": 1,
+    "active": 1,
+    "release": 1,
+    "mountedTotal": 4
+  },
+  "worktrees": [
+    {
+      "id": "control",
+      "role": "CONTROL",
+      "lifecycle": "active",
+      "path": "D:/projects(WIN)/badminton-miniapp-control",
+      "branch": "codex/project-control",
+      "headPolicy": "branch-tip"
+    },
+    {
+      "id": "production",
+      "role": "PRODUCTION",
+      "lifecycle": "readonly",
+      "path": "D:/projects(WIN)/badminton-miniapp-production",
+      "branch": "codex/production-baseline-20260814",
+      "head": "55bfc4f"
+    },
+    {
+      "id": "legacy-main-workspace",
+      "role": "MIGRATION_SOURCE",
+      "lifecycle": "archive_pending",
+      "path": "D:/projects(WIN)/badminton-miniapp",
+      "branch": "codex/ui-optimization-v2",
+      "head": "0157c66"
+    },
+    {
+      "id": "screenshot-diagnostic-07af",
+      "role": "EVIDENCE",
+      "lifecycle": "archive_pending",
+      "path": "C:/Users/LIZIXUAN/.codex/worktrees/07af/badminton-miniapp",
+      "branch": "codex/weapp-devtools-screenshot-diagnostic-20260806",
+      "head": "5813ffc"
+    },
+    {
+      "id": "incremental-ui-handoff-a6ba",
+      "role": "EVIDENCE",
+      "lifecycle": "archive_pending",
+      "path": "C:/Users/LIZIXUAN/.codex/worktrees/a6ba/badminton-miniapp",
+      "branch": "(detached)",
+      "head": "d0435f6"
+    },
+    {
+      "id": "online-source-evidence-ba45",
+      "role": "EVIDENCE",
+      "lifecycle": "archive_pending",
+      "path": "C:/Users/LIZIXUAN/.codex/worktrees/ba45/badminton-miniapp",
+      "branch": "codex/collaborative-water-v2-20260809",
+      "head": "55bfc4f"
+    },
+    {
+      "id": "upload-e60d827",
+      "role": "EVIDENCE",
+      "lifecycle": "archive_pending",
+      "path": "C:/Users/LIZIXUAN/.codex/worktrees/mp-upload-e60d827",
+      "branch": "(detached)",
+      "head": "e60d827"
+    },
+    {
+      "id": "upload-feedback-r3",
+      "role": "EVIDENCE",
+      "lifecycle": "archive_pending",
+      "path": "C:/Users/LIZIXUAN/.codex/worktrees/upload-e60d827-feedback-r3-badminton-miniapp",
+      "branch": "(detached)",
+      "head": "e60d827"
+    },
+    {
+      "id": "score-overlay-baseline",
+      "role": "CANDIDATE",
+      "lifecycle": "archive_pending",
+      "path": "D:/projects(WIN)/badminton-miniapp-worktrees/incremental-ui-score-baseline-20260729",
+      "branch": "codex/incremental-ui-score-baseline-20260729",
+      "head": "51fe6dc"
+    },
+    {
+      "id": "local-ops-dashboard",
+      "role": "CANDIDATE",
+      "lifecycle": "archive_pending",
+      "path": "D:/projects(WIN)/badminton-miniapp-worktrees/local-ops-dashboard",
+      "branch": "codex/local-ops-dashboard",
+      "head": "006205c"
+    },
+    {
+      "id": "nextgen-design-system",
+      "role": "CANDIDATE",
+      "lifecycle": "archive_pending",
+      "path": "D:/projects(WIN)/badminton-miniapp-worktrees/nextgen-design-system",
+      "branch": "codex/nextgen-design-system",
+      "head": "983837d"
+    },
+    {
+      "id": "nextgen-integration",
+      "role": "CANDIDATE",
+      "lifecycle": "archive_pending",
+      "path": "D:/projects(WIN)/badminton-miniapp-worktrees/nextgen-integration",
+      "branch": "codex/next-gen-badminton",
+      "head": "ffe98aa"
+    },
+    {
+      "id": "nextgen-typography",
+      "role": "CANDIDATE",
+      "lifecycle": "archive_pending",
+      "path": "D:/projects(WIN)/badminton-miniapp-worktrees/nextgen-typography",
+      "branch": "codex/nextgen-typography",
+      "head": "17f444f"
+    },
+    {
+      "id": "nextgen-ui-redesign",
+      "role": "CANDIDATE",
+      "lifecycle": "archive_pending",
+      "path": "D:/projects(WIN)/badminton-miniapp-worktrees/nextgen-ui-redesign-20260724",
+      "branch": "codex/nextgen-ui-redesign-20260724",
+      "head": "f792b75"
+    },
+    {
+      "id": "share-activity-collection",
+      "role": "CANDIDATE",
+      "lifecycle": "archive_pending",
+      "path": "D:/projects(WIN)/badminton-miniapp-worktrees/share-activity-collection",
+      "branch": "codex/share-activity-collection",
+      "head": "fb8ea52"
+    },
+    {
+      "id": "standalone-water-v1",
+      "role": "CANDIDATE",
+      "lifecycle": "archive_pending",
+      "path": "D:/projects(WIN)/badminton-miniapp-worktrees/standalone-water-a-20260806",
+      "branch": "codex/standalone-water-a-20260806",
+      "head": "178e5dd"
+    },
+    {
+      "id": "water-vant-spike",
+      "role": "CANDIDATE",
+      "lifecycle": "archive_pending",
+      "path": "D:/projects(WIN)/badminton-miniapp-worktrees/water-court-vant-spike-20260807",
+      "branch": "codex/water-court-vant-spike-20260807",
+      "head": "9b3f94a"
+    },
+    {
+      "id": "water-tdesign-spike",
+      "role": "CANDIDATE",
+      "lifecycle": "archive_pending",
+      "path": "D:/projects(WIN)/badminton-miniapp-worktrees/water-tdesign-spike-20260807",
+      "branch": "codex/water-tdesign-spike-20260807",
+      "head": "178e5dd"
+    }
+  ]
+}

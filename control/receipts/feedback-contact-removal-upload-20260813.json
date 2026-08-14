@@ -1,0 +1,50 @@
+{
+  "kind": "weapp-feedback-contact-removal-upload-receipt-v1",
+  "recordedAt": "2026-08-13T17:26:36.7754665+08:00",
+  "result": "success",
+  "version": "6.1.2-e60d827-r3",
+  "robot": 1,
+  "description": "反馈页不再收集联系方式；开始计水全面开放",
+  "gitHead": "e60d82706b663165c972c46b9b0b3eb5a2747188",
+  "uploadSource": {
+    "path": "C:\\Users\\LIZIXUAN\\.codex\\worktrees\\upload-e60d827-feedback-r3-badminton-miniapp",
+    "exactModifiedFiles": [
+      "miniprogram/pages/feedback/index.js",
+      "miniprogram/pages/feedback/index.wxml"
+    ],
+    "files": {
+      "miniprogram/pages/feedback/index.js": "c93b2301bae531a3e3c9f1cf5300d9d18f7440af460779ef95873a8eb91de780",
+      "miniprogram/pages/feedback/index.wxml": "e7158a261664c27c046428b64a48121b549e69f27e1e02301a0c2d23b615f8a3"
+    }
+  },
+  "package": {
+    "fullBytes": 1106126,
+    "zipBytes": 803264
+  },
+  "validation": {
+    "focusedTests": { "total": 27, "passed": 27, "failed": 0 },
+    "privacyPackageTests": { "total": 2, "passed": 2, "failed": 0 },
+    "fullTests": { "total": 1372, "passed": 1366, "failed": 0, "skipped": 6 },
+    "npmCheck": "passed",
+    "lintErrors": 0,
+    "lintWarnings": 64,
+    "diffCheck": "passed",
+    "runtimeRoute": "pages/feedback/index",
+    "runtimeContactInputCount": 0
+  },
+  "boundaries": {
+    "cloudFunctionDeployed": false,
+    "previewGenerated": false,
+    "reviewSubmitted": false,
+    "released": false,
+    "newClientDisplaysContactField": false,
+    "newClientSendsContactField": false,
+    "legacyClientsMayStillSendContact": true,
+    "historicalContactDataDeleted": false,
+    "profileGateChanged": false
+  },
+  "controlCopy": {
+    "originalPath": "C:\\Users\\LIZIXUAN\\.codex\\worktrees\\ba45\\badminton-miniapp\\.codex\\receipts\\feedback-contact-removal-upload-20260813.json",
+    "originalSha256": "4aec16c15935957d45d8e6eae584cbce4575627eca6a37d32d3f617f78d5a062"
+  }
+}
