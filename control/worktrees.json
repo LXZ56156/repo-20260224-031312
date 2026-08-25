@@ -1,9 +1,12 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-08-14",
+  "updatedAt": "2026-08-25",
   "online": {
     "version": "6.1.2-e60d827-r3",
     "clientSource": "55bfc4fa319ab74a33d406f05fbdab975ab8cfb7",
+    "remoteBranch": "origin/codex/production-baseline-20260814",
+    "releaseTag": "online/6.1.2-e60d827-r3",
+    "remoteVerifiedAt": "2026-08-25",
     "cloudState": "unverified_separately"
   },
   "limits": {
@@ -20,6 +23,7 @@
       "lifecycle": "active",
       "path": "D:/projects(WIN)/badminton-miniapp-control",
       "branch": "codex/project-control",
+      "remoteRef": "origin/codex/project-control",
       "headPolicy": "branch-tip"
     },
     {
@@ -28,6 +32,8 @@
       "lifecycle": "readonly",
       "path": "D:/projects(WIN)/badminton-miniapp-production",
       "branch": "codex/production-baseline-20260814",
+      "remoteRef": "origin/codex/production-baseline-20260814",
+      "releaseTag": "online/6.1.2-e60d827-r3",
       "head": "55bfc4f"
     },
     {

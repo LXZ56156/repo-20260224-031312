@@ -11,7 +11,8 @@
 | 2026-08-14 | 云函数部署 | `joinTournament`、`reportOpsActivityEvents` | share activity 分支声明已部署 | 双端开关默认关闭；需补部署记录或控制台证据 |
 | 2026-08-14 | 部署政策 | 向后兼容云函数变更 | 自动部署 | 用户确认；精确合同见 `docs/decisions/0001-compatible-cloud-auto-deploy.md`，本行不是一次远程部署记录 |
 | 2026-08-14 | 产品基准决策 | `6.1.2-e60d827-r3` / `55bfc4f` | 当前有效 | 后续产品从该源码身份建立干净隔离 worktree；见 decision 0003 |
-| 2026-08-13 至今 | 协作打水 V2 | `e60d827` + 当前 dirty 变化 | 未部署、未上传、未发布 | 本地 RC 无 upstream；不得进入发布流程 |
+| 2026-08-25 | Git 远端备份 | `origin/codex/production-baseline-20260814` / tag `online/6.1.2-e60d827-r3` | push 后回读核验通过 | branch 与 tag 均指向正式线上客户端源码；本动作不等于新的 preview/upload、审核、正式发布或云部署 |
+| 2026-08-13 至今 | 协作打水 V2 客户端/云端边界 | 正式线上客户端源码包含 V2 客户端提交链 | 客户端已随正式版本上线；完整云端与数据 rollout 未完成 | 不能把客户端上线解释为 V2 云函数、集合/索引/config、迁移、canary 或开关已经完成 |
 
 ## 追加规则
 

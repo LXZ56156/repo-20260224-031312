@@ -1,6 +1,6 @@
 # Project Status
 
-> 权威更新时间：2026-08-14。跨 worktree 的当前事实以本页及同目录机器可读文件为准。
+> 权威更新时间：2026-08-25。跨 worktree 的当前事实以本页及同目录机器可读文件为准。
 
 ## Production
 
@@ -8,12 +8,33 @@
 - 客户端源码身份：`55bfc4fa319ab74a33d406f05fbdab975ab8cfb7`
 - PRODUCTION：`D:\projects(WIN)\badminton-miniapp-production`
 - PRODUCTION branch：`codex/production-baseline-20260814`
+- 远端精确源码分支：`origin/codex/production-baseline-20260814`
+- 线上版本 tag：`online/6.1.2-e60d827-r3`
 - 客户端状态：已建立干净、只读用途的精确源码基线。
+- Git 远端状态：2026-08-25 已 push 并回读核验；远端 branch 与 tag 均解析到上述客户端源码身份。
 - 云函数、集合、索引、权限、开关与线上数据：不能由客户端版本推断，尚待独立盘点。
+
+## 接手检查
+
+1. 当前正式线上客户端只认版本 `6.1.2-e60d827-r3` 和源码身份 `55bfc4fa319ab74a33d406f05fbdab975ab8cfb7`。
+2. `origin/codex/production-baseline-20260814` 是精确源码快照，不在其上追加文档提交；tag `online/6.1.2-e60d827-r3` 指向同一源码。
+3. PRODUCTION 源码树内的 `AGENTS.md`、`docs/tasks/current.md` 等文件也是发布时快照，包含已经过时的发布前描述。跨分支的线上、发布、云端与 worktree 事实只以 `origin/codex/project-control` 的 `control/` 为准。
+4. Git branch/tag 只证明客户端源码已备份到远端，不证明微信后台 review/release、云函数、数据库、索引、权限、开关、迁移或真实数据状态。
+
+```powershell
+git fetch origin --tags
+git rev-parse origin/codex/production-baseline-20260814
+git rev-parse 'refs/tags/online/6.1.2-e60d827-r3^{}'
+git show origin/codex/project-control:control/PROJECT.md
+git show origin/codex/project-control:control/worktrees.json
+npm run worktree:status
+```
+
+前两个 `rev-parse` 结果必须都等于本页记录的客户端源码身份；`worktree:status` 必须无漂移、无违规。
 
 ## Worktree Slots
 
-- CONTROL：`D:\projects(WIN)\badminton-miniapp-control` / `codex/project-control`
+- CONTROL：`D:\projects(WIN)\badminton-miniapp-control` / `codex/project-control` / `origin/codex/project-control`
 - PRODUCTION：1 个，已占用并要求始终 clean。
 - ACTIVE：0 个。
 - RELEASE：0 个。

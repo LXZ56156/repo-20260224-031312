@@ -9,6 +9,14 @@
 3. `release-ledger.jsonl`：不可覆盖的发布事件流水。
 4. `archives/`：卸载 worktree 的恢复清单。
 
+远端接手入口：
+
+1. `origin/codex/project-control`：读取本目录的权威当前事实与交接检查。
+2. `origin/codex/production-baseline-20260814`：正式线上客户端的精确源码快照。
+3. `online/6.1.2-e60d827-r3`：指向同一客户端源码的 annotated tag。
+
+PRODUCTION 源码树内的任务文档属于发布时快照，不能覆盖 CONTROL 的当前事实。
+
 只读检查：
 
 ```powershell

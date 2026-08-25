@@ -4,12 +4,14 @@
 
 ## Status: worktree_consolidation_completed
 
+> Remote handoff: `production_baseline_remote_handoff_completed`
+
 ## Scope
 
-- 用户要求按顺序执行项目文档与工作流整理方案。
-- 已落地唯一 CONTROL、干净 PRODUCTION、注册表和只读状态检查；不修改用户可见产品行为。
-- dirty worktree 仅在完整 bundle、patch、未跟踪归档与逐文件恢复验证通过后，按用户统一授权卸载。
-- 不执行 push、preview/upload、正式发布、cloud deploy 或真实数据写入。
+- 用户要求把当前正式线上客户端源码线 push，并把接手检查文档写清楚。
+- PRODUCTION 保持精确源码身份不变；远端交接事实只维护在 CONTROL。
+- 本任务只执行已授权的 Git branch/tag 与 CONTROL 文档 push，不修改用户可见产品行为。
+- 不执行 preview/upload、审核、正式发布、cloud deploy、迁移、开关或真实数据写入。
 
 ## Completed
 
@@ -23,12 +25,14 @@
 - 所有历史 dirty worktree 均先保存 bundle、binary patch、untracked archive、SHA-256 manifest 和恢复 clone，再按授权卸载。
 - upload 私密证据 6579 个文件、旧打水组 2466 个文件、Next-Gen 组 127 个文件均完成逐文件恢复验证。
 - worktree 总数从 20 收敛至 3；15 个历史 worktree 已归档，主 Git 工作区已登记为只读 `METADATA_ROOT`。
+- 2026-08-25 将精确线上源码分支和带版本名的 annotated tag push 到 origin，并回读核验均指向正式线上客户端源码。
+- 更新 CONTROL 的线上版本、远端 ref、交接检查命令和 Git push 账本；PRODUCTION 源码未追加文档提交。
 
 ## Current Branch
 
 - 工作区：`D:\projects(WIN)\badminton-miniapp-control`
 - 分支：`codex/project-control`
-- 当前任务：worktree 与文档控制面收敛完成，进入常态维护。
+- 当前任务：线上客户端源码远端备份与接手文档已完成，进入常态维护。
 
 ## Next Action
 
