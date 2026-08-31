@@ -13,8 +13,9 @@
   <view class="card panel section-card">
     <view class="section-head">
       <view class="section-title">我的战绩</view>
-      <text class="count-pill">本地已完成</text>
+      <text class="count-pill">本机记录</text>
     </view>
+    <view class="muted small">仅统计本机保留的已完成参赛记录；换设备或重置本地数据后不会自动恢复。</view>
     <view class="stats-grid" wx:if="{{!noPerformanceData}}">
       <view class="stats-item">
         <view class="stats-label">已完成参赛</view>

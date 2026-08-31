@@ -1,5 +1,5 @@
 <view class="page home-page {{uiPreferenceClass}}" wx:if="{{!loadError}}">
-  <!-- sync-banner: 仅在离线/缓存/降级等异常态展示，健康态刷新静默处理 -->
+  <!-- sync-banner: 在线缓存与健康刷新保持静默，只展示需用户了解的异常态 -->
   <view class="sync-banner sync-{{syncStatusTone}}" hidden="{{!syncStatusVisible}}">
     <view class="sync-banner-main">
       <view class="sync-banner-text">{{syncStatusText}}</view>
@@ -109,7 +109,7 @@
           <view class="swipe-row card reveal" style="animation-delay: {{index < 6 ? 60 + index * 24 : 204}}ms;" hover-class="list-card-press" hover-stay-time="80" data-idx="{{index}}" data-id="{{item._id}}"
             bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd">
             <view class="swipe-actions {{item._offset < 0 ? 'is-open' : ''}}">
-              <view class="del-btn" catchtap="onDeleteTap" data-id="{{item._id}}">删除</view>
+              <view class="del-btn" catchtap="onDeleteTap" data-id="{{item._id}}">从本机移除</view>
             </view>
             <view class="swipe-content tone-{{item.status}}" style="transform: translateX({{item._offset}}rpx);" catchtap="onCardTap" data-id="{{item._id}}" data-idx="{{index}}">
               <view class="t-card">

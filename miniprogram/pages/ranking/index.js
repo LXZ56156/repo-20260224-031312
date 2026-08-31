@@ -1,3 +1,4 @@
+const auth = require('../../core/auth');
 const normalize = require('../../core/normalize');
 const nav = require('../../core/nav');
 const pageTitle = require('../../core/pageTitle');
@@ -10,7 +11,6 @@ const uiPreferences = require('../../core/uiPreferences');
 const shareCardStats = require('../../core/shareCardStats');
 const sharePageMixin = require('../../core/sharePageMixin');
 const tournamentEntry = require('../../core/tournamentEntry');
-const storage = require('../../core/storage');
 const growthTracker = require('../../core/growthTracker');
 
 const rankingSyncController = pageTournamentSync.createTournamentSyncMethods({
@@ -67,14 +67,7 @@ var shareMixin = sharePageMixin.createSharePageMixin({
     var openid = this.openid || (getApp().globalData.openid || '');
     var rankings = this.data.rankings || [];
     var currentRow = this._posterTargetRow || null;
-    if (!currentRow) {
-      for (var i = 0; i < rankings.length; i++) {
-        if (String(rankings[i].playerId || rankings[i].entityId || '') === openid) {
-          currentRow = rankings[i];
-          break;
-        }
-      }
-    }
+    if (!currentRow) currentRow = shareCardStats.findViewerRankingRow(tournament, rankings, openid);
     if (!currentRow) {
       if (rankings.length) currentRow = rankings[0];
       else throw new Error('no ranking data');
@@ -119,10 +112,6 @@ function buildRankingShareBanner(tournament) {
   return String(tournament && tournament.status || '').trim() === 'finished' ? '最终排名已出炉' : '';
 }
 
-function buildAutoPosterFiredKey(tournamentId) {
-  return `growth:autoPoster:fired:${String(tournamentId || '').trim()}`;
-}
-
 Page({
   data: {
     tournamentId: '',
@@ -163,6 +152,7 @@ Page({
   ...shareMixin,
 
   onLoad(options) {
+    this._pageActive = true;
     const tid = tournamentEntry.parseTournamentIdFromPageOptions(options || {});
     this._autoPosterRequested = String((options && options.autoPoster) || '') === '1' ||
       String((options && options.shareIntent) || '').trim() === 'poster';
@@ -170,6 +160,7 @@ Page({
     this.ensureAvatarRuntime();
     pageTournamentSync.initTournamentSync(this);
     this.openid = (getApp().globalData.openid || '');
+    this.primeViewerIdentity();
     this.setData({
       tournamentId: tid,
       primaryNavItems: matchPrimaryNav.getPrimaryNavItems('ranking', tid),
@@ -201,10 +192,14 @@ Page({
   },
 
   onHide() {
+    this._pageActive = false;
     pageTournamentSync.pauseTournamentSync(this);
   },
 
   onShow() {
+    const shouldRefreshIdentity = this._pageActive === false;
+    this._pageActive = true;
+    if (shouldRefreshIdentity) this.primeViewerIdentity();
     this.refreshUiPreferences();
     const currentId = String(this.data.tournamentId || '').trim();
     nav.consumeRefreshFlag(currentId);
@@ -218,11 +213,26 @@ Page({
   },
 
   onUnload() {
+    this._pageActive = false;
     pageTournamentSync.teardownTournamentSync(this);
     this._clearShareCache();
     if (typeof this._offNetwork === 'function') this._offNetwork();
     this._offNetwork = null;
     this._avatarResolveGen = Number(this._avatarResolveGen || 0) + 1;
+  },
+
+  async primeViewerIdentity() {
+    try {
+      const openid = String(await auth.login() || '').trim();
+      if (!openid || this._pageActive === false) return;
+      const changed = openid !== String(this.openid || '').trim();
+      this.openid = openid;
+      if (!changed) return;
+      const tournament = this._latestTournament || this.data.tournament;
+      if (tournament) this.applyTournament(tournament);
+    } catch (_) {
+      return;
+    }
   },
 
   applyTournament(t) {
@@ -285,9 +295,7 @@ Page({
     });
 
     const currentOpenid = String(this.openid || '').trim();
-    const isCurrentUserInRanking = currentOpenid
-      ? decoratedRankings.some((row) => String(row.playerId || row.entityId || '') === currentOpenid)
-      : false;
+    const isCurrentUserInRanking = !!shareCardStats.findViewerRankingRow(t, decoratedRankings, currentOpenid);
 
     this.setData({
       loadError: false,
@@ -400,11 +408,13 @@ Page({
   maybeFireAutoPoster(tournamentId) {
     const tid = String(tournamentId || '').trim();
     if (!tid || !this._autoPosterRequested || this._autoPosterFiredInPage) return;
-    const key = buildAutoPosterFiredKey(tid);
-    if (storage.get(key, false)) return;
     this._autoPosterFiredInPage = true;
-    storage.set(key, true);
-    setTimeout(() => {
+    setTimeout(async () => {
+      await this.primeViewerIdentity();
+      if (this._pageActive === false) {
+        this._autoPosterFiredInPage = false;
+        return;
+      }
       try {
         this.onGeneratePoster();
       } catch (err) {

@@ -117,12 +117,13 @@ test('buildSyncBannerState: no flags → not visible', () => {
   assert.equal(result.syncStatusText, '');
 });
 
-test('buildSyncBannerState: offline + cache → warning with offline cache text', () => {
+test('buildSyncBannerState: offline + cache reports only the actionable offline state', () => {
   const result = syncStatus.buildSyncBannerState({ networkOffline: true, syncUsingCache: true });
   assert.equal(result.syncStatusVisible, true);
   assert.equal(result.syncStatusTone, 'warning');
   assert.match(result.syncStatusText, /离线/);
-  assert.match(result.syncStatusText, /缓存/);
+  assert.doesNotMatch(result.syncStatusText, /缓存/);
+  assert.equal(result.syncStatusMeta, '');
 });
 
 test('buildSyncBannerState: offline only → warning', () => {
@@ -131,10 +132,15 @@ test('buildSyncBannerState: offline only → warning', () => {
   assert.match(result.syncStatusText, /离线/);
 });
 
-test('buildSyncBannerState: cache only → warning', () => {
-  const result = syncStatus.buildSyncBannerState({ syncUsingCache: true });
-  assert.equal(result.syncStatusTone, 'warning');
-  assert.match(result.syncStatusText, /缓存/);
+test('buildSyncBannerState: online cache stays silent instead of changing banner copy', () => {
+  const result = syncStatus.buildSyncBannerState({
+    syncUsingCache: true,
+    showStaleSyncHint: true,
+    syncPollingFallback: true
+  });
+  assert.equal(result.syncStatusVisible, false);
+  assert.equal(result.syncStatusText, '');
+  assert.equal(result.syncStatusMeta, '');
 });
 
 test('buildSyncBannerState: stale hint → info', () => {
@@ -177,15 +183,15 @@ test('buildSyncBannerState: degraded banner keeps sync action text while refresh
   assert.match(result.syncStatusMeta, /拉取最新数据/);
 });
 
-test('buildSyncBannerState: cache with cachedAt includes time in meta', () => {
+test('buildSyncBannerState: silent online cache omits cachedAt meta', () => {
   const now = new Date();
   now.setHours(10, 20, 0, 0);
   const result = syncStatus.buildSyncBannerState({
     syncUsingCache: true,
     syncCachedAt: now.getTime()
   });
-  assert.match(result.syncStatusMeta, /缓存于/);
-  assert.match(result.syncStatusMeta, /10:20/);
+  assert.equal(result.syncStatusVisible, false);
+  assert.equal(result.syncStatusMeta, '');
 });
 
 test('buildSyncBannerState: lastUpdatedAt shows in meta when not using cache', () => {

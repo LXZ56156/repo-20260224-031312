@@ -53,10 +53,12 @@ function installFakeTimers() {
 
 function createDeferred() {
   let resolve = null;
-  const promise = new Promise((res) => {
+  let reject = null;
+  const promise = new Promise((res, rej) => {
     resolve = res;
+    reject = rej;
   });
-  return { promise, resolve };
+  return { promise, resolve, reject };
 }
 
 function createWxStub() {
@@ -155,13 +157,17 @@ test('create handleCreate stays guarded after timeout while request is pending',
   const originalCloudCall = cloud.call;
   const originalEnsureProfileForAction = profileCore.ensureProfileForAction;
   const originalBuildTournamentUrl = nav.buildTournamentUrl;
+  const originalAddRecentTournamentId = storage.addRecentTournamentId;
 
   const deferred = createDeferred();
   const wxBox = createWxStub();
   const calls = [];
   const tasks = [];
+  const redirects = [];
+  const recentIds = [];
 
   global.wx = wxBox.api;
+  global.wx.redirectTo = (options = {}) => redirects.push(options.url);
 
   try {
     const definition = loadPageDefinition(createPagePath);
@@ -179,6 +185,7 @@ test('create handleCreate stays guarded after timeout while request is pending',
       }
     });
     nav.buildTournamentUrl = (path, tournamentId) => `${path}?tournamentId=${tournamentId}`;
+    storage.addRecentTournamentId = (tournamentId) => recentIds.push(tournamentId);
     cloud.call = async (name, payload) => {
       calls.push({ name, payload });
       return deferred.promise.then(() => ({ ok: true, tournamentId: 't_created' }));
@@ -200,12 +207,15 @@ test('create handleCreate stays guarded after timeout while request is pending',
     tasks.push(second);
     assert.equal(calls.length, 1);
 
+    ctx.onUnload();
     deferred.resolve();
     await settleTasks(tasks);
 
     assert.equal(ctx.data.createBusy, false);
     assert.deepEqual(wxBox.loadingEvents, ['show:创建中...', 'hide']);
     assert.equal(wxBox.getHideError(), null);
+    assert.deepEqual(redirects, []);
+    assert.deepEqual(recentIds, ['t_created']);
   } finally {
     deferred.resolve();
     await settleTasks(tasks);
@@ -215,6 +225,7 @@ test('create handleCreate stays guarded after timeout while request is pending',
     cloud.call = originalCloudCall;
     profileCore.ensureProfileForAction = originalEnsureProfileForAction;
     nav.buildTournamentUrl = originalBuildTournamentUrl;
+    storage.addRecentTournamentId = originalAddRecentTournamentId;
     delete require.cache[createPagePath];
   }
 });
@@ -232,8 +243,14 @@ test('share-entry handleJoin keeps joinBusy true after timeout while request is 
   const wxBox = createWxStub();
   const tasks = [];
   let joinCalls = 0;
+  let fetchCalls = 0;
+  let lobbyCalls = 0;
+  let toastCalls = 0;
 
   global.wx = wxBox.api;
+  global.wx.showToast = () => {
+    toastCalls += 1;
+  };
 
   try {
     const definition = loadPageDefinition(shareEntryPagePath);
@@ -246,8 +263,13 @@ test('share-entry handleJoin keeps joinBusy true after timeout while request is 
       },
       joinBusy: false
     });
-    ctx.fetchTournament = async () => {};
-    ctx.goLobby = () => {};
+    ctx._lifecycleGeneration = 0;
+    ctx.fetchTournament = async () => {
+      fetchCalls += 1;
+    };
+    ctx.goLobby = () => {
+      lobbyCalls += 1;
+    };
 
     joinTournamentCore.ensureJoinProfile = async () => ({
       ok: true,
@@ -282,12 +304,16 @@ test('share-entry handleJoin keeps joinBusy true after timeout while request is 
     tasks.push(second);
     assert.equal(joinCalls, 1);
 
+    ctx.onHide();
     deferred.resolve();
     await settleTasks(tasks);
 
     assert.equal(ctx.data.joinBusy, false);
     assert.deepEqual(wxBox.loadingEvents, ['show:加入中...', 'hide']);
     assert.equal(wxBox.getHideError(), null);
+    assert.equal(fetchCalls, 0);
+    assert.equal(lobbyCalls, 0);
+    assert.equal(toastCalls, 0);
   } finally {
     deferred.resolve();
     await settleTasks(tasks);
@@ -303,18 +329,18 @@ test('share-entry handleJoin keeps joinBusy true after timeout while request is 
   }
 });
 
-test('joinTournament core stays guarded after timeout while cloud request is pending', async () => {
+test('joinTournament core reuses the same action result without blocking a different action', async () => {
   const timers = installFakeTimers();
   const originalCall = cloud.call;
   const deferred = createDeferred();
   const tasks = [];
-  let callCount = 0;
+  const calls = [];
 
   try {
-    cloud.call = async () => {
-      callCount += 1;
+    cloud.call = async (_name, payload) => {
+      calls.push(payload);
       await deferred.promise;
-      return { ok: true };
+      return { ok: true, action: payload.action, clientRequestId: payload.clientRequestId };
     };
 
     const first = joinTournamentCore.callJoinTournament({ tournamentId: 't_join_core' }, {
@@ -322,28 +348,39 @@ test('joinTournament core stays guarded after timeout while cloud request is pen
       fallbackMessage: '加入失败'
     });
     tasks.push(first);
-    assert.equal(callCount, 1);
+    assert.equal(calls.length, 1);
 
     await timers.flushAll();
 
-    assert.equal(actionGuard.isBusy('core:joinTournament:t_join_core'), true);
+    assert.equal(actionGuard.isBusy('core:joinTournament:t_join_core:join'), true);
 
     const second = joinTournamentCore.callJoinTournament({ tournamentId: 't_join_core' }, {
       action: 'join',
       fallbackMessage: '加入失败'
     });
     tasks.push(second);
-    assert.equal(callCount, 1);
+    assert.equal(calls.length, 1);
+    assert.strictEqual(second, first);
+
+    const profileUpdate = joinTournamentCore.callJoinTournament({ tournamentId: 't_join_core' }, {
+      action: 'profile_update',
+      fallbackMessage: '资料同步失败'
+    });
+    tasks.push(profileUpdate);
+    assert.equal(calls.length, 2);
 
     deferred.resolve();
-    const [, secondResult] = await Promise.all(tasks);
-    assert.equal(secondResult.ok, true);
-    assert.equal(secondResult.deduped, true);
+    const [firstResult, secondResult, profileResult] = await Promise.all(tasks);
+    assert.strictEqual(secondResult, firstResult);
+    assert.equal(secondResult.action, 'join');
+    assert.equal(profileResult.action, 'profile_update');
     assert.match(String(secondResult.clientRequestId || ''), /^join_/);
+    assert.match(String(profileResult.clientRequestId || ''), /^join_profile_/);
   } finally {
     deferred.resolve();
     await settleTasks(tasks);
-    actionGuard.clear('core:joinTournament:t_join_core');
+    actionGuard.clear('core:joinTournament:t_join_core:join');
+    actionGuard.clear('core:joinTournament:t_join_core:profile_update');
     timers.restore();
     cloud.call = originalCall;
   }
@@ -361,6 +398,7 @@ test('settings saveSettings keeps settingsBusy until request settles after timeo
   const wxBox = createWxStub();
   const tasks = [];
   const calls = [];
+  const navigationCalls = [];
 
   global.wx = wxBox.api;
 
@@ -371,7 +409,7 @@ test('settings saveSettings keeps settingsBusy until request settles after timeo
       return { ok: true, version: 2 };
     };
     nav.markRefreshFlag = () => {};
-    nav.navigateBackOrRedirect = () => {};
+    nav.navigateBackOrRedirect = (url) => navigationCalls.push(url);
     nav.buildTournamentUrl = (path, tournamentId) => `${path}?tournamentId=${tournamentId}`;
 
     const ctx = createContext(settingsActions, {
@@ -404,6 +442,7 @@ test('settings saveSettings keeps settingsBusy until request settles after timeo
     ctx.clearLastFailedAction = () => {};
     ctx.setLastFailedAction = () => {};
     ctx.handleWriteError = () => {};
+    ctx._lifecycleGeneration = 0;
 
     const first = ctx.saveSettings();
     tasks.push(first);
@@ -419,12 +458,15 @@ test('settings saveSettings keeps settingsBusy until request settles after timeo
     tasks.push(second);
     assert.equal(calls.length, 1);
 
+    ctx._lifecycleGeneration += 1;
     deferred.resolve();
     await settleTasks(tasks);
+    await timers.flushAll();
 
     assert.equal(ctx.data.settingsBusy, false);
     assert.deepEqual(wxBox.loadingEvents, ['show:保存中...', 'hide']);
     assert.equal(wxBox.getHideError(), null);
+    assert.deepEqual(navigationCalls, []);
   } finally {
     deferred.resolve();
     await settleTasks(tasks);
@@ -438,7 +480,7 @@ test('settings saveSettings keeps settingsBusy until request settles after timeo
   }
 });
 
-test('lobby saveQuickSettings stays guarded after timeout while request is pending', async () => {
+test('lobby saveQuickSettings stays guarded and drops hidden-page success effects', async () => {
   const timers = installFakeTimers();
   const originalWx = global.wx;
   const originalCloudCall = cloud.call;
@@ -448,8 +490,14 @@ test('lobby saveQuickSettings stays guarded after timeout while request is pendi
   const wxBox = createWxStub();
   const tasks = [];
   const calls = [];
+  let refreshFlags = 0;
+  let focusCalls = 0;
+  let toastCalls = 0;
 
   global.wx = wxBox.api;
+  global.wx.showToast = () => {
+    toastCalls += 1;
+  };
 
   try {
     cloud.call = async (name, payload) => {
@@ -457,7 +505,9 @@ test('lobby saveQuickSettings stays guarded after timeout while request is pendi
       await deferred.promise;
       return { ok: true, version: 2 };
     };
-    nav.markRefreshFlag = () => {};
+    nav.markRefreshFlag = () => {
+      refreshFlags += 1;
+    };
 
     const ctx = createContext(lobbyDraftActions, {
       tournamentId: 't_lobby_settings',
@@ -484,7 +534,13 @@ test('lobby saveQuickSettings stays guarded after timeout while request is pendi
       canConfigureSettings: true,
       quickSettingsBusy: false
     });
-    ctx.fetchTournament = async () => {};
+    ctx._lifecycleGeneration = 0;
+    ctx.fetchTournament = async () => {
+      ctx.data.checkStartReady = true;
+    };
+    ctx.focusStartAction = () => {
+      focusCalls += 1;
+    };
     ctx.clearLastFailedAction = () => {};
     ctx.setLastFailedAction = () => {};
     ctx.handleWriteError = () => {};
@@ -501,11 +557,15 @@ test('lobby saveQuickSettings stays guarded after timeout while request is pendi
     tasks.push(second);
     assert.equal(calls.length, 1);
 
+    ctx._lifecycleGeneration += 1;
     deferred.resolve();
     await settleTasks(tasks);
 
     assert.deepEqual(wxBox.loadingEvents, ['show:保存中...', 'hide']);
     assert.equal(wxBox.getHideError(), null);
+    assert.equal(toastCalls, 0);
+    assert.equal(refreshFlags, 0);
+    assert.equal(focusCalls, 0);
   } finally {
     deferred.resolve();
     await settleTasks(tasks);
@@ -527,8 +587,14 @@ test('lobby quickImportPlayers stays guarded after timeout while request is pend
   const wxBox = createWxStub();
   const tasks = [];
   const calls = [];
+  let fetchCalls = 0;
+  let refreshFlags = 0;
+  let toastCalls = 0;
 
   global.wx = wxBox.api;
+  global.wx.showToast = () => {
+    toastCalls += 1;
+  };
 
   try {
     cloud.call = async (name, payload) => {
@@ -536,7 +602,9 @@ test('lobby quickImportPlayers stays guarded after timeout while request is pend
       await deferred.promise;
       return { ok: true, addedCount: 2, duplicateCount: 0, invalidCount: 0, maleCount: 1, femaleCount: 1, unknownCount: 0 };
     };
-    nav.markRefreshFlag = () => {};
+    nav.markRefreshFlag = () => {
+      refreshFlags += 1;
+    };
 
     const ctx = createContext(lobbyDraftActions, {
       tournamentId: 't_import',
@@ -544,7 +612,10 @@ test('lobby quickImportPlayers stays guarded after timeout while request is pend
       tournament: { status: 'draft' },
       quickImportText: '球友A 球友B'
     });
-    ctx.fetchTournament = async () => {};
+    ctx._lifecycleGeneration = 0;
+    ctx.fetchTournament = async () => {
+      fetchCalls += 1;
+    };
     ctx.clearLastFailedAction = () => {};
     ctx.setLastFailedAction = () => {};
     ctx.handleWriteError = () => {};
@@ -561,11 +632,17 @@ test('lobby quickImportPlayers stays guarded after timeout while request is pend
     tasks.push(second);
     assert.equal(calls.length, 1);
 
+    ctx._lifecycleGeneration += 1;
+    ctx.data.quickImportText = '球友C 球友D';
     deferred.resolve();
     await settleTasks(tasks);
 
     assert.deepEqual(wxBox.loadingEvents, ['show:导入中...', 'hide']);
     assert.equal(wxBox.getHideError(), null);
+    assert.equal(ctx.data.quickImportText, '球友C 球友D');
+    assert.equal(fetchCalls, 0);
+    assert.equal(refreshFlags, 0);
+    assert.equal(toastCalls, 0);
   } finally {
     deferred.resolve();
     await settleTasks(tasks);
@@ -587,16 +664,34 @@ test('analytics clone action stays guarded after timeout while request is pendin
   const wxBox = createWxStub();
   const tasks = [];
   const calls = [];
+  let clearRetryCalls = 0;
+  let navigationCalls = 0;
+  let recentWrites = 0;
+  let retryCalls = 0;
+  let toastCalls = 0;
 
   global.wx = wxBox.api;
+  global.wx.navigateTo = () => {
+    navigationCalls += 1;
+  };
+  global.wx.showToast = () => {
+    toastCalls += 1;
+  };
 
   try {
     const definition = loadPageDefinition(analyticsPagePath);
     const ctx = createPageContext(definition, { tournamentId: 't_clone' });
-    ctx.clearLastFailedAction = () => {};
-    ctx.setLastFailedAction = () => {};
+    ctx._lifecycleGeneration = 0;
+    ctx.clearLastFailedAction = () => {
+      clearRetryCalls += 1;
+    };
+    ctx.setLastFailedAction = () => {
+      retryCalls += 1;
+    };
 
-    storage.addRecentTournamentId = () => {};
+    storage.addRecentTournamentId = () => {
+      recentWrites += 1;
+    };
     cloud.call = async (name, payload) => {
       calls.push({ name, payload });
       await deferred.promise;
@@ -615,11 +710,33 @@ test('analytics clone action stays guarded after timeout while request is pendin
     tasks.push(second);
     assert.equal(calls.length, 1);
 
+    ctx.onHide();
     deferred.resolve();
     await settleTasks(tasks);
 
     assert.deepEqual(wxBox.loadingEvents, ['show:复制中...', 'hide']);
     assert.equal(wxBox.getHideError(), null);
+    assert.equal(recentWrites, 1);
+    assert.equal(clearRetryCalls, 0);
+    assert.equal(retryCalls, 0);
+    assert.equal(toastCalls, 0);
+    assert.equal(navigationCalls, 0);
+
+    const failureDeferred = createDeferred();
+    cloud.call = async () => failureDeferred.promise;
+    const failureCtx = createPageContext(definition, { tournamentId: 't_clone' });
+    failureCtx._lifecycleGeneration = 0;
+    failureCtx.clearLastFailedAction = ctx.clearLastFailedAction;
+    failureCtx.setLastFailedAction = ctx.setLastFailedAction;
+    const failedTask = failureCtx.cloneCurrentTournament();
+    failureCtx.onHide();
+    failureDeferred.reject(new Error('clone failed'));
+    await settleTasks([failedTask]);
+    assert.equal(recentWrites, 1);
+    assert.equal(clearRetryCalls, 0);
+    assert.equal(retryCalls, 0);
+    assert.equal(toastCalls, 0);
+    assert.equal(navigationCalls, 0);
   } finally {
     deferred.resolve();
     await settleTasks(tasks);
@@ -638,12 +755,14 @@ test('lobby handleStart stays guarded after timeout while request is pending', a
   const originalCloudCall = cloud.call;
   const originalMarkRefreshFlag = nav.markRefreshFlag;
   const originalBuildTournamentUrl = nav.buildTournamentUrl;
+  const originalGoSchedule = nav.goSchedule;
   const originalGetSchedulerProfile = storage.getSchedulerProfile;
 
   const deferred = createDeferred();
   const wxBox = createWxStub();
   const tasks = [];
   const calls = [];
+  const navigationCalls = [];
 
   global.wx = wxBox.api;
 
@@ -655,6 +774,7 @@ test('lobby handleStart stays guarded after timeout while request is pending', a
     };
     nav.markRefreshFlag = () => {};
     nav.buildTournamentUrl = (path, tournamentId) => `${path}?tournamentId=${tournamentId}`;
+    nav.goSchedule = (tournamentId) => navigationCalls.push(tournamentId);
     storage.getSchedulerProfile = () => 'balanced';
 
     const ctx = createContext(lobbyDraftActions, {
@@ -668,6 +788,7 @@ test('lobby handleStart stays guarded after timeout while request is pending', a
     ctx.setLastFailedAction = () => {};
     ctx.handleWriteError = () => {};
     ctx.fetchTournament = async () => {};
+    ctx._lifecycleGeneration = 0;
 
     const first = ctx.handleStart();
     tasks.push(first);
@@ -681,11 +802,14 @@ test('lobby handleStart stays guarded after timeout while request is pending', a
     tasks.push(second);
     assert.equal(calls.length, 1);
 
+    ctx._lifecycleGeneration += 1;
     deferred.resolve();
     await settleTasks(tasks);
+    await timers.flushAll();
 
     assert.deepEqual(wxBox.loadingEvents, ['show:生成对阵...', 'hide']);
     assert.equal(wxBox.getHideError(), null);
+    assert.deepEqual(navigationCalls, []);
   } finally {
     deferred.resolve();
     await settleTasks(tasks);
@@ -695,6 +819,7 @@ test('lobby handleStart stays guarded after timeout while request is pending', a
     cloud.call = originalCloudCall;
     nav.markRefreshFlag = originalMarkRefreshFlag;
     nav.buildTournamentUrl = originalBuildTournamentUrl;
+    nav.goSchedule = originalGoSchedule;
     storage.getSchedulerProfile = originalGetSchedulerProfile;
   }
 });
@@ -712,8 +837,18 @@ test('lobby cancelTournament stays guarded after timeout while request is pendin
   const deferred = createDeferred();
   const wxBox = createWxStub();
   const calls = [];
+  let cacheRemovals = 0;
+  let clearRetryCalls = 0;
+  let homeCalls = 0;
+  let recentRemovals = 0;
+  let refreshFlags = 0;
+  let snapshotRemovals = 0;
+  let toastCalls = 0;
 
   global.wx = wxBox.api;
+  global.wx.showToast = () => {
+    toastCalls += 1;
+  };
 
   try {
     cloud.call = async (name, payload) => {
@@ -721,18 +856,31 @@ test('lobby cancelTournament stays guarded after timeout while request is pendin
       await deferred.promise;
       return { ok: true };
     };
-    nav.markRefreshFlag = () => {};
-    nav.goHome = () => {};
-    storage.removeRecentTournamentId = () => {};
-    storage.removeLocalCompletedTournamentSnapshot = () => {};
-    storage.removeLocalTournamentCache = () => {};
+    nav.markRefreshFlag = () => {
+      refreshFlags += 1;
+    };
+    nav.goHome = () => {
+      homeCalls += 1;
+    };
+    storage.removeRecentTournamentId = () => {
+      recentRemovals += 1;
+    };
+    storage.removeLocalCompletedTournamentSnapshot = () => {
+      snapshotRemovals += 1;
+    };
+    storage.removeLocalTournamentCache = () => {
+      cacheRemovals += 1;
+    };
 
     const ctx = createContext(lobbyDraftActions, {
       tournamentId: 't_cancel',
       tournament: { status: 'draft' },
       isAdmin: true
     });
-    ctx.clearLastFailedAction = () => {};
+    ctx._lifecycleGeneration = 0;
+    ctx.clearLastFailedAction = () => {
+      clearRetryCalls += 1;
+    };
     ctx.setLastFailedAction = () => {};
     ctx.handleWriteError = () => {};
     ctx.fetchTournament = async () => {};
@@ -747,11 +895,19 @@ test('lobby cancelTournament stays guarded after timeout while request is pendin
     ctx.cancelTournament();
     assert.equal(calls.length, 1);
 
+    ctx._lifecycleGeneration += 1;
     deferred.resolve();
     await settleTasks(wxBox.pendingModalTasks);
 
     assert.deepEqual(wxBox.loadingEvents, ['show:取消中...', 'hide']);
     assert.equal(wxBox.getHideError(), null);
+    assert.equal(recentRemovals, 1);
+    assert.equal(snapshotRemovals, 1);
+    assert.equal(cacheRemovals, 1);
+    assert.equal(refreshFlags, 1);
+    assert.equal(clearRetryCalls, 0);
+    assert.equal(toastCalls, 0);
+    assert.equal(homeCalls, 0);
   } finally {
     deferred.resolve();
     await settleTasks(wxBox.pendingModalTasks);
@@ -837,8 +993,16 @@ test('feedback onSubmit keeps submitting true after timeout while request is pen
   const wxBox = createWxStub();
   const tasks = [];
   const calls = [];
+  let modalCalls = 0;
+  let toastCalls = 0;
 
   global.wx = wxBox.api;
+  global.wx.showModal = () => {
+    modalCalls += 1;
+  };
+  global.wx.showToast = () => {
+    toastCalls += 1;
+  };
 
   try {
     const definition = loadPageDefinition(feedbackPagePath);
@@ -848,6 +1012,7 @@ test('feedback onSubmit keeps submitting true after timeout while request is pen
       contentLength: 24,
       submitting: false
     });
+    ctx._lifecycleGeneration = 0;
 
     cloud.call = async (name, payload) => {
       calls.push({ name, payload });
@@ -869,12 +1034,33 @@ test('feedback onSubmit keeps submitting true after timeout while request is pen
     tasks.push(second);
     assert.equal(calls.length, 1);
 
+    ctx.onHide();
     deferred.resolve();
     await settleTasks(tasks);
 
     assert.equal(ctx.data.submitting, false);
+    assert.equal(ctx.data.content, '这是一个足够长的反馈内容，用来验证 timeout reentry。');
     assert.deepEqual(wxBox.loadingEvents, ['show:提交中...', 'hide']);
     assert.equal(wxBox.getHideError(), null);
+    assert.equal(modalCalls, 0);
+    assert.equal(toastCalls, 0);
+
+    const failureDeferred = createDeferred();
+    cloud.call = async () => failureDeferred.promise;
+    const failureCtx = createPageContext(definition, {
+      blocked: false,
+      content: '这是另一条足够长的反馈内容。',
+      contentLength: 18,
+      submitting: false
+    });
+    failureCtx._lifecycleGeneration = 0;
+    const failedTask = failureCtx.onSubmit();
+    failureCtx.onHide();
+    failureDeferred.reject(new Error('feedback failed'));
+    await settleTasks([failedTask]);
+    assert.equal(failureCtx.data.content, '这是另一条足够长的反馈内容。');
+    assert.equal(modalCalls, 0);
+    assert.equal(toastCalls, 0);
   } finally {
     deferred.resolve();
     await settleTasks(tasks);
@@ -899,19 +1085,33 @@ test('lobby saveMyProfile stays guarded after timeout while request is pending',
   const wxBox = createWxStub();
   const tasks = [];
   let joinCalls = 0;
+  let clearRetryCalls = 0;
+  let fetchCalls = 0;
+  let profileSaveCalls = 0;
+  let refreshFlags = 0;
+  let retryCalls = 0;
+  let toastCalls = 0;
 
   global.wx = wxBox.api;
+  global.wx.showToast = () => {
+    toastCalls += 1;
+  };
 
   try {
     storage.getUserProfile = () => ({ gender: 'male', nickName: '旧昵称', avatar: 'cloud://avatar/old' });
     storage.setUserProfile = () => {};
-    nav.markRefreshFlag = () => {};
+    nav.markRefreshFlag = () => {
+      refreshFlags += 1;
+    };
     joinTournamentCore.callJoinTournament = async () => {
       joinCalls += 1;
       await deferred.promise;
       return { ok: true };
     };
-    profileCore.saveCloudProfile = async () => ({ ok: true });
+    profileCore.saveCloudProfile = async () => {
+      profileSaveCalls += 1;
+      return { ok: true };
+    };
 
     const ctx = createContext(lobbyProfileActions, {
       tournamentId: 't_profile_join',
@@ -924,9 +1124,16 @@ test('lobby saveMyProfile stays guarded after timeout while request is pending',
       profileAvatarUploading: false,
       profileQuickFillLoading: false
     });
-    ctx.fetchTournament = async () => {};
-    ctx.clearLastFailedAction = () => {};
-    ctx.setLastFailedAction = () => {};
+    ctx._lifecycleGeneration = 0;
+    ctx.fetchTournament = async () => {
+      fetchCalls += 1;
+    };
+    ctx.clearLastFailedAction = () => {
+      clearRetryCalls += 1;
+    };
+    ctx.setLastFailedAction = () => {
+      retryCalls += 1;
+    };
     ctx.handleWriteError = () => {};
 
     const first = ctx.saveMyProfile();
@@ -943,12 +1150,19 @@ test('lobby saveMyProfile stays guarded after timeout while request is pending',
     tasks.push(second);
     assert.equal(joinCalls, 1);
 
+    ctx._lifecycleGeneration += 1;
     deferred.resolve();
     await settleTasks(tasks);
 
     assert.equal(ctx.data.profileSaving, false);
     assert.deepEqual(wxBox.loadingEvents, ['show:保存中...', 'hide']);
     assert.equal(wxBox.getHideError(), null);
+    assert.equal(profileSaveCalls, 0);
+    assert.equal(clearRetryCalls, 0);
+    assert.equal(retryCalls, 0);
+    assert.equal(fetchCalls, 0);
+    assert.equal(refreshFlags, 0);
+    assert.equal(toastCalls, 0);
   } finally {
     deferred.resolve();
     await settleTasks(tasks);
@@ -972,8 +1186,13 @@ test('lobby createPairTeam keeps pairTeamBusy true after timeout while request i
   const wxBox = createWxStub();
   const tasks = [];
   const calls = [];
+  let fetchCalls = 0;
+  let toastCalls = 0;
 
   global.wx = wxBox.api;
+  global.wx.showToast = () => {
+    toastCalls += 1;
+  };
 
   try {
     cloud.call = async (name, payload) => {
@@ -995,7 +1214,10 @@ test('lobby createPairTeam keeps pairTeamBusy true after timeout while request i
       pairTeamFirstIndex: 0,
       pairTeamSecondIndex: 1
     });
-    ctx.fetchTournament = async () => {};
+    ctx._lifecycleGeneration = 0;
+    ctx.fetchTournament = async () => {
+      fetchCalls += 1;
+    };
     ctx.handleWriteError = () => {};
 
     const first = ctx.createPairTeam();
@@ -1012,12 +1234,17 @@ test('lobby createPairTeam keeps pairTeamBusy true after timeout while request i
     tasks.push(second);
     assert.equal(calls.length, 1);
 
+    ctx._lifecycleGeneration += 1;
+    ctx.data.pairTeamName = '新队名';
     deferred.resolve();
     await settleTasks(tasks);
 
     assert.equal(ctx.data.pairTeamBusy, false);
+    assert.equal(ctx.data.pairTeamName, '新队名');
     assert.deepEqual(wxBox.loadingEvents, ['show:创建队伍...', 'hide']);
     assert.equal(wxBox.getHideError(), null);
+    assert.equal(fetchCalls, 0);
+    assert.equal(toastCalls, 0);
   } finally {
     deferred.resolve();
     await settleTasks(tasks);
@@ -1030,10 +1257,18 @@ test('lobby createPairTeam keeps pairTeamBusy true after timeout while request i
 
 test('lobby setPlayerSquad stays guarded after timeout while request is pending', async () => {
   const timers = installFakeTimers();
+  const originalWx = global.wx;
   const originalCloudCall = cloud.call;
   const deferred = createDeferred();
   const tasks = [];
   const calls = [];
+  let fetchCalls = 0;
+  let toastCalls = 0;
+
+  global.wx = createWxStub().api;
+  global.wx.showToast = () => {
+    toastCalls += 1;
+  };
 
   try {
     cloud.call = async (name, payload) => {
@@ -1049,7 +1284,10 @@ test('lobby setPlayerSquad stays guarded after timeout while request is pending'
       tournament: { status: 'draft' },
       displayPlayers: [{ id: 'p_1', squad: 'A' }]
     });
-    ctx.fetchTournament = async () => {};
+    ctx._lifecycleGeneration = 0;
+    ctx.fetchTournament = async () => {
+      fetchCalls += 1;
+    };
 
     const event = { currentTarget: { dataset: { player: 'p_1' } } };
     const first = ctx.onTogglePlayerSquad(event);
@@ -1064,13 +1302,17 @@ test('lobby setPlayerSquad stays guarded after timeout while request is pending'
     tasks.push(second);
     assert.equal(calls.length, 1);
 
+    ctx._lifecycleGeneration += 1;
     deferred.resolve();
     await settleTasks(tasks);
+    assert.equal(fetchCalls, 0);
+    assert.equal(toastCalls, 0);
   } finally {
     deferred.resolve();
     await settleTasks(tasks);
     actionGuard.clear('lobby:setPlayerSquad:t_squad:p_1');
     timers.restore();
+    global.wx = originalWx;
     cloud.call = originalCloudCall;
   }
 });

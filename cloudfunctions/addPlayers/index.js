@@ -58,6 +58,42 @@ function makeId(i) {
   return `guest_${Date.now()}_${i}_${crypto.randomBytes(8).toString('hex')}`;
 }
 
+function buildImportResult({
+  added = 0,
+  addedCount = added,
+  maleCount = 0,
+  femaleCount = 0,
+  unknownCount = 0,
+  duplicateCount = 0,
+  invalidCount = 0,
+  duplicateNames = [],
+  invalidNames = []
+} = {}) {
+  return {
+    added,
+    addedCount,
+    maleCount,
+    femaleCount,
+    unknownCount,
+    duplicateCount,
+    invalidCount,
+    duplicateNames,
+    invalidNames
+  };
+}
+
+function buildStoredImportCounts(result = {}) {
+  return {
+    added: Number(result.added) || 0,
+    addedCount: Number(result.addedCount) || 0,
+    maleCount: Number(result.maleCount) || 0,
+    femaleCount: Number(result.femaleCount) || 0,
+    unknownCount: Number(result.unknownCount) || 0,
+    duplicateCount: Number(result.duplicateCount) || 0,
+    invalidCount: Number(result.invalidCount) || 0
+  };
+}
+
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
   const traceId = String((event && event.__traceId) || '').trim();
@@ -74,18 +110,18 @@ exports.main = async (event) => {
   }
   if (!Array.isArray(entries) || entries.length === 0) {
     if (normalized.invalidNames.length > 0 || normalized.duplicateNames.length > 0) {
-      return {
-        ok: true,
-        added: 0,
-        addedCount: 0,
-        maleCount: 0,
-        femaleCount: 0,
-        unknownCount: 0,
+      const importResult = buildImportResult({
         duplicateCount: normalized.duplicateNames.length,
         invalidCount: normalized.invalidNames.length,
         duplicateNames: normalized.duplicateNames,
         invalidNames: normalized.invalidNames
-      };
+      });
+      return common.okResult('PLAYERS_ADDED', '名单导入已处理', {
+        traceId,
+        state: 'unchanged',
+        ...(clientRequestId ? { clientRequestId } : {}),
+        ...importResult
+      });
     }
     return common.failResult('NAMES_REQUIRED', '缺少 names', {
       traceId,
@@ -133,20 +169,14 @@ exports.main = async (event) => {
         });
       }
       if (clientRequestId && String(t.lastClientRequestId || '').trim() === clientRequestId) {
-        return {
-          ok: true,
+        const importResult = buildImportResult(t.lastAddPlayersCounts);
+        return common.okResult('PLAYERS_ADDED_DEDUPED', '名单导入已处理', {
+          traceId,
+          state: 'deduped',
           deduped: true,
-          ...(clientRequestId ? { clientRequestId } : {}),
-          added: 0,
-          addedCount: 0,
-          maleCount: 0,
-          femaleCount: 0,
-          unknownCount: 0,
-          duplicateCount: 0,
-          invalidCount: 0,
-          duplicateNames: [],
-          invalidNames: []
-        };
+          clientRequestId,
+          ...importResult
+        });
       }
       const oldVersion = Number(t.version) || 1;
 
@@ -168,18 +198,18 @@ exports.main = async (event) => {
         toAdd.push({ id: makeId(i), name: n, type: 'guest', gender: item.gender || 'unknown', squad: '' });
       }
       if (toAdd.length === 0) {
-        return {
-          ok: true,
-          added: 0,
-          addedCount: 0,
-          maleCount: 0,
-          femaleCount: 0,
-          unknownCount: 0,
+        const importResult = buildImportResult({
           duplicateCount: duplicateNames.length,
           invalidCount: invalidNames.length,
           duplicateNames,
           invalidNames
-        };
+        });
+        return common.okResult('PLAYERS_ADDED', '名单导入已处理', {
+          traceId,
+          state: 'unchanged',
+          ...(clientRequestId ? { clientRequestId } : {}),
+          ...importResult
+        });
       }
       const playerLimit = modeHelper.getRotationPlayerLimit(t);
       if (playerLimit > 0 && players.length + toAdd.length > playerLimit) {
@@ -196,6 +226,18 @@ exports.main = async (event) => {
       }
       const nextPlayers = players.concat(toAdd);
       const nextPlayerIds = Array.from(new Set(nextPlayers.map((item) => String(item && item.id || '').trim()).filter(Boolean)));
+      const maleCount = toAdd.filter((p) => p.gender === 'male').length;
+      const femaleCount = toAdd.filter((p) => p.gender === 'female').length;
+      const importResult = buildImportResult({
+        added: toAdd.length,
+        maleCount,
+        femaleCount,
+        unknownCount: toAdd.length - maleCount - femaleCount,
+        duplicateCount: duplicateNames.length,
+        invalidCount: invalidNames.length,
+        duplicateNames,
+        invalidNames
+      });
 
       const updateData = {
         players: nextPlayers,
@@ -203,7 +245,10 @@ exports.main = async (event) => {
         updatedAt: db.serverDate(),
         version: _.inc(1)
       };
-      if (clientRequestId) updateData.lastClientRequestId = clientRequestId;
+      if (clientRequestId) {
+        updateData.lastClientRequestId = clientRequestId;
+        updateData.lastAddPlayersCounts = buildStoredImportCounts(importResult);
+      }
 
       const updRes = await transaction.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({
         data: common.assertNoReservedRootKeys(updateData, ['_id'], '赛事导入名单写入数据')
@@ -215,27 +260,17 @@ exports.main = async (event) => {
           ...(clientRequestId ? { clientRequestId } : {})
         });
       }
-      const maleCount = toAdd.filter((p) => p.gender === 'male').length;
-      const femaleCount = toAdd.filter((p) => p.gender === 'female').length;
-      const unknownCount = toAdd.length - maleCount - femaleCount;
       shareUpdateTournament = {
         ...t,
         players: nextPlayers,
         playerIds: nextPlayerIds
       };
-      return {
-        ok: true,
+      return common.okResult('PLAYERS_ADDED', '名单导入已处理', {
+        traceId,
+        state: 'updated',
         ...(clientRequestId ? { clientRequestId } : {}),
-        added: toAdd.length,
-        addedCount: toAdd.length,
-        maleCount,
-        femaleCount,
-        unknownCount,
-        duplicateCount: duplicateNames.length,
-        invalidCount: invalidNames.length,
-        duplicateNames,
-        invalidNames
-      };
+        ...importResult
+      });
     });
     if (result && result.ok && shareUpdateTournament) {
       await shareActivity.updateDraftMessageBestEffort(cloud, shareUpdateTournament, modeHelper, console, {

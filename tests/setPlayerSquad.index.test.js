@@ -68,7 +68,14 @@ test('setPlayerSquad updates one player squad with optimistic lock', async () =>
           assert.equal(id, 't_1');
           return {
             async get() {
-              return { data: buildTournament() };
+              return {
+                data: buildTournament({
+                  players: [
+                    { id: 'u_admin', name: '管理员', squad: 'A' },
+                    { playerId: 'p_1', name: '球友A', squad: 'A' }
+                  ]
+                })
+              };
             }
           };
         },

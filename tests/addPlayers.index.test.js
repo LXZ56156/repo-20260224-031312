@@ -110,11 +110,15 @@ test('addPlayers imports unique valid players and returns detailed counts', asyn
         { name: '球友A', gender: 'female' },
         { name: '球友B', gender: 'female' },
         { name: '', gender: 'male' }
-      ]
+      ],
+      clientRequestId: 'req_add_1',
+      __traceId: 'trace-add-1'
     });
 
     assert.deepEqual(result, {
-      ok: true,
+      traceId: 'trace-add-1',
+      state: 'updated',
+      clientRequestId: 'req_add_1',
       added: 2,
       addedCount: 2,
       maleCount: 1,
@@ -123,7 +127,22 @@ test('addPlayers imports unique valid players and returns detailed counts', asyn
       duplicateCount: 1,
       invalidCount: 1,
       duplicateNames: ['球友A'],
-      invalidNames: ['']
+      invalidNames: [''],
+      ok: true,
+      code: 'PLAYERS_ADDED',
+      message: '名单导入已处理',
+      data: {
+        clientRequestId: 'req_add_1',
+        added: 2,
+        addedCount: 2,
+        maleCount: 1,
+        femaleCount: 1,
+        unknownCount: 0,
+        duplicateCount: 1,
+        invalidCount: 1,
+        duplicateNames: ['球友A'],
+        invalidNames: ['']
+      }
     });
     assert.equal(writtenData.players.length, 3);
     assert.deepEqual(writtenData.playerIds, [
@@ -131,6 +150,16 @@ test('addPlayers imports unique valid players and returns detailed counts', asyn
       'guest_1700000000000_0_1234567890abcdef',
       'guest_1700000000000_1_1234567890abcdef'
     ]);
+    assert.equal(writtenData.lastClientRequestId, 'req_add_1');
+    assert.deepEqual(writtenData.lastAddPlayersCounts, {
+      added: 2,
+      addedCount: 2,
+      maleCount: 1,
+      femaleCount: 1,
+      unknownCount: 0,
+      duplicateCount: 1,
+      invalidCount: 1
+    });
   } finally {
     Date.now = originalNow;
   }
@@ -280,6 +309,8 @@ test('addPlayers respects fixed rotation quota after ignoring existing and batch
   assert.equal(result.addedCount, 2);
   assert.equal(result.duplicateCount, 2);
   assert.equal(writtenData.players.length, 6);
+  assert.equal(Object.hasOwn(writtenData, 'lastClientRequestId'), false);
+  assert.equal(Object.hasOwn(writtenData, 'lastAddPlayersCounts'), false);
 });
 
 test('addPlayers rejects the whole import when fixed rotation quota would be exceeded', async () => {
@@ -462,7 +493,7 @@ test('addPlayers returns structured conflict result when optimistic update loses
   });
 });
 
-test('addPlayers treats repeated clientRequestId as deduped success', async () => {
+test('addPlayers replays the first import result for a repeated clientRequestId', async () => {
   let updateCalled = false;
   const db = {
     command: {
@@ -480,7 +511,21 @@ test('addPlayers treats repeated clientRequestId as deduped success', async () =
             doc() {
               return {
                 async get() {
-                  return { data: { ...buildTournament(), lastClientRequestId: 'req_add_1' } };
+                  return {
+                    data: {
+                      ...buildTournament(),
+                      lastClientRequestId: 'req_add_1',
+                      lastAddPlayersCounts: {
+                        added: 2,
+                        addedCount: 2,
+                        maleCount: 1,
+                        femaleCount: 1,
+                        unknownCount: 0,
+                        duplicateCount: 1,
+                        invalidCount: 1
+                      }
+                    }
+                  };
                 }
               };
             },
@@ -502,12 +547,40 @@ test('addPlayers treats repeated clientRequestId as deduped success', async () =
   const result = await main({
     tournamentId: 't_1',
     players: [{ name: '球友A', gender: 'male' }],
-    clientRequestId: 'req_add_1'
+    clientRequestId: 'req_add_1',
+    __traceId: 'trace-add-retry'
   });
 
-  assert.equal(result.ok, true);
-  assert.equal(result.deduped, true);
-  assert.equal(result.clientRequestId, 'req_add_1');
-  assert.equal(result.addedCount, 0);
+  assert.deepEqual(result, {
+    traceId: 'trace-add-retry',
+    state: 'deduped',
+    deduped: true,
+    clientRequestId: 'req_add_1',
+    added: 2,
+    addedCount: 2,
+    maleCount: 1,
+    femaleCount: 1,
+    unknownCount: 0,
+    duplicateCount: 1,
+    invalidCount: 1,
+    duplicateNames: [],
+    invalidNames: [],
+    ok: true,
+    code: 'PLAYERS_ADDED_DEDUPED',
+    message: '名单导入已处理',
+    data: {
+      deduped: true,
+      clientRequestId: 'req_add_1',
+      added: 2,
+      addedCount: 2,
+      maleCount: 1,
+      femaleCount: 1,
+      unknownCount: 0,
+      duplicateCount: 1,
+      invalidCount: 1,
+      duplicateNames: [],
+      invalidNames: []
+    }
+  });
   assert.equal(updateCalled, false);
 });

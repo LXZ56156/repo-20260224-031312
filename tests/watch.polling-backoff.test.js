@@ -63,6 +63,13 @@ test('createPollingController avoids concurrent polling reentry', async () => {
   assert.equal(controller.isInflight(), false);
 });
 
+test('classifyWatchError recognizes a missing document during polling', () => {
+  assert.equal(
+    watchModule.classifyWatchError(new Error('document.get:fail requested document does not exist')),
+    'not_found'
+  );
+});
+
 test('watchTournament falls back to polling after realtime runtime error and keeps emitting data', async () => {
   const originalWx = global.wx;
   const originalSetTimeout = global.setTimeout;

@@ -31,21 +31,25 @@ module.exports = {
   },
 
   async cloneCurrentTournament(options = {}) {
-    const actionKey = `lobby:cloneTournament:${this.data.tournamentId}`;
+    const tournamentId = String(this.data.tournamentId || '').trim();
+    const lifecycleGeneration = Number(this._lifecycleGeneration || 0);
+    const actionKey = `lobby:cloneTournament:${tournamentId}`;
     const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'clone');
     if (actionGuard.isBusy(actionKey)) return;
     return actionGuard.runCriticalWrite(actionKey, async () => {
       wx.showLoading({ title: '复制中...' });
       try {
-        const nextId = await cloneTournamentCore.cloneTournament(this.data.tournamentId, { clientRequestId });
+        const nextId = await cloneTournamentCore.cloneTournament(tournamentId, { clientRequestId });
         wx.hideLoading();
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         this.clearLastFailedAction();
         wx.showToast({ title: '已生成副本', icon: 'success' });
         nav.goLobby(nextId);
       } catch (err) {
         wx.hideLoading();
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         this.setLastFailedAction('再办一场', () => this.cloneCurrentTournament({ clientRequestId }), { actionKey });
-        this.handleWriteError(err, '复制失败', () => this.fetchTournament(this.data.tournamentId));
+        this.handleWriteError(err, '复制失败', () => this.fetchTournament(tournamentId));
       }
     });
   },
@@ -59,8 +63,11 @@ module.exports = {
       return;
     }
 
+    const lifecycleGeneration = Number(this._lifecycleGeneration || 0);
     try {
-      await this.saveQuickSettings();
+      const saved = await this.saveQuickSettings();
+      if (saved !== true) return;
+      if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
       await this.handleStart();
     } catch (_) {
       // saveQuickSettings 和 handleStart 内部已有错误处理
@@ -122,6 +129,7 @@ module.exports = {
 
     const actionKey = `lobby:startTournament:${this.data.tournamentId}`;
     const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'start');
+    const lifecycleGeneration = Number(this._lifecycleGeneration || 0);
     if (actionGuard.isBusy(actionKey)) return;
     return actionGuard.runCriticalWrite(actionKey, async () => {
       wx.showLoading({ title: '生成对阵...' });
@@ -133,12 +141,15 @@ module.exports = {
           clientRequestId
         }), '开赛失败');
         wx.hideLoading();
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         this.finalizeStartSuccess();
       } catch (err) {
         wx.hideLoading();
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         const parsed = cloud.parseCloudError(err, '开赛失败');
         if (parsed.isTimeout || parsed.isNetwork) {
           const recoveredTournament = await this.recoverStartedTournament();
+          if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
           if (isStartedTournament(recoveredTournament)) {
             this.finalizeStartSuccess(recoveredTournament);
             return;
@@ -157,6 +168,8 @@ module.exports = {
       wx.showToast({ title: '仅草稿阶段可取消', icon: 'none' });
       return;
     }
+    const tournamentId = String(this.data.tournamentId || '').trim();
+    const lifecycleGeneration = Number(this._lifecycleGeneration || 0);
     const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'delete');
     wx.showModal({
       title: '确认取消比赛？',
@@ -165,27 +178,30 @@ module.exports = {
       confirmColor: '#ef4444',
       success: async (res) => {
         if (!res.confirm) return;
-        const actionKey = `lobby:cancelTournament:${this.data.tournamentId}`;
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
+        const actionKey = `lobby:cancelTournament:${tournamentId}`;
         if (actionGuard.isBusy(actionKey)) return;
         await actionGuard.runCriticalWrite(actionKey, async () => {
           wx.showLoading({ title: '取消中...' });
           try {
             cloud.assertWriteResult(await cloud.call('deleteTournament', {
-              tournamentId: this.data.tournamentId,
+              tournamentId,
               clientRequestId
             }), '取消失败');
             wx.hideLoading();
+            storage.removeRecentTournamentId(tournamentId);
+            storage.removeLocalCompletedTournamentSnapshot(tournamentId);
+            storage.removeLocalTournamentCache(tournamentId);
+            nav.markRefreshFlag(tournamentId);
+            if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
             this.clearLastFailedAction();
-            storage.removeRecentTournamentId(this.data.tournamentId);
-            storage.removeLocalCompletedTournamentSnapshot(this.data.tournamentId);
-            storage.removeLocalTournamentCache(this.data.tournamentId);
             wx.showToast({ title: '已取消', icon: 'success' });
-            nav.markRefreshFlag(this.data.tournamentId);
             nav.goHome();
           } catch (err) {
             wx.hideLoading();
+            if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
             this.setLastFailedAction('取消比赛', () => this.cancelTournament({ clientRequestId }), { actionKey });
-            this.handleWriteError(err, '取消失败', () => this.fetchTournament(this.data.tournamentId));
+            this.handleWriteError(err, '取消失败', () => this.fetchTournament(tournamentId));
           }
         });
       }

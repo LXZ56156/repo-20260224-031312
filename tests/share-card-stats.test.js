@@ -71,3 +71,21 @@ test('shareCardStats derives win rate from wins and played instead of stale row 
     '66.7%'
   );
 });
+
+test('shareCardStats resolves the viewer row in squad and fixed-pair rankings', () => {
+  const rows = [
+    { entityType: 'team', entityId: 'A', name: 'A队' },
+    { entityType: 'team', entityId: 'B', name: 'B队' },
+    { entityType: 'team', entityId: 'pair_1', name: '一队' }
+  ];
+
+  assert.equal(
+    shareCardStats.findViewerRankingRow({ players: [{ id: 'u_b', squad: 'B' }] }, rows, 'u_b'),
+    rows[1]
+  );
+  assert.equal(
+    shareCardStats.findViewerRankingRow({ pairTeams: [{ id: 'pair_1', playerIds: ['u_1', 'u_2'] }] }, rows, 'u_2'),
+    rows[2]
+  );
+  assert.equal(shareCardStats.findViewerRankingRow({}, rows, 'outsider'), null);
+});

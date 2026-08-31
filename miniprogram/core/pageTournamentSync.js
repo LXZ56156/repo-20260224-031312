@@ -40,6 +40,13 @@ function rememberAppliedDoc(page, doc, options = {}) {
   if (tournamentId) page._lastAppliedTournamentId = tournamentId;
 }
 
+function clearConfirmedMissingTournament(page) {
+  if (!page) return;
+  page._latestTournament = null;
+  page._lastAppliedDocTs = 0;
+  page._lastAppliedTournamentId = '';
+}
+
 function isExpectedTournamentDoc(page, doc, options = {}) {
   const requestTournamentId = String(options.tournamentId || '').trim();
   const currentTournamentId = String((page && page.data && page.data.tournamentId) || '').trim();
@@ -55,7 +62,7 @@ function shouldApplyIncomingDoc(page, doc, options = {}) {
   if (!isExpectedTournamentDoc(page, doc, options)) return false;
 
   const currentTournament = pickPageTournament(page);
-  if (currentTournament && !tournamentVersion.shouldAcceptTournamentDoc(currentTournament, doc)) return false;
+  if (currentTournament && !tournamentVersion.shouldApplyTournamentDoc(currentTournament, doc)) return false;
 
   const lastAppliedTs = pickAppliedDocTimestamp(page);
   const nextTs = pickDocTimestamp(doc);
@@ -201,11 +208,38 @@ function createTournamentSyncMethods(options = {}) {
         applyDoc(this, options, doc, { watchGen, source, tournamentId: targetTournamentId });
       }, (err) => {
         if (!this.isActiveWatchGen(watchGen)) return;
+        const errorType = String((err && err.__watchType) || '').trim();
+        if (errorType === 'not_found') {
+          this.invalidateFetchSeq();
+          this.invalidateWatchGen();
+          tournamentSync.closeWatcher(this);
+          clearConfirmedMissingTournament(this);
+          const result = {
+            ok: false,
+            errorType: 'not_found',
+            errorMessage: String((err && (err.message || err.errMsg)) || '').trim()
+          };
+          const patch = typeof options.buildLoadErrorState === 'function'
+            ? options.buildLoadErrorState.call(this, result, { watchGen, source: 'error' })
+            : buildTournamentLoadErrorState(result, loadErrorMessages);
+          this.setData(composePageSyncPatch(this, {
+            ...(patch && typeof patch === 'object' ? patch : {}),
+            tournament: null,
+            loadError: true,
+            showStaleSyncHint: false,
+            syncRefreshing: false,
+            syncUsingCache: false,
+            syncPollingFallback: false,
+            syncCachedAt: 0,
+            syncLastUpdatedAt: 0
+          }));
+          return;
+        }
         const patch = typeof options.buildWatchErrorState === 'function'
           ? options.buildWatchErrorState.call(this, err, {
             watchGen,
             source: String((err && err.__watchSource) || '').trim(),
-            errorType: String((err && err.__watchType) || '').trim(),
+            errorType,
             pollingFallback: !!(err && err.__watchFallback)
           })
           : {};
@@ -304,8 +338,15 @@ function createTournamentSyncMethods(options = {}) {
         const patch = typeof options.buildLoadErrorState === 'function'
           ? options.buildLoadErrorState.call(this, result, { requestSeq, source: 'error' })
           : buildTournamentLoadErrorState(result, loadErrorMessages);
+        const confirmedMissing = !!(result && result.errorType === 'not_found');
+        if (confirmedMissing) {
+          this.invalidateWatchGen();
+          tournamentSync.closeWatcher(this);
+          clearConfirmedMissingTournament(this);
+        }
         this.setData(composePageSyncPatch(this, {
           ...(patch && typeof patch === 'object' ? patch : {}),
+          ...(confirmedMissing ? { tournament: null, syncLastUpdatedAt: 0 } : {}),
           syncRefreshing: false,
           syncUsingCache: false,
           syncCachedAt: 0

@@ -204,6 +204,8 @@ test('match submit retry reuses the same clientRequestId after a network failure
 test('match submit treats network timeout as success when refreshed tournament already contains the submitted score', async () => {
   const originalWx = global.wx;
   const toastCalls = [];
+  const scheduled = [];
+  const redirectCalls = [];
 
   global.wx = {
     showLoading() {},
@@ -215,7 +217,11 @@ test('match submit treats network timeout as success when refreshed tournament a
 
   try {
     const ctx = createCtx({
-      fetchTournament: async () => buildFinishedTournament(21, 18)
+      fetchTournament: async () => buildFinishedTournament(21, 18),
+      registerNavTimer(fn, delay) {
+        scheduled.push({ fn, delay });
+        return scheduled.length;
+      }
     });
     const service = createMatchSubmitService(ctx, {
       cloud: {
@@ -228,7 +234,8 @@ test('match submit treats network timeout as success when refreshed tournament a
       },
       storage: {
         get(key, fallback) {
-          if (key === 'score_auto_next' || key === 'score_auto_return') return false;
+          if (key === 'score_auto_next') return false;
+          if (key === 'score_auto_return') return true;
           return fallback;
         }
       },
@@ -237,7 +244,9 @@ test('match submit treats network timeout as success when refreshed tournament a
         buildTournamentUrl(path, tournamentId, query = {}) {
           return `${path}?tournamentId=${tournamentId}&roundIndex=${query.roundIndex || 0}&matchIndex=${query.matchIndex || 0}`;
         },
-        redirectOrBack() {},
+        redirectOrBack(url, delay) {
+          redirectCalls.push({ url, delay });
+        },
         redirectOrNavigate() {}
       }
     });
@@ -250,6 +259,15 @@ test('match submit treats network timeout as success when refreshed tournament a
     assert.equal(ctx._clearUndoCount, 1);
     assert.ok(ctx._lockStates.includes('finished'));
     assert.equal(toastCalls.some((item) => item.title === '已提交'), true);
+    assert.deepEqual(scheduled.map((item) => item.delay), [420]);
+    assert.deepEqual(redirectCalls, []);
+
+    scheduled[0].fn();
+
+    assert.deepEqual(redirectCalls, [{
+      url: '/pages/schedule/index?tournamentId=t_1&roundIndex=0&matchIndex=0',
+      delay: 0
+    }]);
   } finally {
     global.wx = originalWx;
   }
@@ -269,6 +287,7 @@ test('match view state keeps local draft visible after lock expiry so the user c
   });
 
   assert.equal(viewState.data.canEdit, false);
+  assert.equal(viewState.data.hasScoreDraft, true);
   assert.equal(viewState.data.displayScoreA, '21');
   assert.equal(viewState.data.displayScoreB, '18');
 });

@@ -208,7 +208,10 @@ function createMatchSubmitService(ctx, deps = {}) {
   }
 
   async function jumpAfterBatch(noPendingMessage) {
+    const lifecycleSeq = Number(ctx._pageLifecycleSeq) || 0;
     const latest = await refreshTournamentDoc();
+    if (typeof ctx.isPageActive === 'function' && !ctx.isPageActive()) return false;
+    if ((Number(ctx._pageLifecycleSeq) || 0) !== lifecycleSeq) return false;
     if (latest) {
       await jumpToNextPending(latest, noPendingMessage, true);
       return true;
@@ -217,8 +220,33 @@ function createMatchSubmitService(ctx, deps = {}) {
     return false;
   }
 
+  function navigateAfterSubmitSuccess() {
+    if (ctx.data.batchMode) {
+      scheduleNavigation(() => {
+        jumpAfterBatch('已全部录完');
+      }, 260);
+      return;
+    }
+
+    const autoNext = storageApi.get(SCORE_AUTO_NEXT_KEY, true) !== false;
+    const autoReturn = storageApi.get(SCORE_AUTO_RETURN_KEY, true) !== false;
+    if (autoNext) {
+      scheduleNavigation(async () => {
+        const latestDoc = await refreshTournamentDoc();
+        if (latestDoc) {
+          await jumpToNextPending(latestDoc, '已全部录完', false);
+          return;
+        }
+        if (autoReturn) returnToSchedule(420);
+      }, 260);
+      return;
+    }
+    if (autoReturn) returnToSchedule(420);
+  }
+
   function restoreLockAfterSubmitFail(snapshot, options = {}) {
     const snap = snapshot || {};
+    if ((Number(ctx._pageLifecycleSeq) || 0) !== (Number(snap.pageLifecycleSeq) || 0)) return;
     const nowTs = Date.now();
     const expireAt = Number(snap.expireAt) || 0;
     const forceExpired = options.forceExpired === true;
@@ -320,7 +348,8 @@ function createMatchSubmitService(ctx, deps = {}) {
     const lockSnapshot = {
       ownerId: ctx.data.lockOwnerId,
       ownerName: ctx.data.lockOwnerName,
-      expireAt: ctx.data.lockExpireAt
+      expireAt: ctx.data.lockExpireAt,
+      pageLifecycleSeq: Number(ctx._pageLifecycleSeq) || 0
     };
     const clientRequestId = String(options.clientRequestId || '').trim() || buildClientRequestId();
     const actionKey = `match:submitScore:${ctx.data.tournamentId}:${ctx.data.roundIndex}:${ctx.data.matchIndex}`;
@@ -356,6 +385,7 @@ function createMatchSubmitService(ctx, deps = {}) {
         }));
         ctx.clearLastFailedAction();
         ctx.matchDraft.clearScoreDraft();
+        ctx.setData({ hasScoreDraft: false });
         ctx.matchDraft.clearUndo();
         ctx.lockController.setLockState('finished', {
           ownerId: lockSnapshot.ownerId,
@@ -363,28 +393,7 @@ function createMatchSubmitService(ctx, deps = {}) {
         });
         wx.showToast({ title: '已提交', icon: 'success' });
         navApi.markRefreshFlag(ctx.data.tournamentId);
-
-        if (ctx.data.batchMode) {
-          scheduleNavigation(() => {
-            jumpAfterBatch('已全部录完');
-          }, 260);
-          return;
-        }
-
-        const autoNext = storageApi.get(SCORE_AUTO_NEXT_KEY, true) !== false;
-        const autoReturn = storageApi.get(SCORE_AUTO_RETURN_KEY, true) !== false;
-        if (autoNext) {
-          scheduleNavigation(async () => {
-            const latestDoc = await refreshTournamentDoc();
-            if (latestDoc) {
-              await jumpToNextPending(latestDoc, '已全部录完', false);
-              return;
-            }
-            if (autoReturn) returnToSchedule(420);
-          }, 260);
-          return;
-        }
-        if (autoReturn) returnToSchedule(420);
+        navigateAfterSubmitSuccess();
       } catch (err) {
         const parsed = typeof cloudApi.parseCloudError === 'function'
           ? cloudApi.parseCloudError(err, '提交失败')
@@ -404,6 +413,7 @@ function createMatchSubmitService(ctx, deps = {}) {
             }));
             ctx.clearLastFailedAction();
             ctx.matchDraft.clearScoreDraft();
+            ctx.setData({ hasScoreDraft: false });
             ctx.matchDraft.clearUndo();
             ctx.lockController.setLockState('finished', {
               ownerId: lockSnapshot.ownerId,
@@ -411,6 +421,7 @@ function createMatchSubmitService(ctx, deps = {}) {
             });
             wx.showToast({ title: '已提交', icon: 'success' });
             navApi.markRefreshFlag(ctx.data.tournamentId);
+            navigateAfterSubmitSuccess();
             return;
           }
         }

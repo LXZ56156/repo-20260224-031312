@@ -54,7 +54,7 @@
 .launch-water-kicker {
   margin-left: var(--space-tight);
   margin-bottom: 8rpx;
-  color: #277bd6;
+  color: var(--info);
   font-size: 22rpx;
   font-weight: 700;
   letter-spacing: 2rpx;
@@ -62,12 +62,12 @@
 
 .launch-water-btn {
   color: #ffffff;
-  background: #277bd6;
+  background: var(--info);
 }
 
 .launch-section-label {
   margin: 28rpx 4rpx 0;
-  color: var(--neutral-500);
+  color: var(--neutral-700);
   font-size: 22rpx;
   font-weight: 700;
   letter-spacing: 2rpx;
@@ -142,7 +142,7 @@
 
 /* 规则说明 — text link 弱化 */
 .launch-rule-link {
-  min-height: 64rpx;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   padding: 0 8rpx;

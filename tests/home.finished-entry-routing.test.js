@@ -24,7 +24,8 @@ function createHomeContext(definition) {
       items: [
         { _id: 'finished_1', status: 'finished', _offset: 0 },
         { _id: 'running_1', status: 'running', _offset: 0 },
-        { _id: 'draft_1', status: 'draft', _offset: 0 }
+        { _id: 'draft_1', status: 'draft', _offset: 0 },
+        { _id: 'missing_1', status: 'missing', _offset: 0 }
       ]
     },
     setData(update) {
@@ -37,7 +38,7 @@ function createHomeContext(definition) {
   return ctx;
 }
 
-test('home card taps route finished to analytics, running to schedule, and draft to lobby', () => {
+test('home card taps route active tournaments and ignore removed tournaments', () => {
   const definition = loadHomePageDefinition();
   const ctx = createHomeContext(definition);
   const originalWx = global.wx;
@@ -58,6 +59,7 @@ test('home card taps route finished to analytics, running to schedule, and draft
     ctx.onCardTap({ currentTarget: { dataset: { id: 'finished_1', idx: 0 } } });
     ctx.onCardTap({ currentTarget: { dataset: { id: 'running_1', idx: 1 } } });
     ctx.onCardTap({ currentTarget: { dataset: { id: 'draft_1', idx: 2 } } });
+    ctx.onCardTap({ currentTarget: { dataset: { id: 'missing_1', idx: 3 } } });
     ctx.onQuickActionTap({ currentTarget: { dataset: { id: 'finished_1', status: 'finished' } } });
 
     assert.deepEqual(calls, [
@@ -137,7 +139,7 @@ test('home finished clone action still copies and opens the new lobby', async ()
       '/pages/lobby/index?tournamentId=clone_1'
     ]);
   } finally {
-    actionGuard.clear('home:cloneTournament:finished_1');
+    actionGuard.clear('home:cloneTournament');
     cloneTournamentCore.cloneTournament = originalCloneTournament;
     growthTracker.track = originalTrack;
     global.wx = originalWx;

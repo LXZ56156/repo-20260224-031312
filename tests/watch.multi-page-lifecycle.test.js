@@ -248,6 +248,57 @@ test('watchTournament closes the source after grace and closeWatch still closes 
   }
 });
 
+test('watchTournament emits not_found when the watched document is removed', async () => {
+  const originalWx = global.wx;
+  let realtimeHandlers = null;
+  const errorTypes = [];
+
+  global.wx = {
+    cloud: {
+      database() {
+        return {
+          collection() {
+            return {
+              doc() {
+                return {
+                  async get() {
+                    return { data: { _id: 't_removed', version: 1 } };
+                  },
+                  watch(handlers) {
+                    realtimeHandlers = handlers;
+                    return { close() {} };
+                  }
+                };
+              }
+            };
+          }
+        };
+      }
+    }
+  };
+
+  const watcher = watchModule.watchTournament(
+    't_removed',
+    () => {},
+    (err) => errorTypes.push(err && err.__watchType)
+  );
+
+  try {
+    await Promise.resolve();
+    await Promise.resolve();
+    realtimeHandlers.onChange({
+      docs: [],
+      docChanges: [{ dataType: 'remove', doc: { _id: 't_removed' } }]
+    });
+
+    assert.deepEqual(errorTypes, ['not_found']);
+  } finally {
+    watcher.close();
+    watchModule.closeWatch('t_removed');
+    global.wx = originalWx;
+  }
+});
+
 function createSyncContext() {
   const applied = [];
   const methods = pageTournamentSync.createTournamentSyncMethods();

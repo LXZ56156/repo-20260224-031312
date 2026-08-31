@@ -82,16 +82,16 @@ Page({
 
   clearCache() {
     wx.showModal({
-      title: '清除本地缓存？',
-      content: '将清空本地偏好和临时记录，不影响云端赛事数据。',
+      title: '重置本地数据？',
+      content: '将清除本机保存的个人资料、最近赛事、本地战绩、偏好、录分草稿和登录缓存；不会删除云端赛事。',
       success: (res) => {
         if (!res.confirm) return;
         try {
           wx.clearStorageSync();
-          wx.showToast({ title: '已清理', icon: 'success' });
+          wx.showToast({ title: '已重置', icon: 'success' });
           this.onShow();
         } catch (_) {
-          wx.showToast({ title: '清理失败', icon: 'none' });
+          wx.showToast({ title: '重置失败', icon: 'none' });
         }
       }
     });

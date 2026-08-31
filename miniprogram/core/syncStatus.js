@@ -67,7 +67,6 @@ function buildSyncBannerState(state = {}) {
   const syncUsingCache = !!state.syncUsingCache;
   const syncPollingFallback = !!state.syncPollingFallback;
   const syncRefreshing = !!state.syncRefreshing;
-  const cachedAt = toTs(state.syncCachedAt);
   const lastUpdatedAt = toTs(state.syncLastUpdatedAt) || pickTournamentTimestamp(state.tournament);
   const hasDegradedState = networkOffline || syncUsingCache || showStaleSyncHint || syncPollingFallback;
 
@@ -75,25 +74,18 @@ function buildSyncBannerState(state = {}) {
   let syncStatusText = '';
   const metaParts = [];
 
-  if (networkOffline && syncUsingCache) {
-    syncStatusTone = 'warning';
-    syncStatusText = '当前离线，展示缓存数据';
-  } else if (networkOffline) {
+  if (networkOffline) {
     syncStatusTone = 'warning';
     syncStatusText = '当前离线';
-  } else if (syncUsingCache) {
-    syncStatusTone = 'warning';
-    syncStatusText = '当前展示缓存数据';
-  } else if (showStaleSyncHint) {
+  } else if (!syncUsingCache && showStaleSyncHint) {
     syncStatusTone = 'info';
     syncStatusText = '当前数据可能已过期';
-  } else if (syncPollingFallback) {
+  } else if (!syncUsingCache && syncPollingFallback) {
     syncStatusTone = 'info';
     syncStatusText = '已降级为轮询同步';
   }
 
-  if (syncPollingFallback) metaParts.push('实时监听不可用，已切换为轮询');
-  if (syncUsingCache && cachedAt) metaParts.push(`缓存于 ${formatSyncTime(cachedAt)}`);
+  if (syncPollingFallback && !syncUsingCache) metaParts.push('实时监听不可用，已切换为轮询');
   if (!syncUsingCache && lastUpdatedAt) metaParts.push(`最近更新 ${formatSyncTime(lastUpdatedAt)}`);
   if (showStaleSyncHint && !syncUsingCache) metaParts.push('请手动刷新确认是否有新结果');
   // Healthy refreshes stay silent to avoid shifting page content.

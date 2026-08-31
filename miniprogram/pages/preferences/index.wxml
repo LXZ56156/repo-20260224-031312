@@ -60,6 +60,6 @@
   <view class="card panel panel-soft">
     <view class="section-title">隐私与数据</view>
     <view class="muted pref-tip">版本：{{version}}</view>
-    <button class="btn btn-subtle" bindtap="clearCache">清除本地缓存</button>
+    <button class="btn btn-subtle" bindtap="clearCache">重置本地数据</button>
   </view>
 </view>

@@ -108,7 +108,6 @@ Page({
     statePrimaryActionKey: '',
     statePrimaryActionText: '',
     stateStageBadge: '',
-    showStateChecklist: false,
     showDraftRules: true,
     showDraftAdminPanel: false,
     primaryNavCurrent: 'match',
@@ -195,9 +194,6 @@ Page({
     nextActionText: '',
     nextActionDetail: '',
     quickChecklistPending: 0,
-    checklistItems: [],
-    featuredChecklistItem: null,
-    secondaryChecklistItems: [],
 
     networkOffline: false,
     showStaleSyncHint: false,
@@ -238,6 +234,7 @@ Page({
   ...lobbyPageDelegates,
 
   onLoad(options) {
+    this._lifecycleGeneration = 0;
     const tid = tournamentEntry.parseTournamentIdFromOptions(options || {});
     const entryMode = String((options && options.entry) || '').trim().toLowerCase() === 'view_only' ? 'view_only' : '';
     this.setData({
@@ -284,15 +281,18 @@ Page({
   },
 
   onHide() {
+    this._lifecycleGeneration = Number(this._lifecycleGeneration || 0) + 1;
+    this._pendingIntentAction = '';
     pageTournamentSync.pauseTournamentSync(this);
-    pageTimers.clearNamedTimer(this, 'startNavigation');
+    pageTimers.clearAllTimers(this);
   },
 
   onUnload() {
+    this._lifecycleGeneration = Number(this._lifecycleGeneration || 0) + 1;
+    this._pendingIntentAction = '';
     this.disablePageDynamicShare();
     pageTournamentSync.teardownTournamentSync(this);
     pageTimers.clearAllTimers(this);
-    this._pendingIntentAction = '';
     if (typeof this._offNetwork === 'function') this._offNetwork();
     this._offNetwork = null;
   },
@@ -303,6 +303,8 @@ Page({
     const intentAction = nav.consumeLobbyIntent(currentId);
     if (intentAction) {
       this._pendingIntentAction = intentAction;
+      const currentTournamentId = String((this.data.tournament && this.data.tournament._id) || '').trim();
+      if (currentTournamentId === currentId) this.schedulePendingIntentAction();
     }
     nav.consumeRefreshFlag(currentId);
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
@@ -398,11 +400,14 @@ Page({
     storage.addRecentTournamentId(next.tournament._id);
     this.maybeShowGrowthOnboardingGuide(next.tournament._id);
 
-    if (this._pendingIntentAction) {
-      const action = this._pendingIntentAction;
-      this._pendingIntentAction = '';
-      setTimeout(() => this.runFlowAction(action), 90);
-    }
+    this.schedulePendingIntentAction();
+  },
+
+  schedulePendingIntentAction() {
+    const action = String(this._pendingIntentAction || '').trim();
+    if (!action) return;
+    this._pendingIntentAction = '';
+    pageTimers.setNamedTimer(this, 'pendingIntentAction', () => this.runFlowAction(action), 90);
   },
 
   maybeShowGrowthOnboardingGuide(tournamentId) {

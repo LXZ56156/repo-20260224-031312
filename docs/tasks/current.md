@@ -1,64 +1,118 @@
 # Current Task
 
-> AI session handoff. Keep this file concise; detailed evidence belongs in the linked session log.
+## Status: stage13_lifecycle_and_sync_fixes_implemented_code_verified
 
-## Status: collaborative_water_v2_local_release_candidate_committed
+## Exact State (2026-08-28)
 
-## Exact State (2026-08-13)
+- 工作目录：`D:\projects(WIN)\badminton-miniapp`
+- 分支：`codex/online-audit-optimizations-20260828`
+- 起点：正式线上客户端源码 `55bfc4fa319ab74a33d406f05fbdab975ab8cfb7`（`6.1.2-e60d827-r3`）
+- 当前改动未提交、未 push，未执行 preview、upload、云函数部署、正式发布或真实数据写入。
+- `.playwright-cli/` 与 `preview-qrcodes/` 是切换分支前已有的未跟踪目录，本任务未修改。
+- `tests/stage1.explanation-copy.test.js` 是本任务新增的直接回归测试，当前仍未跟踪；后续交付必须与其他任务改动一并纳入。
 
-- Online/product baseline remains `master` = `origin/master` = `5813ffc79f94c180fa5573eb25fb0d57f53b85df`.
-- Active development worktree: `C:\Users\LIZIXUAN\.codex\worktrees\ba45\badminton-miniapp` on `codex/collaborative-water-v2-20260809`.
-- V2 implementation parent is `9b3f94aafc3217062c30b5c49f14b3f102ec3df6`. The local release candidate is the current branch tip after the approved commit series; resolve its exact identity with `git rev-parse HEAD`. The branch has no upstream and has not been pushed.
-- The last uploaded mini-program remains `6.1.2-911a9c7`; the deployed `waterSession` remains the pre-V2 compatible production version.
-- Original overlay `38d6ea4` was applied as cherry-pick `178e5dd`; both have patch-id `2cf91c83878e94c9b39fb57694c5b2cf09c4028d`.
+## Implemented Scope
 
-## Approved Increment Chain
+1. 登录失败沿用现有动作级提示，失败请求释放后再次点击会直接重新登录，不增加全局兜底状态。
+2. 首页缓存先显，按现有最多 20 条 recent IDs 一次读取，并阻止旧请求覆盖新结果。
+3. 正式版未知错误保留操作名、重试建议和短诊断号，不暴露内部异常。
+4. 关键按钮、chip、同步操作和高频裸点击区域使用至少 `44×44px` 命中区域。
+5. “清除本地缓存”准确改名为“重置本地数据”，保持原 `wx.clearStorageSync()` 行为并列明影响。
+6. 排名排序、复盘样本数和“我的战绩”本机口径明确展示。
+7. 大厅状态区只保留唯一主 CTA，完整管理能力仍在后续原入口；同步删除清单对应的死字段、方法、样式和旧断言。
+8. 录分页把锁、草稿、提交和重试状态集中到底部操作区。
+9. 赛程仅在页面首次渲染时自动定位当前轮次，后续实时更新和刷新不再强制滚动。
+10. 首页本地记录操作明确显示“从本机移除 / 已从本机移除”，不改变本地清理行为。
+11. 完赛场次把实际提交者显示为“录分：姓名”，不再误称“本场裁判”。
+12. launch 与 create 的资料门禁回跳保留已选赛制和预设。
+13. 首页草稿复用现有 `draftStartReadiness`，不再把未分队、未组队或人数不符合预设的赛事误报为可开赛。
+14. 资料页保存时先重传 pending 头像，再校验并保存新的 cloud fileID。
+15. 资料页云端资料晚返回时，不覆盖用户已经开始编辑的字段，也不在离页后回写。
+16. 批量录分页的占用跳转复用现有可清理导航计时器，离页后不再触发幽灵跳转。
+17. 小队转和固搭循环赛的排名/复盘分享卡定位当前用户所属队伍，非参赛者仍保持原榜首卡片行为。
+18. App 在异步登录前初始化并下发网络状态，页面的早期网络订阅不再被登录完成后的重置清空。
+19. 大厅对无效固搭队伍或非法小队名单继续显示现有组队/分队任务，不再误报可以开赛。
+20. “保存并开赛”仅在参数保存明确成功后调用开赛，保存失败时立即停止。
+21. 网络异常后确认比分其实已提交成功时，继续执行既有批量下一场、自动下一场或返回赛程行为。
+22. 批量跳过被占用场次首次同步失败时清除当前去重键，后续状态更新可以重新尝试。
+23. 完赛页每次明确点击分享海报都能自动打开生成流程，不再受赛事级永久 storage 标记限制。
+24. ranking/analytics 复用现有合并登录并在活动页面回填身份；自动海报等待身份结果后再生成。
+25. `addPlayers` 对同一 `clientRequestId` 重放首次导入的完整计数，成功结果统一为既有云合同且保留旧客户端根级字段；赛事文档只保存 7 个数值统计，不保存被拒绝的原始姓名。
+26. `submitScore` 成功后等待条件删除本次校验的锁代次，不再可能误删同场次后来取得或续期的锁。
+27. `submitScore` 乐观更新失败时只重读一次赛事；同场同比分返回既有 `SCORE_SUBMIT_DEDUPED`，不同比分仍返回 `VERSION_CONFLICT`，赛事恰好删除则返回结构化 `TOURNAMENT_NOT_FOUND`。
+28. 首页远端刷新成功后更新对应本地赛事缓存；远端缺失的 recent 赛事同步删除旧缓存和完赛快照。
+29. 资料云同步在 resolve 或 reject 前若检测到本地保存时间已变化，返回最新本地资料且不写入旧云响应。
+30. 批量录分占用跳转在离页时清除去重键，并以页面生命周期代次阻止 hide→show 后旧异步任务恢复导航。
+31. `scoreLock` 使用可选 `lockSessionId` 隔离新客户端锁代次；旧代 heartbeat 返回 `LOCK_EXPIRED` 且不续期，旧代 release 不删除新锁，提交临时态和页面生命周期不会丢失或恢复过时代次。旧客户端不带字段时保持原合同。
+32. 赛事读取仅在确认文档不存在时清除缓存和完赛快照；集合、环境或网络错误继续保留缓存。
+33. 页面同步忽略同版本、同更新时间的重复文档，只有 `createdAt` 的旧文档仍可正常应用。
+34. 首页离页时使旧 recent 请求失效，隐藏期间网络重连不会启动新刷新。
+35. `deleteTournament` 在事务内重新确认草稿状态，避免确认后开赛仍被删除。
+36. 移除成员、调整分队和固搭队伍兼容现有 `id`、`playerId`、`_id` 成员标识。
+37. `removePlayer` 用既有请求日志保存成功和成功空操作，阻止移除、重加后旧请求重放。
+38. 加入赛事按赛事和动作复用真实在途 Promise，不再返回伪成功，也不互相阻塞不同动作。
+39. 资料门禁回到同一来源页面时使用返回栈，其他来源保持原重定向。
+40. 设置、大厅保存与开赛流程统一使用现有生命周期代次和页面计时器，离页旧任务不再导航或覆盖当前表单。
+41. 实时监听确认赛事删除后向全部订阅者发送终态、清空页面旧赛事并立即释放旧 channel；迟到初始化结果不会复活赛事。
+42. 大厅 pending intent 在页面隐藏时清除，并在当前赛事已加载时直接消费，不再依赖重复文档更新。
+43. Launch 的资料门禁使用单一入口锁和生命周期代次，双击或旧门禁返回不会重复叠加页面。
+44. Create 在资料门禁前保存赛制、预设和名称；成功创建即记录 recent，离页后不再提示或跳转。
+45. Share Entry 保留成功加入的持久化结果，离页后的旧成功或失败不再提示、刷新或导航。
+46. 大厅导入、移除、分队、组队、取消、加入和资料保存全部接入同一生命周期代次；确认回调写入前和云请求返回后均会截断旧页面副作用。
+47. Analytics 复制与 Feedback 提交在离页后只保留已完成的持久结果，不再修改旧页面 UI。
+48. Home 全页同时只允许一个复制流程；成功导航前持续防重复，导航失败会释放；“赛事已移除”卡片不再进入不存在的赛事。
+49. Home、Lobby 的复制以及 Lobby 加入流程均阻止 hide→show 后的旧成功、旧失败、二次资料写入和幽灵导航。
 
-| Commit | Approved scope |
-|---|---|
-| `178e5dd` | schedule central `VS` / score overlay |
-| `34193f1` | standalone water ledger, launch entry and `waterSession` |
-| `ce73118` | approved water controls and scoped Vant Weapp build |
-| `6da0cc5` | compact equal-side game selection, including 1v1 |
-| `6939688` | relay import and roster search |
-| `ab1e6c5` | minimal Windows shell/tooling hardening |
-| `7c6ba81` | refresh, polling and stale-response protection |
-| `3449cad` | repeated-write idempotency and conflict recovery |
-| `c2f438a` | align quick-water CTA with tournament CTAs |
+## Verification
 
-## Product Boundary
+- 各项聚焦测试均通过；最终首页/同步 5/5、大厅 24/24、列表与说明文案 9/9，通过 `git diff --check`。
+- 阶段 2 聚焦验证：home/schedule 直接行为 10/10、schedule stale/UI 5/5。
+- 阶段 3 聚焦验证：create/home 9/9、profile 42/42、match timer/sync/smoke 6/6、ranking/analytics/share-card 15/15，合计 72/72。
+- 阶段 3 定点 ESLint 通过，最终只读差异审查无必须修复项，`git diff --check` 通过。
+- 阶段 4 聚焦验证：App/sync 10/10、lobby 21/21、match/sync/smoke 97/97、ranking/analytics 44/44；自动海报身份等待调整后的直接验证 15/15。
+- 阶段 4 定点 ESLint 0 errors，最终两轮只读交叉审查均无必须修复项，`git diff --check` 通过。
+- 阶段 5 直接云合同测试 18/18；大厅导入、score lock、submit logic/幂等/比分边界及跨链路 smoke 38/38。
+- 阶段 5 四个修改文件定点 ESLint 0 errors；共享模板检查通过且没有模板或派生公共库差异，最终只读复核无必须修复项，`git diff --check` 通过。
+- 阶段 6 首页、资料、match 生命周期、score lock 及提交恢复的直接聚焦验证 69/69；云响应合同、权限矩阵、跨链路 smoke 与首页删除邻接验证 9/9。
+- 阶段 6 定点 ESLint 0 errors（5 个既有 warning）；共享云模板检查通过，两轮只读交叉复核均无必须修复项，`git diff --check` 通过。
+- 阶段 7 同步聚焦验证 49/49；阶段 8 云写入合同 20/20，云共享模板检查通过。
+- 阶段 9 入口与设置生命周期独立验证 26/26；阶段 10 实时删除主验证 32/32、独立复核 25/25；阶段 11 入口流程 22/22。
+- 阶段 12 写操作生命周期直接验证 24/24、邻接合同 34/34；独立复核发现的 Lobby 加入和复制遗漏已补齐并复核通过。
+- 阶段 13 Home 复制与缺失记录验证 6/6；导航失败释放经独立复核通过。
+- 阶段 12–13 最终合并聚焦验证 53/53；定点 ESLint 0 errors（14 个既有 warning），`npm run check` 与 `git diff --check` 通过。
+- `npm run check` 通过。
+- `npm run lint`：0 errors；本次修改测试文件的定点 ESLint 通过。
+- 全量测试首次运行：1356 total，1349 passed，1 个大厅旧数量断言失败，6 个 Windows 跳过；该唯一断言已按唯一主 CTA 更新并定点复跑 5/5 通过。按“避免冗余测试”要求未再次重复全量运行。
+- 当前没有可验证的微信 DevTools automation 会话，现有脚本也没有 match 截图用例；真实 DevTools/真机视觉检查尚未执行，不能据此宣称已完成小程序视觉验收。
 
-- Quick water works without creating a tournament. The owner may add names manually or from relay text, invite/claim participants, record one equal-side game from 1v1 upward, directly add/subtract 1–99 water with a native picker (default 1), search large rosters and undo the latest entry.
-- There is no user-visible “结束 / 完成 / 另开账本” action. The cloud `finish` branch is compatibility code and must not be exposed or removed without separate approval.
-- Next-gen/C3/Home redesign, a global design system and cross-page visual unification remain out of scope.
+## Stage 5 Implemented Boundary
 
-## Collaborative V2 Implementation
+阶段 5 只处理了当前线上源码实际调用链中的 3 个云合同问题：
 
-- User approved rebuilding standalone water as a stable shared room with independent rounds and an append-only, attributable event ledger.
-- Joined members may record games and direct water, view the complete feed, and correct/reverse their own records; the owner may handle any current-round record.
-- The target page uses `总账 / 流水 / 球友` with persistent `记一局 / 单独记水` actions. It removes user-facing balance-difference output and the ambiguous global `撤销上一条`.
-- `新一轮` archives the current round, retains the roster, claimed identities and stable invite link, and does not expose an end action.
-- The client, page, backward-compatible cloud function, migration library and regression coverage now exist in this worktree. Full behavior, cloud contract, migration and rollout requirements remain in `docs/specs/collaborative-water-ledger-v2.md`.
-- Production tests no longer depend on DevTools screenshot fixtures. Screenshot tooling remains dev-only evidence and is not part of the runtime deployment set.
+1. `addPlayers` 对同一 `clientRequestId` 的重试重放首次完整导入计数，并把成功结果统一为既有 `okResult` 合同；根级计数字段继续保留，兼容旧客户端。
+2. `submitScore` 成功后只删除本次校验过的锁，并等待删除完成，避免误删同场次后来取得的新锁。
+3. `submitScore` 乐观更新失败时仅重读一次赛事；目标场次已经是同一比分则返回既有 `SCORE_SUBMIT_DEDUPED`，否则仍返回 `VERSION_CONFLICT`。
 
-## Acceptance and Delivery Facts
+共享模板与所有派生公共库已核对一致。历史 `resetTournament` 在当前线上源码中没有调用入口，本阶段不为该死路径新增幂等体系或前端能力。
 
-- Current-source 390px real WeChat DevTools images cover visitor long feed, 24-player member, owner empty state, game sheet, entry detail and archived round. Two isolated UI reviews and the main agent found P0=0/P1=0.
-- Final image evidence is under `C:\Users\LIZIXUAN\.codex\visualizations\2026\08\13\019ff4d8-3761-7262-9d8b-5cfcc4915554\water-v2-approved-fix-final-r4`.
-- Frozen local release-prep verification: focused release tests 159/159; `npm run check` passed; lint has 0 errors and 64 existing warnings; syntax and `git diff --check` passed. A pre-commit glob run hit the documented `squad.fairness` wall-clock fluctuation; its file rerun passed 17/17. The exact committed candidate was then tested from 262 tracked test files: 1350 total, 1344 passed, 0 failed and 6 Windows-only skips.
-- 320px and 430px remain structural/browser-approximation evidence rather than separately captured real DevTools images. Capture them or record an explicit release exception before client upload.
-- The V2 candidate is committed locally but not pushed. No V2 cloud collection/index/config write, cloud deployment, real migration, canary, preview, upload, review submission or formal release has occurred.
+## Stage 6 Implemented Boundary
+
+阶段 6 只处理当前线上链路中的 4 个竞态，没有改变页面文案、CTA、权限或排名规则：
+
+1. 首页远端刷新成功后同步更新本地赛事缓存；远端已不存在的赛事同时删除对应缓存，避免下次进入或离线时重新显示旧数据。
+2. 资料云同步返回前若本地资料已被保存更新，则丢弃该旧响应的 storage 写入，避免覆盖刚保存的新资料。
+3. 录分页离开时同时清除批量占用去重键；异步刷新完成后、执行跳转前再次检查页面是否仍活动，避免回页后卡死或离页后幽灵跳转。
+4. 录分锁增加向后兼容的可选会话代次；新客户端的 heartbeat/release 只作用于同一代锁，旧客户端不带代次时保持原合同。源码和直接合同已验证，云函数未部署。
+
+## Stage 7–13 Implemented Boundary
+
+阶段 7–13 只收口当前线上源码中的同步终态、云写入竞态、入口重复操作和离页旧任务：
+
+1. 同步层只把明确的文档删除作为终态，重复版本不再覆盖页面，隐藏页不再被旧请求或重连刷新唤醒。
+2. 云写入只补当前调用链必需的事务校验、成员 ID 兼容和移除幂等；未新增集合、迁移、开关或公共框架。
+3. Launch、Create、Share Entry、Home、Lobby、Analytics、Feedback 复用现有 guard、timer 和生命周期代次，不新增兜底状态机。
+4. 所有新增测试只覆盖对应竞态、重复写和终态合同；未重复运行全量测试，未进行视觉验收或任何线上动作。
 
 ## Next Action
 
-Finish the local release candidate and follow `docs/tasks/collaborative-water-v2-release-handoff-2026-08-13.md`. The next external gate is not client upload: first create the private collections, indexes and fully disabled feature config, then deploy only the backward-compatible `waterSession`, run V1 remote smoke, and run the zero-write migration dry-run. Each external write/deploy/migration/flag/preview/upload/release action remains separately authorized. The private-Desktop/plan/lock/network-proof route is historical only.
-
-## Authority
-
-- Product spec: `docs/specs/standalone-water-ledger.md`
-- Approved V2 target: `docs/specs/collaborative-water-ledger-v2.md`
-- Route and boundaries: `docs/tasks/incremental-ui-optimization-plan.md`
-- Detailed evidence: `docs/tasks/session-logs/2026-08-08-standalone-water-launch-acceptance.md`
-- Screenshot procedure: `docs/tools/weapp-ui-screenshot-workflow.md`
-- Release handoff: `docs/tasks/collaborative-water-v2-release-handoff-2026-08-13.md`
-- Completed screenshot handoff (historical): `docs/tasks/weapp-real-devtools-screenshot-simplified-handoff-2026-08-12.md`
+阶段 7–13 源码实现、聚焦验证和独立复核已完成，当前审计范围内没有剩余 P1/P2。真实微信 DevTools/真机视觉验收按用户要求后续统一执行；本次持续批准不包含 commit、push、preview、upload、云函数部署、发布或真实数据写入，这些动作仍需单独明确授权。

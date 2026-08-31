@@ -178,7 +178,7 @@ test('cloud classifies unstructured error messages by keyword fallback', () => {
   });
 });
 
-test('cloud getUnifiedErrorMessage returns generic message for unknown errors in release env', () => {
+test('cloud getUnifiedErrorMessage keeps the action name for unknown errors in release env', () => {
   const originalGetApp = global.getApp;
   global.getApp = () => ({ globalData: { runtimeEnv: { envVersion: 'release' } } });
   try {

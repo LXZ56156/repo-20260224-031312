@@ -41,14 +41,14 @@ function buildJoinPayload(options = {}) {
 async function ensureJoinProfile(options = {}) {
   const action = String(options.action || 'join').trim() || 'join';
   const redirect = String(options.redirect || '').trim();
-  return profileCore.ensureProfileForAction(action, redirect);
+  return profileCore.ensureProfileForAction(action, redirect, { silent: options.silent === true });
 }
 
-async function callJoinTournament(payload, options = {}) {
+function callJoinTournament(payload, options = {}) {
   const action = String(options.action || 'join').trim() || 'join';
   const fallbackMessage = options.fallbackMessage || '加入失败，请稍后重试';
   const tournamentId = String((payload && payload.tournamentId) || '').trim();
-  const guardKey = `core:joinTournament:${tournamentId}`;
+  const guardKey = `core:joinTournament:${tournamentId}:${action}`;
   const clientRequestId = clientRequest.resolveClientRequestId(
     options.clientRequestId || (payload && payload.clientRequestId),
     action === 'profile_update' ? 'join_profile' : 'join'
@@ -58,7 +58,6 @@ async function callJoinTournament(payload, options = {}) {
     action,
     clientRequestId
   };
-  if (actionGuard.isBusy(guardKey)) return { ok: true, deduped: true, clientRequestId };
   return actionGuard.runCriticalWrite(guardKey, async () => {
     let res = await cloud.call('joinTournament', requestPayload);
     if (res && res.ok === false && joinError.isConflictResult(res) && options.retryOnConflict !== false) {

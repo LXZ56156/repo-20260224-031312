@@ -51,8 +51,24 @@ test('getUnifiedErrorMessage hides internal unknown cloud details in release env
   });
 
   try {
-    const msg = cloud.getUnifiedErrorMessage(new Error('FunctionName parameter could not be found: deleteTournament'), '失败');
-    assert.equal(msg, '操作失败，请稍后重试');
+    const msg = cloud.getUnifiedErrorMessage(new Error('FunctionName parameter could not be found: deleteTournament'), '失败，请稍后重试');
+    assert.equal(msg, '失败，请稍后重试');
+  } finally {
+    global.getApp = originalGetApp;
+  }
+});
+
+test('getUnifiedErrorMessage adds a short diagnostic id without exposing internal details', () => {
+  const originalGetApp = global.getApp;
+  global.getApp = () => ({ globalData: { runtimeEnv: { envVersion: 'release' } } });
+
+  try {
+    const msg = cloud.getUnifiedErrorMessage({
+      message: 'internal stack detail',
+      traceId: 'trace_delete_12345678'
+    }, '删除失败');
+    assert.equal(msg, '删除失败，请稍后重试（诊断号 12345678）');
+    assert.equal(msg.includes('internal stack detail'), false);
   } finally {
     global.getApp = originalGetApp;
   }

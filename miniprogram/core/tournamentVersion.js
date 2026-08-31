@@ -5,6 +5,15 @@ function pickTournamentVersion(doc) {
   return Number.isFinite(value) && value > 0 ? value : 0;
 }
 
+function pickTournamentUpdateTimestamp(doc) {
+  const value = doc && typeof doc === 'object' ? doc : {};
+  return (
+    syncStatus.toTs(value.updatedAtTs) ||
+    syncStatus.toTs(value.updatedAt) ||
+    syncStatus.toTs(value.modifiedAt)
+  );
+}
+
 function compareTournamentFreshness(currentDoc, nextDoc) {
   const current = currentDoc && typeof currentDoc === 'object' ? currentDoc : null;
   const next = nextDoc && typeof nextDoc === 'object' ? nextDoc : null;
@@ -34,8 +43,22 @@ function shouldAcceptTournamentDoc(currentDoc, nextDoc) {
   return compareTournamentFreshness(currentDoc, nextDoc) >= 0;
 }
 
+function shouldApplyTournamentDoc(currentDoc, nextDoc) {
+  const freshness = compareTournamentFreshness(currentDoc, nextDoc);
+  if (freshness !== 0) return freshness > 0;
+
+  const currentVersion = pickTournamentVersion(currentDoc);
+  const nextVersion = pickTournamentVersion(nextDoc);
+  if (currentVersion && nextVersion) return false;
+
+  const currentTs = pickTournamentUpdateTimestamp(currentDoc);
+  const nextTs = pickTournamentUpdateTimestamp(nextDoc);
+  return !(currentTs && nextTs);
+}
+
 module.exports = {
   pickTournamentVersion,
   compareTournamentFreshness,
-  shouldAcceptTournamentDoc
+  shouldAcceptTournamentDoc,
+  shouldApplyTournamentDoc
 };

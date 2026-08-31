@@ -211,7 +211,7 @@
 .count-pill-active {
   background: var(--brand-50);
   border-color: var(--brand-100);
-  color: var(--brand-600);
+  color: var(--brand-700);
 }
 
 /* --- Match Card --- */
@@ -297,8 +297,8 @@
 }
 
 .match-avatar {
-  width: 72rpx;
-  height: 72rpx;
+  width: 44px;
+  height: 44px;
   border-radius: 999rpx;
   overflow: hidden;
   display: flex;
@@ -308,8 +308,8 @@
 }
 
 .match-avatar-img {
-  width: 72rpx;
-  height: 72rpx;
+  width: 100%;
+  height: 100%;
 }
 
 .match-avatar-initial {
@@ -367,7 +367,7 @@
 }
 
 .match-score.score-win {
-  color: var(--brand-600);
+  color: var(--brand-700);
 }
 
 .match-score-sep {
@@ -387,7 +387,7 @@
   flex: 1;
   min-width: 0;
   text-align: right;
-  color: var(--neutral-500);
+  color: var(--neutral-700);
   font-size: 22rpx;
 }
 
@@ -414,12 +414,12 @@
 
 .pill-finished {
   background: var(--info-100);
-  color: var(--info-500);
+  color: var(--info);
 }
 
 .pill-canceled {
   background: var(--neutral-100);
-  color: var(--neutral-500);
+  color: var(--neutral-700);
 }
 
 .rest {
@@ -470,9 +470,12 @@
 .filter-trigger {
   flex-shrink: 0;
   display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
   align-items: center;
+  justify-content: center;
   gap: 4rpx;
-  color: var(--neutral-900);
+  color: var(--neutral-950);
   font-size: 28rpx;
   font-weight: 700;
 }
@@ -483,7 +486,7 @@
 }
 
 .filter-arrow {
-  color: var(--brand-500);
+  color: var(--brand-700);
   font-size: 20rpx;
 }
 
@@ -512,6 +515,8 @@
 .selected-player-chip {
   position: relative;
   display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
 }
@@ -555,13 +560,18 @@
 
 .filter-clear {
   flex-shrink: 0;
-  color: #60a5fa;
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--info);
   font-size: 28rpx;
   font-weight: 700;
 }
 
 .filter-clear.disabled {
-  color: var(--neutral-300);
+  color: var(--neutral-700);
 }
 
 .filter-divider {
@@ -599,11 +609,22 @@
 }
 
 .sheet-handle {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  margin: -16rpx auto 0;
+}
+
+.sheet-handle::after {
+  content: '';
+  position: absolute;
+  top: 12rpx;
+  left: 50%;
   width: 72rpx;
   height: 8rpx;
   border-radius: 999rpx;
   background: var(--neutral-300);
-  margin: 0 auto 20rpx;
+  transform: translateX(-50%);
 }
 
 .filter-sheet-title {
@@ -615,15 +636,20 @@
 
 .filter-sheet-option {
   margin-top: var(--space-card-pad-lg);
+  min-height: 44px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: var(--space-card-pad-lg) var(--space-section);
   border-bottom: 1rpx solid rgba(15, 23, 42, 0.08);
   font-size: 28rpx;
-  color: var(--neutral-900);
+  color: var(--neutral-950);
   text-align: center;
 }
 
 .filter-sheet-option.active {
-  color: var(--brand-600);
+  color: var(--brand-700);
   font-weight: 780;
 }
 
@@ -638,6 +664,7 @@
   flex: 1;
   width: 0;
   min-width: 0;
+  margin-top: 0 !important;
 }
 
 /* --- State Cards --- */
@@ -658,7 +685,7 @@
   align-items: center;
   min-height: 48rpx;
   padding: 0 12rpx;
-  color: var(--brand-600);
+  color: var(--brand-700);
   font-size: 24rpx;
   font-weight: 700;
 }

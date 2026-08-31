@@ -68,7 +68,7 @@ test('ranking page handles structured fetchTournament results and clears stale h
     assert.equal(ctx.data.loadError, false);
     assert.equal(ctx.data.syncUsingCache, true);
     assert.equal(ctx.data.syncCachedAt, Date.parse('2026-03-10T10:05:00.000Z'));
-    assert.equal(ctx.data.syncStatusVisible, true);
+    assert.equal(ctx.data.syncStatusVisible, false);
     assert.deepEqual(ctx.applied.pop(), cachedDoc);
 
     tournamentSync.fetchTournament = async () => ({

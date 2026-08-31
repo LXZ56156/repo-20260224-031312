@@ -248,6 +248,7 @@
 
 /* --- 完整排名: 折叠式 + 紧凑表格 --- */
 .ranking-section-head {
+  min-height: 44px;
   cursor: pointer;
 }
 
@@ -260,7 +261,7 @@
 .ranking-toggle-arrow {
   font-size: 23rpx;
   font-weight: 700;
-  color: var(--brand-600);
+  color: var(--brand-700);
   transition: transform 200ms ease;
 }
 

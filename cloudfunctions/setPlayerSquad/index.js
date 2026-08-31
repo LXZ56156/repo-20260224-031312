@@ -5,6 +5,7 @@ const db = cloud.database();
 const _ = db.command;
 const modeHelper = require('./lib/mode');
 const common = require('./lib/common');
+const playerUtils = require('./lib/player');
 
 function normalizeSquad(squad) {
   const v = String(squad || '').trim().toUpperCase();
@@ -38,7 +39,7 @@ exports.main = async (event) => {
     }
 
     const players = Array.isArray(t.players) ? t.players.slice() : [];
-    const idx = players.findIndex((item) => String(item && item.id || '') === playerId);
+    const idx = players.findIndex((item) => playerUtils.extractPlayerId(item) === playerId);
     if (idx < 0) return common.failResult('PLAYER_NOT_FOUND', '参赛成员不存在', { traceId, state: 'invalid', clientRequestId });
     if (String((players[idx] && players[idx].squad) || '').trim().toUpperCase() === squad) {
       return common.okResult('PLAYER_SQUAD_DEDUPED', '分队已更新', {

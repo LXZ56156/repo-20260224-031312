@@ -45,25 +45,29 @@ module.exports = {
   async autoGeneratePairTeams() {
     if (this.data.pairTeamBusy) return;
     if (!this.data.isAdmin || this.data.mode !== flow.MODE_FIXED_PAIR_RR) return;
-    const actionKey = `lobby:managePairTeams:${this.data.tournamentId}`;
+    const tournamentId = String(this.data.tournamentId || '').trim();
+    const lifecycleGeneration = Number(this._lifecycleGeneration || 0);
+    const actionKey = `lobby:managePairTeams:${tournamentId}`;
     if (actionGuard.isBusy(actionKey)) return;
 
     return actionGuard.runWithCriticalPageBusy(this, 'pairTeamBusy', actionKey, async () => {
       try {
         const res = await loading.withLoading('自动组队中...', () => cloud.call('managePairTeams', {
-          tournamentId: this.data.tournamentId,
+          tournamentId,
           action: 'auto_generate',
           clientRequestId: buildClientRequestId('pair_auto')
         }));
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         if (!res || res.ok === false) {
           wx.showToast({ title: viewModel.getPairTeamErrorMessage(res && res.code, res && res.message), icon: 'none' });
           return;
         }
         const warnings = Array.isArray(res && res.warnings) ? res.warnings : [];
         wx.showToast({ title: String(warnings[0] || '已自动组队'), icon: warnings.length ? 'none' : 'success' });
-        await this.fetchTournament(this.data.tournamentId);
+        await this.fetchTournament(tournamentId);
       } catch (err) {
-        this.handleWriteError(err, '自动组队失败', () => this.fetchTournament(this.data.tournamentId));
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
+        this.handleWriteError(err, '自动组队失败', () => this.fetchTournament(tournamentId));
       }
     });
   },
@@ -82,27 +86,31 @@ module.exports = {
       wx.showToast({ title: '请选择两名不同成员', icon: 'none' });
       return;
     }
-    const actionKey = `lobby:managePairTeams:${this.data.tournamentId}`;
+    const tournamentId = String(this.data.tournamentId || '').trim();
+    const lifecycleGeneration = Number(this._lifecycleGeneration || 0);
+    const actionKey = `lobby:managePairTeams:${tournamentId}`;
     if (actionGuard.isBusy(actionKey)) return;
 
     return actionGuard.runWithCriticalPageBusy(this, 'pairTeamBusy', actionKey, async () => {
       try {
         const res = await loading.withLoading('创建队伍...', () => cloud.call('managePairTeams', {
-          tournamentId: this.data.tournamentId,
+          tournamentId,
           action: 'create',
           name: String(this.data.pairTeamName || '').trim(),
           playerIds: [first.id, second.id],
           clientRequestId: buildClientRequestId('pair_create')
         }));
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         if (!res || res.ok === false) {
           wx.showToast({ title: viewModel.getPairTeamErrorMessage(res && res.code, res && res.message), icon: 'none' });
           return;
         }
         wx.showToast({ title: '队伍已创建', icon: 'success' });
         this.setData({ pairTeamName: '' });
-        await this.fetchTournament(this.data.tournamentId);
+        await this.fetchTournament(tournamentId);
       } catch (err) {
-        this.handleWriteError(err, '创建队伍失败', () => this.fetchTournament(this.data.tournamentId));
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
+        this.handleWriteError(err, '创建队伍失败', () => this.fetchTournament(tournamentId));
       }
     });
   },
@@ -111,29 +119,34 @@ module.exports = {
     if (!this.data.isAdmin || this.data.mode !== flow.MODE_FIXED_PAIR_RR) return;
     const teamId = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.team) || '').trim();
     if (!teamId) return;
+    const tournamentId = String(this.data.tournamentId || '').trim();
+    const lifecycleGeneration = Number(this._lifecycleGeneration || 0);
     wx.showModal({
       title: '删除队伍？',
       content: '删除后可重新组队。',
       success: async (res) => {
         if (!res.confirm) return;
-        const actionKey = `lobby:managePairTeams:${this.data.tournamentId}`;
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
+        const actionKey = `lobby:managePairTeams:${tournamentId}`;
         if (actionGuard.isBusy(actionKey)) return;
         await actionGuard.runWithCriticalPageBusy(this, 'pairTeamBusy', actionKey, async () => {
           try {
             const result = await loading.withLoading('删除中...', () => cloud.call('managePairTeams', {
-              tournamentId: this.data.tournamentId,
+              tournamentId,
               action: 'delete',
               teamId,
               clientRequestId: buildClientRequestId('pair_delete')
             }));
+            if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
             if (!result || result.ok === false) {
               wx.showToast({ title: viewModel.getPairTeamErrorMessage(result && result.code, result && result.message), icon: 'none' });
               return;
             }
             wx.showToast({ title: '已删除', icon: 'success' });
-            await this.fetchTournament(this.data.tournamentId);
+            await this.fetchTournament(tournamentId);
           } catch (err) {
-            this.handleWriteError(err, '删除队伍失败', () => this.fetchTournament(this.data.tournamentId));
+            if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
+            this.handleWriteError(err, '删除队伍失败', () => this.fetchTournament(tournamentId));
           }
         });
       }

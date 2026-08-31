@@ -4,6 +4,7 @@ const db = cloud.database();
 const _ = db.command;
 const common = require('./lib/common');
 const modeHelper = require('./lib/mode');
+const playerUtils = require('./lib/player');
 const shareActivity = require('./lib/share-activity');
 
 exports.main = async (event) => {
@@ -18,10 +19,31 @@ exports.main = async (event) => {
   if (!playerId) {
     return common.failResult('PLAYER_ID_REQUIRED', '缺少 playerId', { traceId, state: 'invalid', clientRequestId });
   }
+  const requestLogOptions = {
+    scope: 'remove_player',
+    subjectKey: `tournament:${tournamentId}:player:${playerId}`,
+    operatorOpenId: OPENID,
+    clientRequestId
+  };
+  if (clientRequestId) {
+    await common.ensureCollection(db, common.CLIENT_REQUEST_LOG_COLLECTION);
+  }
 
   let shareUpdateTournament = null;
   try {
     const result = await db.runTransaction(async (transaction) => {
+      if (clientRequestId) {
+        const requestLog = await common.getClientRequestLog(transaction, requestLogOptions);
+        if (common.isSuccessfulClientRequestLog(requestLog)) {
+          return common.okResult('PLAYER_REMOVED_DEDUPED', '参赛成员已移除', {
+            traceId,
+            state: 'deduped',
+            deduped: true,
+            clientRequestId,
+            playerId
+          });
+        }
+      }
       const docRes = await transaction.collection('tournaments').doc(tournamentId).get();
       const t = common.assertTournamentExists(docRes.data);
       common.assertDraft(t, '非草稿阶段不可移除');
@@ -37,8 +59,18 @@ exports.main = async (event) => {
       }
 
       const existingPlayers = Array.isArray(t.players) ? t.players : [];
-      const playerExists = existingPlayers.some((item) => String(item && item.id || '').trim() === playerId);
+      const playerExists = existingPlayers.some((item) => playerUtils.extractPlayerId(item) === playerId);
       if (!playerExists) {
+        if (clientRequestId) {
+          await common.upsertClientRequestLog(transaction, db, {
+            ...requestLogOptions,
+            status: 'succeeded',
+            resourceType: 'player',
+            resourceId: playerId,
+            responseCode: 'PLAYER_REMOVED_DEDUPED',
+            responseState: 'deduped'
+          });
+        }
         return common.okResult('PLAYER_REMOVED_DEDUPED', '参赛成员已移除', {
           traceId,
           state: 'deduped',
@@ -48,8 +80,8 @@ exports.main = async (event) => {
         });
       }
 
-      const players = existingPlayers.filter(p => String(p && p.id || '').trim() !== playerId);
-      const playerIds = Array.from(new Set(players.map((item) => String(item && item.id || '').trim()).filter(Boolean)));
+      const players = existingPlayers.filter((item) => playerUtils.extractPlayerId(item) !== playerId);
+      const playerIds = Array.from(new Set(players.map(playerUtils.extractPlayerId).filter(Boolean)));
       const refereeId = (t.refereeId === playerId) ? '' : (t.refereeId || '');
       const pairTeamsRaw = Array.isArray(t.pairTeams) ? t.pairTeams : [];
       const pairTeams = pairTeamsRaw
@@ -70,6 +102,16 @@ exports.main = async (event) => {
         }, ['_id'], '移除参赛成员写入数据')
       });
       common.assertOptimisticUpdate(updRes, '写入冲突，请重试');
+      if (clientRequestId) {
+        await common.upsertClientRequestLog(transaction, db, {
+          ...requestLogOptions,
+          status: 'succeeded',
+          resourceType: 'player',
+          resourceId: playerId,
+          responseCode: 'PLAYER_REMOVED',
+          responseState: 'removed'
+        });
+      }
       shareUpdateTournament = {
         ...t,
         players,

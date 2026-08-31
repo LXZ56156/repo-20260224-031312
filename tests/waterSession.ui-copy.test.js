@@ -328,6 +328,7 @@ test('direct water exposes inline validity and disables its CTA before a legal t
 
 test('feed detail is a standalone semantic action with sibling edit controls', () => {
   const wxml = read('miniprogram/pages/water/index.wxml');
+  const wxss = read('miniprogram/pages/water/index.wxss');
   const feedStart = wxml.indexOf('id="water-feed-{{item.id}}"');
   const feedEnd = wxml.indexOf('<view class="water-feed-tail">', feedStart);
   const feedItem = wxml.slice(feedStart, feedEnd);
@@ -339,6 +340,7 @@ test('feed detail is a standalone semantic action with sibling edit controls', (
   assert.match(feedItem, /<\/button>[\s\S]*class="water-feed-actions"/);
   assert.match(feedItem, /class="water-feed-meta"[^>]*wx:if="\{\{item\.canEdit \|\| item\.canReverse\}\}"/);
   assert.doesNotMatch(detailButton, /water-feed-actions/);
+  assert.match(wxss, /\.water-feed-open\s*\{[^}]*min-height:\s*44px/s);
 });
 
 test('roster keeps a long player name separate from the self badge', () => {

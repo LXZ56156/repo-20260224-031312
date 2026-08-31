@@ -168,6 +168,13 @@ test('directly injected detail and archive fixtures include their display descri
   });
 });
 
+test('direct water screenshot fixture keeps its visible selection and validation state aligned', () => {
+  const direct = waterV2Fixtures.memberDirect.pageData;
+
+  assert.equal(direct.directSelectionValid, true);
+  assert.equal(direct.directValidationMessage, '双方不同，可以记水');
+});
+
 test('member24Game deterministically selects a real 12v12 draft', () => {
   const methods = waterV2Fixtures.member24Game.methods;
   const postData = waterV2Fixtures.member24Game.postData;

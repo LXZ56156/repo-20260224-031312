@@ -51,7 +51,8 @@ test('matchLockController teardown clears countdown and heartbeat timers and can
     controller.setLockState('locked_by_me', {
       ownerId: 'user_1',
       ownerName: '裁判A',
-      expireAt: Date.now() + 5000
+      expireAt: Date.now() + 5000,
+      lockSessionId: 'session_1'
     }, { skipApply: true });
 
     assert.equal(activeTimers.size, 2);
@@ -62,6 +63,7 @@ test('matchLockController teardown clears countdown and heartbeat timers and can
     assert.equal(calls.length, 1);
     assert.equal(calls[0].name, 'scoreLock');
     assert.equal(calls[0].payload.action, 'release');
+    assert.equal(calls[0].payload.lockSessionId, 'session_1');
     assert.equal(activeTimers.size, 0);
     assert.equal(clearedTimers.length, 2);
     assert.equal(ctx.data.lockState, 'idle');
@@ -113,6 +115,17 @@ test('matchLockController release retries once with captured payload after teard
     controller.setLockState('locked_by_me', {
       ownerId: 'user_1',
       ownerName: '裁判A',
+      expireAt: Date.now() + 5000,
+      lockSessionId: 'session_2'
+    }, { skipApply: true });
+    controller.setLockState('submitting', {
+      ownerId: 'user_1',
+      ownerName: '裁判A',
+      expireAt: Date.now() + 5000
+    }, { skipApply: true });
+    controller.setLockState('locked_by_me', {
+      ownerId: 'user_1',
+      ownerName: '裁判A',
       expireAt: Date.now() + 5000
     }, { skipApply: true });
 
@@ -124,10 +137,65 @@ test('matchLockController release retries once with captured payload after teard
     assert.equal(ctx.data.lockState, 'idle');
     assert.equal(calls.length, 2);
     assert.deepEqual(calls.map((item) => item.payload.action), ['release', 'release']);
+    assert.deepEqual(calls.map((item) => item.payload.lockSessionId), ['session_2', 'session_2']);
     assert.equal(calls[0].payload.tournamentId, 't_1');
     assert.equal(warnCalls.length, 1);
   } finally {
     global.wx = originalWx;
     console.warn = originalWarn;
+  }
+});
+
+test('matchLockController ignores status started before a newer acquire session', async () => {
+  const originalWx = global.wx;
+  let resolveStatus;
+  global.wx = { showToast() {} };
+
+  const ctx = {
+    data: {
+      tournamentId: 't_1',
+      roundIndex: 0,
+      matchIndex: 1,
+      match: { status: 'pending' },
+      userCanScore: true,
+      lockBusy: false,
+      lockState: 'locked_by_me',
+      lockOwnerName: '',
+      lockRemainingMs: 0
+    },
+    _latestTournament: null,
+    setData(update) {
+      this.data = { ...this.data, ...(update || {}) };
+    },
+    applyTournament() {},
+    isPageActive() {
+      return true;
+    }
+  };
+
+  try {
+    const controller = createMatchLockController(ctx, {
+      cloud: {
+        call: () => new Promise((resolve) => {
+          resolveStatus = resolve;
+        }),
+        getUnifiedErrorMessage: () => '失败'
+      }
+    });
+    controller.setLockState('locked_by_me', {
+      ownerId: 'user_1',
+      expireAt: Date.now() + 5000,
+      lockSessionId: 'session_old'
+    }, { skipApply: true });
+
+    const statusTask = controller.syncLockStatus(true);
+    controller.buildScoreLockPayload('acquire');
+    resolveStatus({ ok: true, state: 'idle' });
+    await statusTask;
+
+    assert.equal(ctx.data.lockState, 'locked_by_me');
+    controller.teardown({ resetState: true });
+  } finally {
+    global.wx = originalWx;
   }
 });

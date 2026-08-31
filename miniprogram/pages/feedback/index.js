@@ -18,7 +18,16 @@ Page({
   },
 
   async onLoad() {
+    this._lifecycleGeneration = 0;
     await this.ensureFeedbackReady();
+  },
+
+  onHide() {
+    this._lifecycleGeneration = Number(this._lifecycleGeneration || 0) + 1;
+  },
+
+  onUnload() {
+    this._lifecycleGeneration = Number(this._lifecycleGeneration || 0) + 1;
   },
 
   async ensureFeedbackReady() {
@@ -62,6 +71,7 @@ Page({
     }
     const actionKey = 'feedback:submit';
     const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'feedback');
+    const lifecycleGeneration = Number(this._lifecycleGeneration || 0);
     if (actionGuard.isBusy(actionKey)) return;
 
     return actionGuard.runWithCriticalPageBusy(this, 'submitting', actionKey, async () => {
@@ -73,11 +83,13 @@ Page({
           clientRequestId
         }), '提交失败');
         wx.hideLoading();
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         wx.showModal({
           title: '提交成功',
           content: `反馈编号：${res && res.feedbackId ? res.feedbackId : '已记录'}`,
           showCancel: false,
           success: () => {
+            if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
             this.setData({
               content: '',
               contentLength: 0
@@ -86,6 +98,7 @@ Page({
         });
       } catch (e) {
         wx.hideLoading();
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         wx.showToast({ title: cloud.getUnifiedErrorMessage(e, '提交失败'), icon: 'none' });
       }
     });

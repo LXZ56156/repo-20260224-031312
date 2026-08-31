@@ -40,6 +40,7 @@ test('home falls back to local tournament cache when recents query fails', async
   const originalGetApp = global.getApp;
   const originalGetRecentTournamentIds = storage.getRecentTournamentIds;
   const originalGetLocalTournamentCacheInfo = storage.getLocalTournamentCacheInfo;
+  let rejectRemote;
 
   global.getApp = () => ({ globalData: { openid: 'test_openid' } });
   global.wx = {
@@ -55,8 +56,10 @@ test('home falls back to local tournament cache when recents query fails', async
             return {
               where() {
                 return {
-                  async get() {
-                    throw new Error('network fail');
+                  get() {
+                    return new Promise((_resolve, reject) => {
+                      rejectRemote = reject;
+                    });
                   }
                 };
               }
@@ -88,7 +91,11 @@ test('home falls back to local tournament cache when recents query fails', async
       };
     };
 
-    await ctx.loadRecents();
+    const pending = ctx.loadRecents();
+    assert.equal(ctx.data.loading, false);
+    assert.equal(ctx.data.items[0].name, 'Cached Tournament');
+    rejectRemote(new Error('network fail'));
+    await pending;
 
     assert.equal(ctx.data.loadError, false);
     assert.equal(ctx.data.showStaleSyncHint, true);
@@ -106,14 +113,19 @@ test('home falls back to local tournament cache when recents query fails', async
   }
 });
 
-test('home keeps missing tournaments as removed when remote query succeeds', async () => {
+test('home refreshes local cache and keeps missing tournaments as removed', async () => {
   const originalWx = global.wx;
   const originalGetApp = global.getApp;
   const originalGetRecentTournamentIds = storage.getRecentTournamentIds;
+  const originalGetLocalTournamentCacheInfo = storage.getLocalTournamentCacheInfo;
+  const originalSetLocalTournamentCache = storage.setLocalTournamentCache;
+  const originalRemoveLocalTournamentCache = storage.removeLocalTournamentCache;
   const originalRemoveLocalCompletedTournamentSnapshot = storage.removeLocalCompletedTournamentSnapshot;
   const originalUpsertLocalCompletedTournamentSnapshot = storage.upsertLocalCompletedTournamentSnapshot;
 
   const removed = [];
+  const cached = [];
+  const ids = ['t_1', 't_2'];
 
   global.getApp = () => ({ globalData: { openid: 'test_openid' } });
   global.wx = {
@@ -127,18 +139,18 @@ test('home keeps missing tournaments as removed when remote query succeeds', asy
           },
           collection() {
             return {
-              where() {
+              where(query) {
                 return {
                   async get() {
                     return {
-                      data: [{
-                        _id: 't_1',
-                        name: 'Remote Tournament',
+                      data: query._id.filter((id) => id !== 't_2').map((id) => ({
+                        _id: id,
+                        name: id,
                         status: 'running',
                         mode: 'multi_rotate',
                         players: [],
                         rounds: []
-                      }]
+                      }))
                     };
                   }
                 };
@@ -154,9 +166,16 @@ test('home keeps missing tournaments as removed when remote query succeeds', asy
   try {
     const definition = loadHomePageDefinition();
     const ctx = createHomePageContext(definition);
-    storage.getRecentTournamentIds = () => ['t_1', 't_2'];
+    storage.getRecentTournamentIds = () => ids;
+    storage.getLocalTournamentCacheInfo = () => null;
+    storage.setLocalTournamentCache = (id, doc) => {
+      cached.push([id, doc.name]);
+    };
+    storage.removeLocalTournamentCache = (id) => {
+      removed.push(`cache:${id}`);
+    };
     storage.removeLocalCompletedTournamentSnapshot = (id) => {
-      removed.push(id);
+      removed.push(`snapshot:${id}`);
     };
     storage.upsertLocalCompletedTournamentSnapshot = () => {};
 
@@ -167,11 +186,15 @@ test('home keeps missing tournaments as removed when remote query succeeds', asy
     assert.equal(ctx.data.items.length, 2);
     assert.equal(ctx.data.items[1].status, 'missing');
     assert.equal(ctx.data.items[1].name, '赛事已移除');
-    assert.deepEqual(removed, ['t_2']);
+    assert.deepEqual(cached, [['t_1', 't_1']]);
+    assert.deepEqual(removed, ['snapshot:t_2', 'cache:t_2']);
   } finally {
     global.wx = originalWx;
     global.getApp = originalGetApp;
     storage.getRecentTournamentIds = originalGetRecentTournamentIds;
+    storage.getLocalTournamentCacheInfo = originalGetLocalTournamentCacheInfo;
+    storage.setLocalTournamentCache = originalSetLocalTournamentCache;
+    storage.removeLocalTournamentCache = originalRemoveLocalTournamentCache;
     storage.removeLocalCompletedTournamentSnapshot = originalRemoveLocalCompletedTournamentSnapshot;
     storage.upsertLocalCompletedTournamentSnapshot = originalUpsertLocalCompletedTournamentSnapshot;
     delete require.cache[homePagePath];
@@ -234,8 +257,10 @@ test('home keeps healthy refresh banner silent while recents query is loading', 
   const originalWx = global.wx;
   const originalGetApp = global.getApp;
   const originalGetRecentTournamentIds = storage.getRecentTournamentIds;
+  const originalGetLocalTournamentCacheInfo = storage.getLocalTournamentCacheInfo;
+  const originalSetLocalTournamentCache = storage.setLocalTournamentCache;
   const originalUpsertLocalCompletedTournamentSnapshot = storage.upsertLocalCompletedTournamentSnapshot;
-  let resolveRemote = null;
+  const resolveRemote = [];
 
   global.getApp = () => ({ globalData: { openid: 'test_openid' } });
   global.wx = {
@@ -252,6 +277,97 @@ test('home keeps healthy refresh banner silent while recents query is loading', 
               where() {
                 return {
                   async get() {
+                    return new Promise((resolve) => {
+                      resolveRemote.push(resolve);
+                    });
+                  }
+                };
+              }
+            };
+          }
+        };
+      }
+    },
+    showToast() {}
+  };
+
+  try {
+    const definition = loadHomePageDefinition();
+    const ctx = createHomePageContext(definition);
+    storage.getRecentTournamentIds = () => ['t_1'];
+    storage.getLocalTournamentCacheInfo = () => null;
+    storage.setLocalTournamentCache = () => {};
+    storage.upsertLocalCompletedTournamentSnapshot = () => {};
+
+    const firstPending = ctx.loadRecents();
+    const latestPending = ctx.loadRecents();
+
+    assert.equal(ctx.data.syncRefreshing, true);
+    assert.equal(ctx.data.syncStatusVisible, false);
+    assert.equal(ctx.data.syncStatusText, '');
+
+    resolveRemote[1]({
+      data: [{
+        _id: 't_1',
+        name: 'Latest Tournament',
+        status: 'running',
+        mode: 'multi_rotate',
+        players: [],
+        rounds: [],
+        updatedAt: '2026-03-10T10:00:00.000Z'
+      }]
+    });
+    await latestPending;
+
+    resolveRemote[0]({
+      data: [{
+        _id: 't_1',
+        name: 'Stale Tournament',
+        status: 'running',
+        mode: 'multi_rotate',
+        players: [],
+        rounds: [],
+        updatedAt: '2026-03-10T09:00:00.000Z'
+      }]
+    });
+    await firstPending;
+
+    assert.equal(ctx.data.syncRefreshing, false);
+    assert.equal(ctx.data.syncStatusVisible, false);
+    assert.equal(ctx.data.items.length, 1);
+    assert.equal(ctx.data.items[0].name, 'Latest Tournament');
+  } finally {
+    global.wx = originalWx;
+    global.getApp = originalGetApp;
+    storage.getRecentTournamentIds = originalGetRecentTournamentIds;
+    storage.getLocalTournamentCacheInfo = originalGetLocalTournamentCacheInfo;
+    storage.setLocalTournamentCache = originalSetLocalTournamentCache;
+    storage.upsertLocalCompletedTournamentSnapshot = originalUpsertLocalCompletedTournamentSnapshot;
+    delete require.cache[homePagePath];
+  }
+});
+
+test('home ignores a recents query that resolves after the page is hidden', async () => {
+  const originalWx = global.wx;
+  const originalGetApp = global.getApp;
+  const originalGetRecentTournamentIds = storage.getRecentTournamentIds;
+  const originalGetLocalTournamentCacheInfo = storage.getLocalTournamentCacheInfo;
+  const originalSetLocalTournamentCache = storage.setLocalTournamentCache;
+  const originalUpsertLocalCompletedTournamentSnapshot = storage.upsertLocalCompletedTournamentSnapshot;
+  let resolveRemote = null;
+  const writes = [];
+
+  global.getApp = () => ({ globalData: { openid: 'test_openid' } });
+  global.wx = {
+    cloud: {
+      database() {
+        return {
+          command: { in(value) { return value; } },
+          collection() {
+            return {
+              where() {
+                return {
+                  get() {
                     return new Promise((resolve) => {
                       resolveRemote = resolve;
                     });
@@ -270,36 +386,44 @@ test('home keeps healthy refresh banner silent while recents query is loading', 
     const definition = loadHomePageDefinition();
     const ctx = createHomePageContext(definition);
     storage.getRecentTournamentIds = () => ['t_1'];
-    storage.upsertLocalCompletedTournamentSnapshot = () => {};
-
-    const pending = ctx.loadRecents();
-
-    assert.equal(ctx.data.syncRefreshing, true);
-    assert.equal(ctx.data.syncStatusVisible, false);
-    assert.equal(ctx.data.syncStatusText, '');
-
-    resolveRemote({
-      data: [{
+    storage.getLocalTournamentCacheInfo = () => ({
+      cachedAt: 2,
+      doc: {
         _id: 't_1',
-        name: 'Remote Tournament',
+        name: 'New Tournament',
+        version: 5,
         status: 'running',
         mode: 'multi_rotate',
         players: [],
-        rounds: [],
-        updatedAt: '2026-03-10T10:00:00.000Z'
+        rounds: []
+      }
+    });
+    storage.setLocalTournamentCache = () => writes.push('cache');
+    storage.upsertLocalCompletedTournamentSnapshot = () => writes.push('snapshot');
+
+    const pending = ctx.loadRecents();
+    ctx.onHide();
+    resolveRemote({
+      data: [{
+        _id: 't_1',
+        name: 'Old Tournament',
+        version: 4,
+        status: 'running',
+        mode: 'multi_rotate',
+        players: [],
+        rounds: []
       }]
     });
-
     await pending;
 
-    assert.equal(ctx.data.syncRefreshing, false);
-    assert.equal(ctx.data.syncStatusVisible, false);
-    assert.equal(ctx.data.items.length, 1);
-    assert.equal(ctx.data.items[0].name, 'Remote Tournament');
+    assert.equal(ctx.data.items[0].name, 'New Tournament');
+    assert.deepEqual(writes, []);
   } finally {
     global.wx = originalWx;
     global.getApp = originalGetApp;
     storage.getRecentTournamentIds = originalGetRecentTournamentIds;
+    storage.getLocalTournamentCacheInfo = originalGetLocalTournamentCacheInfo;
+    storage.setLocalTournamentCache = originalSetLocalTournamentCache;
     storage.upsertLocalCompletedTournamentSnapshot = originalUpsertLocalCompletedTournamentSnapshot;
     delete require.cache[homePagePath];
   }

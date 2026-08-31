@@ -14,8 +14,21 @@ const {
 } = require('./timeout-reentry.helpers');
 
 const homePagePath = require.resolve('../miniprogram/pages/home/index.js');
+const homeCloneActionKey = 'home:cloneTournament';
 
-test('home onCloneTap stays guarded after timeout while request is pending', async () => {
+function prepareHomeContext(definition) {
+  const ctx = createPageContext(definition);
+  ctx.clearLastFailedAction = () => {};
+  ctx.setLastFailedAction = () => {};
+  ctx.handleWriteError = () => {};
+  ctx.loadRecents = async () => {};
+  ctx.refreshUiPreferences = () => {};
+  ctx.refreshProfileNudgeState = () => {};
+  ctx.refreshHomeAdSlot = () => {};
+  return ctx;
+}
+
+test('home onCloneTap keeps one clone flow pending and through successful navigation', async () => {
   const timers = installFakeTimers();
   const originalWx = global.wx;
   const originalCloneTournament = cloneTournamentCore.cloneTournament;
@@ -30,10 +43,7 @@ test('home onCloneTap stays guarded after timeout while request is pending', asy
 
   try {
     const definition = loadPageDefinition(homePagePath);
-    const ctx = createPageContext(definition);
-    ctx.clearLastFailedAction = () => {};
-    ctx.setLastFailedAction = () => {};
-    ctx.loadRecents = async () => {};
+    const ctx = prepareHomeContext(definition);
 
     cloneTournamentCore.cloneTournament = async (sourceTournamentId, options) => {
       cloneCalls.push({ sourceTournamentId, options });
@@ -51,25 +61,146 @@ test('home onCloneTap stays guarded after timeout while request is pending', asy
 
     await timers.flushAll();
 
-    assert.equal(actionGuard.isBusy('home:cloneTournament:t_clone'), true);
+    assert.equal(actionGuard.isBusy(homeCloneActionKey), true);
 
     const second = ctx.onCloneTap(event);
+    const other = ctx.onCloneTap({ currentTarget: { dataset: { id: 't_clone_other' } } });
     tasks.push(second);
+    tasks.push(other);
     assert.equal(cloneCalls.length, 1);
 
     deferred.resolve();
     await settleTasks(tasks);
+
+    await ctx.onCloneTap({ currentTarget: { dataset: { id: 't_clone_after_success' } } });
+    assert.equal(cloneCalls.length, 1);
 
     assert.deepEqual(wxBox.loadingEvents, ['show:复制中...', 'hide']);
     assert.equal(wxBox.getHideError(), null);
   } finally {
     deferred.resolve();
     await settleTasks(tasks);
-    actionGuard.clear('home:cloneTournament:t_clone');
+    actionGuard.clear(homeCloneActionKey);
     timers.restore();
     global.wx = originalWx;
     cloneTournamentCore.cloneTournament = originalCloneTournament;
     nav.buildTournamentUrl = originalBuildTournamentUrl;
+    delete require.cache[homePagePath];
+  }
+});
+
+test('home releases the clone flow when opening the copied tournament fails', async () => {
+  const originalWx = global.wx;
+  const originalCloneTournament = cloneTournamentCore.cloneTournament;
+  const wxBox = createWxStub();
+  let cloneCalls = 0;
+
+  wxBox.api.navigateTo = (options = {}) => {
+    if (typeof options.fail === 'function') options.fail(new Error('navigation failed'));
+  };
+  global.wx = wxBox.api;
+
+  try {
+    const definition = loadPageDefinition(homePagePath);
+    const ctx = prepareHomeContext(definition);
+    cloneTournamentCore.cloneTournament = async () => {
+      cloneCalls += 1;
+      return `t_clone_new_${cloneCalls}`;
+    };
+
+    ctx.onShow();
+    await ctx.onCloneTap({ currentTarget: { dataset: { id: 't_clone_1' } } });
+    await ctx.onCloneTap({ currentTarget: { dataset: { id: 't_clone_2' } } });
+
+    assert.equal(cloneCalls, 2);
+    assert.equal(ctx._cloneFlowActive, false);
+  } finally {
+    actionGuard.clear(homeCloneActionKey);
+    global.wx = originalWx;
+    cloneTournamentCore.cloneTournament = originalCloneTournament;
+    delete require.cache[homePagePath];
+  }
+});
+
+test('home ignores a late clone success after hide and show', async () => {
+  const originalWx = global.wx;
+  const originalCloneTournament = cloneTournamentCore.cloneTournament;
+  const originalGoLobby = nav.goLobby;
+  const deferred = createDeferred();
+  const wxBox = createWxStub();
+  const effects = [];
+
+  wxBox.api.showToast = () => effects.push('toast');
+  global.wx = wxBox.api;
+
+  try {
+    const definition = loadPageDefinition(homePagePath);
+    const ctx = prepareHomeContext(definition);
+    ctx.clearLastFailedAction = () => effects.push('clear-retry');
+    ctx.setLastFailedAction = () => effects.push('set-retry');
+    ctx.handleWriteError = () => effects.push('error');
+    cloneTournamentCore.cloneTournament = async () => {
+      await deferred.promise;
+      return 't_clone_late';
+    };
+    nav.goLobby = () => effects.push('navigate');
+
+    ctx.onShow();
+    const pending = ctx.onCloneTap({ currentTarget: { dataset: { id: 't_clone' } } });
+    await Promise.resolve();
+    ctx.onHide();
+    ctx.onShow();
+    deferred.resolve();
+    await pending;
+
+    assert.deepEqual(effects, []);
+    assert.deepEqual(wxBox.loadingEvents, ['show:复制中...', 'hide']);
+    assert.equal(wxBox.getHideError(), null);
+  } finally {
+    deferred.resolve();
+    actionGuard.clear(homeCloneActionKey);
+    global.wx = originalWx;
+    cloneTournamentCore.cloneTournament = originalCloneTournament;
+    nav.goLobby = originalGoLobby;
+    delete require.cache[homePagePath];
+  }
+});
+
+test('home ignores a late clone failure after hide and show', async () => {
+  const originalWx = global.wx;
+  const originalCloneTournament = cloneTournamentCore.cloneTournament;
+  const wxBox = createWxStub();
+  const effects = [];
+  let rejectClone = null;
+
+  wxBox.api.showToast = () => effects.push('toast');
+  global.wx = wxBox.api;
+
+  try {
+    const definition = loadPageDefinition(homePagePath);
+    const ctx = prepareHomeContext(definition);
+    ctx.clearLastFailedAction = () => effects.push('clear-retry');
+    ctx.setLastFailedAction = () => effects.push('set-retry');
+    ctx.handleWriteError = () => effects.push('error');
+    cloneTournamentCore.cloneTournament = () => new Promise((_resolve, reject) => {
+      rejectClone = reject;
+    });
+
+    ctx.onShow();
+    const pending = ctx.onCloneTap({ currentTarget: { dataset: { id: 't_clone' } } });
+    await Promise.resolve();
+    ctx.onHide();
+    ctx.onShow();
+    rejectClone(new Error('clone failed'));
+    await pending;
+
+    assert.deepEqual(effects, []);
+    assert.deepEqual(wxBox.loadingEvents, ['show:复制中...', 'hide']);
+    assert.equal(wxBox.getHideError(), null);
+  } finally {
+    actionGuard.clear(homeCloneActionKey);
+    global.wx = originalWx;
+    cloneTournamentCore.cloneTournament = originalCloneTournament;
     delete require.cache[homePagePath];
   }
 });

@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
+const auth = require('../miniprogram/core/auth');
 const analyticsPagePath = require.resolve('../miniprogram/pages/analytics/index.js');
 const sharePageMixinPath = require.resolve('../miniprogram/core/sharePageMixin.js');
 const shareCardPreheat = require('../miniprogram/core/shareCardPreheat');
@@ -72,10 +73,12 @@ test('analytics page shares current tournament through the unified transfer cont
 test('analytics page preheats share menu on load', () => {
   const originalWx = global.wx;
   const originalGetApp = global.getApp;
+  const originalLogin = auth.login;
   const originalGetPreparedShareImage = shareCardPreheat.getPreparedShareImage;
   clearPageCache();
 
   shareCardPreheat.getPreparedShareImage = async () => '/tmp/analytics-share-card.png';
+  auth.login = async () => 'u_viewer';
 
   const definition = loadAnalyticsPageDefinition();
   const ctx = createAnalyticsPageContext(definition);
@@ -105,6 +108,7 @@ test('analytics page preheats share menu on load', () => {
     assert.equal(showCalls[0].withShareTicket, true);
   } finally {
     shareCardPreheat.getPreparedShareImage = originalGetPreparedShareImage;
+    auth.login = originalLogin;
     global.wx = originalWx;
     global.getApp = originalGetApp;
     clearPageCache();

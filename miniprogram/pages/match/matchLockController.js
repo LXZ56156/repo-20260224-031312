@@ -1,4 +1,5 @@
 const cloud = require('../../core/cloud');
+const clientRequest = require('../../core/clientRequest');
 const { normalizeLockState, buildLockHint } = require('./matchViewModel');
 
 const LOCK_HEARTBEAT_MS = 15 * 1000;
@@ -25,15 +26,33 @@ function createMatchLockController(ctx, deps = {}) {
   let heartbeatTimer = null;
   let countdownTimer = null;
   let autoPollTimer = null;
+  let lockSessionId = '';
+  let lockRequestVersion = 0;
+
+  function isCurrentLockSession(expectedSessionId = '', expectedVersion = lockRequestVersion) {
+    if (expectedVersion !== lockRequestVersion) return false;
+    if (typeof ctx.isPageActive === 'function' && !ctx.isPageActive()) return false;
+    const expected = String(expectedSessionId || '').trim();
+    return !expected || expected === lockSessionId;
+  }
 
   function buildScoreLockPayload(action, force = false) {
-    return {
-      action,
+    const normalizedAction = String(action || '').trim().toLowerCase();
+    if (normalizedAction === 'acquire') {
+      lockRequestVersion += 1;
+      lockSessionId = clientRequest.buildClientRequestId('score_lock');
+    }
+    const payload = {
+      action: normalizedAction,
       tournamentId: ctx.data.tournamentId,
       roundIndex: ctx.data.roundIndex,
       matchIndex: ctx.data.matchIndex,
       force: !!force
     };
+    if (lockSessionId && normalizedAction !== 'status') {
+      payload.lockSessionId = lockSessionId;
+    }
+    return payload;
   }
 
   function stopLockHeartbeat() {
@@ -121,6 +140,12 @@ function createMatchLockController(ctx, deps = {}) {
 
   function setLockState(state, payload = {}, options = {}) {
     const lockState = normalizeLockState(state);
+    const nextLockSessionId = String(payload.lockSessionId || '').trim();
+    if (lockState === 'locked_by_me' || lockState === 'submitting') {
+      if (nextLockSessionId) lockSessionId = nextLockSessionId;
+    } else {
+      lockSessionId = '';
+    }
     const ownerId = String(payload.ownerId || '').trim();
     const ownerName = String(payload.ownerName || '').trim();
     const expireAt = Number(payload.expireAt) || 0;
@@ -143,9 +168,12 @@ function createMatchLockController(ctx, deps = {}) {
   async function syncLockStatus(silent = false) {
     const match = ctx.data.match;
     const status = String(match && match.status || '').trim();
-    if (!ctx.data.userCanScore || !match || status === 'canceled') return;
+    if (!ctx.data.userCanScore || !match || status === 'canceled' || ctx.data.lockBusy) return;
+    const requestVersion = lockRequestVersion;
+    const expectedSessionId = lockSessionId;
     try {
       const res = await cloudApi.call('scoreLock', buildScoreLockPayload('status'));
+      if (!isCurrentLockSession(expectedSessionId, requestVersion)) return;
       applyScoreLockResult(res, { silent });
     } catch (err) {
       if (!silent) wx.showToast({ title: cloudApi.getUnifiedErrorMessage(err, '同步状态失败'), icon: 'none' });
@@ -154,8 +182,11 @@ function createMatchLockController(ctx, deps = {}) {
 
   async function heartbeatLock() {
     if (ctx.data.lockState !== 'locked_by_me') return;
+    const requestVersion = lockRequestVersion;
+    const expectedSessionId = lockSessionId;
     try {
       const res = await cloudApi.call('scoreLock', buildScoreLockPayload('heartbeat'));
+      if (!isCurrentLockSession(expectedSessionId, requestVersion)) return;
       applyScoreLockResult(res, { silent: true, fromHeartbeat: true });
     } catch (_) {
       // 心跳失败不立刻中断编辑，下一次交互时再校验
@@ -236,6 +267,8 @@ function createMatchLockController(ctx, deps = {}) {
     stopLockHeartbeat();
     stopLockCountdown();
     stopAutoPoll();
+    lockRequestVersion += 1;
+    lockSessionId = '';
     ctx._lockStatusKey = '';
     if (options.resetState) {
       setLockState('idle', {}, { skipApply: true });
@@ -244,6 +277,7 @@ function createMatchLockController(ctx, deps = {}) {
 
   return {
     buildScoreLockPayload,
+    isCurrentLockSession,
     setLockState,
     syncLockStatus,
     heartbeatLock,

@@ -130,6 +130,7 @@ exports.main = async (event) => {
       const latestRes = await transaction.collection('tournaments').doc(tournamentId).get();
       const t = common.assertTournamentExists(latestRes.data);
       common.assertCreator(t, OPENID);
+      common.assertDraft(t, '仅草稿阶段可删除赛事');
       if (clientRequestId) {
         const requestLog = await findCommonDeleteRequestLog(transaction, tournamentId, OPENID, clientRequestId);
         if (common.isSuccessfulClientRequestLog(requestLog)) {
@@ -161,6 +162,13 @@ exports.main = async (event) => {
     if (clientRequestId && (common.isDocNotExists(err) || message.includes('赛事不存在'))) {
       const dedupedRetry = await buildDedupedDeleteResult(tournamentId, OPENID, traceId, clientRequestId);
       if (dedupedRetry) return dedupedRetry;
+    }
+    if (message.includes('仅草稿阶段可删除赛事')) {
+      return common.failResult('DELETE_DRAFT_ONLY', message, {
+        traceId,
+        state: 'forbidden',
+        ...(clientRequestId ? { clientRequestId } : {})
+      });
     }
     throw err;
   }

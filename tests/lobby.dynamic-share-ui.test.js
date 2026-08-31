@@ -7,12 +7,12 @@ function readStatePanel() {
   return fs.readFileSync(path.join(__dirname, '../miniprogram/pages/lobby/lobby-state-panel.wxml'), 'utf8');
 }
 
-test('lobby share buttons stay gated until dynamic share resolves and expose fallback state', () => {
+test('lobby primary share button stays gated until dynamic share resolves and exposes fallback state', () => {
   const wxml = readStatePanel();
   const disabledExpression = /disabled="\{\{dynamicSharePreparing \|\| \(!dynamicShareReady && !dynamicShareError && !dynamicShareUnavailableReason\)\}\}"/g;
 
-  assert.equal((wxml.match(/open-type="share"/g) || []).length, 3);
-  assert.equal((wxml.match(disabledExpression) || []).length, 3);
+  assert.equal((wxml.match(/open-type="share"/g) || []).length, 1);
+  assert.equal((wxml.match(disabledExpression) || []).length, 1);
   assert.match(wxml, /dynamicSharePreparing/);
   assert.match(wxml, /dynamicShareReady/);
   assert.match(wxml, /dynamicShareError/);

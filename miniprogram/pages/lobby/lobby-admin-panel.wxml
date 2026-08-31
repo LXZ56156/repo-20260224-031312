@@ -9,7 +9,7 @@
 
     <view class="admin-collapse-body" wx:if="{{adminPanelExpanded}}">
       <view class="admin-manage-actions">
-        <button class="btn btn-danger" bindtap="cancelTournament">取消比赛</button>
+        <button class="btn btn-danger admin-cancel-btn" bindtap="cancelTournament">取消比赛</button>
       </view>
 
       <view id="quick-settings" class="quick-settings panel-soft">
@@ -107,9 +107,9 @@
               >{{item.label}}</view>
             </view>
             <view class="quick-custom-match-card" wx:if="{{quickShowAdvancedMatchEntry}}">
-              <view class="quick-custom-match-head">
-                <text class="quick-custom-match-title" catchtap="toggleQuickAdvancedMatchPicker">自定义场数</text>
-                <view class="quick-custom-match-action" catchtap="toggleQuickAdvancedMatchPicker">
+              <view class="quick-custom-match-head" catchtap="toggleQuickAdvancedMatchPicker">
+                <text class="quick-custom-match-title">自定义场数</text>
+                <view class="quick-custom-match-action">
                   {{quickShowAdvancedMatchPicker ? '收起' : '展开'}}
                 </view>
               </view>
@@ -174,7 +174,7 @@
               <view class="fixed-team-name">{{item.name}}</view>
               <view class="muted small">{{item.memberText}}</view>
             </view>
-            <button class="btn-mini danger" data-team="{{item.id}}" bindtap="deletePairTeam" disabled="{{pairTeamBusy}}">删除</button>
+            <button class="btn-mini danger fixed-team-delete" data-team="{{item.id}}" bindtap="deletePairTeam" disabled="{{pairTeamBusy}}">删除</button>
           </view>
         </view>
         <view class="muted small" wx:else>暂无队伍</view>

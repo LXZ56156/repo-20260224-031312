@@ -38,11 +38,17 @@ test('status returns idle when no active lock exists', () => {
 });
 
 test('acquire creates a lock for current user', () => {
-  const out = logic.resolveLockAction(baseInput({ action: 'acquire', nowTs: 2_000 }));
+  const out = logic.resolveLockAction(baseInput({
+    action: 'acquire',
+    nowTs: 2_000,
+    lockSessionId: 'session_new'
+  }));
   assert.equal(out.response.ok, true);
   assert.equal(out.response.state, 'acquired');
   assert.equal(out.response.ownerId, 'u1');
+  assert.equal(out.response.lockSessionId, 'session_new');
   assert.equal(out.nextLockDoc.ownerId, 'u1');
+  assert.equal(out.nextLockDoc.lockSessionId, 'session_new');
   assert.equal(out.nextLockDoc.expireAt, 2_000 + logic.LOCK_TTL_MS);
 });
 
@@ -57,16 +63,52 @@ test('occupied lock blocks non-owner acquire and heartbeat', () => {
   assert.equal(heartbeat.response.ownerName, '球友-u2');
 });
 
-test('heartbeat refreshes owner lock and release removes it', () => {
-  const lockDoc = { _id: 't_1_0_0', ownerId: 'u1', ownerName: '球友-u1', expireAt: 2_000 };
+test('legacy heartbeat refreshes a session lock and legacy release removes it', () => {
+  const lockDoc = {
+    _id: 't_1_0_0',
+    ownerId: 'u1',
+    ownerName: '球友-u1',
+    expireAt: 2_000,
+    lockSessionId: 'session_new'
+  };
   const heartbeat = logic.resolveLockAction(baseInput({ action: 'heartbeat', lockDoc, nowTs: 1_500 }));
   assert.equal(heartbeat.response.state, 'acquired');
+  assert.equal(heartbeat.response.lockSessionId, 'session_new');
   assert.equal(heartbeat.nextLockDoc.expireAt, 1_500 + logic.LOCK_TTL_MS);
+  assert.equal(heartbeat.nextLockDoc.lockSessionId, 'session_new');
   assert.equal(Object.prototype.hasOwnProperty.call(heartbeat.nextLockDoc, '_id'), false);
 
   const release = logic.resolveLockAction(baseInput({ action: 'release', lockDoc, nowTs: 1_500 }));
   assert.equal(release.response.state, 'released');
   assert.equal(release.removeLock, true);
+});
+
+test('stale session heartbeat and release do not change a newer owner lock', () => {
+  const lockDoc = {
+    ownerId: 'u1',
+    ownerName: '球友-u1',
+    expireAt: 2_000,
+    lockSessionId: 'session_new'
+  };
+  const heartbeat = logic.resolveLockAction(baseInput({
+    action: 'heartbeat',
+    lockDoc,
+    lockSessionId: 'session_old',
+    nowTs: 1_500
+  }));
+  assert.equal(heartbeat.response.state, 'expired');
+  assert.equal(heartbeat.response.lockSessionId, undefined);
+  assert.equal(heartbeat.response.expireAt, 2_000);
+  assert.equal(heartbeat.nextLockDoc, undefined);
+
+  const release = logic.resolveLockAction(baseInput({
+    action: 'release',
+    lockDoc,
+    lockSessionId: 'session_old',
+    nowTs: 1_500
+  }));
+  assert.equal(release.response.state, 'released');
+  assert.equal(release.removeLock, undefined);
 });
 
 test('expired lock returns expired on heartbeat and can be force acquired by admin', () => {

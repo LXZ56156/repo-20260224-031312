@@ -118,3 +118,10 @@ test('shouldAcceptTournamentDoc returns false when next is staler', () => {
 test('shouldAcceptTournamentDoc returns true when current is null', () => {
   assert.equal(tournamentVersion.shouldAcceptTournamentDoc(null, { _id: 't1' }), true);
 });
+
+test('shouldApplyTournamentDoc accepts changed legacy docs that only share createdAt', () => {
+  assert.equal(tournamentVersion.shouldApplyTournamentDoc(
+    { _id: 't1', createdAt: '2020-01-01T00:00:00.000Z', name: 'Before' },
+    { _id: 't1', createdAt: '2020-01-01T00:00:00.000Z', name: 'After' }
+  ), true);
+});

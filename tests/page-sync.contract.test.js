@@ -64,7 +64,7 @@ test('pageTournamentSync handles remote, cached and error fetch states through o
     assert.equal(ctx.data.sourceTag, 'cache');
     assert.equal(ctx.data.syncUsingCache, true);
     assert.equal(ctx.data.syncCachedAt, Date.parse('2026-03-10T10:05:00.000Z'));
-    assert.equal(ctx.data.syncStatusVisible, true);
+    assert.equal(ctx.data.syncStatusVisible, false);
     assert.deepEqual(ctx._applied.pop(), {
       doc: { _id: 't_1', updatedAt: '2026-03-10T10:00:00.000Z' },
       meta: { requestSeq: 2, source: 'cache', tournamentId: 't_1' }
@@ -83,6 +83,92 @@ test('pageTournamentSync handles remote, cached and error fetch states through o
     assert.equal(ctx.data.syncRefreshing, false);
   } finally {
     tournamentSync.fetchTournament = originalFetchTournament;
+  }
+});
+
+test('pageTournamentSync clears an applied tournament after confirmed not_found', async () => {
+  const originalFetchTournament = tournamentSync.fetchTournament;
+  const methods = pageTournamentSync.createTournamentSyncMethods();
+  const ctx = createContext(methods);
+  const tournament = {
+    _id: 't_1',
+    version: 4,
+    updatedAt: '2026-03-14T10:00:00.000Z'
+  };
+  let closed = 0;
+
+  try {
+    ctx.data.tournament = tournament;
+    ctx._latestTournament = tournament;
+    ctx._lastAppliedDocTs = Date.parse(tournament.updatedAt);
+    ctx._lastAppliedTournamentId = 't_1';
+    ctx._watchTournamentId = 't_1';
+    ctx.watcher = {
+      close() {
+        closed += 1;
+      }
+    };
+    tournamentSync.fetchTournament = async () => ({
+      ok: false,
+      errorType: 'not_found',
+      cachedDoc: null
+    });
+
+    await ctx.fetchTournament('t_1');
+
+    assert.equal(ctx.data.tournament, null);
+    assert.equal(ctx._latestTournament, null);
+    assert.equal(ctx._lastAppliedDocTs, 0);
+    assert.equal(ctx._lastAppliedTournamentId, '');
+    assert.equal(ctx.data.loadError, true);
+    assert.equal(ctx.watcher, null);
+    assert.equal(closed, 1);
+  } finally {
+    tournamentSync.fetchTournament = originalFetchTournament;
+  }
+});
+
+test('pageTournamentSync treats watch not_found as terminal and drops an older pending fetch', async () => {
+  const originalFetchTournament = tournamentSync.fetchTournament;
+  const originalStartWatch = tournamentSync.startWatch;
+  const methods = pageTournamentSync.createTournamentSyncMethods();
+  const ctx = createContext(methods);
+  const tournament = { _id: 't_1', version: 2, updatedAt: '2026-03-14T10:00:00.000Z' };
+  let closed = 0;
+  let resolveFetch = null;
+
+  try {
+    ctx.data.tournament = tournament;
+    ctx._latestTournament = tournament;
+    tournamentSync.fetchTournament = () => new Promise((resolve) => {
+      resolveFetch = resolve;
+    });
+    tournamentSync.startWatch = (page, tournamentId, _onData, onError) => {
+      page.watcher = {
+        close() {
+          closed += 1;
+        }
+      };
+      page._watchTournamentId = tournamentId;
+      onError({ __watchType: 'not_found', __watchSource: 'realtime' });
+    };
+
+    const pendingFetch = ctx.fetchTournament('t_1');
+    ctx.startWatch('t_1');
+    resolveFetch({
+      ok: true,
+      source: 'remote',
+      doc: { _id: 't_1', version: 3, updatedAt: '2026-03-14T10:01:00.000Z' }
+    });
+    await pendingFetch;
+
+    assert.equal(ctx.data.tournament, null);
+    assert.equal(ctx.data.loadError, true);
+    assert.equal(ctx.watcher, null);
+    assert.equal(closed, 1);
+  } finally {
+    tournamentSync.fetchTournament = originalFetchTournament;
+    tournamentSync.startWatch = originalStartWatch;
   }
 });
 
@@ -107,6 +193,32 @@ test('pageTournamentSync ignores stale watch callbacks after restarting a watch'
       doc: { _id: 't_1', updatedAt: '2026-03-14T10:05:00.000Z' },
       meta: { watchGen: 2, source: 'watch', tournamentId: 't_1' }
     }]);
+  } finally {
+    tournamentSync.startWatch = originalStartWatch;
+  }
+});
+
+test('pageTournamentSync ignores repeated watch data with equal version and timestamp', () => {
+  const originalStartWatch = tournamentSync.startWatch;
+  const methods = pageTournamentSync.createTournamentSyncMethods();
+  const ctx = createContext(methods);
+  let onData = null;
+
+  try {
+    tournamentSync.startWatch = (_page, _tid, nextOnData) => {
+      onData = nextOnData;
+    };
+
+    ctx.startWatch('t_1');
+    const doc = {
+      _id: 't_1',
+      version: 3,
+      updatedAt: '2026-03-14T10:00:00.000Z'
+    };
+    onData(doc, { source: 'realtime' });
+    onData({ ...doc }, { source: 'realtime' });
+
+    assert.equal(ctx._applied.length, 1);
   } finally {
     tournamentSync.startWatch = originalStartWatch;
   }
@@ -280,5 +392,54 @@ test('pageTournamentSync rejects older watch data after a newer tournament versi
     assert.deepEqual(ctx._applied, []);
   } finally {
     tournamentSync.startWatch = originalStartWatch;
+  }
+});
+
+test('app installs network tracking before login resolves and keeps early page subscribers', async () => {
+  const appPath = require.resolve('../miniprogram/app.js');
+  const auth = require('../miniprogram/core/auth');
+  const originalApp = global.App;
+  const originalWx = global.wx;
+  const originalLogin = auth.login;
+  let appDefinition = null;
+  let resolveLogin = null;
+  let initialNetworkSuccess = null;
+  let networkChange = null;
+
+  global.App = (definition) => {
+    appDefinition = definition;
+  };
+  global.wx = {
+    cloud: { init() {} },
+    getNetworkType({ success }) {
+      initialNetworkSuccess = success;
+    },
+    onNetworkStatusChange(handler) {
+      networkChange = handler;
+    }
+  };
+  auth.login = () => new Promise((resolve) => {
+    resolveLogin = resolve;
+  });
+
+  try {
+    delete require.cache[appPath];
+    require(appPath);
+    const launchTask = appDefinition.onLaunch.call(appDefinition, {});
+    const states = [];
+    appDefinition.subscribeNetworkChange.call(appDefinition, (offline) => states.push(offline));
+
+    initialNetworkSuccess({ networkType: 'none' });
+    resolveLogin('u_1');
+    await launchTask;
+    networkChange({ isConnected: true });
+
+    assert.deepEqual(states, [true, false]);
+    assert.equal(appDefinition.globalData.openid, 'u_1');
+  } finally {
+    global.App = originalApp;
+    global.wx = originalWx;
+    auth.login = originalLogin;
+    delete require.cache[appPath];
   }
 });

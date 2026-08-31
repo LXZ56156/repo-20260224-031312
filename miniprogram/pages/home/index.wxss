@@ -169,6 +169,10 @@
 }
 
 .sort-chip {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
   padding: 4rpx 10rpx;
   border-radius: 999rpx;
   border: 1rpx solid var(--neutral-200, #E2E8F0);
@@ -194,6 +198,10 @@
 }
 
 .filter-chip {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
   padding: 4rpx 10rpx;
   border-radius: 999rpx;
   border: 1rpx solid var(--neutral-200, #E2E8F0);
@@ -248,7 +256,7 @@
 
 .del-btn {
   width: 160rpx;
-  background: linear-gradient(145deg, #EF5350, #E5484D);
+  background: var(--danger);
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -375,7 +383,7 @@
 .t-copy-link,
 .t-quick-action {
   min-width: 132rpx;
-  min-height: 44rpx;
+  min-height: 44px;
   max-width: 100%;
   box-sizing: border-box;
   display: inline-flex;
@@ -414,7 +422,7 @@
 .t-quick-action {
   background: rgba(79, 123, 255, 0.10);
   border-color: rgba(79, 123, 255, 0.16);
-  color: var(--info-500, #4F7BFF);
+  color: #1D4ED8;
 }
 
 /* --- Skeleton 更拟真 --- */
@@ -465,6 +473,11 @@
 
 .profile-nudge-later {
   flex: none;
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 24rpx;
   color: var(--neutral-500, #64748B);
 }
@@ -504,6 +517,8 @@
 .onboarding-later {
   margin-top: var(--space-inline);
   display: block;
+  min-height: 44px;
+  line-height: 44px;
   text-align: center;
   font-size: 24rpx;
   color: var(--neutral-500, #64748B);

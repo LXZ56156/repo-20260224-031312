@@ -25,6 +25,7 @@
     <view class="hero-kicker">积分榜</view>
     <view class="hero-title">{{rankingTypeLabel}}</view>
     <view class="hero-sub">{{tournament.name}}</view>
+    <view class="hero-sub">排序：胜场 → 净胜分 → 总得分 → 名称</view>
     <view class="hero-actions ranking-hero-actions btn-row">
       <view class="ranking-action-stack">
         <button class="btn btn-primary btn-sm ranking-action-full" bindtap="onGeneratePoster">{{posterButtonText}}</button>
@@ -116,6 +117,6 @@
       <button class="btn btn-primary" bindtap="onSavePoster">保存到相册</button>
       <button class="btn btn-subtle" bindtap="onCopyPosterText">复制分享文案</button>
     </view>
-    <view class="poster-close" bindtap="onClosePosterPreview">✕</view>
+    <view class="poster-close" role="button" aria-label="关闭战绩卡预览" bindtap="onClosePosterPreview">✕</view>
   </view>
 </view>

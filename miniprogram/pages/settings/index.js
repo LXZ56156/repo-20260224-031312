@@ -88,6 +88,7 @@ Page({
   ...retryAction.createRetryMethods(),
 
   onLoad(options) {
+    this._lifecycleGeneration = 0;
     const tid = String((options && options.tournamentId) || '').trim();
     const section = String((options && options.section) || '').trim().toLowerCase();
     this._initialSection = section;
@@ -110,12 +111,14 @@ Page({
   },
 
   onHide() {
+    this._lifecycleGeneration = Number(this._lifecycleGeneration || 0) + 1;
     pageTournamentSync.pauseTournamentSync(this);
     if (this._autoBackTimer) clearTimeout(this._autoBackTimer);
     this._autoBackTimer = null;
   },
 
   onUnload() {
+    this._lifecycleGeneration = Number(this._lifecycleGeneration || 0) + 1;
     pageTournamentSync.teardownTournamentSync(this);
     if (this._autoBackTimer) clearTimeout(this._autoBackTimer);
     this._autoBackTimer = null;

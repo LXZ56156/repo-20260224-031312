@@ -309,22 +309,26 @@ module.exports = {
       }
     }
 
-    const actionKey = `lobby:addPlayers:${this.data.tournamentId}`;
+    const tournamentId = String(this.data.tournamentId || '').trim();
+    const lifecycleGeneration = Number(this._lifecycleGeneration || 0);
+    const actionKey = `lobby:addPlayers:${tournamentId}`;
     const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'add_players');
     if (actionGuard.isBusy(actionKey)) return;
     return actionGuard.runCriticalWrite(actionKey, async () => {
       wx.showLoading({ title: '导入中...' });
       try {
         const res = cloud.assertWriteResult(await cloud.call('addPlayers', {
-          tournamentId: this.data.tournamentId,
+          tournamentId,
           players,
           clientRequestId
         }), '导入失败');
         wx.hideLoading();
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         this.clearLastFailedAction();
-        await this.fetchTournament(this.data.tournamentId);
+        await this.fetchTournament(tournamentId);
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         this.setData({ quickImportText: '' });
-        nav.markRefreshFlag(this.data.tournamentId);
+        nav.markRefreshFlag(tournamentId);
         const added = Number((res && (res.addedCount ?? res.added)) || 0);
         const duplicateCount = Number((res && res.duplicateCount) || 0);
         const invalidCount = Number((res && res.invalidCount) || 0);
@@ -352,8 +356,9 @@ module.exports = {
         wx.showToast({ title: importResultText, icon: 'none' });
       } catch (err) {
         wx.hideLoading();
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         this.setLastFailedAction('快速导入参赛者', () => this.quickImportPlayers({ clientRequestId }), { actionKey });
-        this.handleWriteError(err, '导入失败', () => this.fetchTournament(this.data.tournamentId));
+        this.handleWriteError(err, '导入失败', () => this.fetchTournament(tournamentId));
       }
     });
   }

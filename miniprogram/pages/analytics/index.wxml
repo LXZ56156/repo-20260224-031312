@@ -1,7 +1,7 @@
 <canvas type="2d" id="shareCardCanvas" style="position:fixed;left:100vw;width:250px;height:250px;"></canvas>
 <canvas type="2d" id="posterCanvas" style="position:fixed;left:200vw;width:250px;height:250px;"></canvas>
 <view class="container safe-bottom analytics-page" wx:if="{{tournament}}">
-  <!-- sync-banner: 仅在离线/缓存/降级等异常态展示，健康态刷新静默处理 -->
+  <!-- sync-banner: 在线缓存与健康刷新保持静默，只展示需用户了解的异常态 -->
   <view class="sync-banner sync-{{syncStatusTone}}" hidden="{{!syncStatusVisible}}">
     <view class="sync-banner-main">
       <view class="sync-banner-text">{{syncStatusText}}</view>
@@ -40,6 +40,7 @@
       <text class="count-pill">{{statusLabel}}</text>
     </view>
     <view class="report-headline" wx:if="{{reportHeadline}}">{{reportHeadline}}</view>
+    <view class="muted small">统计样本：{{summary.finishedMatches}} 场已完成比赛<text wx:if="{{summary.finishedMatches > 0 && summary.finishedMatches < 3}}"> · 样本较少，仅供参考</text></view>
     <view class="report-line" wx:for="{{focusFacts}}" wx:key="index">{{item}}</view>
     <view class="analytics-text-actions">
       <view class="btn-row analytics-copy-actions">
@@ -190,6 +191,6 @@
       <button class="btn btn-primary" bindtap="onSavePoster">保存到相册</button>
       <button class="btn btn-subtle" bindtap="onCopyPosterText">复制分享文案</button>
     </view>
-    <view class="poster-close" bindtap="onClosePosterPreview">✕</view>
+    <view class="poster-close" role="button" aria-label="关闭战报预览" bindtap="onClosePosterPreview">✕</view>
   </view>
 </view>

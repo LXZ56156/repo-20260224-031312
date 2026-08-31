@@ -83,8 +83,9 @@ test('lobby saveQuickSettings focuses start action after save when refreshed sta
       focusCalls += 1;
     };
 
-    await ctx.saveQuickSettings();
+    const saved = await ctx.saveQuickSettings();
 
+    assert.equal(saved, true);
     assert.equal(focusCalls, 1);
     assert.equal(wxBox.toastCalls.at(-1).title, '已保存，可开赛');
   } finally {
@@ -143,14 +144,76 @@ test('lobby saveQuickSettings stays in place after save when refreshed state is 
       focusCalls += 1;
     };
 
-    await ctx.saveQuickSettings();
+    const saved = await ctx.saveQuickSettings();
 
+    assert.equal(saved, true);
     assert.equal(focusCalls, 0);
     assert.equal(wxBox.toastCalls.at(-1).title, '参数已保存');
   } finally {
     global.wx = originalWx;
     cloud.call = originalCloudCall;
     nav.markRefreshFlag = originalMarkRefreshFlag;
+  }
+});
+
+test('lobby saveAndStart stops when quick settings save fails', async () => {
+  const originalWx = global.wx;
+  const originalCloudCall = cloud.call;
+  const wxBox = createWxStub();
+  let saveResult;
+  let startCalls = 0;
+
+  global.wx = wxBox.api;
+
+  try {
+    cloud.call = async () => {
+      throw new Error('network fail');
+    };
+
+    const ctx = createContext(lobbyDraftActions, {
+      tournamentId: 't_lobby_save_fail',
+      isAdmin: true,
+      tournament: {
+        status: 'draft',
+        players: [
+          { id: 'u1', name: 'A' },
+          { id: 'u2', name: 'B' },
+          { id: 'u3', name: 'C' },
+          { id: 'u4', name: 'D' }
+        ]
+      },
+      checkPlayersOk: true,
+      canConfigureSettings: true,
+      quickConfigName: '大厅比赛',
+      quickConfigM: 6,
+      quickConfigC: 2,
+      quickPointsPerGame: 21,
+      quickShowSquadEndCondition: false,
+      quickEndConditionType: 'total_matches',
+      quickEndConditionTarget: 6,
+      quickEndConditionTargetOptions: [1, 2, 3, 4, 5, 6],
+      maxMatches: 0
+    });
+    ctx.fetchTournament = async () => {};
+    ctx.clearLastFailedAction = () => {};
+    ctx.setLastFailedAction = () => {};
+    ctx.handleWriteError = () => {};
+    ctx.handleStart = async () => {
+      startCalls += 1;
+    };
+    const saveQuickSettings = ctx.saveQuickSettings.bind(ctx);
+    ctx.saveQuickSettings = async (...args) => {
+      saveResult = await saveQuickSettings(...args);
+      return saveResult;
+    };
+
+    await ctx.saveAndStart();
+
+    assert.notEqual(saveResult, true);
+    assert.equal(startCalls, 0);
+  } finally {
+    global.wx = originalWx;
+    cloud.call = originalCloudCall;
   }
 });
 

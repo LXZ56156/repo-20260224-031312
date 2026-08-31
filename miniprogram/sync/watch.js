@@ -18,10 +18,18 @@ function isRealtimeNotSupported(err) {
 }
 
 function classifyWatchError(err) {
-  if (isRealtimeNotSupported(err)) return 'realtime_not_supported';
   const m = msgOf(err).toLowerCase();
+  if (
+    m.includes('document.get:fail') &&
+    (m.includes('document does not exist') || m.includes('requested document does not exist'))
+  ) return 'not_found';
+  if (isRealtimeNotSupported(err)) return 'realtime_not_supported';
   if (m.includes('timeout') || m.includes('network') || m.includes('connect')) return 'network';
   return 'unknown';
+}
+
+function createNotFoundError(tournamentId) {
+  return new Error(`document.get:fail requested document does not exist: ${String(tournamentId || '').trim()}`);
 }
 
 function shouldAttemptRealtimeRecovery(type) {
@@ -77,12 +85,20 @@ function emitError(channel, err, meta = {}) {
   for (const it of listeners) safeCall(it.onError, decorated, meta);
 }
 
+function emitTerminalNotFound(channel, err, meta = {}) {
+  if (!channel || channel.disposed) return;
+  channel.latestDoc = null;
+  emitError(channel, err, { ...meta, type: 'not_found', pollingFallback: false });
+  disposeChannel(channel);
+}
+
 async function fetchOnce(tournamentId, onData, onError) {
   try {
     const db = wx.cloud.database();
     const res = await db.collection('tournaments').doc(tournamentId).get();
     const doc = res && res.data;
     if (doc) onData(doc);
+    else if (onError) onError(createNotFoundError(tournamentId));
   } catch (err) {
     if (onError) onError(err);
   }
@@ -162,7 +178,9 @@ function startPolling(tournamentId, onData, onError) {
   return createPollingController({
     fetchDoc: async () => {
       const res = await db.collection('tournaments').doc(tournamentId).get();
-      return res && res.data;
+      const doc = res && res.data;
+      if (!doc) throw createNotFoundError(tournamentId);
+      return doc;
     },
     onData,
     onError
@@ -182,8 +200,14 @@ function createPollingSource(channel, tournamentId, options = {}) {
       if (!channel || channel.disposed) return;
       const type = classifyWatchError(err);
       console.warn(`[watch:poll:${type}]`, err);
-      emitError(channel, err, { type, source, pollingFallback: allowRecovery });
-      if (allowRecovery && shouldAttemptRealtimeRecovery(channel.fallbackReason)) scheduleRealtimeRecovery(channel, tournamentId);
+      if (type === 'not_found') {
+        emitTerminalNotFound(channel, err, { source });
+        return;
+      }
+      emitError(channel, err, { type, source, pollingFallback: allowRecovery && type !== 'not_found' });
+      if (type !== 'not_found' && allowRecovery && shouldAttemptRealtimeRecovery(channel.fallbackReason)) {
+        scheduleRealtimeRecovery(channel, tournamentId);
+      }
     }
   );
 }
@@ -271,6 +295,18 @@ function extractDoc(snapshot) {
   return null;
 }
 
+function isMissingSnapshot(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object') return false;
+  const changes = Array.isArray(snapshot.docChanges) ? snapshot.docChanges : [];
+  const removed = changes.some((change) => {
+    const type = String(
+      (change && (change.dataType || change.queueType || change.type || change.operationType)) || ''
+    ).trim().toLowerCase();
+    return type === 'remove' || type === 'delete';
+  });
+  return removed || (Array.isArray(snapshot.docs) && snapshot.docs.length === 0);
+}
+
 function attachSource(channel, tournamentId, options = {}) {
   if (!channel || channel.disposed) return;
   const db = wx.cloud.database();
@@ -283,6 +319,10 @@ function attachSource(channel, tournamentId, options = {}) {
       if (channel.disposed) return;
       const type = classifyWatchError(err);
       console.warn(`[watch:init:${type}]`, err);
+      if (type === 'not_found') {
+        emitTerminalNotFound(channel, err, { source: 'init_fetch' });
+        return;
+      }
       emitError(channel, err, { type, source: 'init_fetch', pollingFallback: false });
     }
   );
@@ -308,9 +348,13 @@ function attachSource(channel, tournamentId, options = {}) {
     const w = db.collection('tournaments').doc(tournamentId).watch({
       onChange: (snapshot) => {
         if (channel.disposed) return;
+        const source = channel.recovering ? 'realtime_recovered' : 'realtime';
+        if (isMissingSnapshot(snapshot)) {
+          emitTerminalNotFound(channel, createNotFoundError(tournamentId), { source });
+          return;
+        }
         const doc = extractDoc(snapshot);
         if (!doc) return;
-        const source = channel.recovering ? 'realtime_recovered' : 'realtime';
         channel.recovering = false;
         channel.mode = 'realtime';
         channel.fallbackReason = '';
@@ -322,6 +366,10 @@ function attachSource(channel, tournamentId, options = {}) {
         if (channel.disposed) return;
         const type = classifyWatchError(err);
         console.warn(`[watch:realtime:${type}]`, err);
+        if (type === 'not_found') {
+          emitTerminalNotFound(channel, err, { source: 'realtime' });
+          return;
+        }
         const shouldFallback = (type === 'realtime_not_supported' || type === 'network' || type === 'unknown') && !fallback;
         emitError(channel, err, { type, source: 'realtime', pollingFallback: shouldFallback });
         if ((type === 'realtime_not_supported' || type === 'network' || type === 'unknown') && !fallback) {
@@ -338,6 +386,10 @@ function attachSource(channel, tournamentId, options = {}) {
   } catch (err) {
     const type = classifyWatchError(err);
     console.warn(`[watch:attach:${type}]`, err);
+    if (type === 'not_found') {
+      emitTerminalNotFound(channel, err, { source: 'attach' });
+      return;
+    }
     emitError(channel, err, { type, source: 'attach', pollingFallback: true });
     fallbackToPolling(channel, tournamentId, type);
   }
@@ -385,7 +437,7 @@ function watchTournament(tournamentId, onData, onError, options = {}) {
 
   return {
     isActive() {
-      return !closed;
+      return !closed && !channel.disposed;
     },
     close() {
       if (closed) return;

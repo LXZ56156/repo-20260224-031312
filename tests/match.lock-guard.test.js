@@ -101,9 +101,73 @@ test('match score lock acquire is guarded against repeated taps', async () => {
     await Promise.all([first, second]);
 
     assert.equal(payloads.length, 1);
+    assert.match(payloads[0].lockSessionId, /^score_lock_/);
     assert.equal(ctx.data.lockState, 'locked_by_me');
     assert.equal(ctx.data.lockBusy, false);
     ctx.clearLockTimers();
+  } finally {
+    cloud.call = originalCloudCall;
+    global.wx = originalWx;
+    global.getApp = originalGetApp;
+    delete require.cache[matchPagePath];
+  }
+});
+
+test('match score lock releases an acquire that finishes after page teardown', async () => {
+  const originalCloudCall = cloud.call;
+  const originalWx = global.wx;
+  const originalGetApp = global.getApp;
+  let resolveAcquire;
+  const payloads = [];
+
+  global.wx = {
+    showToast() {},
+    showLoading() {},
+    hideLoading() {},
+    redirectTo() {},
+    navigateTo() {},
+    navigateBack(options = {}) {
+      if (typeof options.fail === 'function') options.fail();
+    },
+    getStorageSync() {
+      return undefined;
+    },
+    setStorageSync() {},
+    removeStorageSync() {}
+  };
+  global.getApp = () => ({
+    globalData: {
+      openid: 'user_1',
+      networkOffline: false
+    }
+  });
+
+  try {
+    const definition = loadMatchPageDefinition();
+    const ctx = createMatchPageContext(definition);
+    cloud.call = async (name, payload) => {
+      assert.equal(name, 'scoreLock');
+      payloads.push(payload);
+      if (payload.action === 'release') return { ok: true, state: 'released' };
+      return new Promise((resolve) => {
+        resolveAcquire = resolve;
+      });
+    };
+
+    const acquireTask = ctx.onStartScoring();
+    const acquirePayload = payloads[0];
+    ctx.onHide();
+    resolveAcquire({
+      ok: true,
+      state: 'acquired',
+      ownerId: 'user_1',
+      lockSessionId: acquirePayload.lockSessionId
+    });
+    await acquireTask;
+
+    assert.deepEqual(payloads.map((item) => item.action), ['acquire', 'release']);
+    assert.equal(payloads[1].lockSessionId, acquirePayload.lockSessionId);
+    assert.equal(ctx.data.lockState, 'idle');
   } finally {
     cloud.call = originalCloudCall;
     global.wx = originalWx;

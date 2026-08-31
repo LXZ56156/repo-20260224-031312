@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const viewModel = require('../miniprogram/pages/lobby/lobbyViewModel');
 
-test('lobby admin draft view prioritizes拉人流程并 keeps destructive reset entry removed', () => {
+test('lobby admin draft view prioritizes拉人流程 and keeps the roster hint', () => {
   const result = viewModel.buildLobbyViewModel({
     tournament: {
       _id: 't_admin_actions',
@@ -23,19 +23,9 @@ test('lobby admin draft view prioritizes拉人流程并 keeps destructive reset 
     openid: 'u_admin',
     data: {}
   });
-  const checklistTitles = (result.patch.checklistItems || []).map((item) => item.title);
-
   assert.equal(result.patch.nextActionKey, 'share');
   assert.equal(result.patch.nextActionText, '转发');
-  assert.equal(result.patch.featuredChecklistItem.key, 'players');
   assert.equal(result.patch.playerRosterHint, '长按成员可移除');
-  assert.deepEqual(
-    result.patch.secondaryChecklistItems.map((item) => item.key),
-    ['settings', 'start']
-  );
-  assert.equal(checklistTitles.includes('1. 修改比赛'), true);
-  assert.equal(checklistTitles.includes('2. 转发比赛'), true);
-  assert.equal(checklistTitles.includes('重置回草稿'), false);
 });
 
 test('lobby member draft view hints self removal only', () => {

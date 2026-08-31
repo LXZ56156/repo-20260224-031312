@@ -60,6 +60,7 @@ Page({
     this._latestTournament = null;
     pageTournamentSync.initTournamentSync(this);
     this._pageActive = true;
+    this._pageLifecycleSeq = 0;
     this._navTimers = new Set();
     this.matchDraft.clearUndo();
 
@@ -82,6 +83,8 @@ Page({
 
   onHide() {
     this._pageActive = false;
+    this._pageLifecycleSeq = (Number(this._pageLifecycleSeq) || 0) + 1;
+    this._batchOccupiedKey = '';
     this.clearNavTimers();
     releaseAndPause(this);
   },
@@ -98,6 +101,8 @@ Page({
 
   onUnload() {
     this._pageActive = false;
+    this._pageLifecycleSeq = (Number(this._pageLifecycleSeq) || 0) + 1;
+    this._batchOccupiedKey = '';
     this.clearNavTimers();
     releaseAndTeardown(this);
     this.matchDraft.teardown();
@@ -228,8 +233,11 @@ Page({
     if (this._batchOccupiedKey === key) return;
     this._batchOccupiedKey = key;
     wx.showToast({ title: '该场有人录入中，已跳到下一场', icon: 'none' });
-    setTimeout(() => {
-      this.jumpAfterBatch('该场有人录入中，已跳到下一场');
+    this.registerNavTimer(async () => {
+      const jumped = await this.jumpAfterBatch('该场有人录入中，已跳到下一场');
+      if (jumped === false && this._batchOccupiedKey === key) {
+        this._batchOccupiedKey = '';
+      }
     }, 180);
   },
 
@@ -262,6 +270,7 @@ Page({
   clearScoreDraft() {
     ensureControllers(this);
     this.matchDraft.clearScoreDraft();
+    this.setData({ hasScoreDraft: false });
   },
 
   pushUndo(scoreA, scoreB) {
@@ -286,7 +295,8 @@ Page({
       scoreBIndex: scoreB,
       displayScoreA: String(scoreA),
       displayScoreB: String(scoreB),
-      canUndo: this.matchDraft.getUndoSize() > 0
+      canUndo: this.matchDraft.getUndoSize() > 0,
+      hasScoreDraft: options.persist !== false ? true : this.data.hasScoreDraft
     });
     if (options.persist !== false) this.matchDraft.saveScoreDraft(scoreA, scoreB);
   },
@@ -333,6 +343,7 @@ Page({
       onRefresh,
       onKeepDraft: () => {
         this.matchDraft.saveScoreDraft(this.data.scoreA, this.data.scoreB);
+        this.setData({ hasScoreDraft: true });
       }
     });
   },

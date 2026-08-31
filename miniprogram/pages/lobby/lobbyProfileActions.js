@@ -321,7 +321,9 @@ module.exports = {
 
   async handleJoin(options = {}) {
     if (this.data.profileSaving || this.data.profileAvatarUploading || this.data.profileQuickFillLoading) return;
-    const actionKey = `lobby:joinTournament:${this.data.tournamentId}`;
+    const tournamentId = String(this.data.tournamentId || '').trim();
+    const lifecycleGeneration = Number(this._lifecycleGeneration || 0);
+    const actionKey = `lobby:joinTournament:${tournamentId}`;
     const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'join');
     if (actionGuard.isBusy(actionKey)) return;
 
@@ -329,8 +331,9 @@ module.exports = {
       this.setData({ profileFieldError: '' });
       const gate = await joinTournamentCore.ensureJoinProfile({
         action: 'join',
-        redirect: nav.buildTournamentUrl('/pages/lobby/index', this.data.tournamentId)
+        redirect: nav.buildTournamentUrl('/pages/lobby/index', tournamentId)
       });
+      if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
       if (!gate.ok) {
         if (gate.reason === 'login_failed') {
           this.setData({ profileFieldError: '登录失败，请稍后重试' });
@@ -340,7 +343,7 @@ module.exports = {
       }
       const profile = gate.profile || {};
 
-      const tid = this.data.tournamentId;
+      const tid = tournamentId;
       let nickname = String(this.data.nickname || '').trim() || storage.getProfileNickName(profile);
       let avatar = String(this.data.joinAvatar || '').trim() || String(profile.avatar || profile.avatarUrl || '').trim();
       let gender = storage.normalizeGender(profile.gender);
@@ -372,13 +375,19 @@ module.exports = {
           fallbackMessage: '加入失败，请稍后重试',
           clientRequestId
         }));
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         const player = getPlayerFromJoinResult(joinResult);
-        const profileSaved = await this.saveLobbyCloudProfile(buildLobbyProfileFromJoinPayload(joinPayload, player), { clientRequestId });
+        const profileSaved = await this.saveLobbyCloudProfile(buildLobbyProfileFromJoinPayload(joinPayload, player), {
+          clientRequestId,
+          lifecycleGeneration
+        });
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         if (profileSaved) this.clearLastFailedAction();
         wx.showToast({ title: '已加入', icon: 'success' });
         nav.markRefreshFlag(tid);
         this.fetchTournament(tid);
       } catch (err) {
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         this.setLastFailedAction('加入参赛', () => this.handleJoin({ clientRequestId }), { actionKey });
         const normalizedError = joinError.normalizeJoinFailure(err, '加入失败，请稍后重试', { action: 'join' });
         this.handleWriteError(normalizedError, joinError.resolveJoinFailureMessage(normalizedError, '加入失败，请稍后重试', { action: 'join' }), () => this.fetchTournament(tid));
@@ -399,7 +408,9 @@ module.exports = {
       wx.showToast({ title: '昵称/头像至少填一个', icon: 'none' });
       return;
     }
-    const actionKey = `lobby:joinTournament:${this.data.tournamentId}`;
+    const tournamentId = String(this.data.tournamentId || '').trim();
+    const lifecycleGeneration = Number(this._lifecycleGeneration || 0);
+    const actionKey = `lobby:joinTournament:${tournamentId}`;
     const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'join_profile');
     if (actionGuard.isBusy(actionKey)) return;
 
@@ -407,7 +418,7 @@ module.exports = {
       this.setData({ profileFieldError: '' });
       try {
         const savePayload = joinTournamentCore.buildJoinPayload({
-          tournamentId: this.data.tournamentId,
+          tournamentId,
           nickname,
           avatar,
           gender: storage.normalizeGender((storage.getUserProfile() || {}).gender),
@@ -419,17 +430,23 @@ module.exports = {
           fallbackMessage: '保存失败，请稍后重试',
           clientRequestId
         }));
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         const player = getPlayerFromJoinResult(saveResult);
-        const profileSaved = await this.saveLobbyCloudProfile(buildLobbyProfileFromJoinPayload(savePayload, player), { clientRequestId });
+        const profileSaved = await this.saveLobbyCloudProfile(buildLobbyProfileFromJoinPayload(savePayload, player), {
+          clientRequestId,
+          lifecycleGeneration
+        });
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         if (profileSaved) this.clearLastFailedAction();
         wx.showToast({ title: '已更新', icon: 'success' });
-        nav.markRefreshFlag(this.data.tournamentId);
+        nav.markRefreshFlag(tournamentId);
 
-        this.fetchTournament(this.data.tournamentId);
+        this.fetchTournament(tournamentId);
       } catch (err) {
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         this.setLastFailedAction('保存我的信息', () => this.saveMyProfile({ clientRequestId }), { actionKey });
         const normalizedError = joinError.normalizeJoinFailure(err, '保存失败，请稍后重试', { action: 'profile_update' });
-        this.handleWriteError(normalizedError, joinError.resolveJoinFailureMessage(normalizedError, '保存失败，请稍后重试', { action: 'profile_update' }), () => this.fetchTournament(this.data.tournamentId));
+        this.handleWriteError(normalizedError, joinError.resolveJoinFailureMessage(normalizedError, '保存失败，请稍后重试', { action: 'profile_update' }), () => this.fetchTournament(tournamentId));
       }
     });
   },
@@ -445,6 +462,9 @@ module.exports = {
 
   async saveLobbyCloudProfile(profile = {}, options = {}) {
     const actionKey = `lobby:saveUserProfile:${this.data.tournamentId}`;
+    const lifecycleGeneration = options.lifecycleGeneration === undefined
+      ? Number(this._lifecycleGeneration || 0)
+      : Number(options.lifecycleGeneration || 0);
     const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'profile');
     const incoming = { ...(profile && typeof profile === 'object' ? profile : {}) };
     if (storage.normalizeGender(incoming.gender) === 'unknown') delete incoming.gender;
@@ -454,9 +474,11 @@ module.exports = {
 
     try {
       await profileCore.saveCloudProfile(payload, { clientRequestId });
+      if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return false;
       if (typeof this.clearLastFailedAction === 'function') this.clearLastFailedAction();
       return true;
     } catch (_) {
+      if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return false;
       if (typeof this.setLastFailedAction === 'function') {
         this.setLastFailedAction('保存我的信息', () => this.saveLobbyCloudProfile(payload, { clientRequestId }), { actionKey });
       }

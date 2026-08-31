@@ -205,59 +205,6 @@
   background: var(--brand-100);
 }
 
-/* --- 录分入口与编辑态状态 --- */
-.score-entry-row {
-  margin-top: var(--space-inline);
-}
-
-.score-entry-btn {
-  width: 100%;
-}
-
-.score-edit-status {
-  margin-top: var(--space-tight);
-  min-height: 44rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-inline);
-  padding: 0 4rpx;
-  color: var(--neutral-600);
-}
-
-.score-edit-status-main {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: var(--space-tight);
-}
-
-.score-edit-dot {
-  width: 12rpx;
-  height: 12rpx;
-  border-radius: 999rpx;
-  background: var(--brand-500);
-  box-shadow: 0 0 0 6rpx rgba(24, 179, 104, 0.12);
-  flex: none;
-}
-
-.score-edit-text {
-  min-width: 0;
-  font-size: 23rpx;
-  font-weight: 700;
-  line-height: 1.4;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.score-edit-meta {
-  flex: none;
-  font-size: 22rpx;
-  color: var(--brand-700);
-  font-weight: 700;
-}
-
 /* --- 快捷比分工具栏 --- */
 .score-toolbar {
   margin-top: var(--space-tight);
@@ -282,7 +229,10 @@
   display: inline-flex;
   align-items: center;
   box-sizing: border-box;
+  min-width: 44px;
+  min-height: 44px;
   max-width: 100%;
+  justify-content: center;
   margin-right: var(--space-tight);
   padding: 5rpx 12rpx;
   border-radius: 999rpx;
@@ -333,11 +283,20 @@
   opacity: 0.4;
 }
 
-/* --- 底部提交栏 — 复用全局 bottom-tray --- */
-/* .bottom-tray 样式已在 app.wxss 定义 */
+/* --- 底部提交区 --- */
+.score-submit-status {
+  margin-bottom: var(--space-tight);
+}
 
-/* --- 重试提交 — 复用全局 retry-box --- */
-/* .retry-box 样式已在 app.wxss 定义 */
+.score-submit-status-main {
+  color: var(--neutral-700);
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.bottom-tray .score-retry-btn {
+  margin-top: var(--space-tight) !important;
+}
 
 /* --- Skeleton 比分舞台 --- */
 .skeleton-score-row {

@@ -348,7 +348,10 @@ function getUnifiedErrorMessage(err, fallbackMessage = '操作失败') {
       : '参数有误，请检查';
   }
   if (String(getRuntimeEnv().envVersion || 'release') === 'release') {
-    return '操作失败，请稍后重试';
+    const action = String(fallbackMessage || '操作失败').trim() || '操作失败';
+    const retryMessage = action.includes('请稍后重试') ? action : `${action}，请稍后重试`;
+    const shortTraceId = String(parsed.traceId || '').trim().slice(-8);
+    return `${retryMessage}${shortTraceId ? `（诊断号 ${shortTraceId}）` : ''}`;
   }
   return parsed.userMessage || fallbackMessage;
 }
@@ -501,6 +504,7 @@ async function call(name, data = {}, options = {}) {
       const res = await wx.cloud.callFunction({ name, data: payload });
       return normalizeCloudResult(res && res.result, name);
     } catch (err) {
+      if (err && !String(err.traceId || '').trim()) err.traceId = payload.__traceId;
       const canRetry = attempt < retryDelays.length && isRetryableCallError(err);
       if (!canRetry) {
         handleCloudCallFailure(name, err);

@@ -30,23 +30,11 @@ App({
       traceUser: true
     });
 
-    try {
-      const openid = await auth.login();
-      this.globalData.openid = openid;
-    } catch (e) {
-      console.error('登录失败', e);
-    }
-
     this._networkListeners = [];
-    wx.getNetworkType({
-      success: (res) => {
-        this.globalData.networkOffline = res.networkType === 'none';
-      }
-    });
-    wx.onNetworkStatusChange((res) => {
+    const updateNetworkStatus = (offline) => {
       const wasOffline = !!this.globalData.networkOffline;
-      this.globalData.networkOffline = !res.isConnected;
-      const listeners = Array.isArray(this._networkListeners) ? this._networkListeners.slice() : [];
+      this.globalData.networkOffline = !!offline;
+      const listeners = this._networkListeners.slice();
       for (const fn of listeners) {
         if (typeof fn !== 'function') continue;
         try {
@@ -58,7 +46,18 @@ App({
           console.error('network listener failed', err);
         }
       }
+    };
+    wx.getNetworkType({
+      success: (res) => updateNetworkStatus(res.networkType === 'none')
     });
+    wx.onNetworkStatusChange((res) => updateNetworkStatus(!res.isConnected));
+
+    try {
+      const openid = await auth.login();
+      this.globalData.openid = openid;
+    } catch (e) {
+      console.error('登录失败', e);
+    }
   },
 
   onShow(options) {

@@ -247,8 +247,9 @@ page {
   white-space: nowrap;
   font-size: 30rpx;
   font-weight: 700;
-  height: 88rpx;
-  line-height: 88rpx;
+  height: 44px;
+  min-height: 44px;
+  line-height: 44px;
   transition: transform 100ms ease, filter 100ms ease, box-shadow 140ms ease;
   transform: translateZ(0);
 }
@@ -263,7 +264,7 @@ button.btn:active {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #21B96F 0%, var(--brand-600) 100%);
+  background: var(--brand-700);
   color: #ffffff;
   box-shadow: 0 8rpx 20rpx rgba(24, 179, 104, 0.22);
 }
@@ -283,14 +284,14 @@ button.btn:active {
 
 .btn-text {
   background: transparent;
-  color: var(--brand-600);
+  color: var(--brand-700);
   height: auto;
   line-height: 1.5;
   font-size: 28rpx;
 }
 
 .btn-danger {
-  background: linear-gradient(135deg, #EF4444, var(--danger));
+  background: var(--danger);
   color: #ffffff;
   box-shadow: 0 4rpx 12rpx rgba(220, 38, 38, 0.18);
 }
@@ -299,7 +300,7 @@ button.btn:active {
   opacity: 1;
   filter: none;
   background: var(--neutral-200) !important;
-  color: var(--neutral-500) !important;
+  color: var(--neutral-700) !important;
   box-shadow: none !important;
   border-color: transparent !important;
 }
@@ -338,7 +339,8 @@ button.btn:active {
 
 .btn-sm {
   height: 68rpx;
-  line-height: 68rpx;
+  min-height: 44px;
+  line-height: 44px;
   font-size: 26rpx;
   border-radius: 14rpx;
 }
@@ -350,6 +352,7 @@ button.btn:active {
   margin-left: 0;
   margin-right: 0;
   height: 64rpx;
+  min-height: 44px;
   line-height: 64rpx;
   padding: 0 18rpx;
   border-radius: 14rpx;
@@ -383,9 +386,9 @@ button.btn-mini::after {
 }
 
 .btn-mini.primary {
-  background: var(--brand-500);
+  background: var(--brand-700);
   color: #fff;
-  border-color: var(--brand-600);
+  border-color: var(--brand-700);
 }
 
 /* --- Poster Preview Modal --- */
@@ -435,7 +438,8 @@ button.btn-mini::after {
   flex: 1;
   margin-top: 0 !important;
   height: 76rpx;
-  line-height: 76rpx;
+  min-height: 44px;
+  line-height: 44px;
   font-size: 26rpx;
   border-radius: 14rpx;
 }
@@ -444,9 +448,9 @@ button.btn-mini::after {
   position: absolute;
   right: -14rpx;
   top: -14rpx;
-  width: 56rpx;
-  height: 56rpx;
-  line-height: 56rpx;
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
   border-radius: 999rpx;
   text-align: center;
   font-size: 30rpx;
@@ -588,6 +592,11 @@ button.btn-mini::after {
 
 .sync-banner-action {
   flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 22rpx;
   font-weight: 700;
 }
@@ -601,7 +610,7 @@ button.btn-mini::after {
   padding: 18rpx 20rpx;
   box-sizing: border-box;
   font-size: 28rpx;
-  min-height: 84rpx;
+  min-height: 44px;
   line-height: 1.3;
   box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.92);
   transition: border-color 140ms ease, box-shadow 140ms ease;
@@ -694,9 +703,10 @@ button.btn-mini::after {
 
 .chip {
   max-width: 100%;
-  min-width: 0;
+  min-width: 44px;
   box-sizing: border-box;
   display: inline-flex;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
   padding: 8rpx 16rpx;
@@ -752,7 +762,7 @@ button.btn-mini::after {
 
 .badge.blue {
   background: var(--info-100);
-  color: var(--info-500);
+  color: var(--info);
 }
 
 /* --- L. KPI / Metric --- */
@@ -1088,12 +1098,12 @@ button.btn-mini::after {
   background: var(--neutral-200);
 }
 
-.pcolor-0 { background: var(--brand-500); }
-.pcolor-1 { background: #0ea5e9; }
-.pcolor-2 { background: #f59e0b; }
-.pcolor-3 { background: #8b5cf6; }
-.pcolor-4 { background: #ef4444; }
-.pcolor-5 { background: #14b8a6; }
+.pcolor-0 { background: var(--brand-700); }
+.pcolor-1 { background: #0369A1; }
+.pcolor-2 { background: #A16207; }
+.pcolor-3 { background: #6D28D9; }
+.pcolor-4 { background: #B91C1C; }
+.pcolor-5 { background: #0F766E; }
 
 .ad-breakpoint {
   margin-top: var(--space-section);
@@ -1131,7 +1141,7 @@ button.btn-mini::after {
   width: 44rpx;
   height: 44rpx;
   border-radius: 999rpx;
-  background: var(--brand-500);
+  background: var(--brand-700);
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -1143,16 +1153,19 @@ button.btn-mini::after {
 
 .rank-badge.rank-1 {
   background: linear-gradient(135deg, #F7D974, #EAB308);
+  color: var(--neutral-950);
   box-shadow: 0 4rpx 12rpx rgba(245, 158, 11, 0.2);
 }
 
 .rank-badge.rank-2 {
   background: linear-gradient(135deg, #C7D2E1, #94A3B8);
+  color: var(--neutral-950);
   box-shadow: 0 4rpx 12rpx rgba(100, 116, 139, 0.16);
 }
 
 .rank-badge.rank-3 {
   background: linear-gradient(135deg, #F0B171, #D97706);
+  color: var(--neutral-950);
   box-shadow: 0 4rpx 12rpx rgba(217, 119, 6, 0.18);
 }
 
@@ -1225,7 +1238,7 @@ button.btn-mini::after {
 }
 
 .match-primary-nav-item {
-  min-height: 72rpx;
+  min-height: 44px;
   border-radius: 999rpx;
   border: 1rpx solid var(--neutral-200);
   background: var(--neutral-50);
@@ -1239,8 +1252,8 @@ button.btn-mini::after {
 }
 
 .match-primary-nav-item.active {
-  background: var(--brand-500);
-  border-color: var(--brand-500);
+  background: var(--brand-700);
+  border-color: var(--brand-700);
   color: #ffffff;
   box-shadow: 0 4rpx 12rpx rgba(24, 179, 104, 0.2);
 }

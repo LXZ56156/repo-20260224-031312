@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
+const auth = require('../miniprogram/core/auth');
 const tournamentSync = require('../miniprogram/core/tournamentSync');
 
 const analyticsPagePath = require.resolve('../miniprogram/pages/analytics/index.js');
@@ -127,6 +128,46 @@ test('analytics page keeps an in-flight fetch usable across onHide', async () =>
     assert.equal(ctx._latestTournament && ctx._latestTournament.name, 'Resolved While Hidden');
   } finally {
     tournamentSync.fetchTournament = originalFetchTournament;
+    delete require.cache[analyticsPagePath];
+  }
+});
+
+test('analytics viewer identity reapplies current tournament only while the page is active', async () => {
+  const originalLogin = auth.login;
+  const resolvers = [];
+  auth.login = () => new Promise((resolve) => {
+    resolvers.push(resolve);
+  });
+
+  try {
+    const definition = loadAnalyticsPageDefinition();
+    const tournament = { _id: 't_1', name: 'Current Tournament' };
+    const activePage = createAnalyticsPageContext(definition);
+    const activeApplied = [];
+    activePage._pageActive = true;
+    activePage.data.tournament = tournament;
+    activePage.applyTournament = (doc) => activeApplied.push(doc);
+    const activeTask = activePage.primeViewerIdentity();
+    resolvers.shift()('u_active');
+    await activeTask;
+
+    assert.equal(activePage.openid, 'u_active');
+    assert.deepEqual(activeApplied, [tournament]);
+
+    const hiddenPage = createAnalyticsPageContext(definition);
+    const hiddenApplied = [];
+    hiddenPage._pageActive = true;
+    hiddenPage.data.tournament = tournament;
+    hiddenPage.applyTournament = (doc) => hiddenApplied.push(doc);
+    const hiddenTask = hiddenPage.primeViewerIdentity();
+    hiddenPage.onHide();
+    resolvers.shift()('u_hidden');
+    await hiddenTask;
+
+    assert.equal(hiddenPage.openid, undefined);
+    assert.deepEqual(hiddenApplied, []);
+  } finally {
+    auth.login = originalLogin;
     delete require.cache[analyticsPagePath];
   }
 });

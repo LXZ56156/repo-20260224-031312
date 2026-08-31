@@ -266,6 +266,7 @@ module.exports = {
 
     const actionKey = `lobby:updateSettings:${this.data.tournamentId}`;
     const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'update_settings');
+    const lifecycleGeneration = Number(this._lifecycleGeneration || 0);
     if (actionGuard.isBusy(actionKey)) return;
     const endConditionType = this.data.quickShowSquadEndCondition
       ? settingsViewModel.normalizeEndConditionType(this.data.quickEndConditionType)
@@ -286,15 +287,22 @@ module.exports = {
           endConditionTarget,
           clientRequestId
         }), '保存失败');
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) {
+          wx.hideLoading();
+          return;
+        }
         await this.fetchTournament(this.data.tournamentId);
-        const readyToStart = !!this.data.checkStartReady;
         wx.hideLoading();
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
+        const readyToStart = !!this.data.checkStartReady;
         this.clearLastFailedAction();
         wx.showToast({ title: readyToStart ? '已保存，可开赛' : '参数已保存', icon: 'success' });
         nav.markRefreshFlag(this.data.tournamentId);
         if (readyToStart) this.focusStartAction();
+        return true;
       } catch (err) {
         wx.hideLoading();
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         this.setLastFailedAction('保存比赛参数', () => this.saveQuickSettings({ clientRequestId }), { actionKey });
         this.handleWriteError(err, '保存失败', () => this.fetchTournament(this.data.tournamentId));
       }

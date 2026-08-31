@@ -256,6 +256,8 @@ const memberDirect = {
     directToIndex: 1,
     directUnitIndex: 2,
     directPreview: '王姐 请 阿杰 · 3 水',
+    directSelectionValid: true,
+    directValidationMessage: '双方不同，可以记水',
   },
 };
 

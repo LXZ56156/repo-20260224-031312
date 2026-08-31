@@ -1,4 +1,5 @@
 const actionGuard = require('../../core/actionGuard');
+const auth = require('../../core/auth');
 const clientRequest = require('../../core/clientRequest');
 const cloneTournamentCore = require('../../core/cloneTournament');
 const loading = require('../../core/loading');
@@ -22,13 +23,7 @@ var shareMixin = sharePageMixin.createSharePageMixin({
   buildShareCardData: function (tournament) {
     var openid = this.openid || (getApp().globalData.openid || '');
     var playerStats = this.data.playerStats || [];
-    var currentPlayer = null;
-    for (var i = 0; i < playerStats.length; i++) {
-      if (String(playerStats[i].playerId || playerStats[i].entityId || '') === openid) {
-        currentPlayer = playerStats[i];
-        break;
-      }
-    }
+    var currentPlayer = shareCardStats.findViewerRankingRow(tournament, playerStats, openid);
     if (!currentPlayer) {
       if (playerStats.length) currentPlayer = playerStats[0];
       else throw new Error('no player data');
@@ -107,11 +102,14 @@ Page({
   ...shareMixin,
 
   onLoad(options) {
+    this._lifecycleGeneration = 0;
+    this._pageActive = true;
     const tid = tournamentEntry.parseTournamentIdFromPageOptions(options || {});
     pageTournamentSync.initTournamentSync(this);
     this._trackedAnalyticsView = false;
     this.setData({ tournamentId: tid });
     this.openid = (getApp().globalData.openid || '');
+    this.primeViewerIdentity();
 
     const app = getApp();
     this.setData(pageTournamentSync.composePageSyncPatch(this, {
@@ -139,6 +137,9 @@ Page({
   },
 
   onShow() {
+    const shouldRefreshIdentity = this._pageActive === false;
+    this._pageActive = true;
+    if (shouldRefreshIdentity) this.primeViewerIdentity();
     const currentId = String(this.data.tournamentId || '').trim();
     nav.consumeRefreshFlag(currentId);
     this.refreshAnalyticsAdSlot();
@@ -147,14 +148,32 @@ Page({
   },
 
   onHide() {
+    this._lifecycleGeneration = Number(this._lifecycleGeneration || 0) + 1;
+    this._pageActive = false;
     pageTournamentSync.pauseTournamentSync(this);
   },
 
   onUnload() {
+    this._lifecycleGeneration = Number(this._lifecycleGeneration || 0) + 1;
+    this._pageActive = false;
     pageTournamentSync.teardownTournamentSync(this);
     this._clearShareCache();
     if (typeof this._offNetwork === 'function') this._offNetwork();
     this._offNetwork = null;
+  },
+
+  async primeViewerIdentity() {
+    try {
+      const openid = String(await auth.login() || '').trim();
+      if (!openid || this._pageActive === false) return;
+      const changed = openid !== String(this.openid || '').trim();
+      this.openid = openid;
+      if (!changed) return;
+      const tournament = this._latestTournament || this.data.tournament;
+      if (tournament) this.applyTournament(tournament);
+    } catch (_) {
+      return;
+    }
   },
 
   onRetry() {
@@ -176,9 +195,7 @@ Page({
     const fullRankings = Array.isArray(pageModel.fullRankings) ? pageModel.fullRankings : [];
     const currentOpenid = String(this.openid || '').trim();
     const playerStats = Array.isArray(analytics.playerStats) ? analytics.playerStats : [];
-    const isCurrentUserInRanking = currentOpenid
-      ? playerStats.some((row) => String(row.playerId || row.entityId || '') === currentOpenid)
-      : false;
+    const isCurrentUserInRanking = !!shareCardStats.findViewerRankingRow(analytics.tournament, playerStats, currentOpenid);
     pageTitle.setTournamentPageTitle(this, '赛事复盘', analytics.tournament);
     this.setData({
       loadError: false,
@@ -254,14 +271,17 @@ Page({
     if (!sourceTournamentId) return;
     const actionKey = `analytics:cloneTournament:${sourceTournamentId}`;
     const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'clone');
+    const lifecycleGeneration = Number(this._lifecycleGeneration || 0);
     if (actionGuard.isBusy(actionKey)) return;
     return actionGuard.runCriticalWrite(actionKey, async () => {
       try {
         const nextId = await loading.withLoading('复制中...', () => cloneTournamentCore.cloneTournament(sourceTournamentId, { clientRequestId }));
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         this.clearLastFailedAction();
         wx.showToast({ title: '已生成副本', icon: 'success' });
         wx.navigateTo({ url: nav.buildTournamentUrl('/pages/lobby/index', nextId) });
       } catch (e) {
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         this.setLastFailedAction('再办一场', () => this.cloneCurrentTournament({ clientRequestId }), { actionKey });
         writeErrorUi.presentWriteError({ err: e, fallbackMessage: '复制失败' });
       }

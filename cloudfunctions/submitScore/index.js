@@ -41,6 +41,20 @@ function createCodeResult(code, message, extra = {}) {
   });
 }
 
+function createDedupedSubmitResult(match, scoreA, scoreB, openid, fallbackScorerName, clientRequestId, traceId) {
+  const retryResult = buildIdempotentRetryResult(match, scoreA, scoreB, openid, fallbackScorerName);
+  if (!retryResult) return null;
+  return common.withWriteResult({
+    ...retryResult,
+    ...(clientRequestId ? { clientRequestId } : {})
+  }, {
+    code: 'SCORE_SUBMIT_DEDUPED',
+    message: '比分已提交',
+    state: 'deduped',
+    traceId
+  });
+}
+
 async function readScoreLock(lockId) {
   try {
     const res = await db.collection('score_locks').doc(lockId).get();
@@ -83,17 +97,17 @@ exports.main = async (event) => {
     const match = findMatch(t, roundIndex, matchIndex);
     if (!match) return createCodeResult('MATCH_NOT_FOUND', '比赛不存在', { traceId });
     const fallbackScorerName = resolvePlayerName(t, OPENID);
-    const retryResult = buildIdempotentRetryResult(match, a, b, OPENID, fallbackScorerName);
+    const retryResult = createDedupedSubmitResult(
+      match,
+      a,
+      b,
+      OPENID,
+      fallbackScorerName,
+      clientRequestId,
+      traceId
+    );
     if (retryResult) {
-      return common.withWriteResult({
-        ...retryResult,
-        ...(clientRequestId ? { clientRequestId } : {})
-      }, {
-        code: 'SCORE_SUBMIT_DEDUPED',
-        message: '比分已提交',
-        state: 'deduped',
-        traceId
-      });
+      return retryResult;
     }
     if (String(match.status || '') === 'canceled') {
       return createCodeResult('MATCH_CANCELED', '该场已结束', { traceId });
@@ -147,10 +161,27 @@ exports.main = async (event) => {
     });
 
     if (!updRes || !updRes.stats || Number(updRes.stats.updated || 0) <= 0) {
+      const latestRes = await db.collection('tournaments').doc(tournamentId).get();
+      const latestTournament = common.assertTournamentExists(latestRes.data);
+      const latestMatch = findMatch(latestTournament, roundIndex, matchIndex);
+      const latestRetryResult = latestMatch && createDedupedSubmitResult(
+        latestMatch,
+        a,
+        b,
+        OPENID,
+        resolvePlayerName(latestTournament, OPENID),
+        clientRequestId,
+        traceId
+      );
+      if (latestRetryResult) return latestRetryResult;
       return createCodeResult('VERSION_CONFLICT', '写入冲突，请刷新赛事后重试', { traceId });
     }
 
-    db.collection('score_locks').doc(lockId).remove().catch(() => {});
+    await db.collection('score_locks').where({
+      _id: lockId,
+      ownerId,
+      expireAt
+    }).remove().catch(() => {});
     if (shareFinishTournament) {
       await shareActivity.updateFinishedMessageBestEffort(cloud, shareFinishTournament, console, {
         db,
@@ -171,7 +202,7 @@ exports.main = async (event) => {
     if (common.isCollectionNotExists(err)) {
       throw new Error('数据库集合 tournaments 不存在：请在云开发控制台（数据库 -> 创建集合）创建 tournaments 后再试。');
     }
-    if (String((err && err.message) || '').includes('赛事不存在')) {
+    if (common.isDocNotExists(err) || String((err && err.message) || '').includes('赛事不存在')) {
       return createCodeResult('TOURNAMENT_NOT_FOUND', '赛事不存在', { traceId });
     }
     if (common.isConflictError(err)) {

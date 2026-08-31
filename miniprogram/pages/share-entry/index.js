@@ -76,6 +76,7 @@ Page({
   ...shareEntrySyncController,
 
   onLoad(options) {
+    this._lifecycleGeneration = 0;
     const tournamentId = flow.parseTournamentId(options || {});
     const intent = flow.normalizeIntent(options && options.intent);
     const app = getApp();
@@ -106,6 +107,7 @@ Page({
   },
 
   onHide() {
+    this._lifecycleGeneration = Number(this._lifecycleGeneration || 0) + 1;
     pageTournamentSync.pauseTournamentSync(this);
     pageTimers.clearNamedTimer(this, 'identityPending');
   },
@@ -128,6 +130,7 @@ Page({
   },
 
   onUnload() {
+    this._lifecycleGeneration = Number(this._lifecycleGeneration || 0) + 1;
     pageTournamentSync.teardownTournamentSync(this);
     this.invalidateIdentityAttempt();
     pageTimers.clearAllTimers(this);
@@ -365,14 +368,20 @@ Page({
 
     const actionKey = `shareEntry:joinTournament:${tournamentId}`;
     const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'join');
+    const lifecycleGeneration = Number(this._lifecycleGeneration || 0);
     return actionGuard.runWithCriticalPageBusy(this, 'joinBusy', actionKey, async () => {
+      const returnUrl = flow.buildReturnUrl(tournamentId, 'view');
       const gate = await joinTournamentCore.ensureJoinProfile({
         action: 'share_join',
-        redirect: flow.buildReturnUrl(tournamentId, 'view')
+        redirect: returnUrl,
+        silent: true
       });
+      if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
       if (!gate.ok) {
         if (gate.reason === 'login_failed') {
           wx.showToast({ title: '登录失败，请稍后重试', icon: 'none' });
+        } else {
+          wx.navigateTo({ url: profileCore.buildProfileUrl(returnUrl) });
         }
         return;
       }
@@ -393,14 +402,16 @@ Page({
         storage.set(GROWTH_ONBOARDING_PENDING_KEY, tournamentId);
         storage.setUserProfile({ nickName: payload.nickname, avatar: payload.avatar, gender: payload.gender });
         this.saveCloudProfileBestEffort(payload, clientRequestId);
-        wx.showToast({ title: '已加入比赛', icon: 'success' });
         growthTracker.track('share_entry_join_success', growthTracker.fromTournament(this.data.tournament, {
           tournamentId,
           src: 'share_entry',
           a: 'join',
           r: 'success'
         }));
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
+        wx.showToast({ title: '已加入比赛', icon: 'success' });
         await this.fetchTournament(tournamentId);
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         const lifecycle = String((this.data.tournament && this.data.tournament.status) || '').trim();
         if (lifecycle === 'running') {
           wx.redirectTo({ url: flow.buildScheduleUrl(tournamentId), fail: () => this.goLobby() });
@@ -410,6 +421,7 @@ Page({
           this.goLobby();
         }
       } catch (err) {
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         writeErrorUi.presentWriteError({
           err,
           fallbackMessage: '加入失败，请稍后重试',

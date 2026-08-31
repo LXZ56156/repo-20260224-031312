@@ -42,6 +42,9 @@ async function executeRemovePlayer(ctx, options = {}) {
   if (!tournamentId) return;
 
   const isSelfRemove = options.isSelfRemove === true;
+  const lifecycleGeneration = options.lifecycleGeneration === undefined
+    ? Number(ctx._lifecycleGeneration || 0)
+    : Number(options.lifecycleGeneration || 0);
   const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'remove_player');
   const actionKey = `lobby:removePlayer:${tournamentId}:${playerId}`;
   if (actionGuard.isBusy(actionKey)) return;
@@ -55,12 +58,15 @@ async function executeRemovePlayer(ctx, options = {}) {
         clientRequestId
       }), isSelfRemove ? '退出失败' : '移除失败');
       wx.hideLoading();
+      if (Number(ctx._lifecycleGeneration || 0) !== lifecycleGeneration) return;
       ctx.clearLastFailedAction();
       wx.showToast({ title: isSelfRemove ? '已退出参赛' : '已移除', icon: 'success' });
       await ctx.fetchTournament(tournamentId);
+      if (Number(ctx._lifecycleGeneration || 0) !== lifecycleGeneration) return;
       nav.markRefreshFlag(tournamentId);
     } catch (err) {
       wx.hideLoading();
+      if (Number(ctx._lifecycleGeneration || 0) !== lifecycleGeneration) return;
       ctx.setLastFailedAction(isSelfRemove ? '退出参赛' : '移除参赛成员', () => executeRemovePlayer(ctx, {
         playerId,
         isSelfRemove,
@@ -159,23 +165,6 @@ const draftActions = {
     }, 90);
   },
 
-  onChecklistTap(e) {
-    const key = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.key) || '').trim();
-    if (key === 'settings') {
-      this.goEditTournament();
-      return;
-    }
-    if (key === 'players') {
-      this.focusPlayerRosterArea();
-      return;
-    }
-    if (key === 'start') {
-      if (this.data.checkStartReady) return;
-      if (!this.data.checkSettingsOk) this.goEditTournament();
-      else this.focusPlayerRosterArea();
-    }
-  },
-
   onPickJoinSquad(e) {
     const squad = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.squad) || '').trim().toUpperCase();
     if (squad !== 'A' && squad !== 'B') return;
@@ -192,20 +181,24 @@ const draftActions = {
     const item = (this.data.displayPlayers || []).find((x) => String(x.id || '') === playerId);
     const current = String(item && item.squad || '').toUpperCase();
     const next = current === 'A' ? 'B' : 'A';
-    const actionKey = `lobby:setPlayerSquad:${this.data.tournamentId}:${playerId}`;
+    const tournamentId = String(this.data.tournamentId || '').trim();
+    const lifecycleGeneration = Number(this._lifecycleGeneration || 0);
+    const actionKey = `lobby:setPlayerSquad:${tournamentId}:${playerId}`;
     const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'set_squad');
     if (actionGuard.isBusy(actionKey)) return;
     return actionGuard.runCriticalWrite(actionKey, async () => {
       try {
         cloud.assertWriteResult(await cloud.call('setPlayerSquad', {
-          tournamentId: this.data.tournamentId,
+          tournamentId,
           playerId,
           squad: next,
           clientRequestId
         }), '调整分队失败');
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         wx.showToast({ title: `已调整到${next}队`, icon: 'none' });
-        this.fetchTournament(this.data.tournamentId);
+        this.fetchTournament(tournamentId);
       } catch (err) {
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         wx.showToast({ title: cloud.getUnifiedErrorMessage(err, '调整分队失败'), icon: 'none' });
       }
     });
@@ -224,6 +217,7 @@ const draftActions = {
 
     const playerName = findPlayerName(this, playerId, e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.name);
     const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'remove_player');
+    const lifecycleGeneration = Number(this._lifecycleGeneration || 0);
     wx.showModal({
       title: isSelfRemove ? '退出参赛？' : `移除 ${playerName}？`,
       content: isSelfRemove
@@ -233,7 +227,8 @@ const draftActions = {
       confirmColor: '#ef4444',
       success: async (res) => {
         if (!res.confirm) return;
-        await executeRemovePlayer(this, { playerId, isSelfRemove, clientRequestId });
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
+        await executeRemovePlayer(this, { playerId, isSelfRemove, clientRequestId, lifecycleGeneration });
       }
     });
   },

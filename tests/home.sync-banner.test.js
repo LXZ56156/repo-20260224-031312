@@ -46,6 +46,7 @@ test('home page reuses unified sync banner for offline state changes', () => {
   const originalMarkSplashShown = adGuard.markSplashShown;
   const originalGetWindowMetrics = systemInfo.getWindowMetrics;
   let onNetworkChange = null;
+  let loadCalls = 0;
 
   storage.isOnboardingDone = () => true;
   storage.isProfileNudgeDismissed = () => true;
@@ -98,6 +99,9 @@ test('home page reuses unified sync banner for offline state changes', () => {
   try {
     const definition = loadHomePageDefinition();
     const ctx = createPageContext(definition);
+    ctx.loadRecents = () => {
+      loadCalls += 1;
+    };
 
     ctx.onLoad();
 
@@ -108,6 +112,12 @@ test('home page reuses unified sync banner for offline state changes', () => {
     onNetworkChange(false);
     assert.equal(ctx.data.networkOffline, false);
     assert.equal(ctx.data.syncStatusVisible, false);
+
+    ctx.onShow();
+    assert.equal(loadCalls, 1);
+    ctx.onHide();
+    onNetworkChange(false, { reconnected: true });
+    assert.equal(loadCalls, 1);
   } finally {
     global.getApp = originalGetApp;
     global.wx = originalWx;

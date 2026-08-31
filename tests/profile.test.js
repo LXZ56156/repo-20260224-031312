@@ -158,6 +158,58 @@ test('syncCloudProfile keeps local profile when cloud returns structured failure
   }
 });
 
+test('syncCloudProfile ignores stale cloud resolve and reject after the local profile changes', async () => {
+  const initialProfile = { nickName: '旧昵称', avatar: 'cloud://avatar/old', gender: 'male' };
+  const savedProfile = { nickName: '新昵称', avatar: 'cloud://avatar/new', gender: 'female' };
+  const originalGet = storage.getUserProfile;
+  const originalGetUpdatedAt = storage.getProfileUpdatedAt;
+  const originalSet = storage.setUserProfile;
+  const originalCall = cloud.call;
+  let currentProfile = initialProfile;
+  let updatedAt = 100;
+  let resolveCall;
+  let rejectCall;
+  const writes = [];
+
+  storage.getUserProfile = () => currentProfile;
+  storage.getProfileUpdatedAt = () => updatedAt;
+  storage.setUserProfile = (value) => {
+    writes.push(value);
+    return true;
+  };
+  cloud.call = () => new Promise((resolve, reject) => {
+    resolveCall = resolve;
+    rejectCall = reject;
+  });
+
+  try {
+    const syncTask = profile.syncCloudProfile();
+    currentProfile = savedProfile;
+    updatedAt = 200;
+    resolveCall({
+      ok: true,
+      profile: { nickName: '云端旧昵称', avatar: 'cloud://avatar/server-old', gender: 'male' }
+    });
+
+    assert.deepEqual(await syncTask, savedProfile);
+    assert.deepEqual(writes, []);
+
+    const latestProfile = { nickName: '更新昵称', avatar: 'cloud://avatar/latest', gender: 'female' };
+    const rejectedSyncTask = profile.syncCloudProfile();
+    currentProfile = latestProfile;
+    updatedAt = 300;
+    rejectCall(new Error('network fail'));
+
+    assert.deepEqual(await rejectedSyncTask, latestProfile);
+    assert.deepEqual(writes, []);
+  } finally {
+    storage.getUserProfile = originalGet;
+    storage.getProfileUpdatedAt = originalGetUpdatedAt;
+    storage.setUserProfile = originalSet;
+    cloud.call = originalCall;
+  }
+});
+
 test('saveCloudProfile does not write local profile when cloud save fails', async () => {
   const localProfile = { nickName: '旧昵称', avatar: 'cloud://avatar/old', gender: 'male' };
   const incomingProfile = { nickName: '新昵称', avatar: 'cloud://avatar/new', gender: 'female' };
@@ -239,6 +291,133 @@ test('chooseAvatar temp path is uploaded before saveUserProfile receives the ava
     storage.getUserProfile = originalGet;
     storage.setUserProfile = originalSet;
     cloud.call = originalCall;
+  }
+});
+
+test('profile save retries a pending avatar before validation and saves the uploaded file id', async () => {
+  const originalWx = global.wx;
+  const originalUploadAvatarFromTemp = profile.uploadAvatarFromTemp;
+  const originalSaveCloudProfile = profile.saveCloudProfile;
+  const events = [];
+  let savedProfile = null;
+
+  global.wx = {
+    showLoading() {},
+    hideLoading() {},
+    showToast() {}
+  };
+  profile.uploadAvatarFromTemp = async (tempPath) => {
+    events.push(`upload:${tempPath}`);
+    return 'cloud://avatar/retried.png';
+  };
+  profile.saveCloudProfile = async (value) => {
+    events.push(`save:${value.avatar}`);
+    savedProfile = value;
+    return value;
+  };
+
+  try {
+    const definition = loadProfilePageDefinition();
+    const ctx = createProfilePageContext(definition);
+    ctx.setData({
+      nickname: '球友A',
+      gender: 'male',
+      avatar: '',
+      avatarDisplay: 'wxfile://tmp/retry-avatar.png',
+      avatarLocalPreview: 'wxfile://tmp/retry-avatar.png',
+      pendingAvatarTempPath: 'wxfile://tmp/retry-avatar.png',
+      avatarUploadFailed: true
+    });
+    ctx.seedLocalAvatarPreview = () => false;
+    ctx.preWarmAvatarUrl = () => {};
+    ctx.schedulePostSaveNavigation = () => {};
+
+    await ctx.onSave({ clientRequestId: 'profile-avatar-retry' });
+
+    assert.deepEqual(events, [
+      'upload:wxfile://tmp/retry-avatar.png',
+      'save:cloud://avatar/retried.png'
+    ]);
+    assert.equal(savedProfile.avatar, 'cloud://avatar/retried.png');
+    assert.equal(ctx.data.pendingAvatarTempPath, '');
+    assert.equal(ctx.data.avatarUploadFailed, false);
+  } finally {
+    global.wx = originalWx;
+    profile.uploadAvatarFromTemp = originalUploadAvatarFromTemp;
+    profile.saveCloudProfile = originalSaveCloudProfile;
+    delete require.cache[profilePagePath];
+  }
+});
+
+test('profile late cloud sync does not overwrite fields edited during loading', async () => {
+  const originalReadLocalProfile = profile.readLocalProfile;
+  const originalSyncCloudProfile = profile.syncCloudProfile;
+  let resolveSync;
+  profile.readLocalProfile = () => ({
+    nickName: '本地昵称',
+    avatar: 'https://avatar.local/old.png',
+    gender: 'male'
+  });
+  profile.syncCloudProfile = () => new Promise((resolve) => {
+    resolveSync = resolve;
+  });
+
+  try {
+    const definition = loadProfilePageDefinition();
+    const ctx = createProfilePageContext(definition);
+    const loadingTask = ctx.onLoad({});
+    ctx.onNicknameInput({ detail: { value: '正在编辑的新昵称' } });
+
+    resolveSync({
+      nickName: '云端旧昵称',
+      avatar: 'https://avatar.cloud/old.png',
+      gender: 'female'
+    });
+    await loadingTask;
+
+    assert.equal(ctx.data.nickname, '正在编辑的新昵称');
+    assert.equal(ctx.data.gender, 'male');
+    assert.equal(ctx.data.avatar, 'https://avatar.local/old.png');
+  } finally {
+    profile.readLocalProfile = originalReadLocalProfile;
+    profile.syncCloudProfile = originalSyncCloudProfile;
+    delete require.cache[profilePagePath];
+  }
+});
+
+test('profile late cloud sync does not write after the page becomes inactive', async () => {
+  const originalReadLocalProfile = profile.readLocalProfile;
+  const originalSyncCloudProfile = profile.syncCloudProfile;
+  let resolveSync;
+  profile.readLocalProfile = () => ({
+    nickName: '本地昵称',
+    avatar: 'https://avatar.local/old.png',
+    gender: 'male'
+  });
+  profile.syncCloudProfile = () => new Promise((resolve) => {
+    resolveSync = resolve;
+  });
+
+  try {
+    const definition = loadProfilePageDefinition();
+    const ctx = createProfilePageContext(definition);
+    const loadingTask = ctx.onLoad({});
+    ctx.onHide();
+
+    resolveSync({
+      nickName: '云端昵称',
+      avatar: 'https://avatar.cloud/new.png',
+      gender: 'female'
+    });
+    await loadingTask;
+
+    assert.equal(ctx.data.nickname, '本地昵称');
+    assert.equal(ctx.data.gender, 'male');
+    assert.equal(ctx.data.avatar, 'https://avatar.local/old.png');
+  } finally {
+    profile.readLocalProfile = originalReadLocalProfile;
+    profile.syncCloudProfile = originalSyncCloudProfile;
+    delete require.cache[profilePagePath];
   }
 });
 

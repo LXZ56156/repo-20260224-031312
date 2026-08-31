@@ -27,20 +27,14 @@ Page({
   ...retryAction.createRetryMethods(),
 
   async onLoad(options = {}) {
+    this._lifecycleGeneration = 0;
+    const lifecycleGeneration = 0;
     const app = getApp();
     this.setData({ networkOffline: !!(app && app.globalData && app.globalData.networkOffline) });
     if (app && typeof app.subscribeNetworkChange === 'function') {
       this._offNetwork = app.subscribeNetworkChange((offline) => {
         this.setData({ networkOffline: !!offline });
       });
-    }
-
-    const gate = await profileCore.ensureProfileForAction('create', '/pages/create/index');
-    if (!gate.ok) {
-      if (gate.reason === 'login_failed') {
-        wx.showToast({ title: '登录失败，请重试', icon: 'none' });
-      }
-      return;
     }
 
     const mode = flow.normalizeMode(options.mode || storage.getDefaultMode());
@@ -66,9 +60,28 @@ Page({
           '2. 满 4 人后在比赛大厅设置参数并开赛'
         ]
     });
+    const createUrl = nav.buildUrl('/pages/create/index', {
+      mode,
+      presetKey: presetKey === 'custom' ? '' : presetKey
+    });
+    const gate = await profileCore.ensureProfileForAction('create', createUrl, { silent: true });
+    if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
+    if (!gate.ok) {
+      if (gate.reason === 'login_failed') {
+        wx.showToast({ title: '登录失败，请重试', icon: 'none' });
+      } else {
+        wx.navigateTo({ url: profileCore.buildProfileUrl(createUrl) });
+      }
+      return;
+    }
+  },
+
+  onHide() {
+    this._lifecycleGeneration = Number(this._lifecycleGeneration || 0) + 1;
   },
 
   onUnload() {
+    this._lifecycleGeneration = Number(this._lifecycleGeneration || 0) + 1;
     if (typeof this._offNetwork === 'function') this._offNetwork();
     this._offNetwork = null;
   },
@@ -93,15 +106,23 @@ Page({
       wx.showToast({ title: '请输入赛事名称', icon: 'none' });
       return;
     }
+    const createUrl = nav.buildUrl('/pages/create/index', {
+      mode: this.data.mode,
+      presetKey: this.data.presetKey === 'custom' ? '' : this.data.presetKey
+    });
     const actionKey = 'create:createTournament';
     const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'create');
+    const lifecycleGeneration = Number(this._lifecycleGeneration || 0);
     if (actionGuard.isBusy(actionKey)) return;
 
     return actionGuard.runWithCriticalPageBusy(this, 'createBusy', actionKey, async () => {
-      const gate = await profileCore.ensureProfileForAction('create', '/pages/create/index');
+      const gate = await profileCore.ensureProfileForAction('create', createUrl, { silent: true });
+      if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
       if (!gate.ok) {
         if (gate.reason === 'login_failed') {
           wx.showToast({ title: '登录失败，请重试', icon: 'none' });
+        } else {
+          wx.navigateTo({ url: profileCore.buildProfileUrl(createUrl) });
         }
         return;
       }
@@ -119,6 +140,8 @@ Page({
           clientRequestId
         }), '创建失败');
         wx.hideLoading();
+        storage.addRecentTournamentId(res.tournamentId);
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         this.clearLastFailedAction();
         wx.redirectTo({
           url: nav.buildTournamentUrl('/pages/lobby/index', res.tournamentId, {
@@ -128,6 +151,7 @@ Page({
         });
       } catch (e) {
         wx.hideLoading();
+        if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         this.setLastFailedAction('创建比赛', () => this.handleCreate({ clientRequestId }), { actionKey });
         wx.showToast({ title: cloud.getUnifiedErrorMessage(e, '创建失败'), icon: 'none' });
       }

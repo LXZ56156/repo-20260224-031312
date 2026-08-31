@@ -28,8 +28,10 @@ function mergeProfile(base, incoming) {
 
 async function syncCloudProfile() {
   const local = readLocalProfile();
+  const localUpdatedAt = storage.getProfileUpdatedAt();
   try {
     const res = await cloud.call('getUserProfile', {});
+    if (storage.getProfileUpdatedAt() !== localUpdatedAt) return readLocalProfile();
     if (res && res.ok === false) {
       throw cloud.normalizeWriteFailure(res, '读取资料失败');
     }
@@ -39,6 +41,7 @@ async function syncCloudProfile() {
     storage.setUserProfile(merged);
     return merged;
   } catch (_) {
+    if (storage.getProfileUpdatedAt() !== localUpdatedAt) return readLocalProfile();
     return local;
   }
 }

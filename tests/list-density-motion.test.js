@@ -39,6 +39,7 @@ test('home tournament list uses reveal motion and compact list density', () => {
   const toolbarRule = getCssRuleBody(wxss, '.toolbar-row');
   const metaRowRule = getCssRuleBody(wxss, '.t-meta-row');
   const actionsRule = getCssRuleBody(wxss, '.t-actions');
+  const actionLinkRule = getCssRuleBody(wxss, '.t-copy-link,\n.t-quick-action');
   const comfortableCardRule = getCssRuleBody(wxss, '.home-page.density-comfortable .t-card,\n.home-page.density-comfortable .skeleton-card-wrap .skeleton-card');
   const skeletonWrapRule = getCssRuleBody(wxss, '.skeleton-card-wrap');
   const skeletonCardRule = getCssRuleBody(wxss, '.skeleton-card-wrap .skeleton-card');
@@ -66,8 +67,11 @@ test('home tournament list uses reveal motion and compact list density', () => {
   assert.match(actionsRule, /max-width:\s*48%/);
   assert.match(actionsRule, /min-width:\s*0/);
   assert.doesNotMatch(actionsRule, /margin-top:/);
+  assert.match(actionLinkRule, /min-height:\s*44px/);
   assert.match(wxss, /\.t-copy-link,\n\.t-quick-action \{[\s\S]*box-sizing:\s*border-box/);
   assert.match(wxss, /\.t-copy-link,\n\.t-quick-action \{[\s\S]*overflow:\s*hidden/);
+  assert.match(wxss, /\.t-quick-action\s*\{[^}]*color:\s*#1D4ED8/);
+  assert.match(getCssRuleBody(wxss, '.del-btn'), /background:\s*var\(--danger\)/);
   assert.match(skeletonWrapRule, /margin-top:\s*var\(--space-tight\)/);
   assert.match(skeletonCardRule, /padding:\s*var\(--space-panel-pad\) var\(--space-card-pad\)/);
   assert.match(comfortableCardRule, /padding:\s*var\(--space-card-pad-lg\)/);
@@ -79,6 +83,15 @@ test('schedule rounds reveal while match cards keep compact press feedback', () 
   const roundRule = getCssRuleBody(wxss, '.round-card');
   const matchRule = getCssRuleBody(wxss, '.match-card');
   const footRule = getCssRuleBody(wxss, '.match-card-foot');
+  const noteRule = getCssRuleBody(wxss, '.match-note');
+  const matchAvatarRule = getCssRuleBody(wxss, '.match-avatar');
+  const matchAvatarImageRule = getCssRuleBody(wxss, '.match-avatar-img');
+  const selectedPlayerRule = getCssRuleBody(wxss, '.selected-player-chip');
+  const filterClearRule = getCssRuleBody(wxss, '.filter-clear');
+  const disabledFilterClearRule = getCssRuleBody(wxss, '.filter-clear.disabled');
+  const filterSheetOptionRule = getCssRuleBody(wxss, '.filter-sheet-option');
+  const filterSheetButtonRule = getCssRuleBody(wxss, '.filter-sheet-actions .btn');
+  const sheetHandleRule = getCssRuleBody(wxss, '.sheet-handle');
   const skeletonRule = getCssRuleBody(wxss, '.skeleton-match-block');
   const comfortableRoundRule = getCssRuleBody(wxss, '.schedule-page.density-comfortable .round-card');
 
@@ -95,6 +108,22 @@ test('schedule rounds reveal while match cards keep compact press feedback', () 
   assert.match(matchRule, /margin-bottom:\s*var\(--space-tight\)/);
   assert.match(matchRule, /transition:\s*transform 100ms ease, filter 100ms ease/);
   assert.match(footRule, /margin-top:\s*var\(--space-tight\)/);
+  assert.match(noteRule, /color:\s*var\(--neutral-700\)/);
+  assert.match(matchAvatarRule, /width:\s*44px/);
+  assert.match(matchAvatarRule, /height:\s*44px/);
+  assert.match(matchAvatarImageRule, /width:\s*100%/);
+  assert.match(matchAvatarImageRule, /height:\s*100%/);
+  assert.match(selectedPlayerRule, /min-width:\s*44px/);
+  assert.match(selectedPlayerRule, /min-height:\s*44px/);
+  assert.match(filterClearRule, /color:\s*var\(--info\)/);
+  assert.match(disabledFilterClearRule, /color:\s*var\(--neutral-700\)/);
+  assert.match(filterSheetOptionRule, /min-height:\s*44px/);
+  assert.match(filterSheetOptionRule, /display:\s*flex/);
+  assert.match(filterSheetOptionRule, /align-items:\s*center/);
+  assert.match(filterSheetOptionRule, /justify-content:\s*center/);
+  assert.match(filterSheetButtonRule, /margin-top:\s*0 !important/);
+  assert.match(sheetHandleRule, /width:\s*44px/);
+  assert.match(sheetHandleRule, /height:\s*44px/);
   assert.match(skeletonRule, /margin-top:\s*var\(--space-tight\)/);
   assert.match(comfortableRoundRule, /padding:\s*var\(--space-card-pad-lg\)/);
 });
@@ -164,6 +193,8 @@ test('launch quick-water and tournament CTAs share one action column', () => {
   const actionsRule = getCssRuleBody(wxss, '.launch-actions');
   const spacerRule = getCssRuleBody(wxss, '.launch-action-spacer');
   const ruleLinkRule = getCssRuleBody(wxss, '.launch-rule-link');
+  const waterButtonRule = getCssRuleBody(wxss, '.launch-water-btn');
+  const sectionLabelRule = getCssRuleBody(wxss, '.launch-section-label');
 
   assert.match(
     wxml,
@@ -174,17 +205,23 @@ test('launch quick-water and tournament CTAs share one action column', () => {
   assert.doesNotMatch(actionsRule, /space-between/);
   assert.match(spacerRule, /visibility:\s*hidden/);
   assert.match(spacerRule, /pointer-events:\s*none/);
-  assert.match(ruleLinkRule, /min-height:\s*64rpx/);
+  assert.match(ruleLinkRule, /min-height:\s*44px/);
+  assert.match(waterButtonRule, /background:\s*var\(--info\)/);
+  assert.match(sectionLabelRule, /color:\s*var\(--neutral-700\)/);
 });
 
 test('secondary pages use spacing tokens and share-entry clamps long title', () => {
   const settingsWxss = read('miniprogram/pages/settings/index.wxss');
+  const analyticsWxss = read('miniprogram/pages/analytics/index.wxss');
   const profileWxss = read('miniprogram/pages/profile/index.wxss');
   const feedbackWxss = read('miniprogram/pages/feedback/index.wxss');
   const shareWxml = read('miniprogram/pages/share-entry/index.wxml');
   const shareWxss = read('miniprogram/pages/share-entry/index.wxss');
 
   assert.match(getCssRuleBody(settingsWxss, '.settings-page'), /padding-top:\s*var\(--space-page-y\)/);
+  assert.match(getCssRuleBody(settingsWxss, '.picker'), /height:\s*44px/);
+  assert.match(getCssRuleBody(settingsWxss, '.picker'), /line-height:\s*44px/);
+  assert.match(getCssRuleBody(analyticsWxss, '.ranking-section-head'), /min-height:\s*44px/);
   assert.match(getCssRuleBody(profileWxss, '.profile-page'), /gap:\s*var\(--space-section\)/);
   assert.match(getCssRuleBody(feedbackWxss, '.feedback-page'), /gap:\s*var\(--space-card-pad-lg\)/);
   assert.match(shareWxml, /class="share-title ellipsis"/);

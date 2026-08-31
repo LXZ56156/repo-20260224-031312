@@ -3,22 +3,26 @@ const assert = require('node:assert/strict');
 
 const actionGuard = require('../miniprogram/core/actionGuard');
 const cloud = require('../miniprogram/core/cloud');
+const cloneTournamentCore = require('../miniprogram/core/cloneTournament');
 const nav = require('../miniprogram/core/nav');
 const profileCore = require('../miniprogram/core/profile');
 const storage = require('../miniprogram/core/storage');
 const flow = require('../miniprogram/core/uxFlow');
 const settingsActions = require('../miniprogram/pages/settings/settingsActions');
 const lobbyDraftActions = require('../miniprogram/pages/lobby/lobbyDraftActions');
+const lobbyLifecycleActions = require('../miniprogram/pages/lobby/lobbyLifecycleActions');
 const lobbyPairTeamActions = require('../miniprogram/pages/lobby/lobbyPairTeamActions');
 
 const profilePagePath = require.resolve('../miniprogram/pages/profile/index.js');
 
 function createDeferred() {
   let resolve = null;
-  const promise = new Promise((res) => {
+  let reject = null;
+  const promise = new Promise((res, rej) => {
     resolve = res;
+    reject = rej;
   });
-  return { promise, resolve };
+  return { promise, resolve, reject };
 }
 
 function createContext(methods, data) {
@@ -273,13 +277,25 @@ test('lobby cancelTournament deduplicates repeated taps after confirm', async ()
 test('lobby onPlayerLongPress deduplicates repeated remove confirmations', async () => {
   const originalWx = global.wx;
   const originalCloudCall = cloud.call;
+  const originalMarkRefreshFlag = nav.markRefreshFlag;
 
   const deferred = createDeferred();
   const calls = [];
   const wxBox = buildWxStub();
+  let clearRetryCalls = 0;
+  let fetchCalls = 0;
+  let refreshFlags = 0;
+  let retryCalls = 0;
+  let toastCalls = 0;
   global.wx = wxBox.api;
+  global.wx.showToast = () => {
+    toastCalls += 1;
+  };
 
   try {
+    nav.markRefreshFlag = () => {
+      refreshFlags += 1;
+    };
     cloud.call = async (name, payload) => {
       calls.push({ name, payload });
       await deferred.promise;
@@ -301,10 +317,17 @@ test('lobby onPlayerLongPress deduplicates repeated remove confirmations', async
         { id: 'p_remove', name: '待移除' }
       ]
     });
+    ctx._lifecycleGeneration = 0;
     ctx.openid = 'u_admin';
-    ctx.fetchTournament = async () => {};
-    ctx.clearLastFailedAction = () => {};
-    ctx.setLastFailedAction = () => {};
+    ctx.fetchTournament = async () => {
+      fetchCalls += 1;
+    };
+    ctx.clearLastFailedAction = () => {
+      clearRetryCalls += 1;
+    };
+    ctx.setLastFailedAction = () => {
+      retryCalls += 1;
+    };
     ctx.handleWriteError = () => {};
 
     const event = { currentTarget: { dataset: { player: 'p_remove', name: '待移除' } } };
@@ -316,14 +339,21 @@ test('lobby onPlayerLongPress deduplicates repeated remove confirmations', async
     assert.equal(calls[0].name, 'removePlayer');
     assert.equal(calls[0].payload.playerId, 'p_remove');
 
+    ctx._lifecycleGeneration += 1;
     deferred.resolve();
     await Promise.all(wxBox.pendingModalTasks);
 
     assert.equal(calls.length, 1);
+    assert.equal(clearRetryCalls, 0);
+    assert.equal(retryCalls, 0);
+    assert.equal(fetchCalls, 0);
+    assert.equal(refreshFlags, 0);
+    assert.equal(toastCalls, 0);
   } finally {
     actionGuard.clear('lobby:removePlayer:t_remove:p_remove');
     global.wx = originalWx;
     cloud.call = originalCloudCall;
+    nav.markRefreshFlag = originalMarkRefreshFlag;
   }
 });
 
@@ -632,5 +662,60 @@ test('profile onSave deduplicates repeated taps', async () => {
     global.wx = originalWx;
     global.setTimeout = originalSetTimeout;
     profileCore.saveCloudProfile = originalProfileSave;
+  }
+});
+
+test('lobby clone drops success and failure effects after leaving the page', async () => {
+  const originalWx = global.wx;
+  const originalCloneTournament = cloneTournamentCore.cloneTournament;
+  const originalGoLobby = nav.goLobby;
+  const successDeferred = createDeferred();
+  const failureDeferred = createDeferred();
+  const { api: wxStub } = buildWxStub();
+  const effects = [];
+
+  wxStub.showToast = () => effects.push('toast');
+  global.wx = wxStub;
+  nav.goLobby = () => effects.push('navigate');
+
+  function makeContext(tournamentId) {
+    const ctx = createContext(lobbyLifecycleActions, { tournamentId });
+    ctx._lifecycleGeneration = 0;
+    ctx.clearLastFailedAction = () => effects.push('clear-retry');
+    ctx.setLastFailedAction = () => effects.push('set-retry');
+    ctx.handleWriteError = () => effects.push('error');
+    ctx.fetchTournament = async () => effects.push('fetch');
+    return ctx;
+  }
+
+  try {
+    cloneTournamentCore.cloneTournament = async () => {
+      await successDeferred.promise;
+      return 't_clone_new';
+    };
+    const successCtx = makeContext('t_clone_success');
+    const successTask = successCtx.cloneCurrentTournament();
+    await Promise.resolve();
+    successCtx._lifecycleGeneration += 1;
+    successDeferred.resolve();
+    await successTask;
+
+    cloneTournamentCore.cloneTournament = () => failureDeferred.promise;
+    const failureCtx = makeContext('t_clone_failure');
+    const failureTask = failureCtx.cloneCurrentTournament();
+    await Promise.resolve();
+    failureCtx._lifecycleGeneration += 1;
+    failureDeferred.reject(new Error('clone failed'));
+    await failureTask;
+
+    assert.deepEqual(effects, []);
+  } finally {
+    successDeferred.resolve();
+    failureDeferred.resolve();
+    actionGuard.clear('lobby:cloneTournament:t_clone_success');
+    actionGuard.clear('lobby:cloneTournament:t_clone_failure');
+    global.wx = originalWx;
+    cloneTournamentCore.cloneTournament = originalCloneTournament;
+    nav.goLobby = originalGoLobby;
   }
 });

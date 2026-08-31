@@ -10,16 +10,22 @@ function buildLockId(tournamentId, roundIndex, matchIndex) {
   return `${String(tournamentId || '').trim()}_${Number(roundIndex)}_${Number(matchIndex)}`;
 }
 
-function buildResponse({ ok, state, ownerId = '', ownerName = '', expireAt = 0, remainingMs = 0 }) {
-  return { ok, state, ownerId, ownerName, expireAt, remainingMs };
+function buildResponse({ ok, state, ownerId = '', ownerName = '', expireAt = 0, remainingMs = 0, lockSessionId = '' }) {
+  const response = { ok, state, ownerId, ownerName, expireAt, remainingMs };
+  const sessionId = String(lockSessionId || '').trim();
+  if (sessionId) response.lockSessionId = sessionId;
+  return response;
 }
 
-function buildWritableLockDoc(ownerId, ownerName, expireAt) {
-  return {
+function buildWritableLockDoc(ownerId, ownerName, expireAt, lockSessionId = '') {
+  const lockDoc = {
     ownerId: String(ownerId || '').trim(),
     ownerName: String(ownerName || '').trim(),
     expireAt: Number(expireAt) || 0
   };
+  const sessionId = String(lockSessionId || '').trim();
+  if (sessionId) lockDoc.lockSessionId = sessionId;
+  return lockDoc;
 }
 
 function resolveLockAction(input = {}) {
@@ -50,6 +56,12 @@ function resolveLockAction(input = {}) {
   const sameOwner = !!(lockDoc && String(lockDoc.ownerId || '').trim() === openid);
   const lockOwnerId = String(lockDoc && lockDoc.ownerId || '').trim();
   const lockOwnerName = resolveOwnerName(lockOwnerId, lockDoc && lockDoc.ownerName);
+  const lockSessionId = String(lockDoc && lockDoc.lockSessionId || '').trim();
+  const requestedLockSessionId = String(input.lockSessionId || '').trim();
+  const sessionMismatch = sameOwner
+    && !!lockSessionId
+    && !!requestedLockSessionId
+    && lockSessionId !== requestedLockSessionId;
 
   if (action === 'status') {
     if (!lockDoc || expired) {
@@ -63,7 +75,8 @@ function resolveLockAction(input = {}) {
           ownerId: openid,
           ownerName: resolveOwnerName(openid, lockDoc.ownerName),
           expireAt,
-          remainingMs: Math.max(0, expireAt - nowTs)
+          remainingMs: Math.max(0, expireAt - nowTs),
+          lockSessionId
         })
       };
     }
@@ -95,6 +108,7 @@ function resolveLockAction(input = {}) {
 
     const nextExpireAt = nowTs + LOCK_TTL_MS;
     const ownerName = resolveOwnerName(openid, input.ownerName);
+    const nextLockSessionId = requestedLockSessionId || (sameOwner ? lockSessionId : '');
     return {
       response: buildResponse({
         ok: true,
@@ -102,9 +116,10 @@ function resolveLockAction(input = {}) {
         ownerId: openid,
         ownerName,
         expireAt: nextExpireAt,
-        remainingMs: LOCK_TTL_MS
+        remainingMs: LOCK_TTL_MS,
+        lockSessionId: nextLockSessionId
       }),
-      nextLockDoc: buildWritableLockDoc(openid, ownerName, nextExpireAt)
+      nextLockDoc: buildWritableLockDoc(openid, ownerName, nextExpireAt, nextLockSessionId)
     };
   }
 
@@ -133,10 +148,23 @@ function resolveLockAction(input = {}) {
         })
       };
     }
+    if (sessionMismatch && !(force && admin)) {
+      return {
+        response: buildResponse({
+          ok: false,
+          state: 'expired',
+          ownerId: lockOwnerId,
+          ownerName: lockOwnerName,
+          expireAt,
+          remainingMs: 0
+        })
+      };
+    }
 
     const ownerId = sameOwner ? lockOwnerId : openid;
     const ownerName = resolveOwnerName(ownerId, lockDoc && lockDoc.ownerName);
     const nextExpireAt = nowTs + LOCK_TTL_MS;
+    const nextLockSessionId = requestedLockSessionId || (sameOwner ? lockSessionId : '');
     return {
       response: buildResponse({
         ok: true,
@@ -144,9 +172,10 @@ function resolveLockAction(input = {}) {
         ownerId,
         ownerName,
         expireAt: nextExpireAt,
-        remainingMs: LOCK_TTL_MS
+        remainingMs: LOCK_TTL_MS,
+        lockSessionId: nextLockSessionId
       }),
-      nextLockDoc: buildWritableLockDoc(ownerId, ownerName, nextExpireAt)
+      nextLockDoc: buildWritableLockDoc(ownerId, ownerName, nextExpireAt, nextLockSessionId)
     };
   }
 
@@ -165,6 +194,9 @@ function resolveLockAction(input = {}) {
           remainingMs: Math.max(0, expireAt - nowTs)
         })
       };
+    }
+    if (sessionMismatch && !(force && admin)) {
+      return { response: buildResponse({ ok: true, state: 'released' }) };
     }
     return { response: buildResponse({ ok: true, state: 'released' }), removeLock: true };
   }

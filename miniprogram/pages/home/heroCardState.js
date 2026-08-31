@@ -1,4 +1,5 @@
 const flow = require('../../core/uxFlow');
+const draftStartReadiness = require('../../core/draftStartReadiness');
 
 function pickLatestByStatus(items, status) {
   return (Array.isArray(items) ? items : [])
@@ -23,8 +24,7 @@ function buildRawContext(rawDoc, openid) {
   const myJoined = !!openid && players.some((p) => p && String(p.id || '') === String(openid));
   const canEditScore = isAdmin || myJoined;
   const hasPending = flow.hasPendingMatch(rawDoc.rounds);
-  const checkPlayersOk = players.length >= 4;
-  const checkSettingsOk = !!rawDoc.settingsConfigured;
+  const readiness = draftStartReadiness.buildDraftStartReadiness(rawDoc);
 
   let pendingCount = 0;
   let totalCount = 0;
@@ -52,7 +52,9 @@ function buildRawContext(rawDoc, openid) {
 
   return {
     isAdmin, myJoined, canEditScore, hasPending,
-    checkPlayersOk, checkSettingsOk,
+    checkPlayersOk: readiness.checkPlayersOk,
+    checkSettingsOk: readiness.checkSettingsOk,
+    playersChecklistHint: readiness.playersChecklistHint,
     pendingCount, totalCount, finishedCount,
     firstPendingRound, firstPendingMatch
   };
@@ -130,7 +132,7 @@ function buildHomeHeroCardState(items, rawDocsMap, openid) {
           label: '最近草稿',
           name: draft.name || '未命名赛事',
           meta: buildMetaText(draft, draft.modeLabel),
-          detail: '先邀请至少 4 人，再设置比赛参数',
+          detail: ctx.playersChecklistHint,
           progress: -1,
           actionText: '去比赛大厅',
           actionTarget: 'lobby',

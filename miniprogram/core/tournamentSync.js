@@ -13,10 +13,8 @@ function classifyFetchError(err) {
     return { errorType: 'network', errorMessage: message };
   }
   if (
-    low.includes('not found') ||
-    low.includes('resource not found') ||
-    low.includes('does not exist') ||
-    low.includes('document does not exist')
+    low.includes('document.get:fail') &&
+    (low.includes('document does not exist') || low.includes('requested document does not exist'))
   ) {
     return { errorType: 'not_found', errorMessage: message };
   }
@@ -28,9 +26,14 @@ function persistTournamentDoc(doc) {
   const tournamentId = String((doc._id || doc.id) || '').trim();
   if (!tournamentId) return;
   const cachedDoc = storage.getLocalTournamentCache(tournamentId);
-  if (!tournamentVersion.shouldAcceptTournamentDoc(cachedDoc, doc)) return;
+  if (!tournamentVersion.shouldApplyTournamentDoc(cachedDoc, doc)) return;
   storage.setLocalTournamentCache(tournamentId, doc);
   storage.upsertLocalCompletedTournamentSnapshot(doc);
+}
+
+function clearMissingTournamentCache(tournamentId) {
+  storage.removeLocalTournamentCache(tournamentId);
+  storage.removeLocalCompletedTournamentSnapshot(tournamentId);
 }
 
 function shouldAllowCachedFallback(errorType) {
@@ -54,6 +57,9 @@ function startWatch(ctx, tournamentId, onDoc, onError, options = {}) {
     persistTournamentDoc(doc);
     if (typeof onDoc === 'function') onDoc(doc, { ...(meta || {}), tournamentId: String(tournamentId || '').trim() });
   }, (err) => {
+    if (String((err && err.__watchType) || '').trim() === 'not_found') {
+      clearMissingTournamentCache(tournamentId);
+    }
     if (typeof onError === 'function') onError(err, { tournamentId: String(tournamentId || '').trim() });
   }, { initialDoc: options.initialDoc || null });
 }
@@ -77,6 +83,7 @@ async function fetchTournament(tournamentId, onDoc) {
     if (doc) {
       return { ok: true, doc, source: 'remote' };
     }
+    clearMissingTournamentCache(tid);
     return {
       ok: false,
       errorType: 'not_found',
@@ -86,6 +93,7 @@ async function fetchTournament(tournamentId, onDoc) {
   } catch (e) {
     console.error('fetchTournament failed', e);
     const parsed = classifyFetchError(e);
+    if (parsed.errorType === 'not_found') clearMissingTournamentCache(tid);
     const cacheInfo = shouldAllowCachedFallback(parsed.errorType)
       ? storage.getLocalTournamentCacheInfo(tid)
       : { doc: null, cachedAt: 0 };

@@ -145,7 +145,7 @@ function decorateRounds(t, options = {}) {
         focusBadgeText: '',
         isFirstPending: false,
         filterStage: 'pending',
-        scorerText: (finished && scorerName) ? `本场裁判：${scorerName}` : '',
+        scorerText: (finished && scorerName) ? `录分：${scorerName}` : '',
         playerIds: Array.from(new Set([].concat(leftTeam.playerIds, rightTeam.playerIds))),
         ...buildScoreUi(score, finished)
       };
@@ -370,6 +370,7 @@ Page({
   ...scheduleSyncController,
 
   onLoad(options) {
+    this._initialRoundFocusHandled = false;
     const tid = String((options && options.tournamentId) || '').trim();
     this.openid = (getApp().globalData.openid || storage.get('openid', ''));
     this.ensureAvatarRuntime();
@@ -509,9 +510,10 @@ Page({
   },
 
   scheduleCurrentRoundFocus(firstPending, visibleRoundsUi) {
+    if (this._initialRoundFocusHandled) return;
+    this._initialRoundFocusHandled = true;
     const roundIndex = firstPending ? Number(firstPending.roundIndex) : -1;
     if (!Number.isFinite(roundIndex) || roundIndex < 0) {
-      this._lastAutoFocusedRoundIndex = -1;
       pageTimers.clearNamedTimer(this, CURRENT_ROUND_FOCUS_TIMER);
       return;
     }
@@ -519,9 +521,7 @@ Page({
       return !!(round && round.isCurrentRound) && Number(round.roundIndex) === roundIndex;
     });
     if (!hasVisibleCurrentRound) return;
-    if (Number(this._lastAutoFocusedRoundIndex) === roundIndex) return;
     if (typeof wx === 'undefined' || typeof wx.pageScrollTo !== 'function') return;
-    this._lastAutoFocusedRoundIndex = roundIndex;
     pageTimers.setNamedTimer(this, CURRENT_ROUND_FOCUS_TIMER, () => {
       const currentRound = Number(this.data.firstPendingRoundIndex);
       const stillVisible = (Array.isArray(this.data.roundsUi) ? this.data.roundsUi : []).some((round) => {

@@ -2,7 +2,10 @@
     <view class="sheet-handle" bindtap="closeJoinSheet"></view>
     <view class="section-head">
       <view class="section-title">{{showJoin ? '加入比赛' : '我的资料'}}</view>
-      <text class="count-pill">{{showJoin ? '草稿可加入' : '草稿可修改'}}</text>
+      <view class="row-right">
+        <text class="count-pill">{{showJoin ? '草稿可加入' : '草稿可修改'}}</text>
+        <button class="icon-btn join-sheet-close" aria-label="关闭加入比赛" bindtap="closeJoinSheet">×</button>
+      </view>
     </view>
     <view class="profile-col">
       <image class="avatar-img profile-avatar" src="{{showJoin ? joinAvatarDisplay : myAvatarDisplay}}" mode="aspectFill" data-avatar="{{showJoin ? joinAvatar : myAvatar}}" binderror="onProfileAvatarImageError"></image>

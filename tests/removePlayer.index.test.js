@@ -406,7 +406,59 @@ test('removePlayer surfaces optimistic-lock conflicts as structured retryable re
   assert.equal(result.state, 'conflict');
 });
 
-test('removePlayer treats retry after server-side success as deduped success', async () => {
+test('removePlayer keeps rejoined players when a completed clientRequestId is replayed', async () => {
+  let tournament = buildTournament({
+    players: [
+      { id: 'u_admin', name: '管理员' },
+      { playerId: 'p_remove', name: '待移除' },
+      { _id: 'p_keep', name: '保留成员' },
+      { id: 'p_other', name: '其他成员' }
+    ]
+  });
+  const requestLogs = new Map();
+  let updateCount = 0;
+
+  function collection(name) {
+    if (name === 'client_request_logs') {
+      return {
+        doc(id) {
+          return {
+            async get() {
+              if (!requestLogs.has(id)) throw new Error('document.get:fail document does not exist');
+              return { data: requestLogs.get(id) };
+            },
+            async set({ data }) {
+              requestLogs.set(id, data);
+            }
+          };
+        }
+      };
+    }
+    assert.equal(name, 'tournaments');
+    return {
+      doc() {
+        return {
+          async get() {
+            return { data: tournament };
+          }
+        };
+      },
+      where() {
+        return {
+          async update({ data }) {
+            updateCount += 1;
+            tournament = {
+              ...tournament,
+              ...data,
+              version: Number(tournament.version) + 1
+            };
+            return { stats: { updated: 1 } };
+          }
+        };
+      }
+    };
+  }
+
   const db = {
     command: {
       inc(value) {
@@ -416,51 +468,64 @@ test('removePlayer treats retry after server-side success as deduped success', a
     serverDate() {
       return { $serverDate: true };
     },
+    async createCollection() {},
     async runTransaction(handler) {
-      return handler({
-        collection() {
-          return {
-            doc() {
-              return {
-                async get() {
-                  return {
-                    data: buildTournament({
-                      refereeId: '',
-                      players: [
-                        { id: 'u_admin', name: '管理员' },
-                        { id: 'p_keep', name: '保留成员' },
-                        { id: 'p_other', name: '其他成员' }
-                      ],
-                      pairTeams: [{ id: 'team_keep', playerIds: ['p_keep', 'p_other'] }]
-                    })
-                  };
-                }
-              };
-            },
-            where() {
-              throw new Error('should not write when retry is deduped');
-            }
-          };
-        }
-      });
+      return handler({ collection });
     }
   };
   const { main } = loadMain(db);
 
-  const result = await main({
+  const first = await main({
+    tournamentId: 't_1',
+    playerId: 'p_remove',
+    clientRequestId: 'req_remove_1'
+  });
+  tournament = {
+    ...tournament,
+    players: tournament.players.concat({ _id: 'p_remove', name: '重新加入' }),
+    playerIds: tournament.playerIds.concat('p_remove'),
+    version: Number(tournament.version) + 1
+  };
+  const replay = await main({
     tournamentId: 't_1',
     playerId: 'p_remove',
     clientRequestId: 'req_remove_1'
   });
 
-  assert.equal(result.ok, true);
-  assert.equal(result.code, 'PLAYER_REMOVED_DEDUPED');
-  assert.equal(result.state, 'deduped');
-  assert.equal(result.deduped, true);
-  assert.equal(result.playerId, 'p_remove');
-  assert.deepEqual(result.data, {
+  assert.equal(first.code, 'PLAYER_REMOVED');
+  assert.equal(requestLogs.size, 1);
+  assert.equal(replay.ok, true);
+  assert.equal(replay.code, 'PLAYER_REMOVED_DEDUPED');
+  assert.equal(replay.state, 'deduped');
+  assert.equal(replay.deduped, true);
+  assert.equal(updateCount, 1);
+  assert.equal(tournament.players.some((player) => player._id === 'p_remove'), true);
+  assert.deepEqual(replay.data, {
     clientRequestId: 'req_remove_1',
     deduped: true,
     playerId: 'p_remove'
   });
+
+  const absentFirst = await main({
+    tournamentId: 't_1',
+    playerId: 'p_late',
+    clientRequestId: 'req_remove_absent'
+  });
+  tournament = {
+    ...tournament,
+    players: tournament.players.concat({ playerId: 'p_late', name: '稍后加入' }),
+    playerIds: tournament.playerIds.concat('p_late'),
+    version: Number(tournament.version) + 1
+  };
+  const absentReplay = await main({
+    tournamentId: 't_1',
+    playerId: 'p_late',
+    clientRequestId: 'req_remove_absent'
+  });
+
+  assert.equal(absentFirst.code, 'PLAYER_REMOVED_DEDUPED');
+  assert.equal(requestLogs.size, 2);
+  assert.equal(absentReplay.code, 'PLAYER_REMOVED_DEDUPED');
+  assert.equal(updateCount, 1);
+  assert.equal(tournament.players.some((player) => player.playerId === 'p_late'), true);
 });

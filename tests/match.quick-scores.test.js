@@ -187,15 +187,22 @@ test('match view model syncs fixed rotation tournament name with preset label', 
 test('match page renders dynamic quick score options instead of hardcoded score chips', () => {
   const wxml = readPage('miniprogram/pages/match/index.wxml');
 
-  assert.match(wxml, /wx:for=\"\{\{quickScoreOptions\}\}\"/);
-  assert.match(wxml, /data-a=\"\{\{item\.a\}\}\"/);
-  assert.match(wxml, /data-b=\"\{\{item\.b\}\}\"/);
-  assert.match(wxml, /class=\"score-edit-status\" wx:if=\"\{\{canEdit\}\}\"/);
-  assert.match(wxml, /bindtap=\"onClearScores\"/);
-  assert.match(wxml, /bindtap=\"onSwapScores\"/);
-  assert.match(wxml, /bindtap=\"onUndoStep\"/);
-  assert.doesNotMatch(wxml, /data-a=\"21\" data-b=\"19\"/);
-  assert.doesNotMatch(wxml, /class=\"lock-panel\"/);
+  assert.match(wxml, /wx:for="\{\{quickScoreOptions\}\}"/);
+  assert.match(wxml, /data-a="\{\{item\.a\}\}"/);
+  assert.match(wxml, /data-b="\{\{item\.b\}\}"/);
+  assert.match(wxml, /class="bottom-tray score-submit-tray"/);
+  assert.match(wxml, /正在提交比分/);
+  assert.match(wxml, /本机草稿已保留/);
+  assert.match(wxml, /bindtap="onStartScoring"/);
+  assert.match(wxml, /bindtap="submit"/);
+  assert.match(wxml, /lockState==='idle' && !canRetryAction/);
+  assert.match(wxml, /wx:elif="\{\{canEdit && !canRetryAction\}\}" class="btn btn-primary" bindtap="submit"/);
+  assert.match(wxml, /class="btn btn-primary score-retry-btn" wx:if="\{\{canRetryAction\}\}" bindtap="retryLastAction">重试提交/);
+  assert.match(wxml, /bindtap="onClearScores"/);
+  assert.match(wxml, /bindtap="onSwapScores"/);
+  assert.match(wxml, /bindtap="onUndoStep"/);
+  assert.doesNotMatch(wxml, /data-a="21" data-b="19"/);
+  assert.doesNotMatch(wxml, /class="lock-panel"/);
   assert.doesNotMatch(wxml, /请先点击/);
   assert.doesNotMatch(wxml, /刷新状态/);
   assert.doesNotMatch(wxml, /接管录分/);
@@ -207,12 +214,15 @@ test('match score edit tools stay contained within the score panel', () => {
   const quickChipRule = getCssRuleBody(wxss, '.quick-score-chip');
   const toolsRule = getCssRuleBody(wxss, '.score-tools');
   const toolRule = getCssRuleBody(wxss, '.score-tool');
+  const retryRule = getCssRuleBody(wxss, '.bottom-tray .score-retry-btn');
 
   assert.match(toolbarRule, /display:\s*flex/);
   assert.match(toolbarRule, /flex-direction:\s*column/);
   assert.match(toolbarRule, /align-items:\s*stretch/);
   assert.match(toolbarRule, /gap:\s*var\(--space-tight\)/);
   assert.match(quickChipRule, /box-sizing:\s*border-box/);
+  assert.match(quickChipRule, /min-width:\s*44px/);
+  assert.match(quickChipRule, /min-height:\s*44px/);
   assert.match(quickChipRule, /overflow:\s*hidden/);
   assert.match(toolsRule, /width:\s*100%/);
   assert.match(toolsRule, /display:\s*flex/);
@@ -220,6 +230,7 @@ test('match score edit tools stay contained within the score panel', () => {
   assert.match(toolRule, /flex:\s*1/);
   assert.match(toolRule, /width:\s*0/);
   assert.match(toolRule, /min-width:\s*0/);
+  assert.match(retryRule, /margin-top:\s*var\(--space-tight\)\s*!important/);
   assert.match(toolRule, /box-sizing:\s*border-box/);
   assert.match(toolRule, /height:\s*56rpx/);
   assert.match(toolRule, /font-size:\s*22rpx/);
@@ -245,6 +256,7 @@ test('onQuickScore still overwrites scores and records undo plus draft from dyna
   assert.equal(ctx.data.displayScoreA, '15');
   assert.equal(ctx.data.displayScoreB, '13');
   assert.equal(ctx.data.canUndo, true);
+  assert.equal(ctx.data.hasScoreDraft, true);
   assert.deepEqual(ctx._undoStack, [{ a: 3, b: 6 }]);
   assert.deepEqual(ctx._savedDraft, { scoreA: 15, scoreB: 13 });
 

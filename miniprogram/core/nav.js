@@ -193,7 +193,7 @@ function goHome() {
   switchTabUrl('/pages/home/index');
 }
 
-function navigateToUrl(url) {
+function navigateToUrl(url, callbacks = {}) {
   const target = trimText(url);
   if (!target) return;
   if (getTabBarTarget(target)) {
@@ -201,7 +201,7 @@ function navigateToUrl(url) {
     return;
   }
   if (typeof wx.navigateTo !== 'function') return;
-  wx.navigateTo({ url: target });
+  wx.navigateTo({ url: target, success: callbacks.success, fail: callbacks.fail });
 }
 
 function switchTabUrl(url) {
@@ -247,8 +247,8 @@ function switchTabUrl(url) {
   navigateToUrl(target);
 }
 
-function goLobby(tournamentId, query = {}) {
-  navigateToUrl(buildTournamentUrl('/pages/lobby/index', tournamentId, query));
+function goLobby(tournamentId, query = {}, callbacks = {}) {
+  navigateToUrl(buildTournamentUrl('/pages/lobby/index', tournamentId, query), callbacks);
 }
 
 function goSchedule(tournamentId, query = {}) {

@@ -79,7 +79,16 @@ test('managePairTeams creates a team and persists it with optimistic locking', a
           assert.equal(id, 't_1');
           return {
             async get() {
-              return { data: buildTournament() };
+              return {
+                data: buildTournament({
+                  players: [
+                    { playerId: 'u_1', name: 'A' },
+                    { _id: 'u_2', name: 'B' },
+                    { id: 'u_3', name: 'C' },
+                    { id: 'u_4', name: 'D' }
+                  ]
+                })
+              };
             }
           };
         },

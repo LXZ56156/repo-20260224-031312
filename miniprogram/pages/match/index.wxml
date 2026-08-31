@@ -6,7 +6,7 @@
 <!-- ==================== 正常态 ==================== -->
 <view class="container safe-bottom match-page" wx:if="{{match}}">
 
-  <!-- Sync Banner — 仅在离线/缓存/降级等异常态展示，健康态刷新静默处理 -->
+  <!-- Sync Banner — 在线缓存与健康刷新保持静默，只展示需用户了解的异常态 -->
   <view class="sync-banner sync-{{syncStatusTone}}" hidden="{{!syncStatusVisible}}">
     <view class="sync-banner-main">
       <view class="sync-banner-text">{{syncStatusText}}</view>
@@ -47,18 +47,6 @@
     <view class="row row-top">
       <view class="section-title">比分录入</view>
       <text class="score-badge">{{pointsPerGame}} 分制</text>
-    </view>
-
-    <view class="score-entry-row" wx:if="{{userCanScore && !canEdit && canUseScoreLock && lockState==='idle'}}">
-      <button class="btn btn-primary btn-sm score-entry-btn" bindtap="onStartScoring" loading="{{lockBusy}}" disabled="{{lockBusy}}">{{lockActionText}}</button>
-    </view>
-
-    <view class="score-edit-status" wx:if="{{canEdit}}">
-      <view class="score-edit-status-main">
-        <text class="score-edit-dot"></text>
-        <text class="score-edit-text">{{lockHintText}}</text>
-      </view>
-      <text class="score-edit-meta">编辑中</text>
     </view>
 
     <!-- 快捷比分工具栏（编辑态） -->
@@ -113,15 +101,17 @@
     </view>
   </view>
 
-  <!-- 底部提交栏 — bottom-tray -->
-  <view class="bottom-tray" wx:if="{{canEdit}}">
-    <button class="btn btn-primary" bindtap="submit" loading="{{submitBusy}}" disabled="{{submitBusy}}">{{batchMode ? '提交并录下一场' : '提交比分'}}</button>
-  </view>
-
-  <!-- 重试提交 -->
-  <view class="retry-box panel-soft" wx:if="{{canRetryAction}}">
-    <view class="muted small">{{lastFailedActionText}}</view>
-    <button class="btn btn-subtle btn-sm" bindtap="retryLastAction">重试提交</button>
+  <!-- 锁、草稿、提交统一放在底部操作区 -->
+  <view class="bottom-tray score-submit-tray" wx:if="{{(userCanScore && canUseScoreLock) || canRetryAction}}">
+    <view class="score-submit-status">
+      <view class="score-submit-status-main" wx:if="{{userCanScore && canUseScoreLock}}">{{submitBusy ? '正在提交比分…' : lockHintText}}</view>
+      <view class="muted small" wx:if="{{hasScoreDraft}}">本机草稿已保留</view>
+      <view class="muted small" wx:elif="{{canEdit}}">修改后自动保留草稿</view>
+      <view class="muted small" wx:if="{{canRetryAction}}">{{lastFailedActionText}}</view>
+    </view>
+    <button wx:if="{{userCanScore && !canEdit && canUseScoreLock && lockState==='idle' && !canRetryAction}}" class="btn btn-primary" bindtap="onStartScoring" loading="{{lockBusy}}" disabled="{{lockBusy}}">{{lockActionText}}</button>
+    <button wx:elif="{{canEdit && !canRetryAction}}" class="btn btn-primary" bindtap="submit" loading="{{submitBusy}}" disabled="{{submitBusy}}">{{batchMode ? '提交并录下一场' : '提交比分'}}</button>
+    <button class="btn btn-primary score-retry-btn" wx:if="{{canRetryAction}}" bindtap="retryLastAction">重试提交</button>
   </view>
 
 </view>

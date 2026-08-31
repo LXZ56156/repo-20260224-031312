@@ -24,9 +24,19 @@ function createScoreLockManager(ctx, deps = {}) {
     if (actionGuard.isBusy(actionKey)) return;
     return actionGuard.runWithPageBusy(ctx, 'lockBusy', actionKey, async () => {
       try {
-        const res = await cloudApi.call('scoreLock', lockController.buildScoreLockPayload('acquire', force));
+        const payload = lockController.buildScoreLockPayload('acquire', force);
+        const res = await cloudApi.call('scoreLock', payload);
+        if (!lockController.isCurrentLockSession(payload.lockSessionId)) {
+          const resultSessionId = String((res && (res.lockSessionId || (res.data && res.data.lockSessionId))) || '').trim();
+          const resultState = String((res && res.state) || '').trim().toLowerCase();
+          if (res && res.ok === true && resultState === 'acquired' && resultSessionId === payload.lockSessionId) {
+            await cloudApi.call('scoreLock', { ...payload, action: 'release' }, { retry: false }).catch(() => {});
+          }
+          return;
+        }
         lockController.applyScoreLockResult(res);
       } catch (err) {
+        if (typeof ctx.isPageActive === 'function' && !ctx.isPageActive()) return;
         writeErrorUi.presentWriteError({ err, fallbackMessage: force ? '接管失败' : '开始录分失败' });
       }
     });

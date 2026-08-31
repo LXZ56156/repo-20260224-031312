@@ -1,3 +1,5 @@
+const playerUtils = require('./lib/player');
+
 const CODES = {
   INVALID_ACTION: 'INVALID_ACTION',
   TEAM_NOT_FOUND: 'TEAM_NOT_FOUND',
@@ -38,7 +40,7 @@ function buildValidPlayerIds(players) {
   const out = [];
   const list = Array.isArray(players) ? players : [];
   for (const item of list) {
-    const id = String(item && item.id || '').trim();
+    const id = playerUtils.extractPlayerId(item);
     if (!id || out.includes(id)) continue;
     out.push(id);
   }

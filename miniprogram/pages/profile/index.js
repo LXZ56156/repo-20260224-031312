@@ -36,8 +36,18 @@ Page({
     this.setData({ returnUrl });
     const local = profileCore.readLocalProfile() || {};
     this.applyProfile(local);
+    const initialForm = {
+      nickname: this.data.nickname,
+      gender: this.data.gender,
+      avatar: this.data.avatar,
+      pendingAvatarTempPath: this.data.pendingAvatarTempPath
+    };
     const synced = await profileCore.syncCloudProfile();
-    if (synced) this.applyProfile(synced);
+    const formUnchanged = this.data.nickname === initialForm.nickname
+      && this.data.gender === initialForm.gender
+      && this.data.avatar === initialForm.avatar
+      && this.data.pendingAvatarTempPath === initialForm.pendingAvatarTempPath;
+    if (synced && this._pageActive !== false && formUnchanged) this.applyProfile(synced);
   },
 
   onShow() {
@@ -65,6 +75,14 @@ Page({
       this._postSaveNavTimer = null;
       if (this._pageActive === false) return;
       if (returnUrl) {
+        const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : [];
+        const previousRoute = String((pages[pages.length - 2] && pages[pages.length - 2].route) || '')
+          .replace(/^\/+/, '');
+        const targetRoute = String(returnUrl).split('?')[0].split('#')[0].replace(/^\/+/, '');
+        if (previousRoute && previousRoute === targetRoute) {
+          wx.navigateBack({ delta: 1 });
+          return;
+        }
         nav.redirectOrNavigate(returnUrl);
         return;
       }
@@ -332,9 +350,6 @@ Page({
     if (actionGuard.isBusy(actionKey)) return;
 
     return actionGuard.runWithCriticalPageBusy(this, 'saving', actionKey, async () => {
-      const validated = this.validateProfile();
-      if (!validated.ok) return;
-
       if (this.data.pendingAvatarTempPath) {
         const ok = await this.uploadPendingAvatar({ showLoading: true, silentToast: true });
         if (!ok) {
@@ -342,6 +357,9 @@ Page({
           return;
         }
       }
+
+      const validated = this.validateProfile();
+      if (!validated.ok) return;
 
       const nickname = validated.nickname;
       const gender = validated.gender;

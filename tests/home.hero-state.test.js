@@ -99,10 +99,11 @@ test('home hero with rawDocsMap: draft + admin + ready => start action', () => {
     draft_1: {
       _id: 'draft_1',
       creatorId: 'user_1',
+      mode: 'squad_doubles',
       settingsConfigured: true,
       players: [
-        { id: 'p1', name: 'A' }, { id: 'p2', name: 'B' },
-        { id: 'p3', name: 'C' }, { id: 'p4', name: 'D' }
+        { id: 'p1', name: 'A1', squad: 'A' }, { id: 'p2', name: 'A2', squad: 'A' },
+        { id: 'p3', name: 'B1', squad: 'B' }, { id: 'p4', name: 'B2', squad: 'B' }
       ],
       rounds: []
     }
@@ -118,13 +119,17 @@ test('home hero with rawDocsMap: draft + admin + ready => start action', () => {
   assert.ok(state.detail.includes('就绪'));
 });
 
-test('home hero with rawDocsMap: draft + admin + no settings but not enough players => lobby action', () => {
+test('home hero with rawDocsMap: unassigned squad roster => lobby action', () => {
   const rawDocsMap = {
     draft_1: {
       _id: 'draft_1',
       creatorId: 'user_1',
-      settingsConfigured: false,
-      players: [{ id: 'p1', name: 'A' }],
+      mode: 'squad_doubles',
+      settingsConfigured: true,
+      players: [
+        { id: 'p1', name: 'A1', squad: 'A' }, { id: 'p2', name: 'A2', squad: 'A' },
+        { id: 'p3', name: 'B1', squad: 'B' }, { id: 'p4', name: '待分队', squad: '' }
+      ],
       rounds: []
     }
   };
@@ -136,4 +141,5 @@ test('home hero with rawDocsMap: draft + admin + no settings but not enough play
 
   assert.equal(state.actionTarget, 'lobby');
   assert.ok(state.actionText.includes('大厅'));
+  assert.equal(state.detail, 'A队 2 / B队 1（至少各2人）');
 });

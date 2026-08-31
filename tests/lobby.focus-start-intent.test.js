@@ -128,3 +128,112 @@ test('lobby page consumes focus_start intent and runs the focus action after tou
     delete require.cache[lobbyPagePath];
   }
 });
+
+test('lobby drops a pending start intent when the page hides before refresh finishes', () => {
+  const app = {
+    globalData: {
+      openid: 'u_admin',
+      lobbyIntentTournamentId: 't_focus',
+      lobbyIntentAction: 'start',
+      needRefreshTournament: '',
+      needRefreshTournamentQueue: []
+    }
+  };
+  const restore = installGlobals(app);
+  const timers = [];
+  global.setTimeout = (fn) => {
+    timers.push(fn);
+    return timers.length;
+  };
+
+  try {
+    const definition = loadPageDefinition(lobbyPagePath);
+    const actions = [];
+    const ctx = createPageContext(definition, {
+      data: { ...definition.data, tournamentId: 't_focus' },
+      fetchTournament() {},
+      startWatch(tid) {
+        this._watchTournamentId = tid;
+        this.watcher = { close() {} };
+      },
+      resolveDisplayPlayersAvatars() {},
+      runDevelopmentAvatarDiagnostics() {},
+      ensureDynamicShareReady() {},
+      maybeShowGrowthOnboardingGuide() {},
+      runFlowAction(action) {
+        actions.push(action);
+      }
+    });
+
+    ctx.onShow();
+    ctx.onHide();
+    ctx.setTournament({
+      _id: 't_focus',
+      name: '赛前聚焦',
+      status: 'draft',
+      creatorId: 'u_admin',
+      mode: 'multi_rotate',
+      settingsConfigured: true,
+      players: [
+        { id: 'u_admin', name: '组织者', gender: 'male' },
+        { id: 'u_1', name: '球友1', gender: 'male' },
+        { id: 'u_2', name: '球友2', gender: 'female' },
+        { id: 'u_3', name: '球友3', gender: 'female' }
+      ],
+      rankings: [],
+      rounds: [],
+      totalMatches: 6,
+      courts: 2
+    });
+    timers.forEach((fn) => fn());
+
+    assert.deepEqual(actions, []);
+  } finally {
+    restore();
+    delete require.cache[lobbyPagePath];
+  }
+});
+
+test('lobby runs an intent when the current tournament is already loaded', () => {
+  const app = {
+    globalData: {
+      openid: 'u_admin',
+      lobbyIntentTournamentId: 't_focus',
+      lobbyIntentAction: 'start',
+      needRefreshTournament: '',
+      needRefreshTournamentQueue: []
+    }
+  };
+  const restore = installGlobals(app);
+  const timers = [];
+  global.setTimeout = (fn) => {
+    timers.push(fn);
+    return timers.length;
+  };
+
+  try {
+    const definition = loadPageDefinition(lobbyPagePath);
+    const actions = [];
+    const ctx = createPageContext(definition, {
+      data: {
+        ...definition.data,
+        tournamentId: 't_focus',
+        tournament: { _id: 't_focus', version: 3, status: 'draft' }
+      },
+      fetchTournament() {},
+      startWatch() {},
+      runFlowAction(action) {
+        actions.push(action);
+      }
+    });
+
+    ctx.onShow();
+    timers.forEach((fn) => fn());
+
+    assert.deepEqual(actions, ['start']);
+    assert.equal(ctx._pendingIntentAction, '');
+  } finally {
+    restore();
+    delete require.cache[lobbyPagePath];
+  }
+});

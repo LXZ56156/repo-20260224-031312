@@ -72,6 +72,7 @@ function buildTournament() {
             status: 'finished',
             scoreA: 21,
             scoreB: 18,
+            scorerName: '球友戊',
             teamA: [{ id: 'u_5', name: '戊五' }, { id: 'u_6', name: '己六' }],
             teamB: [{ id: 'u_7', name: '庚七' }, { id: 'u_8', name: '辛八' }]
           }
@@ -133,6 +134,7 @@ test('schedule page decorates match cards with avatar groups and inline member n
     assert.equal(match.leftTeam.avatarItems[0].avatarDisplay, 'https://temp/avatar/u_1.png');
     assert.equal(match.leftTeam.text, '甲一 / 乙二');
     assert.equal(match.filterStage, 'current');
+    assert.equal(ctx.data.roundsUi[0].matchesUi[1].scorerText, '录分：球友戊');
   } finally {
     delete require.cache[schedulePagePath];
   }
@@ -173,7 +175,7 @@ test('schedule page restores initial fallback when avatar image fails to load', 
   }
 });
 
-test('schedule page auto-scrolls to the current pending round once by default', () => {
+test('schedule page only auto-scrolls to the pending round on the initial render', () => {
   const definition = loadSchedulePageDefinition();
   const ctx = createSchedulePageContext(definition);
   const originalWx = global.wx;
@@ -193,16 +195,17 @@ test('schedule page auto-scrolls to the current pending round once by default', 
   global.clearTimeout = () => {};
 
   try {
-    ctx.applyTournament(buildTournamentWithSecondRoundPending());
+    ctx.applyTournament(buildTournament());
 
-    assert.equal(ctx.data.firstPendingRoundIndex, 1);
-    assert.equal(ctx.data.roundsUi[1].isCurrentRound, true);
+    assert.equal(ctx.data.firstPendingRoundIndex, 0);
+    assert.equal(ctx.data.roundsUi[0].isCurrentRound, true);
     assert.deepEqual(scrollCalls, [{
       selector: '.round-card-current',
       duration: 220
     }]);
 
     ctx.applyTournament(buildTournamentWithSecondRoundPending());
+    assert.equal(ctx.data.firstPendingRoundIndex, 1);
     assert.equal(scrollCalls.length, 1);
   } finally {
     global.wx = originalWx;

@@ -82,7 +82,8 @@ function createDbHarness(lockGetImpl, options = {}) {
     diagnosticUpdate: 0,
     remove: 0,
     updatePayloads: [],
-    diagnosticUpdatePayloads: []
+    diagnosticUpdatePayloads: [],
+    removeQueries: []
   };
   const db = {
     command: {
@@ -104,7 +105,7 @@ function createDbHarness(lockGetImpl, options = {}) {
             return {
             async get() {
               calls.tournamentGet += 1;
-              return { data: tournamentFactory() };
+              return { data: tournamentFactory(calls.tournamentGet) };
             },
             async update(payload) {
               calls.diagnosticUpdate += 1;
@@ -112,10 +113,9 @@ function createDbHarness(lockGetImpl, options = {}) {
               return { stats: { updated: 1 } };
             }
           };
-        },
+          },
           where(query) {
-            const expectedVersion = Number(tournamentFactory().version) || 1;
-            assert.deepEqual(query, { _id: 't_1', version: expectedVersion });
+            assert.deepEqual(query, { _id: 't_1', version: 1 });
             return {
               async update(payload) {
                 calls.update += 1;
@@ -134,9 +134,17 @@ function createDbHarness(lockGetImpl, options = {}) {
               async get() {
                 calls.lockGet += 1;
                 return lockGetImpl(id);
-              },
+              }
+            };
+          },
+          where(query) {
+            calls.removeQueries.push(query);
+            return {
               async remove() {
                 calls.remove += 1;
+                if (typeof options.removeImpl === 'function') {
+                  return options.removeImpl(query);
+                }
               }
             };
           }
@@ -204,8 +212,91 @@ test('submitScore returns VERSION_CONFLICT when optimistic update reports update
     traceId: '',
     data: {}
   });
-  assert.equal(calls.tournamentGet, 1);
+  assert.equal(calls.tournamentGet, 2);
   assert.equal(calls.lockGet, 1);
+  assert.equal(calls.update, 1);
+  assert.equal(calls.remove, 0);
+});
+
+test('submitScore returns deduped success when a concurrent retry already wrote the same score', async () => {
+  const { db, calls } = createDbHarness(async () => ({
+    data: {
+      ownerId: 'u_admin',
+      ownerName: '管理员',
+      expireAt: Date.now() + 60_000
+    }
+  }), {
+    updatedCount: 0,
+    tournamentFactory: (getCount) => {
+      const t = buildTournament();
+      if (getCount > 1) {
+        t.version = 2;
+        t.rounds[0].matches[0] = {
+          ...t.rounds[0].matches[0],
+          status: 'finished',
+          score: { teamA: 21, teamB: 19 },
+          scorerId: 'u_admin',
+          scorerName: '管理员'
+        };
+      }
+      return t;
+    }
+  });
+  const { main } = loadSubmitScoreMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    scoreA: 21,
+    scoreB: 19,
+    clientRequestId: 'req_concurrent_score'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.code, 'SCORE_SUBMIT_DEDUPED');
+  assert.equal(result.state, 'deduped');
+  assert.equal(result.clientRequestId, 'req_concurrent_score');
+  assert.equal(calls.tournamentGet, 2);
+  assert.equal(calls.lockGet, 1);
+  assert.equal(calls.update, 1);
+  assert.equal(calls.remove, 0);
+});
+
+test('submitScore returns structured not found when the tournament disappears before conflict reread', async () => {
+  const { db, calls } = createDbHarness(async () => ({
+    data: {
+      ownerId: 'u_admin',
+      ownerName: '管理员',
+      expireAt: Date.now() + 60_000
+    }
+  }), {
+    updatedCount: 0,
+    tournamentFactory: (getCount) => {
+      if (getCount > 1) throw new Error('document.get:fail document does not exist');
+      return buildTournament();
+    }
+  });
+  const { main } = loadSubmitScoreMain(db);
+
+  const result = await main({
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    scoreA: 21,
+    scoreB: 19,
+    __traceId: 'trace-submit-missing'
+  });
+
+  assert.deepEqual(result, {
+    ok: false,
+    code: 'TOURNAMENT_NOT_FOUND',
+    message: '赛事不存在',
+    state: 'not_found',
+    traceId: 'trace-submit-missing',
+    data: {}
+  });
+  assert.equal(calls.tournamentGet, 2);
   assert.equal(calls.update, 1);
   assert.equal(calls.remove, 0);
 });
@@ -292,11 +383,16 @@ test('submitScore treats same-score finished submit by another participant as de
 });
 
 test('submitScore lets participants overwrite a finished score when they hold the lock', async () => {
+  const expireAt = Date.now() + 60_000;
+  let markRemoveStarted;
+  let releaseRemove;
+  const removeStarted = new Promise((resolve) => { markRemoveStarted = resolve; });
+  const removeGate = new Promise((resolve) => { releaseRemove = resolve; });
   const { db, calls } = createDbHarness(async () => ({
     data: {
       ownerId: 'u_b',
       ownerName: '球友B',
-      expireAt: Date.now() + 60_000
+      expireAt
     }
   }), {
     tournamentFactory: () => {
@@ -309,17 +405,28 @@ test('submitScore lets participants overwrite a finished score when they hold th
         scorerName: '管理员'
       };
       return t;
+    },
+    async removeImpl() {
+      markRemoveStarted();
+      await removeGate;
     }
   });
   const { main } = loadSubmitScoreMain(db, { openid: 'u_b' });
 
-  const result = await main({
+  const submitPromise = main({
     tournamentId: 't_1',
     roundIndex: 0,
     matchIndex: 0,
     scoreA: 18,
     scoreB: 21
   });
+  await removeStarted;
+  let submitSettled = false;
+  submitPromise.then(() => { submitSettled = true; });
+  await Promise.resolve();
+  assert.equal(submitSettled, false);
+  releaseRemove();
+  const result = await submitPromise;
 
   assert.equal(result.ok, true);
   assert.equal(result.code, 'SCORE_SUBMITTED');
@@ -328,6 +435,11 @@ test('submitScore lets participants overwrite a finished score when they hold th
   assert.equal(calls.lockGet, 1);
   assert.equal(calls.update, 1);
   assert.equal(calls.remove, 1);
+  assert.deepEqual(calls.removeQueries, [{
+    _id: 't_1_0_0',
+    ownerId: 'u_b',
+    expireAt
+  }]);
   const writtenMatch = calls.updatePayloads[0].data.rounds[0].matches[0];
   assert.deepEqual(writtenMatch.score, { teamA: 18, teamB: 21 });
   assert.equal(writtenMatch.scorerId, 'u_b');

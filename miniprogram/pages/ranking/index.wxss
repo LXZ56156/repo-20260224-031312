@@ -34,8 +34,8 @@
   min-width: 0;
   max-width: 100%;
   white-space: nowrap;
-  line-height: 72rpx;
-  height: 72rpx;
+  line-height: 44px;
+  height: 44px;
   font-size: 26rpx;
 }
 
@@ -192,7 +192,7 @@
   box-sizing: border-box;
   min-width: 0;
   max-width: 100%;
-  min-height: 40rpx;
+  min-height: 44px;
   padding: 0 12rpx;
   border-radius: 999rpx;
   background: rgba(24, 179, 104, 0.10);

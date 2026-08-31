@@ -229,70 +229,6 @@ function diffLobbyPatch(current = {}, next = {}) {
   return patch;
 }
 
-function buildChecklistItems({ checkSettingsOk, checkPlayersOk, checkStartReady, playersChecklistHint }) {
-  return [
-    {
-      key: 'settings',
-      label: '参数',
-      title: '1. 修改比赛',
-      done: !!checkSettingsOk,
-      summary: checkSettingsOk ? '已保存' : (checkPlayersOk ? '待保存' : '满 4 人后可设置'),
-      actionText: checkSettingsOk ? '查看' : (checkPlayersOk ? '去修改' : '等待')
-    },
-    {
-      key: 'players',
-      label: '转发',
-      title: '2. 转发比赛',
-      done: !!checkPlayersOk,
-      summary: String(playersChecklistHint || '').trim() || '优先转发比赛，导入名单作备用',
-      actionText: checkPlayersOk ? '已就绪' : '待邀请'
-    },
-    {
-      key: 'start',
-      label: '开始比赛',
-      title: '3. 开始比赛',
-      done: !!checkStartReady,
-      summary: checkStartReady ? '可立即开赛' : '完成前两项后可开赛',
-      actionText: checkStartReady ? '见上方' : '去完成'
-    }
-  ];
-}
-
-function buildChecklistLayout(checklistItems, nextActionKey) {
-  const items = Array.isArray(checklistItems) ? checklistItems : [];
-  const featuredKeyMap = {
-    settings: 'settings',
-    share: 'players',
-    start: 'start'
-  };
-  const featuredKey = featuredKeyMap[String(nextActionKey || '').trim()] || '';
-  const featuredIndex = items.findIndex((item) => item && item.key === featuredKey);
-  const safeFeaturedIndex = featuredIndex >= 0 ? featuredIndex : 0;
-
-  const decoratedItems = items.map((item, index) => {
-    const base = item && typeof item === 'object' ? item : {};
-    let state = 'pending';
-    if (index === safeFeaturedIndex) state = 'active';
-    else if (base.done) state = 'done';
-
-    return {
-      ...base,
-      state,
-      badgeText: state === 'active' ? '当前步骤' : (state === 'done' ? '已完成' : ''),
-      cardClass: `prep-card-${state}`,
-      indicatorClass: state === 'active'
-        ? 'prep-indicator-active'
-        : (base.done ? 'prep-indicator-ok' : '')
-    };
-  });
-
-  return {
-    checklistItems: decoratedItems,
-    featuredChecklistItem: decoratedItems[safeFeaturedIndex] || null,
-    secondaryChecklistItems: decoratedItems.filter((_, index) => index !== safeFeaturedIndex)
-  };
-}
-
 function buildRoleCard(key, label, summary, actionKey, actionText, active) {
   return {
     key,
@@ -604,8 +540,6 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
     kpiReady = playersCount >= 4 && configuredTotalMatches >= 1 && courts >= 1;
   }
 
-  const aCount = readiness.aCount;
-  const bCount = readiness.bCount;
   const validPairTeamsCount = readiness.validPairTeamsCount;
   const checkPlayersOk = readiness.checkPlayersOk;
   const playersChecklistHint = readiness.playersChecklistHint;
@@ -630,10 +564,10 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
         primaryTaskKey = 'import_players';
         primaryTaskTitle = '导入名单';
         primaryTaskSummary = '至少需要 4 人才能组队开赛';
-      } else if (validPairTeamsCount < 2) {
+      } else if (!checkPlayersOk) {
         primaryTaskKey = 'build_pair_teams';
         primaryTaskTitle = validPairTeamsCount === 0 ? '开始组队' : '继续组队';
-        primaryTaskSummary = `需至少 2 支队伍（当前 ${validPairTeamsCount}）`;
+        primaryTaskSummary = playersChecklistHint;
       } else if (!checkSettingsOk) {
         primaryTaskKey = 'settings';
         primaryTaskTitle = '修改比赛';
@@ -656,10 +590,10 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
         primaryTaskKey = 'share';
         primaryTaskTitle = '转发比赛';
         primaryTaskSummary = '先邀请成员，满 4 人后再设置参数';
-      } else if (aCount < 2 || bCount < 2) {
+      } else if (!checkPlayersOk) {
         primaryTaskKey = 'assign_squads';
         primaryTaskTitle = '分配 A/B 队';
-        primaryTaskSummary = checkPlayersOk ? `A队 ${aCount} / B队 ${bCount}` : `A队 ${aCount} / B队 ${bCount}（至少各2人）`;
+        primaryTaskSummary = playersChecklistHint;
       } else if (!checkSettingsOk) {
         primaryTaskKey = 'settings';
         primaryTaskTitle = '修改比赛';
@@ -706,12 +640,6 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
   const quickChecklistPending = (checkPlayersOk ? 0 : 1) + (checkSettingsOk ? 0 : 1);
   const canEditScore = perm.canEditScore(t, openid);
   const hasPending = flow.hasPendingMatch(t.rounds);
-  const checklistItems = buildChecklistItems({
-    checkSettingsOk,
-    checkPlayersOk,
-    checkStartReady,
-    playersChecklistHint: players.length ? playersChecklistHint : '优先转发比赛，导入名单作备用'
-  });
   const roleView = buildRoleCards({
     status,
     isAdmin,
@@ -752,7 +680,6 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
     nextActionKey: activeRoleCard.actionKey,
     nextActionText: activeRoleCard.actionText
   });
-  const checklistLayout = buildChecklistLayout(checklistItems, activeRoleCard.actionKey);
   return {
     tournament: displayTournament,
     meta: {
@@ -840,9 +767,6 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       pairTeamFirstIndex: pairTeamModel.pairTeamFirstIndex,
       pairTeamSecondIndex: pairTeamModel.pairTeamSecondIndex,
       quickChecklistPending,
-      checklistItems: checklistLayout.checklistItems,
-      featuredChecklistItem: checklistLayout.featuredChecklistItem,
-      secondaryChecklistItems: checklistLayout.secondaryChecklistItems,
       checkPlayersOk,
       playersChecklistHint,
       checkSettingsOk,
@@ -862,7 +786,6 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       statePrimaryActionKey: statePanel.statePrimaryActionKey,
       statePrimaryActionText: statePanel.statePrimaryActionText,
       stateStageBadge: statePanel.stageBadge,
-      showStateChecklist: isAdmin && status === 'draft' && checklistItems.length > 0,
       showDraftRules: status === 'draft',
       showDraftAdminPanel: isAdmin && status === 'draft',
       showViewOnlyJoinPrompt,

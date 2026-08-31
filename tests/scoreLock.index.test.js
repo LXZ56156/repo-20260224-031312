@@ -209,17 +209,48 @@ test('scoreLock index can acquire when lock doc is missing', async () => {
     action: 'acquire',
     tournamentId: 't_1',
     roundIndex: 0,
-    matchIndex: 0
+    matchIndex: 0,
+    lockSessionId: 'session_new'
   });
 
   assert.equal(result.ok, true);
   assert.equal(result.state, 'acquired');
   assert.equal(result.ownerId, 'u_admin');
+  assert.equal(result.lockSessionId, 'session_new');
+  assert.equal(result.data.lockSessionId, 'session_new');
   assert.equal(calls.set.length, 1);
   assert.equal(calls.remove.length, 0);
   assert.equal(calls.set[0].id, 't_1_0_0');
   assert.equal(Object.prototype.hasOwnProperty.call(calls.set[0].payload.data, '_id'), false);
   assert.equal(calls.set[0].payload.data.ownerId, 'u_admin');
+  assert.equal(calls.set[0].payload.data.lockSessionId, 'session_new');
+});
+
+test('scoreLock index ignores stale-session release for a newer owner lock', async () => {
+  const expireAt = Date.now() + 30_000;
+  const { db, calls } = createDbHarness(async () => ({
+    data: {
+      ownerId: 'u_admin',
+      ownerName: '管理员',
+      expireAt,
+      lockSessionId: 'session_new'
+    }
+  }));
+  const { main } = loadScoreLockMain(db);
+
+  const result = await main({
+    action: 'release',
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    lockSessionId: 'session_old'
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.code, 'LOCK_RELEASED');
+  assert.equal(result.state, 'released');
+  assert.equal(calls.set.length, 0);
+  assert.equal(calls.remove.length, 0);
 });
 
 test('scoreLock index strips stored _id before heartbeat writeback', async () => {

@@ -14,6 +14,32 @@ function isTeamRow(row) {
   return String((row && row.entityType) || '').trim().toLowerCase() === 'team';
 }
 
+function findViewerRankingRow(tournament, rankings, openid) {
+  const viewerId = String(openid || '').trim();
+  const rows = Array.isArray(rankings) ? rankings : [];
+  if (!viewerId) return null;
+
+  const playerRow = rows.find((row) => !isTeamRow(row) && getEntityId(row) === viewerId);
+  if (playerRow) return playerRow;
+
+  const source = tournament && typeof tournament === 'object' ? tournament : {};
+  const player = (Array.isArray(source.players) ? source.players : [])
+    .find((item) => String((item && item.id) || '').trim() === viewerId);
+  const squad = String((player && player.squad) || '').trim().toUpperCase();
+  if (squad) {
+    const squadRow = rows.find((row) => isTeamRow(row) && getEntityId(row).toUpperCase() === squad);
+    if (squadRow) return squadRow;
+  }
+
+  const pair = (Array.isArray(source.pairTeams) ? source.pairTeams : [])
+    .find((team) => (Array.isArray(team && team.playerIds) ? team.playerIds : [])
+      .some((id) => String(id || '').trim() === viewerId));
+  const pairId = String((pair && pair.id) || '').trim();
+  return pairId
+    ? rows.find((row) => isTeamRow(row) && getEntityId(row) === pairId) || null
+    : null;
+}
+
 function extractSquadId(players) {
   const squads = (Array.isArray(players) ? players : [])
     .map((player) => String((player && player.squad) || '').trim().toUpperCase())
@@ -91,6 +117,7 @@ module.exports = {
   calculateAvgScore,
   calculateMaxWinStreak,
   calculateWinRate,
+  findViewerRankingRow,
   _private: {
     getMatchOutcome
   }

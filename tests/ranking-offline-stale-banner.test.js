@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
+const auth = require('../miniprogram/core/auth');
 const tournamentSync = require('../miniprogram/core/tournamentSync');
 
 const rankingPagePath = require.resolve('../miniprogram/pages/ranking/index.js');
@@ -32,6 +33,7 @@ function createRankingPageContext(definition) {
 
 test('ranking page shows cached stale banner under offline fallback and keeps network subscription in sync', async () => {
   const originalGetApp = global.getApp;
+  const originalLogin = auth.login;
   const originalFetchTournament = tournamentSync.fetchTournament;
   const originalStartWatch = tournamentSync.startWatch;
   let listener = null;
@@ -63,6 +65,7 @@ test('ranking page shows cached stale banner under offline fallback and keeps ne
     }
   });
   tournamentSync.startWatch = () => {};
+  auth.login = async () => 'u_viewer';
 
   try {
     const definition = loadRankingPageDefinition();
@@ -76,18 +79,20 @@ test('ranking page shows cached stale banner under offline fallback and keeps ne
     assert.equal(ctx.data.showStaleSyncHint, true);
     assert.equal(ctx.data.syncUsingCache, true);
     assert.equal(ctx.data.syncStatusVisible, true);
-    assert.match(ctx.data.syncStatusText, /缓存/);
-    assert.match(ctx.data.syncStatusMeta, /缓存于/);
+    assert.match(ctx.data.syncStatusText, /离线/);
+    assert.doesNotMatch(ctx.data.syncStatusText, /缓存/);
+    assert.equal(ctx.data.syncStatusMeta, '');
 
     listener(false);
     assert.equal(ctx.data.networkOffline, false);
-    assert.equal(ctx.data.syncStatusVisible, true);
-    assert.doesNotMatch(ctx.data.syncStatusText, /离线/);
+    assert.equal(ctx.data.syncStatusVisible, false);
+    assert.equal(ctx.data.syncStatusText, '');
 
     ctx.onUnload();
     assert.equal(unsubscribed, true);
   } finally {
     global.getApp = originalGetApp;
+    auth.login = originalLogin;
     tournamentSync.fetchTournament = originalFetchTournament;
     tournamentSync.startWatch = originalStartWatch;
     delete require.cache[rankingPagePath];

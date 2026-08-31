@@ -18,6 +18,8 @@ const uiPreferences = require('../../core/uiPreferences');
 const growthTracker = require('../../core/growthTracker');
 const { buildHomeHeroCardState } = require('./heroCardState');
 
+const HOME_CLONE_ACTION_KEY = 'home:cloneTournament';
+
 function pad2(n) {
   return n < 10 ? `0${n}` : String(n);
 }
@@ -143,6 +145,22 @@ function pickLatestUpdatedAt(items) {
   }, 0);
 }
 
+function readCachedHomeEntries(ids) {
+  return (Array.isArray(ids) ? ids : [])
+    .map((id) => {
+      const cacheInfo = storage.getLocalTournamentCacheInfo(id);
+      const cachedDoc = cacheInfo && cacheInfo.doc;
+      if (!cachedDoc || typeof cachedDoc !== 'object') return null;
+      return {
+        id,
+        doc: cachedDoc,
+        item: buildHomeItem(cachedDoc, id),
+        cachedAt: Number((cacheInfo && cacheInfo.cachedAt) || 0) || 0
+      };
+    })
+    .filter(Boolean);
+}
+
 Page({
   data: {
     loading: false,
@@ -208,7 +226,7 @@ Page({
     if (app && typeof app.subscribeNetworkChange === 'function') {
       this._offNetwork = app.subscribeNetworkChange((offline, meta = {}) => {
         this.setData(composeHomeSyncPatch(this, { networkOffline: !!offline }));
-        if (meta.reconnected) this.loadRecents();
+        if (meta.reconnected && this._pageActive) this.loadRecents();
       });
     }
 
@@ -216,11 +234,24 @@ Page({
   },
 
   onUnload() {
+    this._pageActive = false;
+    this._lifecycleGeneration = (Number(this._lifecycleGeneration) || 0) + 1;
+    this._cloneFlowActive = false;
+    this._recentLoadSeq = (Number(this._recentLoadSeq) || 0) + 1;
     if (typeof this._offNetwork === 'function') this._offNetwork();
     this._offNetwork = null;
   },
 
+  onHide() {
+    this._pageActive = false;
+    this._lifecycleGeneration = (Number(this._lifecycleGeneration) || 0) + 1;
+    this._cloneFlowActive = false;
+    this._recentLoadSeq = (Number(this._recentLoadSeq) || 0) + 1;
+  },
+
   onShow() {
+    this._pageActive = true;
+    this._cloneFlowActive = false;
     this.refreshUiPreferences();
     this.refreshProfileNudgeState();
     this.refreshHomeAdSlot();
@@ -341,11 +372,8 @@ Page({
   },
 
   async loadRecents() {
-    this.setData(composeHomeSyncPatch(this, {
-      loading: true,
-      loadError: false,
-      syncRefreshing: true
-    }));
+    const requestSeq = (Number(this._recentLoadSeq) || 0) + 1;
+    this._recentLoadSeq = requestSeq;
     const ids = storage.getRecentTournamentIds();
     if (!ids.length) {
       this.setData(composeHomeSyncPatch(this, {
@@ -362,6 +390,24 @@ Page({
       return;
     }
 
+    const cachedEntries = readCachedHomeEntries(ids);
+    const cachedItems = cachedEntries.map((entry) => entry.item);
+    const latestCachedAt = cachedEntries.reduce((maxTs, entry) => Math.max(maxTs, entry.cachedAt), 0);
+    this._rawDocsMap = cachedEntries.reduce((map, entry) => {
+      map[entry.id] = entry.doc;
+      return map;
+    }, {});
+    this.setData(composeHomeSyncPatch(this, {
+      loading: cachedItems.length === 0,
+      loadError: false,
+      showStaleSyncHint: false,
+      syncRefreshing: true,
+      syncUsingCache: cachedItems.length > 0,
+      syncCachedAt: latestCachedAt,
+      syncLastUpdatedAt: pickLatestUpdatedAt(cachedItems),
+      items: cachedItems.length ? this.sortItems(cachedItems, this.data.sortMode) : []
+    }), () => this.refreshVisibleState());
+
     const db = wx.cloud.database();
     const _ = db.command;
     let docs = [];
@@ -370,20 +416,7 @@ Page({
       const res = await db.collection('tournaments').where({ _id: _.in(ids) }).get();
       docs = (res && res.data) || [];
     } catch (e) {
-      const cachedEntries = ids
-        .map((id) => {
-          const cacheInfo = storage.getLocalTournamentCacheInfo(id);
-          const cachedDoc = cacheInfo && cacheInfo.doc;
-          if (!cachedDoc || typeof cachedDoc !== 'object') return null;
-          return {
-            item: buildHomeItem(cachedDoc, id),
-            cachedAt: Number((cacheInfo && cacheInfo.cachedAt) || 0) || 0
-          };
-        })
-        .filter(Boolean);
-      const cachedItems = cachedEntries.map((entry) => entry.item);
-      const latestCachedAt = cachedEntries.reduce((maxTs, entry) => Math.max(maxTs, Number(entry.cachedAt || 0) || 0), 0);
-
+      if (requestSeq !== this._recentLoadSeq) return;
       if (!cachedItems.length) {
         wx.showToast({ title: '读取赛事记录失败', icon: 'none' });
         this.setData(composeHomeSyncPatch(this, {
@@ -412,9 +445,12 @@ Page({
       return;
     }
 
+    if (requestSeq !== this._recentLoadSeq) return;
+
     const map = {};
     for (const d of docs) {
       map[d._id] = d;
+      storage.setLocalTournamentCache(d._id, d);
       storage.upsertLocalCompletedTournamentSnapshot(d);
     }
     this._rawDocsMap = map;
@@ -423,6 +459,7 @@ Page({
       const raw = map[id];
       if (!raw) {
         storage.removeLocalCompletedTournamentSnapshot(id);
+        storage.removeLocalTournamentCache(id);
         return buildMissingHomeItem(id);
       }
       return buildHomeItem(raw, id);
@@ -516,17 +553,21 @@ Page({
   async onCloneTap(e, options = {}) {
     const sourceTournamentId = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.id) || '').trim();
     if (!sourceTournamentId) return;
+    if (this._cloneFlowActive || actionGuard.isBusy(HOME_CLONE_ACTION_KEY)) return;
+    this._cloneFlowActive = true;
+    const lifecycleGeneration = Number(this._lifecycleGeneration) || 0;
     growthTracker.track('home_clone_tournament_click', {
       t: sourceTournamentId,
       src: 'home',
       a: 'clone'
     });
-    const actionKey = `home:cloneTournament:${sourceTournamentId}`;
     const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'clone');
-    if (actionGuard.isBusy(actionKey)) return;
-    return actionGuard.runCriticalWrite(actionKey, async () => {
+    let keepFlowUntilHide = false;
+    return actionGuard.runCriticalWrite(HOME_CLONE_ACTION_KEY, async () => {
       try {
         const nextId = await loading.withLoading('复制中...', () => cloneTournamentCore.cloneTournament(sourceTournamentId, { clientRequestId }));
+        if (this._pageActive === false || Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
+        keepFlowUntilHide = true;
         this.clearLastFailedAction();
         wx.showToast({ title: '已复制', icon: 'success' });
         growthTracker.track('clone_tournament_success', {
@@ -535,10 +576,17 @@ Page({
           a: 'clone',
           r: 'success'
         });
-        nav.goLobby(nextId);
+        nav.goLobby(nextId, {}, {
+          fail: () => {
+            if (Number(this._lifecycleGeneration || 0) === lifecycleGeneration) this._cloneFlowActive = false;
+          }
+        });
       } catch (err) {
-        this.setLastFailedAction('再办一场', () => this.onCloneTap({ currentTarget: { dataset: { id: sourceTournamentId } } }, { clientRequestId }), { actionKey });
+        if (this._pageActive === false || Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
+        this.setLastFailedAction('再办一场', () => this.onCloneTap({ currentTarget: { dataset: { id: sourceTournamentId } } }, { clientRequestId }), { actionKey: HOME_CLONE_ACTION_KEY });
         this.handleWriteError(err, '复制失败', () => this.loadRecents());
+      } finally {
+        if (!keepFlowUntilHide) this._cloneFlowActive = false;
       }
     });
   },
@@ -649,6 +697,7 @@ Page({
 
     const item = this._getItem(idx) || {};
     const status = String(item.status || '').trim();
+    if (status === 'missing') return;
     if (status === 'finished') {
       growthTracker.track('home_finished_review_click', {
         t: id,
@@ -695,6 +744,6 @@ Page({
     storage.removeLocalTournamentCache(id);
     this.clearLastFailedAction();
     await this.loadRecents();
-    wx.showToast({ title: '已删除', icon: 'success' });
+    wx.showToast({ title: '已从本机移除', icon: 'success' });
   }
 });

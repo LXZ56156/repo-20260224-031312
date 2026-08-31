@@ -16,7 +16,7 @@ const {
   settleTasks
 } = require('./timeout-reentry.helpers');
 
-test('lobby handleJoin keeps profileSaving true after timeout while request is pending', async () => {
+test('lobby handleJoin keeps profileSaving guarded and drops hidden-page success effects', async () => {
   const timers = installFakeTimers();
   const originalWx = global.wx;
   const originalEnsureJoinProfile = joinTournamentCore.ensureJoinProfile;
@@ -31,9 +31,17 @@ test('lobby handleJoin keeps profileSaving true after timeout while request is p
   const wxBox = createWxStub();
   const tasks = [];
   const busyTransitions = [];
+  let clearRetryCalls = 0;
+  let fetchCalls = 0;
   let joinCalls = 0;
+  let profileSaveCalls = 0;
+  let refreshFlags = 0;
+  let toastCalls = 0;
 
   global.wx = wxBox.api;
+  global.wx.showToast = () => {
+    toastCalls += 1;
+  };
 
   try {
     const ctx = createContext(lobbyProfileActions, {
@@ -53,10 +61,15 @@ test('lobby handleJoin keeps profileSaving true after timeout while request is p
         busyTransitions.push(this.data.profileSaving);
       }
     };
-    ctx.clearLastFailedAction = () => {};
+    ctx._lifecycleGeneration = 0;
+    ctx.clearLastFailedAction = () => {
+      clearRetryCalls += 1;
+    };
     ctx.setLastFailedAction = () => {};
     ctx.handleWriteError = () => {};
-    ctx.fetchTournament = async () => {};
+    ctx.fetchTournament = async () => {
+      fetchCalls += 1;
+    };
 
     joinTournamentCore.ensureJoinProfile = async () => ({
       ok: true,
@@ -72,10 +85,15 @@ test('lobby handleJoin keeps profileSaving true after timeout while request is p
       return { ok: true };
     };
     nav.buildTournamentUrl = (path, tournamentId) => `${path}?tournamentId=${tournamentId}`;
-    nav.markRefreshFlag = () => {};
+    nav.markRefreshFlag = () => {
+      refreshFlags += 1;
+    };
     storage.getUserProfile = () => null;
     storage.setUserProfile = () => {};
-    profileCore.saveCloudProfile = async () => ({ ok: true });
+    profileCore.saveCloudProfile = async () => {
+      profileSaveCalls += 1;
+      return { ok: true };
+    };
 
     const first = ctx.handleJoin();
     tasks.push(first);
@@ -93,6 +111,7 @@ test('lobby handleJoin keeps profileSaving true after timeout while request is p
     tasks.push(second);
     assert.equal(joinCalls, 1);
 
+    ctx._lifecycleGeneration += 1;
     deferred.resolve();
     await settleTasks(tasks);
 
@@ -100,6 +119,11 @@ test('lobby handleJoin keeps profileSaving true after timeout while request is p
     assert.deepEqual(busyTransitions, [true, false]);
     assert.deepEqual(wxBox.loadingEvents, ['show:加入中...', 'hide']);
     assert.equal(wxBox.getHideError(), null);
+    assert.equal(profileSaveCalls, 0);
+    assert.equal(clearRetryCalls, 0);
+    assert.equal(fetchCalls, 0);
+    assert.equal(refreshFlags, 0);
+    assert.equal(toastCalls, 0);
   } finally {
     deferred.resolve();
     await settleTasks(tasks);
@@ -113,5 +137,56 @@ test('lobby handleJoin keeps profileSaving true after timeout while request is p
     storage.getUserProfile = originalGetUserProfile;
     storage.setUserProfile = originalSetUserProfile;
     profileCore.saveCloudProfile = originalSaveCloudProfile;
+  }
+});
+
+test('lobby handleJoin does not start joining after its profile gate becomes stale', async () => {
+  const originalWx = global.wx;
+  const originalEnsureJoinProfile = joinTournamentCore.ensureJoinProfile;
+  const originalCallJoinTournament = joinTournamentCore.callJoinTournament;
+  const gateDeferred = createDeferred();
+  const wxBox = createWxStub();
+  let joinCalls = 0;
+  let toastCalls = 0;
+
+  global.wx = wxBox.api;
+  global.wx.showToast = () => {
+    toastCalls += 1;
+  };
+
+  try {
+    const ctx = createContext(lobbyProfileActions, {
+      tournamentId: 't_join_gate',
+      mode: flow.MODE_MULTI_ROTATE,
+      joinSquadChoice: '',
+      nickname: '',
+      joinAvatar: '',
+      profileSaving: false,
+      profileAvatarUploading: false,
+      profileQuickFillLoading: false,
+      profileFieldError: ''
+    });
+    ctx._lifecycleGeneration = 0;
+    joinTournamentCore.ensureJoinProfile = () => gateDeferred.promise;
+    joinTournamentCore.callJoinTournament = async () => {
+      joinCalls += 1;
+      return { ok: true };
+    };
+
+    const pending = ctx.handleJoin();
+    await Promise.resolve();
+    ctx._lifecycleGeneration += 1;
+    gateDeferred.resolve({ ok: true, profile: { nickName: '过期资料' } });
+    await pending;
+
+    assert.equal(joinCalls, 0);
+    assert.equal(toastCalls, 0);
+    assert.equal(ctx.data.profileSaving, false);
+  } finally {
+    gateDeferred.resolve({ ok: false });
+    actionGuard.clear('lobby:joinTournament:t_join_gate');
+    global.wx = originalWx;
+    joinTournamentCore.ensureJoinProfile = originalEnsureJoinProfile;
+    joinTournamentCore.callJoinTournament = originalCallJoinTournament;
   }
 });

@@ -360,3 +360,44 @@ test('response should expose deduped and clientRequestId markers on retry', asyn
   assert.equal(state.clientRequestLogs[0].clientRequestId, 'req_delete_1');
   assert.equal(state.clientRequestLogs[0].scope, 'delete_tournament');
 });
+
+test('deleteTournament rejects a tournament that is no longer draft inside the transaction', async () => {
+  let removeCalled = false;
+  const tournamentCollection = (status) => ({
+    doc() {
+      return {
+        async get() {
+          return { data: buildTournament({ status }) };
+        },
+        async remove() {
+          removeCalled = true;
+        }
+      };
+    }
+  });
+  const db = {
+    serverDate() {
+      return { $serverDate: true };
+    },
+    collection(name) {
+      assert.equal(name, 'tournaments');
+      return tournamentCollection('draft');
+    },
+    async runTransaction(handler) {
+      return handler({
+        collection(name) {
+          assert.equal(name, 'tournaments');
+          return tournamentCollection('running');
+        }
+      });
+    }
+  };
+  const { main } = loadMain(db);
+
+  const result = await main({ tournamentId: 't_1' });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'DELETE_DRAFT_ONLY');
+  assert.equal(result.state, 'forbidden');
+  assert.equal(removeCalled, false);
+});

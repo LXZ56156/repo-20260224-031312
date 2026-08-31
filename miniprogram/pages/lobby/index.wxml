@@ -32,7 +32,7 @@
         <view class="section-title">刚加入，先看这 3 件事</view>
         <view class="muted small">按顺序确认名单、规则和赛程。</view>
       </view>
-      <button class="icon-btn growth-guide-close" bindtap="closeGrowthOnboardingGuide">×</button>
+      <button class="icon-btn growth-guide-close" aria-label="关闭新手提示" bindtap="closeGrowthOnboardingGuide">×</button>
     </view>
     <view class="growth-guide-steps">
       <view class="growth-guide-step" wx:for="{{growthOnboardingSteps}}" wx:key="step">

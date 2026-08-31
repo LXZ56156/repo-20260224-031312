@@ -36,43 +36,11 @@ test('lobby view model partitions admin role flow and promotes share before back
   assert.equal(result.patch.statePanelTitle, '开赛前准备');
   assert.equal(result.patch.statePrimaryActionKey, 'share');
   assert.equal(result.patch.statePrimaryActionText, '转发');
-  assert.equal(result.patch.featuredChecklistItem.key, 'players');
-  assert.equal(result.patch.featuredChecklistItem.title, '2. 转发比赛');
-  assert.equal(result.patch.featuredChecklistItem.state, 'active');
-  assert.deepEqual(
-    result.patch.secondaryChecklistItems.map((item) => item.title),
-    ['1. 修改比赛', '3. 开始比赛']
-  );
   assert.deepEqual(
     result.patch.roleCards.map((item) => item.key),
     ['admin', 'joined', 'viewer', 'profile_pending']
   );
-  assert.equal(result.patch.checklistItems[1].actionText, '待邀请');
   assert.equal(result.patch.stateSecondaryActions, undefined);
-});
-
-test('lobby view model promotes settings card when admin draft is missing required configuration', () => {
-  const result = viewModel.buildLobbyViewModel({
-    tournament: buildTournament({
-      settingsConfigured: false,
-      players: [
-        { id: 'u_admin', name: '组织者', gender: 'male' },
-        { id: 'u_1', name: '球友1', gender: 'male' },
-        { id: 'u_2', name: '球友2', gender: 'female' },
-        { id: 'u_3', name: '球友3', gender: 'female' }
-      ]
-    }),
-    openid: 'u_admin',
-    data: {}
-  });
-
-  assert.equal(result.patch.featuredChecklistItem.key, 'settings');
-  assert.equal(result.patch.featuredChecklistItem.title, '1. 修改比赛');
-  assert.equal(result.patch.featuredChecklistItem.state, 'active');
-  assert.deepEqual(
-    result.patch.secondaryChecklistItems.map((item) => item.title),
-    ['2. 转发比赛', '3. 开始比赛']
-  );
 });
 
 test('lobby view model keeps unjoined draft visitors in pending-profile role once they expand join flow', () => {
@@ -169,7 +137,7 @@ test('lobby view model prefers scheduledMatches over legacy totalMatches after s
   assert.match(result.patch.matchInfoText, /总 5 场/);
 });
 
-test('lobby view model promotes start card when admin draft is ready to begin', () => {
+test('lobby view model promotes start action when admin draft is ready to begin', () => {
   const result = viewModel.buildLobbyViewModel({
     tournament: buildTournament({
       settingsConfigured: true,
@@ -185,13 +153,7 @@ test('lobby view model promotes start card when admin draft is ready to begin', 
   });
 
   assert.equal(result.patch.nextActionKey, 'start');
-  assert.equal(result.patch.featuredChecklistItem.key, 'start');
-  assert.equal(result.patch.featuredChecklistItem.title, '3. 开始比赛');
-  assert.equal(result.patch.featuredChecklistItem.state, 'active');
-  assert.deepEqual(
-    result.patch.secondaryChecklistItems.map((item) => [item.key, item.state]),
-    [['settings', 'done'], ['players', 'done']]
-  );
+  assert.equal(result.patch.primaryTaskKey, 'start');
 });
 
 test('lobby view model keeps fixed rotation label and quota state when not full', () => {
@@ -252,7 +214,6 @@ test('lobby view model lets full fixed rotation draft go straight to start', () 
   assert.equal(result.patch.kpiPlayers, '8/8');
   assert.equal(result.patch.checkStartReady, true);
   assert.equal(result.patch.primaryTaskKey, 'start');
-  assert.equal(result.patch.featuredChecklistItem.key, 'start');
 });
 
 test('lobby view model hides quick match shortcuts before 4 players', () => {
@@ -416,4 +377,50 @@ test('lobby view model exposes fixed pair cycle shortcuts and hint', () => {
       { value: 30, disabled: false }
     ]
   );
+});
+
+test('lobby view model keeps invalid pair and squad rosters on their existing setup tasks', () => {
+  const fixedPair = viewModel.buildLobbyViewModel({
+    tournament: buildTournament({
+      mode: 'fixed_pair_rr',
+      totalMatches: 10,
+      players: [
+        { id: 'u_admin', name: '组织者' },
+        { id: 'u_1', name: '球友1' },
+        { id: 'u_2', name: '球友2' },
+        { id: 'u_3', name: '球友3' }
+      ],
+      pairTeams: [
+        { id: 'team_1', playerIds: ['u_admin', 'u_1'] },
+        { id: 'team_2', playerIds: ['u_2', 'u_3'] },
+        { id: 'team_invalid', playerIds: ['u_2'] }
+      ]
+    }),
+    openid: 'u_admin',
+    data: {}
+  });
+
+  assert.equal(fixedPair.patch.checkPlayersOk, false);
+  assert.equal(fixedPair.patch.primaryTaskKey, 'build_pair_teams');
+  assert.equal(fixedPair.patch.primaryTaskTitle, '继续组队');
+  assert.match(fixedPair.patch.primaryTaskSummary, /每队 2 人/);
+
+  const squad = viewModel.buildLobbyViewModel({
+    tournament: buildTournament({
+      mode: 'squad_doubles',
+      players: [
+        { id: 'u_admin', name: 'A1', squad: 'A' },
+        { id: 'u_1', name: 'A2', squad: 'A' },
+        { id: 'u_2', name: 'B1', squad: 'B' },
+        { id: 'u_2', name: 'B2', squad: 'B' }
+      ]
+    }),
+    openid: 'u_admin',
+    data: {}
+  });
+
+  assert.equal(squad.patch.checkPlayersOk, false);
+  assert.equal(squad.patch.primaryTaskKey, 'assign_squads');
+  assert.equal(squad.patch.primaryTaskTitle, '分配 A/B 队');
+  assert.notEqual(squad.patch.primaryTaskKey, 'start');
 });

@@ -45,24 +45,133 @@ function createMatchPageContext(definition) {
   return ctx;
 }
 
-test('match page clears delayed navigation timers on hide to prevent ghost redirects', async () => {
+test('match page cancels occupied batch skip and restores its retry key on hide', async () => {
+  const originalWx = global.wx;
   const definition = loadMatchPageDefinition();
   const ctx = createMatchPageContext(definition);
   let fired = false;
 
-  ctx._pageActive = true;
-  ctx._navTimers = new Set();
-  ctx.registerNavTimer(() => {
-    fired = true;
-  }, 20);
+  global.wx = { showToast() {} };
 
-  ctx.onHide();
-  await wait(40);
+  try {
+    ctx.data.batchMode = true;
+    ctx.data.tournamentId = 't_1';
+    ctx.data.roundIndex = 0;
+    ctx.data.matchIndex = 1;
+    ctx._pageActive = true;
+    ctx._navTimers = new Set();
+    ctx.jumpAfterBatch = () => {
+      fired = true;
+    };
 
-  assert.equal(fired, false);
-  assert.equal(ctx._navTimers.size, 0);
+    ctx.tryBatchSkipOnOccupied();
+    ctx.onHide();
+    await wait(220);
 
-  delete require.cache[matchPagePath];
+    assert.equal(fired, false);
+    assert.equal(ctx._navTimers.size, 0);
+    assert.equal(ctx._batchOccupiedKey, '');
+  } finally {
+    global.wx = originalWx;
+    delete require.cache[matchPagePath];
+  }
+});
+
+test('match page allows occupied batch skip to retry after navigation refresh fails', async () => {
+  const originalWx = global.wx;
+  const definition = loadMatchPageDefinition();
+  const ctx = createMatchPageContext(definition);
+  const scheduled = [];
+  let jumpCalls = 0;
+
+  global.wx = { showToast() {} };
+
+  try {
+    ctx.data.batchMode = true;
+    ctx.data.tournamentId = 't_1';
+    ctx.data.roundIndex = 0;
+    ctx.data.matchIndex = 1;
+    ctx._batchOccupiedKey = '';
+    ctx.registerNavTimer = (fn) => {
+      scheduled.push(fn);
+      return scheduled.length;
+    };
+    ctx.jumpAfterBatch = async () => {
+      jumpCalls += 1;
+      return false;
+    };
+
+    ctx.tryBatchSkipOnOccupied();
+    await scheduled[0]();
+    ctx.tryBatchSkipOnOccupied();
+    await scheduled[1]();
+
+    assert.equal(jumpCalls, 2);
+    assert.equal(ctx._batchOccupiedKey, '');
+  } finally {
+    global.wx = originalWx;
+    delete require.cache[matchPagePath];
+  }
+});
+
+test('match batch jump does not revive after the page hides and shows during refresh', async () => {
+  const originalWx = global.wx;
+  let resolveRefresh;
+  let pageActive = true;
+  let toastCalls = 0;
+  let navCalls = 0;
+
+  global.wx = {
+    showToast() {
+      toastCalls += 1;
+    }
+  };
+
+  try {
+    const ctx = {
+      _pageLifecycleSeq: 0,
+      data: {
+        tournamentId: 't_1',
+        roundIndex: 0,
+        matchIndex: 1
+      },
+      isPageActive() {
+        return pageActive;
+      },
+      fetchTournament() {
+        return new Promise((resolve) => {
+          resolveRefresh = resolve;
+        });
+      }
+    };
+    const service = createMatchSubmitService(ctx, {
+      matchFlow: {
+        findNextPending() {
+          return { roundIndex: 1, matchIndex: 0 };
+        }
+      },
+      nav: {
+        buildTournamentUrl() {
+          return '/pages/match/index?tournamentId=t_1';
+        },
+        redirectOrNavigate() {
+          navCalls += 1;
+        }
+      }
+    });
+
+    const jumpTask = service.jumpAfterBatch('已全部录完');
+    pageActive = false;
+    ctx._pageLifecycleSeq += 1;
+    pageActive = true;
+    resolveRefresh({ _id: 't_1', rounds: [] });
+
+    assert.equal(await jumpTask, false);
+    assert.equal(navCalls, 0);
+    assert.equal(toastCalls, 0);
+  } finally {
+    global.wx = originalWx;
+  }
 });
 
 test('match submit service uses page navigation timers for delayed post-submit redirects', async () => {

@@ -117,6 +117,55 @@ test('profile delayed post-save navigation is cancelled when the page hides', as
   }
 });
 
+test('profile post-save navigation goes back only when returnUrl matches the previous page', () => {
+  const originalWx = global.wx;
+  const originalGetCurrentPages = global.getCurrentPages;
+  const originalRedirectOrNavigate = nav.redirectOrNavigate;
+  const timerBox = installFakeTimers();
+  const calls = [];
+
+  global.wx = {
+    navigateBack(options = {}) {
+      calls.push({ type: 'navigateBack', delta: Number(options.delta) || 0 });
+    }
+  };
+  nav.redirectOrNavigate = (url) => {
+    calls.push({ type: 'redirectOrNavigate', url });
+  };
+
+  try {
+    const definition = loadPageDefinition(profilePagePath);
+    const ctx = createPageContext(definition);
+    ctx._pageActive = true;
+
+    global.getCurrentPages = () => [
+      { route: 'pages/lobby/index' },
+      { route: 'pages/profile/index' }
+    ];
+    ctx.schedulePostSaveNavigation('/pages/lobby/index?tournamentId=t_profile');
+    timerBox.runActiveTimers();
+
+    global.getCurrentPages = () => [
+      { route: 'pages/create/index' },
+      { route: 'pages/profile/index' }
+    ];
+    ctx.schedulePostSaveNavigation('/pages/lobby/index?tournamentId=t_profile');
+    timerBox.runActiveTimers();
+
+    assert.deepEqual(calls, [
+      { type: 'navigateBack', delta: 1 },
+      { type: 'redirectOrNavigate', url: '/pages/lobby/index?tournamentId=t_profile' }
+    ]);
+  } finally {
+    global.wx = originalWx;
+    if (originalGetCurrentPages === undefined) delete global.getCurrentPages;
+    else global.getCurrentPages = originalGetCurrentPages;
+    nav.redirectOrNavigate = originalRedirectOrNavigate;
+    timerBox.restore();
+    delete require.cache[profilePagePath];
+  }
+});
+
 test('settings clears delayed auto-back navigation on hide', () => {
   const timerBox = installFakeTimers();
 
@@ -125,11 +174,13 @@ test('settings clears delayed auto-back navigation on hide', () => {
     const ctx = createPageContext(definition);
     const pendingTimer = { active: true };
     ctx._autoBackTimer = pendingTimer;
+    ctx._lifecycleGeneration = 3;
 
     ctx.onHide();
 
     assert.equal(pendingTimer.active, false);
     assert.equal(ctx._autoBackTimer, null);
+    assert.equal(ctx._lifecycleGeneration, 4);
   } finally {
     timerBox.restore();
     delete require.cache[settingsPagePath];
@@ -142,9 +193,13 @@ test('lobby delayed start navigation is cancelled when the page hides', () => {
   const originalGoSchedule = nav.goSchedule;
   const timerBox = installFakeTimers();
   const navCalls = [];
+  const scrollCalls = [];
 
   global.wx = {
-    showToast() {}
+    showToast() {},
+    pageScrollTo(options = {}) {
+      scrollCalls.push(String(options.selector || ''));
+    }
   };
 
   try {
@@ -154,14 +209,18 @@ test('lobby delayed start navigation is cancelled when the page hides', () => {
     };
     const definition = loadPageDefinition(lobbyPagePath);
     const ctx = createPageContext(definition);
-    ctx.setData({ tournamentId: 't_start_cleanup' });
+    ctx.setData({ tournamentId: 't_start_cleanup', checkStartReady: true });
     ctx.clearLastFailedAction = () => {};
+    ctx._lifecycleGeneration = 6;
 
+    ctx.focusStartAction();
     ctx.finalizeStartSuccess();
     ctx.onHide();
     timerBox.runActiveTimers();
 
     assert.deepEqual(navCalls, []);
+    assert.deepEqual(scrollCalls, []);
+    assert.equal(ctx._lifecycleGeneration, 7);
   } finally {
     nav.markRefreshFlag = originalMarkRefreshFlag;
     nav.goSchedule = originalGoSchedule;

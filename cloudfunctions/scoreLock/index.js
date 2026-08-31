@@ -48,6 +48,7 @@ exports.main = async (event) => {
   const roundIndex = Number(event && event.roundIndex);
   const matchIndex = Number(event && event.matchIndex);
   const force = event && event.force === true;
+  const lockSessionId = String((event && event.lockSessionId) || '').trim();
 
   if (!action) return common.failResult('ACTION_REQUIRED', '缺少 action', { traceId, state: 'invalid' });
   if (!tournamentId) return common.failResult('TOURNAMENT_ID_REQUIRED', '缺少 tournamentId', { traceId, state: 'invalid' });
@@ -94,6 +95,7 @@ exports.main = async (event) => {
         lockDoc,
         admin,
         force,
+        lockSessionId,
         canUseLock: permission.canEditScore(tournament, OPENID),
         tournamentStatus: status,
         matchExists: true,
