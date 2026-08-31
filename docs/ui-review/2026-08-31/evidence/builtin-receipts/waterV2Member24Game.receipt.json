@@ -1,0 +1,1322 @@
+{
+  "name": "waterV2Member24Game",
+  "ok": true,
+  "output": "D:\\projects(WIN)\\badminton-miniapp\\tmp\\ui-review-capture-20260831\\waterV2Member24Game.png",
+  "receiptPath": "D:\\projects(WIN)\\badminton-miniapp\\tmp\\ui-review-capture-20260831\\waterV2Member24Game.receipt.json",
+  "endpoint": "ws://127.0.0.1:39450",
+  "connectionMode": "connect-preopened",
+  "sourceProjectPath": "D:\\projects(WIN)\\badminton-miniapp",
+  "toolInfo": {
+    "SDKVersion": "3.14.2",
+    "platform": "",
+    "compileType": "",
+    "projectPath": ""
+  },
+  "currentPageInfo": {
+    "pageId": 5,
+    "path": "pages/water/index",
+    "query": {
+      "id": "water_v2_demo"
+    }
+  },
+  "expectedRoute": "/pages/water/index",
+  "systemInfo": {
+    "brand": "devtools",
+    "model": "iPhone 12/13 (Pro)",
+    "platform": "devtools",
+    "screenWidth": 390,
+    "screenHeight": 844,
+    "windowWidth": 390,
+    "windowHeight": 753,
+    "pixelRatio": 3,
+    "fontSizeSetting": 16,
+    "statusBarHeight": 47,
+    "safeArea": {
+      "top": 47,
+      "left": 0,
+      "right": 390,
+      "bottom": 810,
+      "width": 390,
+      "height": 763
+    }
+  },
+  "expectedWindowWidth": 390,
+  "expectedSDKVersion": null,
+  "viewportOk": true,
+  "png": {
+    "valid": true,
+    "signatureOk": true,
+    "ihdrOk": true,
+    "width": 717,
+    "height": 1384,
+    "byteLength": 153073,
+    "sha256": "e7172748827983554e84dc5ed29dce53bdd712e53e03757679a49229f45ef043"
+  },
+  "git": {
+    "ok": true,
+    "head": "55bfc4fa319ab74a33d406f05fbdab975ab8cfb7",
+    "dirty": true,
+    "status": [
+      " M AGENTS.md",
+      " M cloudfunctions/addPlayers/index.js",
+      " M cloudfunctions/deleteTournament/index.js",
+      " M cloudfunctions/managePairTeams/logic.js",
+      " M cloudfunctions/removePlayer/index.js",
+      " M cloudfunctions/scoreLock/index.js",
+      " M cloudfunctions/scoreLock/logic.js",
+      " M cloudfunctions/setPlayerSquad/index.js",
+      " M cloudfunctions/submitScore/index.js",
+      " M docs/context/architecture.md",
+      " M docs/notes/learnings.md",
+      " M docs/tasks/current.md",
+      " M miniprogram/app.js",
+      " M miniprogram/app.wxss",
+      " M miniprogram/core/cloud.js",
+      " M miniprogram/core/joinTournament.js",
+      " M miniprogram/core/nav.js",
+      " M miniprogram/core/pageTournamentSync.js",
+      " M miniprogram/core/profile.js",
+      " M miniprogram/core/shareCardStats.js",
+      " M miniprogram/core/syncStatus.js",
+      " M miniprogram/core/tournamentSync.js",
+      " M miniprogram/core/tournamentVersion.js",
+      " M miniprogram/pages/analytics/index.js",
+      " M miniprogram/pages/analytics/index.wxml",
+      " M miniprogram/pages/analytics/index.wxss",
+      " M miniprogram/pages/create/index.js",
+      " M miniprogram/pages/feedback/index.js",
+      " M miniprogram/pages/home/heroCardState.js",
+      " M miniprogram/pages/home/index.js",
+      " M miniprogram/pages/home/index.wxml",
+      " M miniprogram/pages/home/index.wxss",
+      " M miniprogram/pages/launch/index.js",
+      " M miniprogram/pages/launch/index.wxss",
+      " M miniprogram/pages/lobby/index.js",
+      " M miniprogram/pages/lobby/index.wxml",
+      " M miniprogram/pages/lobby/index.wxss",
+      " M miniprogram/pages/lobby/lobby-admin-panel.wxml",
+      " M miniprogram/pages/lobby/lobby-join-sheet.wxml",
+      " M miniprogram/pages/lobby/lobby-state-panel.wxml",
+      " M miniprogram/pages/lobby/lobbyDraftActions.js",
+      " M miniprogram/pages/lobby/lobbyImportActions.js",
+      " M miniprogram/pages/lobby/lobbyLifecycleActions.js",
+      " M miniprogram/pages/lobby/lobbyPairTeamActions.js",
+      " M miniprogram/pages/lobby/lobbyProfileActions.js",
+      " M miniprogram/pages/lobby/lobbyQuickSettingsActions.js",
+      " M miniprogram/pages/lobby/lobbyViewModel.js",
+      " M miniprogram/pages/match/index.js",
+      " M miniprogram/pages/match/index.wxml",
+      " M miniprogram/pages/match/index.wxss",
+      " M miniprogram/pages/match/matchLockController.js",
+      " M miniprogram/pages/match/matchSubmitService.js",
+      " M miniprogram/pages/match/matchViewModel.js",
+      " M miniprogram/pages/match/scoreLockManager.js",
+      " M miniprogram/pages/mine/index.wxml",
+      " M miniprogram/pages/preferences/index.js",
+      " M miniprogram/pages/preferences/index.wxml",
+      " M miniprogram/pages/profile/index.js",
+      " M miniprogram/pages/ranking/index.js",
+      " M miniprogram/pages/ranking/index.wxml",
+      " M miniprogram/pages/ranking/index.wxss",
+      " M miniprogram/pages/schedule/index.js",
+      " M miniprogram/pages/schedule/index.wxss",
+      " M miniprogram/pages/settings/index.js",
+      " M miniprogram/pages/settings/index.wxss",
+      " M miniprogram/pages/settings/settingsActions.js",
+      " M miniprogram/pages/share-entry/index.js",
+      " M miniprogram/pages/water/index.wxss",
+      " M miniprogram/sync/watch.js",
+      " M scripts/dev/water-v2-screenshot-fixtures.js",
+      " M tests/addPlayers.index.test.js",
+      " M tests/analytics.async-stale-response.test.js",
+      " M tests/analytics.share-message.test.js",
+      " M tests/button-layout-containment.test.js",
+      " M tests/cloud.error-matrix.test.js",
+      " M tests/critical-write-guards.test.js",
+      " M tests/critical-write-timeout-reentry.test.js",
+      " M tests/deleteTournament.index.test.js",
+      " M tests/home.cache-fallback.test.js",
+      " M tests/home.clone-timeout-reentry.test.js",
+      " M tests/home.delete-clears-tournament-cache.test.js",
+      " M tests/home.finished-entry-routing.test.js",
+      " M tests/home.hero-state.test.js",
+      " M tests/home.sync-banner.test.js",
+      " M tests/list-density-motion.test.js",
+      " M tests/lobby-admin-view-role-partition.test.js",
+      " M tests/lobby.admin-manage-actions.test.js",
+      " M tests/lobby.dynamic-share-ui.test.js",
+      " M tests/lobby.focus-start-intent.test.js",
+      " M tests/lobby.handle-join-timeout-reentry.test.js",
+      " M tests/lobby.hero-structure.test.js",
+      " M tests/lobby.share-primary-cta.test.js",
+      " M tests/lobby.viewmodel.test.js",
+      " M tests/managePairTeams.index.test.js",
+      " M tests/match.lock-guard.test.js",
+      " M tests/match.lock-lifecycle.test.js",
+      " M tests/match.navigation-timer-cleanup.test.js",
+      " M tests/match.quick-scores.test.js",
+      " M tests/match.submit-recover.test.js",
+      " M tests/page-delayed-navigation-cleanup.test.js",
+      " M tests/page-sync.contract.test.js",
+      " M tests/post-save-start-focus.test.js",
+      " M tests/profile.test.js",
+      " M tests/ranking-offline-stale-banner.test.js",
+      " M tests/ranking.async-stale-response.test.js",
+      " M tests/ranking.fetch-result-shape.test.js",
+      " M tests/removePlayer.index.test.js",
+      " M tests/retry.action.test.js",
+      " M tests/rotation-fixed-preset-page.test.js",
+      " M tests/schedule.avatar-filter.test.js",
+      " M tests/scoreLock.index.test.js",
+      " M tests/scoreLock.logic.test.js",
+      " M tests/setPlayerSquad.index.test.js",
+      " M tests/share-card-stats.test.js",
+      " M tests/submitScore.index.test.js",
+      " M tests/syncStatus.test.js",
+      " M tests/tournamentSync.not-found-no-cache-fallback.test.js",
+      " M tests/tournamentVersion.test.js",
+      " M tests/watch.multi-page-lifecycle.test.js",
+      " M tests/watch.polling-backoff.test.js",
+      " M tests/waterSession.ui-copy.test.js",
+      " M tests/weapp-ui-screenshot-cases.test.js",
+      "?? .playwright-cli/",
+      "?? docs/context/huawei-flexus-migration-prep.md",
+      "?? preview-qrcodes/",
+      "?? tests/stage1.explanation-copy.test.js"
+    ],
+    "files": [
+      {
+        "path": ".playwright-cli/page-2026-08-07T15-07-29-049Z.yml",
+        "exists": true,
+        "sha256": "59c4a89097821095d8a1ead48b8214a2cfdbbc9f955a07d45c691b481f165454"
+      },
+      {
+        "path": "AGENTS.md",
+        "exists": true,
+        "sha256": "991f0fbe597cd99bde644398df829b1c5516869541cdf79dfe4dadaa2f20fbbf"
+      },
+      {
+        "path": "cloudfunctions/addPlayers/index.js",
+        "exists": true,
+        "sha256": "376f3e5be7997d267aab336df7d1f5992849115520f1480d561900889efd68af"
+      },
+      {
+        "path": "cloudfunctions/deleteTournament/index.js",
+        "exists": true,
+        "sha256": "ffa8e52a169240116b34174eb50ace47d41120111f90767861bc9fa773aba6dc"
+      },
+      {
+        "path": "cloudfunctions/managePairTeams/logic.js",
+        "exists": true,
+        "sha256": "dfe5f567165d9f92312062d2b0dab85ea614eb12da4c82da922274b9f84ebf68"
+      },
+      {
+        "path": "cloudfunctions/removePlayer/index.js",
+        "exists": true,
+        "sha256": "1acac39d376cc56c9734baea351ca930d22166f453722e20e941a3ad22a66707"
+      },
+      {
+        "path": "cloudfunctions/scoreLock/index.js",
+        "exists": true,
+        "sha256": "d06dd1895e5ceb146eeb4c758253c5cf102474778bd9b32817e870652c981d4c"
+      },
+      {
+        "path": "cloudfunctions/scoreLock/logic.js",
+        "exists": true,
+        "sha256": "6ee0822af119ad68b2edb24418fead69c05cd72bca7ef8f00d2373e67b3ef3d9"
+      },
+      {
+        "path": "cloudfunctions/setPlayerSquad/index.js",
+        "exists": true,
+        "sha256": "46aca5a92a2a9b0b6a6ddc9364a0163cb7faf9ac24202401506043657d9769fa"
+      },
+      {
+        "path": "cloudfunctions/submitScore/index.js",
+        "exists": true,
+        "sha256": "842a253b5ebc7a07691f02cb19cf276d9fb0f7a7f45c63be541aa1bda582df28"
+      },
+      {
+        "path": "docs/context/architecture.md",
+        "exists": true,
+        "sha256": "ff51908ddcafdbd61d691b33ff7d79c6be6f5d83067d0fc787327f098a5f7c5d"
+      },
+      {
+        "path": "docs/context/huawei-flexus-migration-prep.md",
+        "exists": true,
+        "sha256": "50664bd01b73b59366a634b0dffb63f17920d3f6b2697f1230bec8d75dc32191"
+      },
+      {
+        "path": "docs/notes/learnings.md",
+        "exists": true,
+        "sha256": "f8ee37f3ad4c7f390bb6fe429fb21a738b4a093b6dc4c52de1b1cb667d296454"
+      },
+      {
+        "path": "docs/tasks/current.md",
+        "exists": true,
+        "sha256": "1c2138deb9d392aaeaae4c9ba8bc6d8321f1145c3c08ef91808fc6757ee9c6fd"
+      },
+      {
+        "path": "miniprogram/app.js",
+        "exists": true,
+        "sha256": "59ee0ef48779ff97d3ac8a43c3c09e302fdc10bd8359a4cd0a8cadd95d13ea15"
+      },
+      {
+        "path": "miniprogram/app.wxss",
+        "exists": true,
+        "sha256": "e36aad119fd964189264fef1b04ff67a3b6a1a63d7890372edead4d380ea4d02"
+      },
+      {
+        "path": "miniprogram/core/cloud.js",
+        "exists": true,
+        "sha256": "16e1bb994a60274c8f56e0e4b4bdcddd1777ee20a3097b59eff2402f47a2bef1"
+      },
+      {
+        "path": "miniprogram/core/joinTournament.js",
+        "exists": true,
+        "sha256": "b35ceff9d1f063ad482b29e5f06e03e6f5b770692d01fc6fa8066d966b075f64"
+      },
+      {
+        "path": "miniprogram/core/nav.js",
+        "exists": true,
+        "sha256": "7b21bc1e0d9b6eda6e2eef5e93ee978d72dcce96e43b8a97b100e16dd0ac636a"
+      },
+      {
+        "path": "miniprogram/core/pageTournamentSync.js",
+        "exists": true,
+        "sha256": "1c051ecd77f4e8f3a50cefac1b6cbb6f464c8004e07d8518438f675a6eb03c13"
+      },
+      {
+        "path": "miniprogram/core/profile.js",
+        "exists": true,
+        "sha256": "2787e5ca996913a2e2f86da88b90fd77b00a6fa35d6f390bfdb522648dffb4ab"
+      },
+      {
+        "path": "miniprogram/core/shareCardStats.js",
+        "exists": true,
+        "sha256": "12026364bb93b49942fe780d2b2f48a01d42f72f470bee2215513d96a957679c"
+      },
+      {
+        "path": "miniprogram/core/syncStatus.js",
+        "exists": true,
+        "sha256": "bbc8b55dbfdab53dc1aecf336da64a7b16466b161137d6e0da33ecd1692ef67a"
+      },
+      {
+        "path": "miniprogram/core/tournamentSync.js",
+        "exists": true,
+        "sha256": "c9848c236ddceb7923f07fd865aef040901fee6ccabda9a4871953af3b7ca6ec"
+      },
+      {
+        "path": "miniprogram/core/tournamentVersion.js",
+        "exists": true,
+        "sha256": "7f0527fce159aec5eb82512ce13c6acc37f89300476d5542314c3760ca24324c"
+      },
+      {
+        "path": "miniprogram/pages/analytics/index.js",
+        "exists": true,
+        "sha256": "b601486c5b1d53c4536edb9f52fb7053f09973db79559014f4a2ea9b6e5db4c8"
+      },
+      {
+        "path": "miniprogram/pages/analytics/index.wxml",
+        "exists": true,
+        "sha256": "74295b349ef202b2aa0df15ecea971540216ff4da9b357958136b25f51f928a0"
+      },
+      {
+        "path": "miniprogram/pages/analytics/index.wxss",
+        "exists": true,
+        "sha256": "a2e4c1c1035c47babb04be6281bb041ee5f1b823d9672b1122450a0dab1918fb"
+      },
+      {
+        "path": "miniprogram/pages/create/index.js",
+        "exists": true,
+        "sha256": "7ef126a1e71021d9d70e0f791f81023ff1d067c5439d814d87bcba5a309b8bbf"
+      },
+      {
+        "path": "miniprogram/pages/feedback/index.js",
+        "exists": true,
+        "sha256": "73f8c674a3f31c4dc6b1dfcd54ecb2fb0c004a1df0da5e8e35b2b69dddb7d028"
+      },
+      {
+        "path": "miniprogram/pages/home/heroCardState.js",
+        "exists": true,
+        "sha256": "e502c7e245e3959a73c11abfcd2beb1d4e646bcc0f9da29300144d0fd24f20ac"
+      },
+      {
+        "path": "miniprogram/pages/home/index.js",
+        "exists": true,
+        "sha256": "9553c6d15760fb3aeb53df79a7257b61bf73cbf4e3ecc190613fa075b554b776"
+      },
+      {
+        "path": "miniprogram/pages/home/index.wxml",
+        "exists": true,
+        "sha256": "6590d7679c9d044e0008f82607ee06e765b1995d4ed24ee782ea485f6f2286ba"
+      },
+      {
+        "path": "miniprogram/pages/home/index.wxss",
+        "exists": true,
+        "sha256": "2070a1f16d6b3d14b8c3f416381f4667df5565ddb50b6b57ec140ebb3d71e9b6"
+      },
+      {
+        "path": "miniprogram/pages/launch/index.js",
+        "exists": true,
+        "sha256": "dc95b1436c476d89feee906ab7ca8ea490d0833309e27ea12fc35e30270dacf9"
+      },
+      {
+        "path": "miniprogram/pages/launch/index.wxss",
+        "exists": true,
+        "sha256": "8fa66ebdef183ac90659606cc1339adcae20e7cddeb6488a3f67c28132d19c88"
+      },
+      {
+        "path": "miniprogram/pages/lobby/index.js",
+        "exists": true,
+        "sha256": "3694805924907659d9386224fb938afbd29bc51edf6f674ba09fafe3197a1604"
+      },
+      {
+        "path": "miniprogram/pages/lobby/index.wxml",
+        "exists": true,
+        "sha256": "0653a2262e3353f9da233bc4a98350e7b17e967c28673ac53175cc3388d0fe83"
+      },
+      {
+        "path": "miniprogram/pages/lobby/index.wxss",
+        "exists": true,
+        "sha256": "48d2cb044e42534b52fe6cccb4668e0825aececba2a228e380768ef881d4323f"
+      },
+      {
+        "path": "miniprogram/pages/lobby/lobby-admin-panel.wxml",
+        "exists": true,
+        "sha256": "7df0a53b6e43cfae2922573d3cb1db9c28f56a4aca698ab84398e043d5f22eeb"
+      },
+      {
+        "path": "miniprogram/pages/lobby/lobby-join-sheet.wxml",
+        "exists": true,
+        "sha256": "081a0b5111b3096d8b8f93004ce1d36a28d99feeb7c21d434a306806285a72b0"
+      },
+      {
+        "path": "miniprogram/pages/lobby/lobby-state-panel.wxml",
+        "exists": true,
+        "sha256": "a1e90ec419612b342e87d1084264f5d7eba22ca84e0f29c6f9f89e38b133b6a3"
+      },
+      {
+        "path": "miniprogram/pages/lobby/lobbyDraftActions.js",
+        "exists": true,
+        "sha256": "aef0e4c79166b817ba3603f21f585cbcd8f14c1df155bbfb90cc21b9ea84db3b"
+      },
+      {
+        "path": "miniprogram/pages/lobby/lobbyImportActions.js",
+        "exists": true,
+        "sha256": "0b569452363983c03a7633bdd928acbc7e038de5b77f970e77a9e3f8f638ac8e"
+      },
+      {
+        "path": "miniprogram/pages/lobby/lobbyLifecycleActions.js",
+        "exists": true,
+        "sha256": "5b6226cb7efc4a4698d443b59404afe95ef1b33b11fdd909b0602267eafe1c1a"
+      },
+      {
+        "path": "miniprogram/pages/lobby/lobbyPairTeamActions.js",
+        "exists": true,
+        "sha256": "597eb3d1967ccab630cce017227877737c73b7e6f11194f54ca38602179e5e40"
+      },
+      {
+        "path": "miniprogram/pages/lobby/lobbyProfileActions.js",
+        "exists": true,
+        "sha256": "7b82922ddfa2bc59641e4cc52204cb9790b57adb6384f42fd96093b16a59311e"
+      },
+      {
+        "path": "miniprogram/pages/lobby/lobbyQuickSettingsActions.js",
+        "exists": true,
+        "sha256": "d5215f190d197599fcffbac70ef1de87032c560e976698e8aa9f44a5aea4aaad"
+      },
+      {
+        "path": "miniprogram/pages/lobby/lobbyViewModel.js",
+        "exists": true,
+        "sha256": "6fa494eb61c3fc9a8e904b172628d557ded443a8354c12b229d45de5010cf690"
+      },
+      {
+        "path": "miniprogram/pages/match/index.js",
+        "exists": true,
+        "sha256": "2bbb71b8ee935239391e8156c8b74462a0d1dbdf775c2a33de773bda702f6072"
+      },
+      {
+        "path": "miniprogram/pages/match/index.wxml",
+        "exists": true,
+        "sha256": "7ed108b278f37f22c54a15fb66723f92246b09885155d2122f2682730f7ad13a"
+      },
+      {
+        "path": "miniprogram/pages/match/index.wxss",
+        "exists": true,
+        "sha256": "0bf6aa732dbd88bb39d55a862dcdec4c71e7a044208d59920d287a758806cc06"
+      },
+      {
+        "path": "miniprogram/pages/match/matchLockController.js",
+        "exists": true,
+        "sha256": "a1e425d48e1ddc77610a8efcc37dd7e77f089e666939070b2cbe8fb835dd88c2"
+      },
+      {
+        "path": "miniprogram/pages/match/matchSubmitService.js",
+        "exists": true,
+        "sha256": "072d97829a1c9ab405e8b111765826f0d5a8e9dc529bfb345443803a2dabd5a5"
+      },
+      {
+        "path": "miniprogram/pages/match/matchViewModel.js",
+        "exists": true,
+        "sha256": "ba48607b2ab54deb70e789c1ad4047fffee6ccd5e6e3c3da42a2f2aa106a52fb"
+      },
+      {
+        "path": "miniprogram/pages/match/scoreLockManager.js",
+        "exists": true,
+        "sha256": "2f29d48e5106e164c1ee9eb831a00abfe54d76e100030983e5d33c311f783471"
+      },
+      {
+        "path": "miniprogram/pages/mine/index.wxml",
+        "exists": true,
+        "sha256": "fac55def2b4f22bcfce46cbd1f5e94f2979ffb80ecba81b6d80bb25c760ba178"
+      },
+      {
+        "path": "miniprogram/pages/preferences/index.js",
+        "exists": true,
+        "sha256": "5193e8962d6d6479a832ca9638b363bea2e7dadc89fff127748b27c55601c411"
+      },
+      {
+        "path": "miniprogram/pages/preferences/index.wxml",
+        "exists": true,
+        "sha256": "24e7afc1b842ec87711c123b94c10b04650c83e3e054b5073b654b3e4846ea5d"
+      },
+      {
+        "path": "miniprogram/pages/profile/index.js",
+        "exists": true,
+        "sha256": "8c8cf89e66a49e9e3166198812df82459497e444ca6fe6728b7d87ac49daa6d7"
+      },
+      {
+        "path": "miniprogram/pages/ranking/index.js",
+        "exists": true,
+        "sha256": "72b28c8cab062cd1f98241d95e778d8431027fa80d0417aa6b42bcf0e2aacb12"
+      },
+      {
+        "path": "miniprogram/pages/ranking/index.wxml",
+        "exists": true,
+        "sha256": "3aae3d6a342f418a047b3781efa4a2aeb96e6f713c8f48874d760c20534cc635"
+      },
+      {
+        "path": "miniprogram/pages/ranking/index.wxss",
+        "exists": true,
+        "sha256": "6a9598aecbc2ced660fc9b803470c83f26cc377b2d4b1df0cc0f4c98c28cca74"
+      },
+      {
+        "path": "miniprogram/pages/schedule/index.js",
+        "exists": true,
+        "sha256": "a713969800d5728e5f590727051b1738fa7072701510b1eca63aad085a2119cd"
+      },
+      {
+        "path": "miniprogram/pages/schedule/index.wxss",
+        "exists": true,
+        "sha256": "19295356788cb750d460a5df1ae4087ea37746620cfc9efb746beb59eeec7f5f"
+      },
+      {
+        "path": "miniprogram/pages/settings/index.js",
+        "exists": true,
+        "sha256": "79d594ff78d6f170b6d02bf743149b98b24335d8e9958384507cb2dbd02f33e7"
+      },
+      {
+        "path": "miniprogram/pages/settings/index.wxss",
+        "exists": true,
+        "sha256": "f7b2cd67550e8271a4b338d5fa5b5e5344d65af229f40d945dc994d9b2a48528"
+      },
+      {
+        "path": "miniprogram/pages/settings/settingsActions.js",
+        "exists": true,
+        "sha256": "2278dcf7e567aeffc74673e9a87cf8d0c35e63bb35d7016e01879cc7cd530718"
+      },
+      {
+        "path": "miniprogram/pages/share-entry/index.js",
+        "exists": true,
+        "sha256": "1d53bd90c02b06730c5e478ec104a2ed2006197ce5e06aa2b382d5ce8c96b9f2"
+      },
+      {
+        "path": "miniprogram/pages/water/index.wxss",
+        "exists": true,
+        "sha256": "09caa25a869f47e0ce62912084dd0e7ca366352a07a07a1bdae3aff92357195b"
+      },
+      {
+        "path": "miniprogram/sync/watch.js",
+        "exists": true,
+        "sha256": "03420160cabe242634b593dc199efd3baf1dea924c91badd5c7a0131b73eade5"
+      },
+      {
+        "path": "preview-qrcodes/latest-preview-qrcode.jpg",
+        "exists": true,
+        "sha256": "8620ca1626f5aaf8e7f1b5e455a9a27f511059626669229e780bb1a1f4b8dcbc"
+      },
+      {
+        "path": "preview-qrcodes/latest-preview-qrcode.json",
+        "exists": true,
+        "sha256": "866940bb3db7513b1867016ec9151379767898a46700de4ebf588b3d5eadb555"
+      },
+      {
+        "path": "preview-qrcodes/preview-qrcode-20260717T042757827Z-e267088.jpg",
+        "exists": true,
+        "sha256": "a7c43012c2964e777cbe3933ff3826bc2852da9f47a2d5b72bcdda4a79caa971"
+      },
+      {
+        "path": "preview-qrcodes/preview-qrcode-20260717T042757827Z-e267088.json",
+        "exists": true,
+        "sha256": "668a06fa281d2c8b61616738a91811774dbdab7d3553142d93c19f9f3512aaf5"
+      },
+      {
+        "path": "preview-qrcodes/preview-qrcode-20260718T054033710Z-e267088.jpg",
+        "exists": true,
+        "sha256": "0fc18ce9b3c6b580b6a20a840e59443670fc0a2b8c7e77e24862a322ed4948e3"
+      },
+      {
+        "path": "preview-qrcodes/preview-qrcode-20260718T054033710Z-e267088.json",
+        "exists": true,
+        "sha256": "0191134ad10eda0c77f761f3f355edd5495f25a9f43340a5e1d97708ad70f32e"
+      },
+      {
+        "path": "preview-qrcodes/preview-qrcode-20260724T124534836Z-8ec7611.jpg",
+        "exists": true,
+        "sha256": "abfca5102809824044b63c05260f3282132070e9c4cf9a40cfe0f33c288769c7"
+      },
+      {
+        "path": "preview-qrcodes/preview-qrcode-20260724T124534836Z-8ec7611.json",
+        "exists": true,
+        "sha256": "355fe72c49032f71dfd2c7b3f27f1de31a11b96955662f843d1e4f88b64ec503"
+      },
+      {
+        "path": "preview-qrcodes/preview-qrcode-20260724T165805468Z-3aad202.jpg",
+        "exists": true,
+        "sha256": "8620ca1626f5aaf8e7f1b5e455a9a27f511059626669229e780bb1a1f4b8dcbc"
+      },
+      {
+        "path": "preview-qrcodes/preview-qrcode-20260724T165805468Z-3aad202.json",
+        "exists": true,
+        "sha256": "866940bb3db7513b1867016ec9151379767898a46700de4ebf588b3d5eadb555"
+      },
+      {
+        "path": "scripts/dev/water-v2-screenshot-fixtures.js",
+        "exists": true,
+        "sha256": "3634f225a24a879b08ef85c9bdcc2d3a7df3bc28304f76b5aa8f76a87d249112"
+      },
+      {
+        "path": "tests/addPlayers.index.test.js",
+        "exists": true,
+        "sha256": "9e585169903b5d8ca4880366bf2581f129796a8ac9639446ac7c8d927d97edc0"
+      },
+      {
+        "path": "tests/analytics.async-stale-response.test.js",
+        "exists": true,
+        "sha256": "1955fdee3d080e51afd4d54158498504d5aa5aedab2156c57b9f2b98776ac98c"
+      },
+      {
+        "path": "tests/analytics.share-message.test.js",
+        "exists": true,
+        "sha256": "2a72c72a890214eaccb89aa274bddb8d85244659e7dfa5f0c00865db9fadfeeb"
+      },
+      {
+        "path": "tests/button-layout-containment.test.js",
+        "exists": true,
+        "sha256": "47c7ba4c3be822db54b1695901191cb75e5930795b28e33d9230dacde4349390"
+      },
+      {
+        "path": "tests/cloud.error-matrix.test.js",
+        "exists": true,
+        "sha256": "fb116df198dd7f612cc34bf9f3ac45451f565d7300a65af0cae2f3e35b259cff"
+      },
+      {
+        "path": "tests/critical-write-guards.test.js",
+        "exists": true,
+        "sha256": "e60816a8666e5b913ed3db6542f04fb6c4ac4f6ca47fc24b6e8b0c8c3ee2ec62"
+      },
+      {
+        "path": "tests/critical-write-timeout-reentry.test.js",
+        "exists": true,
+        "sha256": "06aaaac383b316db71af4385a4ba971d2574e3277ea9cd7108c0931e0fb36c32"
+      },
+      {
+        "path": "tests/deleteTournament.index.test.js",
+        "exists": true,
+        "sha256": "993cfac5118cca8c10548fbc42a235be1adaa5a2d1fb25f6f676b38a7942af6d"
+      },
+      {
+        "path": "tests/home.cache-fallback.test.js",
+        "exists": true,
+        "sha256": "8021380311fb214e4da0e7a68a3196d55292a4ea45dfbcf5f53c0af242cdea97"
+      },
+      {
+        "path": "tests/home.clone-timeout-reentry.test.js",
+        "exists": true,
+        "sha256": "a63d3e48bfd5180249725e4e110206f0ea2630a38d1e27f845100a126c2c0048"
+      },
+      {
+        "path": "tests/home.delete-clears-tournament-cache.test.js",
+        "exists": true,
+        "sha256": "0e0fe245cfe7334282ed007319ff4ba389b3ca3f1148424cc0428a7e92895b56"
+      },
+      {
+        "path": "tests/home.finished-entry-routing.test.js",
+        "exists": true,
+        "sha256": "3dc7e9a516928f71ad63ba4fa0cc3c9ef72c7a18c17531f01a0187fb8a16378a"
+      },
+      {
+        "path": "tests/home.hero-state.test.js",
+        "exists": true,
+        "sha256": "1e5644d37f5e3a97cc90bb241c9ab35ce625b0c5f9cda13c5c98a251a2f27dd7"
+      },
+      {
+        "path": "tests/home.sync-banner.test.js",
+        "exists": true,
+        "sha256": "261a76013ea979a95ba699317a172d096f9d2d90bc565fc015b9c8570d39aa47"
+      },
+      {
+        "path": "tests/list-density-motion.test.js",
+        "exists": true,
+        "sha256": "2324cd185f476dcdff28c3e1d70241ddf1fde7f138480e053c8bfc88ae54e627"
+      },
+      {
+        "path": "tests/lobby-admin-view-role-partition.test.js",
+        "exists": true,
+        "sha256": "1a6fbbd82271a514f4dcaf70626a8af42241efc2d334464f867b72c575b7f4a8"
+      },
+      {
+        "path": "tests/lobby.admin-manage-actions.test.js",
+        "exists": true,
+        "sha256": "5eceb66beeb782c2b406f7a11630191788f1caf7c1c234ec13d291219e01a8f3"
+      },
+      {
+        "path": "tests/lobby.dynamic-share-ui.test.js",
+        "exists": true,
+        "sha256": "6b9bf604d0670092bad0c366bda03d2d3f61352e9e3043662d5433d52b922ff4"
+      },
+      {
+        "path": "tests/lobby.focus-start-intent.test.js",
+        "exists": true,
+        "sha256": "92cc1d0d81a435dc327be9ba6b4ef44e0847037bbca3254a605a61a43e1fa306"
+      },
+      {
+        "path": "tests/lobby.handle-join-timeout-reentry.test.js",
+        "exists": true,
+        "sha256": "26fcba3dee5e9b278011d831e8b26a51995bf67b03ef3bde015956bd5b6c7bf0"
+      },
+      {
+        "path": "tests/lobby.hero-structure.test.js",
+        "exists": true,
+        "sha256": "701d0caba233ea6bbd64331db1ebc88c354315922d011ad7167c195fc7b19672"
+      },
+      {
+        "path": "tests/lobby.share-primary-cta.test.js",
+        "exists": true,
+        "sha256": "d91cbec7a5ead43ed3f548bb7ad9e9872ea19088d73dc94117636f0637789eff"
+      },
+      {
+        "path": "tests/lobby.viewmodel.test.js",
+        "exists": true,
+        "sha256": "75dd44c464a5b559b13f777c615e1081e5fce89a1ad12c8853739e9e6154ec10"
+      },
+      {
+        "path": "tests/managePairTeams.index.test.js",
+        "exists": true,
+        "sha256": "7928e720758c77c288e415b3414da5680feeb8c82b16f43ed7fac7033b88614e"
+      },
+      {
+        "path": "tests/match.lock-guard.test.js",
+        "exists": true,
+        "sha256": "44df7cc00aff4faae463327573b9bdd3e9c9c82f101348ac1a2ba8092005b2b9"
+      },
+      {
+        "path": "tests/match.lock-lifecycle.test.js",
+        "exists": true,
+        "sha256": "436febb575054d1956a5dab6eb48515294f723e4b3bf3c4b011d2768d96cbfac"
+      },
+      {
+        "path": "tests/match.navigation-timer-cleanup.test.js",
+        "exists": true,
+        "sha256": "61e5f3acdb8bd874318a05f2e8aa0a63be0e79f473c254d2feaffba26056dda9"
+      },
+      {
+        "path": "tests/match.quick-scores.test.js",
+        "exists": true,
+        "sha256": "3cd138ea8e7ea65a26df087287e82ba8aadd32867a1dcd5c9d57280aae1b9ce4"
+      },
+      {
+        "path": "tests/match.submit-recover.test.js",
+        "exists": true,
+        "sha256": "85ea4a999f594ae6770427df9d3c3aa7380f08a731dbac3f2c3686073df9c43a"
+      },
+      {
+        "path": "tests/page-delayed-navigation-cleanup.test.js",
+        "exists": true,
+        "sha256": "67718f77374f042e1657476df970155bf8cc50abca6edbb6a7303adfd798189c"
+      },
+      {
+        "path": "tests/page-sync.contract.test.js",
+        "exists": true,
+        "sha256": "e1d6bd3424066d84957f259756078daa7249387fb8e87644a04e8028a68db823"
+      },
+      {
+        "path": "tests/post-save-start-focus.test.js",
+        "exists": true,
+        "sha256": "cb4f75bfef14a6606a9b589e9dbf20a350d7b636e06e9cae8fc38b7bc3808417"
+      },
+      {
+        "path": "tests/profile.test.js",
+        "exists": true,
+        "sha256": "f7db3f2b19bbe6979345f48eec430448aac4daccf6cd7a6e511dfaf19aa0e187"
+      },
+      {
+        "path": "tests/ranking-offline-stale-banner.test.js",
+        "exists": true,
+        "sha256": "31159145a8fbbc16def614b96249fe5b052479aeb710ac987b94e632dd9a8a55"
+      },
+      {
+        "path": "tests/ranking.async-stale-response.test.js",
+        "exists": true,
+        "sha256": "69992e5d1dfd88ccd5d3eed62e9475391abf339c3a1f6e8859caa564e9b27a3e"
+      },
+      {
+        "path": "tests/ranking.fetch-result-shape.test.js",
+        "exists": true,
+        "sha256": "be9f18ee68c673cd11297608af9d176bad89ccfd40cca02b7b0d6bccc74cdda1"
+      },
+      {
+        "path": "tests/removePlayer.index.test.js",
+        "exists": true,
+        "sha256": "e6c9b4c9be53f708a788e7c7583312261629eaa7d7131b1ba4f878400ef02103"
+      },
+      {
+        "path": "tests/retry.action.test.js",
+        "exists": true,
+        "sha256": "16ecd0eafdb4367127c2aadd6e6cfddbb558d4b78ea3f9abde989c26d541f314"
+      },
+      {
+        "path": "tests/rotation-fixed-preset-page.test.js",
+        "exists": true,
+        "sha256": "4ab4b9114fef0b6d53972db68ec27e42bff31e7389c59d51743044fb794d02d5"
+      },
+      {
+        "path": "tests/schedule.avatar-filter.test.js",
+        "exists": true,
+        "sha256": "ba5704e2eb2ad82cd3a00b949f91c628390325686ddfc1a8f55afec0be93709b"
+      },
+      {
+        "path": "tests/scoreLock.index.test.js",
+        "exists": true,
+        "sha256": "7ea3bcad3215abd351b7592b41f0ed20faa0656ca9a69ce69a9edbd35674df56"
+      },
+      {
+        "path": "tests/scoreLock.logic.test.js",
+        "exists": true,
+        "sha256": "0da2c8162e02c0ee13a0e300190a68d4f7d27783590459338e28bc47280bb30c"
+      },
+      {
+        "path": "tests/setPlayerSquad.index.test.js",
+        "exists": true,
+        "sha256": "94994a87ab475f992c6b04227df7695c74db42d02bd0bb0c1fc76c4a72c3bf99"
+      },
+      {
+        "path": "tests/share-card-stats.test.js",
+        "exists": true,
+        "sha256": "6a7d5fbab6adae73bbcb8feaf98968f41b34d3d44308e6ea45e1295896f351ed"
+      },
+      {
+        "path": "tests/stage1.explanation-copy.test.js",
+        "exists": true,
+        "sha256": "59af0e310a07ec3bf2832d2760aae2a8f0b9dbf636d44e83fe3432d63436c37e"
+      },
+      {
+        "path": "tests/submitScore.index.test.js",
+        "exists": true,
+        "sha256": "bdbc14d2ef073cef5383a5bd0a8207d9bf6d465e15baeb492240697167a0d3c3"
+      },
+      {
+        "path": "tests/syncStatus.test.js",
+        "exists": true,
+        "sha256": "d2e496c5dc289fb6b0cffbb933342e2ee26372c5c69b663e39341838817475af"
+      },
+      {
+        "path": "tests/tournamentSync.not-found-no-cache-fallback.test.js",
+        "exists": true,
+        "sha256": "a990d64a787ca31ae68973c346346bf3f02960dda449a7f1d1b94e7dd75b8b0d"
+      },
+      {
+        "path": "tests/tournamentVersion.test.js",
+        "exists": true,
+        "sha256": "2883bffb7b6fffaa93647219baa26f87b759d02ce8a5459e5542020e755600ca"
+      },
+      {
+        "path": "tests/watch.multi-page-lifecycle.test.js",
+        "exists": true,
+        "sha256": "16135ea5dbb1c6045295cc718c7aae6a91f0fafb040603509112612b994b63b6"
+      },
+      {
+        "path": "tests/watch.polling-backoff.test.js",
+        "exists": true,
+        "sha256": "c302f889b1915529cf6817bbcc37f9fdcebc25241ec7ebac4ae49126e0218b6b"
+      },
+      {
+        "path": "tests/waterSession.ui-copy.test.js",
+        "exists": true,
+        "sha256": "5485d9110be76fe7feda6872bb1a888561b41aa81a984fb6badb9a1e9a243455"
+      },
+      {
+        "path": "tests/weapp-ui-screenshot-cases.test.js",
+        "exists": true,
+        "sha256": "094feddf5f71e2bb23d91ff809df1f12c224b119177dcade431b697ec47ce76a"
+      }
+    ]
+  },
+  "pageSize": {
+    "width": 390,
+    "height": 2461
+  },
+  "dom": [
+    {
+      "selector": ".water-page",
+      "index": 0,
+      "text": "#016 流水 8月9日打水局 第3轮 24 位球友 · 12 笔账 · 16 条流水 往期 › 总账 流水 球友 流水 #016 · 阿杰完成一次更正 赢水 − 请水 按净水排序 阿杰 赢 8 请 2 +6 − ＋ 王姐 赢 7 请 2 +5 − ＋ Chris 赢 6 请 2 +4 − ＋ 陈哥 赢 5 请 2 +3 − ＋ 小林 赢 4 请 2 +2 − ＋ 阿岚 赢 3 请 2 +1 − ＋ 老谢 赢 3 请 2 +1 − ＋ 胜高远 赢 3 请 2 +1 − ＋ 羽球新手小陈同学 赢 3 请 2 +1 − ＋ 周末限定超长昵称球友 赢 3 请 2 +1 − ＋ Mia 赢 3 请 2 +1 − ＋ Zoe 赢 3 请 2 +1 − ＋ 安安 赢 2 请 3 -1 − ＋ 佳佳 赢 2 请 3 -1 − ＋ 林夕 赢 2 请 3 -1 − ＋ 苏苏 赢 2 请 3 -1 − ＋ 文博 赢 2 请 3 -1 − ＋ 小唐 赢 2 请 3 -1 − ＋ Eason 赢 2 请 3 -1 − ＋ 赵哥 赢 2 请 4 -2 − ＋ 梁姐 赢 2 请 5 -3 − ＋ 小梅 赢 2 请 6 -4 − ＋ 小许 赢 2 请 7 -5 − ＋ 小宇 赢 2 请 8 -6 − ＋",
+      "size": {
+        "width": 390,
+        "height": 2461
+      },
+      "offset": {
+        "left": 0,
+        "top": 0
+      }
+    },
+    {
+      "selector": ".water-game-sheet",
+      "index": 0,
+      "text": "记一局 24 人可选 × 双方人数相同即可，1 对 1 也能记 选胜方 12 选负方 12 胜方 阿杰、王姐… VS 负方 小宇、小许… 查看完整阵容 ⌕ 搜索球友姓名 24 人 上下滑动 · 点姓名移入负方 当前：负方 负 小宇 负 小许 负 小梅 负 梁姐 负 赵哥 负 安安 负 文博 负 苏苏 负 Eason 负 小唐 负 林夕 负 佳佳 胜 阿杰 胜 王姐 胜 Chris 胜 陈哥 胜 小林 胜 Mia 胜 阿岚 胜 胜高远 胜 老谢 胜 周末限定超长昵称球友 胜 Zoe 胜 羽球新手小陈同学 每人水数 1 水 ⌄ 双方人数相同 · 每人 1 水 确认记一局",
+      "size": {
+        "width": 390,
+        "height": 659
+      },
+      "offset": {
+        "left": 0,
+        "top": 60.263607025146484
+      }
+    },
+    {
+      "selector": ".water-game-sheet .water-search",
+      "index": 0,
+      "text": "⌕ 搜索球友姓名 24 人",
+      "size": {
+        "width": 362,
+        "height": 50
+      },
+      "offset": {
+        "left": 13.996599197387695,
+        "top": 339.06463623046875
+      }
+    },
+    {
+      "selector": ".water-confirm-button",
+      "index": 0,
+      "text": "确认记一局",
+      "size": {
+        "width": 362,
+        "height": 48
+      },
+      "offset": {
+        "left": 13.996599197387695,
+        "top": 660.2125854492188
+      }
+    },
+    {
+      "selector": ".water-player-chip.is-winner",
+      "index": 0,
+      "text": "胜 阿杰",
+      "size": {
+        "width": 184,
+        "height": 52
+      },
+      "offset": {
+        "left": 13.996599197387695,
+        "top": 644.7789306640625
+      }
+    },
+    {
+      "selector": ".water-player-chip.is-winner",
+      "index": 1,
+      "text": "胜 王姐",
+      "size": {
+        "width": 184,
+        "height": 52
+      },
+      "offset": {
+        "left": 136.39456176757812,
+        "top": 644.7789306640625
+      }
+    },
+    {
+      "selector": ".water-player-chip.is-winner",
+      "index": 2,
+      "text": "胜 Chris",
+      "size": {
+        "width": 184,
+        "height": 52
+      },
+      "offset": {
+        "left": 258.7925109863281,
+        "top": 644.7789306640625
+      }
+    },
+    {
+      "selector": ".water-player-chip.is-winner",
+      "index": 3,
+      "text": "胜 陈哥",
+      "size": {
+        "width": 184,
+        "height": 52
+      },
+      "offset": {
+        "left": 13.996599197387695,
+        "top": 701.7687377929688
+      }
+    },
+    {
+      "selector": ".water-player-chip.is-winner",
+      "index": 4,
+      "text": "胜 小林",
+      "size": {
+        "width": 184,
+        "height": 52
+      },
+      "offset": {
+        "left": 136.39456176757812,
+        "top": 701.7687377929688
+      }
+    },
+    {
+      "selector": ".water-player-chip.is-winner",
+      "index": 5,
+      "text": "胜 Mia",
+      "size": {
+        "width": 184,
+        "height": 52
+      },
+      "offset": {
+        "left": 258.7925109863281,
+        "top": 701.7687377929688
+      }
+    },
+    {
+      "selector": ".water-player-chip.is-winner",
+      "index": 6,
+      "text": "胜 阿岚",
+      "size": {
+        "width": 184,
+        "height": 52
+      },
+      "offset": {
+        "left": 13.996599197387695,
+        "top": 758.758544921875
+      }
+    },
+    {
+      "selector": ".water-player-chip.is-winner",
+      "index": 7,
+      "text": "胜 胜高远",
+      "size": {
+        "width": 184,
+        "height": 52
+      },
+      "offset": {
+        "left": 136.39456176757812,
+        "top": 758.758544921875
+      }
+    },
+    {
+      "selector": ".water-player-chip.is-winner",
+      "index": 8,
+      "text": "胜 老谢",
+      "size": {
+        "width": 184,
+        "height": 52
+      },
+      "offset": {
+        "left": 258.7925109863281,
+        "top": 758.758544921875
+      }
+    },
+    {
+      "selector": ".water-player-chip.is-winner",
+      "index": 9,
+      "text": "胜 周末限定超长昵称球友",
+      "size": {
+        "width": 184,
+        "height": 52
+      },
+      "offset": {
+        "left": 13.996599197387695,
+        "top": 815.7483520507812
+      }
+    },
+    {
+      "selector": ".water-player-chip.is-winner",
+      "index": 10,
+      "text": "胜 Zoe",
+      "size": {
+        "width": 184,
+        "height": 52
+      },
+      "offset": {
+        "left": 136.39456176757812,
+        "top": 815.7483520507812
+      }
+    },
+    {
+      "selector": ".water-player-chip.is-winner",
+      "index": 11,
+      "text": "胜 羽球新手小陈同学",
+      "size": {
+        "width": 184,
+        "height": 52
+      },
+      "offset": {
+        "left": 258.7925109863281,
+        "top": 815.7483520507812
+      }
+    },
+    {
+      "selector": ".water-player-chip.is-loser",
+      "index": 0,
+      "text": "负 小宇",
+      "size": {
+        "width": 184,
+        "height": 52
+      },
+      "offset": {
+        "left": 13.996599197387695,
+        "top": 416.8197326660156
+      }
+    },
+    {
+      "selector": ".water-player-chip.is-loser",
+      "index": 1,
+      "text": "负 小许",
+      "size": {
+        "width": 184,
+        "height": 52
+      },
+      "offset": {
+        "left": 136.39456176757812,
+        "top": 416.8197326660156
+      }
+    },
+    {
+      "selector": ".water-player-chip.is-loser",
+      "index": 2,
+      "text": "负 小梅",
+      "size": {
+        "width": 184,
+        "height": 52
+      },
+      "offset": {
+        "left": 258.7925109863281,
+        "top": 416.8197326660156
+      }
+    },
+    {
+      "selector": ".water-player-chip.is-loser",
+      "index": 3,
+      "text": "负 梁姐",
+      "size": {
+        "width": 184,
+        "height": 52
+      },
+      "offset": {
+        "left": 13.996599197387695,
+        "top": 473.8095397949219
+      }
+    },
+    {
+      "selector": ".water-player-chip.is-loser",
+      "index": 4,
+      "text": "负 赵哥",
+      "size": {
+        "width": 184,
+        "height": 52
+      },
+      "offset": {
+        "left": 136.39456176757812,
+        "top": 473.8095397949219
+      }
+    },
+    {
+      "selector": ".water-player-chip.is-loser",
+      "index": 5,
+      "text": "负 安安",
+      "size": {
+        "width": 184,
+        "height": 52
+      },
+      "offset": {
+        "left": 258.7925109863281,
+        "top": 473.8095397949219
+      }
+    },
+    {
+      "selector": ".water-player-chip.is-loser",
+      "index": 6,
+      "text": "负 文博",
+      "size": {
+        "width": 184,
+        "height": 52
+      },
+      "offset": {
+        "left": 13.996599197387695,
+        "top": 530.79931640625
+      }
+    },
+    {
+      "selector": ".water-player-chip.is-loser",
+      "index": 7,
+      "text": "负 苏苏",
+      "size": {
+        "width": 184,
+        "height": 52
+      },
+      "offset": {
+        "left": 136.39456176757812,
+        "top": 530.79931640625
+      }
+    },
+    {
+      "selector": ".water-player-chip.is-loser",
+      "index": 8,
+      "text": "负 Eason",
+      "size": {
+        "width": 184,
+        "height": 52
+      },
+      "offset": {
+        "left": 258.7925109863281,
+        "top": 530.79931640625
+      }
+    },
+    {
+      "selector": ".water-player-chip.is-loser",
+      "index": 9,
+      "text": "负 小唐",
+      "size": {
+        "width": 184,
+        "height": 52
+      },
+      "offset": {
+        "left": 13.996599197387695,
+        "top": 587.7891235351562
+      }
+    },
+    {
+      "selector": ".water-player-chip.is-loser",
+      "index": 10,
+      "text": "负 林夕",
+      "size": {
+        "width": 184,
+        "height": 52
+      },
+      "offset": {
+        "left": 136.39456176757812,
+        "top": 587.7891235351562
+      }
+    },
+    {
+      "selector": ".water-player-chip.is-loser",
+      "index": 11,
+      "text": "负 佳佳",
+      "size": {
+        "width": 184,
+        "height": 52
+      },
+      "offset": {
+        "left": 258.7925109863281,
+        "top": 587.7891235351562
+      }
+    },
+    {
+      "selector": ".water-game-validation",
+      "index": 0,
+      "text": "双方人数相同 · 每人 1 水",
+      "size": {
+        "width": 362,
+        "height": 17
+      },
+      "offset": {
+        "left": 13.996599197387695,
+        "top": 638.2228393554688
+      }
+    },
+    {
+      "selector": ".water-action-dock",
+      "index": 0,
+      "text": "记一局 单独记水",
+      "size": {
+        "width": 390,
+        "height": 103
+      },
+      "offset": {
+        "left": 0,
+        "top": 650.2125854492188
+      }
+    }
+  ],
+  "selectorCoverage": {
+    "ok": true,
+    "missing": []
+  },
+  "horizontalAlignment": null,
+  "horizontalOverflow": {
+    "ok": true,
+    "contentWidth": 390,
+    "viewportWidth": 390,
+    "overflow": 0,
+    "tolerance": 1
+  },
+  "projectProvenance": {
+    "ok": true,
+    "reason": "",
+    "mode": "connect-preopened",
+    "evidence": "WEAPP_PROJECT_PROVENANCE_LOG",
+    "expectedProjectPath": "d:/projects(win)/badminton-miniapp",
+    "endpoint": "ws://127.0.0.1:39450",
+    "logPath": "D:\\projects(WIN)\\badminton-miniapp\\tmp\\ui-review-capture-20260831\\launcher-provenance.json"
+  },
+  "fixtureIsolation": {
+    "ok": true,
+    "phase": "before",
+    "loadRequestSeq": 1000001,
+    "feedRequestSeq": 1000000,
+    "detailRequestSeq": 1000000,
+    "pollingFrozen": true
+  },
+  "manualActions": [
+    "原生 picker 展开态与滚轮选择",
+    "系统确认 modal 的确认与取消",
+    "键盘弹起时输入区、safe-area 与内部滚动"
+  ],
+  "receiptValidation": {
+    "ok": true,
+    "checks": {
+      "expectedWidth": true,
+      "sdkVersion": true,
+      "route": true,
+      "png": true,
+      "pixelRatio": true,
+      "fontSizeSetting": true,
+      "git": true,
+      "selectorCoverage": true,
+      "horizontalOverflow": true,
+      "projectProvenance": true
+    },
+    "pngScaleX": 1.8384615384615384,
+    "pngScaleY": 1.8379814077025232,
+    "pngScaleTolerance": 0.002564102564102564
+  },
+  "fixtureCleanup": {
+    "ok": true,
+    "phase": "cleanup",
+    "loadRequestSeq": 2000001,
+    "feedRequestSeq": 2000000,
+    "detailRequestSeq": 2000001,
+    "pollingFrozen": true
+  },
+  "cleanupError": null
+}

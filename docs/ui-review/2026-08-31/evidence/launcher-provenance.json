@@ -1,0 +1,9 @@
+{
+  "projectPath": "D:\\projects(WIN)\\badminton-miniapp",
+  "wsEndpoint": "ws://127.0.0.1:39450",
+  "endpoint": "ws://127.0.0.1:39450",
+  "port": 39450,
+  "ideHttpPort": 64413,
+  "launchedAt": "2026-08-31T00:00:00+08:00",
+  "evidence": "cli.bat auto completed with exit code 0 for the exact project path"
+}
