@@ -61,3 +61,26 @@ V2已有createRound事务，但原入口藏在往期、默认继承全名单；V
 - 390发起/新账/历史正常三图，两隔离评审均无新增P0/P1，结论一致：绿白层级、全宽新建/添加、长标题和底部安全区可见状态正常。主控采纳，无需进一步样式修改。430、键盘、完整交互和最终用户验收未覆盖；fixture截图不证明线上云链路。
 - 截图样式门禁现在同时核验元素与computed style，已避免无样式图冒充通过。相邻case同一路径连续reLaunch、中间省略中性页重建是批次与单跑的已观察差异；Element.style每次实际请求而非值缓存。未证明它是内部根因，未放宽门禁或增加盲重试；保留为批次工具限制，不声称超时/失样式彻底修复。
 - 本轮没有commit、push、PR、preview、upload、云部署、真实数据写入。独立账本每次重新添加球友，旧账和旧邀请保留；云新增接口及索引仍待独立部署授权。文档本次更新后，下次截图仍需按既有流程刷新源码签名。
+
+## 已授权交付执行与云端待确认
+
+用户明确授权“提交，推送，部署好云接口”。提交前全量1466项/1460通过/0失败/6跳过；此前最终check通过、lint0错误42警告。新阶段只整理记录并修复一处文档尾空行，无产品新增变化。
+
+已提交并推送origin/codex/online-audit-optimizations-20260828：
+- a85e326：后台工具、固定Codex授权入口、工作流与历史证据。
+- 9c25075：独立账本云API、23份common同步、录分锁及异步/错误合同修复。
+- d1d0040：独立账本原生页面、最近/历史入口与直接测试。
+
+未纳入Git：.playwright-cli/、preview-qrcodes/、全部tmp截图/日志和密钥。tracked源码干净，未强推或合并master，未upload/发布客户端。
+
+原环境通过已授权WechatIDE cloud_env_list再次核实：appid wxf6f4e0b09e293521，唯一环境cloud1-1ghmqjyt6428702b。tcb CLI失去登录态，未重新登录，改用现有Codex客户端+Token的官方云工具。远端39个函数，本地23个均需部署以同步common；未删除其他16个。waterRoomMembers现有_id_与_openid_1，新openid/_id索引尚不存在。
+
+pendingTask：
+- taskId：confirmation_cloud_db_write_struct_6f974e62-0402-42c4-9345-bba0697254cb
+- 原工具：cloud_db_write_struct；客户端：Codex。
+- 参数：上述appid/env，action updateCollection，collection waterRoomMembers，仅CreateIndexes添加waterRoomMembers_openid_id_asc（openid ASC，_id ASC，非唯一），不删索引/集合/文档。
+- 最后状态：pending，Waiting for user confirmation；未主动轮询、未重复写。
+- 请求与回执：tmp/authorized-index-create.json、tmp/authorized-index-create.log。临时官方调用适配器tmp/authorized-cloud-call.cjs读取原配置，未保存/输出Token。
+- 暂无函数部署请求，索引也不能称已创建。用户在DevTools确认后，先polling_task_result查询上述taskId，不重发；成功再listIndexes核验，然后逐个cloud_fn_deploy --remote-npm-install，最后cloud_fn_info读取23个状态。函数名来源cloudbaserc.json，目录固定canonical cloudfunctions/<name>。
+
+这不是聊天授权缺失，也不是MCP客户端重新授权；是官方工具自身云写确认门禁。遵守安装包references/async-task-polling.md和approval-policy.md，不代用户绕过确认。用户回来后继续既有部署授权，不再请求同一范围批准。
