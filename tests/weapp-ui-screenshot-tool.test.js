@@ -3,1378 +3,1608 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const zlib = require('node:zlib');
 const screenshotTool = require('../scripts/dev/weapp-ui-screenshot');
+const screenshotScriptSource = fs.readFileSync(
+  path.join(__dirname, '..', 'scripts/dev/weapp-ui-screenshot.js'),
+  'utf8'
+);
 
-const scriptPath = path.join(__dirname, '..', 'scripts/dev/weapp-ui-screenshot.js');
-const helperPath = path.join(__dirname, '..', 'scripts/dev/weapp-devtools-win32-capture.ps1');
+let crcTable = null;
 
-function validPrepare() {
+function crc32(buffer) {
+  if (!crcTable) {
+    crcTable = Array.from({ length: 256 }, (_, index) => {
+      let value = index;
+      for (let bit = 0; bit < 8; bit += 1) {
+        value = (value & 1) ? (0xedb88320 ^ (value >>> 1)) : (value >>> 1);
+      }
+      return value >>> 0;
+    });
+  }
+  let crc = 0xffffffff;
+  for (const byte of buffer) crc = crcTable[(crc ^ byte) & 0xff] ^ (crc >>> 8);
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function pngChunk(type, data) {
+  const typeBuffer = Buffer.from(type, 'ascii');
+  const chunk = Buffer.alloc(data.length + 12);
+  chunk.writeUInt32BE(data.length, 0);
+  typeBuffer.copy(chunk, 4);
+  data.copy(chunk, 8);
+  chunk.writeUInt32BE(crc32(Buffer.concat([typeBuffer, data])), data.length + 8);
+  return chunk;
+}
+
+function createPngBuffer(width, height, byteLength = 24 * 1024) {
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr[8] = 8;
+  ihdr[9] = 6;
+  const rowBytes = (width * 4) + 1;
+  const pixels = Buffer.alloc(rowBytes * height);
+  const padding = Buffer.alloc(Math.max(0, byteLength), 120);
+  return Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    pngChunk('IHDR', ihdr),
+    pngChunk('tEXt', padding),
+    pngChunk('IDAT', zlib.deflateSync(pixels)),
+    pngChunk('IEND', Buffer.alloc(0)),
+  ]);
+}
+
+function createListenerIdentity(endpoint, port) {
   return {
-    kind: 'wechat-devtools-win32-prepare-v1',
-    captureMode: 'visible',
-    name: 'waterV2OwnerEmpty',
-    prepareId: 'f'.repeat(64),
-    nonce: 'e'.repeat(64),
-    pageId: 'page-123',
-    endpoint: 'ws://127.0.0.1:64530',
-    sourceProjectPath: path.resolve('fixture-project'),
-    expectedRoute: '/pages/water/index',
-    expectedWindowWidth: 390,
-    expectedSDKVersion: '3.14.2',
-    fixtureHash: 'a'.repeat(64),
-    pageDataHash: 'b'.repeat(64),
-    domHash: 'c'.repeat(64),
-    systemInfoHash: 'd'.repeat(64),
-    gitHash: '1'.repeat(64),
-    systemInfo: {
-      model: 'iPhone 12/13 (Pro)',
-      screenWidth: 390,
-      screenHeight: 844,
-      windowWidth: 390,
-      windowHeight: 753,
-      pixelRatio: 3,
-      fontSizeSetting: 16,
+    ok: true,
+    endpoint,
+    port,
+    localAddresses: ['127.0.0.1'],
+    owningProcessId: 4321,
+    processStartFileTimeUtc: '133999999999999999',
+    sessionId: 1,
+    executablePath: 'D:\\Soft\\微信web开发者工具\\wechatdevtools.exe',
+    backgroundCaptureFlags: {
+      disableBackgroundingOccludedWindows: true,
     },
-    windowBinding: {
-      processId: 84288,
-      hwnd: '0x17D0384',
-      title: 'badminton-rotation-miniapp - 微信开发者工具',
-      captureMode: 'visible',
-      dpiAwareness: 'per-monitor-aware-v2',
-      desktopId: '798af4b3-e850-4468-992a-1f512a3a2340',
-      isOnCurrentVirtualDesktop: true,
-      visible: true,
-      minimized: false,
-      cloaked: false,
-      cloakState: 0,
-      dpi: 144,
-      windowRect: { x: 0, y: 0, width: 2582, height: 1538 },
-    },
-    screenCalibration: {
-      source: 'explicit-screen-rect',
-      processId: 84288,
-      hwnd: '0x17D0384',
-      dpi: 144,
-      model: 'iPhone 12/13 (Pro)',
-      logicalScreen: { width: 390, height: 844 },
-      logicalWindow: { width: 390, height: 753 },
-      windowRect: { x: 0, y: 0, width: 2582, height: 1538 },
-      screenRect: { x: 1862, y: 179, width: 523, height: 1132 },
-    },
+    processChain: [{
+      processId: 4321,
+      parentProcessId: 1,
+      processStartFileTimeUtc: '133999999999999999',
+      sessionId: 1,
+      executablePath: 'D:\\Soft\\微信web开发者工具\\wechatdevtools.exe',
+      backgroundCaptureFlags: {
+        disableBackgroundingOccludedWindows: true,
+      },
+    }],
   };
 }
 
-test('two-stage CLI modes are explicit and reject ambiguous arguments', () => {
-  assert.deepEqual(screenshotTool.parseScreenshotArgs(['--prepare', 'waterV2OwnerEmpty']), {
-    mode: 'prepare',
-    value: 'waterV2OwnerEmpty',
+function createSession(projectPath, endpoint, port, overrides = {}) {
+  const listenerIdentity = createListenerIdentity(endpoint, port);
+  return {
+    kind: screenshotTool.SESSION_KIND,
+    sessionId: 'a'.repeat(64),
+    endpoint,
+    sourceProjectPath: projectPath,
+    projectPathHash: screenshotTool.hashCanonical(screenshotTool.normalizeProjectPath(projectPath)),
+    expectedWindowWidth: 390,
+    expectedSDKVersion: '3.7.12',
+    listenerIdentity,
+    projectBinding: {
+      ok: true,
+      method: screenshotTool.PROJECT_BINDING_METHOD,
+      listenerIdentityHash: screenshotTool.listenerIdentityHash(listenerIdentity),
+    },
+    gitManifestHash: screenshotTool.hashCanonical(screenshotTool.currentGitManifest()),
+    ...overrides,
+  };
+}
+
+test('CLI exposes only list, doctor and direct background capture modes', () => {
+  assert.deepEqual(screenshotTool.parseScreenshotArgs(['--list']), { mode: 'list', value: '' });
+  assert.deepEqual(screenshotTool.parseScreenshotArgs(['--doctor']), { mode: 'doctor', value: '' });
+  assert.deepEqual(screenshotTool.parseScreenshotArgs(['launch']), { mode: 'capture', value: ['launch'] });
+  assert.throws(() => screenshotTool.parseScreenshotArgs(['--prepare', 'launch']), /removed|background/i);
+  assert.throws(() => screenshotTool.parseScreenshotArgs(['--capture-win32', 'x.json']), /removed|background/i);
+  assert.equal(screenshotTool.prepareCase, undefined);
+  assert.equal(screenshotTool.capturePreparedWin32, undefined);
+  assert.equal(screenshotTool.invokeWin32Helper, undefined);
+});
+
+test('viewport rebind requires an explicit positive target', () => {
+  assert.deepEqual(screenshotTool.parseScreenshotArgs(['--rebind-viewport', '390']), {
+    mode: 'refresh-session', value: '', rebindViewport: 390,
   });
-  assert.deepEqual(screenshotTool.parseScreenshotArgs(['--capture-win32', 'tmp/water.prepare.json']), {
-    mode: 'capture-win32',
-    value: 'tmp/water.prepare.json',
+  for (const args of [['--rebind-viewport'], ['--rebind-viewport', '0'], ['--rebind-viewport', 'auto']]) {
+    assert.throws(() => screenshotTool.parseScreenshotArgs(args), /viewport/);
+  }
+});
+
+test('explicit viewport rebind preserves launch provenance and requires two-stage compile proof', async (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-rebind-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const Module = require('node:module');
+  const scriptPath = require.resolve('../scripts/dev/weapp-ui-screenshot');
+  const isolated = new Module(scriptPath, module);
+  isolated.filename = scriptPath;
+  isolated.paths = Module._nodeModulePaths(path.dirname(scriptPath));
+  isolated._compile(screenshotScriptSource + '\ncurrentGitManifest = () => ({ ok: true, head: "' + '1'.repeat(40) + '", dirty: false, status: [], files: [] });', scriptPath);
+  const tool = isolated.exports;
+  const projectPath = path.resolve(__dirname, '..');
+  const session = createSession(projectPath, 'ws://127.0.0.1:39501', 39501, {
+    expectedWindowWidth: 320, gitManifestHash: tool.hashCanonical(tool.currentGitManifest()),
+  });
+  const config = { session, sessionFile: path.join(tempDir, 'session.json'), wsEndpoint: session.endpoint,
+    sourceProjectPath: projectPath, expectedWindowWidth: 320, expectedSDKVersion: '3.7.12' };
+  let marker = null;
+  let width = 390;
+  let sdk = '3.7.12';
+  let identity = session.listenerIdentity;
+  const mini = {
+    async send(command) { return command === 'Tool.getInfo' ? { SDKVersion: sdk, projectPath } : { path: 'pages/home/index' }; },
+    async systemInfo() { return { windowWidth: width, windowHeight: 700, pixelRatio: 2, fontSizeSetting: 16 }; },
+    async evaluate(_fn, value) { if (value === undefined) return marker; marker = value; return { ok: true, ...value }; },
+  };
+  const options = { resolveListenerIdentity: () => identity, rebindViewport: 390 };
+  const daily = await tool.runDoctor(mini, {}, config, { resolveListenerIdentity: () => identity });
+  assert.equal(daily.ok, false);
+  assert.equal(daily.checks.viewport, false);
+  for (const wrong of ['pid', 'sdk', 'target']) {
+    identity = wrong === 'pid' ? { ...session.listenerIdentity, owningProcessId: 9999 } : session.listenerIdentity;
+    sdk = wrong === 'sdk' ? '3.17.3' : '3.7.12';
+    width = wrong === 'target' ? 430 : 390;
+    const rejected = await tool.runDoctor(mini, {}, config, options);
+    assert.equal(rejected.ok, false, wrong);
+    assert.equal(fs.existsSync(config.sessionFile), false, wrong);
+  }
+  identity = session.listenerIdentity; sdk = '3.7.12'; width = 390;
+  const first = await tool.runDoctor(mini, {}, config, options);
+  assert.equal(first.ok, false);
+  const pending = JSON.parse(fs.readFileSync(config.sessionFile, 'utf8'));
+  assert.equal(pending.expectedWindowWidth, 320);
+  assert.deepEqual(pending.pendingRefresh.viewportRebind, { from: 320, to: 390 });
+  assert.equal((await tool.runDoctor(mini, {}, { ...config, session: pending }, options)).ok, false);
+  marker = null; // Explicit background compilation rebuilt AppService.
+  const final = await tool.runDoctor(mini, {}, { ...config, session: pending }, options);
+  assert.equal(final.ok, true);
+  const trusted = JSON.parse(fs.readFileSync(config.sessionFile, 'utf8'));
+  assert.equal(trusted.expectedWindowWidth, 390);
+  assert.deepEqual(trusted.projectBinding, session.projectBinding);
+  assert.deepEqual(trusted.listenerIdentity, session.listenerIdentity);
+  assert.equal(trusted.endpoint, session.endpoint);
+  assert.equal(trusted.viewportRebindings.at(-1).from, 320);
+  assert.equal(trusted.viewportRebindings.at(-1).to, 390);
+  assert.equal(tool.validateSessionRecord(trusted, { ...config, session: trusted, expectedWindowWidth: 390 }).ok, true);
+  width = 430;
+  const drift = await tool.verifySessionBinding(mini, { ...config, session: trusted, expectedWindowWidth: 390 }, {
+    resolveListenerIdentity: () => identity,
+  });
+  assert.equal(drift.ok, false);
+  assert.equal(drift.checks.viewport, false);
+});
+
+test('background capture accepts only an explicit loopback WebSocket endpoint', () => {
+  assert.equal(screenshotTool.isLocalWebSocketEndpoint('ws://127.0.0.1:39450'), true);
+  assert.equal(screenshotTool.isLocalWebSocketEndpoint('ws://localhost:39450'), false);
+  assert.equal(screenshotTool.isLocalWebSocketEndpoint('ws://0.0.0.0:39450'), false);
+  assert.equal(screenshotTool.isLocalWebSocketEndpoint('wss://127.0.0.1:39450'), false);
+  assert.equal(screenshotTool.isLocalWebSocketEndpoint('ws://127.0.0.1'), false);
+});
+
+test('tool information preserves the official DevTools version without inferring a missing version', () => {
+  assert.deepEqual(screenshotTool.selectToolInfo({ version: '2.02.2609102', SDKVersion: '3.17.2' }), {
+    version: '2.02.2609102',
+    SDKVersion: '3.17.2',
+    platform: '',
+    compileType: '',
+    projectPath: '',
+  });
+  assert.equal(screenshotTool.selectToolInfo({ SDKVersion: '3.17.2' }).version, '');
+  assert.equal(screenshotTool.selectToolInfo().version, '');
+});
+
+test('the archived legacy Home receipt is rejected by the strict evidence contract', () => {
+  const legacyHomeEvidence = {
+    expectedWindowWidth: 390,
+    expectedRoute: '/pages/home/index',
+    toolInfo: { SDKVersion: '3.14.2' },
+    currentPageInfo: { path: 'pages/home/index', query: {} },
+    systemInfo: {
+      windowWidth: 390,
+      windowHeight: 671,
+      pixelRatio: 3,
+      fontSizeSetting: 16,
+    },
+    png: {
+      valid: true,
+      width: 717,
+      height: 1233,
+      byteLength: 59377,
+      sha256: '02f537ba10f5782a4f7c63775b4367fbf0c4f0f0a24e114572ee4e244ca47d73',
+    },
+    git: {
+      ok: true,
+      head: '55bfc4fa319ab74a33d406f05fbdab975ab8cfb7',
+      dirty: false,
+      status: [],
+      files: [],
+    },
+    selectorCoverage: { ok: true },
+    horizontalOverflow: { ok: true },
+    projectProvenance: { ok: false },
+  };
+  const validation = screenshotTool.validateReceiptEvidence(legacyHomeEvidence);
+  assert.equal(validation.ok, false);
+  assert.equal(validation.checks.projectProvenance, false);
+  assert.equal(validation.checks.sourceSnapshot, false);
+  assert.equal(
+    Object.entries(validation.checks)
+      .filter(([name]) => !['projectProvenance', 'sourceSnapshot', 'caseData'].includes(name))
+      .every(([, ok]) => ok),
+    true
+  );
+});
+
+test('simulator-frame is explicit, isolated and does not weaken source or PNG integrity gates', () => {
+  const cwd = path.resolve(__dirname, '..');
+  const env = { WEAPP_SCREENSHOT_DIR: 'tmp/surface-test/images', WEAPP_UI_RUN_ROOT: 'tmp/surface-test/runs' };
+  const page = screenshotTool.readRuntimeConfig(env, cwd);
+  const frame = screenshotTool.readRuntimeConfig({ ...env, WEAPP_CAPTURE_SURFACE: 'simulator-frame' }, cwd);
+  assert.equal(page.captureSurface, 'page');
+  assert.equal(frame.outDir, path.join(page.outDir, 'simulator-frame'));
+  assert.equal(frame.runRoot, path.join(page.runRoot, 'simulator-frame'));
+  assert.throws(() => screenshotTool.readRuntimeConfig({ WEAPP_CAPTURE_SURFACE: 'auto' }, cwd), /capture surface/i);
+  const git = { ok: true, head: 'a'.repeat(40), dirty: false, status: [], files: [] };
+  const evidence = {
+    captureSurface: 'simulator-frame', expectedWindowWidth: 390, expectedRoute: 'pages/launch/index',
+    toolInfo: { SDKVersion: '3.17.2' }, currentPageInfo: { path: 'pages/launch/index' },
+    systemInfo: { windowWidth: 390, windowHeight: 671, pixelRatio: 3, fontSizeSetting: 16 },
+    png: screenshotTool.inspectPngBuffer(createPngBuffer(476, 1026)), git,
+    expectedGitManifestHash: screenshotTool.hashCanonical(git),
+    selectorCoverage: { ok: true }, horizontalOverflow: { ok: true }, projectProvenance: { ok: true },
+    caseData: { ok: true, fixtureNonce: 'a'.repeat(32), stateBeforeHash: 'b'.repeat(64), stateAfterHash: 'b'.repeat(64) },
+  };
+  const validation = screenshotTool.validateReceiptEvidence(evidence);
+  assert.equal(validation.ok, true);
+  assert.deepEqual(validation.captureSurface, {
+    kind: 'simulator-frame', method: 'App.captureScreenshot', pageGeometryVerified: false, systemChromeNoise: true,
+  });
+  assert.equal(validation.pngScaleX, null);
+  assert.equal(validation.pngScaleY, null);
+  assert.equal(screenshotTool.validateReceiptEvidence({
+    ...evidence, systemInfo: { ...evidence.systemInfo, windowHeight: 0 },
+  }).ok, false);
+  assert.equal(screenshotTool.validateReceiptEvidence({ ...evidence, captureSurface: 'page' }).checks.png, false);
+  assert.equal(screenshotTool.validateReceiptEvidence({ ...evidence, captureSurface: undefined }).checks.png, false);
+  assert.equal(screenshotTool.validateReceiptEvidence({ ...evidence, captureSurface: 'auto' }).ok, false);
+  for (const png of [{ ...evidence.png, valid: false }, { ...evidence.png, sha256: '' }, { ...evidence.png, width: 476.5 }]) {
+    assert.equal(screenshotTool.validateReceiptEvidence({ ...evidence, png }).ok, false);
+  }
+  assert.equal(screenshotTool.validateReceiptEvidence({ ...evidence, projectProvenance: { ok: false } }).ok, false);
+  assert.equal(screenshotTool.validateReceiptEvidence({ ...evidence, expectedGitManifestHash: '' }).ok, false);
+});
+
+test('listener identity accepts the wildcard bind addresses used by Windows DevTools', () => {
+  const endpoint = 'ws://127.0.0.1:39457';
+  const result = screenshotTool.resolveListenerIdentity(endpoint, {
+    platform: 'win32',
+    spawnSync(executable, args) {
+      assert.equal(executable, 'powershell.exe');
+      const command = args[args.length - 1];
+      assert.match(command, /Console\]::OutputEncoding = \[System\.Text\.UTF8Encoding\]::new\(\$false\)/);
+      assert.match(command, /LocalAddress -eq '127\.0\.0\.1'/);
+      assert.match(command, /LocalAddress -eq '::1'/);
+      assert.match(command, /LocalAddress -eq '0\.0\.0\.0'/);
+      assert.match(command, /LocalAddress -eq '::'/);
+      assert.match(command, /disable-backgrounding-occluded-windows/);
+      return {
+        status: 0,
+        stdout: JSON.stringify({ ok: false, reason: 'not-found', port: 39457 }),
+        stderr: '',
+      };
+    },
+  });
+  assert.deepEqual(result, { ok: false, reason: 'not-found', port: 39457 });
+});
+
+test('route evidence includes normalized query parameters', () => {
+  assert.equal(
+    screenshotTool.locationsMatch(
+      { path: 'pages/water/index', query: { id: 'demo', tab: 'ledger' } },
+      '/pages/water/index?tab=ledger&id=demo'
+    ),
+    true
+  );
+  assert.equal(
+    screenshotTool.locationsMatch(
+      { path: 'pages/water/index', query: { id: 'wrong' } },
+      '/pages/water/index?id=demo'
+    ),
+    false
+  );
+});
+
+test('listener identity pins endpoint, owner process and process start time', () => {
+  const endpoint = 'ws://127.0.0.1:39456';
+  const expected = createListenerIdentity(endpoint, 39456);
+  assert.equal(screenshotTool.validateListenerIdentity(expected, expected).ok, true);
+  assert.equal(screenshotTool.validateListenerIdentity({
+    ...expected,
+    processStartFileTimeUtc: '133000000000000000',
+  }, expected).ok, false);
+  assert.equal(screenshotTool.validateDevToolsOwnership(
+    expected,
+    'D:\\Soft\\微信web开发者工具\\cli.bat'
+  ).ok, true);
+  assert.equal(screenshotTool.validateBackgroundCaptureProcessFlags(expected).ok, true);
+  assert.equal(screenshotTool.validateBackgroundCaptureProcessFlags({
+    ...expected,
+    backgroundCaptureFlags: { disableBackgroundingOccludedWindows: false },
+    processChain: expected.processChain.map((item) => ({
+      ...item,
+      backgroundCaptureFlags: { disableBackgroundingOccludedWindows: false },
+    })),
+  }).ok, false);
+});
+
+test('the shared screenshot session lock rejects a live second owner and releases by token', (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-session-lock-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const sessionFile = path.join(tempDir, 'session.json');
+  const resolveProcessIdentity = (processId) => ({
+    ok: true,
+    processId,
+    processStartFileTimeUtc: 'lock-owner-start',
+  });
+  const first = screenshotTool.acquireSessionLock(sessionFile, 'first', { resolveProcessIdentity });
+  assert.throws(
+    () => screenshotTool.acquireSessionLock(sessionFile, 'second', { resolveProcessIdentity }),
+    /session is busy/i
+  );
+  assert.deepEqual(screenshotTool.releaseSessionLock(first), { ok: true, released: true });
+  const second = screenshotTool.acquireSessionLock(sessionFile, 'second', { resolveProcessIdentity });
+  assert.equal(screenshotTool.releaseSessionLock(second).ok, true);
+});
+
+test('session lock release fails closed when the owned lock is missing or unreadable', (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-session-release-lock-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const sessionFile = path.join(tempDir, 'session.json');
+  const resolveProcessIdentity = (processId) => ({
+    ok: true,
+    processId,
+    processStartFileTimeUtc: 'release-owner-start',
+  });
+
+  const unreadable = screenshotTool.acquireSessionLock(sessionFile, 'unreadable', { resolveProcessIdentity });
+  fs.writeFileSync(unreadable.lockFile, '{malformed', 'utf8');
+  assert.deepEqual(screenshotTool.releaseSessionLock(unreadable), {
+    ok: false,
+    released: false,
+    reason: 'lock exists but is unreadable',
   });
   assert.throws(
-    () => screenshotTool.parseScreenshotArgs(['--prepare', 'waterV2OwnerEmpty', 'waterV2Member24']),
-    /exactly one case/i
+    () => screenshotTool.releaseSessionLockOrThrow(unreadable),
+    /lock release failed/i
   );
+  assert.equal(fs.existsSync(unreadable.lockFile), true);
+  fs.rmSync(unreadable.lockFile);
+
+  const missing = screenshotTool.acquireSessionLock(sessionFile, 'missing', { resolveProcessIdentity });
+  fs.rmSync(missing.lockFile);
+  assert.deepEqual(screenshotTool.releaseSessionLock(missing), {
+    ok: false,
+    released: false,
+    reason: 'lock missing before release',
+  });
+});
+
+test('only prewarm recovers a PID-reused stale session lock without deleting evidence', (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-session-stale-lock-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const sessionFile = path.join(tempDir, 'session.json');
+  const first = screenshotTool.acquireSessionLock(sessionFile, 'old', {
+    resolveProcessIdentity: (processId) => ({ ok: true, processId, processStartFileTimeUtc: 'old-start' }),
+  });
+  const newIdentity = (processId) => ({ ok: true, processId, processStartFileTimeUtc: 'new-start' });
   assert.throws(
-    () => screenshotTool.parseScreenshotArgs(['--prepare']),
-    /requires/i
+    () => screenshotTool.acquireSessionLock(sessionFile, 'capture', { resolveProcessIdentity: newIdentity }),
+    /must be recovered by a new ui:prewarm/i
   );
-});
-
-test('canonical hashes lock fixture and rendered page data independent of key order', () => {
-  const left = { z: 3, a: { y: [2, 1], x: true } };
-  const right = { a: { x: true, y: [2, 1] }, z: 3 };
-  assert.equal(screenshotTool.hashCanonical(left), screenshotTool.hashCanonical(right));
-  assert.match(screenshotTool.hashCanonical(left), /^[a-f0-9]{64}$/);
-  assert.notEqual(screenshotTool.hashCanonical(left), screenshotTool.hashCanonical({ ...left, z: 4 }));
-});
-
-test('viewport crop is calibrated from each device screen rectangle and bottom anchored', () => {
-  assert.deepEqual(screenshotTool.buildViewportRect(
-    { x: 1862, y: 179, width: 523, height: 1132 },
-    { screenWidth: 390, screenHeight: 844, windowWidth: 390, windowHeight: 753 }
-  ), {
-    x: 1862,
-    y: 301,
-    width: 523,
-    height: 1010,
-    relativeX: 0,
-    relativeY: 122,
-    scaleX: 523 / 390,
-    scaleY: 1132 / 844,
+  const recovered = screenshotTool.acquireSessionLock(sessionFile, 'prewarm', {
+    resolveProcessIdentity: newIdentity,
+    allowStaleRecovery: true,
   });
-
-  const narrow = screenshotTool.buildViewportRect(
-    { x: 1500, y: 200, width: 480, height: 852 },
-    { screenWidth: 320, screenHeight: 568, windowWidth: 320, windowHeight: 477 }
+  assert.notEqual(recovered.token, first.token);
+  assert.equal(
+    fs.readdirSync(tempDir).some((name) => name.startsWith('session.json.lock.stale-')),
+    true
   );
-  assert.equal(narrow.width, 480);
-  assert.equal(narrow.height, 716);
-  assert.equal(narrow.y, 336);
-
-  const wide = screenshotTool.buildViewportRect(
-    { x: 1800, y: 160, width: 516, height: 1118 },
-    { screenWidth: 430, screenHeight: 932, windowWidth: 430, windowHeight: 841 }
-  );
-  assert.equal(wide.width, 516);
-  assert.equal(wide.height, 1009);
-  assert.equal(wide.y, 269);
+  assert.equal(fs.existsSync(screenshotTool.sessionRecoveryFile(sessionFile)), true);
+  assert.equal(screenshotTool.releaseSessionLock(recovered).ok, true);
+  assert.equal(screenshotTool.clearSessionRecovery(sessionFile).ok, true);
 });
 
-test('prepare records fail closed without exact endpoint, state hashes, PID and HWND binding', () => {
-  assert.equal(screenshotTool.validatePrepareRecord(validPrepare()).ok, true);
-  const broken = [
-    { endpoint: '' },
-    { nonce: '' },
-    { pageId: '' },
-    { pageDataHash: '' },
-    { fixtureHash: '' },
-    { windowBinding: { ...validPrepare().windowBinding, processId: 0 } },
-    { windowBinding: { ...validPrepare().windowBinding, hwnd: '' } },
-    { screenCalibration: { ...validPrepare().screenCalibration, model: 'iPhone 5' } },
-    { systemInfo: { ...validPrepare().systemInfo, screenWidth: 0 } },
-  ];
-  broken.forEach((patch) => {
-    assert.equal(screenshotTool.validatePrepareRecord({ ...validPrepare(), ...patch }).ok, false);
+test('stale-lock recovery rechecks the token and never moves a replacement owner', (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-session-lock-aba-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const sessionFile = path.join(tempDir, 'session.json');
+  const first = screenshotTool.acquireSessionLock(sessionFile, 'old', {
+    resolveProcessIdentity: (processId) => ({ ok: true, processId, processStartFileTimeUtc: 'old-start' }),
   });
+  const replacement = {
+    ...first,
+    token: 'b'.repeat(48),
+    purpose: 'replacement',
+    processStartFileTimeUtc: 'new-start',
+  };
+  assert.throws(
+    () => screenshotTool.acquireSessionLock(sessionFile, 'prewarm', {
+      allowStaleRecovery: true,
+      resolveProcessIdentity: (processId) => ({
+        ok: true,
+        processId,
+        processStartFileTimeUtc: 'new-start',
+      }),
+      beforeStaleRecheck({ lockFile }) {
+        fs.writeFileSync(lockFile, `${JSON.stringify(replacement, null, 2)}\n`, 'utf8');
+      },
+    }),
+    /session is busy/i
+  );
+  assert.equal(JSON.parse(fs.readFileSync(first.lockFile, 'utf8')).token, replacement.token);
+  assert.equal(fs.existsSync(`${first.lockFile}.stale-${replacement.token}`), false);
+  assert.deepEqual(screenshotTool.releaseSessionLock(replacement), { ok: true, released: true });
 });
 
-test('Win32 capture validation locks binding, foreground occlusion and crop pixel identity', () => {
-  const prepare = validPrepare();
-  const capture = {
-    captureMode: 'visible',
-    renderMethod: 'CopyFromScreen',
-    dpiAwareness: 'per-monitor-aware-v2',
-    processId: 84288,
-    hwnd: '0x17D0384',
-    title: prepare.windowBinding.title,
-    dpi: 144,
-    visible: true,
-    minimized: false,
-    cloaked: false,
-    cloakState: 0,
-    desktopId: '798af4b3-e850-4468-992a-1f512a3a2340',
-    isOnCurrentVirtualDesktop: true,
-    windowStable: true,
-    windowRect: { x: 0, y: 0, width: 2582, height: 1538 },
-    windowAfter: {
-      processId: 84288,
-      hwnd: '0x17D0384',
-      title: prepare.windowBinding.title,
-      dpi: 144,
-      visible: true,
-      minimized: false,
-      cloaked: false,
-      cloakState: 0,
-      desktopId: '798af4b3-e850-4468-992a-1f512a3a2340',
-      isOnCurrentVirtualDesktop: true,
-      windowRect: { x: 0, y: 0, width: 2582, height: 1538 },
+test('a durable recovery barrier rejects capture inside the stale-lock rename gap', (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-session-recovery-gap-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const sessionFile = path.join(tempDir, 'session.json');
+  screenshotTool.acquireSessionLock(sessionFile, 'old', {
+    resolveProcessIdentity: (processId) => ({ ok: true, processId, processStartFileTimeUtc: 'old-start' }),
+  });
+  const newIdentity = (processId) => ({ ok: true, processId, processStartFileTimeUtc: 'new-start' });
+  let checkedGap = false;
+  const recovered = screenshotTool.acquireSessionLock(sessionFile, 'prewarm', {
+    allowStaleRecovery: true,
+    resolveProcessIdentity: newIdentity,
+    afterStaleRename({ lockFile, recoveryFile }) {
+      assert.equal(fs.existsSync(lockFile), false);
+      assert.equal(fs.existsSync(recoveryFile), true);
+      assert.throws(
+        () => screenshotTool.acquireSessionLock(sessionFile, 'capture', {
+          resolveProcessIdentity: newIdentity,
+        }),
+        /recovery is incomplete|recovery started/i
+      );
+      checkedGap = true;
     },
-    screenCalibration: {
-      model: 'iPhone 12/13 (Pro)',
-      logicalScreen: { width: 390, height: 844 },
-      screenRect: { x: 1862, y: 179, width: 523, height: 1132 },
-      scaleX: 523 / 390,
-      scaleY: 1132 / 844,
+  });
+  assert.equal(checkedGap, true);
+  assert.equal(screenshotTool.releaseSessionLock(recovered).ok, true);
+  assert.equal(screenshotTool.clearSessionRecovery(sessionFile).ok, true);
+});
+
+test('a crash after stale-lock rename leaves a barrier that only a new prewarm can clear', (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-session-recovery-crash-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const sessionFile = path.join(tempDir, 'session.json');
+  screenshotTool.acquireSessionLock(sessionFile, 'old', {
+    resolveProcessIdentity: (processId) => ({ ok: true, processId, processStartFileTimeUtc: 'old-start' }),
+  });
+  const newIdentity = (processId) => ({ ok: true, processId, processStartFileTimeUtc: 'new-start' });
+  assert.throws(
+    () => screenshotTool.acquireSessionLock(sessionFile, 'prewarm', {
+      allowStaleRecovery: true,
+      resolveProcessIdentity: newIdentity,
+      afterStaleRename() { throw new Error('injected post-rename crash'); },
+    }),
+    /injected post-rename crash/
+  );
+  assert.equal(fs.existsSync(`${sessionFile}.lock`), false);
+  assert.equal(fs.existsSync(screenshotTool.sessionRecoveryFile(sessionFile)), true);
+  assert.throws(
+    () => screenshotTool.acquireSessionLock(sessionFile, 'doctor', { resolveProcessIdentity: newIdentity }),
+    /recovery is incomplete/i
+  );
+  const recovered = screenshotTool.acquireSessionLock(sessionFile, 'prewarm', {
+    allowStaleRecovery: true,
+    resolveProcessIdentity: newIdentity,
+  });
+  assert.equal(screenshotTool.releaseSessionLock(recovered).ok, true);
+  assert.equal(screenshotTool.clearSessionRecovery(sessionFile).ok, true);
+});
+
+test('PNG inspection rejects truncated data and CRC corruption', () => {
+  const valid = createPngBuffer(2, 2, 0);
+  assert.equal(screenshotTool.inspectPngBuffer(valid).valid, true);
+  assert.equal(screenshotTool.inspectPngBuffer(valid.subarray(0, valid.length - 3)).valid, false);
+  const corrupted = Buffer.from(valid);
+  corrupted[corrupted.length - 5] ^= 0xff;
+  assert.equal(screenshotTool.inspectPngBuffer(corrupted).valid, false);
+});
+
+test('doctor session receipt becomes the only implicit capture configuration', (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-session-config-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const projectPath = path.resolve(__dirname, '..');
+  const sessionFile = path.join(tempDir, 'session.json');
+  const session = createSession(projectPath, 'ws://127.0.0.1:39451', 39451);
+  fs.writeFileSync(sessionFile, JSON.stringify(session), 'utf8');
+
+  const config = screenshotTool.readRuntimeConfig({ WEAPP_UI_SESSION_FILE: sessionFile }, projectPath);
+  assert.equal(config.wsEndpoint, session.endpoint);
+  assert.equal(config.sourceProjectPath, projectPath);
+  assert.equal(config.expectedWindowWidth, 390);
+  assert.equal(config.expectedSDKVersion, '3.7.12');
+  assert.equal(screenshotTool.validateSessionRecord(session, config).ok, true);
+  assert.equal(screenshotTool.validateSessionRecord({ ...session, endpoint: 'ws://127.0.0.1:39452' }, config).ok, false);
+  const explicitOnly = screenshotTool.readRuntimeConfig(
+    { WEAPP_UI_SESSION_FILE: sessionFile },
+    projectPath,
+    { allowSessionFallback: false }
+  );
+  assert.equal(explicitOnly.wsEndpoint, '');
+  assert.equal(explicitOnly.sourceProjectPath, '');
+  assert.equal(explicitOnly.expectedWindowWidth, 0);
+  assert.equal(explicitOnly.session, null);
+});
+
+test('poisoned or recovering sessions fail closed until a new prewarm clears the marker', (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-session-poison-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const projectPath = path.resolve(__dirname, '..');
+  const sessionFile = path.join(tempDir, 'session.json');
+  const session = createSession(projectPath, 'ws://127.0.0.1:39461', 39461);
+  fs.writeFileSync(sessionFile, JSON.stringify(session), 'utf8');
+  fs.writeFileSync(screenshotTool.sessionPoisonFile(sessionFile), JSON.stringify({
+    kind: 'weapp-ui-session-poison-v1',
+    reason: 'test-timeout',
+  }), 'utf8');
+
+  const poisoned = screenshotTool.readRuntimeConfig({ WEAPP_UI_SESSION_FILE: sessionFile }, projectPath);
+  const validation = screenshotTool.validateRuntimeConfig(poisoned, { requireSession: true });
+  assert.equal(validation.ok, false);
+  assert.equal(validation.checks.sessionNotPoisoned, false);
+  assert.equal(screenshotTool.clearSessionPoison(sessionFile).ok, true);
+  const recovered = screenshotTool.readRuntimeConfig({ WEAPP_UI_SESSION_FILE: sessionFile }, projectPath);
+  assert.equal(screenshotTool.validateRuntimeConfig(recovered, { requireSession: true }).checks.sessionNotPoisoned, true);
+
+  fs.writeFileSync(screenshotTool.sessionPoisonFile(sessionFile), '{malformed', 'utf8');
+  const malformed = screenshotTool.readRuntimeConfig({ WEAPP_UI_SESSION_FILE: sessionFile }, projectPath);
+  assert.equal(malformed.sessionPoison, null);
+  assert.equal(malformed.sessionPoisonExists, true);
+  assert.equal(
+    screenshotTool.validateRuntimeConfig(malformed, { requireSession: true }).checks.sessionNotPoisoned,
+    false
+  );
+  assert.equal(screenshotTool.clearSessionPoison(sessionFile).ok, true);
+
+  fs.writeFileSync(screenshotTool.sessionRecoveryFile(sessionFile), '{malformed', 'utf8');
+  const recovering = screenshotTool.readRuntimeConfig({ WEAPP_UI_SESSION_FILE: sessionFile }, projectPath);
+  const recoveringValidation = screenshotTool.validateRuntimeConfig(recovering, { requireSession: true });
+  assert.equal(recovering.sessionRecovery, null);
+  assert.equal(recovering.sessionRecoveryExists, true);
+  assert.equal(recoveringValidation.checks.sessionNotRecovering, false);
+  assert.equal(recoveringValidation.ok, false);
+  assert.equal(screenshotTool.clearSessionRecovery(sessionFile).ok, true);
+});
+
+test('main acquires the session lock before reading the mutable session receipt', () => {
+  const mainStart = screenshotScriptSource.indexOf('async function main()');
+  const lockRead = screenshotScriptSource.indexOf('const sessionLock = acquireSessionLock(sessionFile, command.mode);', mainStart);
+  const configRead = screenshotScriptSource.indexOf('config = readRuntimeConfig(process.env, process.cwd()', mainStart);
+  assert.notEqual(mainStart, -1);
+  assert.notEqual(lockRead, -1);
+  assert.notEqual(configRead, -1);
+  assert.equal(lockRead < configRead, true);
+});
+
+test('ui:doctor refreshes only a launch-signed exact hot session', async (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-doctor-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const projectPath = path.resolve(__dirname, '..');
+  const endpoint = 'ws://127.0.0.1:39453';
+  const session = createSession(projectPath, endpoint, 39453);
+  const config = {
+    wsEndpoint: endpoint,
+    sourceProjectPath: projectPath,
+    expectedWindowWidth: 390,
+    expectedSDKVersion: '3.7.12',
+    sessionFile: path.join(tempDir, 'session.json'),
+    session,
+  };
+  const miniProgram = {
+    async send(command) {
+      if (command === 'Tool.getInfo') {
+        return { SDKVersion: '3.7.12', projectPath, platform: 'devtools' };
+      }
+      if (command === 'App.getCurrentPage') return { path: 'pages/home/index' };
+      throw new Error(`Unexpected command: ${command}`);
     },
-    viewportRect: { x: 1862, y: 301, width: 523, height: 1010 },
-    foreground: {
-      before: {
-        hwnd: '0x17D0384',
-        processId: 84288,
-        desktopId: '798af4b3-e850-4468-992a-1f512a3a2340',
-      },
-      after: {
-        hwnd: '0x17D0384',
-        processId: 84288,
-        desktopId: '798af4b3-e850-4468-992a-1f512a3a2340',
-      },
+    async systemInfo() {
+      return {
+        windowWidth: 390,
+        windowHeight: 844,
+        pixelRatio: 2,
+        fontSizeSetting: 16,
+      };
     },
-    desktop: {
-      targetBefore: '798af4b3-e850-4468-992a-1f512a3a2340',
-      targetAfter: '798af4b3-e850-4468-992a-1f512a3a2340',
-      currentBefore: '798af4b3-e850-4468-992a-1f512a3a2340',
-      currentAfter: '798af4b3-e850-4468-992a-1f512a3a2340',
-      targetOnCurrentBefore: true,
-      targetOnCurrentAfter: true,
+    async evaluate(_fn, marker) {
+      if (typeof marker === 'undefined') {
+        return {
+          sessionId: session.sessionId,
+          projectPathHash: session.projectPathHash,
+          listenerIdentityHash: session.projectBinding.listenerIdentityHash,
+        };
+      }
+      return {
+        ok: true,
+        sessionId: marker.sessionId,
+        projectPathHash: marker.projectPathHash,
+        listenerIdentityHash: marker.listenerIdentityHash,
+      };
     },
-    requestProvenance: {
-      kind: 'wechat-devtools-win32-request-v1',
-      prepareId: prepare.prepareId,
-      nonce: prepare.nonce,
-    },
-    overlappingWindows: [],
-    fullFrame: { sha256: '2'.repeat(64), pixelSha256: '3'.repeat(64), width: 2582, height: 1538 },
-    crop: { sha256: '4'.repeat(64), pixelSha256: '5'.repeat(64), width: 523, height: 1010 },
-    frameRegionPixelSha256: '5'.repeat(64),
-    cropMatchesFrameRegion: true,
-    likelyBlackFrame: false,
   };
 
-  assert.equal(screenshotTool.validateWin32CaptureEvidence(prepare, capture).ok, true);
-  const broken = [
-    { processId: 7 },
-    { hwnd: '0xBAD' },
-    { visible: false },
-    { minimized: true },
-    { cloaked: true },
-    { windowStable: false },
-    { overlappingWindows: [{ hwnd: '0x99', intersection: { width: 40, height: 20 } }] },
-    { cropMatchesFrameRegion: false },
-    { frameRegionPixelSha256: '6'.repeat(64) },
-    { crop: { ...capture.crop, width: 520 } },
-  ];
-  broken.forEach((patch) => {
-    assert.equal(screenshotTool.validateWin32CaptureEvidence(prepare, { ...capture, ...patch }).ok, false);
+  const result = await screenshotTool.runDoctor(
+    miniProgram,
+    { mode: 'connect-preopened' },
+    config,
+    { resolveListenerIdentity: () => session.listenerIdentity }
+  );
+  assert.equal(result.ok, true);
+  assert.equal(result.connectionMode, 'connect-preopened');
+  assert.equal(fs.existsSync(config.sessionFile), true);
+  const refreshedSession = JSON.parse(fs.readFileSync(config.sessionFile, 'utf8'));
+  assert.equal(refreshedSession.endpoint, config.wsEndpoint);
+  assert.equal(refreshedSession.sourceProjectPath, projectPath);
+  assert.equal(refreshedSession.expectedSDKVersion, '3.7.12');
+  assert.notEqual(refreshedSession.sessionId, session.sessionId);
+  assert.equal(screenshotTool.validateSessionRecord(refreshedSession, { ...config, session: refreshedSession }).ok, true);
+});
+
+test('ui:doctor requires a source challenge to disappear before signing changed source', async (t) => {
+  // This case tests recompilation proof against unchanged source. Keep its Git
+  // snapshot independent of concurrent edits in the shared working tree.
+  const Module = require('node:module');
+  const scriptPath = require.resolve('../scripts/dev/weapp-ui-screenshot');
+  const isolatedModule = new Module(scriptPath, module);
+  isolatedModule.filename = scriptPath;
+  isolatedModule.paths = Module._nodeModulePaths(path.dirname(scriptPath));
+  isolatedModule._compile(screenshotScriptSource + '\ncurrentGitManifest = () => ({ ok: true, head: "' + '1'.repeat(40) + '", dirty: false, status: [], files: [] });', scriptPath);
+  const doctorTool = isolatedModule.exports;
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-doctor-stale-runtime-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const projectPath = path.resolve(__dirname, '..');
+  const endpoint = 'ws://127.0.0.1:39457';
+  const session = createSession(projectPath, endpoint, 39457, {
+    gitManifestHash: 'f'.repeat(64),
   });
-});
-
-test('prepare and Win32 finalize paths never invoke the DevTools capturePage screenshot API', () => {
-  assert.doesNotMatch(String(screenshotTool.prepareCase), /\.screenshot\s*\(/);
-  assert.doesNotMatch(String(screenshotTool.capturePreparedWin32), /\.screenshot\s*\(/);
-  assert.match(String(screenshotTool.prepareCase), /fixtureHash/);
-  assert.match(String(screenshotTool.prepareCase), /pageDataHash/);
-  assert.match(String(screenshotTool.capturePreparedWin32), /WIN32_CAPTURE_KIND/);
-});
-
-test('case routing recovers a completed reLaunch whose automator acknowledgement timed out', async () => {
-  const page = { path: 'pages/water/index' };
-  const calls = [];
+  let bindCalls = 0;
+  let runtimeMarker = {
+    sessionId: session.sessionId,
+    projectPathHash: session.projectPathHash,
+    listenerIdentityHash: session.projectBinding.listenerIdentityHash,
+  };
   const miniProgram = {
-    async reLaunch() {
-      calls.push('reLaunch');
-      throw new Error('timeout');
+    async send(command) {
+      if (command === 'Tool.getInfo') return { SDKVersion: '3.7.12', projectPath };
+      if (command === 'App.getCurrentPage') return { path: 'pages/home/index' };
+      throw new Error(`Unexpected command: ${command}`);
+    },
+    async systemInfo() {
+      return { windowWidth: 390, windowHeight: 844, pixelRatio: 2, fontSizeSetting: 16 };
+    },
+    async evaluate(_fn, marker) {
+      if (typeof marker === 'undefined') return runtimeMarker;
+      bindCalls += 1;
+      runtimeMarker = marker;
+      return {
+        ok: true,
+        sessionId: marker.sessionId,
+        projectPathHash: marker.projectPathHash,
+        listenerIdentityHash: marker.listenerIdentityHash,
+      };
+    },
+  };
+  const sessionFile = path.join(tempDir, 'session.json');
+  const config = {
+    wsEndpoint: endpoint,
+    sourceProjectPath: projectPath,
+    expectedWindowWidth: 390,
+    expectedSDKVersion: '3.7.12',
+    sessionFile,
+    session,
+  };
+  const result = await doctorTool.runDoctor(
+    miniProgram,
+    { mode: 'connect-preopened' },
+    config,
+    { resolveListenerIdentity: () => session.listenerIdentity }
+  );
+  assert.equal(result.ok, false);
+  assert.equal(result.sourceSnapshotChanged, true);
+  assert.equal(result.priorMarkerMatchesSession, true);
+  assert.equal(result.checks.runtimeRecompiledForChangedSource, false);
+  assert.equal(bindCalls, 1);
+  assert.equal(fs.existsSync(sessionFile), true, result.action);
+  const pendingSession = JSON.parse(fs.readFileSync(sessionFile, 'utf8'));
+  assert.equal(pendingSession.gitManifestHash, session.gitManifestHash);
+  assert.match(pendingSession.pendingRefresh.challengeId, /^[a-f0-9]{64}$/);
+
+  runtimeMarker = null;
+  const finalized = await doctorTool.runDoctor(
+    miniProgram,
+    { mode: 'connect-preopened' },
+    { ...config, session: pendingSession },
+    { resolveListenerIdentity: () => session.listenerIdentity }
+  );
+  assert.equal(finalized.ok, true);
+  assert.equal(finalized.changedSourceCompileProven, true);
+  assert.equal(bindCalls, 2);
+  const trustedSession = JSON.parse(fs.readFileSync(sessionFile, 'utf8'));
+  assert.notEqual(trustedSession.gitManifestHash, session.gitManifestHash);
+  assert.equal(Object.prototype.hasOwnProperty.call(trustedSession, 'pendingRefresh'), false);
+});
+
+test('ui:doctor never trusts a missing runtime marker as first proof for changed source', async (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-doctor-missing-marker-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const projectPath = path.resolve(__dirname, '..');
+  const endpoint = 'ws://127.0.0.1:39460';
+  const session = createSession(projectPath, endpoint, 39460, { gitManifestHash: 'e'.repeat(64) });
+  const miniProgram = {
+    async send(command) {
+      if (command === 'Tool.getInfo') return { SDKVersion: '3.7.12', projectPath };
+      if (command === 'App.getCurrentPage') return { path: 'pages/home/index' };
+      throw new Error(`Unexpected command: ${command}`);
+    },
+    async systemInfo() { return { windowWidth: 390, windowHeight: 844, pixelRatio: 2, fontSizeSetting: 16 }; },
+    async evaluate(_fn, marker) {
+      if (typeof marker === 'undefined') return null;
+      return {
+        ok: true,
+        sessionId: marker.sessionId,
+        projectPathHash: marker.projectPathHash,
+        listenerIdentityHash: marker.listenerIdentityHash,
+      };
+    },
+  };
+  const result = await screenshotTool.runDoctor(
+    miniProgram,
+    { mode: 'connect-preopened' },
+    {
+      wsEndpoint: endpoint,
+      sourceProjectPath: projectPath,
+      expectedWindowWidth: 390,
+      expectedSDKVersion: '3.7.12',
+      sessionFile: path.join(tempDir, 'session.json'),
+      session,
+    },
+    { resolveListenerIdentity: () => session.listenerIdentity }
+  );
+  assert.equal(result.ok, false);
+  assert.equal(result.changedSourceCompileProven, false);
+  assert.equal(!!result.pendingSession, true);
+});
+
+test('ui:doctor fails closed instead of self-signing a session without a launch receipt', async () => {
+  const projectPath = path.resolve(__dirname, '..');
+  const endpoint = 'ws://127.0.0.1:39455';
+  const miniProgram = {
+    async send(command) {
+      if (command === 'Tool.getInfo') return { SDKVersion: '3.7.12' };
+      if (command === 'App.getCurrentPage') return { path: 'pages/home/index' };
+      throw new Error(`Unexpected command: ${command}`);
+    },
+    async systemInfo() { return { windowWidth: 390 }; },
+    async evaluate() { throw new Error('doctor must not bind a marker without a trusted receipt'); },
+  };
+  const result = await screenshotTool.runDoctor(
+    miniProgram,
+    { mode: 'connect-preopened' },
+    {
+      wsEndpoint: endpoint,
+      sourceProjectPath: projectPath,
+      expectedWindowWidth: 390,
+      expectedSDKVersion: '3.7.12',
+      sessionFile: path.join(os.tmpdir(), 'must-not-be-written.json'),
+      session: null,
+    },
+    { resolveListenerIdentity: () => createListenerIdentity(endpoint, 39455) }
+  );
+  assert.equal(result.ok, false);
+  assert.equal(result.checks.sessionRecord, false);
+  assert.equal(result.checks.marker, false);
+});
+
+test('Windows cli.bat normalization invokes the official batch wrapper through cmd', (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-cli-test-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const cliBat = path.join(tempDir, 'cli.bat');
+  const cliJs = path.join(tempDir, 'cli.js');
+  fs.writeFileSync(cliBat, '@echo off\r\n', 'utf8');
+  fs.writeFileSync(cliJs, '', 'utf8');
+
+  if (process.platform === 'win32') {
+    assert.deepEqual(screenshotTool.resolveLaunchCommand(cliBat), {
+      executable: 'cmd',
+      args: ['/d', '/s', '/c', 'call', cliBat],
+    });
+  } else {
+    assert.deepEqual(screenshotTool.resolveLaunchCommand(cliBat), { executable: cliBat, args: [] });
+  }
+});
+
+test('prewarm adds the native-window-occlusion switch without dropping existing NW flags', () => {
+  assert.equal(
+    screenshotTool.ensureBackgroundCaptureNwPreArgs(''),
+    '--disable-backgrounding-occluded-windows'
+  );
+  assert.equal(
+    screenshotTool.ensureBackgroundCaptureNwPreArgs('--disable-gpu'),
+    '--disable-gpu --disable-backgrounding-occluded-windows'
+  );
+  assert.equal(
+    screenshotTool.ensureBackgroundCaptureNwPreArgs('--disable-backgrounding-occluded-windows --foo'),
+    '--disable-backgrounding-occluded-windows --foo'
+  );
+});
+
+test('route timeout can recover from the page that actually finished loading', async () => {
+  const page = { path: 'pages/launch/index' };
+  const miniProgram = {
+    switchTab() {
+      return new Promise(() => {});
     },
     async currentPage() {
-      calls.push('currentPage');
       return page;
     },
   };
 
   const recovered = await screenshotTool.routeCasePage(
     miniProgram,
-    'reLaunch',
-    '/pages/water/index?id=water_v2_demo',
-    { recoveryTimeoutMs: 25, recoveryPollMs: 1 }
+    'switchTab',
+    '/pages/launch/index',
+    { routeTimeoutMs: 5, recoveryTimeoutMs: 30, recoveryPollMs: 1 }
   );
-
   assert.equal(recovered, page);
-  assert.deepEqual(calls, ['reLaunch', 'currentPage']);
 });
 
-test('prepare applies and freezes fixture state, writes hashes, and leaves cleanup to finalize', async (t) => {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-win32-prepare-test-'));
-  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
-  const calls = [];
-  const element = {
-    async text() { return 'fixture'; },
-    async size() { return { width: 100, height: 44 }; },
-    async offset() { return { left: 10, top: 20 }; },
-  };
+test('selector coverage enforces exact counts, non-zero size and valid contracts', () => {
+  const dom = [
+    { selector: '.row', size: { width: 100, height: 44 } },
+    { selector: '.row', size: { width: 0, height: 44 } },
+  ];
+  const hidden = screenshotTool.validateSelectorCoverage(dom, ['.row'], { '.row': 2 });
+  assert.equal(hidden.ok, false);
+  assert.equal(hidden.counts['.row'], 2);
+  assert.equal(hidden.visibleCounts['.row'], 1);
+  assert.equal(hidden.failures.some((failure) => failure.reason === 'non-zero-size'), true);
+
+  const valid = screenshotTool.validateSelectorCoverage([
+    { selector: '.row', size: { width: 100, height: 44 } },
+    { selector: '.row', size: { width: 80, height: 44 } },
+  ], ['.row'], { '.row': { expectedCount: 2, visible: true } });
+  assert.equal(valid.ok, true);
+
+  const invalidContract = screenshotTool.validateSelectorCoverage(dom, ['.row'], { '.row': 0 });
+  assert.equal(invalidContract.ok, false);
+  assert.equal(invalidContract.failures.some((failure) => failure.reason === 'invalid-expectedCount'), true);
+});
+
+test('visual settle waits through delayed reveal and changing geometry', async () => {
+  let clock = 0;
+  let reads = 0;
+  const page = { async $$(selector) {
+    if (selector === '.reveal') return [{ async style(name) {
+      return name === 'opacity' ? (reads < 3 ? '0' : '1') : 'none';
+    } }];
+    reads += 1;
+    return [{ async text() { return 'ready'; }, async size() { return { width: 100, height: 44 }; },
+      async offset() { return { left: 0, top: Math.min(reads, 4) }; } }];
+  } };
+  const result = await screenshotTool.waitForVisualSettle(page, { selectors: ['.row'] }, {
+    now: () => clock, sleep: async (ms) => { clock += ms; },
+  });
+  assert.equal(result.ok, true);
+  assert.equal(reads, 5);
+  assert.equal(clock, 300);
+});
+
+test('style readiness and visual settle wait for late stylesheet despite stable geometry', async () => {
+  const item = { selectors: ['.sheet'], styleExpectations: { '.sheet': { display: 'flex', 'flex-direction': 'column' } } };
+  for (const phase of ['ready', 'settle']) {
+    let clock = 0;
+    const page = { async waitFor() {}, async $$(selector) {
+      if (selector === '.reveal') return [];
+      return [{ async text() { return 'content'; }, async size() { return { width: 320, height: 150 }; },
+        async offset() { return { left: 0, top: 0 }; },
+        async style(property) { return clock < 150 ? 'initial' : item.styleExpectations['.sheet'][property]; } }];
+    } };
+    const options = { now: () => clock, sleep: async (ms) => { clock += ms; }, timeoutMs: 400 };
+    const result = phase === 'ready'
+      ? await screenshotTool.waitForCaseReady(page, item, 400, options)
+      : await screenshotTool.waitForVisualSettle(page, item, options);
+    assert.equal(result.ok, true);
+    assert.ok(clock >= (phase === 'ready' ? 150 : 225), phase);
+  }
+});
+
+test('configured style contracts reject missing elements, read errors and default styles', async () => {
+  const item = { selectors: ['.sheet'], styleExpectations: { '.overlay': { position: 'fixed' } } };
+  for (const failure of ['missing', 'read-error', 'default']) {
+    for (const phase of ['ready', 'settle']) {
+      let clock = 0;
+      const page = { async waitFor() {}, async $$(selector) {
+        if (selector === '.reveal' || selector === '.overlay' && failure === 'missing') return [];
+        return [{ async text() { return 'content'; }, async size() { return { width: 320, height: 150 }; },
+          async offset() { return { left: 0, top: 0 }; },
+          async style() { if (failure === 'read-error') throw new Error('style unavailable'); return 'static'; } }];
+      } };
+      const options = { now: () => clock, sleep: async (ms) => { clock += ms; }, timeoutMs: 150 };
+      await assert.rejects(() => phase === 'ready'
+        ? screenshotTool.waitForCaseReady(page, item, 150, options)
+        : screenshotTool.waitForVisualSettle(page, item, options), /ready|stabilize/);
+    }
+  }
+});
+
+test('selector readiness waits for the full count and non-zero-size contract', async () => {
+  let clock = 0;
+  let collectionCount = 0;
+  const element = (width) => ({
+    async text() { return 'row'; },
+    async size() { return { width, height: 44 }; },
+    async offset() { return { left: 0, top: 0 }; },
+  });
   const page = {
     async waitFor() {},
-    async callMethod(name) { calls.push(`method:${name}`); },
-    async setData() { calls.push('setData'); },
-    async size() { return { width: 390, height: 753 }; },
-    async data() { return { stable: true, nested: { b: 2, a: 1 } }; },
-    async $$(selector) { calls.push(`selector:${selector}`); return [element]; },
+    async $$() {
+      collectionCount += 1;
+      if (collectionCount === 1) return [element(100)];
+      if (collectionCount === 2) return [element(100), element(0)];
+      return [element(100), element(80)];
+    },
+  };
+  const readiness = await screenshotTool.waitForCaseReady(page, {
+    selectors: ['.row'],
+    selectorExpectations: { '.row': 2 },
+  }, 100, {
+    now: () => clock,
+    sleep: async (milliseconds) => { clock += milliseconds; },
+    pollMs: 10,
+  });
+  assert.equal(readiness.ok, true);
+  assert.equal(readiness.selectorCoverage.counts['.row'], 2);
+  assert.equal(readiness.selectorCoverage.visibleCounts['.row'], 2);
+  assert.equal(collectionCount, 3);
+});
+
+test('failed atomic publication preserves existing final files byte-for-byte', (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-publish-failure-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const candidateImage = path.join(tempDir, 'candidate.png');
+  const missingReceipt = path.join(tempDir, 'missing.json');
+  const finalImage = path.join(tempDir, 'final.png');
+  const finalReceipt = path.join(tempDir, 'final.json');
+  fs.writeFileSync(candidateImage, 'candidate-image');
+  fs.writeFileSync(finalImage, 'approved-image');
+  fs.writeFileSync(finalReceipt, 'approved-receipt');
+
+  assert.throws(() => screenshotTool.publishFilesAtomically([
+    { source: candidateImage, target: finalImage },
+    { source: missingReceipt, target: finalReceipt },
+  ], 'failure-test'));
+  assert.equal(fs.readFileSync(finalImage, 'utf8'), 'approved-image');
+  assert.equal(fs.readFileSync(finalReceipt, 'utf8'), 'approved-receipt');
+});
+
+test('successful atomic publication promotes image and receipt together', (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-publish-success-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const candidateImage = path.join(tempDir, 'candidate.png');
+  const candidateReceipt = path.join(tempDir, 'candidate.json');
+  const finalImage = path.join(tempDir, 'final.png');
+  const finalReceipt = path.join(tempDir, 'final.json');
+  fs.writeFileSync(candidateImage, 'candidate-image');
+  fs.writeFileSync(candidateReceipt, 'candidate-receipt');
+  fs.writeFileSync(finalImage, 'approved-image');
+  fs.writeFileSync(finalReceipt, 'approved-receipt');
+
+  screenshotTool.publishFilesAtomically([
+    { source: candidateImage, target: finalImage },
+    { source: candidateReceipt, target: finalReceipt },
+  ], 'success-test');
+  assert.equal(fs.readFileSync(finalImage, 'utf8'), 'candidate-image');
+  assert.equal(fs.readFileSync(finalReceipt, 'utf8'), 'candidate-receipt');
+});
+
+test('partial multi-file publication rolls every prior final back', (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-publish-rollback-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const candidateA = path.join(tempDir, 'candidate-a');
+  const candidateB = path.join(tempDir, 'candidate-b');
+  const finalA = path.join(tempDir, 'final-a');
+  const finalB = path.join(tempDir, 'final-b');
+  fs.writeFileSync(candidateA, 'new-a');
+  fs.writeFileSync(candidateB, 'new-b');
+  fs.writeFileSync(finalA, 'old-a');
+  fs.writeFileSync(finalB, 'old-b');
+
+  assert.throws(() => screenshotTool.publishFilesAtomically([
+    { source: candidateA, target: finalA },
+    { source: candidateB, target: finalB },
+  ], 'rollback-test', {
+    renameSync(source, target) {
+      if (source.includes('.stage') && path.resolve(target) === path.resolve(finalB)) {
+        throw new Error('injected second publication failure');
+      }
+      fs.renameSync(source, target);
+    },
+  }), /injected second publication failure/);
+  assert.equal(fs.readFileSync(finalA, 'utf8'), 'old-a');
+  assert.equal(fs.readFileSync(finalB, 'utf8'), 'old-b');
+});
+
+test('atomic publication preserves a stale backup collision instead of deleting recovery evidence', (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-publish-collision-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const candidate = path.join(tempDir, 'candidate');
+  const target = path.join(tempDir, 'final');
+  const staleBackup = path.join(tempDir, '.final.collision-test.0.backup');
+  fs.writeFileSync(candidate, 'new');
+  fs.writeFileSync(target, 'current');
+  fs.writeFileSync(staleBackup, 'recovery-evidence');
+
+  assert.throws(
+    () => screenshotTool.publishFilesAtomically([{ source: candidate, target }], 'collision-test'),
+    /transaction collision/
+  );
+  assert.equal(fs.readFileSync(target, 'utf8'), 'current');
+  assert.equal(fs.readFileSync(staleBackup, 'utf8'), 'recovery-evidence');
+});
+
+test('rollback continues restoring a verified backup when remove throws after unlink', (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-publish-after-unlink-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const candidateA = path.join(tempDir, 'candidate-a');
+  const candidateB = path.join(tempDir, 'candidate-b');
+  const finalA = path.join(tempDir, 'final-a');
+  const finalB = path.join(tempDir, 'final-b');
+  fs.writeFileSync(candidateA, 'new-a');
+  fs.writeFileSync(candidateB, 'new-b');
+  fs.writeFileSync(finalA, 'old-a');
+  fs.writeFileSync(finalB, 'old-b');
+  let injected = false;
+  assert.throws(() => screenshotTool.publishFilesAtomically([
+    { source: candidateA, target: finalA },
+    { source: candidateB, target: finalB },
+  ], 'after-unlink-test', {
+    renameSync(source, target) {
+      if (source.includes('.stage') && path.resolve(target) === path.resolve(finalB)) {
+        throw new Error('injected publication failure');
+      }
+      fs.renameSync(source, target);
+    },
+    removeFile(filePath) {
+      try {
+        fs.unlinkSync(filePath);
+      } catch (err) {
+        if (err.code !== 'ENOENT') throw err;
+      }
+      if (!injected && path.resolve(filePath) === path.resolve(finalA)) {
+        injected = true;
+        throw new Error('injected post-unlink error');
+      }
+    },
+  }), /injected publication failure/);
+  assert.equal(fs.readFileSync(finalA, 'utf8'), 'old-a');
+  assert.equal(fs.readFileSync(finalB, 'utf8'), 'old-b');
+});
+
+test('rollback reports an indeterminate state when the original final cannot be restored', (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-publish-indeterminate-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const candidateA = path.join(tempDir, 'candidate-a');
+  const candidateB = path.join(tempDir, 'candidate-b');
+  const finalA = path.join(tempDir, 'final-a');
+  const finalB = path.join(tempDir, 'final-b');
+  fs.writeFileSync(candidateA, 'new-a');
+  fs.writeFileSync(candidateB, 'new-b');
+  fs.writeFileSync(finalA, 'old-a');
+  fs.writeFileSync(finalB, 'old-b');
+  let thrown;
+  try {
+    screenshotTool.publishFilesAtomically([
+      { source: candidateA, target: finalA },
+      { source: candidateB, target: finalB },
+    ], 'indeterminate-test', {
+      renameSync(source, target) {
+        if (source.includes('.stage') && path.resolve(target) === path.resolve(finalB)) {
+          throw new Error('injected publication failure');
+        }
+        fs.renameSync(source, target);
+      },
+      removeFile(filePath) {
+        if (path.resolve(filePath) === path.resolve(finalA)) {
+          throw new Error('injected pre-unlink rollback failure');
+        }
+        try {
+          fs.unlinkSync(filePath);
+        } catch (err) {
+          if (err.code !== 'ENOENT') throw err;
+        }
+      },
+    });
+  } catch (err) {
+    thrown = err;
+  }
+  assert.equal(thrown.code, 'ATOMIC_PUBLICATION_INDETERMINATE');
+  assert.equal(thrown.rollbackVerification.some((entry) => entry.target === finalA && entry.ok === false), true);
+  assert.equal(fs.readFileSync(finalA, 'utf8'), 'new-a');
+  assert.equal(fs.existsSync(path.join(tempDir, '.final-a.indeterminate-test.0.backup')), true);
+});
+
+test('rollback repairs a rename that completed before the injected error was thrown', (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-publish-post-rename-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const candidate = path.join(tempDir, 'candidate');
+  const target = path.join(tempDir, 'final');
+  fs.writeFileSync(candidate, 'new');
+  fs.writeFileSync(target, 'old');
+  assert.throws(() => screenshotTool.publishFilesAtomically([
+    { source: candidate, target },
+  ], 'post-rename-test', {
+    renameSync(source, destination) {
+      fs.renameSync(source, destination);
+      if (source.includes('.stage')) throw new Error('injected post-rename error');
+    },
+  }), /injected post-rename error/);
+  assert.equal(fs.readFileSync(target, 'utf8'), 'old');
+});
+
+test('backup cleanup failure after commit never rolls new finals back', (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-publish-commit-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const candidateA = path.join(tempDir, 'candidate-a');
+  const candidateB = path.join(tempDir, 'candidate-b');
+  const finalA = path.join(tempDir, 'final-a');
+  const finalB = path.join(tempDir, 'final-b');
+  fs.writeFileSync(candidateA, 'new-a');
+  fs.writeFileSync(candidateB, 'new-b');
+  fs.writeFileSync(finalA, 'old-a');
+  fs.writeFileSync(finalB, 'old-b');
+  let backupCleanupCount = 0;
+  const publication = screenshotTool.publishFilesAtomically([
+    { source: candidateA, target: finalA },
+    { source: candidateB, target: finalB },
+  ], 'cleanup-test', {
+    removeFile(filePath) {
+      if (filePath.includes('.backup') && fs.existsSync(filePath)) {
+        backupCleanupCount += 1;
+        if (backupCleanupCount === 2) throw new Error('injected backup cleanup failure');
+      }
+      try {
+        fs.unlinkSync(filePath);
+      } catch (err) {
+        if (err.code !== 'ENOENT') throw err;
+      }
+    },
+  });
+  assert.equal(publication.backupCleanupErrors.length, 1);
+  assert.equal(fs.readFileSync(finalA, 'utf8'), 'new-a');
+  assert.equal(fs.readFileSync(finalB, 'utf8'), 'new-b');
+});
+
+function createBatchResult(tempDir, name, machineOk) {
+  const candidateOutput = path.join(tempDir, 'candidate', `${name}.png`);
+  const candidateReceiptPath = path.join(tempDir, 'candidate', `${name}.receipt.json`);
+  const output = path.join(tempDir, 'final', `${name}.png`);
+  const receiptPath = path.join(tempDir, 'final', `${name}.receipt.json`);
+  fs.mkdirSync(path.dirname(candidateOutput), { recursive: true });
+  fs.mkdirSync(path.dirname(output), { recursive: true });
+  fs.writeFileSync(candidateOutput, `candidate-${name}`);
+  fs.writeFileSync(output, `old-${name}`);
+  fs.writeFileSync(receiptPath, `old-receipt-${name}`);
+  return {
+    name,
+    ok: machineOk,
+    machineOk,
+    captureOk: true,
+    evidenceOk: machineOk,
+    reviewStatus: 'pending',
+    candidateOutput,
+    candidateReceiptPath,
+    output: null,
+    receiptPath: null,
+    promotion: { eligible: machineOk, promoted: false, output, receiptPath },
+  };
+}
+
+test('a failed final case prevents every case in the run from publishing', (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-run-promotion-fail-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const first = createBatchResult(tempDir, 'first', true);
+  const second = createBatchResult(tempDir, 'second', false);
+  const result = screenshotTool.promoteRunResults([first, second], 'batch-fail', {
+    manifestPath: path.join(tempDir, 'manifest.json'),
+  });
+  assert.equal(result.ok, false);
+  assert.equal(fs.readFileSync(first.promotion.output, 'utf8'), 'old-first');
+  assert.equal(fs.readFileSync(second.promotion.output, 'utf8'), 'old-second');
+  assert.equal(first.ok, false);
+  assert.equal(first.evidenceOk, true);
+  assert.match(first.promotion.reason, /no final artifacts/i);
+});
+
+test('an eligible run publishes every PNG and receipt in one transaction', (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-run-promotion-success-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const first = createBatchResult(tempDir, 'first', true);
+  const second = createBatchResult(tempDir, 'second', true);
+  const result = screenshotTool.promoteRunResults([first, second], 'batch-success', {
+    manifestPath: path.join(tempDir, 'manifest.json'),
+    runContext: {
+      focusProbeId: 'probe-123',
+      sessionContext: {
+        sessionId: 'session-123',
+        endpoint: 'ws://127.0.0.1:39459',
+        listenerIdentityHash: 'a'.repeat(64),
+        gitManifestHash: 'b'.repeat(64),
+      },
+    },
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.publication.artifacts.length, 5);
+  assert.equal(fs.readFileSync(first.promotion.output, 'utf8'), 'candidate-first');
+  assert.equal(fs.readFileSync(second.promotion.output, 'utf8'), 'candidate-second');
+  assert.equal(JSON.parse(fs.readFileSync(first.promotion.receiptPath, 'utf8')).promotion.promoted, true);
+  assert.equal(JSON.parse(fs.readFileSync(second.promotion.receiptPath, 'utf8')).promotion.promoted, true);
+  const manifest = JSON.parse(fs.readFileSync(path.join(tempDir, 'manifest.json'), 'utf8'));
+  assert.equal(manifest.ok, true);
+  assert.equal(manifest.runId, 'batch-success');
+  assert.equal(manifest.focusProbeId, 'probe-123');
+  assert.equal(manifest.sessionContext.sessionId, 'session-123');
+  assert.equal(
+    result.publication.artifacts.some((artifact) => artifact.target === path.join(tempDir, 'manifest.json')),
+    true
+  );
+});
+
+test('focus probe finalization keeps approved finals byte-for-byte untouched', (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-focus-no-publish-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const result = createBatchResult(tempDir, 'launch', true);
+  const oldImage = fs.readFileSync(result.promotion.output);
+  const oldReceipt = fs.readFileSync(result.promotion.receiptPath);
+  const manifestPath = path.join(tempDir, 'runs', 'focus-run', 'manifest.json');
+
+  const promotion = screenshotTool.finalizeFocusProbeResult([result], 'focus-run', {
+    manifestPath,
+    runContext: { focusProbeId: 'probe-only' },
+  });
+  assert.equal(promotion.ok, true);
+  assert.equal(promotion.promoted, false);
+  assert.equal(promotion.finalsTouched, false);
+  assert.equal(promotion.publicationState, 'not-attempted');
+  assert.deepEqual(fs.readFileSync(path.join(tempDir, 'final', 'launch.png')), oldImage);
+  assert.deepEqual(fs.readFileSync(path.join(tempDir, 'final', 'launch.receipt.json')), oldReceipt);
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  assert.equal(manifest.mode, 'focus-probe-no-publish-v1');
+  assert.equal(manifest.finalsTouched, false);
+  assert.equal(manifest.cases.length, 1);
+  assert.equal(manifest.cases[0].promotion.probeOnly, true);
+  assert.throws(
+    () => screenshotTool.finalizeFocusProbeResult([result, { ...result }], 'bad-focus-run'),
+    /exactly one/
+  );
+});
+
+test('run promotion preserves indeterminate final state in case and diagnostic manifest', (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-run-indeterminate-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const result = createBatchResult(tempDir, 'launch', true);
+  const manifestPath = path.join(tempDir, 'manifest.json');
+  const receiptTarget = result.promotion.receiptPath;
+  const imageTarget = result.promotion.output;
+  const promotion = screenshotTool.promoteRunResults([result], 'indeterminate-run', {
+    manifestPath,
+    publishOptions: {
+      renameSync(source, target) {
+        if (source.includes('.stage') && path.resolve(target) === path.resolve(receiptTarget)) {
+          throw new Error('injected receipt publication failure');
+        }
+        fs.renameSync(source, target);
+      },
+      removeFile(filePath) {
+        if (path.resolve(filePath) === path.resolve(imageTarget)) {
+          throw new Error('injected rollback refusal');
+        }
+        try {
+          fs.unlinkSync(filePath);
+        } catch (err) {
+          if (err.code !== 'ENOENT') throw err;
+        }
+      },
+    },
+  });
+  assert.equal(promotion.ok, false);
+  assert.equal(promotion.promoted, null);
+  assert.equal(promotion.finalsTouched, null);
+  assert.equal(promotion.publicationState, 'indeterminate');
+  assert.equal(promotion.rollbackVerified, false);
+  assert.equal(result.promotion.promoted, null);
+  assert.equal(result.promotion.finalsTouched, null);
+  const diagnostic = JSON.parse(fs.readFileSync(`${manifestPath}.indeterminate.json`, 'utf8'));
+  assert.equal(diagnostic.finalsTouched, null);
+  assert.equal(diagnostic.publicationState, 'indeterminate');
+});
+
+test('profile-gated case storage is applied before routing and restored exactly afterwards', async () => {
+  const storage = new Map([
+    ['openid', 'real-user'],
+    ['openid_cached_at', 123],
+    ['unrelated', 'keep-me'],
+  ]);
+  let appOpenid = 'real-app-user';
+  const miniProgram = {
+    async callWxMethod(method, ...args) {
+      if (method === 'getStorageInfoSync') return { keys: Array.from(storage.keys()) };
+      if (method === 'getStorageSync') return storage.get(args[0]);
+      if (method === 'setStorageSync') {
+        storage.set(args[0], args[1]);
+        return undefined;
+      }
+      if (method === 'removeStorageSync') {
+        storage.delete(args[0]);
+        return undefined;
+      }
+      throw new Error(`Unexpected wx method: ${method}`);
+    },
+    async evaluate(_fn, value) {
+      if (typeof value === 'undefined') {
+        return { available: true, existed: true, value: appOpenid };
+      }
+      if (typeof value === 'string') {
+        appOpenid = value;
+        return { ok: true };
+      }
+      if (value.existed) appOpenid = value.value;
+      else appOpenid = undefined;
+      return { ok: true, existed: value.existed, value: appOpenid };
+    },
+  };
+
+  const applied = await screenshotTool.applyCaseStorageFixture(
+    miniProgram,
+    { profileGate: true },
+    { now: 456 }
+  );
+  assert.equal(applied.evidence.ok, true);
+  assert.equal(storage.get('openid'), 'ui-screenshot-user');
+  assert.equal(storage.get('openid_cached_at'), 456);
+  assert.equal(storage.get('profile_completed'), true);
+  assert.equal(appOpenid, 'ui-screenshot-user');
+
+  const restored = await screenshotTool.restoreCaseStorageFixture(miniProgram, applied.state);
+  assert.equal(restored.ok, true);
+  assert.equal(storage.get('openid'), 'real-user');
+  assert.equal(storage.get('openid_cached_at'), 123);
+  assert.equal(storage.has('userProfile'), false);
+  assert.equal(storage.has('profile_completed'), false);
+  assert.equal(storage.get('unrelated'), 'keep-me');
+  assert.equal(appOpenid, 'real-app-user');
+});
+
+test('profile-gated storage fixture rejects an invalid storage inventory before any write', async () => {
+  let writes = 0;
+  const miniProgram = {
+    async callWxMethod(method) {
+      if (method === 'getStorageInfoSync') return {};
+      writes += 1;
+      return undefined;
+    },
+    async evaluate() { throw new Error('evaluate must not run'); },
+  };
+  await assert.rejects(
+    screenshotTool.applyCaseStorageFixture(miniProgram, { profileGate: true }),
+    /getStorageInfoSync\(\)\.keys/
+  );
+  assert.equal(writes, 0);
+});
+
+test('profile-gated storage restore fails closed on app or storage no-op', async () => {
+  const fixture = screenshotTool.buildProfileGateStorageFixture(789);
+  const storage = new Map(Object.entries(fixture));
+  const state = {
+    applied: true,
+    storage: Object.keys(fixture).map((key) => ({
+      key,
+      existed: key === 'openid',
+      value: key === 'openid' ? 'real-user' : undefined,
+    })),
+    appOpenid: { available: true, existed: true, value: 'real-app-user' },
   };
   const miniProgram = {
-    async reLaunch() { calls.push('reLaunch'); return page; },
-    async evaluate(fn, value) {
-      if (value === 'before' || value === 'cleanup') {
-        calls.push(`isolate:${value}`);
-        return { ok: true, phase: value, pollingFrozen: true };
-      }
-      calls.push('marker');
-      return { ok: true, nonce: value.nonce, pageId: value.pageId, route: 'pages/water/index' };
+    async callWxMethod(method, ...args) {
+      if (method === 'getStorageInfoSync') return { keys: Array.from(storage.keys()) };
+      if (method === 'getStorageSync') return storage.get(args[0]);
+      if (method === 'setStorageSync' || method === 'removeStorageSync') return undefined;
+      throw new Error(`Unexpected wx method: ${method}`);
     },
-    async send(method) {
-      if (method === 'Tool.getInfo') {
-        return { SDKVersion: '3.14.2', projectPath: path.resolve('fixture-project') };
+    async evaluate() { return { ok: false }; },
+  };
+  const restored = await screenshotTool.restoreCaseStorageFixture(miniProgram, state);
+  assert.equal(restored.ok, false);
+  assert.match(restored.errors.join('\n'), /post-restore verification|presence does not match|value does not match/);
+});
+
+test('profile-gated storage apply reports a failed emergency rollback to the run controller', async () => {
+  let setCalls = 0;
+  const miniProgram = {
+    async callWxMethod(method) {
+      if (method === 'getStorageInfoSync') return { keys: [] };
+      if (method === 'setStorageSync') {
+        setCalls += 1;
+        if (setCalls === 2) throw new Error('injected apply failure');
+        return undefined;
       }
-      if (method === 'App.getCurrentPage') return { path: 'pages/water/index' };
-      throw new Error(`Unexpected method: ${method}`);
+      if (method === 'removeStorageSync') throw new Error('injected rollback failure');
+      throw new Error(`Unexpected wx method: ${method}`);
+    },
+    async evaluate(_fn, value) {
+      if (typeof value === 'undefined') {
+        return { available: true, existed: true, value: 'real-app-user' };
+      }
+      return { ok: true, existed: true, value: 'real-app-user' };
+    },
+  };
+  await assert.rejects(
+    screenshotTool.applyCaseStorageFixture(miniProgram, { profileGate: true }),
+    (err) => {
+      assert.match(err.message, /injected apply failure/);
+      assert.equal(err.storageFixtureCleanup.ok, false);
+      assert.match(err.storageFixtureCleanup.errors.join('\n'), /injected rollback failure/);
+      return true;
+    }
+  );
+});
+
+test('runtime configuration rejects a different worktree from the registry worktree', (t) => {
+  const otherProject = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-other-worktree-'));
+  t.after(() => fs.rmSync(otherProject, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(otherProject, 'project.config.json'), '{}', 'utf8');
+  const validation = screenshotTool.validateRuntimeConfig({
+    wsEndpoint: 'ws://127.0.0.1:39458',
+    sourceProjectPath: otherProject,
+    expectedWindowWidth: 390,
+    session: {},
+  }, { requireSession: true });
+  assert.equal(validation.ok, false);
+  assert.equal(validation.checks.projectPath, true);
+  assert.equal(validation.checks.runnerProjectPath, false);
+});
+
+test('failed strict evidence keeps the previous approved screenshot and receipt', async (t) => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-run-case-failure-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const projectPath = path.resolve(__dirname, '..');
+  const outDir = path.join(tempDir, 'approved');
+  const runRoot = path.join(tempDir, 'runs');
+  fs.mkdirSync(outDir, { recursive: true });
+  const finalImage = path.join(outDir, 'launch.png');
+  const finalReceipt = path.join(outDir, 'launch.receipt.json');
+  fs.writeFileSync(finalImage, 'previous-approved-image');
+  fs.writeFileSync(finalReceipt, 'previous-approved-receipt');
+
+  const page = {
+    async waitFor() {},
+    state: {},
+    async setData(data) { Object.assign(this.state, data); },
+    async data(key) { return key ? this.state[key] : { ...this.state }; },
+    async size() { return { width: 390, height: 844 }; },
+    async $$(selector) {
+      if (selector === '.reveal') return [];
+      return [{
+        async text() { return 'ready'; },
+        async size() { return { width: 320, height: 48 }; },
+        async offset() { return { left: 35, top: 120 }; },
+      }];
+    },
+  };
+  const runtimeEvents = { console: [], exceptions: [] };
+  const miniProgram = {
+    async evaluate(_fn, phase) {
+      if (typeof phase === 'undefined') {
+        return { available: true, length: 1, route: 'pages/launch/index' };
+      }
+      return { ok: true, phase, pageFrozen: true };
+    },
+    async switchTab() { return page; },
+    async reLaunch() { return page; },
+    async currentPage() { return page; },
+    async send(command) {
+      if (command === 'Tool.getInfo') return { SDKVersion: '3.7.12', projectPath };
+      if (command === 'App.getCurrentPage') return { path: 'pages/launch/index' };
+      throw new Error(`Unexpected command: ${command}`);
     },
     async systemInfo() {
       return {
-        model: 'iPhone 12/13 (Pro)',
-        platform: 'devtools',
-        screenWidth: 390,
-        screenHeight: 844,
         windowWidth: 390,
-        windowHeight: 753,
-        pixelRatio: 3,
+        windowHeight: 844,
+        pixelRatio: 2,
         fontSizeSetting: 16,
-        statusBarHeight: 47,
       };
     },
-    screenshot() { throw new Error('capturePage must not run during prepare'); },
+    async screenshot({ path: outputPath }) {
+      fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+      fs.writeFileSync(outputPath, createPngBuffer(780, 1688));
+      runtimeEvents.exceptions.push({ message: 'injected post-capture runtime exception' });
+    },
+  };
+  const config = {
+    expectedWindowWidth: 390,
+    expectedSDKVersion: '3.7.12',
+    outDir,
+    runRoot,
+    routeTimeoutMs: 50,
+    readinessTimeoutMs: 50,
+    screenshotTimeoutMs: 50,
   };
   const connection = {
-    mode: 'connect-preopened',
-    endpoint: 'ws://127.0.0.1:64530',
-    sourceProjectPath: path.resolve('fixture-project'),
-    provenanceLogEvidence: null,
-  };
-  const git = { ok: true, head: 'a'.repeat(40), dirty: false, status: [], files: [] };
-  const record = await screenshotTool.prepareCase(
-    'waterV2MemberDirect',
     miniProgram,
-    connection,
-    {
-      outDir: tempDir,
-      nonce: 'b'.repeat(64),
-      pageId: 'page-fixture',
-      currentGitManifest: () => git,
-      windowBinding: {
-        processId: 84288,
-        hwnd: '0x17D0384',
-        title: 'fixture - 微信开发者工具',
-        captureMode: 'visible',
-        dpiAwareness: 'per-monitor-aware-v2',
-        desktopId: '798af4b3-e850-4468-992a-1f512a3a2340',
-        isOnCurrentVirtualDesktop: true,
-        dpi: 144,
-        visible: true,
-        minimized: false,
-        cloaked: false,
-        cloakState: 0,
-        windowRect: { x: 0, y: 0, width: 2582, height: 1538 },
-      },
-      screenRect: { x: 1862, y: 179, width: 523, height: 1132 },
-    }
-  );
-
-  assert.equal(record.prepareValidation.ok, true);
-  assert.match(record.fixtureHash, /^[a-f0-9]{64}$/);
-  assert.match(record.pageDataHash, /^[a-f0-9]{64}$/);
-  assert.equal(fs.existsSync(record.preparePath), true);
-  assert.equal(calls.includes('isolate:before'), true);
-  assert.equal(calls.includes('isolate:cleanup'), false);
-});
-
-test('Win32 helper is DPI-aware, captures a full visible frame and audits occlusion and pixel hashes', () => {
-  const helper = fs.readFileSync(helperPath, 'utf8');
-  assert.match(helper, /SetProcessDpiAwarenessContext/);
-  assert.match(helper, /Add-Type\s+-ReferencedAssemblies\s+['"]System\.Drawing\.dll['"]/);
-  assert.match(helper, /Get-Content\s+-LiteralPath\s+\$resolvedRequestPath\s+-Raw\s+-Encoding\s+UTF8/);
-  assert.match(helper, /DwmGetWindowAttribute/);
-  assert.match(helper, /CopyFromScreen/);
-  assert.match(helper, /GetForegroundWindow/);
-  assert.match(helper, /GetWindowThreadProcessId/);
-  assert.match(helper, /EnumWindows/);
-  assert.match(helper, /cropMatchesFrameRegion/);
-  assert.match(helper, /frameRegionPixelSha256/);
-  assert.match(helper, /InspectPixelProbe/);
-  assert.match(helper, /surfaceRatio/);
-  assert.match(helper, /overlayDarkRatio/);
-  assert.match(helper, /deepGreenRatio/);
-  assert.doesNotMatch(helper, /1862|179|523|1132/);
-});
-
-test('off-desktop PrintWindow mode is explicit, provenance-bound and accepts a visible cloaked target', () => {
-  const prepare = validPrepare();
-  prepare.output = path.resolve('final', 'waterV2OwnerEmpty.png');
-  prepare.fullFramePath = path.resolve('final', 'waterV2OwnerEmpty.devtools-full-frame.png');
-  prepare.receiptPath = path.resolve('final', 'waterV2OwnerEmpty.receipt.json');
-  prepare.captureMode = 'printwindow';
-  prepare.windowBinding = {
-    ...prepare.windowBinding,
-    captureMode: 'printwindow',
-    desktopId: 'b87391b3-f4aa-4111-9bac-5cde1f3adfe7',
-    isOnCurrentVirtualDesktop: false,
-    cloaked: true,
-    cloakState: 2,
-  };
-  prepare.screenCalibration = {
-    ...prepare.screenCalibration,
-    hwnd: prepare.windowBinding.hwnd,
-  };
-  const plan = screenshotTool.buildWin32ArtifactPlan(prepare);
-  const request = screenshotTool.buildWin32CaptureRequest(prepare, { artifactPlan: plan });
-  assert.equal(request.captureMode, 'printwindow');
-  assert.equal(request.expectedDesktopId, prepare.windowBinding.desktopId);
-  assert.equal(request.expectedCloaked, true);
-  assert.equal(request.expectedCloakState, 2);
-  assert.notEqual(request.cropPath, prepare.output);
-  assert.notEqual(request.fullFramePath, prepare.fullFramePath);
-
-  const capture = {
-    captureMode: 'printwindow',
-    renderMethod: 'PrintWindow(PW_RENDERFULLCONTENT)',
-    dpiAwareness: 'per-monitor-aware-v2',
-    processId: prepare.windowBinding.processId,
-    hwnd: prepare.windowBinding.hwnd,
-    title: prepare.windowBinding.title,
-    dpi: prepare.windowBinding.dpi,
-    visible: true,
-    minimized: false,
-    cloaked: true,
-    cloakState: 2,
-    desktopId: prepare.windowBinding.desktopId,
-    isOnCurrentVirtualDesktop: false,
-    windowStable: true,
-    windowRect: prepare.windowBinding.windowRect,
-    windowAfter: {
-      processId: prepare.windowBinding.processId,
-      hwnd: prepare.windowBinding.hwnd,
-      title: prepare.windowBinding.title,
-      dpi: prepare.windowBinding.dpi,
-      visible: true,
-      minimized: false,
-      cloaked: true,
-      cloakState: 2,
-      desktopId: prepare.windowBinding.desktopId,
-      isOnCurrentVirtualDesktop: false,
-      windowRect: prepare.windowBinding.windowRect,
-    },
-    screenCalibration: {
-      model: prepare.systemInfo.model,
-      logicalScreen: { width: 390, height: 844 },
-      screenRect: prepare.screenCalibration.screenRect,
-    },
-    viewportRect: { x: 1862, y: 301, width: 523, height: 1010 },
-    foreground: {
-      before: {
-        hwnd: '0x9C0892',
-        processId: 53468,
-        desktopId: '798af4b3-e850-4468-992a-1f512a3a2340',
-      },
-      after: {
-        hwnd: '0x9C0892',
-        processId: 53468,
-        desktopId: '798af4b3-e850-4468-992a-1f512a3a2340',
-      },
-    },
-    desktop: {
-      targetBefore: prepare.windowBinding.desktopId,
-      targetAfter: prepare.windowBinding.desktopId,
-      currentBefore: '798af4b3-e850-4468-992a-1f512a3a2340',
-      currentAfter: '798af4b3-e850-4468-992a-1f512a3a2340',
-      targetOnCurrentBefore: false,
-      targetOnCurrentAfter: false,
-    },
-    requestProvenance: {
-      kind: 'wechat-devtools-win32-request-v1',
-      prepareId: prepare.prepareId,
-      nonce: prepare.nonce,
-      artifactBindingHash: plan.bindingHash,
-    },
-    overlappingWindows: [],
-    fullFrame: {
-      path: plan.candidateFullFramePath,
-      sha256: '2'.repeat(64),
-      pixelSha256: '3'.repeat(64),
-      width: 2582,
-      height: 1538,
-    },
-    crop: {
-      path: plan.candidateCropPath,
-      sha256: '4'.repeat(64),
-      pixelSha256: '5'.repeat(64),
-      width: 523,
-      height: 1010,
-    },
-    frameRegionPixelSha256: '5'.repeat(64),
-    cropMatchesFrameRegion: true,
-    likelyBlackFrame: false,
+    mode: 'connect-preopened',
+    endpoint: 'ws://127.0.0.1:39454',
+    sourceProjectPath: projectPath,
+    sessionFile: path.join(tempDir, 'session.json'),
+    sessionBinding: { ok: true },
+    runtimeEvents,
+    config,
   };
 
-  assert.equal(screenshotTool.validatePrepareRecord(prepare).ok, true);
-  assert.equal(screenshotTool.validateWin32CaptureEvidence(prepare, capture, plan).ok, true);
-  [
-    { renderMethod: 'CopyFromScreen' },
-    { dpiAwareness: 'system-aware' },
-    { isOnCurrentVirtualDesktop: true },
-    { minimized: true },
-    { cloakState: 0 },
-    { likelyBlackFrame: true },
-    { windowAfter: { ...capture.windowAfter, windowRect: { x: 0, y: 0, width: 1, height: 1 } } },
-    { desktop: { ...capture.desktop, targetOnCurrentAfter: true } },
-    { desktop: { ...capture.desktop, currentAfter: '00000000-0000-0000-0000-000000000000' } },
-    { foreground: { ...capture.foreground, after: { ...capture.foreground.after, hwnd: prepare.windowBinding.hwnd } } },
-    { foreground: { ...capture.foreground, after: { ...capture.foreground.after, processId: prepare.windowBinding.processId } } },
-    { requestProvenance: { ...capture.requestProvenance, nonce: '0'.repeat(64) } },
-  ].forEach((patch) => {
-    assert.equal(screenshotTool.validateWin32CaptureEvidence(prepare, { ...capture, ...patch }, plan).ok, false);
+  const result = await screenshotTool.runCase('launch', miniProgram, connection, {
+    config,
+    runId: 'failure-run',
   });
-});
-
-test('current-desktop PrintWindow mode requires stable full foreground occlusion without changing the target', () => {
-  const prepare = validPrepare();
-  prepare.output = path.resolve('final', 'waterV2OwnerEmpty.png');
-  prepare.fullFramePath = path.resolve('final', 'waterV2OwnerEmpty.devtools-full-frame.png');
-  prepare.receiptPath = path.resolve('final', 'waterV2OwnerEmpty.receipt.json');
-  prepare.captureMode = 'printwindow-current';
-  prepare.windowBinding = {
-    ...prepare.windowBinding,
-    captureMode: 'printwindow-current',
+  assert.equal(result.captureOk, true);
+  assert.equal(result.evidenceOk, false);
+  assert.equal(result.ok, false);
+  assert.equal(result.promotion.promoted, false);
+  assert.equal(fs.readFileSync(finalImage, 'utf8'), 'previous-approved-image');
+  assert.equal(fs.readFileSync(finalReceipt, 'utf8'), 'previous-approved-receipt');
+  assert.equal(fs.existsSync(result.candidateOutput), true);
+  assert.equal(fs.existsSync(result.candidateReceiptPath), true);
+  const frameConfig = {
+    ...config,
+    ...screenshotTool.readRuntimeConfig({
+      WEAPP_SCREENSHOT_DIR: outDir,
+      WEAPP_UI_RUN_ROOT: runRoot,
+      WEAPP_CAPTURE_SURFACE: 'simulator-frame',
+    }, projectPath),
+    expectedWindowWidth: 390,
+    expectedSDKVersion: '3.7.12',
   };
-  const plan = screenshotTool.buildWin32ArtifactPlan(prepare);
-  const request = screenshotTool.buildWin32CaptureRequest(prepare, { artifactPlan: plan });
-  const foregroundHwnd = '0x9C0892';
-  const viewportRect = { x: 1862, y: 301, width: 523, height: 1010 };
-  const foregroundOverlap = {
-    hwnd: foregroundHwnd,
-    processId: 53468,
-    title: 'user foreground',
-    className: 'Chrome_WidgetWin_1',
-    windowRect: { x: 0, y: 0, width: 2582, height: 1538 },
-    intersection: viewportRect,
+  miniProgram.screenshot = async ({ path: outputPath }) => {
+    fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+    fs.writeFileSync(outputPath, createPngBuffer(476, 1026));
   };
-  const capture = {
-    captureMode: 'printwindow-current',
-    renderMethod: 'PrintWindow(PW_RENDERFULLCONTENT)',
-    dpiAwareness: 'per-monitor-aware-v2',
-    processId: prepare.windowBinding.processId,
-    hwnd: prepare.windowBinding.hwnd,
-    title: prepare.windowBinding.title,
-    dpi: prepare.windowBinding.dpi,
-    visible: true,
-    minimized: false,
-    cloaked: false,
-    cloakState: 0,
-    desktopId: prepare.windowBinding.desktopId,
-    isOnCurrentVirtualDesktop: true,
-    windowStable: true,
-    windowRect: prepare.windowBinding.windowRect,
-    windowAfter: {
-      processId: prepare.windowBinding.processId,
-      hwnd: prepare.windowBinding.hwnd,
-      title: prepare.windowBinding.title,
-      dpi: prepare.windowBinding.dpi,
-      visible: true,
-      minimized: false,
-      cloaked: false,
-      cloakState: 0,
-      desktopId: prepare.windowBinding.desktopId,
-      isOnCurrentVirtualDesktop: true,
-      windowRect: prepare.windowBinding.windowRect,
-    },
-    screenCalibration: {
-      model: prepare.systemInfo.model,
-      logicalScreen: { width: 390, height: 844 },
-      screenRect: prepare.screenCalibration.screenRect,
-    },
-    viewportRect,
-    absoluteViewportRect: viewportRect,
-    foreground: {
-      before: {
-        hwnd: foregroundHwnd,
-        processId: 53468,
-        desktopId: prepare.windowBinding.desktopId,
-      },
-      after: {
-        hwnd: foregroundHwnd,
-        processId: 53468,
-        desktopId: prepare.windowBinding.desktopId,
-      },
-    },
-    desktop: {
-      targetBefore: prepare.windowBinding.desktopId,
-      targetAfter: prepare.windowBinding.desktopId,
-      currentBefore: prepare.windowBinding.desktopId,
-      currentAfter: prepare.windowBinding.desktopId,
-      targetOnCurrentBefore: true,
-      targetOnCurrentAfter: true,
-    },
-    requestProvenance: {
-      kind: 'wechat-devtools-win32-request-v1',
-      prepareId: prepare.prepareId,
-      nonce: prepare.nonce,
-      artifactBindingHash: plan.bindingHash,
-    },
-    overlappingWindows: [foregroundOverlap],
-    overlappingWindowsBefore: [foregroundOverlap],
-    overlappingWindowsAfter: [foregroundOverlap],
-    fullFrame: {
-      path: plan.candidateFullFramePath,
-      sha256: '2'.repeat(64),
-      pixelSha256: '3'.repeat(64),
-      width: 2582,
-      height: 1538,
-    },
-    crop: {
-      path: plan.candidateCropPath,
-      sha256: '4'.repeat(64),
-      pixelSha256: '5'.repeat(64),
-      width: 523,
-      height: 1010,
-    },
-    frameRegionPixelSha256: '5'.repeat(64),
-    cropMatchesFrameRegion: true,
-    likelyBlackFrame: false,
-  };
-
-  assert.equal(request.captureMode, 'printwindow-current');
-  assert.equal(screenshotTool.validatePrepareRecord(prepare).ok, true);
-  assert.equal(screenshotTool.validateWin32CaptureEvidence(prepare, capture, plan).ok, true);
-  const nonTransparentTaskSwitcher = {
-    ...capture,
-    foreground: {
-      before: { ...capture.foreground.before, desktopId: '' },
-      after: { ...capture.foreground.after, desktopId: '' },
-    },
-    desktop: { ...capture.desktop, currentBefore: '', currentAfter: '' },
-  };
-  assert.equal(
-    screenshotTool.validateWin32CaptureEvidence(prepare, nonTransparentTaskSwitcher, plan).ok,
-    false
-  );
-  [
-    { renderMethod: 'CopyFromScreen' },
-    { dpiAwareness: 'system-aware' },
-    { isOnCurrentVirtualDesktop: false },
-    { cloaked: true, cloakState: 2 },
-    { foreground: { ...capture.foreground, after: { ...capture.foreground.after, hwnd: prepare.windowBinding.hwnd } } },
-    { overlappingWindowsBefore: [{ ...foregroundOverlap, intersection: { ...viewportRect, width: 522 } }] },
-    { overlappingWindowsAfter: [] },
-    { desktop: { ...capture.desktop, targetOnCurrentAfter: false } },
-    { windowAfter: { ...capture.windowAfter, windowRect: { ...capture.windowAfter.windowRect, x: 1 } } },
-  ].forEach((patch) => {
-    assert.equal(screenshotTool.validateWin32CaptureEvidence(prepare, { ...capture, ...patch }, plan).ok, false);
+  const frameResult = await screenshotTool.runCase('launch', miniProgram, connection, {
+    config: frameConfig, runId: 'frame-run',
   });
-
-  const transparentPrepare = {
-    ...prepare,
-    transparentTargetCapture: true,
-  };
-  const transparentPlan = screenshotTool.buildWin32ArtifactPlan(transparentPrepare);
-  const transparentState = {
-    eligible: true,
-    exStyle: 0x00080020,
-    layered: true,
-    clickThrough: true,
-    layeredAttributesAvailable: true,
-    alphaZero: true,
-    layeredAlpha: 0,
-    layeredFlags: 2,
-  };
-  const transparentCapture = {
-    ...capture,
-    requestProvenance: {
-      ...capture.requestProvenance,
-      artifactBindingHash: transparentPlan.bindingHash,
-    },
-    overlappingWindows: [],
-    overlappingWindowsBefore: [],
-    overlappingWindowsAfter: [],
-    transparentTarget: {
-      requested: true,
-      stable: true,
-      before: transparentState,
-      after: transparentState,
-    },
-    fullFrame: {
-      ...capture.fullFrame,
-      path: transparentPlan.candidateFullFramePath,
-    },
-    crop: {
-      ...capture.crop,
-      path: transparentPlan.candidateCropPath,
-    },
-  };
-
-  assert.equal(screenshotTool.buildWin32CaptureRequest(transparentPrepare, {
-    artifactPlan: transparentPlan,
-  }).transparentTargetCapture, true);
-  assert.equal(
-    screenshotTool.validateWin32CaptureEvidence(
-      transparentPrepare,
-      transparentCapture,
-      transparentPlan
-    ).ok,
-    true
-  );
-  const naturallyChangedForeground = {
-    ...transparentCapture,
-    foreground: {
-      before: transparentCapture.foreground.before,
-      after: {
-        hwnd: '0xA10B20',
-        processId: 61234,
-        desktopId: prepare.windowBinding.desktopId,
-      },
-    },
-  };
-  const naturalForegroundValidation = screenshotTool.validateWin32CaptureEvidence(
-    transparentPrepare,
-    naturallyChangedForeground,
-    transparentPlan
-  );
-  assert.equal(naturalForegroundValidation.ok, true);
-  assert.equal(naturalForegroundValidation.checks.targetNeverForeground, true);
-  assert.equal('foregroundStable' in naturalForegroundValidation.checks, false);
-  const taskSwitcherForeground = {
-    ...naturallyChangedForeground,
-    foreground: {
-      before: { ...naturallyChangedForeground.foreground.before, desktopId: '' },
-      after: { ...naturallyChangedForeground.foreground.after, desktopId: '' },
-    },
-    desktop: {
-      ...naturallyChangedForeground.desktop,
-      currentBefore: '',
-      currentAfter: '',
-    },
-  };
-  const taskSwitcherValidation = screenshotTool.validateWin32CaptureEvidence(
-    transparentPrepare,
-    taskSwitcherForeground,
-    transparentPlan
-  );
-  assert.equal(taskSwitcherValidation.ok, true);
-  assert.equal(taskSwitcherValidation.checks.targetNeverForeground, true);
-  assert.equal(taskSwitcherValidation.checks.desktopStable, true);
-  [
-    {
-      foreground: {
-        ...transparentCapture.foreground,
-        after: {
-          ...transparentCapture.foreground.after,
-          hwnd: prepare.windowBinding.hwnd,
-        },
-      },
-    },
-    {
-      foreground: {
-        ...transparentCapture.foreground,
-        after: {
-          ...transparentCapture.foreground.after,
-          processId: prepare.windowBinding.processId,
-        },
-      },
-    },
-  ].forEach((patch) => {
-    const validation = screenshotTool.validateWin32CaptureEvidence(
-      transparentPrepare,
-      { ...transparentCapture, ...patch },
-      transparentPlan
-    );
-    assert.equal(validation.ok, false);
-    assert.equal(validation.checks.targetNeverForeground, false);
-  });
-  const unavailableDesktopProbeCapture = {
-    ...transparentCapture,
-    desktopId: '',
-    isOnCurrentVirtualDesktop: false,
-    desktopProbeUnavailable: true,
-    windowAfter: {
-      ...transparentCapture.windowAfter,
-      desktopId: '',
-      isOnCurrentVirtualDesktop: false,
-    },
-    desktop: {
-      ...transparentCapture.desktop,
-      targetBefore: '',
-      targetAfter: '',
-      targetOnCurrentBefore: false,
-      targetOnCurrentAfter: false,
-      currentBefore: prepare.windowBinding.desktopId,
-      currentAfter: prepare.windowBinding.desktopId,
-    },
-  };
-  assert.equal(
-    screenshotTool.validateWin32CaptureEvidence(
-      transparentPrepare,
-      unavailableDesktopProbeCapture,
-      transparentPlan
-    ).ok,
-    true
-  );
-  assert.equal(
-    screenshotTool.validateWin32CaptureEvidence(
-      transparentPrepare,
-      {
-        ...unavailableDesktopProbeCapture,
-        desktop: {
-          ...unavailableDesktopProbeCapture.desktop,
-          currentBefore: '00000000-0000-0000-0000-000000000000',
-        },
-      },
-      transparentPlan
-    ).ok,
-    false
-  );
-  [
-    { transparentTarget: { ...transparentCapture.transparentTarget, requested: false } },
-    { transparentTarget: { ...transparentCapture.transparentTarget, stable: false } },
-    {
-      transparentTarget: {
-        ...transparentCapture.transparentTarget,
-        before: { ...transparentState, alphaZero: false, layeredAlpha: 1 },
-      },
-    },
-    {
-      transparentTarget: {
-        ...transparentCapture.transparentTarget,
-        after: { ...transparentState, clickThrough: false },
-      },
-    },
-  ].forEach((patch) => {
-    assert.equal(
-      screenshotTool.validateWin32CaptureEvidence(
-        transparentPrepare,
-        { ...transparentCapture, ...patch },
-        transparentPlan
-      ).ok,
-      false
-    );
-  });
-});
-
-test('freshness proof requires a nonce-bound visible challenge, exact restore and changed target pixels', () => {
-  const prepare = validPrepare();
-  const capture = {
-    crop: { pixelSha256: '5'.repeat(64) },
-  };
-  const proof = {
-    kind: 'wechat-devtools-visible-fixture-challenge-v1',
-    nonce: prepare.nonce,
-    pageId: prepare.pageId,
-    selector: '.water-round-title',
-    challengeText: `截图新鲜度校验 ${prepare.nonce.slice(0, 8)}`,
-    challengeDomHash: '6'.repeat(64),
-    restoredDomHash: prepare.domHash,
-    restoredPageDataHash: prepare.pageDataHash,
-    probeRect: { x: 20, y: 24, width: 300, height: 44 },
-    challengeRegionPixelSha256: '7'.repeat(64),
-    finalRegionPixelSha256: '8'.repeat(64),
-    finalCropPixelSha256: capture.crop.pixelSha256,
-  };
-
-  assert.equal(screenshotTool.validateCaptureFreshnessProof(prepare, capture, proof).ok, true);
-  [
-    { nonce: '0'.repeat(64) },
-    { challengeText: '截图新鲜度校验' },
-    { restoredDomHash: '9'.repeat(64) },
-    { restoredPageDataHash: '9'.repeat(64) },
-    { probeRect: { x: 20, y: 24, width: 0, height: 44 } },
-    { finalRegionPixelSha256: proof.challengeRegionPixelSha256 },
-    { finalCropPixelSha256: '9'.repeat(64) },
-  ].forEach((patch) => {
-    assert.equal(
-      screenshotTool.validateCaptureFreshnessProof(prepare, capture, { ...proof, ...patch }).ok,
-      false
-    );
-  });
-  assert.equal(screenshotTool.validateCaptureFreshnessProof(prepare, capture, {}).ok, false);
-});
-
-test('modal ROI freshness rejects a stale ledger frame and accepts sheet, overlay, CTA and 12v12 state evidence', () => {
-  const prepare = validPrepare();
-  prepare.name = 'waterV2Member24Game';
-  const proof = {
-    kind: 'wechat-devtools-modal-roi-v1',
-    nonce: prepare.nonce,
-    pageId: prepare.pageId,
-    domHash: prepare.domHash,
-    sheet: {
-      rect: { x: 0, y: 80, width: 523, height: 930 },
-      surfaceRatio: 0.91,
-      topLeftOverlayDarkRatio: 0.72,
-      topRightOverlayDarkRatio: 0.69,
-    },
-    cta: { rect: { x: 20, y: 920, width: 483, height: 64 }, deepGreenRatio: 0.81 },
-    gameSelection: {
-      winnerDomCount: 12,
-      loserDomCount: 12,
-      validationText: '双方人数相同 · 每人 1 水',
-      winnerSoftRatio: 0,
-      loserSoftRatio: 0.55,
-    },
-  };
-  assert.equal(screenshotTool.validateModalRoiFreshnessProof(prepare, proof).ok, true);
-  [
-    { sheet: { ...proof.sheet, surfaceRatio: 0.1 } },
-    { sheet: { ...proof.sheet, topLeftOverlayDarkRatio: 0 } },
-    { cta: { ...proof.cta, deepGreenRatio: 0.05 } },
-    { gameSelection: { ...proof.gameSelection, winnerDomCount: 0 } },
-    { gameSelection: { ...proof.gameSelection, loserSoftRatio: 0 } },
-  ].forEach((patch) => {
-    assert.equal(screenshotTool.validateModalRoiFreshnessProof(prepare, { ...proof, ...patch }).ok, false);
-  });
-  assert.equal(screenshotTool.validateModalRoiFreshnessProof(prepare, {}).ok, false);
-});
-
-test('modal ROI probes bottom-anchor flow offsets from a real 390 game-sheet prepare shape', () => {
-  const prepare = validPrepare();
-  prepare.name = 'waterV2Member24Game';
-  prepare.dom = [
-    { selector: '.water-game-sheet', offset: { left: 0, top: 753.197 }, size: { width: 390, height: 692 } },
-    { selector: '.water-confirm-button', offset: { left: 28, top: 1360.197 }, size: { width: 334, height: 48 } },
-    { selector: '.water-player-chip.is-winner', offset: { left: 20, top: 1150.197 }, size: { width: 110, height: 52 } },
-    { selector: '.water-player-chip.is-loser', offset: { left: 260, top: 1210.197 }, size: { width: 110, height: 52 } },
-  ];
-  const probes = screenshotTool.buildModalRoiPixelProbes(prepare);
-  assert.ok(probes.sheetSurface.y >= 0 && probes.sheetSurface.y < 1010);
-  assert.ok(probes.cta.y >= 0 && probes.cta.y + probes.cta.height <= 1010);
-  assert.ok(probes.winnerChip.y >= 0 && probes.winnerChip.y < 1010);
-  assert.ok(probes.loserChip.y >= 0 && probes.loserChip.y < 1010);
-  assert.ok(probes.cta.y > probes.winnerChip.y);
-});
-
-test('modal ROI probes preserve an in-viewport game-sheet top instead of re-anchoring it', () => {
-  const prepare = validPrepare();
-  prepare.name = 'waterV2Member24Game';
-  prepare.dom = [
-    { selector: '.water-game-sheet', offset: { left: 0, top: 60 }, size: { width: 390, height: 659 } },
-    { selector: '.water-confirm-button', offset: { left: 14, top: 660 }, size: { width: 362, height: 48 } },
-  ];
-  const probes = screenshotTool.buildModalRoiPixelProbes(prepare);
-  assert.ok(probes.sheetTopLeft.y < 100);
-  assert.ok(probes.sheetTopRight.y < 100);
-  assert.ok(probes.cta.y < 920);
-});
-
-test('transparent background publication requires ordered restore/end cleanup evidence', () => {
-  const prepare = validPrepare();
-  prepare.captureMode = 'printwindow-current';
-  prepare.transparentTargetCapture = true;
-  const cleanup = {
-    kind: 'weapp-background-capture-cleanup-v1',
-    targetHwnd: prepare.windowBinding.hwnd,
-    targetProcessId: prepare.windowBinding.processId,
-    begin: {
-      ok: true,
-      action: 'BeginPassive',
-      completedAt: '2026-08-11T09:59:58.000Z',
-      targetNeverForeground: true,
-      transparent: true,
-      clickThrough: true,
-      originalDesktopId: 'b87391b3-f4aa-4111-9bac-5cde1f3adfe7',
-    },
-    attach: {
-      ok: true,
-      action: 'Attach',
-      completedAt: '2026-08-11T09:59:59.000Z',
-      targetNeverForeground: true,
-      geometryStable: true,
-      attachedDesktopId: prepare.windowBinding.desktopId,
-      internalPlacementProof: {
-        kind: 'weapp-internal-desktop-placement-v1',
-        currentDesktopId: prepare.windowBinding.desktopId,
-        targetDesktopId: prepare.windowBinding.desktopId,
-      },
-    },
-    rebind: {
-      ok: true,
-      action: 'RebindCurrent',
-      completedAt: '2026-08-11T09:59:59.250Z',
-      targetNeverForeground: true,
-      geometryStable: true,
-      transparent: true,
-      clickThrough: true,
-      alphaZero: true,
-      sameCurrent: true,
-      movePerformed: true,
-      moveCount: 1,
-      walRetained: true,
-      attachedDesktopId: prepare.windowBinding.desktopId,
-      internalPlacementProof: {
-        kind: 'weapp-internal-desktop-placement-v1',
-        currentDesktopId: prepare.windowBinding.desktopId,
-        targetDesktopId: prepare.windowBinding.desktopId,
-      },
-      publicPlacementAvailable: true,
-      publicPlacementProof: {
-        desktopId: prepare.windowBinding.desktopId,
-        onCurrentDesktop: true,
-      },
-      foregroundAfterMove: {
-        hwnd: '0x7FEE',
-        processId: prepare.windowBinding.processId + 1,
-      },
-      rebindReceipt: {
-        kind: 'weapp-same-current-rebind-v1',
-        attachedDesktopId: prepare.windowBinding.desktopId,
-        sameCurrent: true,
-        moveCount: 1,
-        foregroundAfterMove: {
-          hwnd: '0x7FEE',
-          processId: prepare.windowBinding.processId + 1,
-        },
-        internalPlacementProof: {
-          kind: 'weapp-internal-desktop-placement-v1',
-          currentDesktopId: prepare.windowBinding.desktopId,
-          targetDesktopId: prepare.windowBinding.desktopId,
-        },
-      },
-    },
-    materialize: {
-      ok: true,
-      action: 'MaterializeCurrent',
-      completedAt: '2026-08-11T09:59:59.375Z',
-      targetNeverForeground: true,
-      geometryStable: true,
-      transparent: true,
-      clickThrough: true,
-      alphaZero: true,
-      cloakStateZero: true,
-      originalVisible: true,
-      liveVisible: true,
-      minimized: false,
-      materializeCount: 1,
-      showWindowFlag: true,
-      walRetained: true,
-      attachedDesktopId: prepare.windowBinding.desktopId,
-      foregroundAfterMaterialize: {
-        hwnd: '0x7FEE',
-        processId: prepare.windowBinding.processId + 1,
-      },
-      internalPlacementProof: {
-        kind: 'weapp-internal-desktop-placement-v1',
-        currentDesktopId: prepare.windowBinding.desktopId,
-        targetDesktopId: prepare.windowBinding.desktopId,
-      },
-      publicPlacementAvailable: true,
-      publicPlacementProof: {
-        desktopId: prepare.windowBinding.desktopId,
-        onCurrentDesktop: true,
-      },
-      materializeReceipt: {
-        kind: 'weapp-current-materialize-v1',
-        attachedDesktopId: prepare.windowBinding.desktopId,
-        materializeCount: 1,
-        showWindowFlag: true,
-        cloakStateZero: true,
-        originalVisible: true,
-        liveVisible: true,
-        targetNeverForeground: true,
-        geometryStable: true,
-        transparent: true,
-        clickThrough: true,
-        alphaZero: true,
-        foregroundAfterMaterialize: {
-          hwnd: '0x7FEE',
-          processId: prepare.windowBinding.processId + 1,
-        },
-        internalPlacementProof: {
-          kind: 'weapp-internal-desktop-placement-v1',
-          currentDesktopId: prepare.windowBinding.desktopId,
-          targetDesktopId: prepare.windowBinding.desktopId,
-        },
-      },
-    },
-    wake: {
-      ok: true,
-      action: 'WakeCurrent',
-      completedAt: '2026-08-11T09:59:59.500Z',
-      targetNeverForeground: true,
-      geometryStable: true,
-      transparent: true,
-      clickThrough: true,
-      painted: true,
-      currentDesktop: true,
-      bridgeReceipt: {
-        kind: 'weapp-internal-desktop-placement-v1',
-        currentDesktopId: prepare.windowBinding.desktopId,
-        targetDesktopId: prepare.windowBinding.desktopId,
-      },
-    },
-    capturedAt: '2026-08-11T10:00:00.000Z',
-    restore: {
-      ok: true,
-      action: 'Restore',
-      completedAt: '2026-08-11T10:00:01.000Z',
-      targetNeverForeground: true,
-      geometryStable: true,
-      originalDesktopId: 'b87391b3-f4aa-4111-9bac-5cde1f3adfe7',
-      currentDesktopId: prepare.windowBinding.desktopId,
-      walRetained: true,
-      internalPlacementProof: {
-        kind: 'weapp-internal-desktop-placement-v1',
-        currentDesktopId: prepare.windowBinding.desktopId,
-        targetDesktopId: 'b87391b3-f4aa-4111-9bac-5cde1f3adfe7',
-      },
-    },
-    end: {
-      ok: true,
-      action: 'End',
-      completedAt: '2026-08-11T10:00:02.000Z',
-      targetNeverForeground: true,
-      geometryStable: true,
-      styleRestored: true,
-      originalDesktopRestored: true,
-      publicPlacementAvailable: true,
-      publicPlacement: {
-        desktopId: 'b87391b3-f4aa-4111-9bac-5cde1f3adfe7',
-        onCurrentDesktop: false,
-      },
-      bridgeStateDeleted: true,
-      stateDeleted: true,
-    },
-    originalDesktopId: 'b87391b3-f4aa-4111-9bac-5cde1f3adfe7',
-  };
-  assert.equal(screenshotTool.validateBackgroundCleanupEvidence(prepare, cleanup).ok, true);
-  assert.equal(screenshotTool.validateBackgroundCleanupEvidence(prepare, {}).ok, false);
-  assert.equal(screenshotTool.validateBackgroundCleanupEvidence(prepare, {
-    ...cleanup,
-    end: { ...cleanup.end, completedAt: '2026-08-11T09:59:59.000Z' },
-  }).ok, false);
-  assert.equal(screenshotTool.validateBackgroundCleanupEvidence(prepare, {
-    ...cleanup,
-    attach: { ...cleanup.attach, completedAt: '2026-08-11T09:59:57.000Z' },
-  }).ok, false);
-  assert.equal(screenshotTool.validateBackgroundCleanupEvidence(prepare, {
-    ...cleanup,
-    rebind: { ...cleanup.rebind, completedAt: '2026-08-11T09:59:58.500Z' },
-  }).ok, false);
-  assert.equal(screenshotTool.validateBackgroundCleanupEvidence(prepare, {
-    ...cleanup,
-    materialize: { ...cleanup.materialize, completedAt: '2026-08-11T09:59:59.125Z' },
-  }).ok, false);
-  assert.equal(screenshotTool.validateBackgroundCleanupEvidence(prepare, {
-    ...cleanup,
-    materialize: { ...cleanup.materialize, materializeCount: 2 },
-  }).ok, false);
-  assert.equal(screenshotTool.validateBackgroundCleanupEvidence(prepare, {
-    ...cleanup,
-    materialize: { ...cleanup.materialize, originalVisible: false },
-  }).ok, false);
-  assert.equal(screenshotTool.validateBackgroundCleanupEvidence(prepare, {
-    ...cleanup,
-    materialize: {
-      ...cleanup.materialize,
-      foregroundAfterMaterialize: {
-        ...cleanup.materialize.foregroundAfterMaterialize,
-        processId: prepare.windowBinding.processId,
-      },
-    },
-  }).ok, false);
-  assert.equal(screenshotTool.validateBackgroundCleanupEvidence(prepare, {
-    ...cleanup,
-    rebind: { ...cleanup.rebind, moveCount: 2 },
-  }).ok, false);
-  assert.equal(screenshotTool.validateBackgroundCleanupEvidence(prepare, {
-    ...cleanup,
-    rebind: { ...cleanup.rebind, action: 'Attach' },
-  }).ok, false);
-  assert.equal(screenshotTool.validateBackgroundCleanupEvidence(prepare, {
-    ...cleanup,
-    rebind: {
-      ...cleanup.rebind,
-      foregroundAfterMove: {
-        ...cleanup.rebind.foregroundAfterMove,
-        hwnd: prepare.windowBinding.hwnd,
-      },
-    },
-  }).ok, false);
-  assert.equal(screenshotTool.validateBackgroundCleanupEvidence(prepare, {
-    ...cleanup,
-    wake: { ...cleanup.wake, completedAt: '2026-08-11T10:00:00.500Z' },
-  }).ok, false);
-  assert.equal(screenshotTool.validateBackgroundCleanupEvidence(prepare, {
-    ...cleanup,
-    wake: { ...cleanup.wake, action: 'BeginPassive' },
-  }).ok, false);
-  assert.equal(screenshotTool.validateBackgroundCleanupEvidence(prepare, {
-    ...cleanup,
-    restore: { ...cleanup.restore, targetNeverForeground: false },
-  }).ok, false);
-  assert.equal(screenshotTool.validateBackgroundCleanupEvidence(prepare, {
-    ...cleanup,
-    restore: { ...cleanup.restore, currentDesktopId: cleanup.originalDesktopId },
-  }).ok, false);
-  assert.equal(screenshotTool.validateBackgroundCleanupEvidence(prepare, {
-    ...cleanup,
-    end: { ...cleanup.end, publicPlacementAvailable: false },
-  }).ok, false);
-  assert.equal(screenshotTool.validateBackgroundCleanupEvidence(prepare, {
-    ...cleanup,
-    end: { ...cleanup.end, bridgeStateDeleted: false },
-  }).ok, false);
-  assert.match(String(screenshotTool.capturePreparedWin32), /backgroundCleanupValidation/);
-  assert.match(String(screenshotTool.capturePreparedWin32), /publicationEligible[\s\S]*backgroundCleanupValidation\.ok/);
-});
-
-test('transparent current-desktop PrintWindow waits bounded for DWM uncloaking before capture', () => {
-  const helper = fs.readFileSync(
-    path.resolve(__dirname, '..', 'scripts', 'dev', 'weapp-devtools-win32-capture.ps1'),
-    'utf8'
-  );
-  const waitDefinition = helper.indexOf('function Wait-TransparentCurrentCaptureReadiness');
-  const resolveDefinition = helper.indexOf('function Resolve-BoundWindow');
-  assert.ok(waitDefinition >= 0 && resolveDefinition > waitDefinition);
-  const waitBody = helper.slice(waitDefinition, resolveDefinition);
-
-  assert.match(waitBody, /\[int\]\$Attempts\s*=\s*60/);
-  assert.match(waitBody, /\[int\]\$DelayMilliseconds\s*=\s*100/);
-  assert.match(waitBody, /InspectWindow\(\$TargetHwnd\)/);
-  assert.match(waitBody, /sameHwnd/);
-  assert.match(waitBody, /sameProcessId/);
-  assert.match(waitBody, /geometryStable/);
-  assert.match(waitBody, /transparentStable/);
-  assert.match(waitBody, /targetNeverForeground/);
-  assert.match(waitBody, /cloakStateZero/);
-  assert.match(waitBody, /lastWindow/);
-  assert.match(waitBody, /predicates/);
-  assert.match(waitBody, /timed out before PrintWindow/);
-  assert.match(waitBody, /Start-Sleep -Milliseconds \$DelayMilliseconds/);
-
-  const waitCall = helper.indexOf('Wait-TransparentCurrentCaptureReadiness', resolveDefinition);
-  const captureCall = helper.indexOf(
-    '[Codex.WeappCapture.NativeCapture]::CapturePrintWindowFrame(',
-    waitCall
-  );
-  assert.ok(waitCall >= 0 && captureCall > waitCall);
-  assert.doesNotMatch(helper, /DwmSetWindowAttribute/);
-});
-
-test('PrintWindow helper path is DPI-V2-first, single-call, background-only and keeps visible capture isolated', () => {
-  const helper = fs.readFileSync(helperPath, 'utf8');
-  const dpiCall = helper.indexOf('[Codex.WeappCapture.NativeCapture]::EnableDpiAwareness()');
-  const targetLookup = helper.indexOf('$window = Resolve-BoundWindow $request');
-  assert.ok(dpiCall >= 0 && targetLookup > dpiCall, 'DPI awareness must precede target lookup');
-  assert.match(helper, /EntryPoint\s*=\s*['"]PrintWindow['"]/);
-  assert.match(helper, /PW_RENDERFULLCONTENT|PwRenderFullContent/);
-  assert.match(helper, /CapturePrintWindowFrame/);
-  assert.match(helper, /captureMode/i);
-  assert.match(helper, /GetLayeredWindowAttributes/);
-  assert.match(helper, /WS_EX_LAYERED/);
-  assert.match(helper, /WS_EX_TRANSPARENT/);
-  assert.doesNotMatch(helper, /WS_EX_NOACTIVATE/);
-  assert.match(helper, /transparentTargetCapture/);
-  assert.match(helper, /desktopProbeUnavailable/);
-  assert.doesNotMatch(helper, /SetForegroundWindow|BringWindowToTop|SetWindowPos|ShowWindow|SendInput|mouse_event|keybd_event/);
-
-  const printStart = helper.indexOf('public static BitmapEvidence CapturePrintWindowFrame');
-  const visibleStart = helper.indexOf('public static BitmapEvidence CaptureVisibleFrame');
-  assert.ok(printStart >= 0 && visibleStart >= 0);
-  const printBody = helper.slice(printStart, helper.indexOf('\n    public static ', printStart + 20));
-  const visibleBody = helper.slice(visibleStart, printStart > visibleStart ? printStart : helper.indexOf('\n    public static ', visibleStart + 20));
-  assert.equal((printBody.match(/RenderWindow\s*\(/g) || []).length, 1);
-  assert.doesNotMatch(printBody, /CopyFromScreen/);
-  assert.match(visibleBody, /CopyFromScreen/);
-});
-
-test('capture receipt kind distinguishes visible, off-desktop and current-desktop PrintWindow from capturePage output', () => {
-  const script = fs.readFileSync(scriptPath, 'utf8');
-  assert.match(script, /captureKind,/);
-  assert.match(script, /wechat-devtools-win32-visible-crop-v1/);
-  assert.match(script, /wechat-devtools-win32-offdesktop-printwindow-crop-v1/);
-  assert.match(script, /wechat-devtools-win32-current-desktop-occluded-printwindow-crop-v1/);
-  assert.match(script, /fully occluded behind a stable user foreground window/);
-});
-
-test('failed Win32 validation keeps prior final artifacts byte-for-byte and leaves nonce-bound candidates', (t) => {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-win32-publish-failure-'));
-  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
-  const prepare = {
-    ...validPrepare(),
-    output: path.join(tempDir, 'waterV2OwnerEmpty.png'),
-    fullFramePath: path.join(tempDir, 'waterV2OwnerEmpty.devtools-full-frame.png'),
-    receiptPath: path.join(tempDir, 'waterV2OwnerEmpty.receipt.json'),
-  };
-  const plan = screenshotTool.buildWin32ArtifactPlan(prepare);
-  fs.mkdirSync(plan.candidateDir, { recursive: true });
-  fs.writeFileSync(prepare.output, 'prior-crop');
-  fs.writeFileSync(prepare.fullFramePath, 'prior-frame');
-  fs.writeFileSync(prepare.receiptPath, 'prior-receipt');
-  fs.writeFileSync(plan.candidateCropPath, 'failed-crop-candidate');
-  fs.writeFileSync(plan.candidateFullFramePath, 'failed-frame-candidate');
-
-  const publication = screenshotTool.publishWin32CandidateArtifacts(plan, {
-    eligible: false,
-    reason: 'post-capture validation failed',
-  });
-
-  assert.equal(publication.attempted, false);
-  assert.equal(publication.published, false);
-  assert.equal(publication.candidateDisposition, 'retained-for-diagnostics');
-  assert.equal(plan.binding.prepareId, prepare.prepareId);
-  assert.equal(plan.binding.nonce, prepare.nonce);
-  assert.match(plan.candidateDir, new RegExp(plan.bindingHash.slice(0, 32)));
-  assert.equal(fs.readFileSync(prepare.output, 'utf8'), 'prior-crop');
-  assert.equal(fs.readFileSync(prepare.fullFramePath, 'utf8'), 'prior-frame');
-  assert.equal(fs.readFileSync(prepare.receiptPath, 'utf8'), 'prior-receipt');
-  assert.equal(fs.readFileSync(plan.candidateCropPath, 'utf8'), 'failed-crop-candidate');
-  assert.equal(fs.readFileSync(plan.candidateFullFramePath, 'utf8'), 'failed-frame-candidate');
-
-  fs.unlinkSync(prepare.output);
-  fs.unlinkSync(prepare.fullFramePath);
-  const noPriorFinal = screenshotTool.publishWin32CandidateArtifacts(plan, {
-    eligible: false,
-    reason: 'receipt validation failed',
-  });
-  assert.equal(noPriorFinal.published, false);
-  assert.equal(fs.existsSync(prepare.output), false);
-  assert.equal(fs.existsSync(prepare.fullFramePath), false);
-});
-
-test('successful Win32 validation atomically publishes candidates to final image paths', (t) => {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-win32-publish-success-'));
-  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
-  const prepare = {
-    ...validPrepare(),
-    output: path.join(tempDir, 'waterV2OwnerEmpty.png'),
-    fullFramePath: path.join(tempDir, 'waterV2OwnerEmpty.devtools-full-frame.png'),
-    receiptPath: path.join(tempDir, 'waterV2OwnerEmpty.receipt.json'),
-  };
-  const plan = screenshotTool.buildWin32ArtifactPlan(prepare);
-  fs.mkdirSync(plan.candidateDir, { recursive: true });
-  fs.writeFileSync(prepare.output, 'prior-crop');
-  fs.writeFileSync(prepare.fullFramePath, 'prior-frame');
-  fs.writeFileSync(plan.candidateCropPath, 'validated-crop-candidate');
-  fs.writeFileSync(plan.candidateFullFramePath, 'validated-frame-candidate');
-
-  const publication = screenshotTool.publishWin32CandidateArtifacts(plan, {
-    eligible: true,
-  });
-
-  assert.equal(publication.attempted, true);
-  assert.equal(publication.published, true);
-  assert.equal(publication.candidateDisposition, 'retained-for-diagnostics');
-  assert.equal(fs.readFileSync(prepare.output, 'utf8'), 'validated-crop-candidate');
-  assert.equal(fs.readFileSync(prepare.fullFramePath, 'utf8'), 'validated-frame-candidate');
-  assert.equal(fs.readFileSync(plan.candidateCropPath, 'utf8'), 'validated-crop-candidate');
-  assert.equal(fs.readFileSync(plan.candidateFullFramePath, 'utf8'), 'validated-frame-candidate');
-  assert.equal(fs.existsSync(`${prepare.output}.tmp`), false);
-  assert.equal(fs.existsSync(`${prepare.fullFramePath}.tmp`), false);
-});
-
-test('Win32 helper request can only write nonce-bound diagnostic candidates, never final image paths', () => {
-  const prepare = {
-    ...validPrepare(),
-    output: path.resolve('final', 'waterV2OwnerEmpty.png'),
-    fullFramePath: path.resolve('final', 'waterV2OwnerEmpty.devtools-full-frame.png'),
-    receiptPath: path.resolve('final', 'waterV2OwnerEmpty.receipt.json'),
-  };
-  const plan = screenshotTool.buildWin32ArtifactPlan(prepare);
-  const request = screenshotTool.buildWin32CaptureRequest(prepare, { artifactPlan: plan });
-
-  assert.equal(request.prepareId, prepare.prepareId);
-  assert.equal(request.nonce, prepare.nonce);
-  assert.equal(request.artifactBindingHash, plan.bindingHash);
-  assert.equal(request.cropPath, plan.candidateCropPath);
-  assert.equal(request.fullFramePath, plan.candidateFullFramePath);
-  assert.notEqual(request.cropPath, prepare.output);
-  assert.notEqual(request.fullFramePath, prepare.fullFramePath);
-});
-
-test('Win32 helper creates the nonce-bound request directory before invoking PowerShell', (t) => {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-win32-helper-request-'));
-  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
-  const helperPath = path.join(tempDir, 'helper.ps1');
-  const requestPath = path.join(tempDir, 'nested', 'candidate', 'win32-request.json');
-  fs.writeFileSync(helperPath, '# test helper\n');
-
-  const result = screenshotTool.invokeWin32Helper(
-    'Capture',
-    { kind: 'request' },
-    {
-      allowNonWindows: true,
-      helperPath,
-      requestPath,
-      powershellPath: 'powershell.exe',
-      spawnSync() {
-        assert.equal(fs.existsSync(requestPath), true);
-        return { status: 0, stdout: '{"ok":true}', stderr: '' };
-      },
-    }
-  );
-
-  assert.deepEqual(result, { ok: true });
+  assert.equal(frameResult.receiptValidation.checks.png, true);
+  assert.equal(frameResult.captureSurface.kind, 'simulator-frame');
+  assert.equal(frameResult.captureSurface.pageGeometryVerified, false);
+  assert.equal(path.relative(runRoot, frameResult.candidateOutput), path.join('simulator-frame', 'frame-run', 'candidate', 'launch.png'));
+  const manifestPath = path.join(frameConfig.runRoot, 'frame-run', 'manifest.json');
+  screenshotTool.promoteRunResults([frameResult], 'frame-run', { manifestPath });
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  assert.deepEqual(manifest.captureSurface, frameResult.captureSurface);
+  assert.deepEqual(manifest.cases[0].captureSurface, frameResult.captureSurface);
+  assert.equal(fs.readFileSync(finalImage, 'utf8'), 'previous-approved-image');
+  assert.equal(fs.readFileSync(finalReceipt, 'utf8'), 'previous-approved-receipt');
 });

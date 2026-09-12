@@ -6,8 +6,8 @@
 
 - 赛事：创建、配置、开赛、录分、排名、赛后复盘与分享；
 - 模式：多人轮转、团队双打、固定搭档循环；
-- 独立打水：手动/接龙/邀请添加球友，1v1 起记一局，直接加减水，搜索大名单和撤销上一条；
-- 独立打水不创建 tournament，当前没有用户可见的结束/另开账本入口。
+- 独立打水：手动/接龙/邀请添加球友，1v1 起记一局、单独记水和名单搜索；源码包含 V2 多人记账、修改/撤销、完整流水与往期，云能力不可用时兼容 V1 发起人记账。
+- 独立打水不创建 tournament、不提供结束入口；每次打水新建独立账本、名单和邀请链接，新建不清空旧账本，可从最近/历史或旧链接继续。
 
 线上、开发、云部署和 preview 状态请看 `docs/tasks/current.md`，不要从本地 Git HEAD 推导线上版本。
 
@@ -31,9 +31,10 @@
 
 ## 开发检查
 
-在当前 worktree 的 PowerShell 中运行：
+在当前 worktree 的PowerShell中按改动风险选择命令，不是每次全部执行：
 
 ```powershell
+npm run test:affected -- <本任务的仓库相对路径>
 npm test
 npm run test:ranking
 npm run check
@@ -48,7 +49,7 @@ node scripts/run-bash-script.js scripts/sync-cloud-common.sh
 npm run check:cloud-common
 ```
 
-不要直接编辑 `cloudfunctions/*/lib/*`，不要调用裸 `bash`。当前精确命令及已知测试波动见 `docs/tools/windows-dev-environment.md`。
+不要直接编辑 `cloudfunctions/*/lib/*`，不要调用裸 `bash`。Windows环境见 `docs/tools/windows-dev-environment.md`；当前验证结果见 `docs/tasks/current.md`。
 
 ## 典型赛事流程
 
@@ -61,12 +62,12 @@ npm run check:cloud-common
 ## 独立打水流程
 
 1. launch 点击“开始记水”；
-2. 创建或继续发起人的 active 账本；
+2. 新建本次独立账本，或继续最近/历史账本；
 3. 手动添加、粘贴接龙或分享邀请；
 4. 选择等人数胜负方记一局，或点名单 `＋/−` 直接记账；
-5. 查看净水和最近 4 条记录，必要时撤销上一条。
+5. 按权限查看流水、修改或撤销；旧账本保留，UI 不使用新轮次模型。V1 兼容模式保留发起人撤销上一条。
 
-完整合同见 `docs/specs/standalone-water-ledger.md`。
+最新批准增量见 [每次独立打水账本](docs/specs/independent-water-ledgers.md)，基础合同见 [V1 兼容规格](docs/specs/standalone-water-ledger.md)和 [V2 多人账本规格](docs/specs/collaborative-water-ledger-v2.md)。V1 成员历史仍通过旧链接进入；新增成员查询索引未部署，源码能力不代表已上线或 UI 已验收。
 
 ## 云函数部署
 
@@ -82,5 +83,5 @@ local commit、push、PR、preview QR、preview、`mp:upload`、正式发布、�
 
 - `FUNCTION_NOT_FOUND`：目标环境没有部署所需云函数，或 DevTools 选择了错误环境；先核对环境和函数名，不要直接全量部署。
 - `database collection not exists`：目标环境缺少集合或初始化权限；真实环境操作前先确认授权。
-- 截图连接失败：端口角色是会话动态值，验证 exact worktree 的 automation endpoint 后设置 `WEAPP_WS_ENDPOINT`；不要盲信脚本默认 `39420`。
+- 截图连接失败：通过 `WEAPP_UI_SESSION_FILE` 选择已签名会话，执行 `ui:doctor`；按截图工作流区分源码刷新与会话重建，不手填或猜测endpoint。
 - 截图超时：DevTools 最小化可能没有可靠 surface；保持 restored-but-background，详见 `docs/tools/weapp-ui-screenshot-workflow.md`。

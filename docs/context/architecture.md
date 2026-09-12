@@ -4,13 +4,15 @@
 
 | Layer | Current fact |
 |---|---|
-| Online/product baseline | `master` = `origin/master` = `5813ffc` |
-| Current development product commit | `c2f438a` on isolated `codex/water-court-vant-spike-20260807` |
-| Cloud | `waterSession` deployed once under explicit authorization; this does not release the client |
-| Preview | One QR was generated before `c2f438a`; it is not current-source or online evidence |
-| Git remote | Current branch has no upstream and has not been pushed |
+| Online/product baseline | Recorded client `55bfc4f` / `6.1.2-e60d827-r3`; actual deployment is not inferred from Git |
+| Current development | Exact branch, HEAD and uncommitted changes: [current task](../tasks/current.md) |
+| Cloud | Local cloud fixes and V2 capabilities do not prove deployed functions or enabled flags |
+| Preview | Historical QR images are not current-source or online evidence |
+| Git remote | Tracking refs are source history, not client release or cloud deployment evidence |
 
 Never infer one layer from another. The current task state is in `docs/tasks/current.md`.
+
+The prepared Huawei Flexus host is documented in `docs/context/huawei-flexus-migration-prep.md`. It is infrastructure readiness only; the mini-program still runs on WeChat CloudBase and no migration or cutover is implied.
 
 ## Layers
 
@@ -42,7 +44,7 @@ The only schedule overlay inherited from the 2026-07-29 restart is central pendi
 
 ```text
 launch “开始记水”
-  → create or continue owner active session
+  → create an independent ledger or continue a recent/history ledger
   → add names manually / relay import / share invitation and claim
   → record equal-side game or direct transfer
   → derive ledger and recent entries
@@ -63,7 +65,9 @@ Cloud/data:
 - owner-only add/record/undo; authenticated visitor may join or claim an unbound manual participant;
 - responses sanitize participant bindings and expose only `claimed`, `isViewer`, session-level `isOwner` and `viewerParticipantId`, never raw OpenID values.
 
-The server recognizes `active` and a compatibility `finished` state, but the current client exposes no finish action or historical/new-ledger lifecycle. Do not surface or remove that compatibility branch without approval. Full contract: `docs/specs/standalone-water-ledger.md`.
+The above limits describe the V1 compatibility backend. Current source also includes V2 member writes, paginated audit history and corrections/reversals. The approved product model is one independent ledger, roster and invitation link per gathering: creating another ledger does not clear or close previous ledgers. `createLedger` derives a room ID from the caller and request ID; `listLedgers` returns the caller's valid owner/member ledgers. V2 still uses room/round/entry storage and retains old APIs for compatibility, but the UI exposes no new-round or finish action.
+
+The history query scans the caller's memberships, validates room access and sorts summaries by update time. Its new `waterRoomMembers(openid ASC, _id ASC)` index is declared but not deployed. Unmigrated V1 discovery includes the owner's stable ledger; V1 member history still requires the original invitation link. There is no implicit migration. Source presence does not prove production availability or UI acceptance. Contracts: [approved independent-ledger increment](../specs/independent-water-ledgers.md), [V1](../specs/standalone-water-ledger.md), [V2](../specs/collaborative-water-ledger-v2.md).
 
 ## Page and Component Boundary
 

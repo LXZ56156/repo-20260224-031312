@@ -6,17 +6,14 @@
 
 ## Session Authority
 
-开始工作先完整读取：
-
-1. `docs/tasks/current.md`
-2. `docs/tasks/incremental-ui-restart-handoff-2026-07-29.md`
-3. `docs/tasks/incremental-ui-optimization-plan.md`
+开始工作先读取 `docs/tasks/current.md` 并核对实际 cwd、branch、HEAD 和未提交改动。当前状态与工具能力以该文件及当前源码为准。
 
 按任务再读取：
 
+- `docs/tasks/incremental-ui-restart-handoff-2026-07-29.md`、`docs/tasks/incremental-ui-optimization-plan.md` — 增量 UI 历史决定与批准边界；仅在相关 UI 工作时读取，历史进度不覆盖 current。
 - `docs/specs/standalone-water-ledger.md` — 独立打水产品、权限和数据合同
 - `docs/context/architecture.md` — 当前架构与线上/开发状态分层
-- `docs/notes/learnings.md` — 活跃规则与已知风险
+- `docs/notes/learnings.md` — 未被规范吸收的局部经验（按需）
 - `docs/tools/windows-dev-environment.md` — Windows 路径、命令和端口合同
 - `docs/tools/weapp-ui-screenshot-workflow.md` — 当前分支真实 DevTools 截图能力与限制
 - `docs/tools/we-analysis-local-script.md` — we分析数据拉取规则
@@ -25,16 +22,15 @@
 
 ## Frontend Design and Regression Skills
 
-- 新 UI 或明显视觉重做必须加载 `frontend-design`，并同时遵守 `weapp-regression-guard`。
+- 新 UI 或明显视觉重做必须加载 `frontend-design`；回归按本文件 Testing Conventions，不强制额外加载通用回归技能。
+- `weapp-regression-guard` 仅用于跨链路依赖或覆盖范围不明确时的风险索引；普通局部修复、样式、截图和文档任务不把它当成前置流程。
 - 涉及浏览器近似稿时再加载 `browser-router`；浏览器只用于方向选择，不能作为小程序最终验收。
 - web 原则要翻译为原生 WXML/WXSS/JS、系统字体、低端机、44px 触达、reduced motion 和无远程视觉依赖；不得照搬 hover、Web 字体或浏览器专属 CSS。
 - 暖米色+酸绿、暗底+荧光绿、报纸规则线及被用户判退的 Next-Gen/C3/Home 全面重做只能作反例，不得继续微调复用。
 
-## Current Product Route (2026-08-08)
+## Product Route
 
-- 线上/主分支事实仍是 `master` = `origin/master` = `5813ffc`。
-- 2026-07-29 的 master + `38d6ea4` schedule overlay 建基线已经完成；当前树中的等价 cherry-pick 是 `178e5dd`。
-- 独立打水及逐点优化已批准并实现至产品提交 `c2f438a`。继续工作不得重新从 master 起步，否则会丢失已批准增量；精确 branch/worktree 以 `current.md` 为准。
+- 线上版本、当前提交、branch/worktree 和已批准增量以 `docs/tasks/current.md` 为入口；不得依据历史提交重新从 master 起步或覆盖已有改动。
 - `codex/ui-optimization-v2`、`nextgen-integration`、`nextgen-ui-redesign-20260724` 和其他 next-gen worktree 仍是历史证据，不得整体复用、合并或迁移。
 - 独立打水没有用户可见结束选项；云端 `finish` 兼容分支不是 UI 授权。
 
@@ -42,19 +38,23 @@
 
 ```powershell
 npm test
+npm run test:affected -- <本任务的仓库相对路径>
+npm run test:affected -- --run <本任务的仓库相对路径>
 npm run check
 npm run lint
 npm run check:cloud-common
 npm run check:deprecated-wx-api
+npm run ui:doctor
+npm run ui:session:refresh
 npm run ui:screenshot -- --list
 npm run ui:screenshot -- <case>
 ```
 
 当前 `package.json` 没有后续旧工具链的 `verify:*`、`screenshot:smoke`、`screenshot:diagnose`、`weapp:probe` 或 `records:latest`。不得把其他分支文档中的 alias 当成当前能力。
 
-Windows 主入口是 `D:\projects(WIN)\badminton-miniapp`，但当前 UI 工作必须在 `current.md` 指定的独立 worktree 完成；不要切换 canonical 工作区分支。`D:\projects\badminton-miniapp` 是元数据空壳，禁止使用。preview mirror 只属于明确授权的 preview/upload，不是源码权威。
+Windows 主入口是 `D:\projects(WIN)\badminton-miniapp`；实际工作位置以 `current.md` 为准，不预设必须另建 worktree，不擅自切换 canonical 工作区分支。`D:\projects\badminton-miniapp` 是元数据空壳，禁止使用。preview mirror 只属于明确授权的 preview/upload，不是源码权威。
 
-截图 endpoint 是会话派生值，不是固定 `39420`。正式截图必须验证 exact worktree 的 `Tool.getInfo` / `App.getCurrentPage`，再通过 `WEAPP_WS_ENDPOINT` 显式传入。
+截图 endpoint 由已验证的 launch-signed session 派生，不是固定端口。通过 `WEAPP_UI_SESSION_FILE` 选择会话；runner 验证 exact worktree 的 `Tool.getInfo` / `App.getCurrentPage`。不手填 endpoint 绕过签名；模式、预热与刷新按截图工作流。
 
 ## Architecture Summary
 
@@ -71,9 +71,10 @@ Windows 主入口是 `D:\projects(WIN)\badminton-miniapp`，但当前 UI 工作�
 
 - Framework: `node:test` + `node:assert/strict`；测试通过 stub global wx/cloud API 隔离运行。
 - 文件约定：`*.test.js`、`*.consistency.test.js`、`*.smoke.test.js`、`*.async-stale-response.test.js`。
-- 测试先行；实现前先增加或确认直接覆盖。完成前按风险运行聚焦测试、全量测试、`npm run check`、`npm run lint` 和 `git diff --check`。
+- 行为实现前先增加或确认直接覆盖。规则/文档改动验证引用、命令入口和差异；局部实现先运行直接相关测试；共享业务逻辑、跨独立领域、依赖/测试基础设施变更或明确全量要求时运行 `npm test`。按实现与交付风险选择 `npm run check`、`npm run lint`，并执行 `git diff --check`。已有通过结果只在新增改动、失败或未解决疑点时重跑。
+- `test:affected` 不带 `--run` 只输出计划；审阅后再执行。多人共用脏树时传本任务路径；它不是完整依赖图，可能选全量，零测试也不代表已验证。
 - 全量失败只有在 pre-change/未改依赖闭包可重复出现时才能称既有波动；必须记录测试文件、失败数、复跑方式和结果。既有波动不等于通过，提交例外需要用户看到事实后明确授权。
-- 当前已知 `tests/squad.fairness.test.js` 有墙钟 beam deadline 波动；不得因此把失败隐藏成“全量绿色”。
+- 已知测试问题及其修复状态按需查 `current.md` 和对应验证记录，不把历史失败当成当前事实。
 
 ## Deprecated APIs
 
@@ -88,47 +89,35 @@ Windows 主入口是 `D:\projects(WIN)\badminton-miniapp`，但当前 UI 工作�
 - 测试只保留能够直接证明本次行为或防止明确回归的最小集合；不新增重复覆盖、纯实现细节测试或与改动无关的扩展矩阵。
 - 不以“健壮性”“未来扩展”为由扩大范围；已有业务合同、数据安全和并发保护不得擅自删除，确需新增保护时必须有当前故障证据或明确需求。
 - 缓存先显和后台刷新属于内部读取实现；在线使用缓存时必须静默，不得通过顶部横幅、Toast、弹窗或改名后的类似提示告知“当前/正在展示缓存数据”。真实离线、写入失败和数据冲突仍按现有业务合同就近提示。
-- 用户可见的页面结构、文案、CTA、导航、流程或动作语义必须实现前明确批准。
-- CTA、导航、文案、权限、业务流程、云写入和发布语义变化逐项确认，不能从相邻授权推导。
+- 用户明确要求实现或修复的具体范围视为该范围的批准，无需重复确认；用户可见的页面结构、文案、CTA、导航、权限、流程或动作语义超出已批准范围时，先明确新增变化再取得批准，不能从相邻授权推导。
 - 每个 UI 点严格按：一个页面/问题 → 保留/调整边界 → 浏览器方案 → 用户选择 → 测试先行 → 最小原生实现 → 当前源码真实 DevTools 图 → 用户确认 → 必要尺寸/状态 → 单独提交。
+- 已明确选定或授权的方案不重复走方案审批；真实截图及人工验收仍适用。流程中的“单独提交”不自动授予 commit 权限，仍遵守 Delivery Boundaries。
 - 不自动恢复 Next-Gen/C3、全面 Home 重做、全局设计系统或跨页面统一。
 
 ## UI Completion Gate
 
-向用户汇报 UI 完成前，主控必须亲自检查当前源码的真实微信 DevTools 图；自动量测、结构快照、浏览器稿和旧图都不够。至少检查：
+UI 完成前必须由主控亲自检查当前源码真实 DevTools 图；浏览器稿、数学量测和旧图不能替代。所有 UI 实现/视觉验收任务必须读取并遵守 `docs/tools/weapp-ui-acceptance.md` 的完整门禁。
 
-- 操作显著性与主次层级；
-- 44px 触达、文字基线/换行和图文间距；
-- 对齐、边界、圆角、阴影、裁剪、遮挡和横向溢出；
-- 与任务相关的输入、清空、空结果、选中、禁用、加载和大名单状态；
-- 需要响应式证据时覆盖 320/390/430，并明确区分真实截图与结构/数学检查。
-
-明显视觉重做、高密度弹层，或用户明确指出“丑、难用、信息挤压”时，还必须执行双盲审：
-
-- 两名 UI 评审收到相同的当前源码实图、产品合同与历史基线，互不读取或引用对方结论；
-- 主控必须记录两份报告的共同结论、分歧、采纳/拒绝及理由，再进入最终用户验收；
-- 两份报告共同指出的 P0/P1 未关闭前，不得宣称 UI 完成；子代理意见不能替代主控实图检查；
-- 高密度选择 UI 默认先验收最坏状态：320/390/430、24 人、长昵称、搜索空结果、字体放大、键盘和 safe-area；
-- 主 CTA 必须在真实图中验证 ≥44px、全宽/对齐、默认单行；动态摘要不塞进动作按钮；
-- 每个弹层每个方向只能有一个滚动 owner，safe-area 只能由一层负责；选择状态不得只靠颜色或伪元素。
-- 高密度名单的当前操作侧必须与首屏可见内容一致；切换侧别后至少露出一整行该侧成员，同时提供明确的滚动可发现线索，不能靠 footer 裁掉半行暗示还有内容；
-- 截断不得切断人数、单位或状态等语义原子；重复人数应从摘要中移除，完整内容另设可访问的展开入口；关键弹层必须有明确、可访问且 ≥44px 的关闭入口；24rpx 辅助文字按普通文本至少 4.5:1 对比度验收。
-- 筛选空态不得继续显示已经失效的“滑动、点选”等操作提示，并应提供可见且 ≥44px 的清除或恢复入口；户外高频页面的禁用关键 CTA 即使不受普通文本对比度硬性约束，也按至少 4.5:1 保证可辨认性。
-
-发现肉眼问题先修复并重跑，不把基础检查留给用户指出。详细门禁见 `docs/notes/learnings.md`。
+明显视觉重做、高密度弹层或用户指出难用/拥挤时仍须两名隔离评审；共同 P0/P1 未关闭不能宣称完成。详细尺寸、状态、对比度与记录要求集中在上述文件，不在其他文档复制一份。
 
 ## Cloud and Windows Rules
 
 - 修改共享云代码必须改 `scripts/*-common.template.js`，再运行同步和检查；不要手改各函数 `lib/`。
 - 普通 npm、测试和 hooks 不得依赖裸 `bash`；Windows 统一通过 `scripts/run-bash-script.js` / `scripts/lib/git-bash.js` 解析 Git Bash。
-- 涉及云函数时按 `weapp-cloud-contract-audit` 检查返回 shape、错误码、权限、模板同步和聚焦测试。
+- 云返回/错误/权限/幂等/锁合同变化或后端回归时使用 `weapp-cloud-contract-audit`；仅修改云文件注释、文档或无关配置不触发整套云审计。共享模板同步与聚焦测试要求保持。
 - `waterSession` 曾在一次明确授权下部署；该授权已用完。后续部署仍需新授权。
 
 ## Delivery Boundaries
 
-local commit、Git push、PR、preview QR、preview、`mp:upload`、正式发布、云函数部署和真实数据写入是八个不同动作。除非用户在当前任务明确授权对应动作，否则不得执行；一种授权不覆盖其他动作。
+local commit、Git push、PR、preview QR、preview、`mp:upload`、正式发布、云函数部署和真实数据写入是相互独立的动作。除非用户在当前任务明确授权对应动作，否则不得执行；一种授权不覆盖其他动作。
 
 2026-08-07 的 preview QR 早于最终 `c2f438a`，不能作为当前 launch、正式 upload 或线上版本证据。禁止擅自 push、建 PR、再次生成 QR/preview、upload、正式发布、部署云函数或写真实数据。
+
+## Documentation Maintenance
+
+- `current.md` 只保留当前状态、证据链接和下一步，目标不超过50行；过程记录放 `docs/tasks/session-logs/`，不追加多轮互相冲突的“当前”结论。
+- 工具操作只维护在对应 `docs/tools/`；规则只有一个权威正文，其余用链接引用。历史材料不得覆盖当前入口，也不默认整篇加载。
+- 文档整理不隐含改变产品/安全/验收规则；需要放宽门禁时明确列为提案。已批准的技能精简及验证见 `docs/reports/2026-09-11-workflow-skill-audit.md`。
 
 ## Style and Commit
 

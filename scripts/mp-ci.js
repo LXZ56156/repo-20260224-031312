@@ -1,15 +1,14 @@
 #!/usr/bin/env node
 'use strict';
 
-const ci = require('miniprogram-ci');
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 
 // 加载 .env.local（如果存在）
-(function loadDotEnv() {
+function loadDotEnv() {
   const envPath = path.join(ROOT, '.env.local');
   if (!fs.existsSync(envPath)) return;
   const lines = fs.readFileSync(envPath, 'utf8').split(/\r?\n/);
@@ -27,7 +26,7 @@ const ROOT = path.resolve(__dirname, '..');
       process.env[key] = value;
     }
   }
-})();
+}
 
 // ---- helpers ----
 
@@ -42,29 +41,34 @@ function normalizeProjectPath(raw) {
   return raw.replace(/\\/g, '/');
 }
 
-function gitShortHash() {
+function resolveUploadSource(projectPath, requestedVersion) {
+  const target = fs.realpathSync(projectPath);
+  const git = (...args) => execFileSync('git', args, {
+    encoding: 'utf8', cwd: target, stdio: ['ignore', 'pipe', 'pipe'],
+  }).trim();
+  let gitRoot;
   try {
-    return execSync('git rev-parse --short HEAD', { encoding: 'utf8', cwd: ROOT }).trim();
+    gitRoot = fs.realpathSync(git('rev-parse', '--show-toplevel'));
   } catch (_) {
-    return 'unknown';
+    throw new Error('上传来源必须是 Git 源码工作区；请将 MP_PROJECT_PATH 指向源码目录，不能使用来源不明的镜像。');
   }
-}
-
-function gitLastCommitSubject() {
-  try {
-    return execSync('git log -1 --pretty=%s', { encoding: 'utf8', cwd: ROOT }).trim();
-  } catch (_) {
-    return '';
+  if (gitRoot !== target) {
+    throw new Error('MP_PROJECT_PATH 必须指向 Git 工作区根目录，不能使用子目录镜像。');
   }
-}
-
-function pkgVersion() {
-  try {
-    const p = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
-    return p.version || '0.0.0';
-  } catch (_) {
-    return '0.0.0';
+  const config = resolveProjectConfig(target);
+  if (!config) throw new Error('上传来源缺少 project.config.json');
+  const appRoot = config.miniprogramRoot || target;
+  const sourcePaths = ['package.json', 'project.config.json', path.relative(target, appRoot) || '.'];
+  if (git('status', '--porcelain', '--untracked-files=all', '--', ...sourcePaths)) {
+    throw new Error('实际打包源码存在未提交改动，无法绑定 Git 版本；请先整理源码，再单独授权上传。');
   }
+  const pkg = JSON.parse(fs.readFileSync(path.join(target, 'package.json'), 'utf8'));
+  const hash = git('rev-parse', '--short', 'HEAD');
+  const version = `${pkg.version || '0.0.0'}-${hash}`;
+  if (requestedVersion && requestedVersion !== version) {
+    throw new Error(`MP_VERSION 必须匹配实际源码版本: ${version}`);
+  }
+  return { projectPath: target, version, desc: git('log', '-1', '--pretty=%s') || hash };
 }
 
 function resolveProjectConfig(projectPath) {
@@ -158,19 +162,21 @@ async function main() {
   }
 
   // resolve project path
-  const rawProjectPath = process.env.MP_PROJECT_PATH || 'D:\\projects\\badminton-miniapp-preview';
+  loadDotEnv();
+  const rawProjectPath = process.env.MP_PROJECT_PATH || ROOT;
   const projectPath = normalizeProjectPath(rawProjectPath);
   console.log(`[信息] MP_PROJECT_PATH: ${rawProjectPath}`);
   if (rawProjectPath !== projectPath) {
     console.log(`[信息] 规范化路径: ${projectPath}`);
   }
 
+  const source = resolveUploadSource(projectPath, process.env.MP_VERSION);
   // validate
   validate(projectPath);
 
   // resolve version
-  const version = process.env.MP_VERSION || `${pkgVersion()}-${gitShortHash()}`;
-  const desc = process.env.MP_DESC || gitLastCommitSubject() || gitShortHash();
+  const version = source.version;
+  const desc = process.env.MP_DESC || source.desc;
   const robot = parseInt(process.env.MP_ROBOT || '1', 10);
 
   // resolve key path for WSL
@@ -186,6 +192,7 @@ async function main() {
   console.log(`[信息] 备注: ${desc}`);
   console.log(`[信息] 机器人: ${robot}`);
 
+  const ci = require('miniprogram-ci');
   const project = new ci.Project({
     appid: process.env.WX_APPID,
     type: 'miniProgram',
@@ -257,10 +264,11 @@ async function main() {
   }
 }
 
-main().catch((err) => {
+if (require.main === module) main().catch((err) => {
   console.error(`\x1b[31m[失败]\x1b[0m ${err.message}`);
   if (err.stack && process.env.DEBUG) {
     console.error(err.stack);
   }
   process.exit(1);
 });
+module.exports = { resolveUploadSource };

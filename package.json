@@ -10,7 +10,14 @@
     "report:scheduler-full-audit": "node scripts/generate-scheduler-full-audit.js",
     "preview:share-card": "node scripts/preview-share-card.js",
     "audit:avatars": "node scripts/audit-avatar-data.js",
+    "ui:prewarm": "node scripts/dev/weapp-ui-prewarm.js",
+    "ui:doctor": "node scripts/dev/weapp-ui-screenshot.js --doctor",
+    "ui:diff": "node scripts/dev/weapp-pixel-diff.js",
+    "test:affected": "node scripts/test-affected.js",
+    "mp:quality": "node scripts/mp-quality.js",
+    "ui:session:refresh": "node scripts/dev/weapp-ui-screenshot.js --refresh-session",
     "ui:screenshot": "node scripts/dev/weapp-ui-screenshot.js",
+    "ui:screenshot:focus-check": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev/weapp-background-focus-check.ps1",
     "audit:water-v2-migration-dry-run": "node scripts/run-water-v2-migration-dry-run.js",
     "check:water-v2-cloud-bootstrap": "node scripts/validate-water-v2-cloud-bootstrap.js",
     "check:cloud-common": "node scripts/run-bash-script.js scripts/check-cloud-common.sh",
@@ -26,7 +33,10 @@
   },
   "devDependencies": {
     "eslint": "^8.57.1",
-    "miniprogram-ci": "^2.1.31"
+    "miniprogram-automator": "0.12.1",
+    "miniprogram-ci": "2.1.31",
+    "pixelmatch": "7.1.0",
+    "pngjs": "7.0.0"
   },
   "dependencies": {
     "canvas": "^3.2.3"
