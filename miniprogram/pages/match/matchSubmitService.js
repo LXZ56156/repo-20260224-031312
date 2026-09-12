@@ -346,6 +346,9 @@ function createMatchSubmitService(ctx, deps = {}) {
     }
 
     const lockSnapshot = {
+      lockSessionId: typeof ctx.lockController.buildScoreLockPayload === 'function'
+        ? String(ctx.lockController.buildScoreLockPayload('submit').lockSessionId || '')
+        : '',
       ownerId: ctx.data.lockOwnerId,
       ownerName: ctx.data.lockOwnerName,
       expireAt: ctx.data.lockExpireAt,
@@ -366,7 +369,8 @@ function createMatchSubmitService(ctx, deps = {}) {
           matchIndex: ctx.data.matchIndex,
           scoreA,
           scoreB,
-          clientRequestId
+          clientRequestId,
+          ...(lockSnapshot.lockSessionId ? { lockSessionId: lockSnapshot.lockSessionId } : {})
         });
 
         if (res && res.ok === false) {

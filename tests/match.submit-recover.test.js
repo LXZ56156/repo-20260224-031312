@@ -155,10 +155,12 @@ test('match submit retry reuses the same clientRequestId after a network failure
 
   try {
     const ctx = createCtx();
+    ctx.lockController.buildScoreLockPayload = () => ({ lockSessionId: 'session-submit-retry' });
     const requestIds = [];
     const service = createMatchSubmitService(ctx, {
       cloud: {
         async call(_name, payload) {
+          assert.equal(payload.lockSessionId, 'session-submit-retry');
           requestIds.push(payload.clientRequestId);
           callCount += 1;
           if (callCount === 1) throw new Error('network timeout');

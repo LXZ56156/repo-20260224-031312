@@ -25,6 +25,29 @@ function createContext(methods) {
   return ctx;
 }
 
+test('paused page records network changes without restarting reads and resumes on explicit watch start', () => {
+  const originalStartWatch = tournamentSync.startWatch;
+  const ctx = createContext(pageTournamentSync.createTournamentSyncMethods());
+  let fetches = 0;
+  let watches = 0;
+  let reconnects = 0;
+  ctx.fetchTournament = () => { fetches += 1; };
+  tournamentSync.startWatch = () => { watches += 1; };
+  try {
+    pageTournamentSync.pauseTournamentSync(ctx);
+    ctx.handleNetworkChange(true);
+    ctx.handleNetworkChange(false, { onReconnect() { reconnects += 1; } });
+    assert.equal(ctx.data.networkOffline, false);
+    assert.deepEqual([fetches, watches, reconnects], [0, 0, 0]);
+    ctx.startWatch('t_1');
+    ctx.handleNetworkChange(true);
+    ctx.handleNetworkChange(false, { onReconnect() { reconnects += 1; } });
+    assert.deepEqual([fetches, watches, reconnects], [1, 2, 1]);
+  } finally {
+    tournamentSync.startWatch = originalStartWatch;
+  }
+});
+
 test('pageTournamentSync drops stale fetch results when watch already applied a newer tournament doc', async () => {
   const originalFetchTournament = tournamentSync.fetchTournament;
   const originalStartWatch = tournamentSync.startWatch;

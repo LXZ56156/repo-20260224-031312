@@ -329,9 +329,11 @@ Page({
 
   async refreshAvatarDisplays() {
     this.ensureAvatarRuntime();
+    const resolveGen = this._avatarResolveGen;
     const pending = avatarDisplay.collectCloudAvatarFileIds(this.data.rankings, this.avatarCache);
     if (!pending.length) return;
     const result = await avatarDisplay.resolveCloudAvatarFileIds(pending, this.avatarCache);
+    if (resolveGen !== this._avatarResolveGen) return;
     if (!result.updated) return;
     const latestTournament = this._latestTournament || this.data.tournament;
     if (latestTournament) this.applyTournament(latestTournament);

@@ -102,6 +102,20 @@
           "order": "asc"
         }
       ]
+    },
+    {
+      "name": "waterRoomMembers_openid_id_asc",
+      "collection": "waterRoomMembers",
+      "fields": [
+        {
+          "path": "openid",
+          "order": "asc"
+        },
+        {
+          "path": "_id",
+          "order": "asc"
+        }
+      ]
     }
   ],
   "initialDocuments": [

@@ -91,10 +91,11 @@ function inferResultState(result, ok) {
 
 function normalizeCloudResult(result, name = '') {
   const source = extractResultSource(result);
+  const invalidResult = !result || typeof result !== 'object' || Array.isArray(result) || Object.keys(source).length === 0;
   const implicitError = !Object.prototype.hasOwnProperty.call(source, 'ok') &&
     !!String(source.message || source.errMsg || '').trim() &&
     !Object.prototype.hasOwnProperty.call(source, 'data');
-  const ok = source.ok !== false && !implicitError;
+  const ok = !invalidResult && source.ok !== false && !implicitError;
   const reserved = new Set(['ok', 'code', 'message', 'state', 'traceId', 'data']);
   const extras = {};
   Object.keys(source).forEach((key) => {

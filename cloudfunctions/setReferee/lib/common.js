@@ -18,7 +18,7 @@ function isConflictError(err) {
 
 function isDocNotExists(err) {
   const msg = errMsg(err).toLowerCase();
-  return msg.includes('document.get:fail') || msg.includes('does not exist') || msg.includes('not found');
+  return msg.includes('does not exist') || msg.includes('not found');
 }
 
 function assertTournamentExists(t) {

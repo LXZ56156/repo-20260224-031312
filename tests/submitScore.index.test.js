@@ -156,6 +156,41 @@ function createDbHarness(lockGetImpl, options = {}) {
   return { db, calls };
 }
 
+test('submitScore rejects an older session from the same owner without writing or clearing the new lock', async () => {
+  const { db, calls } = createDbHarness(async () => ({ data: {
+    ownerId: 'u_admin', expireAt: Date.now() + 60_000, lockSessionId: 'new-session'
+  } }));
+  const { main } = loadSubmitScoreMain(db);
+  const result = await main({ tournamentId: 't_1', roundIndex: 0, matchIndex: 0, scoreA: 21, scoreB: 19, lockSessionId: 'old-session' });
+  assert.equal(result.code, 'LOCK_EXPIRED');
+  assert.equal(result.state, 'expired');
+  assert.equal(calls.update, 0);
+  assert.equal(calls.remove, 0);
+});
+
+test('submitScore clears only the read lock session and accepts legacy clients', async () => {
+  for (const requestedSession of ['current-session', '']) {
+    const expireAt = Date.now() + 60_000;
+    const { db, calls } = createDbHarness(async () => ({ data: {
+      ownerId: 'u_admin', expireAt, lockSessionId: 'current-session'
+    } }));
+    const { main } = loadSubmitScoreMain(db);
+    const result = await main({ tournamentId: 't_1', roundIndex: 0, matchIndex: 0, scoreA: 21, scoreB: 19, lockSessionId: requestedSession });
+    assert.equal(result.ok, true);
+    assert.deepEqual(calls.removeQueries, [{ _id: 't_1_0_0', ownerId: 'u_admin', expireAt, lockSessionId: 'current-session' }]);
+  }
+});
+
+test('submitScore propagates read timeout and permission errors without writing', async () => {
+  for (const reason of ['request timeout', 'permission denied']) {
+    const { db, calls } = createDbHarness(async () => { throw new Error(`document.get:fail ${reason}`); });
+    const { main } = loadSubmitScoreMain(db);
+    await assert.rejects(main({ tournamentId: 't_1', roundIndex: 0, matchIndex: 0, scoreA: 21, scoreB: 19 }), new RegExp(reason));
+    assert.equal(calls.update, 0);
+    assert.equal(calls.remove, 0);
+  }
+});
+
 test('submitScore returns LOCK_EXPIRED when score lock document is missing', async () => {
   const { db, calls } = createDbHarness(async () => {
     throw new Error('document.get:fail document does not exist');

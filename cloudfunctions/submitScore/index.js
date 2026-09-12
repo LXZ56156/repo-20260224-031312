@@ -73,6 +73,7 @@ exports.main = async (event) => {
   const roundIndex = Number(event && event.roundIndex);
   const matchIndex = Number(event && event.matchIndex);
   const clientRequestId = String((event && event.clientRequestId) || '').trim();
+  const requestedLockSessionId = String((event && event.lockSessionId) || '').trim();
   console.info('[submitScore]', traceId || '-', tournamentId || '-', roundIndex, matchIndex);
 
   const scorePair = scoreUtils.extractScorePairAny(event);
@@ -134,6 +135,11 @@ exports.main = async (event) => {
         expireAt
       });
     }
+    const lockSessionId = String(lockDoc.lockSessionId || '').trim();
+    // Keep the same legacy-client compatibility as scoreLock heartbeat/release.
+    if (lockSessionId && requestedLockSessionId && lockSessionId !== requestedLockSessionId) {
+      return createCodeResult('LOCK_EXPIRED', '录分会话已过期，请重新开始录分', { traceId });
+    }
 
     const oldVersion = Number(t.version) || 1;
     const scorerName = ownerName || fallbackScorerName;
@@ -180,7 +186,8 @@ exports.main = async (event) => {
     await db.collection('score_locks').where({
       _id: lockId,
       ownerId,
-      expireAt
+      expireAt,
+      ...(lockSessionId ? { lockSessionId } : {})
     }).remove().catch(() => {});
     if (shareFinishTournament) {
       await shareActivity.updateFinishedMessageBestEffort(cloud, shareFinishTournament, console, {

@@ -1573,14 +1573,15 @@ async function ensureV2Collections() {
   await Promise.all(V2_COLLECTION_NAMES.map((name) => common.ensureCollection(db, name)));
 }
 
-async function handleV2Create(event, openid, traceId) {
-  const roomId = stableId('water', openid);
+async function handleV2Create(event, openid, traceId, action = 'create') {
   const requestId = requireV2Request(event);
+  const roomId = action === 'createLedger'
+    ? stableId('water', `${openid}\n${requestId}`) : stableId('water', openid);
   const payloadHash = payloadHashOf(canonicalMutationPayload('create', event));
   const existing = await getV2Room(db, roomId);
   if (existing && requestId) {
     const requestLog = await getSuccessfulRequestLog(db, {
-      action: 'create', roomId, openid, requestId, payloadHash
+      action, roomId, openid, requestId, payloadHash
     });
     if (requestLog) {
       const config = await readFeatureConfig(db);
@@ -1612,7 +1613,7 @@ async function handleV2Create(event, openid, traceId) {
 
   const outcome = await db.runTransaction(async (tx) => {
     const requestLog = await getSuccessfulRequestLog(tx, {
-      action: 'create', roomId, openid, requestId, payloadHash
+      action, roomId, openid, requestId, payloadHash
     });
     if (requestLog) return { deduped: true, requestLog };
     const racedRoom = await getV2Room(tx, roomId);
@@ -1658,7 +1659,7 @@ async function handleV2Create(event, openid, traceId) {
       await setDocument(tx, V2_ROUNDS, round._id, round);
       await updateDocument(tx, V2_ROOMS, roomId, nextRoom);
       await writeRequestLog(tx, {
-        action: 'create', roomId, openid, requestId, payloadHash,
+        action, roomId, openid, requestId, payloadHash,
         resourceType: 'waterRound', resourceId: round._id, roundId: round._id,
         responseCode: 'WATER_ROOM_READY', responseState: 'loaded'
       });
@@ -1705,7 +1706,7 @@ async function handleV2Create(event, openid, traceId) {
     await setDocument(tx, V2_ROUNDS, round._id, round);
     await setDocument(tx, V2_MEMBERS, memberDocumentId(roomId, openid), member);
     await writeRequestLog(tx, {
-      action: 'create', roomId, openid, requestId, payloadHash,
+      action, roomId, openid, requestId, payloadHash,
       resourceType: 'waterRoom', resourceId: roomId, roundId: round._id,
       responseCode: 'WATER_ROOM_CREATED', responseState: 'created'
     });
@@ -1732,6 +1733,93 @@ async function handleV2Create(event, openid, traceId) {
     data,
     traceId
   );
+}
+
+async function handleV2ListLedgers(event, openid, traceId) {
+  const config = await readFeatureConfig(db);
+  if (!config.valid || !config.v2Read) {
+    throw codeError('WATER_FEATURE_NOT_ENABLED', '此功能暂未开放', 'forbidden');
+  }
+  let cursor = null;
+  if (event.cursor) {
+    try {
+      if (typeof event.cursor !== 'string' || event.cursor.length > 400) throw new Error('cursor');
+      cursor = JSON.parse(Buffer.from(event.cursor, 'base64').toString('utf8'));
+      if (!cursor || !Number.isFinite(cursor.updatedAtMs) || cursor.updatedAtMs < 0
+          || typeof cursor.id !== 'string' || !/^water_[a-f0-9]{20}$/.test(cursor.id)) throw new Error('cursor');
+    } catch (_) {
+      throw codeError('WATER_ENTRY_INVALID', '账本列表位置无效，请刷新后重试');
+    }
+  }
+  const summaries = new Map();
+  let afterId = '';
+  for (;;) {
+    const filter = { openid };
+    if (afterId) filter._id = db.command.gt(afterId);
+    let response;
+    try {
+      response = await db.collection(V2_MEMBERS).where(filter).orderBy('_id', 'asc').limit(100).get();
+    } catch (err) {
+      if (common.isCollectionNotExists(err)) break;
+      throw err;
+    }
+    const members = Array.isArray(response && response.data) ? response.data : [];
+    for (const member of members) {
+      const roomId = String(member.roomId || '');
+      if (member.openid !== openid || member._id !== memberDocumentId(roomId, openid)
+          || !isEligible(config, roomId, openid)) continue;
+      const room = await getOptionalDocument(db, V2_ROOMS, roomId);
+      if (!room || Number(room.schemaVersion) !== 2 || room.migrationStatus !== 'active'
+          || !validMemberForRoom(room, member)) continue;
+      const roundId = String(room.activeRoundId || room.lastRoundId || '');
+      const round = roundId ? await getOptionalDocument(db, V2_ROUNDS, roundId) : null;
+      if (!round || round.roomId !== roomId) continue;
+      summaries.set(roomId, {
+        id: roomId,
+        title: String(round.title || '打水账本'),
+        participantCount: Array.isArray(round.participantIds) ? round.participantIds.length : 0,
+        recordCount: Number(round.recordCount || 0),
+        updatedAtMs: Number(room.updatedAtMs || round.updatedAtMs || 0),
+        isOwner: member.role === 'owner',
+        legacy: false
+      });
+    }
+    if (members.length < 100) break;
+    const nextId = String(members[members.length - 1]._id || '');
+    if (!nextId || nextId <= afterId) throw codeError('WATER_ENTRY_INVALID', '账本列表顺序异常，请重试');
+    afterId = nextId;
+  }
+  const legacyId = stableId('water', openid);
+  if (!summaries.has(legacyId) && isEligible(config, legacyId, openid)) {
+    const [room, legacy] = await Promise.all([
+      getOptionalDocument(db, V2_ROOMS, legacyId),
+      getOptionalDocument(db, COLLECTION, legacyId)
+    ]);
+    if (!room && legacy && legacy.ownerOpenid === openid) {
+      summaries.set(legacyId, {
+        id: legacyId,
+        title: String(legacy.title || '打水账本'),
+        participantCount: Array.isArray(legacy.participants) ? legacy.participants.length : 0,
+        recordCount: Array.isArray(legacy.entries) ? legacy.entries.length : 0,
+        updatedAtMs: Number(legacy.updatedAtMs || 0),
+        isOwner: true,
+        legacy: true
+      });
+    }
+  }
+  const ordered = Array.from(summaries.values())
+    .sort((a, b) => b.updatedAtMs - a.updatedAtMs || b.id.localeCompare(a.id))
+    .filter(item => !cursor || item.updatedAtMs < cursor.updatedAtMs
+      || (item.updatedAtMs === cursor.updatedAtMs && item.id < cursor.id));
+  const limit = pageLimitOf(event);
+  const ledgers = ordered.slice(0, limit);
+  const hasMore = ordered.length > limit;
+  const last = ledgers[ledgers.length - 1];
+  const nextCursor = hasMore && last
+    ? Buffer.from(JSON.stringify({ updatedAtMs: last.updatedAtMs, id: last.id })).toString('base64') : '';
+  return v2Ok('WATER_LEDGERS_LOADED', '账本已加载', 'loaded', {
+    ledgers, page: { hasMore, nextCursor }
+  }, traceId);
 }
 
 async function handleV2Get(event, openid, traceId) {
@@ -2504,6 +2592,8 @@ async function handleV2CreateRound(event, openid, traceId) {
 
 async function handleV2(event, openid, traceId) {
   const action = String(event && event.action || '').trim();
+  if (action === 'createLedger') return handleV2Create(event, openid, traceId, action);
+  if (action === 'listLedgers') return handleV2ListLedgers(event, openid, traceId);
   if (action === 'create') return handleV2Create(event, openid, traceId);
   if (action === 'get') return handleV2Get(event, openid, traceId);
   if (action === 'listEntries') return handleV2ListEntries(event, openid, traceId);

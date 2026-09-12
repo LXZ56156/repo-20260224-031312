@@ -37,7 +37,7 @@ function makeDb(seed = {}) {
       const actual = document[key];
       if (expected && typeof expected === 'object' && !Array.isArray(expected)) {
         if (Object.prototype.hasOwnProperty.call(expected, '$lt')) return Number(actual) < Number(expected.$lt);
-        if (Object.prototype.hasOwnProperty.call(expected, '$gt')) return Number(actual) > Number(expected.$gt);
+        if (Object.prototype.hasOwnProperty.call(expected, '$gt')) return actual > expected.$gt;
         if (Object.prototype.hasOwnProperty.call(expected, '$lte')) return Number(actual) <= Number(expected.$lte);
         if (Object.prototype.hasOwnProperty.call(expected, '$gte')) return Number(actual) >= Number(expected.$gte);
         if (Object.prototype.hasOwnProperty.call(expected, '$in')) return expected.$in.includes(actual);
@@ -92,7 +92,7 @@ function makeDb(seed = {}) {
               .filter((item) => matches(item, filter));
             if (order) {
               const direction = order.direction === 'asc' ? 1 : -1;
-              rows.sort((a, b) => (Number(a[order.field]) - Number(b[order.field])) * direction);
+              rows.sort((a, b) => (a[order.field] < b[order.field] ? -1 : a[order.field] > b[order.field] ? 1 : 0) * direction);
             }
             return { data: rows.slice(0, maximum) };
           }
@@ -239,6 +239,81 @@ function mutableSnapshot(state) {
   return clone(['waterRooms', 'waterRounds', 'waterEntries', 'waterRoomMembers', 'client_request_logs']
     .map((name) => [name, state.all(name)]));
 }
+
+test('V2 createLedger creates independent retry-safe ledgers without altering previous books', async () => {
+  const state = makeDb(enabledSeed());
+  const owner = loadMain(state.db, 'u_owner');
+  const old = await createRoom(state, owner, 'stable');
+  const originalRoom = state.read('waterRooms', old.data.room.id);
+  const event = request('createLedger', 'req_new_book', { ownerName: '阿杰' });
+  const first = await owner(event);
+  assert.equal(first.code, 'WATER_ROOM_CREATED');
+  assert.notEqual(first.data.room.id, old.data.room.id);
+  assert.equal(first.data.room.participants.length, 1);
+  assert.equal(first.data.round.recordCount, 0);
+  const replay = await owner(event);
+  assert.equal(replay.code, 'WATER_WRITE_DEDUPED');
+  assert.equal(replay.data.room.id, first.data.room.id);
+  assert.equal((await owner({ ...event, ownerName: '另一个名字' })).code, 'CLIENT_REQUEST_ID_REUSED');
+  const second = await owner({ ...event, clientRequestId: 'req_another_book' });
+  assert.notEqual(second.data.room.id, first.data.room.id);
+  assert.deepEqual(state.read('waterRooms', old.data.room.id), originalRoom);
+  assert.equal((await owner(request('create', 'req_still_stable', {}))).data.room.id, old.data.room.id);
+  assert.equal(state.all('waterRooms').length, 3);
+});
+
+test('V2 listLedgers lists only owned or joined books with stable date pagination and legacy discovery', async () => {
+  const state = makeDb(enabledSeed());
+  const owner = loadMain(state.db, 'u_owner');
+  const other = loadMain(state.db, 'u_other');
+  const first = await owner(request('createLedger', 'req_list_a', {}));
+  const second = await owner(request('createLedger', 'req_list_b', {}));
+  const invited = await other(request('createLedger', 'req_list_join', {}));
+  const privateBook = await other(request('createLedger', 'req_list_private', {}));
+  const joined = await owner(request('join', 'req_list_member', { roomId: invited.data.room.id, nickname: '客人', expectedRoomVersion: 1 }));
+  assert.equal(joined.ok, true);
+  const ids = [first.data.room.id, second.data.room.id, invited.data.room.id];
+  for (let i = 0; i < ids.length; i++) await state.db.collection('waterRooms').doc(ids[i]).update({ data: { updatedAtMs: 100 + i } });
+  const legacyId = stableRoomId('u_owner');
+  await state.db.collection('waterSessions').doc(legacyId).set({ data: { ownerOpenid: 'u_owner', title: '旧打水', status: 'active', participants: [{ id: 'old', name: '我' }], entries: [], updatedAtMs: 50 } });
+  const before = mutableSnapshot(state);
+  const page1 = await owner({ apiVersion: 2, action: 'listLedgers', limit: 2 });
+  assert.equal(page1.code, 'WATER_LEDGERS_LOADED');
+  assert.deepEqual(page1.data.ledgers.map(item => item.id), [ids[2], ids[1]]);
+  assert.equal(page1.data.ledgers[0].isOwner, false);
+  assert.equal(page1.data.page.hasMore, true);
+  const page2 = await owner({ apiVersion: 2, action: 'listLedgers', limit: 2, cursor: page1.data.page.nextCursor });
+  assert.deepEqual(page2.data.ledgers.map(item => item.id), [ids[0], legacyId]);
+  assert.equal(page2.data.ledgers[1].legacy, true);
+  assert.equal(page2.data.page.hasMore, false);
+  assert.equal(JSON.stringify([page1, page2]).includes(privateBook.data.room.id), false);
+  assertNoPrivateIdentity(page1, ['u_owner', 'u_other']);
+  assert.deepEqual(mutableSnapshot(state), before);
+  assert.equal((await owner({ apiVersion: 2, action: 'listLedgers', cursor: 'broken' })).ok, false);
+});
+
+test('V2 listLedgers scans beyond 100 memberships and tie cursors never skip or repeat a ledger', async () => {
+  const state = makeDb(enabledSeed());
+  const owner = loadMain(state.db, 'u_many_books');
+  const expected = [];
+  for (let index = 0; index < 101; index++) {
+    const created = await owner(request('createLedger', `req_many_${index}`, {}));
+    assert.equal(created.ok, true);
+    expected.push(created.data.room.id);
+    await state.db.collection('waterRooms').doc(created.data.room.id).update({ data: { updatedAtMs: 123 } });
+  }
+  const got = [];
+  let cursor = '';
+  do {
+    const page = await owner({ apiVersion: 2, action: 'listLedgers', limit: 20, cursor });
+    assert.equal(page.ok, true);
+    got.push(...page.data.ledgers.map(item => item.id));
+    cursor = page.data.page.nextCursor;
+  } while (cursor);
+  assert.deepEqual(got, expected.sort().reverse());
+  assert.ok(state.queries('waterRoomMembers').some(query => query.filter._id && query.filter._id.$gt));
+  assert.ok(state.queries('waterRoomMembers').every(query => query.filter.openid === 'u_many_books'));
+});
 
 test('V2 logic calculates conserved immutable effects for game, direct, correction and reversal', () => {
   const participants = [

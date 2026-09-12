@@ -1,6 +1,18 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
+// Fairness is an algorithm-quality contract, not a machine-speed benchmark.
+// Advance a deterministic operation clock at each deadline check. Production
+// timeout behavior remains covered separately by the real-clock runtime tests.
+let operationTicks = 0;
+const qualityPerformance = require('node:perf_hooks').performance;
+const originalNowDescriptor = Object.getOwnPropertyDescriptor(qualityPerformance, 'now');
+Object.defineProperty(qualityPerformance, 'now', { configurable: true, value: () => ++operationTicks / 1000 });
+test.after(() => {
+  if (originalNowDescriptor) Object.defineProperty(qualityPerformance, 'now', originalNowDescriptor);
+  else delete qualityPerformance.now;
+});
+
 const { buildSquadSchedule } = require('../cloudfunctions/startTournament/scheduleModes');
 
 function makePlayers(aCount, bCount) {

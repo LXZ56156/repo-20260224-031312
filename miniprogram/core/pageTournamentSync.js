@@ -172,6 +172,7 @@ function createTournamentSyncMethods(options = {}) {
     startWatch(tournamentId, startOptions = {}) {
       const targetTournamentId = String(tournamentId || '').trim();
       if (!targetTournamentId) return;
+      this._tournamentSyncPaused = false;
       const forceRestart = !!(startOptions && startOptions.forceRestart);
       const currentWatchTournamentId = String(this._watchTournamentId || '').trim();
       if (currentWatchTournamentId && currentWatchTournamentId !== targetTournamentId) {
@@ -372,6 +373,7 @@ function createTournamentSyncMethods(options = {}) {
       const wasOffline = !!(this.data && this.data.networkOffline);
       const tournamentId = String((options.tournamentId || (this.data && this.data.tournamentId)) || '').trim();
       this.setData(composePageSyncPatch(this, { networkOffline: nextOffline }));
+      if (this._tournamentSyncPaused) return;
       if (!nextOffline && wasOffline) {
         if (tournamentId && typeof this.fetchTournament === 'function') this.fetchTournament(tournamentId);
         const needsWatchRestart = tournamentId && typeof this.startWatch === 'function' && (
@@ -395,6 +397,7 @@ function createTournamentSyncMethods(options = {}) {
 
 function initTournamentSync(page) {
   if (!page) return;
+  page._tournamentSyncPaused = false;
   page._fetchSeq = 0;
   page._watchGen = 0;
   page._watchTournamentId = '';
@@ -417,6 +420,7 @@ function initTournamentSync(page) {
 
 function pauseTournamentSync(page) {
   if (!page) return;
+  page._tournamentSyncPaused = true;
   if (typeof page.invalidateWatchGen === 'function') page.invalidateWatchGen();
   tournamentSync.closeWatcher(page);
 }

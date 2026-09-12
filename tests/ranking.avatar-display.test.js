@@ -35,6 +35,33 @@ function createRankingPageContext(definition) {
   return ctx;
 }
 
+test('ranking ignores avatar completion after unload while an active page still refreshes', async () => {
+  const avatarDisplay = require('../miniprogram/core/avatarDisplay');
+  const originalCollect = avatarDisplay.collectCloudAvatarFileIds;
+  const originalResolve = avatarDisplay.resolveCloudAvatarFileIds;
+  const definition = loadRankingPageDefinition();
+  try {
+    for (const unload of [false, true]) {
+      const ctx = createRankingPageContext(definition);
+      let resolve;
+      let applied = 0;
+      ctx.data.tournament = { _id: 't_rank_avatar' };
+      ctx.applyTournament = () => { applied += 1; };
+      avatarDisplay.collectCloudAvatarFileIds = () => ['cloud://avatar/pending'];
+      avatarDisplay.resolveCloudAvatarFileIds = () => new Promise((done) => { resolve = done; });
+      const pending = ctx.refreshAvatarDisplays();
+      if (unload) ctx.onUnload();
+      resolve({ updated: true });
+      await pending;
+      assert.equal(applied, unload ? 0 : 1);
+    }
+  } finally {
+    avatarDisplay.collectCloudAvatarFileIds = originalCollect;
+    avatarDisplay.resolveCloudAvatarFileIds = originalResolve;
+    delete require.cache[rankingPagePath];
+  }
+});
+
 test('ranking page decorates personal rankings with a single avatar item', () => {
   const definition = loadRankingPageDefinition();
   const ctx = createRankingPageContext(definition);

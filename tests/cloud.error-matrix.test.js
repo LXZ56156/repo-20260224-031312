@@ -3,6 +3,24 @@ const assert = require('node:assert/strict');
 
 const cloud = require('../miniprogram/core/cloud');
 
+test('cloud rejects missing and malformed results instead of reporting write success', async () => {
+  const originalWx = global.wx;
+  try {
+    for (const result of [undefined, null, '', 1, false, [], {}]) {
+      global.wx = { cloud: { callFunction: async () => ({ result }) } };
+      const normalized = await cloud.call('submitScore');
+      assert.equal(normalized.ok, false, JSON.stringify(result));
+      assert.throws(() => cloud.assertWriteResult(result));
+      assert.throws(() => cloud.assertWriteResult(normalized));
+    }
+    for (const result of [{ ok: true }, { tournamentId: 't_1' }, { data: { tournamentId: 't_1' } }]) {
+      assert.equal(cloud.assertWriteResult(result).ok, true);
+    }
+  } finally {
+    global.wx = originalWx;
+  }
+});
+
 test('cloud classifies major structured error states consistently', () => {
   const matrix = [
     {

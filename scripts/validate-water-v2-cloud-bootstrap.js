@@ -52,6 +52,14 @@ const EXPECTED_INDEXES = Object.freeze([
       { path: 'seq', order: 'asc' },
     ],
   },
+  {
+    name: 'waterRoomMembers_openid_id_asc',
+    collection: 'waterRoomMembers',
+    fields: [
+      { path: 'openid', order: 'asc' },
+      { path: '_id', order: 'asc' },
+    ],
+  },
 ]);
 
 const INITIAL_FEATURE_FLAGS = Object.freeze({
@@ -117,7 +125,7 @@ function validateManifest(manifest) {
     errors.push('collections must match the seven private V2 cloud collections');
   }
   if (!isDeepStrictEqual(manifest.indexes, EXPECTED_INDEXES)) {
-    errors.push('indexes must match the four required V2 composite indexes');
+    errors.push('indexes must match the required V2 composite indexes');
   }
 
   const expectedDocuments = [{
