@@ -694,4 +694,11 @@ cases.waterIndependentHistoryError = {
     postData: { ...cases.waterIndependentHistoryEmpty.fixture.postData, ledgerHistoryError: '历史账本暂时加载失败，请重试' } },
 };
 
+cases.waterFriendlyLoadError = {
+  ...cases.waterIndependentNew,
+  selectors: ['.water-error', '.water-error-title', '.water-error .water-primary-button'],
+  fixture: { roomData: independentRoom,
+    postData: { loading: false, loadError: '暂时无法打开打水账本，请稍后重试', invalidRoom: false, bottomActionMode: '' } },
+};
+
 module.exports = { cases, manualActions };

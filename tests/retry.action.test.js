@@ -58,7 +58,7 @@ test('getUnifiedErrorMessage hides internal unknown cloud details in release env
   }
 });
 
-test('getUnifiedErrorMessage adds a short diagnostic id without exposing internal details', () => {
+test('getUnifiedErrorMessage keeps diagnostic ids out of user-facing copy', () => {
   const originalGetApp = global.getApp;
   global.getApp = () => ({ globalData: { runtimeEnv: { envVersion: 'release' } } });
 
@@ -67,7 +67,7 @@ test('getUnifiedErrorMessage adds a short diagnostic id without exposing interna
       message: 'internal stack detail',
       traceId: 'trace_delete_12345678'
     }, '删除失败');
-    assert.equal(msg, '删除失败，请稍后重试（诊断号 12345678）');
+    assert.equal(msg, '删除失败');
     assert.equal(msg.includes('internal stack detail'), false);
   } finally {
     global.getApp = originalGetApp;
@@ -232,14 +232,18 @@ test('cloud.call does not retry business failures or non-idempotent writes witho
 
     await assert.rejects(async () => {
       await cloud.call('createTournament', { name: '周末比赛' }, { retryDelaysMs: [0, 0] });
-    }, /timeout/);
+    }, (err) => {
+      assert.match(err.rawMessage, /timeout/);
+      assert.equal(err.message, '网络异常，请重试');
+      return true;
+    });
     assert.equal(networkCalls, 1);
   } finally {
     global.wx = originalWx;
   }
 });
 
-test('writeErrorUi presents developer hint in UI layer when cloud metadata is available', () => {
+test('writeErrorUi retains developer hint metadata without showing a repair modal', () => {
   const originalWx = global.wx;
   const toastCalls = [];
   const modalCalls = [];
@@ -264,8 +268,8 @@ test('writeErrorUi presents developer hint in UI layer when cloud metadata is av
       fallbackMessage: '保存失败'
     });
     assert.equal(toastCalls.length, 1);
-    assert.equal(modalCalls.length, 1);
-    assert.equal(modalCalls[0].title, '云函数未部署');
+    assert.equal(modalCalls.length, 0);
+    assert.equal(cloud.getDeveloperHint(err).title, '云函数未部署');
   } finally {
     global.wx = originalWx;
   }

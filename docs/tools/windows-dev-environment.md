@@ -42,7 +42,8 @@ node scripts/dev/wechatide-local.js simulator_refresh 'D:/projects(WIN)/badminto
 - 用户已授权的云部署优先使用 CloudBase CLI，沿用现有登录态；不要切到 DevTools 云写接口导致逐函数确认。当前 CLI 3.7.3 支持 `--force` 非交互覆盖与 `--install-dependency true`，目标环境取已核对的 `cloudbaserc.json`。
 - 登录过期时运行 `tcb login --flow device --json`，完成一次账户登录后复用；不能承诺凭据永不过期。不输出或提交登录凭据。
 - 当前 DevTools 2.02.2609102 的云写确认没有可用的持续授权设置，客户端 `Codex`/Token 授权只解决连接身份，不消除云写确认。不要修改内部许可状态或重发pending请求；切换入口前先查询原请求结果，避免重复部署。
-- 本机可用单函数入口：`npm run deploy:cloud -- --force <functionName>`。部署后核验 `Active / Available` 和依赖安装状态；批量只操作本次已授权函数，失败时记录成功范围与待处理项。
+- 本机可用单函数入口：`npm run deploy:cloud -- --force <functionName>`。默认先核验 `Active / Available` 和依赖安装状态，再执行 `scripts/cloud-runtime-smoke.js` 的无业务写入调用。必须核对实际 `RetMsg`，不能以 CLI exit 0、InvokeResult 0 或 Active 单独认定运行成功；`--no-verify` 不能作为已验证交付。批量只操作本次已授权函数，失败时记录成功范围与待处理项。
+- Windows DevTools云部署存在ZIP目录分隔符风险：本轮waterSession经IDE部署后Active但运行时报找不到`./lib/common`，改CLI部署后实际调用恢复。故障诊断需保留原调用结果，必要时下载云端原ZIP核验POSIX目录名与相对依赖；本地Windows解压后文件存在不能证明云端Linux可加载。
 
 ## 测试、隐私与交付
 

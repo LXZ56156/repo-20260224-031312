@@ -107,12 +107,15 @@ function normalizeCloudResult(result, name = '') {
     Object.assign(data, source.data);
   }
   Object.assign(data, extras);
+  const message = String(source.message || (!ok && source.errMsg) || (ok ? '操作成功' : '操作失败')).trim() || (ok ? '操作成功' : '操作失败');
+  const technicalFailure = !ok && isTechnicalErrorMessage(message);
 
   return {
     ...source,
     ok,
     code: normalizeResultCode(source) || buildDefaultResultCode(name, ok),
-    message: String(source.message || (ok ? '操作成功' : '操作失败')).trim() || (ok ? '操作成功' : '操作失败'),
+    message: technicalFailure ? '操作失败，请重试' : message,
+    ...(technicalFailure ? { rawMessage: source.rawMessage || message, ...(source.errMsg ? { errMsg: '操作失败，请重试' } : {}) } : {}),
     state: inferResultState(source, ok),
     traceId: normalizeTraceId(source),
     data
@@ -130,6 +133,29 @@ function normalizeErrMsg(err) {
 
 function stripCloudPrefix(msg) {
   return String(msg || '').replace(/^cloud\.call:fail\s*/i, '').trim();
+}
+
+function isTechnicalErrorMessage(message) {
+  const text = String(message || '');
+  return /cloud\.(?:callFunction|call)|\b(?:errCode|errMsg)\s*[:=]|\b(?:trace[_-]?id|request[_-]?id|callId)\b|诊断号|\b(?:TypeError|ReferenceError|SyntaxError|RangeError)\b|\bError:|Cannot find module|Require stack|internal stack|node_modules|cloudfunctions[\\/]|node:internal|(?:^|\n|\\n)\s*at\s+|[A-Za-z]:[\\/]|(?:\/[\w.-]+){2,}(?:[\\/]|\.[a-z]+|:\d)|\b\w+\.(?:js|ts|wxml|wxss):\d|\[object Object\]|\b(?:document\.[a-z]+|request|uploadFile|downloadFile):fail/i.test(text)
+    || /^[A-Z][A-Z0-9]*_[A-Z0-9_]+$/.test(text.trim());
+}
+
+function getUserFacingErrorMessage(err, fallbackMessage = '操作失败，请重试') {
+  if (isTechnicalErrorMessage(fallbackMessage)) fallbackMessage = '操作失败，请重试';
+  const raw = String(err && err.rawMessage || normalizeErrMsg(err) || '');
+  const cleaned = stripCloudPrefix(raw);
+  if (!isTechnicalErrorMessage(cleaned)) return cleaned || fallbackMessage;
+  const parsed = parseCloudError(err, fallbackMessage);
+  if (parsed.isConflict) return '数据已被其他人更新，请刷新后重试';
+  if (parsed.isTimeout) return parsed.hasStructuredContext ? '请求超时，请重试' : '网络异常，请重试';
+  if (parsed.isNetwork) return '网络异常，请重试';
+  if (parsed.isPermission) return '权限不足，请确认当前身份';
+  if (parsed.isExpired) return '录分会话已过期，请重新开始录分';
+  if (parsed.isOccupied) return '当前有人正在录入比分';
+  if (parsed.isFinished || parsed.isCanceled) return '该场已结束';
+  if (parsed.isParam) return '参数有误，请检查';
+  return fallbackMessage;
 }
 
 function isInvalidWriteShapeMessage(msg) {
@@ -192,7 +218,7 @@ function parseCloudError(err, fallbackMessage = '操作失败') {
   const code = normalizeResultCode(normalized);
   const state = normalizeResultState(normalized);
   const traceId = normalizeTraceId(normalized);
-  const rawMessage = normalizeErrMsg(normalized);
+  const rawMessage = String(rawSource.rawMessage || normalizeErrMsg(err) || normalizeErrMsg(normalized));
   const cleaned = stripCloudPrefix(rawMessage);
   const low = cleaned.toLowerCase();
   const hasStructuredContext = !!(normalizeResultCode(rawSource) || normalizeResultState(rawSource));
@@ -274,7 +300,7 @@ function parseCloudError(err, fallbackMessage = '操作失败') {
     isCanceled,
     isDeduped,
     rawMessage,
-    userMessage: cleaned || fallbackMessage
+    userMessage: isTechnicalErrorMessage(cleaned) ? fallbackMessage : cleaned || fallbackMessage
   };
 }
 
@@ -322,6 +348,7 @@ function getRuntimeEnv() {
 
 function getUnifiedErrorMessage(err, fallbackMessage = '操作失败') {
   const parsed = parseCloudError(err, fallbackMessage);
+  if (isTechnicalErrorMessage(parsed.rawMessage)) return getUserFacingErrorMessage(err, fallbackMessage);
   const level = classifyCloudError(parsed);
   if (level === 'timeout') return parsed.hasStructuredContext ? (parsed.userMessage || '请求超时，请重试') : '网络异常，请重试';
   if (level === 'network') return '网络异常，请重试';
@@ -351,8 +378,7 @@ function getUnifiedErrorMessage(err, fallbackMessage = '操作失败') {
   if (String(getRuntimeEnv().envVersion || 'release') === 'release') {
     const action = String(fallbackMessage || '操作失败').trim() || '操作失败';
     const retryMessage = action.includes('请稍后重试') ? action : `${action}，请稍后重试`;
-    const shortTraceId = String(parsed.traceId || '').trim().slice(-8);
-    return `${retryMessage}${shortTraceId ? `（诊断号 ${shortTraceId}）` : ''}`;
+    return retryMessage;
   }
   return parsed.userMessage || fallbackMessage;
 }
@@ -360,10 +386,11 @@ function getUnifiedErrorMessage(err, fallbackMessage = '操作失败') {
 function normalizeWriteFailure(result, fallbackMessage = '操作失败') {
   const normalized = normalizeCloudResult(result);
   const parsed = parseCloudError(normalized, fallbackMessage);
-  const err = new Error(parsed.userMessage || fallbackMessage);
+  const err = new Error(getUserFacingErrorMessage(result, fallbackMessage));
   if (parsed.code) err.code = parsed.code;
   if (parsed.state) err.state = parsed.state;
   if (parsed.traceId) err.traceId = parsed.traceId;
+  if (isTechnicalErrorMessage(parsed.rawMessage)) err.rawMessage = parsed.rawMessage;
   err.rawResult = normalized;
   return err;
 }
@@ -509,6 +536,12 @@ async function call(name, data = {}, options = {}) {
       const canRetry = attempt < retryDelays.length && isRetryableCallError(err);
       if (!canRetry) {
         handleCloudCallFailure(name, err);
+        const rawMessage = normalizeErrMsg(err);
+        if (err && typeof err === 'object' && isTechnicalErrorMessage(rawMessage)) {
+          err.rawMessage = rawMessage;
+          err.message = getUserFacingErrorMessage(err, '服务暂时不可用，请稍后重试');
+          if (err.errMsg) err.errMsg = err.message;
+        }
         throw err;
       }
       warnCloudCallRetry(name, attempt, err);
@@ -524,6 +557,7 @@ module.exports = {
   classifyCloudError,
   getRuntimeEnv,
   getUnifiedErrorMessage,
+  getUserFacingErrorMessage,
   describeWriteError,
   getDeveloperHint,
   normalizeWriteFailure,

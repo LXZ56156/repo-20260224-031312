@@ -2,6 +2,7 @@ const profileCore = require('../../core/profile');
 const waterApi = require('../../core/waterSession');
 const waterLedger = require('../../core/waterLedger');
 const waterRecent = require('../../core/waterRecent');
+const cloud = require('../../core/cloud');
 const actionGuard = require('../../core/actionGuard');
 const clientRequest = require('../../core/clientRequest');
 const lobbyImportActions = require('../lobby/lobbyImportActions');
@@ -34,7 +35,7 @@ function responseData(response) {
 
 function showError(err, fallback = '操作失败，请重试') {
   if (typeof wx === 'undefined' || typeof wx.showToast !== 'function') return;
-  wx.showToast({ title: clean(err && err.message) || fallback, icon: 'none' });
+  wx.showToast({ title: cloud.getUserFacingErrorMessage(err, fallback), icon: 'none' });
 }
 
 function showSuccess(title) {
@@ -689,7 +690,7 @@ Page({
         this.applyApiResponse(response);
         return response;
       } catch (err) {
-        this.setData({ loading: false, loadError: clean(err && err.message) || '暂时无法开始打水' });
+        this.setData({ loading: false, loadError: cloud.getUserFacingErrorMessage(err, '暂时无法开始打水') });
         return null;
       } finally {
         this.setActionBusy('create', false);
@@ -718,7 +719,7 @@ Page({
         this.clearMutationIntent('create_ledger', intent.fingerprint);
         return response;
       } catch (err) {
-        if (!this._unloaded) this.setData({ loading: false, loadError: clean(err && err.message) || '暂时无法新建打水账本' });
+        if (!this._unloaded) this.setData({ loading: false, loadError: cloud.getUserFacingErrorMessage(err, '暂时无法新建打水账本') });
         return null;
       } finally {
         if (!this._unloaded) this.setActionBusy('create', false);
@@ -795,7 +796,7 @@ Page({
       return response;
     } catch (err) {
       if (!this._unloaded && this.data.ledgerHistoryOpen && requestSeq === this._ledgerHistoryRequestSeq) {
-        this.setData({ ledgerHistoryError: clean(err && err.message) || '历史账本加载失败，请重试' });
+        this.setData({ ledgerHistoryError: cloud.getUserFacingErrorMessage(err, '历史账本加载失败，请重试') });
       }
       return null;
     } finally {
@@ -877,7 +878,7 @@ Page({
       } else if (options.silent && this.data.room) {
         this.setData({ syncMessage: '连接不稳定，正在重试' });
       } else {
-        this.setData({ loading: false, loadError: clean(err && err.message) || '打水房加载失败' });
+        this.setData({ loading: false, loadError: cloud.getUserFacingErrorMessage(err, '打水房加载失败') });
       }
       return null;
     }
@@ -946,7 +947,7 @@ Page({
     } catch (err) {
       const currentScopeKey = `${clean(this.data.roomId)}:${clean(this.data.roundId)}:${clean(this.data.feedFilter)}`;
       if (requestSeq === this._feedRequestSeq && currentScopeKey === scopeKey) {
-        this.setData({ syncMessage: clean(err && err.message) || '流水同步失败，正在重试' });
+        this.setData({ syncMessage: cloud.getUserFacingErrorMessage(err, '流水同步失败，正在重试') });
       }
       return null;
     }
@@ -1543,7 +1544,7 @@ Page({
         const isConflict = clean(err && err.state) === 'conflict';
         if (isConflict) await this.loadRoom({ silent: true, force: true });
         if (this._unloaded || Number(this._sheetGeneration || 0) !== sheetGeneration) return null;
-        const inlineMessage = clean(err && err.message) || '操作失败，请重试';
+        const inlineMessage = cloud.getUserFacingErrorMessage(err, '操作失败，请重试');
         if (
           options.sheetFailure
           || this.data.gameSheetOpen
@@ -1651,7 +1652,7 @@ Page({
       this.setData({
         feedLoading: false,
         feedLoadingMore: false,
-        feedError: clean(err && err.message) || '流水加载失败',
+        feedError: cloud.getUserFacingErrorMessage(err, '流水加载失败'),
       });
       return null;
     }
@@ -2280,7 +2281,7 @@ Page({
         return response;
       } catch (err) {
         showError(err);
-        this.setData({ sheetError: clean(err && err.message) || '加入失败，请重试' });
+        this.setData({ sheetError: cloud.getUserFacingErrorMessage(err, '加入失败，请重试') });
         if (clean(err && err.state) === 'conflict') await this.loadRoom({ silent: true, force: true });
         return null;
       } finally {
@@ -2337,7 +2338,7 @@ Page({
         || scopeKey !== currentScopeKey
         || !this.data.detailSheetOpen
       ) return null;
-      this.setData({ detailLoading: false, detailError: clean(err && err.message) || '记录详情加载失败' });
+      this.setData({ detailLoading: false, detailError: cloud.getUserFacingErrorMessage(err, '记录详情加载失败') });
       return null;
     }
   },
@@ -2462,7 +2463,7 @@ Page({
       return response;
     } catch (err) {
       if (requestSeq === this._correctionRequestSeq) {
-        this.setData({ sheetError: clean(err && err.message) || '最新记录加载失败，请重试' });
+        this.setData({ sheetError: cloud.getUserFacingErrorMessage(err, '最新记录加载失败，请重试') });
       }
       return null;
     }
@@ -2617,7 +2618,7 @@ Page({
       return response;
     } catch (err) {
       if (requestSeq !== this._historyRequestSeq) return null;
-      this.setData({ historyLoading: false, historyLoadingMore: false, historyError: clean(err && err.message) || '往期加载失败' });
+      this.setData({ historyLoading: false, historyLoadingMore: false, historyError: cloud.getUserFacingErrorMessage(err, '往期加载失败') });
       return null;
     }
   },
@@ -2731,7 +2732,7 @@ Page({
         || scopeKey !== currentScopeKey
         || !this.data.historySheetOpen
       ) return null;
-      this.setData({ historyRoundLoading: false, historyRoundError: clean(err && err.message) || '往期账本加载失败' });
+      this.setData({ historyRoundLoading: false, historyRoundError: cloud.getUserFacingErrorMessage(err, '往期账本加载失败') });
       return null;
     }
   },
@@ -2789,7 +2790,7 @@ Page({
       if (requestSeq !== this._historyRoundRequestSeq || scopeKey !== this._historyRoundScopeKey || currentRoundId !== roundId) return null;
       this.setData({
         historyRoundFeedLoadingMore: false,
-        historyRoundFeedError: clean(err && err.message) || '归档流水加载失败',
+        historyRoundFeedError: cloud.getUserFacingErrorMessage(err, '归档流水加载失败'),
       });
       return null;
     }

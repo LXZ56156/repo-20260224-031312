@@ -1,19 +1,5 @@
 const cloud = require('./cloud');
 
-function showDeveloperHint(devHint) {
-  if (!devHint || typeof devHint !== 'object') return;
-  if (typeof wx === 'undefined' || typeof wx.showModal !== 'function') return;
-  try {
-    wx.showModal({
-      title: devHint.title,
-      content: devHint.content,
-      showCancel: false
-    });
-  } catch (_) {
-    // ignore
-  }
-}
-
 function presentWriteError(options = {}) {
   const descriptor = cloud.describeWriteError(options);
   const ui = descriptor && descriptor.ui;
@@ -41,7 +27,6 @@ function presentWriteError(options = {}) {
       icon: ui.icon || 'none'
     });
   }
-  showDeveloperHint(descriptor && descriptor.devHint);
   return descriptor;
 }
 

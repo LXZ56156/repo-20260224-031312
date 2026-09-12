@@ -79,6 +79,18 @@ test('explicit new ledger never resumes legacy creation and retry preserves the 
   ctx.onUnload();
 });
 
+test('water load and sheet failures display friendly copy instead of SDK stack traces', async () => {
+  const raw = "cloud.callFunction:fail Cannot find module './lib/common'\n at /var/user/index.js:10:2 traceId=private";
+  const ctx = createContext(loadPageDefinition({ async createLedger() { throw new Error(raw); } }));
+  await ctx.onLoad({ new: '1' });
+  assert.equal(ctx.data.loadError, '暂时无法新建打水账本');
+  ctx.applyRoomData(payload());
+  ctx.openGameSheet();
+  await ctx.runMutation('record_game', [], async () => { throw new Error(raw); }, '', { sheetFailure: true });
+  assert.equal(ctx.data.sheetError, '操作失败，请重试');
+  ctx.onUnload();
+});
+
 test('new ledger coalesces duplicate taps and discards completion after unload', async () => {
   const pending = deferred();
   let calls = 0;

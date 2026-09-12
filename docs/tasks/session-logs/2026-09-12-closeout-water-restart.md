@@ -101,3 +101,25 @@ pendingTask：
 - 证据：tmp/authorized-water-poll.log、authorized-cli-water-detail.log；tmp/authorized-cli-deployed.txt（22唯一函数）、authorized-cli-deploy-<name>.log、authorized-cli-detail-<name>.log；tmp/authorized-final-info.log；tmp/authorized-index-after.log、authorized-flags-read.log。运行证据属于本机tmp，不含在Git发布中。
 - 本轮云代码来源9c25075（最终实现d1d0040）；之后仅文档变化。完整测试1466项/1460通过/6跳过/0失败，check通过，lint0错误42警告。部署阶段未改源码，不重复全量测试。
 - 已完成用户授权的提交、推送、云接口与索引部署。没有客户端upload/正式发布，也没有写真实打水账本做冒烟；云端部署/状态核验不冒充客户端线上交互验收。无待确认云请求。未来已授权部署默认CLI，过期时恢复一次登录，不逐函数转IDE请求确认；入口见windows-dev-environment.md。
+
+## 用户报告运行故障后的修复（22:15起）
+
+- 用户实图明确waterSession实际执行Cannot find module ./lib/common。此前Active/Available验证不足，不能证明运行时可加载；本轮首先tcb fn invoke重现错误，CLI exit0/InvokeResult0同样包裹RetMsg.errorCode1。旧回执tmp/water-broken-invoke.log。
+- 当前IDE安装代码路径证据：cloud_fn_deploy递归readdirDeep默认normalize:false，Windows生成lib反斜杠common.js；ZipService把该key直接交adm-zip，未归一化。这解释Linux require失败与本地Windows下载解压后lib存在的差异。未保留修复前原始ZIP，故不声称已按字节检验旧ZIP；源码路径与运行A/B共同支持IDE打包路径问题。
+- 使用已登录CLI重新完整部署waterSession，日志tmp/water-cli-repair-deploy.log；随后真实调用返回预期PERMISSION_DENIED而非模块错误。下载修后云端原ZIP（不输出签名URL），7071entry、反斜杠0、index.js和lib/common.js均存在。其余22函数此前CLI部署，本轮未重复部署。
+- 23函数实际无业务写入烟测：tmp/cloud-runtime-audit/<name>.json与summary.json。全部进入应用逻辑；getUserProfile在无小程序OPENID的CLI下PROFILE_LOAD_FAILED，仅证明handler已加载，不代表用户身份/资料读取验证。三个legacy throw严格匹配预期缺参错误，绝不泛化任何异常为pass。
+- 新scripts/cloud-runtime-smoke.js管理固定无写入payload与嵌套RetMsg校验；部署脚本在状态检查后调用它。tests/deploy-runtime-verification.test.js先复现Active+CLI成功但MODULE_NOT_FOUND被误判，再证明新门禁拒绝；工具直接5/5通过。
+- 新隔离串联测试：water客户端wrapper→真实cloud.call→云handler共享内存DB，新建/重试/加人/访客旧链接/加入/记账幂等/撤销/历史/再次新建隔离；赛事真实8handler创建→加人→设置→开赛→锁→错会话拒绝→提交完成排名→幂等→重置→删除。均无远端写入，未模拟CloudBase事务并发或完整真实页面交互。
+- 用户补充禁止完整报错上屏：新增docs/specs/user-facing-errors.md单权威与AGENTS引用。core/cloud统一脱敏，保留业务code/state及诊断rawMessage，writeErrorUi不再弹开发修复提示；water新建/历史/流水/详情/加入等错误区均经统一入口。开发/体验/正式均禁止SDK堆栈、路径、trace/诊断号；直接103/103通过。
+- 最终全量tmp/runtime-fix-full-test.log：1478项/1472通过/0失败/6跳过；check通过；lint0错误42警告；git diff --check通过。随后仅更新本记录与current，未改实现。
+- 原生UI验证未完成：后台两阶段source-refresh的首阶段成功，MCP编译成功；第二阶段官方automator response timeout导致Node退出，留下tmp/independent-320/session.json.lock（旧PID52624已不存在）。按现有截图合同仅新prewarm能恢复。遵守用户不抢桌面要求，未激活/改尺寸/手删锁/预热；未执行已准备的authenticated-read-audit，也未取得新waterFriendlyLoadError真实图。
+- 线上云启动故障已修好；本地错误提示实现与规则可测试，但不声称完整UI人工验收或身份链路已完成。本次新增客户端/工具/测试/文档尚未提交推送；后续先取得用户对一次前台预热的允许，恢复真实验收后再收口。未upload/正式发布客户端。
+
+## 前台恢复与最终真实验证（用户明确允许后）
+
+- 用户明确“现在可以抢桌面了，我不在电脑前，继续推进”，本轮无需重复申请。用WEAPP_ALLOW_FOREGROUND_PREWARM=1与新未占用端口39543在原session文件完成合法失效锁恢复；宽390、SDK3.17.3、同exact worktree，未手改回执或锁。
+- tmp/authenticated-read-audit.cjs在签名会话校验后，通过小程序wx.cloud.callFunction只读调用真实线上接口：getUserProfile=>PROFILE_READY/ok true，waterSession listLedgers=>WATER_LEDGERS_LOADED/ok true。回执tmp/runtime-fix-authenticated-read.log不输出用户资料或账本内容。补足CLI无OPENID时仅启动验证的限制。
+- 首次截图路由超时且清理失败，页面仍home；Computer Use激活既有DevTools并确认无弹窗，随后发现marker缺失但其余身份/源码检查通过，按相同源码refresh重新绑定后截图成功。保留失败日志，不声称工具偶发路由问题已根治。
+- 主控亲眼检查390px真实DevTools错误态：只有“暂时打不开”“暂时无法打开打水账本，请稍后重试”和全宽重试按钮，无SDK/路径/堆栈/诊断号、无裁剪遮挡。当前源码fixture图证明渲染，103项直接错误回归证明实际SDK失败经过脱敏；不把fixture图说成真实云故障截图。
+- 成功回执：tmp/runtime-fix-runs/390/simulator-frame/2026-09-12T15-14-15-023Z-62972-3634553c/manifest.json；发布图tmp/runtime-fix-shots/390/simulator-frame/waterFriendlyLoadError.png。仅局部错误提示变更，无明显视觉重做或高密度选择变化，不新增双盲评审矩阵。
+- 沿用1478项/1472通过/6跳过/0失败、check通过、lint0错误42警告；本阶段未改产品代码，不重复全量。云端waterSession修复已部署；客户端错误提示、部署门禁、两条跨handler串联测试及文档本次提交推送。未upload/正式发布客户端，未对真实账本执行写入烟测。

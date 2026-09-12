@@ -303,6 +303,26 @@ process.stdin.on("end", () => {
   fi
 }
 
+verify_runtime() {
+  local function_name="$1"
+  local payload
+  local invoke_file
+  payload="$(node "$SCRIPT_DIR/cloud-runtime-smoke.js" --payload "$function_name")" || return 1
+  mkdir -p "$PROJECT_ROOT/tmp"
+  invoke_file="$(mktemp "$PROJECT_ROOT/tmp/cloud-invoke.XXXXXX")"
+  if ! tcb fn invoke "$function_name" --params "$payload" --json >"$invoke_file"; then
+    rm -f "$invoke_file"
+    echo "ERROR: Runtime invocation failed for: $function_name" >&2
+    return 1
+  fi
+  if ! node "$SCRIPT_DIR/cloud-runtime-smoke.js" "$function_name" "$invoke_file"; then
+    rm -f "$invoke_file"
+    echo "ERROR: Runtime verification failed for: $function_name" >&2
+    return 1
+  fi
+  rm -f "$invoke_file"
+}
+
 deploy_one() {
   local function_name="$1"
 
@@ -317,6 +337,7 @@ deploy_one() {
 
   if [ "$VERIFY_DEPLOY" = true ]; then
     verify_one "$function_name"
+    verify_runtime "$function_name"
   fi
 }
 
