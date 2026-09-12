@@ -51,7 +51,8 @@ test('home tournament list uses reveal motion and compact list density', () => {
   assert.match(wxml, /class="swipe-actions \{\{item\._offset < 0 \? 'is-open' : ''\}\}"/);
   assert.match(wxml, /class="t-meta-row"/);
 
-  assert.match(toolbarRule, /padding:\s*var\(--space-tight\) var\(--space-panel-pad\)/);
+  assert.match(toolbarRule, /padding:\s*0/);
+  assert.match(toolbarRule, /background:\s*transparent/);
   assert.match(swipeRule, /margin-top:\s*var\(--space-tight\)/);
   assert.match(swipeRule, /transition:\s*transform 100ms ease, filter 100ms ease/);
   assert.match(swipeCardRule, /margin-top:\s*var\(--space-tight\)/);

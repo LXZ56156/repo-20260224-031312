@@ -79,7 +79,7 @@
 
 .gender-option {
   flex: 1;
-  min-height: 80rpx;
+  min-height: 44px;
   border-radius: 16rpx;
   border: 2rpx solid rgba(15, 23, 42, 0.08);
   background: rgba(255, 255, 255, 0.96);

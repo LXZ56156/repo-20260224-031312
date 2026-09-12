@@ -30,7 +30,7 @@
       <view class="ranking-action-stack">
         <button class="btn btn-primary btn-sm ranking-action-full" bindtap="onGeneratePoster">{{posterButtonText}}</button>
         <view class="ranking-action-row">
-          <button class="btn btn-outline btn-sm ranking-action-half" bindtap="onShareTimelineGuide">分享到朋友圈</button>
+          <button class="btn btn-secondary btn-sm ranking-action-half" bindtap="onShareTimelineGuide">分享到朋友圈</button>
           <button class="btn btn-subtle btn-sm ranking-action-half" bindtap="onCopyPosterText">保存后发群</button>
         </view>
       </view>

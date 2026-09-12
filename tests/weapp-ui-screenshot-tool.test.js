@@ -1512,6 +1512,7 @@ test('failed strict evidence keeps the previous approved screenshot and receipt'
       if (selector === '.reveal') return [];
       return [{
         async text() { return 'ready'; },
+        async style(property) { return property === 'display' ? 'flex' : ''; },
         async size() { return { width: 320, height: 48 }; },
         async offset() { return { left: 35, top: 120 }; },
       }];

@@ -18,6 +18,9 @@
 
 /* Status pill */
 .status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 44rpx;
   padding: 0 12rpx;
   border-radius: 999rpx;
@@ -92,6 +95,29 @@
 
 .settings-save {
   margin-top: var(--space-card-pad-lg);
+}
+
+.quick-match-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-tight);
+}
+
+.quick-match-shortcut {
+  flex: 1 1 calc((100% - 8rpx) / 2);
+  min-width: 0;
+  text-align: center;
+}
+
+.quick-match-shortcut.disabled {
+  background: rgba(248, 250, 252, 0.96);
+  border-color: rgba(148, 163, 184, 0.2);
+  color: var(--neutral-500);
+}
+
+.quick-match-shortcut.disabled:active {
+  transform: none;
+  filter: none;
 }
 
 /* row-top in settings context */

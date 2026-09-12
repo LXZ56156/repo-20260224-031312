@@ -83,9 +83,9 @@
     <block wx:elif="{{activeTab === 'feed'}}">
       <view class="water-legacy-undo-wrap" wx:if="{{legacyMode && canWrite && entryCount}}"><button class="water-player-tool water-legacy-undo" bindtap="onUndoLast" loading="{{busyByAction.undo}}" disabled="{{busyByAction.undo}}">撤销上一条</button></view>
       <view class="water-feed-filters" wx:if="{{canUseV2Features}}" role="tablist" aria-label="流水类型">
-        <button class="water-feed-filter {{feedFilter === 'all' ? 'is-active' : ''}}" data-filter="all" role="tab" aria-selected="{{feedFilter === 'all'}}" bindtap="onSelectFeedFilter">全部</button>
-        <button class="water-feed-filter {{feedFilter === 'game' ? 'is-active' : ''}}" data-filter="game" role="tab" aria-selected="{{feedFilter === 'game'}}" bindtap="onSelectFeedFilter">对局</button>
-        <button class="water-feed-filter {{feedFilter === 'direct' ? 'is-active' : ''}}" data-filter="direct" role="tab" aria-selected="{{feedFilter === 'direct'}}" bindtap="onSelectFeedFilter">单独</button>
+        <button class="water-feed-filter {{feedFilter === 'all' ? 'is-active' : ''}}" data-filter="all" role="tab" aria-selected="{{feedFilter === 'all'}}" bindtap="onSelectFeedFilter">全部<text wx:if="{{feedFilter === 'all'}}">✓</text></button>
+        <button class="water-feed-filter {{feedFilter === 'game' ? 'is-active' : ''}}" data-filter="game" role="tab" aria-selected="{{feedFilter === 'game'}}" bindtap="onSelectFeedFilter">对局<text wx:if="{{feedFilter === 'game'}}">✓</text></button>
+        <button class="water-feed-filter {{feedFilter === 'direct' ? 'is-active' : ''}}" data-filter="direct" role="tab" aria-selected="{{feedFilter === 'direct'}}" bindtap="onSelectFeedFilter">单独<text wx:if="{{feedFilter === 'direct'}}">✓</text></button>
       </view>
       <button class="water-new-events" wx:if="{{canUseV2Features && newEventCount}}" bindtap="returnToLatest">
         <text>有 {{newEventCount}} 条新记录</text><text>回到最新 ↑</text>
@@ -199,7 +199,7 @@
         <view class="water-versus">VS</view>
         <view class="water-team-summary is-loser" aria-label="负方 {{loserIds.length}} 人，{{loserFullSummary}}"><text class="water-team-label">负方</text><text class="water-team-names">{{gameSummaryExpanded ? loserFullSummary : loserSummary}}</text></view>
       </view>
-      <button class="water-game-summary-toggle" wx:if="{{winnerIds.length > 2 || loserIds.length > 2}}" aria-expanded="{{gameSummaryExpanded}}" bindtap="toggleGameSummary">{{gameSummaryExpanded ? '收起完整阵容' : '查看完整阵容'}}</button>
+      <button class="water-game-summary-toggle" wx:if="{{winnerIds.length > 2 || loserIds.length > 2 || hasLongGameNames}}" aria-expanded="{{gameSummaryExpanded}}" bindtap="toggleGameSummary">{{gameSummaryExpanded ? '收起完整阵容' : '查看完整阵容'}}</button>
       <view class="water-search" wx:if="{{participantCount > 8}}">
         <text class="water-search-icon">⌕</text>
         <input value="{{gameSearchQuery}}" placeholder="搜索球友姓名" placeholder-class="water-game-search-placeholder" aria-label="搜索球友姓名" bindinput="onGameSearchInput" />

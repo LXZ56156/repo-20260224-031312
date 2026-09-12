@@ -2,7 +2,7 @@
 
 ## 当前状态（2026-09-12）
 
-- 当前方向：用户授权持续收口；用户已批准每次打水独立账本，包含新建、继续记水、历史账本；新建不改旧账，名单重新添加。独立账本云启动故障已修复，新增错误呈现规则与全链路回归；原生错误态390px实图与真实身份读取已通过，见[本轮记录](session-logs/2026-09-12-closeout-water-restart.md)。
+- 当前方向：`db3be6d` 云修复已提交推送；本轮 UI 未提交。首页筛选/排序及全局同类选择控件层级已优化，五项390px实图经主控和双评审通过，全量1485通过/6跳过/0失败；其他尺寸及人工验收待完成。按用户要求跳过Edge，自动真机调试已发起但响应超时，手机连接未确认。证据见 [UI 排布优化](ui-layout-polish-2026-09-12.md)；独立账本及云修复见[前轮记录](session-logs/2026-09-12-closeout-water-restart.md)。
 - 云开发原环境已付19.90元续至 **2026-10-12 23:59:59**；已保存16集合10665文档和2239已发现文件的在线非原子备份。[备份](session-logs/2026-09-11-huawei-migration-backup.md)、[成本](../reports/2026-09-11-cloud-migration-cost-comparison.md)、[优惠](../reports/2026-09-11-cloudbase-discount-verification.md)作为背景保留，未购买域名/备案提交/迁移部署。
 - 工作区：`D:\projects(WIN)\badminton-miniapp`；branch：`codex/online-audit-optimizations-20260828`。
 - 实现提交：`d1d0040`，工具`a85e326`、云修复`9c25075`均已推送当前分支；实际HEAD另含交付记录提交。仅本地运行产物 `.playwright-cli/`、`preview-qrcodes/` 未纳入Git。

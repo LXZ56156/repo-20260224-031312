@@ -104,7 +104,7 @@
                 data-value="{{item.value}}"
                 data-disabled="{{item.disabled ? 1 : 0}}"
                 bindtap="onTapQuickMatchShortcut"
-              >{{item.label}}</view>
+              ><text class="shortcut-label">{{item.label}}</text><text class="selection-check" wx:if="{{quickConfigM===item.value}}">✓</text></view>
             </view>
             <view class="quick-custom-match-card" wx:if="{{quickShowAdvancedMatchEntry}}">
               <view class="quick-custom-match-head" catchtap="toggleQuickAdvancedMatchPicker">

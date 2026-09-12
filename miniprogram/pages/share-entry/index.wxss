@@ -288,6 +288,12 @@
 
 .squad-chooser {
   margin-top: 0;
+  flex-wrap: nowrap;
+}
+
+.squad-chooser .chip {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 /* --- Action Buttons --- */

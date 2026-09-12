@@ -21,7 +21,7 @@
   <view class="card panel settings-panel" id="section-params">
     <view class="row row-top">
       <view class="section-title">修改比赛</view>
-      <text class="status-pill {{settingsReady ? 'ok' : 'pending'}}">{{settingsReady ? '已完成' : '待完成'}}</text>
+      <view class="status-pill {{settingsReady ? 'ok' : 'pending'}}">{{settingsReady ? '已完成' : '待完成'}}</view>
     </view>
 
     <view class="muted small" wx:if="{{settingsGateHint}}">{{settingsGateHint}}</view>
@@ -94,7 +94,7 @@
             data-value="{{item.value}}"
             data-disabled="{{item.disabled ? 1 : 0}}"
             bindtap="onTapMatchShortcut"
-          >{{item.label}}</view>
+          ><text class="shortcut-label">{{item.label}}</text><text class="selection-check" wx:if="{{editM===item.value}}">✓</text></view>
         </view>
       </view>
     </view>

@@ -254,6 +254,15 @@ page {
   transform: translateZ(0);
 }
 
+/* 高于微信原生 button 的默认宽度/外边距，保留页面的行内与分栏规则。 */
+button.btn {
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
 button.btn::after {
   border: none;
 }
@@ -335,6 +344,10 @@ button.btn:active {
   justify-content: center;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+button.btn-inline {
+  width: auto;
 }
 
 .btn-sm {
@@ -710,12 +723,12 @@ button.btn-mini::after {
   align-items: center;
   justify-content: center;
   padding: 8rpx 16rpx;
-  border-radius: 999rpx;
-  background: var(--brand-50);
-  color: var(--brand-700);
+  border-radius: 16rpx;
+  background: var(--neutral-50);
+  color: var(--neutral-700);
   font-size: 24rpx;
   font-weight: 500;
-  border: 1rpx solid var(--brand-100);
+  border: 1rpx solid var(--neutral-200);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -732,6 +745,27 @@ button.btn-mini::after {
   background: var(--brand-100);
   color: var(--brand-700);
   font-weight: 700;
+}
+
+.selection-check {
+  margin-left: 8rpx;
+  font-size: 22rpx;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.quick-match-shortcut {
+  position: relative;
+  padding-left: 30rpx;
+  padding-right: 30rpx;
+}
+
+.quick-match-shortcut .selection-check {
+  position: absolute;
+  top: 50%;
+  right: 8rpx;
+  margin-left: 0;
+  transform: translateY(-50%);
 }
 
 .badge {

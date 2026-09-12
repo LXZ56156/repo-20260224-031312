@@ -13,9 +13,38 @@ function getCssRuleBody(source, selector) {
   return match ? match[1] : '';
 }
 
+test('water single-line controls center their labels inside the full touch target', () => {
+  const source = read('miniprogram/pages/water/index.wxss');
+  const selectors = ['.water-adjust-button', '.water-feed-filter', '.water-feed-tail button',
+    '.water-history-retry', '.water-feed-actions button', '.water-detail-actions button',
+    '.water-player-tool', '.water-search button', '.water-receipt-feedback button',
+    '.water-side-switch button', '.water-add-switch button', '.water-game-summary-toggle',
+    '.water-search-empty-clear', '.water-inline-error button', '.water-history-more',
+    '.water-sheet-back', '.water-early-history-link'];
+  const rules = [...source.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{([^{}]*)\}/g)];
+  assert.match(getCssRuleBody(source, '.water-game-body'), /overflow:\s*hidden/);
+  assert.match(getCssRuleBody(source, '.water-sheet-bottom'), /z-index:\s*1/);
+  for (const selector of ['.water-player-chip', '.water-add-switch button', '.water-feed-open']) {
+    assert.match(getCssRuleBody(source, selector), /width:\s*100%\s*!important/);
+    assert.match(getCssRuleBody(source, selector), /max-width:\s*100%\s*!important/);
+  }
+  for (const selector of selectors) {
+    const declarations = rules.filter(([, group]) => group.split(',').some(item => item.trim() === selector))
+      .map(([, , body]) => body).join('\n');
+    assert.match(declarations, /display:\s*(?:inline-)?flex\s*;/, selector);
+    assert.match(declarations, /align-items:\s*center\s*;/, selector);
+    assert.match(declarations, /justify-content:\s*center\s*;/, selector);
+  }
+});
+
 test('global button primitives stay inside flex and card containers', () => {
   const appWxss = read('miniprogram/app.wxss');
   const buttonRule = getCssRuleBody(appWxss, '.btn');
+  const nativeButtonRule = getCssRuleBody(appWxss, 'button.btn');
+  assert.match(nativeButtonRule, /width:\s*100%/);
+  assert.match(nativeButtonRule, /margin-left:\s*0/);
+  assert.match(nativeButtonRule, /padding-top:\s*0/);
+  assert.match(getCssRuleBody(appWxss, 'button.btn-inline'), /width:\s*auto/);
   const primaryRule = getCssRuleBody(appWxss, '.btn-primary');
   const dangerRule = getCssRuleBody(appWxss, '.btn-danger');
   const disabledRule = getCssRuleBody(appWxss, '.btn[disabled]');

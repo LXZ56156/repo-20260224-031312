@@ -46,7 +46,7 @@
   <view class="card panel score-stage {{canEdit ? 'score-stage-editing' : ''}} reveal reveal-3">
     <view class="row row-top">
       <view class="section-title">比分录入</view>
-      <text class="score-badge">{{pointsPerGame}} 分制</text>
+      <view class="score-badge">{{pointsPerGame}} 分制</view>
     </view>
 
     <!-- 快捷比分工具栏（编辑态） -->

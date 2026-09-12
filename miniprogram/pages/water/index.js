@@ -196,7 +196,7 @@ function gameSelectionState(participants, winnerIds, loserIds, query, currentOrd
     loserFullSummary: fullNameSummary(losers, nameById),
     gameSelectionValid: winners.length > 0 && winners.length === losers.length,
     gameValidationMessage: describeGameSelection(winners, losers),
-    hasLongGameNames: decorated.some((item) => Array.from(item.name).length > 8),
+    hasLongGameNames: decorated.some((item) => Array.from(item.name).length > 4),
   };
 }
 

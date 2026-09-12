@@ -55,7 +55,7 @@
         <view class="hero-finished-sub">最终排名已生成，可以查看或分享战绩。</view>
         <view class="btn-row hero-finished-actions">
           <button class="btn btn-primary btn-sm" bindtap="goFinalRanking">查看最终排名</button>
-          <button class="btn btn-outline btn-sm" bindtap="goSharePosterFromFinished">分享我的战绩</button>
+          <button class="btn btn-secondary btn-sm" bindtap="goSharePosterFromFinished">分享我的战绩</button>
         </view>
       </view>
     </view>

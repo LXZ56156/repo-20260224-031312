@@ -75,8 +75,8 @@
     </view>
     <view class="card-inline-squad" wx:if="{{tournament && tournament.mode==='squad_doubles' && preview.joinAllowed && !preview.joined}}">
       <view class="chips squad-chooser">
-        <view class="chip {{joinSquadChoice==='A' ? 'active' : ''}}" data-squad="A" bindtap="onPickJoinSquad">A队</view>
-        <view class="chip {{joinSquadChoice==='B' ? 'active' : ''}}" data-squad="B" bindtap="onPickJoinSquad">B队</view>
+        <view class="chip {{joinSquadChoice==='A' ? 'active' : ''}}" data-squad="A" bindtap="onPickJoinSquad"><text>A队</text><text class="selection-check" wx:if="{{joinSquadChoice==='A' }}">✓</text></view>
+        <view class="chip {{joinSquadChoice==='B' ? 'active' : ''}}" data-squad="B" bindtap="onPickJoinSquad"><text>B队</text><text class="selection-check" wx:if="{{joinSquadChoice==='B' }}">✓</text></view>
       </view>
     </view>
     <view class="share-actions {{preview.secondaryAction && preview.secondaryCtaText ? 'share-actions-two' : ''}}">

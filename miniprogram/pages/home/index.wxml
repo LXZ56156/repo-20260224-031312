@@ -45,17 +45,17 @@
       <text class="count-pill">{{visibleCount}} 个</text>
     </view>
     <view class="toolbar-row" wx:if="{{items.length>1}}">
+      <view class="filter-row" role="tablist" aria-label="赛事状态">
+        <view class="filter-chip {{filterStatus==='all' ? 'active' : ''}}" role="tab" aria-selected="{{filterStatus==='all'}}" data-status="all" bindtap="onChangeFilterStatus"><text>全部</text><text class="filter-count">{{items.length}}</text></view>
+        <view class="filter-chip {{filterStatus==='running' ? 'active' : ''}}" role="tab" aria-selected="{{filterStatus==='running'}}" data-status="running" bindtap="onChangeFilterStatus"><text>进行中</text><text class="filter-count">{{statusCountRunning}}</text></view>
+        <view class="filter-chip {{filterStatus==='draft' ? 'active' : ''}}" role="tab" aria-selected="{{filterStatus==='draft'}}" data-status="draft" bindtap="onChangeFilterStatus"><text>草稿</text><text class="filter-count">{{statusCountDraft}}</text></view>
+        <view class="filter-chip {{filterStatus==='finished' ? 'active' : ''}}" role="tab" aria-selected="{{filterStatus==='finished'}}" data-status="finished" bindtap="onChangeFilterStatus"><text>已结束</text><text class="filter-count">{{statusCountFinished}}</text></view>
+      </view>
       <view class="sort-row">
         <text class="sort-label">排序</text>
-        <text class="sort-chip {{sortMode==='updated' ? 'active' : ''}}" data-mode="updated" bindtap="onChangeSortMode">最近更新</text>
-        <text class="sort-chip {{sortMode==='players' ? 'active' : ''}}" data-mode="players" bindtap="onChangeSortMode">按人数</text>
-        <text class="sort-chip {{sortMode==='status' ? 'active' : ''}}" data-mode="status" bindtap="onChangeSortMode">按状态</text>
-      </view>
-      <view class="filter-row">
-        <text class="filter-chip {{filterStatus==='all' ? 'active' : ''}}" data-status="all" bindtap="onChangeFilterStatus">全部 {{items.length}}</text>
-        <text class="filter-chip {{filterStatus==='running' ? 'active' : ''}}" data-status="running" bindtap="onChangeFilterStatus">进行中 {{statusCountRunning}}</text>
-        <text class="filter-chip {{filterStatus==='draft' ? 'active' : ''}}" data-status="draft" bindtap="onChangeFilterStatus">草稿 {{statusCountDraft}}</text>
-        <text class="filter-chip {{filterStatus==='finished' ? 'active' : ''}}" data-status="finished" bindtap="onChangeFilterStatus">已结束 {{statusCountFinished}}</text>
+        <view class="sort-chip {{sortMode==='updated' ? 'active' : ''}}" role="button" aria-pressed="{{sortMode==='updated'}}" data-mode="updated" bindtap="onChangeSortMode">最近更新<text wx:if="{{sortMode==='updated'}}">✓</text></view>
+        <view class="sort-chip {{sortMode==='players' ? 'active' : ''}}" role="button" aria-pressed="{{sortMode==='players'}}" data-mode="players" bindtap="onChangeSortMode">按人数<text wx:if="{{sortMode==='players'}}">✓</text></view>
+        <view class="sort-chip {{sortMode==='status' ? 'active' : ''}}" role="button" aria-pressed="{{sortMode==='status'}}" data-mode="status" bindtap="onChangeSortMode">按状态<text wx:if="{{sortMode==='status'}}">✓</text></view>
       </view>
     </view>
 

@@ -5,9 +5,20 @@
 }
 
 /* Chips in preferences — use neutral palette */
+.pref-page .chips {
+  flex-wrap: nowrap;
+  gap: 6rpx;
+  padding: 6rpx;
+  border-radius: 20rpx;
+  background: var(--neutral-100);
+}
+
 .pref-page .chip {
-  border: 1rpx solid rgba(15, 23, 42, 0.08);
-  background: rgba(255, 255, 255, 0.94);
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 8rpx 6rpx;
+  border: 1rpx solid transparent;
+  background: transparent;
   color: var(--neutral-700);
   font-weight: 500;
 }
@@ -18,8 +29,8 @@
 }
 
 .pref-page .chip.active {
-  border-color: rgba(24, 179, 104, 0.18);
-  background: rgba(24, 179, 104, 0.10);
+  border-color: var(--brand-500);
+  background: var(--brand-50);
   color: var(--brand-700);
   font-weight: 700;
 }

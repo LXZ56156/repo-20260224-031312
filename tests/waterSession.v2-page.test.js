@@ -470,6 +470,22 @@ test('manual add derives validity while retaining its blank-submit guard', async
   assert.match(wxml, /disabled="\{\{!!sheetBlockedReason \|\| !manualNamesValid\}\}"[^>]*bindtap="submitManual"/);
 });
 
+test('game sheet gives five-character names room without changing four-character density', () => {
+  const ctx = createContext(loadPageDefinition());
+  ctx.setData({
+    roomId: 'water_1',
+    roundId: 'round_3',
+    canWrite: true,
+    participantCount: 2,
+    participants: [{ id: 'p1', name: '周末球友' }, { id: 'p2', name: '阿杰' }],
+  });
+  ctx.openGameSheet();
+  assert.equal(ctx.data.hasLongGameNames, false);
+  ctx.setData({ participants: [{ id: 'p1', name: '周末老球友' }, { id: 'p2', name: '阿杰' }] });
+  ctx.openGameSheet();
+  assert.equal(ctx.data.hasLongGameNames, true);
+});
+
 test('game sheet exposes inline validity, full summaries, and long-name density without waiting for submit', () => {
   const definition = loadPageDefinition();
   const ctx = createContext(definition);

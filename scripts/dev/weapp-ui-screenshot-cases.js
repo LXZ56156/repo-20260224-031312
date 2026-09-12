@@ -701,4 +701,43 @@ cases.waterFriendlyLoadError = {
     postData: { loading: false, loadError: '暂时无法打开打水账本，请稍后重试', invalidRoom: false, bottomActionMode: '' } },
 };
 
+// 连续路由曾返回无样式像素：这些页面必须先确认布局样式已加载。
+cases.homeToolbar = {
+  ...cases.home,
+  selectors: ['.home-page', '.filter-row', '.sort-row', '.filter-chip.active', '.sort-chip.active'],
+  styleExpectations: { '.filter-row': { display: 'grid' }, '.sort-row': { display: 'flex' } },
+  data: {
+    ...cases.home.data,
+    items: Array.from({ length: 20 }, (_, index) => {
+      const status = index < 5 ? 'running' : index < 16 ? 'draft' : 'finished';
+      return { ...cases.home.data.items[0], _id: `toolbar-${index}`, name: `周末羽毛球赛 ${index + 1}`,
+        status, statusLabel: { running: '进行中', draft: '草稿', finished: '已结束' }[status] };
+    }),
+    visibleCount: 20,
+    sortMode: 'updated',
+    statusCountRunning: 5,
+    statusCountDraft: 11,
+    statusCountFinished: 4,
+  },
+};
+
+cases.launch.styleExpectations = { '.launch-actions': { display: 'flex' } };
+cases.preferences.styleExpectations = { '.pref-page .chips': { display: 'flex' } };
+cases.shareSquadChoice = {
+  ...cases.shareDraft,
+  selectors: ['.share-hero', '.squad-chooser', '.squad-chooser .chip.active', '.share-primary-btn'],
+  styleExpectations: { '.squad-chooser': { display: 'flex' } },
+  data: { ...cases.shareDraft.data,
+    tournament: { ...cases.shareDraft.data.tournament, mode: 'squad_doubles' },
+    preview: { ...cases.shareDraft.data.preview, joinAllowed: true, joined: false },
+  },
+};
+cases.ranking.styleExpectations = { '.ranking-main-row': { display: 'flex' } };
+cases.profile.styleExpectations = { '.gender-option': { display: 'flex' } };
+cases.settings.styleExpectations = { '.status-pill': { display: 'flex' } };
+cases.waterV2Member24Game.styleExpectations = {
+  '.water-player-grid': { display: 'grid' },
+  '.water-side-switch button': { display: 'flex', 'align-items': 'center' },
+};
+
 module.exports = { cases, manualActions };

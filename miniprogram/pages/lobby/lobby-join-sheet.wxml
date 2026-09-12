@@ -37,8 +37,8 @@
     <view class="squad-chooser" wx:if="{{showJoin && mode==='squad_doubles'}}">
       <view class="field-label">参赛队伍（必选）</view>
       <view class="chips">
-        <view class="chip {{joinSquadChoice==='A' ? 'active' : ''}}" data-squad="A" bindtap="onPickJoinSquad">A队</view>
-        <view class="chip {{joinSquadChoice==='B' ? 'active' : ''}}" data-squad="B" bindtap="onPickJoinSquad">B队</view>
+        <view class="chip {{joinSquadChoice==='A' ? 'active' : ''}}" data-squad="A" bindtap="onPickJoinSquad"><text>A队</text><text class="selection-check" wx:if="{{joinSquadChoice==='A' }}">✓</text></view>
+        <view class="chip {{joinSquadChoice==='B' ? 'active' : ''}}" data-squad="B" bindtap="onPickJoinSquad"><text>B队</text><text class="selection-check" wx:if="{{joinSquadChoice==='B' }}">✓</text></view>
       </view>
     </view>
     <button class="btn btn-primary" bindtap="submitProfile" loading="{{profileSaving}}" disabled="{{profileSaving || profileQuickFillLoading || profileAvatarUploading}}">{{showJoin ? '确认加入' : '保存我的信息'}}</button>

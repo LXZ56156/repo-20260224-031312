@@ -28,7 +28,7 @@
     </view>
     <view class="analytics-hero-actions">
       <button class="btn btn-primary btn-sm analytics-hero-primary" bindtap="onGeneratePoster">{{posterButtonText}}</button>
-      <button class="btn btn-outline btn-sm" bindtap="onShareTimelineGuide">分享到朋友圈</button>
+      <button class="btn btn-secondary btn-sm" bindtap="onShareTimelineGuide">分享到朋友圈</button>
       <button class="btn btn-subtle btn-sm" bindtap="cloneCurrentTournament">再办一场</button>
     </view>
   </view>

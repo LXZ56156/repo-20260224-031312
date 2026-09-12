@@ -170,7 +170,12 @@
   text-align: right;
 }
 
-.ranking-record-line,
+.ranking-record-line {
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
 .ranking-score-line {
   line-height: 1.35;
   white-space: nowrap;

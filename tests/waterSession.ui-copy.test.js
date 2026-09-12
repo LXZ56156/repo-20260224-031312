@@ -187,7 +187,7 @@ test('approved B game selector renders one compact roster with explicit side ass
   assert.match(gameSheet, /class="water-match-summary/);
   assert.match(gameSheet, /bindtap="toggleGameSummary"/);
   assert.match(gameSheet, /aria-expanded="{{gameSummaryExpanded}}"/);
-  assert.match(gameSheet, /wx:if="{{winnerIds\.length > 2 \|\| loserIds\.length > 2}}"/);
+  assert.match(gameSheet, /wx:if="{{winnerIds\.length > 2 \|\| loserIds\.length > 2 \|\| hasLongGameNames}}"/);
   assert.match(gameSheet, /winnerFullSummary/);
   assert.match(gameSheet, /loserFullSummary/);
   assert.match(gameSheet, /class="water-team-summary" aria-label="胜方 {{winnerIds\.length}} 人，{{winnerFullSummary}}"/);
@@ -221,6 +221,7 @@ test('approved B game selector renders one compact roster with explicit side ass
   assert.match(wxss, /\.water-player-grid\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\)/s);
   assert.match(wxss, /\.water-player-grid\.has-long-names\s*\{[^}]*grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\)/s);
   assert.match(wxss, /@media \(max-width:\s*374px\)[\s\S]*?\.water-player-grid\s*\{[^}]*grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\)/s);
+  assert.match(wxss, /@media \(max-width:\s*374px\)[\s\S]*?\.water-player-grid\.has-long-names\s*\{[^}]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/s);
   assert.match(wxss, /\.water-player-chip\s*\{[^}]*width:\s*100%[^}]*min-width:\s*0[^}]*min-height:\s*44px/s);
   assert.match(wxss, /\.water-sheet-close\s*\{[^}]*width:\s*44px[^}]*min-width:\s*44px[^}]*height:\s*44px[^}]*min-height:\s*44px/s);
   assert.match(wxss, /\.water-side-switch button,\s*\.water-add-switch button\s*\{[^}]*min-height:\s*44px/s);
