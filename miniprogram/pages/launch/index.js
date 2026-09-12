@@ -1,15 +1,18 @@
 const nav = require('../../core/nav');
 const profileCore = require('../../core/profile');
 const flow = require('../../core/uxFlow');
+const waterRecent = require('../../core/waterRecent');
 
 Page({
   data: {
-    modeCards: flow.getLaunchModes()
+    modeCards: flow.getLaunchModes(),
+    recentWater: null
   },
 
   onShow() {
     this._entryGeneration = Number(this._entryGeneration || 0) + 1;
     this._entryBusy = false;
+    this.setData({ recentWater: waterRecent.getRecentLedger() });
   },
 
   onHide() {
@@ -17,11 +20,24 @@ Page({
   },
 
   onStartWater() {
+    return this.openWater('/pages/water/index?new=1');
+  },
+
+  onContinueWater() {
+    const recent = waterRecent.getRecentLedger();
+    return this.openWater(recent ? `/pages/water/index?id=${encodeURIComponent(recent.id)}` : '/pages/water/index?history=1');
+  },
+
+  onWaterHistory() {
+    return this.openWater('/pages/water/index?history=1');
+  },
+
+  openWater(url) {
     if (this._entryBusy) return;
     this._entryBusy = true;
     const entryGeneration = Number(this._entryGeneration || 0);
     wx.navigateTo({
-      url: '/pages/water/index',
+      url,
       fail: () => {
         if (Number(this._entryGeneration || 0) === entryGeneration) this._entryBusy = false;
       }

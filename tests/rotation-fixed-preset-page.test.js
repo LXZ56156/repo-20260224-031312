@@ -96,12 +96,31 @@ test('launch fixed rotation card navigates with multi_rotate mode and presetKey'
     ctx.onShow();
     ctx.onStartWater();
     ctx.onStartWater();
-    assert.equal(calls.navigateTo.filter((call) => call.url === '/pages/water/index').length, 1);
+    assert.equal(calls.navigateTo.filter((call) => call.url === '/pages/water/index?new=1').length, 1);
   } finally {
     global.wx = originalWx;
     profileCore.ensureProfileForAction = originalEnsureProfile;
     delete require.cache[launchPagePath];
   }
+});
+
+test('launch continues the latest ledger and history navigation never creates a ledger', () => {
+  const originalWx = global.wx;
+  const originalGetApp = global.getApp;
+  const calls = installWxStub({
+    getStorageSync(key) { return key === 'water_recent_ledger:user1' ? { id: 'book/1', title: '周日打水' } : ''; },
+  });
+  global.getApp = () => ({ globalData: { openid: 'user1' } });
+  try {
+    const ctx = createPageContext(loadPageDefinition(launchPagePath));
+    ctx.onShow();
+    assert.equal(ctx.data.recentWater.title, '周日打水');
+    ctx.onContinueWater();
+    assert.equal(calls.navigateTo[0].url, '/pages/water/index?id=book%2F1');
+    ctx.onShow();
+    ctx.onWaterHistory();
+    assert.equal(calls.navigateTo[1].url, '/pages/water/index?history=1');
+  } finally { global.wx = originalWx; global.getApp = originalGetApp; }
 });
 
 test('create page keeps fixed rotation label and sends presetKey to createTournament', async () => {

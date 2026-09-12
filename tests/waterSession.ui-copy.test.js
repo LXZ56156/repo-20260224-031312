@@ -27,7 +27,9 @@ test('launch puts standalone quick water before formal tournament modes', () => 
   const modesAt = wxml.indexOf('wx:for="{{modeCards}}"');
 
   assert.match(wxml, /选择玩法/);
-  assert.match(wxml, /不用建比赛/);
+  assert.match(wxml, /每次单独记账/);
+  assert.match(wxml, /新建打水/);
+  assert.match(wxml, /bindtap="onWaterHistory"/);
   assert.ok(waterAt >= 0 && modesAt > waterAt);
   assert.match(wxml, /bindtap="onStartWater"/);
 });
@@ -148,7 +150,7 @@ test('selected V2 B keeps its structure with the previous green palette', () => 
   assert.equal((js.match(/confirmColor:\s*'#103f35'/gi) || []).length, 1);
   assert.match(wxss, /\.water-action-dock\s*\{[^}]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/s);
   assert.match(wxss, /@media \(prefers-reduced-motion:\s*reduce\)/);
-  assert.doesNotMatch(wxml, /撤销上一条|总账差|结束这次打水/);
+  assert.doesNotMatch(wxml, /总账差|结束这次打水/);
 });
 
 test('approved screenshot fixes keep display atoms, dock modes and popup safe-area ownership explicit', () => {
@@ -161,7 +163,7 @@ test('approved screenshot fixes keep display atoms, dock modes and popup safe-ar
   assert.match(wxss, /\.water-dock-button\s*\{[^}]*width:\s*auto\s*!important[^}]*max-width:\s*none\s*!important[^}]*align-self:\s*stretch[^}]*justify-self:\s*stretch[^}]*margin:\s*0\s*!important/s);
   assert.doesNotMatch(wxss, /\.water-action-dock\s*\{[^}]*background:\s*rgba\(/s);
 
-  assert.equal((wxml.match(/\{\{item\.displayDescription\}\}/g) || []).length, 3);
+  assert.equal((wxml.match(/\{\{item\.displayDescription\}\}/g) || []).length, 4);
   assert.match(wxml, /class="water-detail-description">\{\{entryDetail\.displayDescription\}\}<\/text>/);
   assert.match(wxml, /data-description="\{\{item\.description\}\}"/);
   assert.match(wxml, /data-description="\{\{entryDetail\.description\}\}"/);
@@ -288,26 +290,51 @@ test('disabled primary actions keep neutral styling with WCAG AA text contrast',
   assert.ok(contrastRatio(foreground, background) >= 4.5, `${foreground} on ${background} must meet WCAG AA`);
 });
 
-test('round identity keeps every round number outside truncating title text', () => {
+test('independent ledger navigation replaces round controls and retains early records', () => {
   const wxml = read('miniprogram/pages/water/index.wxml');
   const wxss = read('miniprogram/pages/water/index.wxss');
 
-  assert.match(wxml, /class="water-round-title-line"[\s\S]*class="water-round-title-text"[\s\S]*class="water-round-number">第\{\{round\.number \|\| 1\}\}轮/);
-  assert.match(wxml, /class="water-history-round-heading"[\s\S]*class="water-history-round-title">[^<]*historyRound\.title[^<]*<\/text>[\s\S]*class="water-history-round-number"[^>]*>第\{\{historyRound\.number\}\}轮/);
-  assert.match(wxml, /class="water-round-row-heading"[\s\S]*class="water-round-row-title">\{\{item\.title\}\}[\s\S]*class="water-round-row-number">第\{\{item\.number\}\}轮/);
-  assert.doesNotMatch(wxml, /round\.title[^<]*· 第\{\{round\.number/);
-  assert.doesNotMatch(wxml, /historyRound\.title \+ ' · 第'/);
-  assert.match(wxss, /\.water-round-number,[\s\S]*?\.water-round-row-number\s*\{[^}]*flex:\s*0 0 auto[^}]*white-space:\s*nowrap/s);
+  assert.doesNotMatch(wxml, /第\{\{[^}]+\}\}轮|新一轮|bindtap="onCreateRound"/);
+  assert.match(wxml, /bindtap="onNewLedger">新建另一场/);
+  assert.match(wxml, /bindtap="openLedgerHistory">历史账本/);
+  assert.match(wxml, /bindtap="openEarlyHistory">这本账的早期记录/);
+  const history = wxml.slice(wxml.indexOf('<view class="water-ledger-history-overlay"'), wxml.indexOf('<van-popup custom-class="water-popup water-history-popup"'));
+  assert.equal((history.match(/<scroll-view\b/g) || []).length, 1);
+  assert.match(history, /bindtap="retryLedgerHistory"/);
+  assert.match(history, /bindtap="loadMoreLedgers"/);
+  assert.match(wxss, /\.water-ledger-action\s*\{[^}]*min-height:\s*44px/s);
+  assert.match(wxss, /\.water-ledger-history-sheet\s*\{[^}]*overflow:\s*hidden/s);
+  assert.match(history, /class="water-popup water-ledger-history-panel" role="dialog"/);
+  assert.match(wxml, /<page-meta page-style="{{ledgerHistoryOpen \? 'overflow: hidden;' : ''}}"/);
 });
 
 test('every top-level water sheet has an explicit 44px accessible close action', () => {
   const wxml = read('miniprogram/pages/water/index.wxml');
   const wxss = read('miniprogram/pages/water/index.wxss');
-  const labels = ['关闭记一局', '关闭单独记水', '关闭添加球友', '关闭加入打水', '关闭记录详情', '关闭往期'];
+  const labels = ['关闭记一局', '关闭单独记水', '关闭添加球友', '关闭加入打水', '关闭记录详情', '关闭历史账本', '关闭早期记录'];
 
   labels.forEach((label) => assert.match(wxml, new RegExp(`class="[^"]*water-sheet-close[^"]*"[^>]*aria-label="${label}"`)));
-  assert.match(wxml, /class="water-sheet-back"[^>]*aria-label="返回往期列表"/);
+  assert.match(wxml, /class="water-sheet-back"[^>]*aria-label="返回早期记录列表"/);
   assert.match(wxss, /\.water-sheet-close\s*\{[^}]*width:\s*44px[^}]*min-width:\s*44px[^}]*height:\s*44px[^}]*min-height:\s*44px/s);
+});
+
+test('independent ledger offers a direct owner add CTA and centered full-width legacy undo', () => {
+  const wxml = read('miniprogram/pages/water/index.wxml');
+  const wxss = read('miniprogram/pages/water/index.wxss');
+  assert.match(wxml, /class="water-ledger-add-prompt" wx:if="{{showLedgerAddPrompt}}"[\s\S]*?再添加 1 位球友，就能开始记水[\s\S]*?class="water-ledger-add-button" bindtap="openManualSheet"/);
+  assert.match(wxss, /\.water-ledger-add-button,[^}]*width:\s*100%\s*!important[^}]*min-height:\s*48px[^}]*align-items:\s*center[^}]*justify-content:\s*center/s);
+  assert.match(wxss, /\.water-player-tool\.water-legacy-undo\s*\{[^}]*width:\s*100%\s*!important[^}]*max-width:\s*none\s*!important[^}]*align-items:\s*center[^}]*justify-content:\s*center/s);
+  assert.match(wxml, /class="water-history-empty-create"[^>]*bindtap="onNewLedger">新建打水/);
+  assert.match(wxss, /\.water-ledger-action\s*\{[^}]*display:\s*flex[^}]*align-items:\s*center/s);
+});
+
+test('water tabs override native button width and disabled dock text meets AA contrast', () => {
+  const wxss = read('miniprogram/pages/water/index.wxss');
+  assert.match(wxss, /\.water-tab\s*\{[^}]*width:\s*100%\s*!important[^}]*max-width:\s*none\s*!important[^}]*align-items:\s*center[^}]*justify-content:\s*center/s);
+  const disabled = wxss.match(/\.water-dock-button\[disabled\]\s*\{([^}]*)\}/s)[1];
+  const foreground = disabled.match(/color:\s*(#[0-9a-f]{6})/i)[1];
+  const background = disabled.match(/background:\s*(#[0-9a-f]{6})/i)[1];
+  assert.ok(contrastRatio(foreground, background) >= 4.5);
 });
 
 test('direct water exposes inline validity and disables its CTA before a legal transfer exists', () => {
@@ -369,7 +396,7 @@ test('direct add and join sheets each use one scroll body between fixed chrome',
   ];
 
   sheets.forEach((sheet) => {
-    assert.match(sheet, /class="water-sheet water-form-sheet"/);
+    assert.match(sheet, /class="water-sheet water-form-sheet(?:\s[^"]*)?"/);
     assert.match(sheet, /class="water-form-sheet-header"[\s\S]*class="water-form-sheet-body"[\s\S]*class="water-form-sheet-footer"/);
     assert.equal((sheet.match(/\sscroll-y(?:\s|>)/g) || []).length, 0);
     assert.doesNotMatch(sheet, /<scroll-view[^>]*water-form-sheet-body/);

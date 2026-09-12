@@ -1,6 +1,7 @@
 const profileCore = require('../../core/profile');
 const waterApi = require('../../core/waterSession');
 const waterLedger = require('../../core/waterLedger');
+const waterRecent = require('../../core/waterRecent');
 const actionGuard = require('../../core/actionGuard');
 const clientRequest = require('../../core/clientRequest');
 const lobbyImportActions = require('../lobby/lobbyImportActions');
@@ -411,6 +412,7 @@ Page({
     canWrite: false,
     canManageRoster: false,
     canAddParticipants: false,
+    showLedgerAddPrompt: false,
     canCreateRound: false,
     canShare: false,
     bottomActionMode: 'join',
@@ -507,6 +509,15 @@ Page({
     joinNameError: '',
 
     historySheetOpen: false,
+    historyOnly: false,
+    ledgerNavigationPending: false,
+    ledgerHistoryOpen: false,
+    ledgerHistoryLoading: false,
+    ledgerHistoryLoadingMore: false,
+    ledgerHistoryError: '',
+    historyLedgers: [],
+    ledgerHistoryHasMore: false,
+    ledgerHistoryCursor: null,
     historyLoading: false,
     historyRounds: [],
     historyHasMore: false,
@@ -527,6 +538,16 @@ Page({
 
   async onLoad(options = {}) {
     this.syncShareMenu(false);
+    this._entryMode = options.new === '1' ? 'new' : options.history === '1' ? 'history' : '';
+    if (this._entryMode === 'new') {
+      await this.createIndependentLedger();
+      return;
+    }
+    if (this._entryMode === 'history') {
+      this.setData({ historyOnly: true, loading: false, bottomActionMode: '' });
+      await this.openLedgerHistory();
+      return;
+    }
     const roomId = clean(options.id || options.roomId || options.sessionId);
     if (roomId) {
       this.setData({ roomId, sessionId: roomId });
@@ -550,6 +571,8 @@ Page({
   },
 
   onUnload() {
+    this._unloaded = true;
+    this._ledgerHistoryRequestSeq = Number(this._ledgerHistoryRequestSeq || 0) + 1;
     this._isVisible = false;
     this.clearRefreshTimer();
     this.clearReceiptTimer();
@@ -674,7 +697,129 @@ Page({
     });
   },
 
+  async createIndependentLedger() {
+    if (this._unloaded || this.data.roomId) return null;
+    if (this._createLedgerTask) return this._createLedgerTask;
+    this._createLedgerTask = (async () => {
+      this.setActionBusy('create', true);
+      this.setData({ loading: true, loadError: '' });
+      try {
+        const gate = await profileCore.ensureProfileForAction('generic', '/pages/water/index?new=1');
+        if (this._unloaded) return null;
+        if (!gate || !gate.ok) {
+          this.setData({ loading: false, loadError: '完成登录和球友资料后即可新建打水账本' });
+          return null;
+        }
+        const name = profileName(gate.profile);
+        const intent = this.mutationIntent('create_ledger', [name]);
+        const response = await apiMethod('createLedger')(name, { clientRequestId: intent.clientRequestId });
+        if (this._unloaded) return null;
+        if (!this.applyApiResponse(response)) throw new Error('新账本暂时未能打开，请重试');
+        this.clearMutationIntent('create_ledger', intent.fingerprint);
+        return response;
+      } catch (err) {
+        if (!this._unloaded) this.setData({ loading: false, loadError: clean(err && err.message) || '暂时无法新建打水账本' });
+        return null;
+      } finally {
+        if (!this._unloaded) this.setActionBusy('create', false);
+      }
+    })();
+    try { return await this._createLedgerTask; }
+    finally { this._createLedgerTask = null; }
+  },
+
+  navigateLedger(url) {
+    if (this._unloaded || this._ledgerNavigationPending || typeof wx === 'undefined' || typeof wx.redirectTo !== 'function') return null;
+    this._ledgerNavigationPending = true;
+    this.setData({ ledgerNavigationPending: true });
+    return new Promise((resolve) => {
+      wx.redirectTo({
+        url,
+        success: () => resolve(true),
+        fail: (err) => {
+          this._ledgerNavigationPending = false;
+          if (!this._unloaded) {
+            this.setData({ ledgerNavigationPending: false });
+            showError(err, '暂时无法打开，请重试');
+          }
+          resolve(false);
+        },
+      });
+    });
+  },
+
+  onNewLedger() {
+    return this.navigateLedger('/pages/water/index?new=1');
+  },
+
+  openLedger(e) {
+    const id = clean(e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.id);
+    if (!id) return null;
+    return this.navigateLedger(`/pages/water/index?id=${encodeURIComponent(id)}`);
+  },
+
+  openLedgerHistory() {
+    if (this._unloaded) return null;
+    this.setData({ ledgerHistoryOpen: true, historyLedgers: [], ledgerHistoryCursor: null, ledgerHistoryHasMore: false });
+    return this.loadLedgerHistory({ reset: true });
+  },
+
+  closeLedgerHistory() {
+    this._ledgerHistoryRequestSeq = Number(this._ledgerHistoryRequestSeq || 0) + 1;
+    this.setData({ ledgerHistoryOpen: false, ledgerHistoryLoading: false, ledgerHistoryLoadingMore: false });
+  },
+
+  stopLedgerHistoryEvent() {},
+
+  async loadLedgerHistory(options = {}) {
+    if (this._unloaded || !this.data.ledgerHistoryOpen) return null;
+    const reset = !!options.reset;
+    if (!reset && (!this.data.ledgerHistoryHasMore || this.data.ledgerHistoryLoadingMore)) return null;
+    const requestSeq = Number(this._ledgerHistoryRequestSeq || 0) + 1;
+    this._ledgerHistoryRequestSeq = requestSeq;
+    const query = { limit: PAGE_SIZE };
+    if (!reset && this.data.ledgerHistoryCursor != null) query.cursor = this.data.ledgerHistoryCursor;
+    this.setData({ ledgerHistoryLoading: reset, ledgerHistoryLoadingMore: !reset, ledgerHistoryError: '' });
+    try {
+      const response = await apiMethod('listLedgers')(query);
+      if (this._unloaded || !this.data.ledgerHistoryOpen || requestSeq !== this._ledgerHistoryRequestSeq) return null;
+      const data = responseData(response);
+      const incoming = (Array.isArray(data.ledgers) ? data.ledgers : []).map((item) => ({
+        ...item, id: clean(item.id), title: clean(item.title) || '打水账本', timeText: localDateTime(item.updatedAtMs),
+      }));
+      const seen = new Set();
+      const historyLedgers = (reset ? incoming : this.data.historyLedgers.concat(incoming))
+        .filter((item) => item.id && !seen.has(item.id) && seen.add(item.id));
+      const page = data.page || {};
+      this.setData({ historyLedgers, ledgerHistoryCursor: page.nextCursor == null ? null : page.nextCursor, ledgerHistoryHasMore: !!page.hasMore });
+      return response;
+    } catch (err) {
+      if (!this._unloaded && this.data.ledgerHistoryOpen && requestSeq === this._ledgerHistoryRequestSeq) {
+        this.setData({ ledgerHistoryError: clean(err && err.message) || '历史账本加载失败，请重试' });
+      }
+      return null;
+    } finally {
+      if (!this._unloaded && this.data.ledgerHistoryOpen && requestSeq === this._ledgerHistoryRequestSeq) {
+        this.setData({ ledgerHistoryLoading: false, ledgerHistoryLoadingMore: false });
+      }
+    }
+  },
+
+  loadMoreLedgers() {
+    return this.loadLedgerHistory();
+  },
+
+  retryLedgerHistory() {
+    return this.loadLedgerHistory({ reset: !this.data.historyLedgers.length });
+  },
+
+  openEarlyHistory() {
+    this.closeLedgerHistory();
+    return this.openHistorySheet();
+  },
+
   async loadRoom(options = {}) {
+    if (this._unloaded) return null;
     const requestedRoomId = clean(this.data.roomId || this.data.sessionId);
     if (!requestedRoomId) return null;
     const requestSeq = Number(this._loadRequestSeq || 0) + 1;
@@ -687,6 +832,7 @@ Page({
     try {
       const method = this.data.legacyMode ? apiMethod('get') : apiMethod('getV2', 'get');
       const response = await method(requestedRoomId);
+      if (this._unloaded) return null;
       if (clean(this.data.roomId || this.data.sessionId) !== requestedRoomId || requestSeq < Number(this._latestSuccessfulLoadSeq || 0)) return null;
       const currentFeedScope = `${clean(this.data.roundId)}:${clean(this.data.feedFilter) || 'all'}`;
       const requestedFeedScope = `${requestedRoundId}:${requestedFilter}`;
@@ -717,6 +863,7 @@ Page({
       return response;
     } catch (err) {
       const currentVersion = Number(this.data.session && this.data.session.version);
+      if (this._unloaded) return null;
       const sessionAdvanced = Number.isFinite(requestedVersion)
         && Number.isFinite(currentVersion)
         && currentVersion > requestedVersion;
@@ -1157,7 +1304,7 @@ Page({
     if (mutationSheetOpen) {
       const draftRoundId = clean(this._sheetDraftRoundId);
       if (draftRoundId && roundId && draftRoundId !== roundId) {
-        sheetBlockedReason = '当前轮已更新，草稿已保留；请重新打开后确认';
+        sheetBlockedReason = '账本已更新，草稿已保留；请重新打开后确认';
       } else if ((this.data.gameSheetOpen || this.data.directSheetOpen) && !canWrite) {
         sheetBlockedReason = capabilities.emergencyReadOnly
           ? '打水账本暂时只读，草稿已保留'
@@ -1197,6 +1344,7 @@ Page({
       canWrite,
       canManageRoster,
       canAddParticipants,
+      showLedgerAddPrompt: canAddParticipants && participants.length < 2,
       canCreateRound,
       canShare,
       bottomActionMode,
@@ -1229,6 +1377,7 @@ Page({
       ...directState,
     });
     this.syncShareMenu(canShare);
+    if (isMember) waterRecent.rememberLedger({ id: roomId, title: clean(round.title || this.data.session && this.data.session.title) || '打水账本' });
     this.ensureRefreshTimer();
     return true;
   },
@@ -1354,6 +1503,7 @@ Page({
   },
 
   async runMutation(action, payload, task, successText, options = {}) {
+    if (this._unloaded) return null;
     if (typeof action === 'function') {
       const legacyOptions = task && typeof task === 'object' ? task : {};
       return this.runMutation(
@@ -1375,6 +1525,7 @@ Page({
       }
       try {
         const response = await task(intent.clientRequestId);
+        if (this._unloaded) return null;
         const payloadUnchanged = typeof options.currentPayload !== 'function'
           || mutationFingerprint(this.data.roomId, this.data.roundId, intentAction, options.currentPayload()) === intent.fingerprint;
         this.applyMutationResponse(response, options);
@@ -1387,9 +1538,11 @@ Page({
         this.beginBurstPolling();
         return response;
       } catch (err) {
+        if (this._unloaded || Number(this._sheetGeneration || 0) !== sheetGeneration) return null;
         showError(err);
         const isConflict = clean(err && err.state) === 'conflict';
         if (isConflict) await this.loadRoom({ silent: true, force: true });
+        if (this._unloaded || Number(this._sheetGeneration || 0) !== sheetGeneration) return null;
         const inlineMessage = clean(err && err.message) || '操作失败，请重试';
         if (
           options.sheetFailure
@@ -1406,13 +1559,15 @@ Page({
         if (isConflict && typeof options.onConflict === 'function') await options.onConflict(err);
         return null;
       } finally {
-        this.setActionBusy(action, false);
+        if (!this._unloaded) this.setActionBusy(action, false);
       }
     });
   },
 
   onRetry() {
     if (this.data.roomId) return this.loadRoom();
+    if (this._entryMode === 'new') return this.createIndependentLedger();
+    if (this._entryMode === 'history') return this.openLedgerHistory();
     return this.createOrContinue();
   },
 
@@ -1536,7 +1691,7 @@ Page({
     let reason = '';
     const draftRoundId = clean(this._sheetDraftRoundId);
     if (draftRoundId && this.data.roundId && draftRoundId !== clean(this.data.roundId)) {
-      reason = '当前轮已更新，草稿已保留；请重新打开后确认';
+      reason = '账本已更新，草稿已保留；请重新打开后确认';
     } else if (kind === 'record' && !this.data.canWrite) {
       reason = this.data.capabilities.emergencyReadOnly
         ? '打水账本暂时只读，草稿已保留'
@@ -2366,7 +2521,7 @@ Page({
     });
     if (!modal.confirm) return null;
     if (clean(this.data.roomId) !== roomId || clean(this.data.roundId) !== roundId) {
-      this.setData({ syncMessage: '当前轮已更新，请在最新流水中重新确认' });
+      this.setData({ syncMessage: '账本已更新，请在最新流水中重新确认' });
       return null;
     }
     if (!this.data.canWrite || !capability(this.data.capabilities, 'canReverse', false) || this.data.isArchived) {
@@ -2692,7 +2847,7 @@ Page({
   },
 
   async onUndoLast() {
-    if (!this.data.entryCount || typeof waterApi.undoLast !== 'function') return null;
+    if (!this.data.legacyMode || !this.data.canWrite || !this.data.entryCount || typeof waterApi.undoLast !== 'function') return null;
     const roomId = clean(this.data.roomId || this.data.sessionId);
     const expectedVersion = this.data.session && this.data.session.version;
     const target = this.data.recentEntries && this.data.recentEntries[0] || {};
@@ -2700,6 +2855,7 @@ Page({
     return actionGuard.runCriticalWrite(`water:legacy:undo-gate:${roomId}`, async () => {
       const modal = await confirmModal({ title: '撤销这条记录？', content: clean(target.description), confirmText: '撤销', confirmColor: '#b8443f' });
       if (!modal.confirm || clean(this.data.roomId || this.data.sessionId) !== roomId) return null;
+      if (!this.data.legacyMode || !this.data.canWrite || this.data.session.version !== expectedVersion) return null;
       return this.runMutation('undo', [targetId], (clientRequestId) => waterApi.undoLast(roomId, expectedVersion, { clientRequestId }), '已撤销');
     });
   },

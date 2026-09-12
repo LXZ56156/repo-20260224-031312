@@ -145,15 +145,13 @@ page {
 }
 
 .water-round-head {
-  display: grid;
-  min-height: 176rpx;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  display: block;
+  min-height: 0;
   align-items: center;
   gap: 20rpx;
   box-sizing: border-box;
-  padding: 26rpx 28rpx 22rpx;
-  border-bottom: 1rpx solid var(--water-line);
-  background: var(--water-surface);
+  padding: 40rpx 32rpx 8rpx;
+  background: var(--water-page);
 }
 
 .water-round-seal {
@@ -198,11 +196,11 @@ page {
   overflow: hidden;
   flex: 1 1 auto;
   color: var(--water-ink);
-  font-size: 36rpx;
+  font-size: 25px;
   font-weight: 800;
   line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 .water-round-number {
@@ -254,12 +252,18 @@ page {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   border-bottom: 1rpx solid var(--water-line);
   background: var(--water-surface);
+  margin: 12rpx 28rpx 0;
 }
 
 .water-tab {
+  display: flex;
   position: relative;
+  width: 100% !important;
+  max-width: none !important;
   min-width: 0;
   min-height: 48px;
+  align-items: center;
+  justify-content: center;
   color: var(--water-muted) !important;
   font-size: 28rpx !important;
   font-weight: 600 !important;
@@ -342,6 +346,62 @@ page {
 .water-ledger-table,
 .water-player-list {
   background: var(--water-surface);
+}
+
+.water-ledger-card {
+  margin: 24rpx 28rpx;
+  border: 1rpx solid var(--water-line);
+  border-radius: 24rpx;
+  overflow: hidden;
+  background: var(--water-surface);
+}
+
+.water-ledger-card .water-ledger-row:last-child {
+  border-bottom: 0;
+}
+
+.water-new-ledger-notice {
+  margin: 8rpx 28rpx 20rpx;
+  padding: 20rpx 24rpx;
+  border-radius: 18rpx;
+  color: var(--water-accent-ink);
+  background: var(--water-accent-soft);
+  font-size: 26rpx;
+  line-height: 1.5;
+}
+
+.water-ledger-add-prompt {
+  padding: 12rpx 28rpx 28rpx;
+}
+
+.water-ledger-add-copy {
+  margin: 12rpx 0 24rpx;
+  color: var(--water-muted);
+  font-size: 28rpx;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.water-ledger-add-button,
+.water-history-empty-create {
+  display: flex;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  margin: 0 !important;
+  padding: 16rpx 20rpx !important;
+  border-radius: 18rpx !important;
+  color: var(--water-accent-ink) !important;
+  background: var(--water-accent-soft) !important;
+  font-size: 28rpx !important;
+  font-weight: 700 !important;
+  line-height: 1.4 !important;
+}
+
+.water-history-empty-create {
+  margin-top: 28rpx !important;
 }
 
 .water-ledger-row {
@@ -569,6 +629,22 @@ page {
   min-width: 0;
   min-height: 44px;
   text-align: left;
+}
+
+.water-legacy-undo-wrap {
+  padding: 20rpx 28rpx;
+}
+
+.water-player-tool.water-legacy-undo {
+  display: flex;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  margin: 0 !important;
+  padding: 12rpx 20rpx !important;
+  line-height: 1.4 !important;
 }
 
 .water-feed-item.is-muted {
@@ -848,9 +924,14 @@ page {
   grid-column: 1 / -1;
 }
 
+.water-dock-button.is-secondary:not([disabled]) {
+  color: var(--water-accent-ink) !important;
+  background: var(--water-accent-soft) !important;
+}
+
 .water-dock-button[disabled] {
-  color: #92a09b !important;
-  background: #dfe8e4 !important;
+  color: #596a64 !important;
+  background: #e4ece8 !important;
 }
 
 .water-dock-readonly {
@@ -1661,6 +1742,130 @@ page {
 .water-history-scroll {
   min-height: 0;
   flex: 1;
+}
+
+.water-ledger-actions {
+  display: flex;
+  gap: 16rpx;
+  padding: 4rpx 28rpx;
+}
+
+.water-ledger-action {
+  display: flex;
+  flex: 1;
+  width: auto !important;
+  max-width: none !important;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 8rpx !important;
+  color: var(--water-accent-ink) !important;
+  font-size: 26rpx !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+}
+
+.water-ledger-action:first-child { justify-content: flex-start; }
+.water-ledger-action:last-child { justify-content: flex-end; }
+
+.water-history-home {
+  padding: 48rpx 28rpx;
+}
+
+.water-history-home .water-primary-button {
+  margin-top: 32rpx;
+}
+
+.water-history-home .water-player-tool {
+  width: 100%;
+  margin-top: 16rpx;
+}
+
+.water-ledger-history-overlay {
+  position: fixed;
+  z-index: 100;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.water-ledger-history-backdrop {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: rgba(24, 53, 37, 0.4);
+}
+
+.water-ledger-history-panel {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  border-radius: 24rpx 24rpx 0 0;
+}
+
+.water-ledger-history-sheet {
+  display: flex;
+  height: 76vh;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--water-page);
+}
+
+.water-ledger-history-sub {
+  flex: 0 0 auto;
+  margin-bottom: 20rpx;
+}
+
+.water-ledger-history-scroll {
+  flex: 1;
+  min-height: 0;
+}
+
+.water-ledger-history-row {
+  display: flex;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 88px;
+  align-items: center;
+  gap: 20rpx;
+  margin: 0 0 20rpx !important;
+  padding: 28rpx !important;
+  border: 1rpx solid var(--water-line) !important;
+  border-radius: 24rpx !important;
+  background: var(--water-surface) !important;
+  text-align: left;
+}
+
+.water-ledger-history-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.water-ledger-history-title {
+  margin-bottom: 8rpx;
+  color: var(--water-ink);
+  font-size: 30rpx;
+  font-weight: 700;
+  line-height: 1.4;
+  overflow-wrap: break-word;
+}
+
+.water-ledger-history-arrow {
+  color: var(--water-accent-ink);
+  font-size: 40rpx;
+}
+
+.water-early-history-link {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 16rpx;
+  color: var(--water-accent-ink) !important;
+  font-size: 26rpx !important;
 }
 
 .water-new-round {

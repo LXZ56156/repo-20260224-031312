@@ -3,7 +3,7 @@ const clientRequest = require('./clientRequest');
 
 const API_VERSION_V2 = 2;
 const V1_READ_ACTIONS = new Set(['get', 'getMineActive']);
-const V2_READ_ACTIONS = new Set(['get', 'listEntries', 'getEntry', 'listRounds', 'getRound']);
+const V2_READ_ACTIONS = new Set(['get', 'listEntries', 'getEntry', 'listRounds', 'getRound', 'listLedgers']);
 
 function compactPayload(payload) {
   return Object.keys(payload || {}).reduce((result, key) => {
@@ -89,6 +89,12 @@ module.exports = {
 
   createV2(ownerName, options = {}) {
     return callV2('create', { ownerName }, options);
+  },
+  createLedger(ownerName, options = {}) {
+    return callV2('createLedger', { ownerName }, options);
+  },
+  listLedgers(options = {}) {
+    return callV2('listLedgers', readPageOptions(options, ['cursor', 'limit']));
   },
   getV2(roomId) {
     return callV2('get', { roomId });

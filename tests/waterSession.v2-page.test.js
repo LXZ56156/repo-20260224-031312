@@ -8,11 +8,12 @@ const root = path.resolve(__dirname, '..');
 const pagePath = require.resolve('../miniprogram/pages/water/index.js');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
-function loadPageDefinition(waterSession = {}, profile = null) {
+function loadPageDefinition(waterSession = {}, profile = null, recent = { rememberLedger() {} }) {
   const originalLoad = Module._load;
   const originalPage = global.Page;
   let definition = null;
   Module._load = function patchedLoad(request, parent, isMain) {
+    if (request === '../../core/waterRecent') return recent;
     if (request === '../../core/profile') {
       return profile || {
         async ensureProfileForAction() {
@@ -56,6 +57,194 @@ function deferred() {
   });
   return { promise, resolve, reject };
 }
+
+test('explicit new ledger never resumes legacy creation and retry preserves the request identity', async () => {
+  const ids = [];
+  let oldCalls = 0;
+  const ctx = createContext(loadPageDefinition({
+    async createLedger(name, options) {
+      ids.push(options.clientRequestId);
+      if (ids.length === 1) throw new Error('network timeout');
+      return payload();
+    },
+    async createV2() { oldCalls += 1; },
+  }));
+  await ctx.onLoad({ new: '1' });
+  assert.match(ctx.data.loadError, /timeout/);
+  await ctx.onRetry();
+  assert.equal(ids.length, 2);
+  assert.equal(ids[0], ids[1]);
+  assert.equal(oldCalls, 0);
+  assert.equal(ctx.data.roomId, 'water_1');
+  ctx.onUnload();
+});
+
+test('new ledger coalesces duplicate taps and discards completion after unload', async () => {
+  const pending = deferred();
+  let calls = 0;
+  const ctx = createContext(loadPageDefinition({ async createLedger() { calls += 1; return pending.promise; } }));
+  const first = ctx.onLoad({ new: '1' });
+  const second = ctx.onRetry();
+  await Promise.resolve();
+  ctx.onUnload();
+  let writes = 0;
+  ctx.setData = () => { writes += 1; };
+  pending.resolve(payload());
+  await Promise.all([first, second]);
+  assert.equal(calls, 1);
+  assert.equal(writes, 0);
+});
+
+test('history-only entry never creates and paginates unique ledgers with a retryable error', async () => {
+  let creates = 0;
+  const queries = [];
+  let fail = true;
+  const ctx = createContext(loadPageDefinition({
+    async createV2() { creates += 1; },
+    async listLedgers(query) {
+      queries.push(query);
+      if (query.cursor && fail) { fail = false; throw new Error('请重试'); }
+      return { data: { ledgers: query.cursor ? [{ id: 'a', title: '上午' }, { id: 'b', title: '下午' }] : [{ id: 'a', title: '上午' }], page: { hasMore: !query.cursor, nextCursor: query.cursor ? null : 'next' } } };
+    },
+  }));
+  await ctx.onLoad({ history: '1' });
+  assert.equal(creates, 0);
+  assert.equal(ctx.data.ledgerHistoryOpen, true);
+  await ctx.loadMoreLedgers();
+  assert.match(ctx.data.ledgerHistoryError, /重试/);
+  await ctx.retryLedgerHistory();
+  assert.deepEqual(ctx.data.historyLedgers.map((item) => item.id), ['a', 'b']);
+  assert.equal(queries[2].cursor, 'next');
+  assert.equal(ctx.data.ledgerHistoryHasMore, false);
+  ctx.onUnload();
+});
+
+test('ledger history ignores a response after close and opening a ledger navigates to a fresh page', async () => {
+  const pending = deferred();
+  const ctx = createContext(loadPageDefinition({ listLedgers: () => pending.promise }));
+  const request = ctx.openLedgerHistory();
+  ctx.closeLedgerHistory();
+  pending.resolve({ data: { ledgers: [{ id: 'old' }], page: {} } });
+  await request;
+  assert.deepEqual(ctx.data.historyLedgers, []);
+  const originalWx = global.wx;
+  const urls = [];
+  global.wx = { redirectTo(options) { urls.push(options.url); options.success(); } };
+  try {
+    await ctx.openLedger({ currentTarget: { dataset: { id: 'water_2' } } });
+    await ctx.openLedger({ currentTarget: { dataset: { id: 'duplicate' } } });
+    const newPage = createContext(loadPageDefinition());
+    await newPage.onNewLedger();
+    assert.deepEqual(urls, ['/pages/water/index?id=water_2', '/pages/water/index?new=1']);
+  } finally { global.wx = originalWx; ctx.onUnload(); }
+});
+
+test('successful member projections remember their ledger while visitors do not', () => {
+  const saved = [];
+  const ctx = createContext(loadPageDefinition({}, null, { rememberLedger: (ledger) => saved.push(ledger) }));
+  ctx.applyRoomData(payload({ viewer: { role: 'visitor', participantId: '' } }));
+  assert.deepEqual(saved, []);
+  ctx.applyRoomData(payload());
+  assert.deepEqual(saved, [{ id: 'water_1', title: '8月9日打水局' }]);
+  ctx.onUnload();
+});
+
+test('a one-player owner ledger offers direct add access while visitors cannot manage its roster', () => {
+  const input = payload();
+  input.room.participants = [input.room.participants[0]];
+  input.round.ledger = [{ participantId: 'p1', won: 0, treat: 0, net: 0 }];
+  input.round.recordCount = 0;
+  input.round.eventCount = 0;
+  input.viewer = { role: 'owner', participantId: 'p1' };
+  input.capabilities.canManageRoster = true;
+  input.capabilities.canOwnerWrite = true;
+  const ctx = createContext(loadPageDefinition());
+  ctx.applyRoomData(input);
+  assert.equal(ctx.data.showLedgerAddPrompt, true);
+  ctx.openManualSheet();
+  assert.equal(ctx.data.manualSheetOpen, true);
+  ctx.closeSheets();
+  ctx.applyRoomData({ ...input, viewer: { role: 'visitor', participantId: '' } });
+  assert.equal(ctx.data.showLedgerAddPrompt, false);
+  ctx.openManualSheet();
+  assert.equal(ctx.data.manualSheetOpen, false);
+  ctx.onUnload();
+});
+
+test('empty independent history stays empty without invoking create or legacy fallback', async () => {
+  let creates = 0;
+  const ctx = createContext(loadPageDefinition({
+    async listLedgers() { return { data: { ledgers: [], page: { hasMore: false, nextCursor: null } } }; },
+    async createV2() { creates += 1; },
+  }));
+  await ctx.onLoad({ history: '1' });
+  assert.equal(creates, 0);
+  assert.deepEqual(ctx.data.historyLedgers, []);
+  assert.equal(ctx.data.ledgerHistoryHasMore, false);
+  assert.equal(ctx.data.ledgerHistoryLoading, false);
+  assert.equal(ctx.data.roomId, '');
+  ctx.onUnload();
+});
+
+test('room refresh and mutation completion ignore an unloaded water page', async () => {
+  for (const operation of ['load', 'write']) {
+    const pending = deferred();
+    const ctx = createContext(loadPageDefinition({ getV2: () => pending.promise }));
+    ctx.applyRoomData(payload());
+    let applied = 0;
+    ctx.applyApiResponse = () => { applied += 1; return true; };
+    ctx.applyMutationResponse = () => { applied += 1; return true; };
+    const request = operation === 'load'
+      ? ctx.loadRoom({ silent: true })
+      : ctx.runMutation('record_game', [], () => pending.promise, '');
+    ctx.onUnload();
+    let writes = 0;
+    ctx.setData = () => { writes += 1; };
+    pending.resolve(payload());
+    await request;
+    assert.equal(applied, 0, operation);
+    assert.equal(writes, 0, operation);
+  }
+});
+
+test('failed recording does not put the previous sheet error into a newly opened sheet', async () => {
+  const pending = deferred();
+  const ctx = createContext(loadPageDefinition());
+  ctx.applyRoomData(payload());
+  ctx.openGameSheet();
+  const request = ctx.runMutation('record_game', [], () => pending.promise, '', { sheetFailure: true });
+  ctx.closeSheets();
+  ctx.openDirectSheet();
+  pending.reject(new Error('previous game failed'));
+  await request;
+  assert.equal(ctx.data.directSheetOpen, true);
+  assert.equal(ctx.data.sheetError, '');
+  ctx.onUnload();
+});
+
+test('conflict refresh does not apply sheet errors after closing or unloading', async () => {
+  for (const unload of [false, true]) {
+    const refresh = deferred();
+    const ctx = createContext(loadPageDefinition());
+    ctx.applyRoomData(payload());
+    ctx.openGameSheet();
+    let started;
+    const refreshStarted = new Promise((resolve) => { started = resolve; });
+    ctx.loadRoom = () => { started(); return refresh.promise; };
+    let conflicts = 0;
+    const request = ctx.runMutation('record_game', [], async () => {
+      throw Object.assign(new Error('previous conflict'), { state: 'conflict' });
+    }, '', { sheetFailure: true, onConflict() { conflicts += 1; } });
+    await refreshStarted;
+    if (unload) ctx.onUnload();
+    else { ctx.closeSheets(); ctx.openDirectSheet(); }
+    refresh.resolve(null);
+    await request;
+    assert.equal(ctx.data.sheetError, '');
+    assert.equal(conflicts, 0);
+    ctx.onUnload();
+  }
+});
 
 function payload(overrides = {}) {
   const participants = [
@@ -143,7 +332,7 @@ test('approved B structure keeps the previous green water palette', () => {
   assert.match(wxml, />单独记水<\/button>/);
   assert.match(wxml, /加入后一起记水/);
   assert.equal((wxml.match(/open-type="share"/g) || []).length, 1);
-  assert.doesNotMatch(wxml, /总账差|WATER BOARD|撤销上一条/);
+  assert.doesNotMatch(wxml, /总账差|WATER BOARD/);
 
   assert.match(js, /activeTab:\s*'ledger'/);
   assert.match(wxss, /--water-page:\s*#edf3f1/i);
@@ -197,7 +386,7 @@ test('feed display keeps each per-player water amount atomic without changing ca
   assert.match(item.detailAriaLabel, new RegExp(description));
 });
 
-test('round sequence compacts above 999 without losing the full event count', () => {
+test('ledger summary retains the full event count without a decorative stamp', () => {
   const definition = loadPageDefinition();
   const ctx = createContext(definition);
   const base = payload();
@@ -217,7 +406,8 @@ test('round sequence compacts above 999 without losing the full event count', ()
   assert.equal(ctx.data.roundSeqText, '#999');
 
   const wxml = read('miniprogram/pages/water/index.wxml');
-  assert.match(wxml, /class="water-round-seal" aria-label="当前流水 \{\{eventCount\}\} 条"/);
+  assert.doesNotMatch(wxml, /class="water-round-seal"/);
+  assert.match(wxml, /\{\{eventCount\}\} 条流水/);
   assert.match(wxml, /\{\{eventCount\}\} 条流水/);
 });
 
@@ -1848,6 +2038,39 @@ test('v2Read false overrides advertised V2 write, management, join, detail, hist
   }
 });
 
+test('legacy undo is owner-only and a changed last entry invalidates confirmation', async () => {
+  const calls = [];
+  let modal;
+  const definition = loadPageDefinition({ async undoLast(...args) { calls.push(args); return {}; } });
+  const ctx = createContext(definition);
+  const originalWx = global.wx;
+  global.wx = { showModal(options) { modal = options; }, showToast() {} };
+  const session = {
+    id: 'water_legacy', title: '旧打水局', status: 'active', version: 3,
+    participants: [{ id: 'p1', name: '阿杰' }, { id: 'p2', name: '王姐' }],
+    entries: [{ id: 'old', type: 'transfer', fromPlayerId: 'p1', toPlayerId: 'p2', units: 1 }],
+    isOwner: true, viewerParticipantId: 'p1',
+  };
+  try {
+    ctx.applySession(session);
+    const pending = ctx.onUndoLast();
+    ctx.applySession({ ...session, version: 4, entries: [...session.entries, { ...session.entries[0], id: 'new' }] });
+    modal.success({ confirm: true });
+    await pending;
+    assert.equal(calls.length, 0, 'confirmation must not undo a different latest entry');
+    const valid = ctx.onUndoLast();
+    modal.success({ confirm: true });
+    await valid;
+    assert.equal(calls.length, 1);
+    assert.deepEqual(calls[0].slice(0, 2), ['water_legacy', 4]);
+    ctx.applySession({ ...session, version: 5, isOwner: false, viewerParticipantId: 'p2' });
+    modal = null;
+    await ctx.onUndoLast();
+    assert.equal(modal, null);
+    assert.equal(calls.length, 1);
+  } finally { global.wx = originalWx; }
+});
+
 test('legacy fallback exposes no V2 history, filters, or entry-detail targets', async () => {
   const calls = [];
   const definition = loadPageDefinition({
@@ -1878,9 +2101,11 @@ test('legacy fallback exposes no V2 history, filters, or entry-detail targets', 
   assert.equal(ctx.data.feedFilter, 'all');
   assert.deepEqual(calls, []);
   const wxml = read('miniprogram/pages/water/index.wxml');
-  assert.match(wxml, /water-history-link" wx:if="\{\{canUseV2Features && isMember\}\}"/);
+  assert.match(wxml, /water-early-history-link" wx:if="\{\{canUseV2Features && isMember && round.number > 1\}\}"/);
   assert.match(wxml, /water-feed-filters" wx:if="\{\{canUseV2Features\}\}"/);
   assert.match(wxml, /water-detail-popup" show="\{\{canUseV2Features && detailSheetOpen\}\}"/);
+  assert.match(wxml, /class="water-legacy-undo-wrap" wx:if="\{\{legacyMode && canWrite && entryCount\}\}"><button[^>]*bindtap="onUndoLast"/);
+  assert.match(wxml, /water-feed-detail-cue" wx:if="\{\{canUseV2Features\}\}"/);
 });
 
 test('V2 viewer booleans must agree, and a live capability change blocks an open draft', async () => {
@@ -1991,7 +2216,7 @@ test('correction and reversal recheck their action capability and round before s
     }), { fromRefresh: true });
     await ctx.submitGame();
     assert.equal(correctCalls.length, 0);
-    assert.match(ctx.data.sheetBlockedReason, /当前轮已更新/);
+    assert.match(ctx.data.sheetBlockedReason, /账本已更新/);
   } finally {
     ctx.onUnload();
     global.wx = originalWx;

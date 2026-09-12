@@ -808,7 +808,7 @@ test('water undo guard covers the confirmation modal and sends only one write', 
   assert.match(String(undoCalls[0][2] && undoCalls[0][2].clientRequestId || ''), /^water_undo_/);
 });
 
-test('water undo snapshots the confirmed entry version before the modal wait', async () => {
+test('water undo stops when the confirmed entry version changes during the modal wait', async () => {
   let modalOptions;
   const undoCalls = [];
   const definition = loadPageDefinition({
@@ -844,8 +844,7 @@ test('water undo snapshots the confirmed entry version before the modal wait', a
     actionGuard.clear('water:write:water_1');
   }
 
-  assert.equal(undoCalls.length, 1);
-  assert.equal(undoCalls[0][1], 1);
+  assert.equal(undoCalls.length, 0);
 });
 
 test('water undo retry reuses the id for the same top entry and rotates it for the next entry', async () => {

@@ -1,3 +1,4 @@
+<page-meta page-style="{{ledgerHistoryOpen ? 'overflow: hidden;' : ''}}" />
 <view class="water-page {{bottomActionMode ? 'has-dock' : ''}}">
   <view class="water-loading-shell" wx:if="{{loading}}" aria-label="正在打开打水账本">
     <view class="water-loading-line is-title"></view>
@@ -12,21 +13,29 @@
     <button class="water-primary-button" wx:else loading="{{busyByAction.create}}" bindtap="onRetry">重试</button>
   </view>
 
+  <view class="water-history-home" wx:elif="{{historyOnly}}">
+    <view class="water-empty-title">历史账本</view>
+    <view class="water-support-text">打开之前的打水，或为这次球局新建一本账。</view>
+    <button class="water-primary-button" bindtap="openLedgerHistory">查看历史账本</button>
+    <button class="water-player-tool" disabled="{{ledgerNavigationPending}}" bindtap="onNewLedger">新建另一场</button>
+  </view>
+
   <block wx:else>
     <view class="water-round-head">
-      <view class="water-round-seal" aria-label="当前流水 {{eventCount}} 条">
-        <text class="water-round-seq">{{roundSeqText}}</text>
-        <text class="water-round-seal-label">流水</text>
-      </view>
       <view class="water-round-copy">
         <view class="water-round-title-line">
           <text class="water-round-title-text">{{round.title || session.title || '打水局'}}</text>
-          <text class="water-round-number">第{{round.number || 1}}轮</text>
         </view>
         <view class="water-round-stats"><text>{{participantCount}} 位球友</text><text>· {{recordCount}} 笔账</text><text>· {{eventCount}} 条流水</text></view>
       </view>
-      <button class="water-history-link" wx:if="{{canUseV2Features && isMember}}" aria-label="查看往期轮次" bindtap="openHistorySheet">往期 ›</button>
     </view>
+
+    <view class="water-ledger-actions">
+      <button class="water-ledger-action" disabled="{{ledgerNavigationPending}}" bindtap="onNewLedger">新建另一场</button>
+      <button class="water-ledger-action" bindtap="openLedgerHistory">历史账本</button>
+    </view>
+
+    <view class="water-new-ledger-notice" wx:if="{{showLedgerAddPrompt && !recordCount}}">新账本已建好，添加球友就能开始记水。</view>
 
     <view class="water-sync-banner" wx:if="{{syncMessage}}" role="status">{{syncMessage}}</view>
 
@@ -41,7 +50,8 @@
         <view class="water-receipt-dot"></view>
         <text>{{latestReceipt.text}}</text>
       </view>
-      <view class="water-section-caption">
+      <view class="water-ledger-card">
+      <view class="water-section-caption" wx:if="{{participantCount > 1}}">
         <text>赢水 − 请水</text>
         <text>按净水排序</text>
       </view>
@@ -49,7 +59,6 @@
         <view class="water-empty-title">还没有球友</view>
         <view class="water-support-text">添加或邀请球友后，就可以开始记水</view>
       </view>
-      <view class="water-one-person" wx:elif="{{participantCount === 1}}">再添加或邀请 1 位球友，就能开始记水</view>
       <view class="water-ledger-table" wx:if="{{ledger.length}}">
         <view class="water-ledger-row {{canWrite && participantCount > 1 ? '' : 'is-readonly'}}" wx:for="{{ledger}}" wx:key="id">
           <view class="water-ledger-person">
@@ -63,9 +72,16 @@
           </view>
         </view>
       </view>
+      <view class="water-ledger-add-prompt" wx:if="{{showLedgerAddPrompt}}">
+        <view class="water-ledger-add-copy">再添加 1 位球友，就能开始记水</view>
+        <button class="water-ledger-add-button" bindtap="openManualSheet">＋ 添加球友</button>
+      </view>
+      <view class="water-one-person" wx:elif="{{participantCount === 1}}">等待发起人添加球友后即可记水</view>
+      </view>
     </block>
 
     <block wx:elif="{{activeTab === 'feed'}}">
+      <view class="water-legacy-undo-wrap" wx:if="{{legacyMode && canWrite && entryCount}}"><button class="water-player-tool water-legacy-undo" bindtap="onUndoLast" loading="{{busyByAction.undo}}" disabled="{{busyByAction.undo}}">撤销上一条</button></view>
       <view class="water-feed-filters" wx:if="{{canUseV2Features}}" role="tablist" aria-label="流水类型">
         <button class="water-feed-filter {{feedFilter === 'all' ? 'is-active' : ''}}" data-filter="all" role="tab" aria-selected="{{feedFilter === 'all'}}" bindtap="onSelectFeedFilter">全部</button>
         <button class="water-feed-filter {{feedFilter === 'game' ? 'is-active' : ''}}" data-filter="game" role="tab" aria-selected="{{feedFilter === 'game'}}" bindtap="onSelectFeedFilter">对局</button>
@@ -83,12 +99,19 @@
         <view id="water-feed-{{item.id}}" class="water-feed-item {{item.isMuted ? 'is-muted' : ''}} {{highlightedEntryId === item.id ? 'is-highlighted' : ''}}" wx:for="{{feedItems}}" wx:key="id">
           <view class="water-feed-node {{item.isAuditEvent ? 'is-audit' : 'is-business'}}"></view>
           <view class="water-feed-main">
-            <button class="water-feed-open" data-root="{{item.rootEntryId}}" aria-label="{{item.detailAriaLabel}}" bindtap="openEntryDetail">
+            <view class="water-feed-open" wx:if="{{legacyMode}}">
               <view class="water-feed-top">
                 <text class="water-feed-kind">{{item.kindText}}</text>
                 <text class="water-feed-description">{{item.displayDescription}}</text>
               </view>
-              <view class="water-feed-detail-meta"><text>{{item.metaText}}</text><text class="water-feed-status {{item.statusText === '已撤销' ? 'is-reversed' : ''}}" wx:if="{{item.statusText}}"> · {{item.statusText}}</text><text class="water-feed-detail-cue">查看详情</text></view>
+              <view class="water-feed-detail-meta"><text>{{item.metaText}}</text></view>
+            </view>
+            <button class="water-feed-open" wx:else data-root="{{item.rootEntryId}}" aria-label="{{item.detailAriaLabel}}" bindtap="openEntryDetail">
+              <view class="water-feed-top">
+                <text class="water-feed-kind">{{item.kindText}}</text>
+                <text class="water-feed-description">{{item.displayDescription}}</text>
+              </view>
+              <view class="water-feed-detail-meta"><text>{{item.metaText}}</text><text class="water-feed-status {{item.statusText === '已撤销' ? 'is-reversed' : ''}}" wx:if="{{item.statusText}}"> · {{item.statusText}}</text><text class="water-feed-detail-cue" wx:if="{{canUseV2Features}}">查看详情</text></view>
             </button>
             <view class="water-feed-meta" wx:if="{{item.canEdit || item.canReverse}}">
               <view class="water-feed-actions">
@@ -141,13 +164,13 @@
   <button bindtap="reverseReceiptFeedback">撤销</button>
 </view>
 
-<view class="water-action-dock {{bottomActionMode === 'write' ? '' : 'is-single'}}" wx:if="{{!loading && !loadError}}">
+<view class="water-action-dock {{bottomActionMode === 'write' ? '' : 'is-single'}}" wx:if="{{!loading && !loadError && !historyOnly}}">
   <block wx:if="{{bottomActionMode === 'write'}}">
     <button class="water-dock-button" disabled="{{writeDisabled}}" bindtap="openGameSheet">记一局</button>
-    <button class="water-dock-button" disabled="{{writeDisabled}}" bindtap="openDirectSheet">单独记水</button>
+    <button class="water-dock-button is-secondary" disabled="{{writeDisabled}}" bindtap="openDirectSheet">单独记水</button>
   </block>
   <button class="water-dock-button is-wide" wx:elif="{{bottomActionMode === 'join'}}" bindtap="openJoinSheet">加入后一起记水</button>
-  <view class="water-dock-readonly" wx:elif="{{bottomActionMode === 'archived'}}">本轮已归档</view>
+  <view class="water-dock-readonly" wx:elif="{{bottomActionMode === 'archived'}}">这份记录已归档</view>
   <view class="water-dock-readonly" wx:elif="{{bottomActionMode === 'full'}}">球友已满 24 人，暂时无法加入</view>
   <view class="water-dock-readonly" wx:else>{{capabilities.emergencyReadOnly ? '打水账本暂时只读' : '当前只读'}}</view>
 </view>
@@ -206,7 +229,7 @@
 </van-popup>
 
 <van-popup custom-class="water-popup" show="{{directSheetOpen}}" position="bottom" round safe-area-inset-bottom bind:close="closeSheets">
-  <view class="water-sheet water-form-sheet">
+  <view class="water-sheet water-form-sheet water-direct-sheet">
     <view class="water-form-sheet-header">
       <view class="water-sheet-handle"></view>
       <view class="water-sheet-head"><view class="water-sheet-title">{{editingEntry ? '修改单独记水' : '单独记水'}}</view><button class="water-sheet-close" aria-label="关闭单独记水" bindtap="closeSheets">×</button></view>
@@ -309,15 +332,38 @@
   </view>
 </van-popup>
 
+<view class="water-ledger-history-overlay" wx:if="{{ledgerHistoryOpen}}">
+  <view class="water-ledger-history-backdrop" bindtap="closeLedgerHistory" catchtouchmove="stopLedgerHistoryEvent"></view>
+  <view class="water-popup water-ledger-history-panel" role="dialog" aria-modal="true" aria-label="历史账本">
+  <view class="water-sheet water-ledger-history-sheet">
+    <view class="water-sheet-handle"></view>
+    <view class="water-sheet-head"><view class="water-sheet-title">历史账本</view><button class="water-sheet-close" aria-label="关闭历史账本" bindtap="closeLedgerHistory">×</button></view>
+    <view class="water-support-text water-ledger-history-sub">每次打水单独记账，之前的账本仍可打开。</view>
+    <scroll-view class="water-ledger-history-scroll" scroll-y bindscrolltolower="loadMoreLedgers">
+      <view class="water-feed-loading" wx:if="{{ledgerHistoryLoading}}">正在加载历史账本…</view>
+      <view class="water-empty" wx:elif="{{!historyLedgers.length && !ledgerHistoryError}}"><view class="water-empty-title">还没有历史账本</view><view class="water-support-text">新建或加入打水后，会显示在这里。</view><button class="water-history-empty-create" disabled="{{ledgerNavigationPending}}" bindtap="onNewLedger">新建打水</button></view>
+      <button class="water-ledger-history-row" wx:for="{{historyLedgers}}" wx:key="id" data-id="{{item.id}}" disabled="{{ledgerNavigationPending}}" aria-label="打开{{item.title}}，{{item.participantCount}}位球友，{{item.recordCount}}笔账" bindtap="openLedger">
+        <view class="water-ledger-history-copy"><view class="water-ledger-history-title">{{item.title}}</view><view class="water-support-text">{{item.timeText}}</view><view class="water-support-text">{{item.participantCount || 0}} 位球友 · {{item.recordCount || 0}} 笔账</view></view><text class="water-ledger-history-arrow">›</text>
+      </button>
+      <view class="water-history-tail" wx:if="{{ledgerHistoryLoadingMore}}">正在加载更多账本…</view>
+      <view class="water-inline-error" wx:elif="{{ledgerHistoryError}}"><text>{{ledgerHistoryError}}</text><button bindtap="retryLedgerHistory">重试</button></view>
+      <button class="water-history-more" wx:elif="{{ledgerHistoryHasMore}}" bindtap="loadMoreLedgers">加载更多账本</button>
+      <view class="water-history-tail" wx:elif="{{historyLedgers.length && !ledgerHistoryLoading}}">已加载全部账本</view>
+      <button class="water-early-history-link" wx:if="{{canUseV2Features && isMember && round.number > 1}}" bindtap="openEarlyHistory">这本账的早期记录 ›</button>
+    </scroll-view>
+  </view>
+  </view>
+</view>
+
 <van-popup custom-class="water-popup water-history-popup" show="{{historySheetOpen}}" position="bottom" round safe-area-inset-bottom bind:close="closeHistorySheet">
   <view class="water-sheet water-history-sheet">
     <view class="water-sheet-handle"></view>
     <block wx:if="{{historyRound || historyRoundTargetId}}">
-      <view class="water-sheet-head"><button class="water-sheet-back" aria-label="返回往期列表" bindtap="backToHistoryList">‹ 往期</button><view class="water-history-round-heading"><text class="water-history-round-title">{{historyRound ? historyRound.title : '往期账本'}}</text><text class="water-history-round-number" wx:if="{{historyRound}}">第{{historyRound.number}}轮</text></view><button class="water-sheet-close" aria-label="关闭往期" bindtap="closeHistorySheet">×</button></view>
+      <view class="water-sheet-head"><button class="water-sheet-back" aria-label="返回早期记录列表" bindtap="backToHistoryList">‹ 早期记录</button><view class="water-history-round-heading"><text class="water-history-round-title">{{historyRound ? historyRound.title : '早期记录'}}</text></view><button class="water-sheet-close" aria-label="关闭早期记录" bindtap="closeHistorySheet">×</button></view>
       <view class="water-feed-loading" wx:if="{{historyRoundLoading}}">正在加载往期账本…</view>
       <view class="water-inline-error" wx:elif="{{historyRoundError}}"><text>{{historyRoundError}}</text><button bindtap="retryOpenHistoryRound">重试</button></view>
       <block wx:elif="{{historyRound}}">
-      <view class="water-archived-note">本轮已归档 · {{historyRound.recordCount}} 笔账 · {{historyRound.eventCount}} 条流水</view>
+      <view class="water-archived-note">已归档 · {{historyRound.recordCount}} 笔账 · {{historyRound.eventCount}} 条流水</view>
       <scroll-view class="water-history-scroll" scroll-y bindscrolltolower="loadMoreHistoryRoundEntries">
         <view class="water-section-caption"><text>归档总账</text><text>只读</text></view>
         <view class="water-ledger-row is-readonly" wx:for="{{historyRoundLedger}}" wx:key="id"><view class="water-ledger-person"><view class="water-ledger-name">{{item.name}}</view><view class="water-ledger-meta">赢 {{item.won}}　请 {{item.treat}}</view></view><view class="water-ledger-net {{item.netClass}} {{item.netSizeClass}}">{{item.netText}}</view></view>
@@ -328,7 +374,7 @@
             <view class="water-feed-main"><view class="water-feed-top"><text class="water-feed-kind">{{item.kindText}}</text><text class="water-feed-description">{{item.displayDescription}}</text></view><view class="water-support-text">{{item.metaText}} {{item.statusText}}</view></view>
           </view>
         </view>
-        <view class="water-empty" wx:else>本轮没有流水</view>
+        <view class="water-empty" wx:else>没有流水</view>
         <view class="water-history-tail" wx:if="{{historyRoundFeedLoadingMore}}">正在加载更早流水…</view>
         <button class="water-history-more" wx:elif="{{historyRoundFeedError}}" bindtap="retryHistoryRoundEntries">{{historyRoundFeedError}} · 重试</button>
         <button class="water-history-more" wx:elif="{{historyRoundFeedHasMore}}" bindtap="loadMoreHistoryRoundEntries">加载更早流水</button>
@@ -337,15 +383,13 @@
       </block>
     </block>
     <block wx:else>
-      <view class="water-sheet-head"><view class="water-sheet-title">往期</view><view class="water-sheet-head-actions"><view class="water-sheet-count">{{historyRounds.length}} 轮</view><button class="water-sheet-close" aria-label="关闭往期" bindtap="closeHistorySheet">×</button></view></view>
-      <button class="water-new-round" wx:if="{{canCreateRound}}" disabled="{{!recordCount}}" loading="{{busyByAction.create_round}}" bindtap="onCreateRound">新一轮</button>
-      <view class="water-new-round-note" wx:if="{{canCreateRound && !recordCount}}">本轮还没有记录</view>
+      <view class="water-sheet-head"><view class="water-sheet-title">早期记录</view><view class="water-sheet-head-actions"><view class="water-sheet-count">{{historyRounds.length}} 份</view><button class="water-sheet-close" aria-label="关闭早期记录" bindtap="closeHistorySheet">×</button></view></view>
       <view class="water-feed-loading" wx:if="{{historyLoading}}">正在加载往期…</view>
       <view class="water-empty" wx:elif="{{!historyRounds.length && !historyError}}">还没有往期记录</view>
       <scroll-view class="water-history-scroll" scroll-y bindscrolltolower="loadMoreHistoryRounds" wx:else>
-        <button class="water-round-row" wx:for="{{historyRounds}}" wx:key="id" data-id="{{item.id}}" aria-label="查看第{{item.number}}轮，{{item.title}}" bindtap="openHistoryRound"><view class="water-round-row-main"><view class="water-round-row-heading"><text class="water-round-row-title">{{item.title}}</text><text class="water-round-row-number">第{{item.number}}轮</text></view><view class="water-support-text">{{item.timeText}} · {{item.recordCount}} 笔账 · {{item.participantCount}} 位球友 · 已归档</view></view><text>›</text></button>
-        <view class="water-history-tail" wx:if="{{historyLoadingMore}}">正在加载更早轮次…</view>
-        <button class="water-history-more" wx:elif="{{historyHasMore}}" bindtap="loadMoreHistoryRounds">加载更早轮次</button>
+        <button class="water-round-row" wx:for="{{historyRounds}}" wx:key="id" data-id="{{item.id}}" aria-label="查看早期记录，{{item.title}}" bindtap="openHistoryRound"><view class="water-round-row-main"><view class="water-round-row-heading"><text class="water-round-row-title">{{item.title}}</text></view><view class="water-support-text">{{item.timeText}} · {{item.recordCount}} 笔账 · {{item.participantCount}} 位球友 · 已归档</view></view><text>›</text></button>
+        <view class="water-history-tail" wx:if="{{historyLoadingMore}}">正在加载更早记录…</view>
+        <button class="water-history-more" wx:elif="{{historyHasMore}}" bindtap="loadMoreHistoryRounds">加载更早记录</button>
         <view class="water-history-tail" wx:else>已加载全部往期</view>
       </scroll-view>
       <button class="water-history-retry" wx:if="{{historyError}}" bindtap="retryHistoryRounds">{{historyError}} · 重试</button>

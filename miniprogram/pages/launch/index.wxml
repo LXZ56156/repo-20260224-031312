@@ -10,13 +10,18 @@
     <view class="row launch-row">
       <view class="flex-1 minw0">
         <view class="launch-title">快速打水</view>
-        <view class="launch-sub text-caption">不用建比赛，添加球友就能记</view>
+        <view class="launch-sub text-caption">每次单独记账，添加这次的球友就能开始</view>
       </view>
     </view>
-    <view class="launch-actions">
-      <text class="launch-rule-link launch-action-spacer" aria-hidden="true">规则说明</text>
-      <button class="btn btn-sm btn-inline launch-btn launch-water-btn" bindtap="onStartWater">开始记水</button>
+    <button class="btn launch-water-btn" bindtap="onStartWater">新建打水</button>
+    <view class="launch-water-recent" wx:if="{{recentWater}}">
+      <view class="launch-water-recent-copy">
+        <view class="launch-water-recent-label">继续最近</view>
+        <view class="launch-water-recent-title">{{recentWater.title}}</view>
+      </view>
+      <button class="launch-water-secondary" bindtap="onContinueWater">继续记水 ›</button>
     </view>
+    <button class="launch-water-secondary launch-water-history" bindtap="onWaterHistory">历史账本 ›</button>
   </view>
 
   <view class="launch-section-label">完整比赛</view>

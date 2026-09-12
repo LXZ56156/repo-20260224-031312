@@ -41,9 +41,9 @@
 }
 
 .launch-water-card {
-  border-color: rgba(39, 123, 214, 0.18);
-  background: linear-gradient(135deg, #f4f9ff 0%, #ffffff 74%);
-  box-shadow: 0 10rpx 28rpx rgba(39, 123, 214, 0.1);
+  border-color: #dfe8e2;
+  background: #ffffff;
+  box-shadow: none;
 }
 
 .launch-water-accent {
@@ -54,16 +54,60 @@
 .launch-water-kicker {
   margin-left: var(--space-tight);
   margin-bottom: 8rpx;
-  color: var(--info);
+  color: #137747;
   font-size: 22rpx;
   font-weight: 700;
   letter-spacing: 2rpx;
 }
 
 .launch-water-btn {
+  display: flex;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  margin: 28rpx 0 0 !important;
   color: #ffffff;
-  background: var(--info);
+  background: #137747;
 }
+
+.launch-water-history {
+  width: 100% !important;
+  max-width: none !important;
+  margin-top: 8rpx !important;
+}
+
+.launch-water-secondary {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  margin: 0 !important;
+  padding: 0 16rpx !important;
+  color: #136957 !important;
+  background: transparent !important;
+  font-size: 26rpx !important;
+}
+
+.launch-water-recent {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-top: 24rpx;
+  padding: 20rpx 4rpx;
+  border-bottom: 1rpx solid #e1e9e4;
+  color: #5f6f69;
+  font-size: 24rpx;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+}
+
+.launch-water-recent-copy { min-width: 0; flex: 1; }
+.launch-water-recent-label { color: #192d23; font-size: 28rpx; font-weight: 650; }
+.launch-water-recent-title { margin-top: 6rpx; }
+.launch-water-recent .launch-water-secondary { flex: 0 0 auto; }
+.launch-water-card .launch-water-accent { background: #137747; }
 
 .launch-section-label {
   margin: 28rpx 4rpx 0;

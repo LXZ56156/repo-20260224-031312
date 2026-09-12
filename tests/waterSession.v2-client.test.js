@@ -5,6 +5,16 @@ const cloud = require('../miniprogram/core/cloud');
 const waterSession = require('../miniprogram/core/waterSession');
 const waterLedger = require('../miniprogram/core/waterLedger');
 
+test('independent ledgers use explicit create and authenticated paginated read contracts', async () => {
+  const calls = await captureCalls(async () => {
+    await waterSession.createLedger('阿杰', { clientRequestId: 'independent_create' });
+    await waterSession.listLedgers({ cursor: 'next-ledger', limit: 20 });
+  });
+  assert.deepEqual(calls[0].payload, { action: 'createLedger', apiVersion: 2, ownerName: '阿杰', clientRequestId: 'independent_create' });
+  assert.deepEqual(calls[1].payload, { action: 'listLedgers', apiVersion: 2, cursor: 'next-ledger', limit: 20 });
+  assert.deepEqual(calls[1].options, { retry: true });
+});
+
 async function captureCalls(run) {
   const originalCall = cloud.call;
   const calls = [];
