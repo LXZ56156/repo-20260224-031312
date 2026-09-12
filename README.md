@@ -67,7 +67,7 @@ npm run check:cloud-common
 4. 选择等人数胜负方记一局，或点名单 `＋/−` 直接记账；
 5. 按权限查看流水、修改或撤销；旧账本保留，UI 不使用新轮次模型。V1 兼容模式保留发起人撤销上一条。
 
-最新批准增量见 [每次独立打水账本](docs/specs/independent-water-ledgers.md)，基础合同见 [V1 兼容规格](docs/specs/standalone-water-ledger.md)和 [V2 多人账本规格](docs/specs/collaborative-water-ledger-v2.md)。V1 成员历史仍通过旧链接进入；新增成员查询索引未部署，源码能力不代表已上线或 UI 已验收。
+最新批准增量见 [每次独立打水账本](docs/specs/independent-water-ledgers.md)，基础合同见 [V1 兼容规格](docs/specs/standalone-water-ledger.md)和 [V2 多人账本规格](docs/specs/collaborative-water-ledger-v2.md)。V1 成员历史仍通过旧链接进入；新增成员查询索引与23个云函数已部署核验；客户端尚未upload/发布，完整UI人工验收边界见当前任务记录。
 
 ## 云函数部署
 

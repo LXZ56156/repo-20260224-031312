@@ -84,3 +84,20 @@ pendingTask：
 - 暂无函数部署请求，索引也不能称已创建。用户在DevTools确认后，先polling_task_result查询上述taskId，不重发；成功再listIndexes核验，然后逐个cloud_fn_deploy --remote-npm-install，最后cloud_fn_info读取23个状态。函数名来源cloudbaserc.json，目录固定canonical cloudfunctions/<name>。
 
 这不是聊天授权缺失，也不是MCP客户端重新授权；是官方工具自身云写确认门禁。遵守安装包references/async-task-polling.md和approval-policy.md，不代用户绕过确认。用户回来后继续既有部署授权，不再请求同一范围批准。
+
+## 继续部署：索引成功，waterSession等待原生确认
+
+- 查询原索引taskId返回status success/execution_success，requestId c085b3a6-4128-4d28-a310-43ed34df4746。随后listIndexes读到waterRoomMembers_openid_id_asc，openid ASC、_id ASC、Unique false，大小20480，已核对无误。回执tmp/authorized-index-poll.log、tmp/authorized-index-after.log。
+- 新pendingTask：confirmation_cloud_fn_deploy_9fce9528-09e5-4463-a006-5a7b2b500b53；工具cloud_fn_deploy，客户端Codex，appid wxf6f4e0b09e293521，env cloud1-1ghmqjyt6428702b，path D:/projects(WIN)/badminton-miniapp/cloudfunctions/waterSession，remote-npm-install true。最后状态pending/Waiting for user confirmation，尚不代表部署成功。
+- 回执tmp/authorized-deploy-waterSession.log。用户确认回来后先polling_task_result查该taskId，勿重发。成功再核验waterSession，并继续其余22函数（cloudbaserc清单排除已成功的waterSession）。没有启动其余函数部署，无真实账本写入。源码未变，不重跑测试。
+
+## 云部署完成与CLI恢复（2026-09-12）
+
+- 原waterSession pending请求查询成功，执行回执含13files/45.1KB；未重发。DevTools读取Active；CloudBase CLI详情再次确认Active/Available、InstallDependency TRUE。
+- 用户明确要求持续授权或改回CLI。只读核实当前DevTools2.02.2609102云部署每次进入runWithUserConfirmation，checkUserConfirmWithHistory不读取/保存许可；界面残留Always文案不构成可用持续授权。未修改内部权限状态。
+- CloudBase CLI3.7.3通过device flow完成一次登录，env list返回原环境cloud1-1ghmqjyt6428702b/NORMAL。此后使用fn deploy --force --install-dependency true --json，显式绑定原env，依次部署其余22函数；每个核验Active/Available/InstallDependency TRUE，无失败、无重复部署waterSession。登录凭据留在CLI管理范围，未入库或日志。
+- 最终cloud_fn_info按cloudbaserc全部23名称读取，expected23/received23/Active23/bad[]；CLI逐项详情验证均通过。其余16个远端历史函数未删除或变更。
+- 新索引waterRoomMembers_openid_id_asc：openid ASC、_id ASC、非唯一，远端确认存在。water_feature_flags revision11、v2Read/rosterWrite/ownerWrite/memberWrite/correctWrite/reverseWrite/createRoundWrite均true、emergencyReadOnly false、灰度名单空；仅只读核验，未改flags。
+- 证据：tmp/authorized-water-poll.log、authorized-cli-water-detail.log；tmp/authorized-cli-deployed.txt（22唯一函数）、authorized-cli-deploy-<name>.log、authorized-cli-detail-<name>.log；tmp/authorized-final-info.log；tmp/authorized-index-after.log、authorized-flags-read.log。运行证据属于本机tmp，不含在Git发布中。
+- 本轮云代码来源9c25075（最终实现d1d0040）；之后仅文档变化。完整测试1466项/1460通过/6跳过/0失败，check通过，lint0错误42警告。部署阶段未改源码，不重复全量测试。
+- 已完成用户授权的提交、推送、云接口与索引部署。没有客户端upload/正式发布，也没有写真实打水账本做冒烟；云端部署/状态核验不冒充客户端线上交互验收。无待确认云请求。未来已授权部署默认CLI，过期时恢复一次登录，不逐函数转IDE请求确认；入口见windows-dev-environment.md。

@@ -37,6 +37,13 @@ node scripts/dev/wechatide-local.js simulator_refresh 'D:/projects(WIN)/badminto
 
 包装器仅允许这两个本地动作；Token不落库、不进入包装器命令行或输出日志。它不授予upload、部署、预览或真实云写入权限。
 
+## 云部署入口
+
+- 用户已授权的云部署优先使用 CloudBase CLI，沿用现有登录态；不要切到 DevTools 云写接口导致逐函数确认。当前 CLI 3.7.3 支持 `--force` 非交互覆盖与 `--install-dependency true`，目标环境取已核对的 `cloudbaserc.json`。
+- 登录过期时运行 `tcb login --flow device --json`，完成一次账户登录后复用；不能承诺凭据永不过期。不输出或提交登录凭据。
+- 当前 DevTools 2.02.2609102 的云写确认没有可用的持续授权设置，客户端 `Codex`/Token 授权只解决连接身份，不消除云写确认。不要修改内部许可状态或重发pending请求；切换入口前先查询原请求结果，避免重复部署。
+- 本机可用单函数入口：`npm run deploy:cloud -- --force <functionName>`。部署后核验 `Active / Available` 和依赖安装状态；批量只操作本次已授权函数，失败时记录成功范围与待处理项。
+
 ## 测试、隐私与交付
 
 - `npm test` 使用node:test；当前测试结果见current及其证据。旧fairness墙钟失败已修复，不再作为当前失败事实。

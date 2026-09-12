@@ -20,5 +20,5 @@
 ## 旧账本与交付边界
 
 - 未迁移的 V1 账本至少纳入本人作为发起人的稳定账本；V1 成员历史不自动发现，仍通过原分享链接进入。不执行隐式迁移。
-- 新增索引声明 `waterRoomMembers_openid_id_asc`：`openid ASC, _id ASC`。声明位于 [bootstrap manifest](../../scripts/water-v2-cloud-bootstrap.manifest.json)，尚未远程部署。
+- 新增索引声明 `waterRoomMembers_openid_id_asc`：`openid ASC, _id ASC`。声明位于 [bootstrap manifest](../../scripts/water-v2-cloud-bootstrap.manifest.json)，已于2026-09-12远程创建并核验字段方向。
 - 本地实现、测试与批准范围不代表云部署、客户端上传或 UI 已验收。当前验证与未完成项见 [会话记录](../tasks/session-logs/2026-09-12-closeout-water-restart.md)。
