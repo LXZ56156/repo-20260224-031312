@@ -137,7 +137,7 @@
 
 ## 后续执行状态（更新至2026-10-04）
 
-**当前已按用户要求暂停：goal为paused，开赛七日只读观察automation-3为PAUSED。完整12项仍未验收闭合，本次仅文档整理，不继续业务实现、云/UI检查或部署。** 逐项成果、证据位置、未验证项、测试及恢复条件见[2026-10-04暂停交接](../tasks/session-logs/2026-10-04-plan-paused-handoff.md)和[current](../tasks/current.md)。以下为10-03执行历史，active/blocked、旧故障和曾计划的下一步均不覆盖本次暂停。
+**2026-10-04用户已明确恢复完整12项计划；新增累计观察、UI修复、失败与未验项统一更新在[12项详细状态](../tasks/paused-plan-status.md)，导航见[current](../tasks/current.md)。** 七日观察automation-3已恢复ACTIVE，goal登记仍paused且工具无resume接口，不影响本次明确授权内执行，也不等于目标完成。下文及[暂停交接](../tasks/session-logs/2026-10-04-plan-paused-handoff.md)保留历史日期，旧授权/状态不覆盖当前边界。
 
 10-03接续[官方Node24.11与原生工具恢复](../tasks/session-logs/2026-10-03-exact-node-and-native-recovery.md)取得实际progress，当时goal active：18完整ZIP在官方Linux Node24.11.0/SDK2.6.3均数值exit0，223源码和340旧材料保全冷核通过；下载元数据P2另存派生修正。新390加载态烟测通过、主控亲看，但原生多窗口像素/控件树不一致，320/430未取得；最后复核无新验收，随后实际发现goal paused并停止。上游运行时与390合成图不替代CloudBase/真机/七日/真实需求；12项缺口完整保留。
 

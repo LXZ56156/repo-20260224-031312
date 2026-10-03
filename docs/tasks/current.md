@@ -1,19 +1,20 @@
 # 当前状态
 
-状态截至2026-10-04；这是导航入口，不是历史报告。开始核对实际cwd、branch、HEAD、dirty，详细事实按链接读取。
+截至2026-10-04；本页为导航，逐项事实与证据只维护在 [12项详细状态](paused-plan-status.md)。用户已明确恢复《2026-10-03线上检查与后续计划》，按原优先级继续，未完成项不跳过；[总计划](../reports/2026-10-03-online-audit-and-roadmap.md)保留验收标准。
 
 ## 当前范围
 
-- 文档体系/规则/索引整理及默认UI工具已完成；用户新增持续授权：任务完成并验证后立即commit/push。此次交付仅包含完成的工具、文档和规则，原12项未完成业务改动保留在本地；业务计划及观察automation-3仍暂停。
-- 原业务的逐项实现、通过/失败、未验与外部缺口集中在 [12项详细状态](paused-plan-status.md)；[暂停交接](session-logs/2026-10-04-plan-paused-handoff.md)与[完成性审计](session-logs/2026-10-03-plan-completion-audit.md)是当时证据。
-- 默认 [按任务索引](../README.md) 读取。UI使用 [日常循环](../tools/agent-development-workflow.md) 的ui:iterate，失败按 [故障手册](../tools/weapp-ui-troubleshooting.md)，后端/文档无需默认加载截图说明。
+- 第1累计观察已补齐至10-04 07:03:24上海：66页6531行、完整性通过；开赛15非缺参成功/硬超时0、来源未知。七日/≥100合格真实调用未达标。automation-3已恢复ACTIVE，截止10-10不顺延；goal登记仍paused，工具无resume，实际依用户明确恢复指令继续。
+- 第2计数差已确认汇总错数；旧0238 partial、0607导出、E盘副本与本机恢复证据保留。用户仍暂不付款；本轮只读生产NORMAL、无新隔离环境。CloudBase网页登录失效，Edge已保留登录handoff等待用户，CLI只读认证有效。
+- 新发现joinTournament一例3000ms平台433，业务/来源未知，正在单独核查提交后分享等待，不归为开赛失败。第4设置标签flex局部修复9/9通过，390相关三图机器成功且主控已看；失败重拍/中性页恢复证据保留。其他尺寸、真机及真实云交互待验。
+- 第3/5–11已有本地成果不替代后台实收、隔离引擎/身份及手机验收；第12需求已询问，候选未接入mode。[暂停交接](session-logs/2026-10-04-plan-paused-handoff.md)仅为历史。
 
 ## 工作区与分层基线
 
-- 实际workdir：D:\projects\badminton-miniapp\main；branch master，上游origin/master；HEAD和远端同步在交付时现查，提交详情见git log。总目录非Git根，[路径说明](../tools/windows-dev-environment.md#路径)。暂停业务的脏树不属于已推送源码；跨设备拉取获得已完成的工具/文档和原业务状态记录，本地未提交实现需另行交接。
-- 最近记录的线上客户端为6.1.2-702625a，2026-09-14正式发布，[回执](session-logs/2026-09-23-online-release-confirmed.md)。已提交基线15页/23函数，暂停业务工作树16页/26函数；此前线上受管23及单函数部署详情见详细状态，不由Git或本地登记推断上线。
-- 设备/云/真实交互缺口仍保留；PR、付款、preview/QR、上传/发布、部署与真实写入未授权。commit/push遵循 [现行交付规则](../../AGENTS.md#交付与文档)，不恢复业务任务或外部操作。账户到期与备份限制见详细状态第2项，本轮未重新查询外部状态。
+- 实际workdir `D:\projects\badminton-miniapp\main`，master/upstream origin/master；恢复前HEAD及远端均`4664c09`，全部既有脏树保留。完成且验证的范围立即commit/push，审查staged并核远端；未完成业务/私有配置不混入。跨设备拉取不获得尚未提交的本地实现。
+- 线上客户端最近记录仍6.1.2-702625a，2026-09-14正式发布，[回执](session-logs/2026-09-23-online-release-confirmed.md)；Git基线15页/23函数、本地工作树16页/26函数及线上受管23分别核验。旧startTournament部署授权已用完。
+- 付款、生产部署、客户端上传/发布、真实业务写入须具体证据后逐项授权；PR/preview/QR另计。commit/push遵循 [现行规则](../../AGENTS.md#交付与文档)。简单/只读用6 Luna max，实现用6.1 Sol high。
 
 ## 下一步与证据
 
-文档整理完成后按总索引开展新任务；继续原12项须用户明确恢复。详细工具实测及残余automation超时见 [研究](../reports/2026-10-04-agent-ui-workflow-research.md)，本轮整理/验证见 [任务记录](session-logs/2026-10-04-documentation-system-consolidation.md)。记录规则在总索引，本页只随范围/状态/下一步变化更新。
+继续高优先级累计监控与join超时诊断，补原生尺寸复核；等待网页登录/兑换码与真实身份、单打场景，推进不依赖这些信息的本地工作。UI按 [日常循环](../tools/agent-development-workflow.md) 使用ui:iterate，失败按 [手册](../tools/weapp-ui-troubleshooting.md) 分阶段处理；按 [索引](../README.md) 读取，详情更新同一任务正文。

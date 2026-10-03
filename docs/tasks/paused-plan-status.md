@@ -1,6 +1,14 @@
-# 12项暂停计划详细状态
+# 12项计划详细状态
 
-> 状态：暂停任务的详细状态正文。当前授权和下一步只看 [current](current.md)，本页不自动恢复原12项业务计划或观察自动化。原current的详情与证据在此保留；后续明确恢复时只更新相关任务条目，不在多个入口复写整表。历史暂停记录仍保留原文。按需读取对应编号或下方基线/DevTools章节。
+> 状态：2026-10-04用户明确恢复完整计划，按原优先级继续，未完成项不跳过。当前导航见 [current](current.md)；本页是逐项进度唯一正文。历史暂停与原始证据保持原文，以下旧基线按日期阅读，不能覆盖本节新状态。
+
+## 10-04恢复执行与新增证据
+
+- 执行前已读取更新后的AGENTS、索引、current、总计划及备份暂停记录；实际cwd为`D:\projects\badminton-miniapp\main`，master、HEAD `4664c09c3c84fd9f46956590cb4fc288b7545884`与origin/master一致，保留全部既有脏树。现行规则持续授权完成且验证后的任务范围commit/push，未完成/无关/私有配置不混入。用户恢复的是12项完整目标；goal登记仍返回paused，工具无resume接口，未谎称更改登记或完成目标。`automation-3`已通过API恢复ACTIVE，原七日截止10-10 02:32:05不顺延。
+- **1/3 只读观察**：新根`tmp/online-followup-20261004-resume/`，累计上海10-03 02:32:05至10-04 07:03:24，66页6531行，100条asc/context、末页listOver=true，collector/report/独立核验数值exit全0，完整性issues0。覆盖暂停期间累计日志，非调度每次均已运行的证明。startTournament非缺参15唯一请求，平台/业务15/15、硬超时0、trace缺失0、版本缺失15，P95=3993ms/15样本；原缺参烟测1单列，来源全部未知，可靠测试标记0，旧累计不相加。七日及≥100合格真实调用仍未达标。全函数另有joinTournament平台433硬超时1唯一请求（上海10-03 17:00:24.189、3000ms，3条重复raw），业务/来源未知，单独诊断，不归于开赛回归。证据`independent-summary.json`、`sample/manifest.json`、`report/report.json`及`handoff.md`，原ID仅保留ignored。
+- **2/5 隔离入口**：新上海CLI环境清点exit0，只见已知生产NORMAL、额外环境0；未返回类别，不能由CLI认证推断免费资格或绑定。证据`tmp/resume-cloud-inventory-20261004-luna/`。Edge连接恢复后新打开CloudBase控制台实际跳转登录页；已保留登录handoff并请用户接手，未操作已被网站安全策略限制的小程序公众号页。付款仍暂缓，未刷新报价、创建环境、部署或写真实业务。13,925/14,025历史对账结论与0238 partial保全继续有效，本次不覆盖备份。
+- **4/7/8 UI局部复核**：首次`ui:iterate settings scheduleManualFinishReady lobbyCoManagerOwner`退出1，settings实际display:block与合同flex冲突，其余两图机器通过，整批未发布；修复settings `.status-pill` inline-flex→flex，同步一处直接断言，保留match的inline-flex。关联布局9/9通过。修复后第一次编译重拍发生Uncaught对象错误/中性页清理失败，退出1，保留原证据。确认runner结束、无会话poison/recovering后官方`simulator_open_page`恢复launch退出0；doctor仅marker失败/source与身份等通过，一次session refresh退出0且全部checks通过。随后重拍run `2026-10-03T23-12-04-887Z-41680-4a092fa1`退出0/64177ms，三图dataVerified、异常0、清理通过/正式批次发布，主控逐图看过，标签按内容宽度显示、提前收赛入口及协管按钮正常。viewport390×671、SDK3.17.3、PNG484×1042，console分别6/1/7事件不等于无云错误；机器reviewStatus仍pending，人工审图另记。原失败run `23-02-52-157Z-11340-ba61d45d`及`23-10-18-557Z-28808-279db55f`保留。320/430、原生确认/picker/键盘、真实身份/云保存和Android/iPhone仍未验，不宣称第4/7/8完整完成。
+- **12 需求**：再次请求实际人数/场地/时长/循环/排序场景；通用“全部允许”不提供这些事实。候选未接入mode，原要求仍待验证。
 
 
 ## 暂停时已知状态（事实截至2026-10-04）
@@ -26,7 +34,7 @@
 ## 基线与授权边界
 
 - 线上客户端仍`6.1.2-702625a`，2026-09-14正式发布；Git、客户端版本与各云函数状态分别核验。[发布确认](session-logs/2026-09-23-online-release-confirmed.md)。本轮startTournament单函数部署授权已用完。
-- 恢复须用户明确指示后按原优先级续做，不因历史active/脚本/签名/许可自动恢复。付款、新生产部署、客户端上传/发布、真实业务数据写入仍须具体证据后逐项授权；local commit/push/PR/preview/QR未授权。模型约定：简单/只读6 Luna max，实现6.1 Sol high。
+- 10-04用户已明确恢复，按原优先级续做；付款、新生产部署、客户端上传/发布、真实业务数据写入仍须具体证据后逐项授权。完成且验证的任务范围commit/push按现行AGENTS持续授权，PR/preview/QR不在该授权内。模型约定：简单/只读6 Luna max，实现6.1 Sol high。
 - 第7/8/11/12整合最终全量1635项：1629通过/6跳过/0失败；check通过、lint0错误35警告、diff通过，全部失败和fixture修复保留。[本轮门禁](session-logs/2026-10-03-integrated-feature-validation.md)。此前第3–5/10全量1564项1558通过/6跳过/0失败；[冷审P2关闭](session-logs/2026-10-03-final-local-cold-review.md)、[全部失败/夹具修复及门禁](session-logs/2026-10-03-local-stage-validation.md)保留。本地通过不代表线上/设备验收。
 - 根工具链audit94条均命中dev节点；已部署受管23函数仍SDK2.6.3，本地登记26函数；SDK4仅审计。不执行audit fix --force，不删除16个历史远端函数。
 

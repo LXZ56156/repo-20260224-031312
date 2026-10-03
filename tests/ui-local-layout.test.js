@@ -39,9 +39,9 @@ test('secondary share actions use the existing styled button variant', () => {
 });
 
 test('match and settings status pills center labels inside their height', () => {
-  for (const [page, selector] of [['match', '.score-badge'], ['settings', '.status-pill']]) {
+  for (const [page, selector, display] of [['match', '.score-badge', 'inline-flex'], ['settings', '.status-pill', 'flex']]) {
     const body = rule(read(`pages/${page}/index.wxss`), selector);
-    assert.match(body, /display:\s*inline-flex\s*;/);
+    assert.match(body, new RegExp(`display:\\s*${display}\\s*;`));
     assert.match(body, /align-items:\s*center\s*;/);
     assert.match(body, /justify-content:\s*center\s*;/);
   }
