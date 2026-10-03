@@ -19,6 +19,10 @@
 
 - **连接包装器修复**：仅修改`wechatide-local.js`与直接测试，固定沿用原客户端/Token调用官方MCP stdio入口，保留三动作和`{tool,ok,result}`消费合同；不再调用失败会auth回退的skill-call入口。协议/逻辑/HTTP错误返回非零，原始失败载荷不公开；初始化/工具响应各15秒，finally关闭本次stdin，必要时只清理自有桥接进程树。原outer0/ok:false形状mock修复前0→后1；直接及ui:iterate消费方23/23，实际PowerShell只对临时离线Node stub验证Unicode/三动作/初始化顺序/拒绝/业务失败/超时，所有自有PID事后ESRCH。root新全量1671项1665通过/6跳过/0失败，check退出0，聚焦lint0错误/警告；一次真实官方状态检查数值退出1、隐藏raw失败，不重试/auth。最新原生截图仍未响应，连接与320/430尚未恢复，源码修复不宣称IDE连通。证据`tmp/wechatide-no-auto-auth-20261004/`含前后源码、logical回执、测试/lint、root全量/check/real-status日志。权威故障手册同步真实调用方式。
 
+- **窗口恢复后新增证据**：报表交付`a383579283edf01f59c8d6178ed918e55b668bc0`、连接修复`4655aedbc5400446ec19cc8e4d31546119710652`均已推送master并核ls-remote一致。普通关闭卡住窗口的accessibility请求超时，Windows ghost关闭也无可见结果；核安装路径/原HWND/项目标题/Responding=false后仅停止原PID53752，未删文件/cache/storage。旧子进程二次核归属时已全部退出，未另杀进程。官方launch返回window-handler未就绪，随后新预热40404退出1/HTTP启动失败、未生成`session-430-restarted.json`，原日志/390旧receipt不覆盖。后续新HTTP29558监听已恢复，一次官方MCP状态真实exit0/loginExpired=false，未auth；自动打开的旧projects(WIN)窗口仅识别路径，不用于验收。明确MCP打开main/launch返回success，但实际main窗口出现`something wrong in electron appservice`/home；入口accepted不等于运行时编译成功。一次官方console读取返MCP Bad Request，当前只读查近期官方日志，不归因于源码、不清缓存/改安全设置/循环预热。新记录在`tmp/plan-resume-20261004-ui/`与`tmp/wechatide-no-auto-auth-20261004/`；原生截图仅工具回执显示，未复制或加工为业务验收图。
+
+- **候选冻结只读复核**：18份manifest/223源快照自身SHA全相符；与当前工作树仅join/index.js一项漂移（已交付2500ms截止），其余222项相同。因此17函数源仍对应旧候选（16新ZIP+既有submitScore），join旧ZIP不能作为本轮修复候选；未重验/解压那些旧ZIP。HEAD `4655aed`与冻结候选63源不同：35个新函数源在HEAD不存在、27个已跟踪dirty源、1个join/index新修复，不能把整组dirty候选说成已交付HEAD。join/lib/permission仍属于coadmin未提交范围。原manifest与ZIP保留；实现代理只在新ignored根准备HEAD完整12源的join单包，不夹带dirty权限、不重建18。该HEAD单包也不能替换协管隔离组的dirty权限合同，真实环境/部署和3秒余量仍待验。
+
 ## 暂停时已知状态（事实截至2026-10-04）
 
 - 10-04 用户另行授权开发方式/工具链优化及文档固化；默认入口已固定为 [开发工作流](../tools/agent-development-workflow.md) 的 `ui:iterate -- <case>`，故障按 [手册](../tools/weapp-ui-troubleshooting.md) 分阶段恢复。原12项业务计划及观察自动化继续暂停；不含业务改动、部署、上传/发布或真实数据写入。[工具实测](../reports/2026-10-04-agent-ui-workflow-research.md)、[规则整理记录](session-logs/2026-10-04-development-workflow-standardization.md)。
