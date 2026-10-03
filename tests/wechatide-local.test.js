@@ -55,3 +55,39 @@ test('wechatide wrapper reports a real PowerShell invocation error as nonzero wi
   assert.equal(result.output.includes('test-secret'), false);
   assert.equal(result.output.includes('ConvertFrom-Json'), false);
 });
+
+test('wechatide wrapper opens an explicit or default neutral page without changing credential transport', () => {
+  for (const [argv, expectedPage] of [
+    [['simulator_open_page', 'D:/projects/badminton-miniapp/main', 'pages/water/index'], 'pages/water/index'],
+    [['simulator_open_page', 'D:/projects/badminton-miniapp/main'], 'pages/launch/index']
+  ]) {
+    let calls = 0;
+    const result = run(argv, { readFile: () => fixture, spawn(_command, args, options) {
+      calls++;
+      const payload = JSON.parse(options.input);
+      assert.deepEqual(payload.args, ['-c', 'Codex', 'simulator_open_page', '--project',
+        'D:/projects/badminton-miniapp/main', '--page', expectedPage, '--token', 'test-secret']);
+      assert.equal(JSON.stringify(args).includes('test-secret'), false);
+      assert.equal(options.windowsHide, true);
+      return { status: 0, stdout: 'test-secret page opened', stderr: '' };
+    } });
+    assert.equal(calls, 1);
+    assert.equal(result.status, 0);
+    assert.equal(result.output.includes('test-secret'), false);
+  }
+});
+
+test('wechatide wrapper rejects unsafe page routes, extra arguments and non-absolute projects before invocation', () => {
+  let calls = 0;
+  const deps = { readFile: () => fixture, spawn() { calls++; } };
+  for (const page of ['', '/pages/launch/index', 'pages/launch/index?new=1',
+    'pages/../launch/index', 'pages/launch/index.js', 'pages\\launch\\index',
+    'pages/launch/index;whoami', 'pages/launch/index\n', 'pages//launch/index']) {
+    assert.throws(() => run(['simulator_open_page', 'D:/project', page], deps));
+  }
+  for (const argv of [['simulator_open_page', 'relative/project', 'pages/launch/index'],
+    ['simulator_open_page', 'D:/project', 'pages/launch/index', 'unexpected'],
+    ['simulator_refresh', 'D:/project', 'pages/launch/index'],
+    ['check_wechatide_status', 'D:/project']]) assert.throws(() => run(argv, deps));
+  assert.equal(calls, 0);
+});

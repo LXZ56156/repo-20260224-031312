@@ -22,6 +22,50 @@ function disconnect(miniProgram) {
   }
 }
 
+async function waitForAppServiceReady(miniProgram, timeoutMs, options = {}) {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    throw new Error('AppService readiness timeout must be a positive finite number.');
+  }
+  if (!miniProgram || typeof miniProgram.evaluate !== 'function') {
+    throw new Error('AppService readiness requires the existing automation connection.');
+  }
+  const now = options.now || Date.now;
+  const sleep = options.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const pollMs = Number(options.pollMs || 200);
+  if (!Number.isFinite(pollMs) || pollMs <= 0) throw new Error('AppService readiness poll interval must be positive and finite.');
+  const startedAt = now();
+  const deadline = startedAt + timeoutMs;
+  let lastProbe = null;
+  let attempts = 0;
+  while (now() < deadline) {
+    attempts += 1;
+    // Only a valid not-ready snapshot is polled. Transport/runtime exceptions
+    // and hung evaluate calls reject immediately; no launch or marker is retried.
+    lastProbe = await screenshotTool.timeout(miniProgram.evaluate(function inspectAppServiceReady() {
+      const functions = { getApp: typeof getApp, getCurrentPages: typeof getCurrentPages,
+        App: typeof App, Page: typeof Page };
+      const app = functions.getApp === 'function' ? getApp() : null;
+      const pages = functions.getCurrentPages === 'function' ? getCurrentPages() : null;
+      return { functions, appAvailable: !!app && typeof app === 'object', pagesAvailable: Array.isArray(pages) };
+    }), Math.max(1, deadline - now()), 'AppService readiness evaluate');
+    const keys = ['getApp', 'getCurrentPages', 'App', 'Page'];
+    if (!lastProbe || !lastProbe.functions
+        || keys.some((key) => typeof lastProbe.functions[key] !== 'string')
+        || typeof lastProbe.appAvailable !== 'boolean' || typeof lastProbe.pagesAvailable !== 'boolean') {
+      throw new Error(`Invalid AppService readiness probe: ${JSON.stringify(lastProbe || {})}`);
+    }
+    if (now() >= deadline) break;
+    if (keys.every((key) => lastProbe.functions[key] === 'function')
+        && lastProbe.appAvailable && lastProbe.pagesAvailable) {
+      return { ready: true, attempts, elapsedMs: now() - startedAt, lastProbe };
+    }
+    const remainingMs = deadline - now();
+    if (remainingMs <= 0) break;
+    await sleep(Math.min(pollMs, remainingMs));
+  }
+  throw new Error(`AppService did not become ready within ${timeoutMs}ms; last probe: ${JSON.stringify(lastProbe || {})}`);
+}
+
 async function main() {
   if (process.env.WEAPP_ALLOW_FOREGROUND_PREWARM !== '1') {
     throw new Error('前台预热未获本次显式允许：日常截图只连接已签名热会话；仅在用户明确允许本次前台预热后设置 WEAPP_ALLOW_FOREGROUND_PREWARM=1。未启动进程，不自动授权或重试。');
@@ -118,6 +162,7 @@ async function main() {
     const projectPathHash = screenshotTool.hashCanonical(
       screenshotTool.normalizeProjectPath(sourceProjectPath)
     );
+    const appServiceReadiness = await waitForAppServiceReady(launched, timeoutMs);
     const marker = {
       sessionId: crypto.randomBytes(32).toString('hex'),
       projectPathHash,
@@ -226,6 +271,7 @@ async function main() {
       kind: 'weapp-ui-prewarm-result-v2',
       ok: true,
       sessionFile,
+      appServiceReadiness,
       checks,
       recoveryClear,
       poisonClear,
@@ -246,4 +292,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { main };
+module.exports = { main, waitForAppServiceReady };

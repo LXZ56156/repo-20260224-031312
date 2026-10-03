@@ -12,6 +12,7 @@
     "audit:avatars": "node scripts/audit-avatar-data.js",
     "ui:prewarm": "node scripts/dev/weapp-ui-prewarm.js",
     "ui:doctor": "node scripts/dev/weapp-ui-screenshot.js --doctor",
+    "ui:iterate": "node scripts/dev/weapp-ui-iterate.js",
     "ui:diff": "node scripts/dev/weapp-pixel-diff.js",
     "test:affected": "node scripts/test-affected.js",
     "mp:quality": "node scripts/mp-quality.js",

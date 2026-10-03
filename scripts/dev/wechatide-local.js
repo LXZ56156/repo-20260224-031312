@@ -6,7 +6,7 @@ const path = require('node:path');
 const os = require('node:os');
 const { spawnSync } = require('node:child_process');
 
-const ACTIONS = new Set(['check_wechatide_status', 'simulator_refresh']);
+const ACTIONS = new Set(['check_wechatide_status', 'simulator_refresh', 'simulator_open_page']);
 
 function parseConfig(source) {
   const headers = Array.from(String(source).matchAll(/^\s*\[([^\]\r\n]+)\]\s*(?:#.*)?$/gm));
@@ -54,17 +54,25 @@ function configPath(env = process.env) {
 }
 
 function run(argv, deps = {}) {
-  const [action, project, ...extra] = argv;
-  if (!ACTIONS.has(action) || extra.length || (action === 'check_wechatide_status' && project)) {
-    throw new Error('用法：node scripts/dev/wechatide-local.js check_wechatide_status | simulator_refresh [项目绝对路径]');
+  const [action, project, page, ...extra] = argv;
+  if (!ACTIONS.has(action) || extra.length || (action !== 'simulator_open_page' && page !== undefined)
+      || (action === 'check_wechatide_status' && project !== undefined)) {
+    throw new Error('用法：node scripts/dev/wechatide-local.js check_wechatide_status | simulator_refresh [项目绝对路径] | simulator_open_page [项目绝对路径] [pages/页面/index]');
+  }
+  const targetPage = page === undefined ? 'pages/launch/index' : page;
+  if (action === 'simulator_open_page' && (typeof targetPage !== 'string'
+      || targetPage !== targetPage.trim()
+      || !/^pages\/(?:[A-Za-z0-9_-]+\/)+[A-Za-z0-9_-]+$/.test(targetPage))) {
+    throw new Error('页面必须是 pages/ 下的合法路由，不含 query、扩展名、相对路径或 shell 字符');
   }
   const source = (deps.readFile || fs.readFileSync)(deps.configPath || configPath(), 'utf8');
   const config = parseConfig(source);
   const target = project || process.cwd();
-  if (action === 'simulator_refresh' && (!path.isAbsolute(target) && !path.win32.isAbsolute(target)
+  if (action !== 'check_wechatide_status' && (!path.isAbsolute(target) && !path.win32.isAbsolute(target)
       || /["&|<>^%!\r\n]/.test(target))) throw new Error('项目必须是合法绝对路径');
   const args = ['-c', config.clientName, action];
-  if (action === 'simulator_refresh') args.push('--project', target);
+  if (action !== 'check_wechatide_status') args.push('--project', target);
+  if (action === 'simulator_open_page') args.push('--page', targetPage);
   args.push('--token', config.token);
   // JSON travels on stdin, never through an interpolated PowerShell command.
   const script = "$ErrorActionPreference = 'Stop'; [Console]::InputEncoding = [Text.UTF8Encoding]::new($false); [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false); try { $p = [Console]::In.ReadToEnd() | ConvertFrom-Json; $taskArgs = @($p.args); & $p.executable @taskArgs; if ($null -eq $LASTEXITCODE) { exit 1 }; exit $LASTEXITCODE } catch { exit 1 }";

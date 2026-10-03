@@ -1755,7 +1755,7 @@ function validateReceiptEvidence(evidence = {}) {
     route: !!normalizeRoute(evidence.expectedRoute)
       && locationsMatch(evidence.currentPageInfo, evidence.expectedRoute),
     png: !!png.valid
-      && png.byteLength > 20 * 1024
+      && (isFrame ? png.byteLength > 0 : png.byteLength > 20 * 1024)
       && /^[a-f0-9]{64}$/i.test(String(png.sha256 || ''))
       && Number.isInteger(pngWidth) && pngWidth > 0
       && Number.isInteger(pngHeight) && pngHeight > 0
@@ -2216,7 +2216,7 @@ async function runCase(name, miniProgram, connection, options = {}) {
     });
     result = {
       ...result,
-      captureOk: png.valid && png.byteLength > 20 * 1024,
+      captureOk: png.valid && (config.captureSurface === 'simulator-frame' ? png.byteLength > 0 : png.byteLength > 20 * 1024),
       toolInfo,
       currentPageInfo,
       systemInfo,

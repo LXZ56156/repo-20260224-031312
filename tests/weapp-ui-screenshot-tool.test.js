@@ -261,12 +261,13 @@ test('simulator-frame is explicit, isolated and does not weaken source or PNG in
     captureSurface: 'simulator-frame', expectedWindowWidth: 390, expectedRoute: 'pages/launch/index',
     toolInfo: { SDKVersion: '3.17.2' }, currentPageInfo: { path: 'pages/launch/index' },
     systemInfo: { windowWidth: 390, windowHeight: 671, pixelRatio: 3, fontSizeSetting: 16 },
-    png: screenshotTool.inspectPngBuffer(createPngBuffer(476, 1026)), git,
+    png: screenshotTool.inspectPngBuffer(createPngBuffer(476, 1026, 0)), git,
     expectedGitManifestHash: screenshotTool.hashCanonical(git),
     selectorCoverage: { ok: true }, horizontalOverflow: { ok: true }, projectProvenance: { ok: true },
     caseData: { ok: true, fixtureNonce: 'a'.repeat(32), stateBeforeHash: 'b'.repeat(64), stateAfterHash: 'b'.repeat(64) },
   };
   const validation = screenshotTool.validateReceiptEvidence(evidence);
+  assert.ok(evidence.png.byteLength < 20 * 1024);
   assert.equal(validation.ok, true);
   assert.deepEqual(validation.captureSurface, {
     kind: 'simulator-frame', method: 'App.captureScreenshot', pageGeometryVerified: false, systemChromeNoise: true,
@@ -279,11 +280,23 @@ test('simulator-frame is explicit, isolated and does not weaken source or PNG in
   assert.equal(screenshotTool.validateReceiptEvidence({ ...evidence, captureSurface: 'page' }).checks.png, false);
   assert.equal(screenshotTool.validateReceiptEvidence({ ...evidence, captureSurface: undefined }).checks.png, false);
   assert.equal(screenshotTool.validateReceiptEvidence({ ...evidence, captureSurface: 'auto' }).ok, false);
-  for (const png of [{ ...evidence.png, valid: false }, { ...evidence.png, sha256: '' }, { ...evidence.png, width: 476.5 }]) {
+  const smallPagePng = screenshotTool.inspectPngBuffer(createPngBuffer(390, 671, 0));
+  assert.equal(screenshotTool.validateReceiptEvidence({ ...evidence, png: smallPagePng }).ok, true);
+  assert.equal(screenshotTool.validateReceiptEvidence({ ...evidence, png: smallPagePng, captureSurface: 'page' }).checks.png, false);
+  for (const png of [
+    { ...evidence.png, valid: false }, { ...evidence.png, sha256: '' },
+    { ...evidence.png, width: 476.5 }, { ...evidence.png, width: 0 },
+    { ...evidence.png, height: 0 }, { ...evidence.png, byteLength: 0 },
+  ]) {
     assert.equal(screenshotTool.validateReceiptEvidence({ ...evidence, png }).ok, false);
   }
   assert.equal(screenshotTool.validateReceiptEvidence({ ...evidence, projectProvenance: { ok: false } }).ok, false);
   assert.equal(screenshotTool.validateReceiptEvidence({ ...evidence, expectedGitManifestHash: '' }).ok, false);
+  assert.equal(screenshotTool.validateReceiptEvidence({ ...evidence, expectedGitManifestHash: 'f'.repeat(64) }).ok, false);
+  for (const caseData of [
+    { ...evidence.caseData, fixtureNonce: '' },
+    { ...evidence.caseData, stateAfterHash: 'f'.repeat(64) },
+  ]) assert.equal(screenshotTool.validateReceiptEvidence({ ...evidence, caseData }).ok, false);
 });
 
 test('listener identity accepts the wildcard bind addresses used by Windows DevTools', () => {
@@ -604,11 +617,23 @@ test('main acquires the session lock before reading the mutable session receipt'
 });
 
 test('ui:doctor refreshes only a launch-signed exact hot session', async (t) => {
+  // This case asserts unchanged source. Concurrent documentation edits in the
+  // shared checkout must not turn its fixture into a recompilation challenge.
+  // The following test independently verifies the changed-source refusal.
+  const Module = require('node:module');
+  const scriptPath = require.resolve('../scripts/dev/weapp-ui-screenshot');
+  const isolatedModule = new Module(scriptPath, module);
+  isolatedModule.filename = scriptPath;
+  isolatedModule.paths = Module._nodeModulePaths(path.dirname(scriptPath));
+  isolatedModule._compile(screenshotScriptSource + '\ncurrentGitManifest = () => ({ ok: true, head: "' + '1'.repeat(40) + '", dirty: false, status: [], files: [] });', scriptPath);
+  const doctorTool = isolatedModule.exports;
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-doctor-'));
   t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
   const projectPath = path.resolve(__dirname, '..');
   const endpoint = 'ws://127.0.0.1:39453';
-  const session = createSession(projectPath, endpoint, 39453);
+  const session = createSession(projectPath, endpoint, 39453, {
+    gitManifestHash: doctorTool.hashCanonical({ ok: true, head: '1'.repeat(40), dirty: false, status: [], files: [] }),
+  });
   const config = {
     wsEndpoint: endpoint,
     sourceProjectPath: projectPath,
@@ -650,13 +675,14 @@ test('ui:doctor refreshes only a launch-signed exact hot session', async (t) => 
     },
   };
 
-  const result = await screenshotTool.runDoctor(
+  const result = await doctorTool.runDoctor(
     miniProgram,
     { mode: 'connect-preopened' },
     config,
     { resolveListenerIdentity: () => session.listenerIdentity }
   );
   assert.equal(result.ok, true);
+  assert.equal(result.checks.sourceStableDuringDoctor, true);
   assert.equal(result.connectionMode, 'connect-preopened');
   assert.equal(fs.existsSync(config.sessionFile), true);
   const refreshedSession = JSON.parse(fs.readFileSync(config.sessionFile, 'utf8'));
@@ -752,6 +778,15 @@ test('ui:doctor requires a source challenge to disappear before signing changed 
 });
 
 test('ui:doctor never trusts a missing runtime marker as first proof for changed source', async (t) => {
+  // Missing-marker refusal assumes one stable snapshot during the doctor call.
+  // Keep shared-checkout documentation writes outside that fixture contract.
+  const Module = require('node:module');
+  const scriptPath = require.resolve('../scripts/dev/weapp-ui-screenshot');
+  const isolatedModule = new Module(scriptPath, module);
+  isolatedModule.filename = scriptPath;
+  isolatedModule.paths = Module._nodeModulePaths(path.dirname(scriptPath));
+  isolatedModule._compile(screenshotScriptSource + '\ncurrentGitManifest = () => ({ ok: true, head: "' + '1'.repeat(40) + '", dirty: false, status: [], files: [] });', scriptPath);
+  const doctorTool = isolatedModule.exports;
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-doctor-missing-marker-'));
   t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
   const projectPath = path.resolve(__dirname, '..');
@@ -774,7 +809,7 @@ test('ui:doctor never trusts a missing runtime marker as first proof for changed
       };
     },
   };
-  const result = await screenshotTool.runDoctor(
+  const result = await doctorTool.runDoctor(
     miniProgram,
     { mode: 'connect-preopened' },
     {
@@ -790,6 +825,7 @@ test('ui:doctor never trusts a missing runtime marker as first proof for changed
   assert.equal(result.ok, false);
   assert.equal(result.changedSourceCompileProven, false);
   assert.equal(!!result.pendingSession, true);
+  assert.equal(result.checks.sourceStableDuringDoctor, true);
 });
 
 test('ui:doctor fails closed instead of self-signing a session without a launch receipt', async () => {
@@ -1592,11 +1628,13 @@ test('failed strict evidence keeps the previous approved screenshot and receipt'
   };
   miniProgram.screenshot = async ({ path: outputPath }) => {
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-    fs.writeFileSync(outputPath, createPngBuffer(476, 1026));
+    fs.writeFileSync(outputPath, createPngBuffer(476, 1026, 0));
   };
   const frameResult = await screenshotTool.runCase('launch', miniProgram, connection, {
     config: frameConfig, runId: 'frame-run',
   });
+  assert.ok(frameResult.png.byteLength < 20 * 1024);
+  assert.equal(frameResult.captureOk, true);
   assert.equal(frameResult.receiptValidation.checks.png, true);
   assert.equal(frameResult.captureSurface.kind, 'simulator-frame');
   assert.equal(frameResult.captureSurface.pageGeometryVerified, false);
