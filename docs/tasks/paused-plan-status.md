@@ -17,6 +17,8 @@
 
 - **离线工具交付复核**：备份工具7项已随`ef85776e0e27659c8bf3bd347c3de17f5d9d1160`提交推送并核远端HEAD。另逐文件审查运维日报与微信分析报表及13条直接测试：前者区分平台/业务状态、请求去重与分页完整性；后者按精确manifest/文件与已知完整日计算加权指标、成熟留存，缺失不补0。旧analyze-we-data扫描/推断入口替换为显式离线CLI别名，兼容边界已在权威工具文档记录；现存原始数据/历史报表不覆盖。root最新全量包含13项且通过；另导出实际staged源码至新`tmp/offline-report-staged-20261004/`，13/13直接测试通过，证明只依赖Node内置模块、独立于剩余业务脏树。离线报表通过不能替代后台事件实收、真实调用来源、跨会话漏斗或七日成熟验收。
 
+- **连接包装器修复**：仅修改`wechatide-local.js`与直接测试，固定沿用原客户端/Token调用官方MCP stdio入口，保留三动作和`{tool,ok,result}`消费合同；不再调用失败会auth回退的skill-call入口。协议/逻辑/HTTP错误返回非零，原始失败载荷不公开；初始化/工具响应各15秒，finally关闭本次stdin，必要时只清理自有桥接进程树。原outer0/ok:false形状mock修复前0→后1；直接及ui:iterate消费方23/23，实际PowerShell只对临时离线Node stub验证Unicode/三动作/初始化顺序/拒绝/业务失败/超时，所有自有PID事后ESRCH。root新全量1671项1665通过/6跳过/0失败，check退出0，聚焦lint0错误/警告；一次真实官方状态检查数值退出1、隐藏raw失败，不重试/auth。最新原生截图仍未响应，连接与320/430尚未恢复，源码修复不宣称IDE连通。证据`tmp/wechatide-no-auto-auth-20261004/`含前后源码、logical回执、测试/lint、root全量/check/real-status日志。权威故障手册同步真实调用方式。
+
 ## 暂停时已知状态（事实截至2026-10-04）
 
 - 10-04 用户另行授权开发方式/工具链优化及文档固化；默认入口已固定为 [开发工作流](../tools/agent-development-workflow.md) 的 `ui:iterate -- <case>`，故障按 [手册](../tools/weapp-ui-troubleshooting.md) 分阶段恢复。原12项业务计划及观察自动化继续暂停；不含业务改动、部署、上传/发布或真实数据写入。[工具实测](../reports/2026-10-04-agent-ui-workflow-research.md)、[规则整理记录](session-logs/2026-10-04-development-workflow-standardization.md)。

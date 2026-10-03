@@ -8,6 +8,83 @@ const { spawnSync } = require('node:child_process');
 
 const ACTIONS = new Set(['check_wechatide_status', 'simulator_refresh', 'simulator_open_page']);
 
+// The official skill-call CLI auto-authorizes on connection/init failures. Only
+// its configured MCP stdio bridge is safe for calls with existing credentials.
+const BRIDGE_SCRIPT = String.raw`
+$ErrorActionPreference = 'Stop'
+[Console]::InputEncoding = [Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+$child = $null
+try {
+  $p = [Console]::In.ReadToEnd() | ConvertFrom-Json
+  $si = [Diagnostics.ProcessStartInfo]::new()
+  $si.UseShellExecute = $false
+  $si.CreateNoWindow = $true
+  $si.RedirectStandardInput = $true
+  $si.RedirectStandardOutput = $true
+  $si.RedirectStandardError = $true
+  $si.StandardOutputEncoding = [Text.UTF8Encoding]::new($false)
+  $si.StandardErrorEncoding = [Text.UTF8Encoding]::new($false)
+  $quotedArgs = ($p.args | ForEach-Object { '"' + $_ + '"' }) -join ' '
+  if ([IO.Path]::GetExtension($p.executable) -eq '.cmd') {
+    $si.FileName = $env:ComSpec
+    $si.Arguments = '/d /s /c ""' + $p.executable + '" ' + $quotedArgs + '"'
+  } else {
+    $si.FileName = $p.executable
+    $si.Arguments = $quotedArgs
+  }
+  $child = [Diagnostics.Process]::new()
+  $child.StartInfo = $si
+  if (!$child.Start()) { throw 'bridge failed to start' }
+  $stderrTask = $child.StandardError.ReadToEndAsync()
+  $child.StandardInput.WriteLine(($p.initialize | ConvertTo-Json -Depth 32 -Compress))
+  $child.StandardInput.Flush()
+  $read = $child.StandardOutput.ReadLineAsync()
+  if (!$read.Wait(15000)) { throw 'initialize timeout' }
+  $initialized = $read.Result | ConvertFrom-Json
+  if ($initialized.jsonrpc -ne '2.0' -or $initialized.id -ne 'init' -or
+      $null -ne $initialized.error -or $null -eq $initialized.result) { throw 'initialize failed' }
+  $child.StandardInput.WriteLine(($p.notification | ConvertTo-Json -Depth 32 -Compress))
+  $child.StandardInput.WriteLine(($p.call | ConvertTo-Json -Depth 32 -Compress))
+  $child.StandardInput.Flush()
+  $read = $child.StandardOutput.ReadLineAsync()
+  if (!$read.Wait(15000)) { throw 'tool timeout' }
+  [Console]::Out.WriteLine($read.Result)
+} catch { exit 1 } finally {
+  if ($null -ne $child) {
+    try { $child.StandardInput.Close() } catch {}
+    try {
+      if (!$child.WaitForExit(2000)) {
+        & "$env:SystemRoot\System32\taskkill.exe" /PID $child.Id /T /F > $null 2>&1
+      }
+    } catch {}
+    $child.Dispose()
+  }
+}
+`;
+
+function toolResult(stdout) {
+  const response = JSON.parse(String(stdout || '').trim());
+  if (!response || response.jsonrpc !== '2.0' || response.id !== 'call'
+      || response.error || !response.result || response.result.isError) throw new Error('MCP tool failed');
+  let result = response.result;
+  const text = result.content && result.content[0] && result.content[0].text;
+  if (typeof text === 'string') result = JSON.parse(text);
+  if (result && typeof result === 'object' && Object.prototype.hasOwnProperty.call(result, 'body')
+      && (Object.prototype.hasOwnProperty.call(result, 'status') || Object.prototype.hasOwnProperty.call(result, 'headers'))) {
+    if (Number(result.status) >= 400) throw new Error('MCP HTTP tool failed');
+    result = typeof result.body === 'string' ? JSON.parse(result.body) : result.body;
+  }
+  if (!result || typeof result !== 'object' || result.ok === false || result.success === false
+      || result.isError || result.error
+      || (typeof result.status === 'number' && result.status >= 400)
+      || (result.code !== undefined && result.code !== '' && Number(result.code) !== 0)
+      || (result.errcode !== undefined && result.errcode !== '' && Number(result.errcode) !== 0)) {
+    throw new Error('MCP business failed');
+  }
+  return result;
+}
+
 function parseConfig(source) {
   const headers = Array.from(String(source).matchAll(/^\s*\[([^\]\r\n]+)\]\s*(?:#.*)?$/gm));
   const matches = headers.filter(item => item[1].trim() === 'mcp_servers.wechatide');
@@ -70,23 +147,34 @@ function run(argv, deps = {}) {
   const target = project || process.cwd();
   if (action !== 'check_wechatide_status' && (!path.isAbsolute(target) && !path.win32.isAbsolute(target)
       || /["&|<>^%!\r\n]/.test(target))) throw new Error('项目必须是合法绝对路径');
-  const args = ['-c', config.clientName, action];
-  if (action !== 'check_wechatide_status') args.push('--project', target);
-  if (action === 'simulator_open_page') args.push('--page', targetPage);
-  args.push('--token', config.token);
+  const args = ['-c', config.clientName, 'mcp', '--token', config.token];
+  const toolArguments = {};
+  if (action !== 'check_wechatide_status') toolArguments.project = target;
+  if (action === 'simulator_open_page') toolArguments.page = targetPage;
   // JSON travels on stdin, never through an interpolated PowerShell command.
-  const script = "$ErrorActionPreference = 'Stop'; [Console]::InputEncoding = [Text.UTF8Encoding]::new($false); [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false); try { $p = [Console]::In.ReadToEnd() | ConvertFrom-Json; $taskArgs = @($p.args); & $p.executable @taskArgs; if ($null -eq $LASTEXITCODE) { exit 1 }; exit $LASTEXITCODE } catch { exit 1 }";
-  const input = JSON.stringify({ executable: config.executable, args })
+  const input = JSON.stringify({
+    executable: config.executable,
+    args,
+    initialize: { jsonrpc: '2.0', id: 'init', method: 'initialize', params: {
+      protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: config.clientName, version: '1.0.0' }
+    } },
+    notification: { jsonrpc: '2.0', method: 'notifications/initialized' },
+    call: { jsonrpc: '2.0', id: 'call', method: 'tools/call', params: { name: action, arguments: toolArguments } }
+  })
     .replace(/[\u007f-\uffff]/g, character => '\\u' + character.charCodeAt(0).toString(16).padStart(4, '0'));
-  const result = (deps.spawn || spawnSync)('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
+  const result = (deps.spawn || spawnSync)('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', BRIDGE_SCRIPT], {
     input,
     encoding: 'utf8', windowsHide: true, timeout: 45000, maxBuffer: 2 * 1024 * 1024
   });
   if (result.error) throw new Error('wechatide 本地调用失败或超时；未重试或自动授权');
   const status = result.status == null ? 1 : result.status;
   if (status !== 0) return { status, output: 'wechatide 本地调用失败；未输出原始错误载荷，未重试或自动授权。\n' };
-  const output = String(result.stdout || '') + String(result.stderr || '');
-  return { status, output: output.split(config.token).join('[Token已隐藏]') };
+  try {
+    const output = JSON.stringify({ tool: action, ok: true, result: toolResult(result.stdout) }) + '\n';
+    return { status, output: output.split(config.token).join('[Token已隐藏]') };
+  } catch (_) {
+    return { status: 1, output: 'wechatide MCP 调用未明确成功；未输出原始错误载荷，未重试或自动授权。\n' };
+  }
 }
 
 if (require.main === module) {

@@ -94,7 +94,7 @@ npm run ui:doctor
 
 ## 凭据、真实数据与诊断记录
 
-- 状态检查优先 `wechatide-local.js check_wechatide_status`；包装器从现有配置取原客户端名和Token，客户端名大小写不能改。它仅允许状态、refresh、open_page，不自动申请授权。不要在命令、截图、报告或Git中粘贴Token，不打印整个 `config.toml`。包装器成功输出会脱敏配置Token，失败会隐藏原始错误载荷；这不意味着任何第三方输出或其他秘密都会自动脱敏。
+- 状态检查优先 `wechatide-local.js check_wechatide_status`；包装器从现有配置取原客户端名和Token，客户端名大小写不能改。它仅允许状态、refresh、open_page，经官方 `mcp` stdio执行 initialize → initialized → tools/call，避开连接失败会尝试auth的skill-call入口；不申请新授权。初始化和响应各限15秒，退出时关闭本次桥接stdin，必要时只清理本次子进程树。协议、逻辑或HTTP失败返回非零；不把进程exit0当作连接成功。不要在命令、截图、报告或Git中粘贴Token，不打印整个 `config.toml`。成功输出脱敏配置Token，失败隐藏原始错误载荷；这不意味着任何第三方输出或其他秘密都会自动脱敏。
 - fixture只证明受控状态渲染。不得为了工具诊断点击保存/记账/录分或部署云函数；不以真实数据写入建立截图状态。页面原有网络读取可能出现在运行时日志中，分享诊断前只保留定位需要的字段并隐去个人信息。
 - 一次故障只记录：case、失败阶段/检查名、run id、耗时、SDK/逻辑宽度/像素尺寸、错误首行、清理与发布状态、诊断动作、复测结果、尚未解决项。日志在tmp；需要长期留证时把必要脱敏结论写入 `docs/tasks/session-logs/`，由current链接，不把全过程追加到常驻规则。
 - 保留失败candidate，不用旧PNG、浏览器近似稿、旧QR/preview替代当前真实截图。机器成功、视觉审查、真实云链路与真机系统交互分别报告；完成的工具修改按 [持续授权](../../AGENTS.md#交付与文档) 立即commit/push，上传、部署、发布或真实写入仍需独立授权。
