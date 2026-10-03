@@ -2,6 +2,7 @@ const START_TEMPLATE_ID = '21B034D08C5615B9889CE362BB957B1EE69A584B';
 const EXPIRY_SAFETY_MS = 60 * 1000;
 const DEFAULT_ACTIVITY_TTL_MS = 24 * 60 * 60 * 1000;
 const UPDATE_TIMEOUT_MS = 1800;
+const DIAGNOSTIC_TIMEOUT_MS = 500;
 
 function normalizeVersionType(value) {
   const raw = String(value || '').trim().toLowerCase();
@@ -169,13 +170,20 @@ function warn(logger, message, context, err) {
 function withTimeout(promise, timeoutMs = UPDATE_TIMEOUT_MS) {
   let timer = null;
   return Promise.race([
-    Promise.resolve(promise).finally(() => {
-      if (timer) clearTimeout(timer);
-    }),
+    Promise.resolve(promise),
     new Promise((_, reject) => {
       timer = setTimeout(() => reject(new Error('setUpdatableMsg timeout')), timeoutMs);
     })
-  ]);
+  ]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
+
+function remainingTimeout(context, maximumMs) {
+  const deadline = Number(context && context.deadlineAtMs);
+  return Number.isFinite(deadline) && deadline > 0
+    ? Math.max(0, Math.min(maximumMs, deadline - Date.now()))
+    : maximumMs;
 }
 
 function pickErrorMessage(err) {
@@ -201,10 +209,15 @@ function getRemoveToken(db) {
 async function writeDiagnosticPatchBestEffort(db, tournamentId, patch, logger = console, context = {}) {
   const tid = String(tournamentId || '').trim();
   if (!db || !tid || !patch || typeof patch !== 'object') return false;
+  const timeoutMs = remainingTimeout(context, DIAGNOSTIC_TIMEOUT_MS);
+  if (timeoutMs <= 0) return false;
   try {
     const docRef = db.collection('tournaments').doc(tid);
     if (!docRef || typeof docRef.update !== 'function') return false;
-    await docRef.update({ data: patch });
+    const update = docRef.update({ data: patch });
+    // Deadline callers must not wait indefinitely on optional diagnostics.
+    if (Number(context.deadlineAtMs) > 0) await withTimeout(update, timeoutMs);
+    else await update;
     return true;
   } catch (err) {
     warn(logger, '[shareActivity] diagnostic write failed', {
@@ -243,8 +256,10 @@ async function setUpdatableMessageBestEffort(cloud, payload, logger = console, c
   if (!api || typeof api.setUpdatableMsg !== 'function') return false;
   const db = context && context.db;
   const tournamentId = context && context.tournamentId;
+  const timeoutMs = remainingTimeout(context, UPDATE_TIMEOUT_MS);
+  if (timeoutMs <= 0) return false;
   try {
-    await withTimeout(api.setUpdatableMsg(payload));
+    await withTimeout(api.setUpdatableMsg(payload), timeoutMs);
     await clearShareActivityErrorBestEffort(db, tournamentId, logger, context);
     return true;
   } catch (err) {

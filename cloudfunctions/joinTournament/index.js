@@ -6,6 +6,9 @@ const common = require('./lib/common');
 const modeHelper = require('./lib/mode');
 const shareActivity = require('./lib/share-activity');
 
+// Leave 500 ms to return the committed result inside the 3-second platform timeout.
+const REQUEST_BUDGET_MS = 2500;
+
 function normalizeName(name) {
   let s = String(name || '').replace(/[\r\n\t]+/g, ' ').trim();
   // 去除多余空格
@@ -187,6 +190,7 @@ function fail(traceId, clientRequestId, code, message, extra = {}) {
 }
 
 exports.main = async (event, context) => {
+  const deadlineAtMs = Date.now() + REQUEST_BUDGET_MS;
   const wxContext = cloud.getWXContext();
   const openid = wxContext.OPENID;
   const traceId = String((event && event.__traceId) || '').trim();
@@ -420,7 +424,8 @@ exports.main = async (event, context) => {
         db,
         source: 'joinTournament',
         tournamentId,
-        traceId
+        traceId,
+        deadlineAtMs
       });
     }
     return result;
