@@ -1,6 +1,8 @@
 # wx-server-sdk 4.x 独立迁移审计
 
-日期：2026-09-10。结论：完成离线迁移影响审计，当前不升级、不部署。后台截图不依赖云 SDK 升级。
+> 状态：历史离线审计；事实、版本和数量截至 2026-09-10，2026-10-04 标明适用范围。本文可用于迁移风险参考，不证明当前最新包版本、函数数量或线上兼容性，不是 SDK 升级/部署授权。当前依赖与隔离验证状态见 [暂停任务明细](../tasks/paused-plan-status.md)，范围与授权见 [current](../tasks/current.md)，按需读取见 [文档索引](../README.md)，开发操作见 [默认工作流](agent-development-workflow.md)。
+
+日期：2026-09-10。结论：完成离线迁移影响审计，当时不升级、不部署。后台截图不依赖云 SDK 升级。
 
 ## 事实与依据
 
@@ -11,7 +13,7 @@
 
 来源：[官方仓库及变更日志](https://github.com/wechat-miniprogram/wx-server-sdk)、[官方 npm 发布](https://www.npmjs.com/package/wx-server-sdk?activeTab=versions)。
 
-## 当前合同与验证
+## 当时合同与验证
 
 | 合同面 | 本地审计 | 上线迁移门槛 |
 |---|---|---|

@@ -1,5 +1,11 @@
 # Nightly 授权恢复与截图准入实测（2026-09-11）
 
+> 状态：历史准入/实测记录；结果截至 2026-09-11，2026-10-04 标明适用范围。仅用于查 simulator-frame 合同及当时限制；下方“最新结果”、SDK/安装版本、会话路径和手工双阶段 refresh 属当时事实，不证明当前连接或重新授予外部动作权限。当前状态见 [current](current.md)，资料路由见 [文档索引](../README.md)，日常操作已由 [默认工作流](../tools/agent-development-workflow.md) 的 `ui:iterate` 统一；故障按 [手册](../tools/weapp-ui-troubleshooting.md)，现行技术合同见 [截图参考](../tools/weapp-ui-screenshot-workflow.md)。
+
+按需导航：[当时 frame 实测](#nightly-frame) · [早期安装/连接诊断](#nightly-connection) · [当时 A/B 准入](#nightly-comparison)。
+
+<a id="nightly-frame"></a>
+
 ## 最新结果：用户批准的独立 simulator-frame 模式
 
 本节覆盖下方历史待授权/待决定状态。用户提供凭据后，固定已安装2.02.2609102的官方status与stdio握手已成功，49工具可用；不再安装或重复授权。实际SDK3.17.2、screen390×844、window390×671。用户批准原始整机图独立合同后，实现显式surface、隔离输出、严格来源/fixture/PNG/清理门禁和surface-aware report-only diff；旧page合同和基线不变，不声称页面几何等比。
@@ -39,6 +45,8 @@
 
 原 Stable 恢复产物已于前轮取得并校验：官方 `stable_v2.01.2510290.json` 指向 `https://dldir1.qq.com/WechatWebDev/release/be1ec64cf6184b0fa64091919793f068/wechat_devtools_2.01.2510290_win32_x64.exe`；243209112 bytes、FileVersion 2.01.2510290、Tencent 签名 Valid、SHA256 `F817DB8DD71C9A9B27583C18A17C300144314162CA7B7F944B6262C458B127F7`。隔离解包 `%TEMP%\weapp-stable-2.01.2510290-audit-20260911`，尚未启动，保留为对照材料，不重复安装。
 
+<a id="nightly-connection"></a>
+
 ## 本次现场证据
 
 ### 2.02.2609102 严格会话与后台实测
@@ -74,6 +82,8 @@ Token 接入后的新版严格 prewarm 成功，独立端口39527、SDK3.17.2、
 - 首次 `automation_runtime_info --action systemInfo` 超时；原始截图 `tmp/nightly-first-20260911.png` 显示 `something wrong in electron appservice`。
 - 一次官方 `simulator_refresh` 后，`tmp/nightly-after-refresh-20260911.png` 已恢复正常首页，主控亲自检查；systemInfo/currentPage 均成功。首次异常属于 AppService frame 创建失败的表现，底层唯一原因未确定，不能归咎业务代码。
 - simulator console 的 `grep -i error` 与 `grep -n .` 都为空；官方包的错误兜底走 DISPLAY_ERROR 通道，因此空 console 不等于没有启动错误。
+
+<a id="nightly-comparison"></a>
 
 ## 对照准入
 

@@ -1,15 +1,8 @@
-# 局部经验与规范索引
+# 局部经验
 
 已稳定规则不在此复制；本文件按任务需要读取，不作为每次开工必读清单。
 
-## 规范已集中
-
-- 授权、静默缓存、按风险选测、Windows shell、云模板来源：[AGENTS.md](../../AGENTS.md)。
-- UI实图、44px、高密度名单与双盲审：[视觉验收](../tools/weapp-ui-acceptance.md)。
-- 签名会话、后台截图、失败诊断：[截图工作流](../tools/weapp-ui-screenshot-workflow.md)。
-- 当前版本、实际通过/失败、未部署状态：[current.md](../tasks/current.md)。
-- we分析本地拉取及已有数据检查：[数据拉取工作流](../tools/we-analysis-local-script.md)。
-- 文档生命周期见AGENTS；不再在多个位置维护同一规则。
+现行规范和按任务读取入口统一查 [文档索引](../README.md)，当前状态查 [current](../tasks/current.md)。这里仅保留尚有独立价值的局部经验；吸收到对应规范后删除重复项。
 
 ## 仍有独立价值的局部经验
 

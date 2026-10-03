@@ -1,6 +1,10 @@
 # 朋友圈/群聊分享方案优化 实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> 状态：历史实施拆解；关联 [2026-06-04 分享设计](share-optimization-design.md)，2026-10-04 标明适用范围。以下代码、步骤、未勾选项和 commit 命令是当时计划，不能据此判断今天仍待实现或直接执行。当前任务与授权见 [current](../tasks/current.md)，按任务读取见 [文档索引](../README.md)，实施和验证遵循 [默认工作流](../tools/agent-development-workflow.md)。查实现细节时只读对应模块，并核对当前源码及直接测试。
+
+原计划曾要求 `superpowers:subagent-driven-development` 或 `superpowers:executing-plans`；这两个技能要求仅作为历史记录保留，不是当前技能依赖或执行要求。
+
+按需导航：[卡片与朋友圈](#share-cards) · [海报与预热](#share-poster) · [页面共享逻辑与集成](#share-pages) · [测试与当时验收](#share-tests)。
 
 **Goal:** 优化微信小程序分享方案 — 朋友圈用极简缩略图、群聊用 5:4 卡片、新增 1080×1080 海报生成、支持第 4 名+、提取重复代码
 
@@ -33,6 +37,8 @@ tests/
 ```
 
 ---
+
+<a id="share-cards"></a>
 
 ### Task 1: shareCard.js — aspectRatio 参数 + 普通排名纯色背景
 
@@ -406,6 +412,8 @@ git commit -m "feat(shareTimelineCard): 新增朋友圈极简纯文字缩略图"
 ```
 
 ---
+
+<a id="share-poster"></a>
 
 ### Task 3: sharePoster.js — 1080×1080 海报生成 + 预览/保存/复制
 
@@ -909,6 +917,8 @@ git commit -m "feat(shareCardPreheat): 支持 timeline/appMessage/poster 多类�
 ```
 
 ---
+
+<a id="share-pages"></a>
 
 ### Task 5: sharePageMixin.js — 提取重复分享逻辑
 
@@ -1614,6 +1624,8 @@ git commit -m "feat(analytics): 集成 sharePageMixin，新增海报生成按钮
 ```
 
 ---
+
+<a id="share-tests"></a>
 
 ### Task 8: 更新现有 share-card 测试
 

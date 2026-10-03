@@ -1,39 +1,47 @@
-# 微信 DevTools 后台截图工作流
+# 微信 DevTools 截图工具与会话合同
 
-> 当前日常路线：用户已批准的原始整机图 `simulator-frame`，只连接已签热会话。实际安装、会话文件和验证结果见 [current.md](../tasks/current.md)；历史Stable/Nightly实测见其证据链接。MCP连接已配置，不依据历史失败重复安装或授权。
+> 默认开发循环见 [开发工作流](agent-development-workflow.md)，失败恢复见 [故障手册](weapp-ui-troubleshooting.md)。本页维护工具与来源合同，按需读取；实际安装、会话文件和验证结果见 [current.md](../tasks/current.md)。MCP连接已配置，不依据历史失败重复安装或授权。
 
 ## 1. 当前入口
 
-### 已批准的新原始整机图模式（2026-09-11）
+### 日常一条命令
+
+```powershell
+npm run ui:screenshot -- --list
+npm run ui:iterate -- launch
+npm run ui:iterate -- waterV2Member24
+```
+
+`ui:iterate` 是默认入口，必须显式指定存在且不重复的 case；通常只选 1–3 个关联状态。它串联只读 doctor、必要的 source challenge、官方明确编到 launch 页、编译证明刷新、关联 case 截图；正常热会话直接截图。来源签名、互斥锁、fixture/storage 恢复和整批发布门禁保留。不会启动或关闭 DevTools、切设备、操作窗口或循环重试。
+
+先完成关联测试，再采集视觉证据；全量测试与截图串行执行。同一模拟器的所有编译/导航/截图由主控串行调度。源码签名仍覆盖整个 Git 清单，包括文档；修改结束后再截图，采集期间不要编辑文件。
+
+控制台返回总耗时、分阶段耗时、图片/回执路径、窗口/PNG尺寸、SDK、数据校验与元素数量、运行时事件计数；失败返回阶段、具体 case、candidate 和清理信息。完整日志在 `tmp/ui-iterate-runs/<id>/`。机器成功仍需主控打开本轮 PNG 审图，视觉门禁见 [UI验收](weapp-ui-acceptance.md)。
+
+现场曾出现 `simulator_refresh` 成功但 `reLaunch` 报页面未注册，明确 `simulator_open_page` 编译后恢复；另有并发全量测试时 automation 超时、串行复测成功的样本，根因未确定。默认编排依据这些证据选定，完整记录见 [工具研究](../reports/2026-10-04-agent-ui-workflow-research.md)。
+
+### 截图模式
 
 用户已同意新版 Electron 日常使用原始整机图，不再把它当作旧页面区像素。原 `page` 模式默认行为、比例门禁和旧基线不变。
 
 ```powershell
-$env:WEAPP_UI_SESSION_FILE = 'tmp/frame-acceptance/session.json'
+# 仅在已有另一份核验过的签名会话时设置；默认无需手填
+$env:WEAPP_UI_SESSION_FILE = '<已核验的 session 文件>'
 $env:WEAPP_CAPTURE_SURFACE = 'simulator-frame'
-npm run ui:screenshot -- launch
+npm run ui:iterate -- launch
 ```
 
 日常截图命令只连接已签热会话、通过 App.captureScreenshot 取原始 PNG，不启动/关闭/聚焦窗口。正式截图仍要求源码/Git、安装/会话、SDK/逻辑宽度、route、selector、fixture nonce和截图前后状态、PNG校验、异常与清理全部通过；frame不验证页面区等比，不推算裁剪坐标、不修改图像。
 
-frame 的截图输出和 runRoot 在配置目录下自动追加 `simulator-frame` 子目录，即使指定与page相同的父目录也不会覆盖旧页面图。回执明确 `captureSurface.kind=simulator-frame`、`pageGeometryVerified=false`、`systemChromeNoise=true`。要恢复原模式，设置 `WEAPP_CAPTURE_SURFACE=page` 或移除该环境变量。未知模式直接拒绝。
+frame 的截图输出和 runRoot 在配置目录下自动追加 `simulator-frame` 子目录，即使指定与page相同的父目录也不会覆盖旧页面图。回执明确 `captureSurface.kind=simulator-frame`、`pageGeometryVerified=false`、`systemChromeNoise=true`。`ui:iterate` 未设置该变量时默认 frame，切回 page 必须显式设置 `WEAPP_CAPTURE_SURFACE=page`。直接 `ui:screenshot` 未设置该变量时仍默认 page。未知模式直接拒绝。
 
 `ui:diff` 读取相邻同名 `.receipt.json` 并核对图片hash；page/frame不同或单边来源未知时不比较。两个无receipt的普通PNG仍可做通用report-only比较，不构成来源证明。frame之间可报告像素变化，但系统栏/墙钟有噪声，不能宣称页面像素可复现，尺寸不同也不比较。不会自动更新baseline。
 
 该模式替代日常截图的页面比例要求，不等于原Stable/Nightly同SDK页面像素15×10 A/B通过；原实验与历史失败单独保留。
 
-```powershell
-npm run ui:prewarm
-npm run ui:doctor
-npm run ui:session:refresh
-npm run ui:screenshot -- --list
-npm run ui:screenshot -- <case>
-npm run ui:screenshot:focus-check -- <case>
-```
-
 本分支没有 `screenshot:smoke`、`screenshot:diagnose`、`weapp:probe` 或 `records:latest`。不要使用其他 worktree 的别名，也不要把 preview mirror 当作源码权威。
 
-以下为工具使用说明，不要求每次任务全读或全执行：日常看第1/5节；源码变化看第4节；仅在会话失效时看第3节；工具/安装变化的焦点验收看第8节；故障看第9节。视觉门禁见 [UI验收](weapp-ui-acceptance.md)。
+日常只需第1/5节；需要建立热会话时看第3节；高级手工源码刷新看第4节；工具/安装变化的焦点验收看第8节；故障统一查手册。
 
 ## 2. 两段式后台合同
 
@@ -87,7 +95,9 @@ tmp/weapp-ui-background-session.json
 
 如需多套会话，可在 prewarm、doctor、capture 和 focus-check 中始终使用同一个 `WEAPP_UI_SESSION_FILE`。该变量支持仓库相对路径和绝对路径。
 
-## 4. 只读诊断与显式会话刷新
+## 4. 高级维护：只读诊断与显式会话刷新
+
+日常源码变化直接运行 `ui:iterate -- <case>`，它自动完成下述两阶段流程。只有定位刷新/编译失败或专门维护会话时才手工执行，不把本节作为每轮开发清单。
 
 `ui:doctor` 只读检查来源、进程、SDK、页面和宽度，不更新 session receipt 或 AppService marker。现场已验证执行前后磁盘回执与内存 marker 不变。`ui:session:refresh` 才是显式的 fail-closed 会话刷新入口；它更新 gitignored receipt 和内存 marker，不启动、关闭、聚焦 DevTools，也不调用业务写入。
 
@@ -95,7 +105,7 @@ tmp/weapp-ui-background-session.json
 
 1. DevTools listener、进程、端口、SDK或项目变化：旧回执作废，重新选择未使用端口执行 `ui:prewarm`，仍受前台授权门禁限制。仅设备宽度变化时也默认如此；例外是用户已手动切换设备且明确要求保持桌面，此时可执行 `node scripts/dev/weapp-ui-screenshot.js --rebind-viewport 390`（390替换为用户明确选择的实际逻辑宽度）。此命令只连接原launch签名会话，先按原宽度验证回执及原进程/SDK/项目绑定，再核对实际宽度。第一次只写含from/to宽度的源码challenge并返回非零；明确后台编译/重载后，不改源码，第二次执行同一命令，只有challenge消失且Git、身份、实际宽度均通过才原子更新receipt，并保留原launch来源及宽度变更记录。期间不启动/激活窗口、不更改设备、不手改receipt；旧marker已缺失也不能跳过第一阶段。完成后清除不再适用的旧 `WEAPP_EXPECTED_WINDOW_WIDTH` 覆盖值，再运行只读 `ui:doctor`；日常doctor/capture仍严格拒绝宽度漂移。
 2. Git source snapshot 变化：先运行一次 `npm run ui:session:refresh`。这一步只写入与当前 Git hash 绑定的 challenge，并按设计返回非零；即使旧 marker 已经缺失，也不能把“缺失”当作编译证明。
-3. 在 DevTools 中明确执行一次编译/重载，使 challenge 随 AppService 重建而消失；然后第二次运行 `npm run ui:session:refresh`。只有它看到同一 source challenge 已消失、且 Git 在检查期间未再变化，才会签发新 session receipt。
+3. 在已验证的当前模拟器明确执行一次编译/重载，使 challenge 随 AppService 重建而消失。`ui:iterate` 在会话锁内调用官方 `simulator_open_page` 编到 launch；手工恢复按故障手册操作，不能与其他 runner 并发。然后第二次运行 `npm run ui:session:refresh`，只有同一 source challenge 已消失、且 Git 在检查期间未再变化，才会签发新 session receipt。
 4. challenge 仍存活、Git 再次变化或 marker/进程不一致时继续 fail closed，不得靠重复刷新或手改回执绕过。
 5. Git 未变化时，doctor 只核对，不刷新 marker；需要刷新时显式使用 `ui:session:refresh`。
 
@@ -105,20 +115,22 @@ doctor 会核对：launch receipt、listener PID/启动时间、runtime marker�
 
 ```powershell
 npm run ui:screenshot -- --list
-npm run ui:screenshot -- launch
+npm run ui:iterate -- launch
 ```
 
 标准步骤：
 
-1. 确认 DevTools 已编译当前 exact worktree，窗口 restored-but-background。
-2. 如源码刚变化，先按上一节完成会话刷新与明确编译/重载，再用 doctor 检查。
-3. 只运行本次改动相关 case；不传 case 时会在同一 connection 中运行全部 case。
+1. 确认使用当前 exact worktree 的可信热会话，窗口 restored-but-background。
+2. 完成关联测试后运行 `ui:iterate`；它自动诊断及按需编译/刷新，失败按故障手册分流。
+3. 必须显式传本次改动相关 case。低级 `ui:screenshot` 不传 case 会采集全部状态，仅供明确的全量采集，不是日常入口。
 4. 核对 `captureOk`、`evidenceOk`、`machineOk`、route/query、project provenance、viewport、Git hash、PNG hash、cleanup 和 runtime exception。
 5. 主控打开真实 PNG 逐张检查。`reviewStatus: pending` 表示机器证据通过但尚未完成人工视觉验收。
 
 `feedback` 和 `create` 会在路由前临时写入一个本地假资料，用于绕过资料门禁；runner 会快照并在 `finally` 中逐项恢复原 storage 与 `getApp().globalData.openid`，并在恢复后逐键复验，不会调用云写入。其他 data case 会失效 fetch/watch/lifecycle 代次、网络订阅和 score-lock timer，阻止晚到响应覆盖 fixture。整轮结束后统一 `reLaunch` 到中性 launch 页，并证明页面栈只剩这一页，而不是把已冻结页面冒充为“已恢复”。
 
 selector 在共享 deadline 内满足数量与非零尺寸合同，再轮询 selector geometry 及 reveal opacity/transform，要求 reveal 完成且连续两次状态一致；75ms 是轮询间隔，不是固定完成等待。5 秒内不稳定则拒绝。每个 case 注入随机 nonce，截图前后数据 hash 与 nonce 必须保持一致。截图 fixture 不引用远程头像，console/exception 随回执保留。
+
+本机暂停任务的未提交扩展（远端基线尚不提供）：声明 `scrollToSelector` 的 case 使用现有 SDK `pageScrollTo` 把对应卡片移入截图，先验证页面滚动原点、唯一目标和真实几何，再核对实际 scrollTop；目标不能完整容纳于viewport时拒绝。receipt记录scrollEvidence，继续原有visual settle/nonce/source/cleanup检查。该扩展用于协管卡owner/busy/member状态，随原12项恢复后验证交付；不能在新拉取的基线上直接使用这些业务case。
 
 日常使用 `npm run test:affected -- --run <改动文件>` 执行影响测试；不带 `--run` 只打印计划。Prompt/Edit/Stop 不再自动运行 mirror、全量测试或云公共库检查。像素比较为 `npm run ui:diff -- <baseline.png> <candidate.png>`，仅报告差异，不阻断、不改 baseline。`npm run mp:quality` 仅用于低频本地交付检查，不包含 preview/upload。
 
@@ -142,7 +154,7 @@ tmp/ui-runs/<run-id>/manifest.json
 
 正式成功至少要求：
 
-- `captureOk=true`：PNG chunk、CRC、IDAT解压、尺寸、字节数和SHA-256合法；page额外验证页面比例，frame不声明页面几何等比；
+- `captureOk=true`：PNG chunk、CRC、IDAT解压、非零合法尺寸及SHA-256通过。`page`保留>20KB及页面比例检查；`simulator-frame`仅要求压缩字节数>0，避免将可高效压缩的合法加载页误拒。压缩大小不作为frame判空证据，仍须主控亲看原图；frame不声明页面几何等比；
 - `evidenceOk=true`：route/query、project/session provenance、listener、SDK、viewport、Git manifest、selector coverage、横向溢出、case data 和特有 alignment 通过；
 - storage 精确恢复与整轮单页中性重建成功，本 case 没有 runtime exception；
 - `machineOk=true` 且 run-level `promotion.promoted=true`；
@@ -152,7 +164,7 @@ tmp/ui-runs/<run-id>/manifest.json
 
 ## 7. 当前内置 case
 
-当前 registry 有 30 个 case，覆盖 `app.json` 的 15/15 页面：
+已提交基线registry有40个case，对应15个页面；本机暂停业务工作树有52个case，对应16页。具体checkout清单用 `npm run ui:screenshot -- --list` 读取。下表保留原30项说明；新增12项找回、协管、提前收赛等业务case仍未提交，记录见[新增用例回执](../tasks/session-logs/2026-10-03-new-feature-ui-cases.md)，不能从本机用例存在推导远端可用或已取得实图：
 
 | Case | 页面 / 状态 |
 |---|---|
@@ -215,15 +227,4 @@ focus probe 会：
 
 ## 9. 失败处理
 
-1. `configuration is invalid` / `runnerProjectPath`：必须在脚本所在 exact worktree 重新 prewarm。
-2. session/listener identity 失败：会话进程、端口或 listener 已变化，使用新未占用端口 prewarm。
-3. `runtimeRecompiledForChangedSource` 失败：按“两次 ui:session:refresh，中间一次明确编译/重载”的 challenge 流程执行，不能把 marker 缺失直接当成成功。
-4. route/selector/case data/width 不匹配：确认当前设备和 case，再判断 registry 过期或产品回归。
-5. screenshot timeout/stale：只读核查连接、运行时和窗口状态；最小化、锁屏、断开远程桌面可能影响捕获，但不能据此断言它们是所有超时根因。runner及外部协作工具均不得为日常截图自动抬起/恢复窗口、预热、改尺寸或盲重试。
-6. runtime exception、storage/fixture cleanup 或整批 promotion 失败：保留 candidate，修复直接原因后只重跑相关 case。
-7. `sessionNotPoisoned` 失败：上次 focus probe 被强制中断，或 poison 标记已损坏，fixture/page 状态不可证明；选择新的未占用端口执行一次完整 `ui:prewarm`，doctor 不得清除 poison。
-8. `sessionNotRecovering` 失败：上次 stale-lock recovery 在新锁或新 session 完成前中断；普通 doctor/capture/focus-check 不得绕过，执行一次完整新 `ui:prewarm`，成功后由 prewarm 清除 barrier。
-9. `publicationState: indeterminate`：停止使用本轮 final，保留 backup/stage 诊断证据，先人工核对 receipt 中逐目标 hash，不得把它归类为普通失败或自动重跑覆盖。
-10. selector/route 已通过而 `App.captureScreenshot` 超时：先确认窗口 visible/restored/not minimized、进程链携带 occlusion 开关；若仍复现，保留 candidate receipt 并停止批量重试，进入像素源/DevTools 版本/图形会话隔离评估，不提高 timeout 冒充修复。2026-09-10 的本机组合已通过 10 连截及最终代码 3 连截。
-
-不得用浏览器稿、DOM 数学量测、旧截图、旧 QR 或 preview 输出替代失败的真实 DevTools 图。只有分别实际捕获的图片才能称为 320/390/430 实图。
+故障分类、诊断命令、一次复测条件、清理失败与会话重建的唯一操作正文移至 [故障手册](weapp-ui-troubleshooting.md)。先看本轮 `summary.json` 的 `failedStage`，再选择恢复动作；不要把本页高级维护命令全跑一遍。来源、锁、签名与发布合同仍以本页为准。

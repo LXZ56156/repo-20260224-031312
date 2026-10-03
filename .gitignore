@@ -64,6 +64,7 @@ tmp/
 
 # local docs (allow managed directories, ignore ad-hoc files)
 docs/*
+!docs/README.md
 !docs/context/
 !docs/tasks/
 !docs/notes/

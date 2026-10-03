@@ -1,5 +1,7 @@
 # 真实微信 DevTools 截图简化交接（2026-08-12）
 
+> 状态：已取代的历史截图交接；事实与权限时间窗截至 2026-08-12，2026-10-04 标明适用范围。本文仅用于追溯复杂截图路线的取舍；旧 worktree、token、endpoint、授权次数和“最短执行链”均不作为当前操作输入，不从本文减免现行签名或验收门禁。当前状态与授权见 [current](current.md)，资料路由见 [文档索引](../README.md)，执行入口已由 [默认工作流](../tools/agent-development-workflow.md) 的 `ui:iterate` 取代；故障按 [手册](../tools/weapp-ui-troubleshooting.md)，技术合同见 [截图参考](../tools/weapp-ui-screenshot-workflow.md)。
+
 > 目标：用最少代码、最少门禁和最短链路取得本任务当前源码的真实微信 DevTools 截图，并完成 UI 验收。本文件只取代今晚为截图搭建的复杂诊断路线，不改变产品合同、用户可见改动审批或发布边界。
 
 ## 1. 当前事实

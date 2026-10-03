@@ -1,5 +1,7 @@
 # 后台截图 P0–P2 实测验收（2026-09-10）
 
+> 状态：历史工具验收记录；结果截至 2026-09-10，2026-10-04 标明适用范围。以下 Stable/Nightly、页面数量和 30/30 结论仅描述该次运行，不覆盖后续独立 simulator-frame 合同、今日源码或当前连接。查当时验收证据才读取本文；当前状态见 [current](current.md)，资料路由见 [文档索引](../README.md)，日常操作见 [默认工作流](../tools/agent-development-workflow.md)，现行技术合同见 [截图参考](../tools/weapp-ui-screenshot-workflow.md)。
+
 ## 结论
 
 P0、P1 已实现并实测闭合。日常截图主链可用：Stable 热会话通过 App.captureScreenshot 获取真实像素，不切前台、不模拟输入。P2 其他项目已完成，Nightly A/B 仍被本机授权阻挡，不能宣称全部完成。

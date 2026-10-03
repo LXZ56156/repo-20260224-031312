@@ -1,5 +1,9 @@
 # 微信 DevTools 后台截图链路优化方案（2026-09-03）
 
+> 状态：历史工具设计与阶段进度；正文覆盖 2026-09-03–11，2026-10-04 标明适用范围。本文用于查截图证据合同的由来；下方“最新/当前”、P0–P2 和命令属于对应日期，旧端口、会话和手工刷新步骤不作为今天的操作入口。当前状态与授权见 [current](current.md)，资料路由见 [文档索引](../README.md)，日常入口已由 [默认工作流](../tools/agent-development-workflow.md) 的 `ui:iterate` 取代；失败读 [故障手册](../tools/weapp-ui-troubleshooting.md)，技术合同读 [截图参考](../tools/weapp-ui-screenshot-workflow.md)。
+
+按需导航：[历史基线与阶段状态](#screenshot-history) · [合同设计](#screenshot-contract) · [当时实施优先级](#screenshot-priorities) · [当时权限边界](#screenshot-boundaries)。
+
 > 2026-09-11最新：用户已批准并实现新版独立`simulator-frame`日常截图合同，保留旧page合同/基线；MCP连接阻塞已解除，无需再次安装。3连后台截图通过，1747次可靠采样前台命中0；最终源码30case单批27通过，另3项超时后独立重跑通过。整批可靠性与原同SDK页面图15×10 A/B仍未闭合，不宣称P0–P2全部完成。详见`wechatide-nightly-admission-2026-09-11.md`顶部和`current.md`。
 
 > 最新状态（2026-09-10）：Stable 后台截图已通过 10/10 焦点采样及 30/30 真实 case；原 P0/P1 已闭合，P2 仅 Nightly 10 轮 A/B 因本机 CLI 授权超时未完成。逐项当前结论以 `weapp-background-screenshot-validation-2026-09-10.md` 和 `current.md` 最新节为准。以下实施过程与 3.5 矩阵保留 2026-09-03 历史事实，不作为当前完成状态。方案不授权产品 UI、业务流程、发布、部署或真实数据改动。
@@ -66,6 +70,8 @@
 - `scripts/dev/start-weapp-preview.ps1` 固定 preview 路径与端口，只检查 TCP listener，不证明协议或 exact project。
 - preview mirror 只应服务明确授权的 preview/upload，不应成为日常源码或截图权威。
 
+<a id="screenshot-history"></a>
+
 ### 3.4 当前实现进度（2026-09-03）
 
 已完成：
@@ -116,6 +122,8 @@
 | P2 | 未完成 | 自动 mirror/full-test hooks 未停、`squad.fairness` 仍依赖墙钟 deadline、没有 Nightly wechatide 10–15 case × 10 与 9/10 门槛、没有 `analyseCode` 低频质量线、也没有 `wx-server-sdk` 4.x 云合同迁移审计。SDK 未被顺手升级或部署，边界保持正确。 |
 
 所以不得将“69/69 静态/故障注入测试通过”解释为 P0–P2 全部完成，也不得把 `devToolsForegroundHits=0` 单独摘出来宣称零抢焦；该次 probe 的截图和采样可靠性均失败。
+
+<a id="screenshot-contract"></a>
 
 ## 4. 目标架构
 
@@ -177,6 +185,8 @@ tracked scenario registry
 - 本轮没有 console exception、cleanup error 或半完成 case。
 
 不得再使用一个含义模糊的 `ok` 同时表示“截到了图片”和“证据可验收”。至少区分 `captureOk`、`evidenceOk` 和 `reviewStatus`；只有 `evidenceOk=true` 且主控确认后才能标为已验收。
+
+<a id="screenshot-priorities"></a>
 
 ## 5. 实施优先级
 
@@ -272,6 +282,8 @@ tracked scenario registry
 - 像素 diff 会受 SDK、字体、GPU 和动态资源影响；必须锁环境、使用本地资源并保留人工检查。
 - 移除旧 hooks 前要确认是否仍有 Claude/WSL 使用者；先停自动触发、保留显式过渡命令，比直接删除更稳妥。
 - 320/430 自动设备切换若没有可靠的官方能力，不以 OS 窗口缩放或修改私密配置绕过，继续由用户切换设备后严格验证宽度。
+
+<a id="screenshot-boundaries"></a>
 
 ## 8. 动作边界
 

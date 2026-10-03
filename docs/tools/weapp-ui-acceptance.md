@@ -2,6 +2,8 @@
 
 由 AGENTS.md 的 UI Completion Gate 原文集中迁入（2026-09-11），保留门禁强度；只在相关 UI 工作时完整读取。截图命令与会话合同见 [截图工作流](weapp-ui-screenshot-workflow.md)。
 
+日常真实图通过 `npm run ui:iterate -- <case>` 采集，步骤见 [开发工作流](agent-development-workflow.md)。采集失败按 [故障手册](weapp-ui-troubleshooting.md) 恢复；本轮机器成功与主控人工审图分别报告，使用新入口不减少本页验收要求。
+
 向用户汇报 UI 完成前，主控必须亲自检查当前源码的真实微信 DevTools 图；自动量测、结构快照、浏览器稿和旧图都不够。至少检查：
 
 - 操作显著性与主次层级；
@@ -25,3 +27,9 @@
 发现肉眼问题先修复并重跑，不把基础检查留给用户指出。本文件是详细视觉门禁的唯一维护位置。
 
 补充既有核对规则：44px 按实际 viewport 的 CSS px 核对，不能只看 rpx；同一状态最多“主显示 + 一次校验”；选择状态至少使用文字/符号与边框/填充中的两类线索，不能只靠红绿或伪元素。原生 picker、键盘仍需相应真实检查。
+
+## 设计与历史路线边界
+
+- Web方向翻译为原生WXML/WXSS/JS、系统字体、低端机、44px触达、reduced motion和无远程视觉依赖，不照搬hover、Web字体或浏览器专属CSS。
+- 暖米色+酸绿、暗底+荧光绿、报纸规则线及被否决的Next-Gen/C3/Home全面重做只作反例，不继续微调复用；不自动恢复全面Home重做、全局设计系统或跨页面统一。
+- codex/ui-optimization-v2、nextgen-integration、nextgen-ui-redesign-20260724及其他next-gen worktree是历史证据，不整体复用、合并或迁移。相关产品批准仅在需要时读 [历史决定](../tasks/incremental-ui-restart-handoff-2026-07-29.md)，当前任务范围仍以current为准。

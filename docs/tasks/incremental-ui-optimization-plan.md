@@ -1,11 +1,13 @@
 # 增量 UI 优化计划
 
+> 历史快照：本页保留产品决定与当时证据。工具能力、命令、浏览器流程与技能要求已由当前 [AGENTS](../../AGENTS.md) 和 [开发工作流](../tools/agent-development-workflow.md) 取代；不要执行下文旧 endpoint/截图命令。当前进度以 [current](current.md) 为准，历史批准范围仍作为证据保留。
+
 > 状态：初始 master + schedule overlay 基线已完成；独立打水与 launch CTA 对齐已逐项实现并确认至 `c2f438a`。继续等待用户下一个明确 UI 点。
 
 ## 1. 产品与发布基线
 
-- 线上版本仍对应 `master` = `origin/master` = `5813ffc79f94c180fa5573eb25fb0d57f53b85df`。
-- 当前开发路线位于隔离分支 `codex/water-court-vant-spike-20260807`；产品实现提交为 `c2f438a`，未 push、未 PR、未正式发布。
+- 本计划中的线上基线是历史计划时点的 `master` = `origin/master` = `5813ffc79f94c180fa5573eb25fb0d57f53b85df`；当前线上版本及发布时间见 [线上版本确认](session-logs/2026-09-23-online-release-confirmed.md)。
+- 计划当时的开发路线位于隔离分支 `codex/water-court-vant-spike-20260807`；产品实现提交为 `c2f438a`，当时未 push、未 PR、未正式发布。
 - 2026-07-29 的初始 overlay 是 `38d6ea4`，在当前树中等价为 `178e5dd`；两者 patch-id 相同。
 - Git 提交、远端 push、preview QR、preview、`mp:upload`、正式发布、云函数部署和真实数据写入必须分别描述、分别授权。
 

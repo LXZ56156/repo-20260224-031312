@@ -99,3 +99,27 @@ data/we-analysis/{type}-{begin_date}-{end_date}.csv
 - 同一 type 连续多天或多周的 JSON/CSV。
 - `dailyVisitTrend` 搭配 `visitPage`，用于判断流量变化来自哪个页面。
 - `visitDistribution` 搭配 `userPortrait`，用于判断用户来源和画像变化。
+
+## 离线可复算报表（2026-10-03起）
+
+报表只读取现成JSON，不取token、不请求微信API、不读取业务数据库。旧 `scripts/analyze-we-data.js` 已改为以下新入口的CLI别名：无参数运行会报错退出，不再扫描 `data/we-analysis/` 的全部CSV/JSON或生成经营判断。旧CSV分析行为不兼容，已有原始文件和报告保留不覆盖。
+
+```powershell
+node scripts/we-analysis-report.js --manifest data/we-analysis/audit-20261003/fetch-manifest.json --begin 20260902 --end-exclusive 20261002 --latest-complete 20261001 --out tmp/we-report-30d
+node scripts/we-analysis-report.js --manifest data/we-analysis/audit-20261003/fetch-manifest.json --begin 20260925 --end-exclusive 20261002 --latest-complete 20261001 --out tmp/we-report-7d
+```
+
+日期为北京时间自然日，参数可使用 `YYYYMMDD` 或 `YYYY-MM-DD`；begin包含、endExclusive排除，latestComplete必须人工根据已核实接口状态指定，脚本不猜测最新完整日。`--out` 必须是尚不存在、且父目录已存在的新目录；已有目录拒绝，结果保存为 `report.json`。省略 `--out` 输出JSON到stdout。
+
+输入二选一：`--manifest` 或一个/多个重复的 `--file <精确JSON路径>`。manifest仅使用 `results`、可选 `retries`、`additional` 中 `ok:true` 的请求，按清单所在目录的 `{type}-{begin_date}-{end_date}.json` 精确读取；`ok:false` 留作错误证据。同一请求失败后成功重试可用，同一请求有多个成功项、重复文件、同type重叠请求均报错。唯一重叠例外是画像的不同窗口：分别保留、不加总。每日接口只接受begin_date=end_date，月接口必须完整自然月，周接口必须七天；wrapper元数据与manifest、raw.ref_date/访问列表日期错配或出界直接失败。
+
+报表口径：
+
+- `window.uvDays`、页面UV合计和分享UV合计是人天；不输出日UV简单加总后的unique人数。周/月接口去重UV及画像放在 `periods` 独立保留原始聚合，不与日报相加；周/月留存仅留原始证据，标为 `maturity_not_evaluated`，不能据此使用尚未成熟的值。
+- UV停留按日UV、session停留/深度按启动次数、页面停留按页面PV加权；各自分子、分母、逐日值/权重及缺失日期放在 `evidence`。`avgDailyUv` 是已有非缺失日UV的人天/这些日数，部分窗口必须连同coverage解释。
+- 日留存D1/D7/D14只纳入队列首日+lag不晚于latestComplete且key0和目标key都有数值的队列；按留存人数之和/首日人数之和，不平均日比例。`included`、`missing`、`immature`分开列；没有分母时rate为null，缺失key不补零。
+- 61503、未完成日、缺失文件/字段保持unknown：没有已知值时输出null，有部分值时为已知子集之和并标partial。错误、成功重试是否解决分别记录于 `inputs.attempts`；零只来自明确提供的数值0。
+- 页面缺席有效当日日列表仅代表无报告行；整份页面响应或某字段缺失仍单列unknown。页面 `sharePv=0` 与 `dailySummary` 全局shares是两类字段，不能相互替代或推导“无人分享”。页面UV不形成跨页漏斗。
+- `inputs`记录manifest及每份成功输入的SHA-256、日期和是否进入日报窗口，`dailyEvidence`保留窗口内原始日聚合，便于离线重算。窗口外输入不进入日报，周期指标可位于窗口外。`window.status`和各指标status需要一起审阅；不追加趋势原因、版本因果或业务转化结论。
+
+直接回归：`node --test tests/we-analysis-report.test.js`。本轮真实164份JSON的30日/7日复算与报告逐项对齐，回执见 [离线报表修复记录](../tasks/session-logs/2026-10-03-analytics-report-repair.md)。

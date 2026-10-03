@@ -1,5 +1,8 @@
 # 多人转 / 小队转排阵检查结果与优化方案
 
+> 状态：历史/时点报告。适用范围为正文记录的日期、样本和检查窗口；不作实时状态或当前执行指令。当前范围/最新结果看 [current](../tasks/current.md)，已吸收规则以 [总索引](../README.md) 指向的正文为准。原结论与失败证据保留。
+
+
 - 日期: `2026-05-05`
 - 计划文档: `docs/archive/scheduler-fairness-check-plan-2026-05-05.md`
 - 主要输入: `docs/reports/scheduler-full-audit.md`

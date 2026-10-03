@@ -1,5 +1,7 @@
 # Collaborative Water V2 Release Handoff
 
+> 状态：2026-08-13候选交接的历史证据；下方current/local等措辞属于当时语境，不是最新状态。当前产品读 [独立打水入口](../specs/independent-water-ledgers.md)，实施/部署/验收读 [current](current.md)，文档路由见 [总索引](../README.md)。保留原候选与批准材料，不重做旧实施或复用一次性授权。
+
 > Purpose: hand off the current local release candidate without replaying UI or private-Desktop history. This document authorizes no remote mutation by itself.
 
 ## Current candidate
@@ -9,7 +11,7 @@
 - Implementation parent: `9b3f94aafc3217062c30b5c49f14b3f102ec3df6`
 - Candidate identity: the current branch tip after the approved local commit series; use `git rev-parse HEAD` rather than embedding a self-referential hash in this document.
 - State: V2 product, compatible cloud function, migration library, tests, documentation and dev-only screenshot evidence are committed locally. The branch has not been pushed.
-- Last uploaded client: `6.1.2-911a9c7`; it does not contain V2.
+- Last uploaded client at handoff time: `6.1.2-911a9c7`; it did not contain V2. The later online release is recorded in [the current task](current.md).
 - Cloud environment: develop/trial/release currently resolve to the same production CloudBase environment. There is no staging environment.
 
 ## Runtime release scope

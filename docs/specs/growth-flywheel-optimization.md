@@ -1,10 +1,14 @@
 # 增长飞轮优化方案 — v1.2
 
+> 状态：历史方案与第一阶段完成记录；正文结论截至 2026-06-15，2026-10-04 标明适用范围。Task 1–6 的完成证据见 [当时执行记录](../tasks/session-logs/2026-06-15-growth-flywheel-phase1.md)；第 1 节诊断是实施前的历史数据和页面基线，不能把其中“无状态区分”等描述当作当前缺陷。Task 7 / Phase 2 是候选 Backlog，不能从当时的“ready”自动恢复实施。当前任务、线上状态和授权见 [current](../tasks/current.md)，最新留痕合同见 [活动观测规格](activity-observability.md)，按需读取见 [文档索引](../README.md)，开发操作见 [默认工作流](../tools/agent-development-workflow.md)。
+
+按需导航：[第一阶段结果](#growth-result) · [实施前诊断](#growth-diagnosis) · [历史任务细节](#growth-tasks) · [未启动的第二阶段](#growth-backlog) · [当时验收](#growth-acceptance)。
+
 > 版本: v1.2.3 · 状态: phase1_completed_phase2_ready
 > 日期: 2026-06-15
 > 数据来源: we分析 121 天数据 (2026.02.13–2026.06.13) + CloudBase 后端审计
 > v1.2 变更: 从 P0–P5 分散功能清单重构为"方案 A + E + 轻量 D"第一阶段增长方案。目标是最短可验证增长闭环，不再一次性做完所有增长功能。
-> 最新状态: 第一阶段 Task 1–6 已完成实现、真实截图检查、回归验证，并推送到 `origin/master`。Task 7 已升级为 Phase 2 入口（含前置条件和优先级）。Phase 2 待 Phase 1 线上数据积累后启动。
+> 当时状态: 第一阶段 Task 1–6 已完成实现、真实截图检查、回归验证，并推送到 `origin/master`。Task 7 已升级为 Phase 2 入口（含前置条件和优先级）。Phase 2 待 Phase 1 线上数据积累后启动。
 
 ## 0. 版本结论
 
@@ -20,6 +24,8 @@ v1.2 做出以下明确决策：
 5. **订阅消息、添加到我的小程序引导、match 单场分享、mine 长期战绩分享等进入第二阶段 Backlog**。
 
 ---
+
+<a id="growth-result"></a>
 
 ## 0.1 第一阶段执行结果
 
@@ -60,7 +66,9 @@ v1.2 做出以下明确决策：
 
 ---
 
-## 1. 当前增长诊断
+<a id="growth-diagnosis"></a>
+
+## 1. 实施前增长诊断（历史基线）
 
 > 数据基于 121 天 we 分析 (2026.02.13–2026.06.13)，详细分析见 `data/we-analysis/user-behavior-analysis-2026-06-13.md`。
 
@@ -160,6 +168,8 @@ v1.2 做出以下明确决策：
 | 再办 | 再办一场点击率 | `home_clone_tournament_click`, `clone_tournament_success` |
 
 ---
+
+<a id="growth-tasks"></a>
 
 ## 4. 任务清单
 
@@ -448,6 +458,8 @@ v1.2 做出以下明确决策：
 
 ---
 
+<a id="growth-backlog"></a>
+
 ### Task 7：第二阶段 Backlog（Phase 2 入口）
 
 以下内容**明确不在第一阶段范围**。等 Phase 1 上线积累 ≥7 天数据后，根据 we 分析 + growthTracker 埋点数据决定最终优先级和启动时机。
@@ -502,6 +514,8 @@ v1.2 做出以下明确决策：
 - 基于 Phase 1 growthTracker 埋点数据构建
 
 ---
+
+<a id="growth-acceptance"></a>
 
 ## 5. 第一阶段最终验收清单
 
