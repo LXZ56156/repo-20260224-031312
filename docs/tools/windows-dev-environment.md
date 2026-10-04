@@ -47,11 +47,28 @@ node scripts/dev/wechatide-local.js simulator_open_page 'D:/projects/badminton-m
 
 ## 云部署入口
 
-- 用户已授权的云部署优先使用 CloudBase CLI，沿用现有登录态；不要切到 DevTools 云写接口导致逐函数确认。已验证的 CLI 3.7.3 支持 `--force` 非交互覆盖与 `--install-dependency true`，使用前以实际安装为准，目标环境取已核对的 `cloudbaserc.json`。
+- 用户已授权的云部署优先使用 CloudBase CLI，沿用现有登录态；不要切到 DevTools 云写接口导致逐函数确认。已验证的 CLI 3.7.3 支持 `--force` 非交互覆盖与 `--install-dependency true`，使用前以实际安装为准。生产入口核对 `cloudbaserc.json`；隔离测试按下节显式指定独立环境。
 - 登录过期时运行 `tcb login --flow device --json`，完成一次账户登录后复用；不能承诺凭据永不过期。不输出或提交登录凭据。
 - 历史 DevTools 2.02.2609102 实测没有可用的持续云写确认设置；它不是当前安装版本证明。客户端 `Codex`/Token 授权只解决连接身份，不消除云写确认。不要修改内部许可状态或重发pending请求；切换入口前先查询原请求结果，避免重复部署。
 - 本机可用单函数入口：`npm run deploy:cloud -- --force <functionName>`。默认先核验 `Active / Available` 和依赖安装状态，再执行 `scripts/cloud-runtime-smoke.js` 的无业务写入调用。必须核对实际 `RetMsg`，不能以 CLI exit 0、InvokeResult 0 或 Active 单独认定运行成功；`--no-verify` 不能作为已验证交付。批量只操作本次已授权函数，失败时记录成功范围与待处理项。
 - Windows DevTools云部署存在ZIP目录分隔符风险：本轮waterSession经IDE部署后Active但运行时报找不到`./lib/common`，改CLI部署后实际调用恢复。故障诊断需保留原调用结果，必要时下载云端原ZIP核验POSIX目录名与相对依赖；本地Windows解压后文件存在不能证明云端Linux可加载。
+
+### 隔离验证的 CLI/API 入口
+
+环境准备、函数部署/调用和规则读写可使用现有 CLI 认证，网页登录不是这些操作的通用前提；真实账号资格、计费、小程序绑定和调用身份分别核验。`env create` 会进入环境创建流程，不是只读资格检查；CLI支持套餐不证明当前账号免费可用。任务明确停止CloudBase或登录时，只保留本地准备，不执行以下云动作。
+
+本机CLI 3.7.3的函数命令中，全局 `-e` 优先于项目配置。当前项目配置指向生产，隔离测试不能使用默认 `npm run deploy:cloud` 入口，也不通过修改生产配置来选测试环境。先核实独立EnvId、地域及小程序关联，再按已批准范围逐项执行。下列为命令形状，占位符必须替换；不是可原样运行的脚本：
+
+```text
+tcb -e <隔离EnvId> fn deploy <函数名>
+tcb -e <隔离EnvId> fn invoke <函数名> --params '<测试事件JSON>'
+tcb -e <隔离EnvId> api tcb DescribeSafeRule --api-version 2018-06-08 --body '<规则查询JSON>'
+tcb -e <隔离EnvId> api tcb ModifySafeRule --api-version 2018-06-08 --body '<已审规则修改JSON>'
+```
+
+通用 `api` 将 `--body` 解析后传给腾讯云API；规则请求体须显式填写同一个隔离 `EnvId` 和 `CollectionName`，不能只依赖 `-e` 替请求体选择目标。[DescribeSafeRule](https://cloud.tencent.com/document/api/876/128118)的微信环境还必须提供 `WxAppId`。[ModifySafeRule](https://cloud.tencent.com/document/api/876/128959)需提供 `AclTag`，CUSTOM时 `Rule` 是JSON字符串；修改前后的规则回执分别保存。可审候选及逐操作预期见 [数据库权限准备](../tasks/session-logs/2026-10-03-database-permission-preparation.md)，该记录不表示候选已应用。
+
+CLI能触发隔离测试函数，但本项目的事务验收要覆盖实际锁接管、版本冲突、提交/回滚和幂等，不把 `db nosql execute` 的命令批次当作已验证的业务事务。配套函数组及验收材料见 [隔离清单](../tasks/session-logs/2026-10-03-new-cloud-isolation-checklist.md)。管理端Event调用的JSON不能生成基础库可信OPENID/APPID，管理端数据库请求也不能证明普通客户端安全规则；真实A/B身份旅程与客户端add/set/update/remove拒绝仍须分别实测。无参/缺参加载烟测只证明handler可加载，不证明这些业务合同。
 
 ## 测试、隐私与交付
 
