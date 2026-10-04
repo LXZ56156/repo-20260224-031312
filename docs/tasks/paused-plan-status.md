@@ -36,6 +36,12 @@
 - **两辅助包补齐并本地通过**：新`tmp/score-five-aux-candidates-current-20261004/`固定f7131ee，主控执行前全文审prepare/extract/run，zip/offline工具复用已审相同字节。上海21:22:44.696–21:26:18.616，run及8子进程exit0；join12源/6368自有依赖、6380成员/36445567解包B，ZIP37596277B/SHA82a55ed2bc14d171ff28ca62a6fc4c20a4c0553dd66e5da5ec7d50357d02ef74；start20 tracked源/6393自有依赖、6413成员/38025748解包B，ZIP39181466B/SHAa55af8d164a6d58a18db30092e166801ca6310e27d8867b7b7d754359e9a9ade。旧两ZIP全成员CRC/SHA核后仅排他提取各自依赖，不扫描原备份；新ZIP同核及重复字节/extra0通过。Windows24.18/16.13各加载join405/start414真实SDK模块，main未调用/网络0。32工作源与固定HEAD原字节一致；旧join17/start26证据、工具、已有Node16及未跟踪single前后SHA不变，single不入新start包。先前只读blob诊断默认1MB不足而ENOBUFS，改明确4MB后32源核exit0，无应用改动；原诊断过程保留。Luna单次辅助冷核已确认真实ZIP/中央目录/32源码/工具/旧17及26证据一致，新start包无single且原文件保全；报告与submit同在tmp/score-five-next-20261004-readonly/cold-submitScore.md。冷核自己未重跑完整依赖CRC/require或业务测试，完整CRC依构建执行回执；主控阶段preflight核16既有dirty/45工作源、82引用和current1493字符无问题。没有重复全量/check、安装升级或任何云动作，三个新包targetEnv=null，仅本地隔离准备，不为旧start/submit生产部署申请或授权。
 - **真实验收仍待执行**：现有[事务修复](session-logs/2026-10-03-score-transaction-repair.md)、[权限与逐操作清单](session-logs/2026-10-03-database-permission-preparation.md)和[隔离CLI入口](../tools/windows-dev-environment.md#隔离验证的-cliapi-入口)继续适用。管理端调用不能伪造可信WXContext或证明普通客户端规则；需非生产EnvId/绑定/真实A/B（及拒绝样本C）身份，验证锁接管、并发、重放/回滚、客户端add/set/update/remove、平台包接受及3秒余量。不恢复CloudBase、不写真实业务、部署或上传；进入第5不把第1–4缺口判通过。
 
+## 10-04依序续做：第6项首次记账诊断
+
+- **范围与结论**：用户要求“先下一项”，从第5移到第6；本轮main/master/HEAD `42f12cfe10dfad453e41e0800676053f68530bc9`、index空，原dirty/private/单打候选/QR及所有partial、备份和旧证据保留。Luna max独立只读核对进入、第二名单人、member首笔及留痕实现与直接测试；未发现新的可复现本地缺陷，没有据历史89→5推断单人门槛造成流失，也没有据覆盖边界制造UI或代码修复。主控核现行规则、产品与事件合同及直接首笔测试，未访问云、运行应用测试或拍图。
+- **当前留痕与验证边界**：实际为water_enter的view、water_create/add_members/join的attempt/result，以及water_record_game/direct结果中的firstEntry；仅V2原始事件权威seq=1成功为yes，重放为replayed，失败或缺证据为unknown。拟议water_first_entry不等于已有独立事件；匿名会话不能连接跨设备的新建队列，不能由现事件算可靠新账本七日率。既有测试有成员权限、两种写入及幂等覆盖，但没有单独贯通V2 recordDirect首笔遥测与失败后同request ID重试的组合；这是覆盖边界，不是复现故障或本轮通过结果。历史141项、最近全量1707通过/6跳过/0失败按原时点保留，不重复运行。
+- **剩余项与下一步**：已询问用户通常手动加名字还是先邀请、曾卡在哪一步，尚待答；该可选场景信息不作为执行许可。真实首次使用观察、后台实收/逐ID查询、可靠测试样本排除、成熟七日新账本率及手机仍未验，完整第6未完成。云端和手机继续按用户暂停/后做边界；本地本项核对已结束，后续按编号推进第7时保留上述待验。详情追加到[原诊断日志](session-logs/2026-10-03-water-first-entry-diagnosis.md)，只读证据`tmp/water-six-current-20261004-readonly/assessment.md`及文件SHA保留。
+
 ## 10-04第4项续做及同步提示反馈
 
 - **范围与保全**：main/master从`94912202a1eb33dc832f00d05d9578fee6cb4105`续做，第3真实实收缺口仍保留，不把进入第4记作前项全完成。既有三配置、单打候选、历史QR/浏览器记录、备份与partial不覆盖。简单只读Luna max、实施Sol high；本轮不登录CloudBase、查云、付款、部署、preview、上传发布或写真实业务。用户手机后做的决定不改。

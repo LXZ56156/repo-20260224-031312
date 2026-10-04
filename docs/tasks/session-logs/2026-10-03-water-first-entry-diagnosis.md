@@ -54,3 +54,19 @@ node --test tests/waterSession.logic.test.js tests/waterSession.index.test.js te
 
 没有观察到新的可复现代码阻塞，按当前计划先不改页面。下一步应以真实首次使用任务验证“只含 owner 时如何添加第二人”，同时确认事件在生产可查询且 test/dev 可识别；如果该路径通过，再根据真实失败或退出证据决定是否调整入口说明。
 
+## 2026-10-04 依序续做：当前本地路径核对
+
+本轮在main/master、HEAD `42f12cfe10dfad453e41e0800676053f68530bc9`开始，保留原dirty、私有配置、候选、QR、partial、备份和历史报告。Luna max只读核源码与直接测试，主控核现行产品/事件合同及首笔测试；没有新可复现的本地行为缺陷，不据历史低记账率改UI。报告和读时点文件SHA见[只读核对](../../../tmp/water-six-current-20261004-readonly/assessment.md)。未运行测试、未做云端或真机观察；上方141项是10-03结果，最近全量1707通过/6跳过/0失败见[客户端修复日志](2026-10-03-client-defect-repair.md)，均不是本轮新跑结果。
+
+当前三阶段与[权威留痕合同](../../specs/activity-observability.md)对应如下，不能把拟议清单当成已发送事件：
+
+| 阶段 | 当前实现 | 证据边界 |
+| --- | --- | --- |
+| 进入 | 页面onLoad发activity_view/action=water_enter | 不是成功打开账本或新建分母 |
+| 新建与成员准备 | water_create、water_add_members、water_join发attempt/result | 名单占位人不等于绑定账号；未证明后台实收 |
+| 首笔 | water_record_game/direct的activity_result携带firstEntry | V2原始seq=1成功为yes、seq>1为no，deduped为replayed；失败/缺字段为unknown；没有另发water_first_entry |
+
+页面单人owner入口、添加/认领、member写入及同草稿ID保护均可达；现有V2 page/cloud与handler-e2e覆盖成员、两种写入及首笔/重放。`tests/activity-tracker.test.js`的首笔测试虽含transfer返回，但请求循环均为recordGame；通用手动重试关联与water页面重试分开覆盖，没有直接贯通V2 recordDirect首笔遥测和失败后同request ID重试。这里仅记录覆盖边界，不是已复现缺陷，也不追加镜像测试冒称发现问题。
+
+已询问用户平时手动加名字还是先邀请、曾在哪一步卡住，尚待答；暂不要求手机测试。历史89/5、69成熟/2首笔及无可靠测试标签结论仍固定原数据时点。本轮不重读备份、不生成新转化率；当前匿名会话事件缺跨设备创建队列映射，不能单靠firstEntry计算可靠的新账本七日首笔率。真实首次任务、事件实收/可查询、可靠测试排除、成熟七日统计及手机验收继续未完成；上述原8条场景保留，不另建方案或恢复CloudBase。唯一最新进度见[第6状态](../paused-plan-status.md#10-04依序续做第6项首次记账诊断)。
+
