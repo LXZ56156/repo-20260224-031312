@@ -218,6 +218,8 @@ function buildMatchShortcutHint(mode) {
 
 function buildSettingsFormState(tournament, options = {}) {
   const t = tournament && typeof tournament === 'object' ? tournament : {};
+  const draft = options.draft || {};
+  const draftValue = (field, fallback) => Object.prototype.hasOwnProperty.call(draft, field) ? draft[field] : fallback;
   const openid = String(options.openid || '').trim();
   const isAdmin = perm.isAdmin(t, openid);
   const isDraft = String(t.status || 'draft') === 'draft';
@@ -241,7 +243,7 @@ function buildSettingsFormState(tournament, options = {}) {
   const courtOptions = rotationPreset
     ? rotationPreset.allowedCourts.slice()
     : Array.from({ length: 10 }, (_, i) => i + 1);
-  const savedCourts = Math.max(1, Math.min(10, Number(t.courts) || (rotationPreset ? rotationPreset.defaultCourts : 1)));
+  const savedCourts = Math.max(1, Math.min(10, Number(draftValue('editC', t.courts)) || (rotationPreset ? rotationPreset.defaultCourts : 1)));
   const courtsForRecommendation = courtOptions.includes(savedCourts)
     ? savedCourts
     : (courtOptions[0] || 1);
@@ -254,7 +256,7 @@ function buildSettingsFormState(tournament, options = {}) {
   });
 
   const hasSavedTotalMatches = Number(t.totalMatches) > 0;
-  let editM = Number(t.totalMatches) || 0;
+  let editM = Number(draftValue('editM', t.totalMatches)) || 0;
   if (editM < 1) editM = Number(recommendation.suggestedMatches || 8);
   if (editM < 1) editM = 1;
   const shouldClampSavedMatches = mode !== flow.MODE_MULTI_ROTATE || !hasSavedTotalMatches;
@@ -271,6 +273,7 @@ function buildSettingsFormState(tournament, options = {}) {
   if (
     mode === flow.MODE_MULTI_ROTATE
     && !hasSavedTotalMatches
+    && !Object.prototype.hasOwnProperty.call(draft, 'editM')
     && matchSelectionState.useMatchPresetOptions
     && !matchSelectionState.currentMatchIsPreset
     && Number(matchSelectionState.balancedMatch) > 0
@@ -307,21 +310,27 @@ function buildSettingsFormState(tournament, options = {}) {
   const digitLen = Math.max(2, String(maxMatches > 0 ? maxMatches : 999).length);
 
   const rules = t.rules && typeof t.rules === 'object' ? t.rules : {};
-  const pointsPerGame = POINT_OPTIONS.includes(Number(rules.pointsPerGame)) ? Number(rules.pointsPerGame) : 21;
+  const draftPoints = Number(draftValue('pointsPerGame', rules.pointsPerGame));
+  const pointsPerGame = POINT_OPTIONS.includes(draftPoints) ? draftPoints : 21;
   const pointsIndex = Math.max(0, POINT_OPTIONS.indexOf(pointsPerGame));
   const rawEndCondition = rules.endCondition && typeof rules.endCondition === 'object' ? rules.endCondition : {};
   const showSquadEndCondition = mode === flow.MODE_SQUAD_DOUBLES;
   const endConditionType = showSquadEndCondition
-    ? normalizeEndConditionType(rawEndCondition.type || 'total_matches')
+    ? normalizeEndConditionType(draftValue('endConditionType', rawEndCondition.type) || 'total_matches')
     : 'total_matches';
   const endConditionOptions = END_CONDITION_OPTIONS;
   const endConditionIndex = Math.max(0, endConditionOptions.findIndex((item) => item.key === endConditionType));
   const endConditionTargetOptions = Array.from({ length: 200 }, (_, i) => i + 1);
   const fallbackTarget = suggestEndConditionTarget(endConditionType, editM, editC);
-  const endConditionTarget = clampTarget(rawEndCondition.target || fallbackTarget, endConditionTargetOptions);
+  const target = endConditionType === 'total_matches' && Object.prototype.hasOwnProperty.call(draft, 'editM')
+    ? editM
+    : draftValue('endConditionTarget', rawEndCondition.target || fallbackTarget);
+  const endConditionTarget = clampTarget(target, endConditionTargetOptions);
   const endConditionUi = buildEndConditionUi(endConditionType, endConditionTarget);
-  const safeName = flow.getSynchronizedTournamentName(t.name || modeLabel, mode, t.presetKey) || modeLabel;
   const canEditTournamentName = flow.canEditTournamentName(mode, t.presetKey);
+  const safeName = canEditTournamentName && Object.prototype.hasOwnProperty.call(draft, 'name')
+    ? String(draft.name)
+    : flow.getSynchronizedTournamentName(t.name || modeLabel, mode, t.presetKey) || modeLabel;
 
   return {
     mode,

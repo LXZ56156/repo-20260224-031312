@@ -6,6 +6,7 @@ const retryAction = require('../../core/retryAction');
 const settingsActions = require('./settingsActions');
 const settingsSyncController = require('./settingsSyncController');
 const settingsViewModel = require('./settingsViewModel');
+const DRAFT_FIELDS = ['name', 'editM', 'editC', 'pointsPerGame', 'endConditionType', 'endConditionTarget'];
 
 Page({
   data: {
@@ -133,11 +134,28 @@ Page({
     if (this.data.tournamentId && !this.hasActiveWatch(this.data.tournamentId)) this.startWatch(this.data.tournamentId);
   },
 
+  hasUnsavedSettingsDraft() {
+    return !!this._settingsFormBaseline
+      && DRAFT_FIELDS.some((field) => this.data[field] !== this._settingsFormBaseline[field]);
+  },
+
   applyTournament(tournament) {
     if (!tournament) return;
-    const viewState = settingsViewModel.buildSettingsViewState(tournament, {
+    const remoteState = settingsViewModel.buildSettingsViewState(tournament, {
       openid: this.openid
     });
+    const previous = this.data.tournament;
+    const draft = {};
+    if (previous && previous._id === tournament._id && previous.status === 'draft' && remoteState.isDraft
+      && previous.mode === tournament.mode && previous.presetKey === tournament.presetKey && this._settingsFormBaseline) {
+      for (const field of DRAFT_FIELDS) {
+        if (this.data[field] !== this._settingsFormBaseline[field]) draft[field] = this.data[field];
+      }
+    }
+    const viewState = Object.keys(draft).length
+      ? settingsViewModel.buildSettingsViewState(tournament, { openid: this.openid, draft })
+      : remoteState;
+    this._settingsFormBaseline = remoteState;
     if (viewState.useMatchPresetOptions) {
       viewState.showAdvancedMatchPicker = !!this.data.showAdvancedMatchPicker;
     }
@@ -153,7 +171,5 @@ Page({
         setTimeout(() => this.scrollToSection(selector), 90);
       }
     }
-
-    this.clearLastFailedAction();
   }
 });

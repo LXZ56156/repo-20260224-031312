@@ -6,6 +6,23 @@ const nav = require('../miniprogram/core/nav');
 const lobbyDraftActions = require('../miniprogram/pages/lobby/lobbyDraftActions');
 const settingsActions = require('../miniprogram/pages/settings/settingsActions');
 
+function loadSettingsPageMethods() {
+  const pagePath = require.resolve('../miniprogram/pages/settings/index');
+  const originalPage = global.Page;
+  let definition;
+  try {
+    global.Page = (value) => { definition = value; };
+    delete require.cache[pagePath];
+    require(pagePath);
+    return definition;
+  } finally {
+    global.Page = originalPage;
+    delete require.cache[pagePath];
+  }
+}
+
+const settingsPageMethods = { ...settingsActions, ...loadSettingsPageMethods() };
+
 function createWxStub() {
   const toastCalls = [];
   return {
@@ -249,7 +266,7 @@ test('settings saveSettings stores focus_start intent when refreshed state is re
     };
     nav.buildTournamentUrl = (pagePath, tournamentId) => `${pagePath}?tournamentId=${tournamentId}`;
 
-    const ctx = createContext(settingsActions, {
+    const ctx = createContext(settingsPageMethods, {
       tournamentId: 't_settings_ready',
       isAdmin: true,
       tournament: {
@@ -331,7 +348,7 @@ test('settings saveSettings does not store focus_start intent when refreshed sta
     };
     nav.buildTournamentUrl = (pagePath, tournamentId) => `${pagePath}?tournamentId=${tournamentId}`;
 
-    const ctx = createContext(settingsActions, {
+    const ctx = createContext(settingsPageMethods, {
       tournamentId: 't_settings_wait',
       isAdmin: true,
       tournament: {

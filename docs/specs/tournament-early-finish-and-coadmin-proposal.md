@@ -1,6 +1,6 @@
 # 赛事提前收赛与协管：最小方案与实施状态
 
-状态：已批准规格，本地实现；原计划当前暂停。总计划第7、8项推荐范围获2026-10-03“全部允许”，分别见[收赛实现](../tasks/session-logs/2026-10-03-manual-finish-implementation.md)、[协管实现](../tasks/session-logs/2026-10-03-coadmin-implementation.md)。相关390px fixture实图已检查，必要尺寸/系统交互、真机与隔离云验收仍未完成；最新逐项证据见 [详细状态](../tasks/paused-plan-status.md)，恢复/部署/上传/真实写入不从本文推导。[总索引](../README.md)。
+状态：已批准规格，本地实现；完整计划已按10-04用户指令恢复。总计划第7、8项推荐范围获2026-10-03“全部允许”，分别见[收赛实现](../tasks/session-logs/2026-10-03-manual-finish-implementation.md)、[协管实现](../tasks/session-logs/2026-10-03-coadmin-implementation.md)。相关390px fixture实图已检查，必要尺寸/系统交互、真机与隔离云验收仍未完成；最新逐项证据见 [详细状态](../tasks/paused-plan-status.md)，部署/上传/真实写入不从本文推导。[总索引](../README.md)。
 
 ## 7. 提前收赛
 

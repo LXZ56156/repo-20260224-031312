@@ -258,7 +258,9 @@ module.exports = {
       return;
     }
 
-    const name = flow.getSynchronizedTournamentName(
+    const retryPayload = options.payload;
+    if (retryPayload && retryPayload.tournamentId !== this.data.tournamentId) return;
+    const name = retryPayload ? retryPayload.name : flow.getSynchronizedTournamentName(
       this.data.name,
       this.data.tournament.mode || this.data.mode,
       this.data.tournament.presetKey
@@ -269,37 +271,39 @@ module.exports = {
     }
 
     const maxMatches = Number(this.data.maxMatches) || 0;
-    const M = Number(this.data.editM) || 1;
-    const C = Math.max(1, Math.min(10, Number(this.data.editC) || 1));
+    const M = Number(retryPayload ? retryPayload.totalMatches : this.data.editM) || 1;
+    const C = Math.max(1, Math.min(10, Number(retryPayload ? retryPayload.courts : this.data.editC) || 1));
     if (maxMatches > 0 && M > maxMatches) {
       wx.showToast({ title: `总场次不能超过最大可选 ${maxMatches} 场`, icon: 'none' });
       return;
     }
 
-    const endConditionType = this.data.showSquadEndCondition
+    const endConditionType = retryPayload ? retryPayload.endConditionType : this.data.showSquadEndCondition
       ? viewModel.normalizeEndConditionType(this.data.endConditionType)
       : 'total_matches';
-    const endConditionTarget = endConditionType === 'total_matches'
+    const endConditionTarget = retryPayload ? retryPayload.endConditionTarget : endConditionType === 'total_matches'
       ? M
       : viewModel.clampTarget(this.data.endConditionTarget, this.data.endConditionTargetOptions);
 
     const actionKey = `settings:updateSettings:${this.data.tournamentId}`;
     const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'update_settings');
+    const payload = Object.freeze(retryPayload ? { ...retryPayload } : {
+      tournamentId: this.data.tournamentId,
+      name,
+      totalMatches: M,
+      courts: C,
+      pointsPerGame: Number(this.data.pointsPerGame) || 21,
+      endConditionType,
+      endConditionTarget,
+      clientRequestId
+    });
     const lifecycleGeneration = Number(this._lifecycleGeneration || 0);
     if (actionGuard.isBusy(actionKey)) return;
+    this.clearLastFailedAction();
     return actionGuard.runWithCriticalPageBusy(this, 'settingsBusy', actionKey, async () => {
       wx.showLoading({ title: '保存中...' });
       try {
-        cloud.assertWriteResult(await cloud.call('updateSettings', {
-          tournamentId: this.data.tournamentId,
-          name,
-          totalMatches: M,
-          courts: C,
-          pointsPerGame: Number(this.data.pointsPerGame) || 21,
-          endConditionType,
-          endConditionTarget,
-          clientRequestId
-        }), '保存失败');
+        cloud.assertWriteResult(await cloud.call('updateSettings', payload), '保存失败');
         if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) {
           wx.hideLoading();
           return;
@@ -315,6 +319,8 @@ module.exports = {
           nav.setLobbyIntent(this.data.tournamentId, 'focus_start');
         }
         if (this._autoBackTimer) clearTimeout(this._autoBackTimer);
+        this._autoBackTimer = null;
+        if (this.hasUnsavedSettingsDraft()) return;
         this._autoBackTimer = setTimeout(() => {
           nav.navigateBackOrRedirect(nav.buildTournamentUrl('/pages/lobby/index', this.data.tournamentId));
         }, 420);
@@ -323,7 +329,7 @@ module.exports = {
         if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         await this.fetchTournament(this.data.tournamentId);
         if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
-        this.setLastFailedAction('修改比赛', () => this.saveSettings({ clientRequestId }), { actionKey });
+        this.setLastFailedAction('修改比赛', () => this.saveSettings({ clientRequestId, payload }), { actionKey });
         this.handleWriteError(e, '保存失败', () => this.fetchTournament(this.data.tournamentId));
       }
     });

@@ -1,4 +1,5 @@
 const storage = require('../../core/storage');
+const auth = require('../../core/auth');
 const normalize = require('../../core/normalize');
 const playerUtils = require('../../core/playerUtils');
 const perm = require('../../permission/permission');
@@ -371,6 +372,8 @@ Page({
   ...scheduleSyncController,
 
   onLoad(options) {
+    this._pageActive = true;
+    this._identityGeneration = 0;
     this._initialRoundFocusHandled = false;
     const tid = String((options && options.tournamentId) || '').trim();
     this.openid = (getApp().globalData.openid || storage.get('openid', ''));
@@ -394,9 +397,12 @@ Page({
 
     this.fetchTournament(tid);
     this.startWatch(tid);
+    this.primeViewerIdentity();
   },
 
   onHide() {
+    this._pageActive = false;
+    this._identityGeneration = Number(this._identityGeneration || 0) + 1;
     pageTournamentSync.pauseTournamentSync(this);
     pageTimers.clearNamedTimer(this, CURRENT_ROUND_FOCUS_TIMER);
     if (this.data.showPlayerFilterSheet || this.data.showStatusFilterSheet) {
@@ -410,6 +416,9 @@ Page({
   },
 
   onShow() {
+    const shouldRefreshIdentity = this._pageActive === false;
+    this._pageActive = true;
+    if (shouldRefreshIdentity) this.primeViewerIdentity();
     this.refreshUiPreferences();
     const currentId = String(this.data.tournamentId || '').trim();
     if (this.data.heroActionBusy) this.setData({ heroActionBusy: false });
@@ -424,11 +433,33 @@ Page({
   },
 
   onUnload() {
+    this._pageActive = false;
+    this._identityGeneration = Number(this._identityGeneration || 0) + 1;
     pageTournamentSync.teardownTournamentSync(this);
     pageTimers.clearNamedTimer(this, CURRENT_ROUND_FOCUS_TIMER);
     if (typeof this._offNetwork === 'function') this._offNetwork();
     this._offNetwork = null;
     this._avatarResolveGen = Number(this._avatarResolveGen || 0) + 1;
+  },
+
+  async primeViewerIdentity() {
+    const generation = Number(this._identityGeneration || 0);
+    try {
+      const openid = String(await auth.login() || '').trim();
+      if (!openid || this._pageActive === false || Number(this._identityGeneration || 0) !== generation) return;
+      const changed = openid !== String(this.openid || '').trim();
+      this.openid = openid;
+      if (changed) {
+        const tournament = this._latestTournament;
+        if (tournament) this.applyTournament(tournament);
+      }
+    } catch (_) {
+      // Identity recovery is silent; existing tournament loading remains usable.
+    }
+  },
+
+  goHome() {
+    nav.goHome();
   },
 
   applyTournament(t) {
@@ -439,6 +470,7 @@ Page({
     if (tournamentName !== String(t.name || '').trim()) {
       t = { ...t, name: tournamentName };
     }
+    this._latestTournament = t;
     pageTitle.setTournamentPageTitle(this, '赛程对阵', t);
 
     const status = t.status || 'draft';
