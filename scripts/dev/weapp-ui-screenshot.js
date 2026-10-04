@@ -1427,7 +1427,7 @@ async function isolatePageDataRuntime(miniProgram, phase) {
     const generationKeys = [
       '_fetchSeq', '_lifecycleGeneration', '_pageLifecycleSeq', '_profileSyncSeq',
       '_identityAttemptSeq', '_recentLoadSeq', '_avatarResolveGen', '_entryGeneration',
-      '_loadRequestSeq', '_feedRequestSeq', '_detailRequestSeq',
+      '_loadRequestSeq', '_feedRequestSeq', '_detailRequestSeq', '_requestSeq',
     ];
     const generations = {};
     generationKeys.forEach((key) => {
@@ -2072,6 +2072,39 @@ async function waitForVisualSettle(page, item, options = {}) {
   throw new Error('Visual state did not stabilize before the deadline.');
 }
 
+async function scrollCaseIntoView(miniProgram, page, selector, timeoutMs = 5000) {
+  // Coordinates are measured at page origin. This uses the SDK's page scroll
+  // API only; it neither taps controls nor calls application business methods.
+  await timeout(miniProgram.pageScrollTo(0), timeoutMs, 'capture scroll origin');
+  const origin = Number(await timeout(page.scrollTop(), timeoutMs, 'capture scroll origin position'));
+  if (!Number.isFinite(origin) || Math.abs(origin) > 1) throw new Error('Capture scroll origin not reached.');
+  const elements = await timeout(page.$$(selector), timeoutMs, 'capture scroll selector');
+  if (elements.length !== 1) throw new Error('Capture scroll selector must match exactly one element.');
+  const [offset, size, info] = await timeout(Promise.all([
+    elements[0].offset(), elements[0].size(), miniProgram.systemInfo(),
+  ]), timeoutMs, 'capture scroll geometry');
+  const sourceTop = Number(offset && offset.top);
+  const height = Number(size && size.height);
+  const windowHeight = Number(selectSystemInfo(info).windowHeight);
+  if (![sourceTop, height, windowHeight].every(Number.isFinite)
+      || sourceTop < 0 || height <= 0 || windowHeight <= 0 || height > windowHeight - 12) {
+    throw new Error('Capture scroll target geometry is invalid or cannot fit the viewport.');
+  }
+  const targetScrollTop = Math.max(0, sourceTop - 12);
+  await timeout(miniProgram.pageScrollTo(targetScrollTop), timeoutMs, 'capture scroll target');
+  const deadline = Date.now() + timeoutMs;
+  let actualScrollTop;
+  do {
+    actualScrollTop = Number(await timeout(page.scrollTop(), Math.max(1, deadline - Date.now()), 'capture scroll position'));
+    if (Number.isFinite(actualScrollTop) && Math.abs(actualScrollTop - targetScrollTop) <= 1) {
+      return { ok: true, selector, sourceTop, height, windowHeight, targetScrollTop,
+        actualScrollTop, viewportTop: sourceTop - actualScrollTop };
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  } while (Date.now() < deadline);
+  throw new Error('Capture scroll target not reached before the deadline.');
+}
+
 async function runCase(name, miniProgram, connection, options = {}) {
   const item = cases[name];
   if (!item) throw new Error(`Unknown case: ${name}`);
@@ -2103,6 +2136,7 @@ async function runCase(name, miniProgram, connection, options = {}) {
   let stateBefore = null;
   let visualSettle = null;
   let selectorReadiness = null;
+  let scrollEvidence = null;
   let result = {
     kind: 'weapp-ui-capture-receipt-v1',
     captureSurface: {
@@ -2149,6 +2183,9 @@ async function runCase(name, miniProgram, connection, options = {}) {
     }
     await page.setData({ __uiCaptureNonce: fixtureNonce });
     selectorReadiness = await waitForCaseReady(page, item, config.readinessTimeoutMs);
+    if (item.scrollToSelector) {
+      scrollEvidence = await scrollCaseIntoView(miniProgram, page, item.scrollToSelector);
+    }
     visualSettle = await waitForVisualSettle(page, item);
     stateBefore = await page.data();
     const [rawToolInfo, currentPageInfo, rawSystemInfo, pageSize] = await Promise.all([
@@ -2233,6 +2270,7 @@ async function runCase(name, miniProgram, connection, options = {}) {
       caseDefinitionHash: hashCanonical(item),
       caseData,
       visualSettle,
+      scrollEvidence,
       manualActions: item.fixture ? manualActions : [],
       receiptValidation,
       captureSurface: receiptValidation.captureSurface,
@@ -2749,6 +2787,7 @@ module.exports = {
   buildProfileGateStorageFixture,
   applyCaseStorageFixture,
   restoreCaseStorageFixture,
+  isolatePageDataRuntime,
   applyFixture,
   cleanupFixture,
   cleanupCaptureRun,
@@ -2767,5 +2806,6 @@ module.exports = {
   finalizeFocusProbeResult,
   waitForCaseReady,
   waitForVisualSettle,
+  scrollCaseIntoView,
   openMiniProgram,
 };

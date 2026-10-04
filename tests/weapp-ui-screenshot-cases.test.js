@@ -164,7 +164,7 @@ test('water screenshot case targets the V2 ledger instead of retired scoreboards
   assert.doesNotMatch(JSON.stringify(screenshotTool.cases), /\.water-scoreboard|\.water-hero/);
 });
 
-test('tracked screenshot registry covers all 15 pages and match risk states without remote assets', () => {
+test('tracked screenshot registry covers every registered page and match risk states without remote assets', () => {
   const appConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'miniprogram/app.json'), 'utf8'));
   const coveredPages = new Set(Object.values(screenshotTool.cases).map((item) => (
     String(item.path || '').split('?')[0].replace(/^\//, '')
@@ -182,8 +182,166 @@ test('tracked screenshot registry covers all 15 pages and match risk states with
   assert.equal(screenshotTool.cases.create.data.modeLabel, '多人转');
   assert.equal(screenshotTool.cases.matchEditing.selectors.includes('.score-wheel'), false);
   assert.deepEqual(screenshotTool.cases.settings.selectors, [
-    '.settings-page', '.context-panel', '#section-params',
+    '.settings-page', '.context-panel', '#section-params', '.settings-save',
   ]);
+});
+
+test('recovery screenshot cases cover list, empty, error and loading with real display fields', async () => {
+  const recovery = require('../miniprogram/core/tournamentRecovery');
+  const cloud = require('../miniprogram/core/cloud');
+  const names = ['tournamentList', 'tournamentListEmpty', 'tournamentListError', 'tournamentListLoading'];
+  names.forEach((name) => {
+    const item = screenshotTool.cases[name];
+    assert.ok(item, name);
+    assert.equal(item.path, '/pages/tournament-list/index');
+    assert.equal(item.fixture, undefined, 'generic pages must use the page-data isolation path');
+    assert.equal(item.data.hasMore, false);
+  });
+  const list = screenshotTool.cases.tournamentList;
+  assert.equal(list.data.items.length, 3);
+  const originalCall = cloud.call;
+  try {
+    cloud.call = async () => ({ ok: true, data: { items: [{ id: '__ui_recovery_running', name: '周末羽毛球赛',
+      status: 'running', mode: 'multi_rotate', roles: ['owner', 'participant'], completedMatches: 1, totalMatches: 2 }], hasMore: false } });
+    assert.deepEqual(list.data.items[0], (await recovery.getPage()).items[0]);
+  } finally { cloud.call = originalCall; }
+  assert.equal(list.selectorExpectations['.recovery-item'], 3);
+  assert.deepEqual(screenshotTool.cases.tournamentListEmpty.data,
+    { items: [], loading: false, loaded: true, hasMore: false, error: '' });
+  assert.equal(screenshotTool.cases.tournamentListError.data.loaded, false);
+  assert.ok(screenshotTool.cases.tournamentListError.data.error);
+  assert.equal(screenshotTool.cases.tournamentListLoading.data.loading, true);
+  assert.equal(screenshotTool.cases.tournamentListLoading.data.loaded, false);
+});
+
+test('manual-finish screenshot cases retain completed score and distinguish ready, busy and canceled', () => {
+  const ready = screenshotTool.cases.scheduleManualFinishReady;
+  const busy = screenshotTool.cases.scheduleManualFinishBusy;
+  const finished = screenshotTool.cases.scheduleManualFinished;
+  assert.ok(ready && busy && finished);
+  assert.equal(ready.data.canFinishTournament, true);
+  assert.equal(ready.data.manualFinishBusy, false);
+  assert.equal(busy.data.manualFinishBusy, true);
+  assert.equal(ready.data.finishCompletedMatches, 1);
+  assert.equal(ready.data.finishRemainingMatches, 1);
+  assert.deepEqual(busy.data.tournament, ready.data.tournament);
+  assert.equal(finished.data.canFinishTournament, false);
+  assert.equal(finished.data.showFinishedShareActions, true);
+  assert.equal(finished.data.heroPendingText, '已完成 1 场，取消 1 场');
+  assert.equal(finished.data.tournament.finishMeta.type, 'manual');
+  const matches = finished.data.tournament.rounds[0].matches;
+  assert.deepEqual(matches[0], ready.data.tournament.rounds[0].matches[0]);
+  assert.equal(matches[0].scoreA, 21);
+  assert.equal(matches[0].scoreB, 17);
+  assert.equal(matches[1].cancelReason, 'manual_finish');
+  assert.equal(finished.data.roundsUi[0].matchesUi[1].statusText, '已取消');
+  const pagePath = require.resolve('../miniprogram/pages/schedule/index.js');
+  const previousPage = global.Page;
+  const previousModule = require.cache[pagePath];
+  let definition;
+  global.Page = (value) => { definition = value; };
+  try { delete require.cache[pagePath]; require(pagePath); }
+  finally {
+    global.Page = previousPage;
+    if (previousModule) require.cache[pagePath] = previousModule;
+    else delete require.cache[pagePath];
+  }
+  [ready, finished].forEach(({ data }) => {
+    const page = { ...definition, openid: '__ui_owner', data: globalThis.structuredClone(definition.data),
+      setData(patch) { Object.assign(this.data, patch); }, refreshAvatarDisplays: async () => {} };
+    page.applyTournament(data.tournament);
+    ['statusText', 'canFinishTournament', 'showFinishedShareActions', 'finishCompletedMatches', 'finishRemainingMatches', 'heroMatchText']
+      .forEach((key) => assert.equal(data[key], page.data[key], key));
+    const rows = page.data.roundsUi[0].matchesUi;
+    assert.equal(rows[0].leftScoreText, data.roundsUi[0].matchesUi[0].leftScoreText);
+    assert.equal(rows[0].rightScoreText, data.roundsUi[0].matchesUi[0].rightScoreText);
+    assert.equal(rows[1].statusText, data.roundsUi[0].matchesUi[1].statusText);
+  });
+});
+
+test('co-manager screenshots derive real owner, bound member, guest and revoked role states', () => {
+  const lobbyVm = require('../miniprogram/pages/lobby/lobbyViewModel');
+  const names = ['lobbyCoManagerOwner', 'lobbyCoManagerOwnerBusy', 'lobbyCoManagerMember', 'lobbyCoManagerRevoked'];
+  names.forEach((name) => assert.ok(screenshotTool.cases[name], name));
+  const owner = screenshotTool.cases.lobbyCoManagerOwner.data;
+  const member = screenshotTool.cases.lobbyCoManagerMember.data;
+  const revoked = screenshotTool.cases.lobbyCoManagerRevoked.data;
+  assert.equal(owner.showCoManagerManagement, true);
+  assert.equal(owner.coManagerCandidates.find((item) => item.id === 'guest_ui').canGrant, false);
+  assert.equal(owner.coManagerCandidates.filter((item) => item.canGrant).length, 2);
+  assert.equal(screenshotTool.cases.lobbyCoManagerOwnerBusy.data.coManagerBusy, true);
+  assert.equal(member.isAdmin, false);
+  assert.equal(member.canManageTournament, true);
+  assert.equal(member.showCoManagerManagement, false);
+  assert.equal(member.showDraftAdminPanel, true);
+  assert.equal(revoked.canManageTournament, false);
+  assert.equal(revoked.showDraftAdminPanel, false);
+  assert.equal(revoked.canEditScore, true);
+  [member, revoked].forEach((data) => {
+    const actual = lobbyVm.buildLobbyViewModel({ tournament: data.tournament, openid: '__ui_member' }).patch;
+    ['isAdmin', 'isCoManager', 'canManageTournament', 'showCoManagerManagement', 'showDraftAdminPanel', 'canEditScore']
+      .forEach((key) => assert.equal(data[key], actual[key], key));
+  });
+  const settings = screenshotTool.cases.settingsCoManager.data;
+  assert.equal(settings.isAdmin, false);
+  assert.equal(settings.canManageTournament, true);
+  assert.equal(settings.canConfigureSettings, true);
+  assert.ok(screenshotTool.cases.settingsCoManager.selectors.includes('.settings-save'));
+});
+
+test('new-feature fixtures only declare local data and never call business methods or pin receipt width', () => {
+  const names = ['tournamentList', 'tournamentListEmpty', 'tournamentListError', 'tournamentListLoading',
+    'scheduleManualFinishReady', 'scheduleManualFinishBusy', 'scheduleManualFinished',
+    'lobbyCoManagerOwner', 'lobbyCoManagerOwnerBusy', 'lobbyCoManagerMember', 'lobbyCoManagerRevoked', 'settingsCoManager'];
+  names.forEach((name) => {
+    const item = screenshotTool.cases[name];
+    assert.ok(item, name);
+    assert.equal(item.fixture, undefined, `${name} must not invoke page methods`);
+    assert.equal(item.storageFixture, undefined, `${name} must not inject identities into storage`);
+    assert.equal(item.expectedWindowWidth, undefined);
+    assert.equal(item.strictReceipt, undefined);
+    assert.doesNotMatch(JSON.stringify(item), /https?:\/\//);
+    const dom = item.selectors.flatMap((selector) => {
+      const expectation = item.selectorExpectations && item.selectorExpectations[selector];
+      const count = typeof expectation === 'number' ? expectation : (expectation && expectation.expectedCount || 1);
+      return Array.from({ length: count }, (_, index) => ({ selector, index, size: { width: 100, height: 48 } }));
+    });
+    assert.equal(screenshotTool.validateSelectorCoverage(dom, item.selectors, item.selectorExpectations).ok, true,
+      `${name} must use selector counts supported by the real runner`);
+  });
+});
+
+test('real page-data isolation discards a late recovery response without business writes', async () => {
+  const previousPages = global.getCurrentPages;
+  const vm = require('node:vm');
+  let definition;
+  let resolvePage;
+  const pendingPage = new Promise((resolve) => { resolvePage = resolve; });
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../miniprogram/pages/tournament-list/index.js'), 'utf8'), {
+    Page(value) { definition = value; },
+    require(name) {
+      if (name === '../../core/tournamentRecovery') return { getPage: () => pendingPage };
+      if (name === '../../core/cloud') return {};
+      if (name === '../../core/nav') return {};
+      throw new Error(`Unexpected dependency: ${name}`);
+    },
+  });
+  const page = { ...definition, _requestSeq: 4, data: { ...definition.data },
+    setData(patch) { Object.assign(this.data, patch); } };
+  const load = page.loadList(true);
+  global.getCurrentPages = () => [page];
+  try {
+    const result = await screenshotTool.isolatePageDataRuntime({ evaluate: async (fn, phase) => fn(phase) }, 'before');
+    assert.equal(result.ok, true);
+    assert.equal(result.generations._requestSeq, 1000005);
+    page.setData(globalThis.structuredClone(screenshotTool.cases.tournamentListEmpty.data));
+    resolvePage({ items: [{ id: 'late remote response' }], hasMore: true, cursor: 'late' });
+    await load;
+    assert.deepEqual(page.data, screenshotTool.cases.tournamentListEmpty.data);
+    assert.deepEqual(result.methodCalls, []);
+  } finally {
+    global.getCurrentPages = previousPages;
+  }
 });
 
 test('V2 water screenshots record native runtime provenance and viewport width', () => {
@@ -530,4 +688,30 @@ test('connect-preopened provenance fails closed without exact Tool path or a val
     connection,
     toolInfo: { projectPath: path.resolve('other-project') },
   }).ok, false);
+});
+
+test('settings capture fixtures match real owner, co-manager and read-only permissions and save visibility', () => {
+  const settingsVm = require('../miniprogram/pages/settings/settingsViewModel');
+  const owner = screenshotTool.cases.settings;
+  const member = screenshotTool.cases.settingsCoManager;
+  const viewer = { data: { ...member.data, isAdmin: false, canManageTournament: false } };
+  [
+    { name: 'owner', item: owner, openid: '__ui_settings_owner', isAdmin: true, canManageTournament: true },
+    { name: 'co-manager', item: member, openid: '__ui_member', isAdmin: false, canManageTournament: true },
+    { name: 'read-only', item: viewer, openid: '__ui_unbound_viewer', isAdmin: false, canManageTournament: false },
+  ].forEach(({ name, item, openid, isAdmin, canManageTournament }) => {
+    const actual = settingsVm.buildSettingsFormState(item.data.tournament, { openid });
+    assert.equal(actual.isAdmin, isAdmin, name + ' real owner marker');
+    assert.equal(actual.canManageTournament, canManageTournament, name + ' real management ability');
+    ['isAdmin', 'canManageTournament'].forEach((key) => assert.equal(item.data[key], actual[key], name + ' ' + key));
+  });
+  assert.match(owner.data.tournament.creatorId, /^__ui_/);
+  [owner, member].forEach((item) => {
+    assert.equal(item.selectors.filter((selector) => selector === '.settings-save').length, 1);
+    assert.equal(item.selectorExpectations['.settings-save'], 1);
+    assert.equal(item.data.canManageTournament && item.data.tournament.status === 'draft' && item.data.canConfigureSettings, true);
+    assert.equal(item.fixture, undefined);
+    assert.equal(item.storageFixture, undefined);
+  });
+  assert.equal(viewer.data.canManageTournament && viewer.data.tournament.status === 'draft' && viewer.data.canConfigureSettings, false);
 });

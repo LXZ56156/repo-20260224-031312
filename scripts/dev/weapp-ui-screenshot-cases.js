@@ -1,6 +1,7 @@
 'use strict';
 
 const waterV2Fixtures = require('./water-v2-screenshot-fixtures');
+const { buildLobbyViewModel } = require('../../miniprogram/pages/lobby/lobbyViewModel');
 
 const manualActions = [
   '原生 picker 展开态与滚轮选择',
@@ -536,18 +537,20 @@ const cases = {
   },
   settings: {
     path: '/pages/settings/index?tournamentId=demo',
-    selectors: ['.settings-page', '.context-panel', '#section-params'],
+    selectors: ['.settings-page', '.context-panel', '#section-params', '.settings-save'],
     selectorExpectations: {
       '.settings-page': 1,
       '.context-panel': 1,
       '#section-params': 1,
+      '.settings-save': 1,
     },
     data: {
       tournamentId: 'demo',
-      tournament: { _id: 'demo', name: '周末羽毛球赛', status: 'draft', totalMatches: 21, courts: 2 },
+      tournament: { _id: 'demo', name: '周末羽毛球赛', creatorId: '__ui_settings_owner', status: 'draft', totalMatches: 21, courts: 2 },
       pageTitle: '修改比赛',
       contextTitle: '仅草稿阶段可修改比赛信息',
       isAdmin: true,
+      canManageTournament: true,
       name: '周末羽毛球赛',
       editM: 21,
       editC: 2,
@@ -738,6 +741,140 @@ cases.settings.styleExpectations = { '.status-pill': { display: 'flex' } };
 cases.waterV2Member24Game.styleExpectations = {
   '.water-player-grid': { display: 'grid' },
   '.water-side-switch button': { display: 'flex', 'align-items': 'center' },
+};
+
+// New features use pure display projections and the generic page-data isolation
+// path. No fixture invokes a business action or injects an identity into storage.
+cases.tournamentList = {
+  path: '/pages/tournament-list/index',
+  selectors: ['.recovery-page', '.recovery-intro', '.recovery-item', '.recovery-notice'],
+  selectorExpectations: { '.recovery-page': 1, '.recovery-intro': 1, '.recovery-item': 3, '.recovery-notice': 1 },
+  data: {
+    items: [
+      { id: '__ui_recovery_running', name: '周末羽毛球赛', statusText: '进行中', modeText: '多人轮转',
+        roleText: '主办 · 参赛', progressText: '1 / 2 场已完成' },
+      { id: '__ui_recovery_draft', name: '周三下班后的羽毛球比赛 · 等待球友加入', statusText: '未开赛', modeText: '固定搭档',
+        roleText: '参赛', progressText: '0 / 6 场已完成' },
+      { id: '__ui_recovery_finished', name: '国庆小队双打', statusText: '已结束', modeText: '小队双打',
+        roleText: '主办', progressText: '4 / 6 场已完成' },
+    ],
+    loading: false, loaded: true, hasMore: false, error: '',
+  },
+};
+cases.tournamentListEmpty = {
+  path: cases.tournamentList.path,
+  selectors: ['.recovery-page', '.recovery-intro', '.state-empty', '.state-empty-title'],
+  data: { items: [], loading: false, loaded: true, hasMore: false, error: '' },
+};
+cases.tournamentListError = {
+  path: cases.tournamentList.path,
+  selectors: ['.recovery-page', '.state-error', '.state-error-desc', '.recovery-action'],
+  selectorExpectations: { '.state-error': 1, '.recovery-action': 1 },
+  data: { items: [], loading: false, loaded: false, hasMore: false, error: '比赛加载失败，请稍后重试' },
+};
+cases.tournamentListLoading = {
+  path: cases.tournamentList.path,
+  selectors: ['.recovery-page', '.recovery-intro', '.recovery-notice'],
+  selectorExpectations: { '.recovery-notice': 1 },
+  data: { items: [], loading: true, loaded: false, hasMore: false, error: '' },
+};
+
+const roleTournament = {
+  _id: '__ui_roles', name: '周末羽毛球赛', creatorId: '__ui_owner', status: 'draft', version: 1,
+  mode: 'multi_rotate', totalMatches: 2, courts: 1, pointsPerGame: 21, settingsConfigured: true,
+  coManagers: ['__ui_member'],
+  players: [
+    { id: '__ui_owner', name: '阿杰', gender: 'male' },
+    { id: '__ui_member', name: '小林', gender: 'female' },
+    { id: '__ui_bound', name: '周末限定超长昵称的球友', gender: 'male' },
+    { id: 'guest_ui', name: '导入成员', type: 'guest', gender: 'female' },
+  ],
+  playerIds: ['__ui_owner', '__ui_member', '__ui_bound', 'guest_ui'],
+};
+function roleDisplayData(tournament, openid, coManagerBusy = false) {
+  return JSON.parse(JSON.stringify({
+    ...buildLobbyViewModel({ tournament, openid }).patch,
+    tournament, tournamentId: tournament._id, coManagerBusy,
+    adminPanelExpanded: true, showGrowthOnboardingGuide: false, showJoinSheet: false,
+    syncStatusVisible: false, loadError: false, canRetryAction: false,
+  }));
+}
+cases.lobbyCoManagerOwner = {
+  path: '/pages/lobby/index?id=__ui_roles',
+  scrollToSelector: '.co-managers-panel',
+  selectors: ['.lobby-page', '.co-managers-panel', '.co-manager-row', '.co-manager-action'],
+  selectorExpectations: { '.co-managers-panel': 1, '.co-manager-row': 4, '.co-manager-action': 2 },
+  data: roleDisplayData(roleTournament, '__ui_owner'),
+};
+cases.lobbyCoManagerOwnerBusy = {
+  ...cases.lobbyCoManagerOwner,
+  data: roleDisplayData(roleTournament, '__ui_owner', true),
+};
+cases.lobbyCoManagerMember = {
+  path: cases.lobbyCoManagerOwner.path,
+  scrollToSelector: '.co-managers-panel',
+  selectors: ['.lobby-page', '.hero-meta-pill', '.co-managers-panel', '.admin-panel'],
+  selectorExpectations: { '.hero-meta-pill': 2, '.co-managers-panel': 1, '.admin-panel': 1 },
+  data: roleDisplayData(roleTournament, '__ui_member'),
+};
+cases.lobbyCoManagerRevoked = {
+  path: cases.lobbyCoManagerOwner.path,
+  selectors: ['.lobby-page', '.hero-meta-pill', '.player-grid'],
+  selectorExpectations: { '.hero-meta-pill': 1, '.player-grid': 1 },
+  data: roleDisplayData({ ...roleTournament, version: 2, coManagers: [] }, '__ui_member'),
+};
+cases.settingsCoManager = {
+  ...cases.settings,
+  path: '/pages/settings/index?tournamentId=__ui_roles',
+  selectors: [...cases.settings.selectors],
+  selectorExpectations: { ...cases.settings.selectorExpectations, '.settings-save': 1 },
+  data: { ...cases.settings.data, tournamentId: roleTournament._id, tournament: roleTournament,
+    isAdmin: false, isCoManager: true, canManageTournament: true, editM: 2, editC: 1,
+    mOptions: [2], courtOptions: [1] },
+};
+
+const completedMatch = { matchIndex: 0, status: 'finished', teamA: roleTournament.players.slice(0, 2),
+  teamB: roleTournament.players.slice(2), scoreA: 21, scoreB: 17, scorerId: '__ui_owner', scorerName: '阿杰' };
+const pendingMatch = { matchIndex: 1, status: 'pending', teamA: [roleTournament.players[0], roleTournament.players[2]],
+  teamB: [roleTournament.players[1], roleTournament.players[3]] };
+const runningTournament = { ...roleTournament, _id: '__ui_finish', status: 'running',
+  rounds: [{ roundIndex: 0, matches: [completedMatch, pendingMatch] }] };
+const completedDisplay = { key: '0-0', roundIndex: 0, matchIndex: 0, title: '第1场', status: 'finished',
+  showScore: true, leftScoreText: '21', rightScoreText: '17', leftScoreClass: 'score-win', rightScoreClass: '',
+  leftTeam: { text: '阿杰 / 小林', avatarItems: [] }, rightTeam: { text: '周末限定超长昵称的球友 / 导入成员', avatarItems: [] },
+  scorerText: '录分：阿杰' };
+const pendingDisplay = { key: '0-1', roundIndex: 0, matchIndex: 1, title: '第2场', status: 'pending',
+  statusText: '待录分', statusClass: 'pill-pending', showScore: false, isFirstPending: true,
+  leftTeam: { text: '阿杰 / 周末限定超长昵称的球友', avatarItems: [] }, rightTeam: { text: '小林 / 导入成员', avatarItems: [] } };
+cases.scheduleManualFinishReady = {
+  path: '/pages/schedule/index?id=__ui_finish',
+  selectors: ['.schedule-page', '.hero', '.hero-management', '.manual-finish-btn', '.hero-primary'],
+  selectorExpectations: { '.hero-management': 1, '.manual-finish-btn': 1, '.hero-primary': 1 },
+  data: { ...cases.schedule.data, tournament: runningTournament, tournamentId: runningTournament._id,
+    heroSummaryText: '多人转 · 2场', statusClass: 'hero-status-running', statusText: '进行中',
+    heroMatchText: '1 / 2 场', heroPendingText: '还有 1 场待完成', heroProgressPercent: 50,
+    nextActionText: '继续录分', nextActionKey: 'batch', heroActionBusy: false,
+    canFinishTournament: true, manualFinishBusy: false, finishCompletedMatches: 1, finishRemainingMatches: 1,
+    showFinishedShareActions: false, showFilterBar: true, selectedPlayersUi: [], avatarFilterLabel: '含有', statusFilterLabel: '全部对阵',
+    roundsUi: [{ roundIndex: 0, isCurrentRound: true, matchesUi: [completedDisplay, pendingDisplay] }] },
+};
+cases.scheduleManualFinishBusy = {
+  ...cases.scheduleManualFinishReady,
+  data: { ...cases.scheduleManualFinishReady.data, manualFinishBusy: true },
+};
+cases.scheduleManualFinished = {
+  path: cases.scheduleManualFinishReady.path,
+  selectors: ['.hero', '.hero-finished-share', '.hero-finished-actions .btn', '.pill-canceled'],
+  selectorExpectations: { '.hero-finished-share': 1, '.hero-finished-actions .btn': 2,
+    '.pill-canceled': 1 },
+  data: { ...cases.scheduleManualFinishReady.data,
+    tournament: { ...runningTournament, status: 'finished', version: 2,
+      finishMeta: { type: 'manual', completedMatches: 1, canceledMatches: 1 },
+      rounds: [{ roundIndex: 0, matches: [completedMatch, { ...pendingMatch, status: 'canceled', cancelReason: 'manual_finish' }] }] },
+    statusClass: 'hero-status-finished', statusText: '已提前结束', heroPendingText: '已完成 1 场，取消 1 场', heroProgressPercent: 100,
+    nextActionText: '', nextActionKey: '', canFinishTournament: false, showFinishedShareActions: true,
+    roundsUi: [{ roundIndex: 0, isCurrentRound: false, matchesUi: [completedDisplay,
+      { ...pendingDisplay, status: 'canceled', statusText: '已取消', statusClass: 'pill-canceled', isFirstPending: false }] }] },
 };
 
 module.exports = { cases, manualActions };
