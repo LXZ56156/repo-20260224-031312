@@ -46,3 +46,17 @@
 DevTools 基线截图因安装器升级且原exe写入失败而终止，本次入口真实DevTools图、原生确认/取消、320/390/430、大字、Android/iPhone与人工验收未完成。未以浏览器/数学检查代替。
 
 真实 SDK/CloudBase 事务冲突与回放、活跃锁查询索引/耗时、Timeout3、权限规则及微信身份、双手机并发仍待隔离环境验证。离线 MVCC fixture 只建模写冲突，不等同平台引擎；SDK源码/官方文档核对若另有回执，也只证明支持能力。未部署云函数、写生产数据、上传客户端、生成preview/QR、付款、commit或push。
+
+## 2026-10-04 依序续做：当前候选与合同核对
+
+从main/master、HEAD `59edc0d5ebf3c9dde09620e41e224d9c7f0988b5`开始，第7前后端已在此前源码交付，不能沿用上方10-03“未commit/push”作当前状态。Luna只读核对主办权限、锁/赛事共享写冲突、录分事务、更正/重置与确认/固定重试，未发现新的可达缺陷；[核对报告](../../../tmp/finish-seven-current-20261004-readonly/assessment.md)保留取证SHA。主控核其规格SHA cbadcb79对应本轮已修改的工作字节，原HEAD规格为ffadc448，不能称取自修改前；规格仅同步第7既有实现事实，没有改源码或扩大产品范围。历史38/167及最近全量1707通过/6跳过/0失败按原时点保留，本轮没有重跑应用测试或GUI。
+
+独立[候选差异核对](../../../tmp/finish-seven-candidate-delta-20261004/assessment.md)发现旧finish包只有index与当前不同，三hunk均为后来已交付的2500ms可选分享截止；其余12源相同。scoreLock旧12源、reset旧13源与canonical HEAD逐byte相同，不因本轮重建；[第5新submit候选](../../../tmp/score-five-candidate-current-20261004-retry2/manifest.json)13源也对应当前Git，保留工作CRLF与Git LF的原两套SHA。新finish从Git tracked blobs取13源，工作原字节也相同；9个共享库沿当前模板，不从历史快照覆盖工作源码。
+
+Sol high在全新[本地候选根](../../../tmp/finish-seven-candidate-current-20261004/summary.json)准备并执行，主控完整审工具后GO；7执行工具/输入在wrapper启动前冻结SHA，旧extract/zip/offline三工具与此前已审版字节一致，执行后未变。实际上海22:09:55–22:11:54，prepare及旧依赖提取、ZIP、Windows24.18/16.13离线require四子进程均数值exit0。旧6381成员逐SHA/CRC后只排他提取6368依赖，未复制旧index；新6381成员/36434770解包B、37585572 ZIP B，SHA `a325209eea293e0d66d9856f43cb6775340940281e9399ff5082b31455d757fc`，全成员SHA/CRC、无extra与重复构建字节核验通过。两runtime各加载409真实模块，SDK2.6.3、main未调用/网络0；两个require的stderr均为空，但不外推为全部依赖警告已修复。
+
+真实exec外层数值0另存[外层回执](../../../tmp/finish-seven-candidate-current-20261004/outer-exec-receipt.json)，不以四子进程通过替代整体退出。旧finish产物、三复用包、工具、已有Node16、工作源和未跟踪单打前后保全；本轮没有安装依赖、升级、下载、创建环境、云调用、部署或客户端上传。targetEnv=null/isolationOnly=true，包只用于隔离准备，不是生产回退，也不证明CloudBase Linux runtime、真实身份/规则/引擎或3秒余量。
+
+Luna[单次窄核](../../../tmp/finish-seven-candidate-delta-20261004/cold-package.md)确认实际ZIP SHA/6381唯一中央目录项及13源码成员对应固定Git blobs/工作字节、7执行文件与freeze/before/manifest/当前哈希一致、外层和四子进程数值0、两个离线回执main未调用/网络0。只实读源码成员并核CRC；完整依赖成员CRC/SHA、重复构建和实际require依据构建执行回执，没有重复inflate依赖或运行程序。主控文档核验93个本地引用/current1488字符、16原dirty及57相关源保全、差异检查通过；追加本段后最终链接和stage仍再核。
+
+验收顺序和范围复用[隔离清单](2026-10-03-new-cloud-isolation-checklist.md)：finish+scoreLock同组，submitScore事务/人工取消保护及reset清finishMeta配套，不能只部署finish。原生确认/取消、窄屏/大字/真机、实际锁query/索引/耗时、事务回放/回滚、双机与3秒均未验；旧390画面与离线fixture不替代。当前原生工具仍无有效新会话，不盲重试；云/手机按用户暂停/后做边界保留。2500ms只约束可选提交后分享/诊断，既不取消已发请求，也不限制关键事务。完整第7未完成，唯一最新状态见[第7进度](../paused-plan-status.md#10-04依序续做第7项提前收赛)。

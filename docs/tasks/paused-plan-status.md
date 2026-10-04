@@ -42,6 +42,12 @@
 - **当前留痕与验证边界**：实际为water_enter的view、water_create/add_members/join的attempt/result，以及water_record_game/direct结果中的firstEntry；仅V2原始事件权威seq=1成功为yes，重放为replayed，失败或缺证据为unknown。拟议water_first_entry不等于已有独立事件；匿名会话不能连接跨设备的新建队列，不能由现事件算可靠新账本七日率。既有测试有成员权限、两种写入及幂等覆盖，但没有单独贯通V2 recordDirect首笔遥测与失败后同request ID重试的组合；这是覆盖边界，不是复现故障或本轮通过结果。历史141项、最近全量1707通过/6跳过/0失败按原时点保留，不重复运行。
 - **剩余项与下一步**：已询问用户通常手动加名字还是先邀请、曾卡在哪一步，尚待答；该可选场景信息不作为执行许可。真实首次使用观察、后台实收/逐ID查询、可靠测试样本排除、成熟七日新账本率及手机仍未验，完整第6未完成。云端和手机继续按用户暂停/后做边界；本地本项核对已结束，后续按编号推进第7时保留上述待验。详情追加到[原诊断日志](session-logs/2026-10-03-water-first-entry-diagnosis.md)，只读证据`tmp/water-six-current-20261004-readonly/assessment.md`及文件SHA保留。
 
+## 10-04依序续做：第7项提前收赛
+
+- **范围与源码核对**：用户要求“下一项”，本轮main/master/HEAD `59edc0d5ebf3c9dde09620e41e224d9c7f0988b5`、index空；原16个dirty文件、私有配置、单打候选、QR、partial和全部旧证据保留。两名Luna分别只读合同/直接测试与候选差异，Sol high只准备新ignored本地包；不访问CloudBase或GUI、部署、上传、付款或写业务。当前主办/running/至少一场有效比分、全赛事活跃锁拒绝、锁同事务写赛事revision、已录比分保留/余场取消、更正不复活/重置清finishMeta、确认后身份/状态复核及固定请求重试均有实现与对应直接覆盖，没有新的可达缺陷。业务源码未改，历史38/167及最近1707通过/6跳过/0失败不重跑。现行规格仅同步第7已实现事实，未改批准范围或第8权限。
+- **补齐当前候选**：独立delta确认旧finish13源仅index缺后来2500ms可选分享截止三hunk；scoreLock12/reset13源逐字节等于当前Git canonical，复用旧包；第5新submit13源与当前Git对应，仅工作index为CRLF，保留两套SHA，不复建/重载这三包。全新`tmp/finish-seven-candidate-current-20261004/`冻结7工具/输入后执行，仅生成finish包；主控执行前全文审prepare/run/audit、源三hunk及复用extract/zip/offline，freeze核验收据在`tmp/finish-seven-root-20261004/preexecution-review.json`。prepare与四个子进程数值exit0，旧ZIP全成员SHA/CRC后仅提取6368依赖；新包13源/6381成员、36434770解包B、37585572 ZIP B，SHA `a325209eea293e0d66d9856f43cb6775340940281e9399ff5082b31455d757fc`。新包完整成员SHA/CRC/extra0与重复字节通过；Windows24.18/16.13各实际加载409模块、真实SDK2.6.3、main未调用/网络0。工具、旧finish包、复用三包、已有Node16和工作源前后保全，targetEnv=null/isolationOnly=true；仅当前本地候选，不是生产回退或平台接受回执。
+- **退出回执与剩余验收**：真实exec外层数值0另存outer-exec-receipt.json，不以四子进程通过替代整体退出。finish与scoreLock必须同组，submit事务/manual保护及reset清标记配套，不单独部署finish。原生确认/取消、320/430及大字、Android/iPhone、真实WX身份/规则、事务冲突/回放/回滚、锁query一致性/索引/耗时、双机并发及整体3秒仍未验；2500ms只限可选分享更新，不证明关键事务及时结束，也不取消已发请求。现有旧390图不替代当前验收；原生工具无新恢复证据，不盲重试。第7本地候选补齐，完整第7仍未完成，后续编号第8协管；[原收赛日志](session-logs/2026-10-03-manual-finish-implementation.md)追加本轮，隔离[原清单](session-logs/2026-10-03-new-cloud-isolation-checklist.md)继续适用。
+
 ## 10-04第4项续做及同步提示反馈
 
 - **范围与保全**：main/master从`94912202a1eb33dc832f00d05d9578fee6cb4105`续做，第3真实实收缺口仍保留，不把进入第4记作前项全完成。既有三配置、单打候选、历史QR/浏览器记录、备份与partial不覆盖。简单只读Luna max、实施Sol high；本轮不登录CloudBase、查云、付款、部署、preview、上传发布或写真实业务。用户手机后做的决定不改。

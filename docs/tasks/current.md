@@ -1,6 +1,6 @@
 # 当前状态
 
-截至2026-10-04；依序续做第6项打水首次记账诊断，本地核对无新可复现缺陷。12项保留；[详细状态](paused-plan-status.md)是唯一进度正文，[总计划](../reports/2026-10-03-online-audit-and-roadmap.md)保留原标准，整体未完成。
+截至2026-10-04；依序续做第7项提前收赛，当前源码无新可达缺陷，补齐本地候选。12项保留；[详细状态](paused-plan-status.md)是唯一进度正文，[总计划](../reports/2026-10-03-online-audit-and-roadmap.md)保留原标准，整体未完成。
 
 ## 当前范围
 
@@ -16,8 +16,10 @@
 
 ## 下一步
 
-第3已推9491220；实收/逐ID/保留权限未验，维持wx.reportEvent。第4已推f7131ee：撤权重试清理、8页同步静默及监听误分类/旧源回调；全量1707通过/6跳过/0失败，[日志](session-logs/2026-10-03-client-defect-repair.md)。原生CLI/AUTO挂起未签发会话，不盲重试；原生图/手机、照片版本/首次错误码待验，未上传。
+第3已推9491220；实收/逐ID/保留权限未验。第4已推f7131ee：同步静默及监听原因修复等，[日志](session-logs/2026-10-03-client-defect-repair.md)。最近全量1707通过/6跳过/0失败，未上传；原生CLI/AUTO挂起无有效会话，图/手机、照片版本/首次错误码待验，不盲重试。
 
-第5当前submitScore/join/start候选与Node16.13/24离线加载已核；[事务日志](session-logs/2026-10-03-score-transaction-repair.md)。真实身份/规则/事务/双机/3秒未验，CloudBase停用。
+第5当前三候选离线通过；真实身份/规则/事务/双机/3秒未验，[事务日志](session-logs/2026-10-03-score-transaction-repair.md)。
 
-第6进入→成员→首笔已只读核对，无新缺陷/代码改动，未重跑测试。首笔实际为water_record_game/direct结果的firstEntry。历史89→5无因果证据；真实使用、实收、测试排除和七日率未验，[诊断日志](session-logs/2026-10-03-water-first-entry-diagnosis.md)。使用场景待答，手机后做；下一项第7提前收赛，待验保留。
+第6只读无新缺陷；真实使用、实收、测试排除和七日率未验，[诊断日志](session-logs/2026-10-03-water-first-entry-diagnosis.md)。场景待答。
+
+第7保留已录比分/取消余场、锁事务、更正/重置保护已实现；本轮补当前finish包并离线加载通过，其他配套源匹配复用。[收赛日志](session-logs/2026-10-03-manual-finish-implementation.md)。原生确认/尺寸/真机、真实云身份/规则/事务/索引及3秒未验，无部署；下一项第8协管，前项待验保留。
