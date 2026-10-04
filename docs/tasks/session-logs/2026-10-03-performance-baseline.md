@@ -93,3 +93,22 @@ schedule路径affected计划选40文件、181项，首次179通过/2失败：旧
 分享留痕接口可用后，先affected计划再复跑预算/基准/分享3文件，最后8项通过/0失败/0跳过；真实Page分享test验证apply无事件、实际分享hook采集paired attempt/result、相同operationId、unknown/DELIVERY_UNKNOWN、不带赛事名，以及report抛错不改变原分享title/path。相关6文件定向ESLint及diff再次通过。最终全量、check及生产门禁由主控登记。
 
 后续留痕scope冷审修复后，主控将同一65文件清单再次计算为`final-integration-source-manifest.json`，sourceHash=`18dfe9feab08fb58e146650f0bf3ee18106ef68e2328df8c18fbebc28b89bf4c`。相对实际两轮测量仍仅activityTracker/schedule不同；这是源码指纹更新，没有新性能样本，不替代benchmark_source。新整合全量1558通过/6跳过/0失败及冷审关闭证据见[主控门禁](2026-10-03-local-stage-validation.md)。
+
+## 10-05依序续做：当前源码本机补测
+
+旧测量保留为旧源码证据。当前schedule JS SHA-256为`3eb333800d88ddd94d6a117172e6368533529e249e8e5748ee8a2440526f26ff`，WXML为`2d6a119680ae2827872774ee1b5d67087802ae7863fb2dcb214f15912a26f9c6`；收赛计数及六份运行闭包源码与旧采样不同。旧报告的Git HEAD对应blob也不同于当时实际采样工作字节，不能凭Git标签还原旧采样源码，不能把耗时变化归因于单一计数扫描。
+
+本轮仅在全新ignored根`tmp/performance-ten-current-20261005/`补一次当前源码计量；原工具、样本及失败证据均保留，没有产品源码/依赖修改。主控全文审四个执行工具和计划，先核35份冻结输入/工具及71份源码SHA，再发root-GO；冻结SHA为`0de4c24bd3eda5870f420bec41c92f2b5e78a5481798affd8da77001ed318cd9`。实际HEAD为`b5523da97f24f2eb7412749cbf0dac945e0f1e29`，相对性能源码ref `136bfda`只有三份文档变化。Windows Node v24.18.0/x64、Ryzen 7 7840H/16逻辑CPU；上海10-05 00:53:04–00:53:12，外层及采样子进程数值exit均0。
+
+复用原runtime/计量/nearest-rank实现及同一匿名fixture，普通660场输入SHA为`14c7094e439b7206ad5c8e1831abd88278e7cdd1f110cd32bb842e0fe5fb65c0`，20字姓名输入SHA为`c4caefdbe4a809e802e0c1082eff27dffbb37dc9bb95ac8ca5572854e90b77d3`。每场景10次预热、100次采样，各仅一轮：
+
+| 当前赛程场景 | JS P50 ms | JS P95 ms | 各patch JSON UTF-8 bytes | 最大patch余量 bytes |
+| --- | ---: | ---: | --- | ---: |
+| 普通姓名660场 | 8.0142 | 12.1420 | 953115 | 95461 |
+| 20字姓名660场 | 13.3977 | 17.1868 | 1054 / 1044467 / 399297 | 4109 |
+
+冻结采样器对200样本实际执行660场source/view、唯一场次键、330已录/330待录及投影断言且进程成功退出；raw每样本记录660计数、公式及patch字节，未保存330/330或全部场次键，离线冷核不能独立复算这些未落盘值。每patch严格小于1048576bytes，长姓名三次合计1444818bytes，不能称总量小于1MiB。相对旧同fixture的头部增加85bytes，对应收赛三字段。JS按`instrumentedMs - setDataCpuMs - ioStubCpuMs`计算；模块加载、夹具解析、Page初始化和完整性断言在计时外，但新增检查仍可能影响后续GC，单轮结果不构成旧/新因果比较或手机提速证明。
+
+raw报告`execution/benchmark-report.json` SHA为`5b3c69d9a1d79209b112688307b4929c9604d1a01d95f51336fa59b4451f6b84`。执行前后35份冻结输入、71份源码、四份旧证据及Node二进制hash相同，65份实际加载源码均在冻结闭包；16份原dirty保全。子进程stderr仅43bytes的`OFFLINE_GUARD`零尝试记录，外层stderr空；这只是Node拦截器范围的证据，不是操作系统断网证明。未调用云/真实业务。主控在`tmp/performance-ten-root-20261005/acceptance.json`独立从200样本重算P50/P95、扣除公式、patch预算及原始流SHA，实际exit0；Luna小报告冷核`tmp/performance-ten-current-readonly-20261005/result-cold.md/json`复算一致，区分执行断言与raw未落盘字段，未追加采样。
+
+预备读取有一次PowerShell不支持Bash花括号的解析失败，改用显式路径后读取成功；没有执行该误写命令的业务代码，原失败保留。`test:affected`只生成两文件六项的计划，本轮未重跑旧测试/全量，也未重复采样、GUI、上传、发布或部署。mock回调同步，无真实微信桥、WXML渲染、滚动、头像网络或手机测量；必要原生及低端Android/iPhone、首屏/云读写/render P95仍未验证，第10整体未完成。

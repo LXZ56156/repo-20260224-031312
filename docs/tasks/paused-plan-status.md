@@ -64,6 +64,13 @@
 - **阶段收口**：Luna最终仅核8实际ZIP整包SHA/中央目录和93源码三方，与24 child/2外层退出/日志SHA及freeze谱系全部匹配，issues空；cold-artifacts.md/json封存于同根，没有重完整依赖CRC/require。主控保全及文档门禁另留`tmp/dependency-nine-root-20261004/`。仅三文档提交推送，候选/工具ignored；第9本地证据补齐，真实云升级验收仍未闭合，按顺序转第10性能，前项待验保留。
 - **剩余标准**：本轮不直接换生产SDK/运行时；真实服务端身份、权限、事务冲突/回滚、错误与日期/int64 wire合同、实际云可选引擎和升级验收仍未完成。上游codec边界/13925快照扫描范围及历史工具审计维持原记录，不由本地加载推断安全或业务兼容。15历史未受管函数责任/调用及1空函数代码也未核实。[对应日志](session-logs/2026-10-03-dependency-inventory.md)追加过程，前项缺口保留。
 
+## 10-05依序续做：第10项当前源码性能
+
+- **范围与源码**：第9三文档已推`b5523da97f24f2eb7412749cbf0dac945e0f1e29`、远端一致。Luna静态核当前schedule与旧采样不同；Sol确认六份运行闭包变化及旧报告Git blob不等于实际采样工作字节，不能将旧数值当当前源码回执或单点提速证据。新根`tmp/performance-ten-current-20261005/`，主控审四工具及冻结计划，35工具/输入、71源码逐SHA核过后root-GO；无产品源码、依赖、私有配置修改。原16dirty、备份/partial/历史原始失败证据保留。
+- **单次当前补测通过**：Windows Node24.18.0、同机同匿名fixture；上海00:53:04–00:53:12，外层/采样子进程实际数值exit均0。普通及20字姓名660场各10预热/100样本，一轮；JS P50/P95分别8.0142/12.1420与13.3977/17.1868ms。普通1patch953115bytes、余95461；长名3patch1054/1044467/399297bytes、总1444818，最大余4109；200样本每patch严格小于1048576。采样器实际执行完整660/唯一键/330已录与330待录/投影断言；raw记录660/公式/字节，但没有330或全键，冷核不声称独立复算未落盘值。较旧头部增加85bytes为收赛三字段，不猜新优化。
+- **证据与保全**：报告SHA `5b3c69d9a1d79209b112688307b4929c9604d1a01d95f51336fa59b4451f6b84`，35冻结输入、71源码、四旧证据及Node hash前后相等，65实际加载源均在闭包。子stderr仅43bytes拦截器零尝试记录、outer stderr空；不是OS断网证明。主控`tmp/performance-ten-root-20261005/acceptance.json`独立重算200样本nearest-rank/扣除公式/逐patch及raw流SHA，exit0；Luna另做一次小报告冷核，不重复采样或源码全量。预备PowerShell花括号解析失败保留后改显式路径；旧两文件六测试仅affected计划，未重跑tests/full/GUI/云。
+- **收口与未完成项**：Luna `tmp/performance-ten-current-readonly-20261005/result-cold.md/json`对raw统计/公式/字节及退出/流SHA/前后清单复算一致，明确330及全键只能核执行断言，未重复采样。文档初门禁仅current1530字符超限，exit1保留于root根preflight.json；收缩导航后另名final核，不回改失败。同步mock无微信桥/WXML/设备/云计量；计时外新检查仍可能影响GC，单轮不构成旧/新因果比较、手机P95或提速。原生分块/定位/滚动/头像/筛选、320/430、Android+iPhone及首屏/云读写/render P95未验。[原日志](session-logs/2026-10-03-performance-baseline.md)只追加本阶段；保留前项缺口，接续11/12，不称整计划完成。
+
 ## 10-04第4项续做及同步提示反馈
 
 - **范围与保全**：main/master从`94912202a1eb33dc832f00d05d9578fee6cb4105`续做，第3真实实收缺口仍保留，不把进入第4记作前项全完成。既有三配置、单打候选、历史QR/浏览器记录、备份与partial不覆盖。简单只读Luna max、实施Sol high；本轮不登录CloudBase、查云、付款、部署、preview、上传发布或写真实业务。用户手机后做的决定不改。
