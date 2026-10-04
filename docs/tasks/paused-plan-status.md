@@ -95,7 +95,7 @@
 - **当前入口与实际执行**：用户确认继续现有环境只读检查；新增[独立入口生成器](../../scripts/dev/wx-identity-readonly.js)与[直接安全测试](../../tests/wx-identity-readonly.test.js)，不改正式小程序/云函数/三档配置。新 ignored 项目 `tmp/wx-identity-readonly-20261005-current/` 九文件，启动零调用，固定本地AppID与运行AppID匹配后，按钮只以空payload及显式env调用login；raw身份/SDK错误不出UI、日志或报告，root/data矛盾拒绝。旧隔离harness六本地测试封存，不由此宣布云验通过。
 - **真实身份有限通过**：注册MCP状态成功、loginExpired=false，版本关系skip_check不当兼容通过；之前自定义包装器exit1不证明登录失效。本轮函数详情为login Active/Nodejs16.13/3秒，没有部署。主控亲审源码/冻结后打开独立项目，初始checking=false/result=null；上海10-05 03:15:36一次真实按钮方法调用，随后结果LOGIN_OK、openid非空/AppID匹配均true、UNIONID存在false。后者非必填，不判失败；SDK实际3.17.2、platform devtools。主控亲看486×1048原生实图，与脱敏回执一致，无原始身份。证据在 `tmp/wx-identity-readonly-root-20261005/`，仅限DevTools微信身份传递；iPhone本人、角色授权、客户端规则与真实事务未验。
 - **验证与保全**：生成器/测试语法、两文件lint、实际生成退出0；Luna只读冷审无新P0/P1/P2，报告 `tmp/wx-identity-readonly-cold-20261005/`。Sol首版五测试回执保留，固定AppID加强后只在工具输出而无独立final流；主控因该最终版本证据缺口，仅补跑五直接测试，实际5通过/0失败/0跳过/exit0，原始流与源码SHA匹配，未跑旧应用全量。执行后七输入/九生成文件SHA不变，原16dirty/71源、partial与旧证据保留。没有创建环境、兑换/付款、改规则、写业务、部署、preview或上传。
-- **下一项可审准备**：现有环境临时集合 `codex_acl_verify_20261005` 的候选规则和四合成fixture/十客户端case已列入同一权限日志；仅在本地准备新 ignored 驱动，原只读入口不加数据库能力。新建临时集合、设置其规则、预置及清理合成文档均为现有云环境的新写范围，待具体驱动及验收证据准备后取得授权，不把先前非生产环境合成授权直接扩大。该测试只证明候选规则引擎，不代替原业务角色、生产规则应用或事务回滚。
+- **下一项可审准备已就绪**：现有环境临时集合 `codex_acl_verify_20261005`、候选规则、四合成fixture与十客户端case见[同一权限日志](session-logs/2026-10-03-database-permission-preparation.md#10-05临时集合客户端驱动准备完成未执行云验收)。Sol最终驱动仅生成 ignored `project-final`，6直接安全测试和1生成页面启动检查分别实际退出0；主控核原始流及来源SHA，Luna冷审无未关闭P0/P1/P2。原版伪造creatorId实际使用自身的语义P2已用固定合成他人哨兵修正，原文件/项目/证据保留。真实SDK权限错误来源、规则/文档前后快照尚未取得，不能称引擎通过。新建、规则设置、合成预置及仅本次集合清理均为现有生产环境的新写范围，待该范围授权；未创建集合或执行云验收，不扩大此前非生产合成授权。
 
 ## 10-05依序续做：第11找回与第12需求
 

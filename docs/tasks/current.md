@@ -18,7 +18,7 @@
 
 第3实收/逐ID/权限未验。第4[同步修复](session-logs/2026-10-03-client-defect-repair.md)已推f7131ee，本地通过、未上传。原生/手机、照片版本/首次错误码待验。
 
-优先第5：DevTools微信身份通过，无业务写入，保留免费试用。规则/角色/事务未验；临时集合候选本地准备，云写待授权；[记录](session-logs/2026-10-03-database-permission-preparation.md)。
+优先第5：DevTools微信身份通过，保留免费试用。临时集合驱动已备妥，6安全+1启动检查通过；真实规则/角色/事务未验，云写待授权；[记录](session-logs/2026-10-03-database-permission-preparation.md)。
 
 第6无新本地缺陷；实收/测试排除/七日率未验，[日志](session-logs/2026-10-03-water-first-entry-diagnosis.md)，场景待答。
 
