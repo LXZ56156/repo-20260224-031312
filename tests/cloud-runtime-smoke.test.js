@@ -26,6 +26,7 @@ test('manifest covers exactly the local handlers with non-writing payloads', () 
   }
   assert.deepEqual(manifest.waterSession.payload, { apiVersion: 2, action: '__smoke_invalid__' });
   assert.deepEqual(manifest.createTournament.payload, { name: '', mode: 'multi_rotate', presetKey: 'custom' });
+  assert.deepEqual(manifest.getMyTournaments.payload, { cursor: '__smoke_invalid__' });
 });
 
 test('CLI success and InvokeResult zero do not hide nested runtime errors or missing results', () => {

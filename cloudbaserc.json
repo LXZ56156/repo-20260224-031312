@@ -12,6 +12,10 @@
       "installDependency": true
     },
     {
+      "name": "getMyTournaments",
+      "installDependency": true
+    },
+    {
       "name": "addPlayers",
       "installDependency": true
     },

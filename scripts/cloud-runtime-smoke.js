@@ -14,6 +14,7 @@ Object.assign(manifest, {
   saveUserProfile: { payload: {}, codes: ['PROFILE_NICKNAME_REQUIRED'] },
   scoreLock: { payload: {}, codes: ['ACTION_REQUIRED'] },
   manageCoManagers: { payload: {}, codes: ['CO_MANAGER_REQUEST_INVALID'] },
+  getMyTournaments: { payload: { cursor: '__smoke_invalid__' }, codes: ['INVALID_CURSOR', 'PERMISSION_DENIED'] },
   deleteTournament: { payload: {}, errorMessage: '缺少 tournamentId' },
   resetTournament: { payload: {}, errorMessage: '缺少 tournamentId' },
   rebuildRankings: { payload: {}, errorMessage: 'missing tournamentId' },
