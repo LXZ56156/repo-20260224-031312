@@ -15,3 +15,9 @@
 原始信息保留在控制台以及错误对象的 `rawMessage`、`rawResult`、`code`、`state`、`traceId` 等诊断字段，供开发排查。禁止自动通过用户弹窗展示开发环境修复步骤。脱敏不意味着请求成功，不改变重试、幂等、冲突处理或权限判断。
 
 直接回归见 `tests/cloud.user-facing-errors.test.js` 和 `tests/waterSession.v2-page.test.js` 的 SDK 堆栈场景。
+
+## 后台同步状态
+
+联网时的轮询、监听降级、重连、缓存先显、后台刷新和内部过期标记只用于诊断，不显示横幅、Toast、弹窗或技术刷新指引。不能把内部状态改成另一条文案继续提示用户，也不能通过清除内部错误或停止同步来隐藏问题。
+
+确认为离线时保留“当前离线”和刷新入口；实际加载失败、写入失败、权限拒绝与冲突继续按业务合同提示。同步状态呈现统一经 `core/syncStatus.js`，保留内部 fallback 状态及错误诊断，直接回归见 `tests/syncStatus.test.js`、`tests/page-sync.contract.test.js`；监听恢复另由 `sync/watch.js` 的直接回归验证。没有客户端实收或设备错误码时，不把静默展示当作频繁降级根因已全部解决。

@@ -224,21 +224,50 @@ test('pageTournamentSync ignores repeated watch data with equal version and time
   }
 });
 
-test('pageTournamentSync keeps polling fallback state when watch degrades from realtime', () => {
+test('pageTournamentSync keeps online polling diagnostics while leaving the banner silent', () => {
   const originalStartWatch = tournamentSync.startWatch;
-  const methods = pageTournamentSync.createTournamentSyncMethods();
+  const diagnostics = [];
+  const methods = pageTournamentSync.createTournamentSyncMethods({
+    buildWatchErrorState(err, meta) {
+      diagnostics.push({ err, meta });
+      return { showStaleSyncHint: true };
+    }
+  });
   const ctx = createContext(methods);
+  const error = Object.assign(new Error('SDK realtime listener reconnect failed'), {
+    __watchFallback: true, __watchSource: 'realtime', __watchType: 'network'
+  });
+  let onData = null;
 
   try {
-    tournamentSync.startWatch = (_page, _tid, _onDoc, onError) => {
-      onError({ __watchFallback: true, __watchSource: 'realtime', __watchType: 'network' });
+    tournamentSync.startWatch = (_page, _tid, onDoc, onError) => {
+      onData = onDoc;
+      onError(error);
     };
 
     ctx.startWatch('t_1');
 
     assert.equal(ctx.data.syncPollingFallback, true);
+    assert.equal(ctx.data.syncStatusVisible, false);
+    assert.equal(ctx.data.syncStatusText, '');
+    assert.equal(ctx.data.syncStatusMeta, '');
+    assert.equal(ctx.data.syncStatusActionText, '刷新');
+    assert.equal(diagnostics[0].err, error);
+    assert.equal(diagnostics[0].meta.pollingFallback, true);
+    assert.equal(diagnostics[0].meta.errorType, 'network');
+
+    onData({ _id: 't_1', updatedAt: '2026-03-11T09:00:00.000Z' }, { source: 'polling' });
+    assert.equal(ctx.data.syncPollingFallback, true);
+    assert.equal(ctx.data.syncStatusVisible, false);
+    assert.equal(ctx.data.syncStatusText, '');
+    assert.equal(ctx.data.syncStatusMeta, '');
+    assert.equal(ctx._applied.at(-1).meta.source, 'polling');
+
+    ctx.handleNetworkChange(true);
+    assert.equal(ctx.data.syncPollingFallback, true);
     assert.equal(ctx.data.syncStatusVisible, true);
-    assert.match(ctx.data.syncStatusText, /轮询/);
+    assert.equal(ctx.data.syncStatusText, '当前离线');
+    assert.doesNotMatch(ctx.data.syncStatusMeta, /轮询|监听|重连|SDK/);
   } finally {
     tournamentSync.startWatch = originalStartWatch;
   }

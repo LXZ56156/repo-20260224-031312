@@ -118,7 +118,7 @@ test('settings retry fixes payload and request ID while a new save captures new 
   assert.notEqual(calls[2].clientRequestId, calls[0].clientRequestId);
 });
 
-test('settings retry respects new permission and roster gates', async (t) => {
+test('settings retry respects the current roster gate', async (t) => {
   const ctx = context(t);
   const original = tournament();
   ctx.applyTournament(original);
@@ -128,6 +128,76 @@ test('settings retry respects new permission and roster gates', async (t) => {
   await ctx.saveSettings();
   ctx.applyTournament({ ...original, players: original.players.slice(0, 3) });
   assert.equal(ctx.data.canRetryAction, true);
+  await ctx.retryLastAction();
+  assert.equal(writes, 1);
+});
+
+test('settings co-manager revocation clears failed retry while restoration requires a new save', async (t) => {
+  const ctx = context(t);
+  const original = tournament({ creatorId: 'owner', coManagers: ['admin'],
+    players: [{ id: 'admin', name: '协管' }, ...tournament().players.slice(0, 3)] });
+  ctx.applyTournament(original);
+  assert.equal(ctx.data.isAdmin, false);
+  assert.equal(ctx.data.canManageTournament, true);
+  ctx.onNameInput({ detail: { value: '失败目标' } });
+  const calls = [];
+  t.mock.method(cloud, 'call', async (name, payload) => {
+    assert.equal(name, 'updateSettings');
+    calls.push({ ...payload });
+    throw new Error('network timeout');
+  });
+  ctx.fetchTournament = async () => { ctx.applyTournament(original); };
+  await ctx.saveSettings();
+  assert.equal(ctx.data.canRetryAction, true);
+  ctx.onNameInput({ detail: { value: '保留的新草稿' } });
+  ctx.applyTournament({ ...original, version: 2 });
+  assert.equal(ctx.data.canRetryAction, true);
+  await ctx.retryLastAction();
+  assert.deepEqual(calls[1], calls[0], 'authorized retry keeps the original payload and request ID');
+
+  ctx.applyTournament({ ...original, coManagers: [] });
+  assert.equal(ctx.data.isAdmin, false);
+  assert.equal(ctx.data.canManageTournament, false);
+  assert.equal(ctx.data.canConfigureSettings, true, 'four-player readiness does not grant management');
+  assert.equal(ctx.data.canRetryAction, false);
+  assert.equal(ctx.data.lastFailedActionText, '');
+  assert.equal(ctx._lastFailedAction, null);
+  assert.equal(ctx.data.name, '保留的新草稿');
+  await ctx.retryLastAction();
+  assert.equal(calls.length, 2);
+
+  ctx.applyTournament(original);
+  assert.equal(ctx.data.canManageTournament, true);
+  assert.equal(ctx.data.canRetryAction, false, 'restoring permission does not revive the revoked retry');
+  await ctx.retryLastAction();
+  assert.equal(calls.length, 2);
+  await ctx.saveSettings();
+  assert.equal(calls[2].name, '保留的新草稿');
+  assert.notEqual(calls[2].clientRequestId, calls[0].clientRequestId);
+});
+
+test('settings failure refresh that discovers co-manager revocation does not register an unusable retry', async (t) => {
+  const ctx = context(t);
+  const original = tournament({ creatorId: 'owner', coManagers: ['admin'],
+    players: [{ id: 'admin', name: '协管' }, ...tournament().players.slice(0, 3)] });
+  ctx.applyTournament(original);
+  assert.equal(ctx.data.isAdmin, false);
+  assert.equal(ctx.data.canManageTournament, true);
+  ctx.onNameInput({ detail: { value: '未保存草稿' } });
+  let writes = 0;
+  let errors = 0;
+  t.mock.method(cloud, 'call', async () => { writes += 1; throw new Error('network timeout'); });
+  ctx.handleWriteError = () => { errors += 1; };
+  ctx.fetchTournament = async () => { ctx.applyTournament({ ...original, coManagers: [] }); };
+  await ctx.saveSettings();
+  assert.equal(ctx.data.canManageTournament, false);
+  assert.equal(ctx.data.canConfigureSettings, true);
+  assert.equal(ctx.data.canRetryAction, false);
+  assert.equal(ctx.data.lastFailedActionText, '');
+  assert.equal(ctx._lastFailedAction, null);
+  assert.equal(ctx.data.name, '未保存草稿');
+  assert.equal(ctx.data.settingsBusy, false);
+  assert.equal(errors, 1, 'revocation does not swallow the failed save error');
   await ctx.retryLastAction();
   assert.equal(writes, 1);
 });

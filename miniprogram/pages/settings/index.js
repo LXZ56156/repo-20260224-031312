@@ -161,6 +161,7 @@ Page({
       viewState.showAdvancedMatchPicker = !!this.data.showAdvancedMatchPicker;
     }
     this.setData(viewState);
+    if (!viewState.canManageTournament && this._lastFailedAction) this.clearLastFailedAction();
 
     if (this._initialSection) {
       const sectionMap = {

@@ -63,42 +63,17 @@ function getDefaultSyncState() {
 
 function buildSyncBannerState(state = {}) {
   const networkOffline = !!state.networkOffline;
-  const showStaleSyncHint = !!state.showStaleSyncHint;
   const syncUsingCache = !!state.syncUsingCache;
-  const syncPollingFallback = !!state.syncPollingFallback;
-  const syncRefreshing = !!state.syncRefreshing;
   const lastUpdatedAt = toTs(state.syncLastUpdatedAt) || pickTournamentTimestamp(state.tournament);
-  const hasDegradedState = networkOffline || syncUsingCache || showStaleSyncHint || syncPollingFallback;
-
-  let syncStatusTone = 'info';
-  let syncStatusText = '';
-  const metaParts = [];
-
-  if (networkOffline) {
-    syncStatusTone = 'warning';
-    syncStatusText = '当前离线';
-  } else if (!syncUsingCache && showStaleSyncHint) {
-    syncStatusTone = 'info';
-    syncStatusText = '当前数据可能已过期';
-  } else if (!syncUsingCache && syncPollingFallback) {
-    syncStatusTone = 'info';
-    syncStatusText = '已降级为轮询同步';
-  }
-
-  if (syncPollingFallback && !syncUsingCache) metaParts.push('实时监听不可用，已切换为轮询');
-  if (!syncUsingCache && lastUpdatedAt) metaParts.push(`最近更新 ${formatSyncTime(lastUpdatedAt)}`);
-  if (showStaleSyncHint && !syncUsingCache) metaParts.push('请手动刷新确认是否有新结果');
-  // Healthy refreshes stay silent to avoid shifting page content.
-  if (syncRefreshing && !networkOffline && hasDegradedState) metaParts.push('正在重连或拉取最新数据');
-
-  const syncStatusVisible = !!syncStatusText;
-
+  // Polling, cache and background refresh state remain internal diagnostics.
+  // Only a confirmed offline state needs a user-facing banner.
   return {
-    syncStatusVisible,
-    syncStatusTone,
-    syncStatusText,
-    syncStatusMeta: syncStatusVisible ? metaParts.join(' · ') : '',
-    syncStatusActionText: syncStatusVisible && syncRefreshing && !networkOffline ? '同步中' : '刷新'
+    syncStatusVisible: networkOffline,
+    syncStatusTone: networkOffline ? 'warning' : 'info',
+    syncStatusText: networkOffline ? '当前离线' : '',
+    syncStatusMeta: networkOffline && !syncUsingCache && lastUpdatedAt
+      ? `最近更新 ${formatSyncTime(lastUpdatedAt)}` : '',
+    syncStatusActionText: '刷新'
   };
 }
 

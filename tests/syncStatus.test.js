@@ -143,16 +143,20 @@ test('buildSyncBannerState: online cache stays silent instead of changing banner
   assert.equal(result.syncStatusMeta, '');
 });
 
-test('buildSyncBannerState: stale hint → info', () => {
+test('buildSyncBannerState: online stale hint stays silent', () => {
   const result = syncStatus.buildSyncBannerState({ showStaleSyncHint: true });
   assert.equal(result.syncStatusTone, 'info');
-  assert.match(result.syncStatusText, /过期/);
+  assert.equal(result.syncStatusVisible, false);
+  assert.equal(result.syncStatusText, '');
+  assert.equal(result.syncStatusMeta, '');
 });
 
-test('buildSyncBannerState: polling fallback → info', () => {
+test('buildSyncBannerState: online polling fallback stays silent', () => {
   const result = syncStatus.buildSyncBannerState({ syncPollingFallback: true });
   assert.equal(result.syncStatusTone, 'info');
-  assert.match(result.syncStatusText, /轮询/);
+  assert.equal(result.syncStatusVisible, false);
+  assert.equal(result.syncStatusText, '');
+  assert.equal(result.syncStatusMeta, '');
 });
 
 test('buildSyncBannerState: refreshing alone stays silent', () => {
@@ -168,19 +172,17 @@ test('buildSyncBannerState: not refreshing → action text is 刷新', () => {
   assert.equal(result.syncStatusActionText, '刷新');
 });
 
-test('buildSyncBannerState: degraded banner keeps sync action text while refreshing', () => {
+test('buildSyncBannerState: online stale background refresh stays silent', () => {
   const result = syncStatus.buildSyncBannerState({
     showStaleSyncHint: true,
     syncRefreshing: true,
     syncLastUpdatedAt: new Date('2026-03-16T08:30:00.000Z').getTime()
   });
-  assert.equal(result.syncStatusVisible, true);
+  assert.equal(result.syncStatusVisible, false);
   assert.equal(result.syncStatusTone, 'info');
-  assert.match(result.syncStatusText, /过期/);
-  assert.equal(result.syncStatusActionText, '同步中');
-  assert.match(result.syncStatusMeta, /最近更新/);
-  assert.match(result.syncStatusMeta, /手动刷新/);
-  assert.match(result.syncStatusMeta, /拉取最新数据/);
+  assert.equal(result.syncStatusText, '');
+  assert.equal(result.syncStatusActionText, '刷新');
+  assert.equal(result.syncStatusMeta, '');
 });
 
 test('buildSyncBannerState: silent online cache omits cachedAt meta', () => {
@@ -194,15 +196,46 @@ test('buildSyncBannerState: silent online cache omits cachedAt meta', () => {
   assert.equal(result.syncStatusMeta, '');
 });
 
-test('buildSyncBannerState: lastUpdatedAt shows in meta when not using cache', () => {
+test('buildSyncBannerState: offline lastUpdatedAt shows in meta when not using cache', () => {
   const now = new Date();
   now.setHours(15, 45, 0, 0);
   const result = syncStatus.buildSyncBannerState({
-    showStaleSyncHint: true,
+    networkOffline: true,
     syncLastUpdatedAt: now.getTime()
   });
   assert.match(result.syncStatusMeta, /最近更新/);
   assert.match(result.syncStatusMeta, /15:45/);
+});
+
+test('buildSyncBannerState keeps every online sync implementation state silent and offline actionable', () => {
+  const flags = ['syncUsingCache', 'syncPollingFallback', 'syncRefreshing', 'showStaleSyncHint'];
+  for (let mask = 0; mask < 16; mask += 1) {
+    const state = {
+      networkOffline: false,
+      syncLastUpdatedAt: 1710000000000,
+      syncCachedAt: 1710000000000,
+      error: { message: 'SDK watch fallback reconnect cloud.database Error' }
+    };
+    flags.forEach((flag, index) => { state[flag] = !!(mask & (1 << index)); });
+    const before = { ...state };
+    const online = syncStatus.buildSyncBannerState(state);
+    assert.equal(online.syncStatusVisible, false, `online flags ${mask}`);
+    assert.equal(online.syncStatusText, '', `online text ${mask}`);
+    assert.equal(online.syncStatusMeta, '', `online meta ${mask}`);
+    assert.equal(online.syncStatusActionText, '刷新', `online action ${mask}`);
+
+    const offline = syncStatus.buildSyncBannerState({ ...state, networkOffline: true });
+    assert.equal(offline.syncStatusVisible, true, `offline flags ${mask}`);
+    assert.equal(offline.syncStatusTone, 'warning');
+    assert.equal(offline.syncStatusText, '当前离线');
+    assert.equal(offline.syncStatusActionText, '刷新');
+    assert.doesNotMatch(
+      [offline.syncStatusText, offline.syncStatusMeta, offline.syncStatusActionText].join(' '),
+      /轮询|降级|监听|重连|拉取|后台|缓存|过期|SDK|database|Error/i,
+      `offline implementation copy ${mask}`
+    );
+    assert.deepEqual(state, before, `diagnostic input preserved ${mask}`);
+  }
 });
 
 test('buildSyncBannerState: priority order — offline+cache beats stale hint', () => {

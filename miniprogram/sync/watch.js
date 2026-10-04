@@ -14,7 +14,7 @@ function msgOf(err) {
 
 function isRealtimeNotSupported(err) {
   const m = msgOf(err).toLowerCase();
-  return m.includes('not support') || m.includes('realtime') || m.includes('reportrealtimeaction');
+  return m.includes('not support') || /\bunsupported\b/.test(m);
 }
 
 function classifyWatchError(err) {
@@ -190,14 +190,15 @@ function startPolling(tournamentId, onData, onError) {
 function createPollingSource(channel, tournamentId, options = {}) {
   const source = String(options.source || 'polling').trim() || 'polling';
   const allowRecovery = options.allowRecovery !== false;
+  const generation = channel.sourceGeneration;
   return startPolling(
     tournamentId,
     (doc) => {
-      if (!channel || channel.disposed) return;
+      if (!isCurrentSource(channel, generation)) return;
       emitData(channel, doc, { source });
     },
     (err) => {
-      if (!channel || channel.disposed) return;
+      if (!isCurrentSource(channel, generation)) return;
       const type = classifyWatchError(err);
       console.warn(`[watch:poll:${type}]`, err);
       if (type === 'not_found') {
@@ -212,12 +213,19 @@ function createPollingSource(channel, tournamentId, options = {}) {
   );
 }
 
+function isCurrentSource(channel, generation) {
+  return !!channel && !channel.disposed && channel.sourceGeneration === generation;
+}
+
 function closeSource(channel) {
   const src = channel && channel.source;
+  if (channel) {
+    channel.source = null;
+    channel.sourceGeneration = Number(channel.sourceGeneration || 0) + 1;
+  }
   if (src && src.close) {
     try { src.close(); } catch (e) {}
   }
-  if (channel) channel.source = null;
 }
 
 function clearRecoverTimer(channel) {
@@ -311,12 +319,14 @@ function attachSource(channel, tournamentId, options = {}) {
   if (!channel || channel.disposed) return;
   const db = wx.cloud.database();
   const recoveryAttempt = options.recoveryAttempt === true;
+  closeSource(channel);
+  const generation = channel.sourceGeneration;
 
   fetchOnce(
     tournamentId,
-    (doc) => { if (!channel.disposed) emitData(channel, doc, { source: 'init_fetch' }); },
+    (doc) => { if (isCurrentSource(channel, generation)) emitData(channel, doc, { source: 'init_fetch' }); },
     (err) => {
-      if (channel.disposed) return;
+      if (!isCurrentSource(channel, generation)) return;
       const type = classifyWatchError(err);
       console.warn(`[watch:init:${type}]`, err);
       if (type === 'not_found') {
@@ -329,7 +339,6 @@ function attachSource(channel, tournamentId, options = {}) {
 
   // Prefer realtime watch; if runtime does not support it, fallback to polling.
   if (shouldUseSilentPollingInDevtools()) {
-    closeSource(channel);
     channel.mode = 'polling';
     channel.recovering = false;
     channel.fallbackReason = 'devtools';
@@ -344,10 +353,12 @@ function attachSource(channel, tournamentId, options = {}) {
 
   try {
     let fallback = false;
-    closeSource(channel);
+    channel.mode = 'realtime';
+    channel.recovering = recoveryAttempt;
+    clearRecoverTimer(channel);
     const w = db.collection('tournaments').doc(tournamentId).watch({
       onChange: (snapshot) => {
-        if (channel.disposed) return;
+        if (!isCurrentSource(channel, generation)) return;
         const source = channel.recovering ? 'realtime_recovered' : 'realtime';
         if (isMissingSnapshot(snapshot)) {
           emitTerminalNotFound(channel, createNotFoundError(tournamentId), { source });
@@ -363,7 +374,7 @@ function attachSource(channel, tournamentId, options = {}) {
         emitData(channel, doc, { source });
       },
       onError: (err) => {
-        if (channel.disposed) return;
+        if (!isCurrentSource(channel, generation)) return;
         const type = classifyWatchError(err);
         console.warn(`[watch:realtime:${type}]`, err);
         if (type === 'not_found') {
@@ -379,11 +390,13 @@ function attachSource(channel, tournamentId, options = {}) {
       }
     });
 
-    channel.source = w;
-    channel.mode = 'realtime';
-    channel.recovering = recoveryAttempt;
-    clearRecoverTimer(channel);
+    if (isCurrentSource(channel, generation)) {
+      channel.source = w;
+    } else if (w && w.close) {
+      try { w.close(); } catch (_) {}
+    }
   } catch (err) {
+    if (!isCurrentSource(channel, generation)) return;
     const type = classifyWatchError(err);
     console.warn(`[watch:attach:${type}]`, err);
     if (type === 'not_found') {
@@ -408,6 +421,7 @@ function ensureChannel(tournamentId, options = {}) {
     listeners: {},
     nextListenerId: 1,
     source: null,
+    sourceGeneration: 0,
     disposed: false,
     mode: 'realtime',
     fallbackReason: '',

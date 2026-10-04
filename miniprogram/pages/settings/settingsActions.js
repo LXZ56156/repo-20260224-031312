@@ -329,7 +329,9 @@ module.exports = {
         if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         await this.fetchTournament(this.data.tournamentId);
         if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
-        this.setLastFailedAction('修改比赛', () => this.saveSettings({ clientRequestId, payload }), { actionKey });
+        if (this.data.canManageTournament || this.data.isAdmin) {
+          this.setLastFailedAction('修改比赛', () => this.saveSettings({ clientRequestId, payload }), { actionKey });
+        }
         this.handleWriteError(e, '保存失败', () => this.fetchTournament(this.data.tournamentId));
       }
     });
