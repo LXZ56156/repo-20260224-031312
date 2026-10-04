@@ -3,6 +3,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 const common = require('./lib/common');
+const permission = require('./lib/permission');
 
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
@@ -40,7 +41,7 @@ exports.main = async (event) => {
           state: 'not_found'
         });
       }
-      if (String(t.creatorId || '') !== String(OPENID || '')) {
+      if (!permission.canManageTournament(t, OPENID)) {
         return common.failResult('PERMISSION_DENIED', '仅管理员可设置裁判', {
           traceId,
           state: 'forbidden'

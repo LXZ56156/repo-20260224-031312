@@ -4,6 +4,14 @@
   "functionRoot": "./cloudfunctions",
   "functions": [
     {
+      "name": "manageCoManagers",
+      "installDependency": true
+    },
+    {
+      "name": "finishTournament",
+      "installDependency": true
+    },
+    {
       "name": "addPlayers",
       "installDependency": true
     },

@@ -3,6 +3,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 const common = require('./lib/common');
+const permission = require('./lib/permission');
 const modeHelper = require('./lib/mode');
 const shareActivity = require('./lib/share-activity');
 const {
@@ -45,7 +46,7 @@ exports.main = async (event) => {
     const result = await db.runTransaction(async (transaction) => {
       const docRes = await transaction.collection('tournaments').doc(tournamentId).get();
       const t = common.assertTournamentExists(docRes.data);
-      common.assertCreator(t, OPENID);
+      if (!permission.canManageTournament(t, OPENID)) throw new Error('无权限');
       common.assertDraft(t, '非草稿阶段不可修改');
       if (clientRequestId && String(t.lastClientRequestId || '').trim() === clientRequestId) {
         return common.okResult('SETTINGS_UPDATED', '已保存比赛参数', {

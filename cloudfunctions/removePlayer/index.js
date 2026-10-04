@@ -3,6 +3,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 const common = require('./lib/common');
+const permission = require('./lib/permission');
 const modeHelper = require('./lib/mode');
 const playerUtils = require('./lib/player');
 const shareActivity = require('./lib/share-activity');
@@ -48,9 +49,9 @@ exports.main = async (event) => {
       const t = common.assertTournamentExists(docRes.data);
       common.assertDraft(t, '非草稿阶段不可移除');
       const oldVersion = Number(t.version) || 1;
-      const isCreator = String(t.creatorId || '') === String(OPENID || '');
+      const canManage = permission.canManageTournament(t, OPENID);
       const isSelfRemove = String(playerId || '') === String(OPENID || '');
-      if (!isCreator && !isSelfRemove) {
+      if (!canManage && !isSelfRemove) {
         return common.failResult('PERMISSION_DENIED', '无权限', {
           traceId,
           state: 'forbidden',
@@ -82,6 +83,7 @@ exports.main = async (event) => {
 
       const players = existingPlayers.filter((item) => playerUtils.extractPlayerId(item) !== playerId);
       const playerIds = Array.from(new Set(players.map(playerUtils.extractPlayerId).filter(Boolean)));
+      const coManagers = permission.getCoManagerIds({ ...t, players });
       const refereeId = (t.refereeId === playerId) ? '' : (t.refereeId || '');
       const pairTeamsRaw = Array.isArray(t.pairTeams) ? t.pairTeams : [];
       const pairTeams = pairTeamsRaw
@@ -94,6 +96,7 @@ exports.main = async (event) => {
       const updRes = await transaction.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({
         data: common.assertNoReservedRootKeys({
           players,
+          ...(Array.isArray(t.coManagers) ? { coManagers } : {}),
           playerIds,
           refereeId,
           pairTeams,

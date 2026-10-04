@@ -4,6 +4,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 const common = require('./lib/common');
+const permission = require('./lib/permission');
 const modeHelper = require('./lib/mode');
 const shareActivity = require('./lib/share-activity');
 
@@ -154,7 +155,7 @@ exports.main = async (event) => {
           ...(clientRequestId ? { clientRequestId } : {})
         });
       }
-      if (String(t.creatorId || '') !== String(OPENID || '')) {
+      if (!permission.canManageTournament(t, OPENID)) {
         return common.failResult('PERMISSION_DENIED', '仅管理员可导入', {
           traceId,
           state: 'forbidden',

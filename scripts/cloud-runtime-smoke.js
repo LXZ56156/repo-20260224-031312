@@ -4,7 +4,7 @@
 const manifest = {};
 for (const name of ['addPlayers', 'generateShareCode', 'joinTournament', 'manageActivityId',
   'managePairTeams', 'removePlayer', 'setPlayerSquad', 'setReferee', 'startTournament',
-  'submitScore', 'updateSettings']) {
+  'submitScore', 'updateSettings', 'finishTournament']) {
   manifest[name] = { payload: {}, codes: ['TOURNAMENT_ID_REQUIRED'] };
 }
 Object.assign(manifest, {
@@ -13,6 +13,7 @@ Object.assign(manifest, {
   feedbackSubmit: { payload: {}, codes: ['FEEDBACK_CONTENT_TOO_SHORT'] },
   saveUserProfile: { payload: {}, codes: ['PROFILE_NICKNAME_REQUIRED'] },
   scoreLock: { payload: {}, codes: ['ACTION_REQUIRED'] },
+  manageCoManagers: { payload: {}, codes: ['CO_MANAGER_REQUEST_INVALID'] },
   deleteTournament: { payload: {}, errorMessage: '缺少 tournamentId' },
   resetTournament: { payload: {}, errorMessage: '缺少 tournamentId' },
   rebuildRankings: { payload: {}, errorMessage: 'missing tournamentId' },

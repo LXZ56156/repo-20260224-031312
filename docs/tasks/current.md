@@ -11,10 +11,10 @@
 
 ## 工作区与分层基线
 
-- 实际workdir `D:\projects\badminton-miniapp\main`，master/upstream origin/master；恢复前HEAD及远端均`4664c09`，全部既有脏树保留。完成且验证的范围立即commit/push，审查staged并核远端；未完成业务/私有配置不混入。跨设备拉取不获得尚未提交的本地实现。
-- 线上客户端最近记录仍6.1.2-702625a，2026-09-14正式发布，[回执](session-logs/2026-09-23-online-release-confirmed.md)；Git15页/24函数（登记23）、工作树16页/26函数、线上受管23分别核验。旧startTournament部署授权已用完。
+- 实际workdir `D:\projects\badminton-miniapp\main`，master/upstream origin/master；恢复前HEAD及远端均`4664c09`，既有脏树保留。已验证范围立即commit/push，审查staged并核远端；未完成业务/私有配置不混入。跨设备拉取不含未提交实现。
+- 线上客户端最近记录仍6.1.2-702625a，2026-09-14正式发布，[回执](session-logs/2026-09-23-online-release-confirmed.md)；Git15页/25函数（登记25）、工作树16页/26函数、线上受管23分别核验。旧startTournament部署授权已用完。
 - 付款、生产部署、客户端上传/发布、真实业务写入须具体证据后逐项授权；PR/preview/QR另计。commit/push遵循 [现行规则](../../AGENTS.md#交付与文档)。简单/只读用6 Luna max，实现用6.1 Sol high。
 
 ## 下一步与证据
 
-第1源码及第7后端已交付；录分/收赛可选分享截止修复105项通过，已整合并保全原字节。第8后端152项、第9工具编码及第10性能候选已验，按序交付。监控继续；网页登录/兑换码、窗口恢复、真实身份及单打场景待答。UI按 [日常循环](../tools/agent-development-workflow.md) 使用ui:iterate，失败按 [手册](../tools/weapp-ui-troubleshooting.md) 处理，详情更新同一正文。
+第1/5/7后端已交付，50bd8c5已推送。第8后端152项及截止组合验证完成，环境失败已补验。第9编码已验，检查假通过正补修；第10性能已验，第11待新基线。监控继续；网页登录/兑换码、窗口恢复、真实身份及单打场景待答。UI按 [日常循环](../tools/agent-development-workflow.md) 使用ui:iterate，失败按 [手册](../tools/weapp-ui-troubleshooting.md) 处理，详情更新同一正文。

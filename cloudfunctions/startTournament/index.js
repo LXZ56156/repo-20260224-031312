@@ -3,6 +3,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 const common = require('./lib/common');
+const permission = require('./lib/permission');
 const modeHelper = require('./lib/mode');
 const playerUtils = require('./lib/player');
 const shareActivity = require('./lib/share-activity');
@@ -119,7 +120,7 @@ exports.main = async (event) => {
       const tournaments = transaction.collection('tournaments');
       const docRes = await tournaments.doc(tournamentId).get();
       const t = common.assertTournamentExists(docRes.data);
-      common.assertCreator(t, OPENID);
+      if (!permission.canManageTournament(t, OPENID)) throw new Error('无权限');
       if (clientRequestId) {
         const requestLog = await common.getClientRequestLog(transaction, requestLogOptions);
         if (common.isSuccessfulClientRequestLog(requestLog) && hasMaterializedStartedTournament(t)) {

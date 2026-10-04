@@ -8,11 +8,12 @@ const envelope = (result, extra = {}) => JSON.stringify({ data: {
   InvokeResult: 0, ErrMsg: '', RetMsg: JSON.stringify(result), ...extra
 } });
 
-test('manifest covers exactly the deployed handlers with non-writing payloads', () => {
+test('manifest covers exactly the local handlers with non-writing payloads', () => {
   const names = fs.readdirSync(path.join(__dirname, '../cloudfunctions'))
     .filter(name => fs.existsSync(path.join(__dirname, '../cloudfunctions', name, 'index.js'))).sort();
   assert.deepEqual(Object.keys(manifest).sort(), names);
-  assert.equal(names.length, 23);
+  const configured = JSON.parse(fs.readFileSync(path.join(__dirname, '../cloudbaserc.json'), 'utf8')).functions.map(item => item.name).sort();
+  assert.deepEqual(names, configured);
   for (const name of names) {
     const item = manifest[name];
     assert.equal(item.payload.clientRequestId, undefined);

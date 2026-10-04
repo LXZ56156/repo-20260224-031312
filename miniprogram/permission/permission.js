@@ -8,6 +8,24 @@ function isParticipant(tournament, openid) {
   return playerUtils.isParticipantInTournament(tournament, openid);
 }
 
+function getBoundPlayerIds(tournament) {
+  const players = Array.isArray(tournament && tournament.players) ? tournament.players : [];
+  return players.filter((player) => player && typeof player === 'object' && !Array.isArray(player) &&
+    String(player.type || '').trim().toLowerCase() !== 'guest' &&
+    !playerUtils.extractPlayerId(player).toLowerCase().startsWith('guest_'))
+    .map(playerUtils.extractPlayerId).filter(Boolean);
+}
+
+function getCoManagerIds(tournament) {
+  const bound = new Set(getBoundPlayerIds(tournament));
+  return Array.from(new Set((Array.isArray(tournament && tournament.coManagers) ? tournament.coManagers : [])
+    .map((id) => String(id || '').trim()).filter((id) => bound.has(id) && id !== String(tournament.creatorId || ''))));
+}
+
+function canManageTournament(tournament, openid) {
+  return isAdmin(tournament, openid) || !!(openid && getCoManagerIds(tournament).includes(String(openid)));
+}
+
 function canEditScore(tournament, openid) {
   // `setReferee` is currently a reserved backend capability, not a frontend-exposed
   // scoring role. Score entry stays on the existing admin/participant matrix.
@@ -32,4 +50,4 @@ function requireTournamentStatus(tournament, allowedStatuses) {
   }
 }
 
-module.exports = { isAdmin, isParticipant, canEditScore, requireTournamentStatus };
+module.exports = { isAdmin, isParticipant, getBoundPlayerIds, getCoManagerIds, canManageTournament, canEditScore, requireTournamentStatus };

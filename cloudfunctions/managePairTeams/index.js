@@ -6,6 +6,7 @@ const _ = db.command;
 const logic = require('./logic');
 const modeHelper = require('./lib/mode');
 const common = require('./lib/common');
+const permission = require('./lib/permission');
 
 function normalizeTeamSignature(team) {
   const ids = Array.isArray(team && team.playerIds) ? team.playerIds : [];
@@ -37,7 +38,7 @@ exports.main = async (event) => {
     const docRes = await db.collection('tournaments').doc(tournamentId).get();
     const t = docRes && docRes.data;
     if (!t) return common.failResult('TOURNAMENT_NOT_FOUND', '赛事不存在', { traceId, state: 'not_found', clientRequestId });
-    if (String(t.creatorId || '') !== String(OPENID || '')) {
+    if (!permission.canManageTournament(t, OPENID)) {
       return common.failResult('PERMISSION_DENIED', '仅管理员可管理队伍', { traceId, state: 'forbidden', clientRequestId });
     }
     if (String(t.status || '') !== 'draft') {
