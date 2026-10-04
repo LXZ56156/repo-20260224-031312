@@ -287,6 +287,7 @@ Page({
   },
 
   onHide() {
+    this._coManagerActionVisible = false;
     this._lifecycleGeneration = Number(this._lifecycleGeneration || 0) + 1;
     this._pendingIntentAction = '';
     pageTournamentSync.pauseTournamentSync(this);
@@ -294,6 +295,7 @@ Page({
   },
 
   onUnload() {
+    this._coManagerActionVisible = false;
     this._lifecycleGeneration = Number(this._lifecycleGeneration || 0) + 1;
     this._pendingIntentAction = '';
     this.disablePageDynamicShare();
@@ -304,6 +306,8 @@ Page({
   },
 
   onShow() {
+    this._coManagerActionVisible = true;
+    this.syncCoManagerActionState();
     this.refreshUiPreferences();
     const currentId = String(this.data.tournamentId || '').trim();
     const intentAction = nav.consumeLobbyIntent(currentId);
