@@ -265,7 +265,7 @@ module.exports = {
   },
 
   async quickImportPlayers(options = {}) {
-    if (!this.data.isAdmin) {
+    if (!(this.data.canManageTournament || this.data.isAdmin)) {
       wx.showToast({ title: '仅管理员可导入', icon: 'none' });
       return;
     }

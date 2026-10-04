@@ -89,6 +89,11 @@ Page({
     myJoined: false,
 
     isAdmin: false,
+    canManageTournament: false,
+    isCoManager: false,
+    showCoManagerManagement: false,
+    coManagerCandidates: [],
+    coManagerBusy: false,
 
     showJoin: false,
     showJoinSheet: false,

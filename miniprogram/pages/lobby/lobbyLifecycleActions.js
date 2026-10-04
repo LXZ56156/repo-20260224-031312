@@ -57,7 +57,7 @@ module.exports = {
   },
 
   async saveAndStart() {
-    if (!this.data.isAdmin) return;
+    if (!(this.data.canManageTournament || this.data.isAdmin)) return;
     const tournament = this.data.tournament;
     if (!tournament || tournament.status !== 'draft') return;
     if (!this.data.checkPlayersOk) {
@@ -115,7 +115,7 @@ module.exports = {
 
   async handleStart(options = {}) {
     const tournament = this.data.tournament;
-    if (!tournament || !this.data.isAdmin) return;
+    if (!tournament || !(this.data.canManageTournament || this.data.isAdmin)) return;
     if (tournament.status !== 'draft') {
       wx.showToast({ title: '赛事已开赛', icon: 'none' });
       return;

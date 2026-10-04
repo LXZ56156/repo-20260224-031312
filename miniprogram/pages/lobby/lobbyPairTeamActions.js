@@ -44,7 +44,7 @@ module.exports = {
 
   async autoGeneratePairTeams() {
     if (this.data.pairTeamBusy) return;
-    if (!this.data.isAdmin || this.data.mode !== flow.MODE_FIXED_PAIR_RR) return;
+    if (!(this.data.canManageTournament || this.data.isAdmin) || this.data.mode !== flow.MODE_FIXED_PAIR_RR) return;
     const tournamentId = String(this.data.tournamentId || '').trim();
     const lifecycleGeneration = Number(this._lifecycleGeneration || 0);
     const actionKey = `lobby:managePairTeams:${tournamentId}`;
@@ -74,7 +74,7 @@ module.exports = {
 
   async createPairTeam() {
     if (this.data.pairTeamBusy) return;
-    if (!this.data.isAdmin || this.data.mode !== flow.MODE_FIXED_PAIR_RR) return;
+    if (!(this.data.canManageTournament || this.data.isAdmin) || this.data.mode !== flow.MODE_FIXED_PAIR_RR) return;
     const candidates = this.data.pairTeamCandidates || [];
     if (candidates.length < 2) {
       wx.showToast({ title: '可组队成员不足', icon: 'none' });
@@ -116,7 +116,7 @@ module.exports = {
   },
 
   async deletePairTeam(e) {
-    if (!this.data.isAdmin || this.data.mode !== flow.MODE_FIXED_PAIR_RR) return;
+    if (!(this.data.canManageTournament || this.data.isAdmin) || this.data.mode !== flow.MODE_FIXED_PAIR_RR) return;
     const teamId = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.team) || '').trim();
     if (!teamId) return;
     const tournamentId = String(this.data.tournamentId || '').trim();

@@ -248,7 +248,7 @@ module.exports = {
   },
 
   async saveSettings(options = {}) {
-    if (!this.data.isAdmin) return;
+    if (!(this.data.canManageTournament || this.data.isAdmin)) return;
     if (!this.data.tournament || this.data.tournament.status !== 'draft') {
       wx.showToast({ title: '非草稿阶段不可修改', icon: 'none' });
       return;

@@ -72,6 +72,9 @@
 
 - **第7前端准确源码交付**：Sol新`tmp/frontend-delivery-20261004-no-cloudbase/07-manual-finish/`从immutable2394准备schedule JS/WXML/WXSS及直接测试四文件，保留已交付身份生命周期/性能分块/留痕，主办running且至少1有效比分才给提前收赛入口；确认取消不写、确认前重新核身份/赛事、busy单发、超时重试同request、已完成比分保留及剩余取消/排名范围说明。独立HEAD+仅四候选快照7测试文件32/32、0失败/跳过；lint实际exit0/0诊断、反向patch gate0。prepare核1617基线/1618四候选snapshot及source保全；no-index --check实际1仅表示两个目录有差异，不谎称0，主控准确cached diff检查实际0。主控审四完整hunk/断言，暂存逐SHA/blob/mode与已验stage-descriptor全相等，f0a13仅三文档相对2394变更、不影响目标代码基线。原工作字节保留、未夹带协管/找回/截图工具或私有配置；本次为源码交付，当前Windows输入失败、320/430/原生确认/真实云/Android及iPhone仍待验，不报告完整UI完成，不新增部署/上传/业务写入。截图fixture共用协管roleTournament，混合注册表留待三功能组合工具闭包，不能按第7整文件偷带第8/11。
 
+- **第8协管前端准确交付**：主控在c45e08c之后核main/master与空index，审20文件完整候选；从2394+已交付第7准备的独立快照67/67通过，lint0错误/17警告，原HEAD独立复核同17条，不称零警告。Luna冷读绑定成员ID、owner-only授予/撤销及取消、协管草稿配置/名单/开赛、固定payload/request重试与生命周期guard，未见可达P0/P1；P2说明误称有裁判分配入口，Sol另建08-coadmin-fixed仅删除该短语，其余19候选字节不变，原候选/快照保留，修正后两条协管geometry2/2。主控仅替换这一已审WXML并先另存原字节，暂存20文件逐SHA/blob/mode与准确描述符一致、working字节保全；共享geometry只含第8两断言，第11断言仍留working未夹带。证据`tmp/frontend-delivery-20261004-no-cloudbase/08-coadmin{,-fixed}/`的cold-review、description-fix-receipt、root-integration及root-stage-receipt。真实普通身份/规则、撤销后跨会话、原生UI/手机仍未验证，不因源码通过宣称第8全部完成。
+- **CLI能力补充与目标登记**：本机静态源码及官方API文档确认通用`api tcb DescribeSafeRule/ModifySafeRule`可查询/修改指定集合规则；`fn invoke`事件不能伪造基础库可信OPENID/APPID，管理端数据库命令不验证客户端安全规则。清单在`tmp/cloud-cli-capabilities-20261004-no-login/README.md`，未执行API/登录/创建/部署/写真实云。用户问CLI是能力澄清，本轮仍遵循不处理CloudBase指令。最新get_goal实际返回active；以下旧paused/interface记录保留为当时事实，目标尚未完成。第12真实人数/场地/时长/分数/循环及排名结束方式已提问，未把历史单打候选接入。
+
 ## 暂停时已知状态（事实截至2026-10-04）
 
 - 10-04 用户另行授权开发方式/工具链优化及文档固化；默认入口已固定为 [开发工作流](../tools/agent-development-workflow.md) 的 `ui:iterate -- <case>`，故障按 [手册](../tools/weapp-ui-troubleshooting.md) 分阶段恢复。原12项业务计划及观察自动化继续暂停；不含业务改动、部署、上传/发布或真实数据写入。[工具实测](../reports/2026-10-04-agent-ui-workflow-research.md)、[规则整理记录](session-logs/2026-10-04-development-workflow-standardization.md)。

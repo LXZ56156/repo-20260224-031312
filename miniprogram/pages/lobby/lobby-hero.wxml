@@ -5,6 +5,7 @@
         <view class="hero-sub">{{modeLabel}}</view>
         <view class="hero-meta" wx:if="{{isAdmin || myJoined}}">
           <text class="count-pill hero-meta-pill" wx:if="{{isAdmin}}">管理员</text>
+          <text class="count-pill hero-meta-pill" wx:elif="{{isCoManager}}">协管</text>
           <text class="count-pill hero-meta-pill" wx:if="{{myJoined}}">已参赛</text>
         </view>
       </view>

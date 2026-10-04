@@ -222,6 +222,7 @@ function buildSettingsFormState(tournament, options = {}) {
   const draftValue = (field, fallback) => Object.prototype.hasOwnProperty.call(draft, field) ? draft[field] : fallback;
   const openid = String(options.openid || '').trim();
   const isAdmin = perm.isAdmin(t, openid);
+  const canManageTournament = perm.canManageTournament(t, openid);
   const isDraft = String(t.status || 'draft') === 'draft';
   const readiness = draftStartReadiness.buildDraftStartReadiness(t);
 
@@ -336,6 +337,7 @@ function buildSettingsFormState(tournament, options = {}) {
     mode,
     modeLabel,
     isAdmin,
+    canManageTournament,
     isDraft,
     playersCount,
     playerLimit,

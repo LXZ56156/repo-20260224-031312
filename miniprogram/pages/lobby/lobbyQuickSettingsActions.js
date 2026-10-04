@@ -232,7 +232,7 @@ module.exports = {
   },
 
   async saveQuickSettings(options = {}) {
-    if (!this.data.isAdmin) {
+    if (!(this.data.canManageTournament || this.data.isAdmin)) {
       wx.showToast({ title: '仅管理员可保存参数', icon: 'none' });
       return;
     }

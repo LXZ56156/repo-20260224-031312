@@ -173,7 +173,7 @@ const draftActions = {
 
   async onTogglePlayerSquad(e, options = {}) {
     if (Number(this._ignorePlayerTapUntil || 0) > Date.now()) return;
-    if (!this.data.isAdmin) return;
+    if (!(this.data.canManageTournament || this.data.isAdmin)) return;
     if (String((this.data.tournament && this.data.tournament.status) || '') !== 'draft') return;
     if (this.data.mode !== flow.MODE_SQUAD_DOUBLES) return;
     const playerId = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.player) || '').trim();
@@ -213,7 +213,7 @@ const draftActions = {
     this._ignorePlayerTapUntil = Date.now() + PLAYER_LONGPRESS_TAP_SUPPRESS_MS;
     const openid = resolveOpenId(this);
     const isSelfRemove = !!openid && playerId === openid;
-    if (!this.data.isAdmin && !isSelfRemove) return;
+    if (!(this.data.canManageTournament || this.data.isAdmin) && !isSelfRemove) return;
 
     const playerName = findPlayerName(this, playerId, e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.name);
     const clientRequestId = clientRequest.resolveClientRequestId(options.clientRequestId, 'remove_player');

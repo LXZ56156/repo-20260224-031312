@@ -6,6 +6,7 @@ const draftStartReadiness = require('../../core/draftStartReadiness');
 const scheduleContract = require('../../core/scheduleContract');
 const settingsViewModel = require('../settings/settingsViewModel');
 const avatarDisplayCore = require('../../core/avatarDisplay');
+const playerUtils = require('../../core/playerUtils');
 
 function findFirstPendingPosition(rounds) {
   const list = Array.isArray(rounds) ? rounds : [];
@@ -246,6 +247,8 @@ function buildRoleCards(ctx) {
   const {
     status,
     isAdmin,
+    canManageTournament,
+    isCoManager,
     myJoined,
     showJoin,
     showMyProfile,
@@ -259,7 +262,7 @@ function buildRoleCards(ctx) {
     mode
   } = ctx;
 
-  const activeRoleKey = isAdmin
+  const activeRoleKey = (canManageTournament || isAdmin)
     ? 'admin'
     : (myJoined ? 'joined' : (showJoin ? 'profile_pending' : 'viewer'));
 
@@ -320,7 +323,7 @@ function buildRoleCards(ctx) {
   return {
     activeRoleKey,
     cards: [
-      buildRoleCard('admin', '管理员', adminSummary, adminActionKey, adminActionText, activeRoleKey === 'admin'),
+      buildRoleCard('admin', isCoManager ? '协管' : '管理员', adminSummary, adminActionKey, adminActionText, activeRoleKey === 'admin'),
       buildRoleCard('joined', '已加入用户', joinedSummary, joinedActionKey, joinedActionText, activeRoleKey === 'joined'),
       buildRoleCard('viewer', '观赛用户', viewerSummary, viewerActionKey, viewerActionText, activeRoleKey === 'viewer'),
       buildRoleCard('profile_pending', '待补资料用户', pendingSummary, 'profile_join', '立即加入', activeRoleKey === 'profile_pending')
@@ -332,6 +335,7 @@ function buildStatePanel(ctx) {
   const {
     status,
     isAdmin,
+    canManageTournament,
     myJoined,
     showJoin,
     showMyProfile,
@@ -358,7 +362,7 @@ function buildStatePanel(ctx) {
   let summary = String(currentRoleSummary || '').trim() || '先看当前状态，再决定下一步。';
 
   if (status === 'draft') {
-    if (isAdmin) {
+    if (canManageTournament || isAdmin) {
       title = '开赛前准备';
       summary = !checkPlayersOk
         ? '先转发比赛，让名单先准备好。'
@@ -421,6 +425,15 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
   const quotaFull = playerLimit > 0 && playersCount >= playerLimit;
   const playerCountText = playerLimit > 0 ? `${playersCount}/${playerLimit} 人` : `${playersCount} 人`;
   const isAdmin = perm.isAdmin(t, openid);
+  const canManageTournament = perm.canManageTournament(tournament, openid);
+  const isCoManager = canManageTournament && !isAdmin;
+  const boundPlayerIds = new Set(perm.getBoundPlayerIds(tournament));
+  const coManagerIds = new Set(perm.getCoManagerIds(tournament));
+  const coManagerCandidates = players.map((player) => ({
+    id: player.id, name: playerUtils.safePlayerName(player), bound: boundPlayerIds.has(player.id),
+    isOwner: player.id === t.creatorId, isCoManager: coManagerIds.has(player.id),
+    canGrant: boundPlayerIds.has(player.id) && player.id !== t.creatorId
+  }));
   const myPlayer = openid ? players.find((player) => player && player.id === openid) : null;
   const myJoined = !!myPlayer;
   const isViewOnlyEntry = status === 'draft'
@@ -434,7 +447,7 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
   const showAllPlayers = !!data.showAllPlayers;
   const displayPlayers = buildDisplayPlayers(showAllPlayers ? players : players.slice(0, 12), avatarCache, data.displayPlayers);
   let playerRosterHint = status === 'draft' && playersCount > 0
-    ? (isAdmin ? '长按成员可移除' : (myJoined ? '长按自己可退出' : ''))
+    ? (canManageTournament ? '长按成员可移除' : (myJoined ? '长按自己可退出' : ''))
     : '';
   if (status === 'draft' && playerLimit > 0) {
     const quotaHint = playersCount < playerLimit
@@ -558,7 +571,7 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
   let primaryTaskKey = '';
   let primaryTaskTitle = '';
   let primaryTaskSummary = '';
-  if (status === 'draft' && isAdmin) {
+  if (status === 'draft' && canManageTournament) {
     if (mode === flow.MODE_FIXED_PAIR_RR) {
       if (playersCount < 4) {
         primaryTaskKey = 'import_players';
@@ -643,6 +656,8 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
   const roleView = buildRoleCards({
     status,
     isAdmin,
+    canManageTournament,
+    isCoManager,
     myJoined,
     showJoin,
     showMyProfile,
@@ -665,6 +680,7 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
   const statePanel = buildStatePanel({
     status,
     isAdmin,
+    canManageTournament,
     myJoined,
     showJoin,
     showMyProfile,
@@ -693,6 +709,10 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       statusClass,
       heroGradientClass: status === 'draft' ? 'hero-draft' : (status === 'finished' ? 'hero-finished' : ''),
       isAdmin,
+      canManageTournament,
+      isCoManager,
+      showCoManagerManagement: isAdmin && (status === 'draft' || status === 'running'),
+      coManagerCandidates,
       showJoin,
       showMyProfile,
       myJoined,
@@ -787,7 +807,7 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       statePrimaryActionText: statePanel.statePrimaryActionText,
       stateStageBadge: statePanel.stageBadge,
       showDraftRules: status === 'draft',
-      showDraftAdminPanel: isAdmin && status === 'draft',
+      showDraftAdminPanel: canManageTournament && status === 'draft',
       showViewOnlyJoinPrompt,
       joinSquadChoice: String((myPlayer && myPlayer.squad) || data.joinSquadChoice || 'A').trim().toUpperCase() === 'B' ? 'B' : 'A',
       primaryNavItems: matchPrimaryNav.getPrimaryNavItems('match', t._id)

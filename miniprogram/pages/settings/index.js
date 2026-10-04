@@ -15,6 +15,7 @@ Page({
     pageTitle: '修改比赛',
     contextTitle: '',
     isAdmin: false,
+    canManageTournament: false,
     name: '',
     editM: 0,
     editC: 1,

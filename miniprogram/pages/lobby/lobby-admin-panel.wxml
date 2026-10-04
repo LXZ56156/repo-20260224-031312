@@ -9,7 +9,7 @@
 
     <view class="admin-collapse-body" wx:if="{{adminPanelExpanded}}">
       <view class="admin-manage-actions">
-        <button class="btn btn-danger admin-cancel-btn" bindtap="cancelTournament">取消比赛</button>
+        <button class="btn btn-danger admin-cancel-btn" bindtap="cancelTournament" wx:if="{{isAdmin}}">取消比赛</button>
       </view>
 
       <view id="quick-settings" class="quick-settings panel-soft">

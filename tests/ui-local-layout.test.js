@@ -62,3 +62,29 @@ test('ranking records wrap inside the shrinking left column', () => {
   assert.match(rule(read('app.wxss'), '.flex-1'), /min-width:\s*0\s*;/);
   assert.match(read('pages/ranking/index.wxml'), /class="flex-1">\s*<view class="player-title ellipsis">/);
 });
+
+test('co-manager actions override global full-width buttons while leaving a shrinking name column', () => {
+  const source = read('pages/lobby/index.wxss');
+  const action = rule(source, '.co-manager-row button.co-manager-action');
+  assert.match(action, /width:\s*104px\s*;/);
+  assert.match(action, /flex:\s*0 0 auto\s*;/);
+  assert.match(action, /height:\s*44px\s*;/);
+  assert.match(action, /min-height:\s*44px\s*;/);
+  assert.match(action, /display:\s*inline-flex\s*;/);
+  assert.match(action, /align-items:\s*center\s*;/);
+  assert.match(rule(source, '.co-manager-row'), /flex-wrap:\s*nowrap\s*;/);
+  assert.match(rule(source, '.co-manager-member'), /min-width:\s*0\s*;/);
+  assert.match(rule(read('app.wxss'), 'button.btn'), /width:\s*100%\s*;/,
+    'the fix stays scoped to the co-manager row');
+});
+
+test('co-manager truncated names and grant/revoke actions retain their full accessible identity', () => {
+  const source = read('pages/lobby/lobby-co-managers.wxml');
+  assert.match(source, /class="co-manager-name ellipsis" aria-label="\{\{item\.name\}\}"/);
+  const button = source.match(/<button[^>]*class="btn btn-secondary co-manager-action"[^>]*>/);
+  assert.ok(button);
+  assert.match(button[0], /aria-label="\{\{item\.isCoManager \? '撤销' : '授予'\}\}\{\{item\.name\}\}的协管权限"/);
+  assert.match(button[0], /wx:if="\{\{item\.canGrant\}\}"/);
+  assert.match(button[0], /catchtap="onToggleCoManager"/);
+  assert.match(button[0], /loading="\{\{coManagerBusy\}\}" disabled="\{\{coManagerBusy\}\}"/);
+});

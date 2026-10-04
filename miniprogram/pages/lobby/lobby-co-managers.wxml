@@ -1,0 +1,13 @@
+<view class="card panel co-managers-panel" wx:if="{{showCoManagerManagement || isCoManager}}">
+  <view class="section-title">协管</view>
+  <view class="muted small co-manager-description">协管可在开赛前管理名单和配置、开始比赛；授予权限、取消、重置和提前结束由主办者操作。</view>
+  <block wx:if="{{showCoManagerManagement}}">
+    <view class="co-manager-row" wx:for="{{coManagerCandidates}}" wx:key="id">
+      <view class="co-manager-member">
+        <view class="co-manager-name ellipsis" aria-label="{{item.name}}">{{item.name}}</view>
+        <view class="muted small">{{item.isOwner ? '主办者' : (item.bound ? '已绑定身份' : '尚未绑定身份')}}<text wx:if="{{item.isCoManager}}"> · 协管</text></view>
+      </view>
+      <button class="btn btn-secondary co-manager-action" aria-label="{{item.isCoManager ? '撤销' : '授予'}}{{item.name}}的协管权限" wx:if="{{item.canGrant}}" data-player="{{item.id}}" catchtap="onToggleCoManager" loading="{{coManagerBusy}}" disabled="{{coManagerBusy}}">{{item.isCoManager ? '撤销协管' : '设为协管'}}</button>
+    </view>
+  </block>
+</view>

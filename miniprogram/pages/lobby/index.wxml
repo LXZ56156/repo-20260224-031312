@@ -49,6 +49,7 @@
   <view class="sheet-mask" wx:if="{{showJoinSheet}}" bindtap="closeJoinSheet"></view>
   <include src="./lobby-join-sheet.wxml"/>
   <include src="./lobby-player-grid.wxml"/>
+  <include src="./lobby-co-managers.wxml"/>
   <include src="./lobby-admin-panel.wxml"/>
 
   <view class="card panel panel-soft info-panel reveal reveal-6 {{showGrowthOnboardingGuide ? 'growth-guide-rules-focus' : ''}}">

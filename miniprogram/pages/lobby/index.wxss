@@ -954,3 +954,21 @@
     grid-template-columns: repeat(3, 1fr);
   }
 }
+.co-manager-description { margin-top: 12rpx; }
+.co-manager-row { display: flex; align-items: center; flex-wrap: nowrap; gap: 16rpx; padding: 16rpx 0; }
+.co-manager-member { flex: 1; min-width: 0; }
+.co-manager-name { font-weight: 600; }
+/* Keep row actions narrower than the global button.btn full-width rule. */
+.co-manager-row button.co-manager-action {
+  width: 104px;
+  min-width: 104px;
+  flex: 0 0 auto;
+  height: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
+  font-size: 26rpx;
+  padding: 0 12rpx;
+}

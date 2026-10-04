@@ -5,6 +5,7 @@ const quickSettingsActions = require('./lobbyQuickSettingsActions');
 const importActions = require('./lobbyImportActions');
 const lifecycleActions = require('./lobbyLifecycleActions');
 const pairActions = require('./lobbyPairTeamActions');
+const coManagerActions = require('./lobbyCoManagerActions');
 
 function createLobbyDelegates(syncController) {
   const retryMethods = retryAction.createRetryMethods();
@@ -18,6 +19,7 @@ function createLobbyDelegates(syncController) {
     importActions,
     lifecycleActions,
     pairActions,
+    coManagerActions,
     sync,
     retryMethods
   );
