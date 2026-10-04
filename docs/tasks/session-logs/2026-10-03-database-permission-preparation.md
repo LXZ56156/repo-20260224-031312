@@ -84,3 +84,23 @@ Edge旧登录态失效但CLI认证仍有效，用户重新登录后已看到原�
 额外环境的直接收益是允许部署候选规则、制造合成冲突和回滚而不影响生产。用户目前选择不使用免费额度：先收口本地能验证的部分，随后可在现有环境安排只读微信身份检查，不需要为它单独创建环境。不能在原环境直接套候选规则或用真实赛事做破坏性试验；若剩余引擎/事务验收最终需要改变生产规则或写入合成数据，先准备具体范围和证据，再按原边界取得该项授权。未验证项保留，不制造通过结论。
 
 本轮重新读取[微信小程序调用云函数官方资料](https://docs.cloudbase.net/recipes/add-cloud-function-wechat-miniprogram)，确认真实身份取自`getWXContext()`且CLI部署与本地运行不同；安全规则旧URL再次读取失败，未据此新增规则引擎结论。已有应用测试不因解释路线重复全量运行。
+
+## 10-05现有环境只读身份：DevTools实际通过
+
+用户确认继续。新增[生成器](../../../scripts/dev/wx-identity-readonly.js)及[五项直接测试](../../../tests/wx-identity-readonly.test.js)，仅生成全新ignored小程序；正式源码、私有配置和原云函数保持。入口仅按钮调用login，空data、显式现有env、traceUser=false；启动不调用，身份不走原应用七日缓存。本地绑定AppID先与运行AppID比对，再比对云返回；root/data矛盾拒绝。界面只显示固定结果码及布尔，UNIONID缺失不作为失败，没有DB、其他函数、分析事件或SDK错误回显。复用已生成 `tmp/wx-identity-readonly-20261005-current/` 九文件；将来生成须指定全新目录：`node scripts/dev/wx-identity-readonly.js --output tmp/<新目录>`，已存在目标拒绝且保留partial。
+
+注册的wechatide MCP本次正常：登录未过期；versionRelation=skip_check，未声称skill版本兼容。旧自定义本地桥接exit1不是登录失效证据，不再要求重登。只读函数详情确认login为Active、Nodejs16.13、timeout3；未部署。主控审原handler仅getWXContext/okResult及生成入口，核固定配置和SHA后，以官方MCP打开/编译新项目，初始结果为空。上海2026-10-05 03:15:36调用一次verifyIdentity，真实wx.cloud.callFunction返回LOGIN_OK，openid非空与AppID匹配均true，UNIONID存在false；03:16:18保存脱敏观察回执。这两个时刻不是云函数执行耗时。实际SDK3.17.2/platform devtools，未mock、未使用管理端invoke。486×1048实图主控亲看，结果一致且无原始身份/错误。
+
+验收根 `tmp/wx-identity-readonly-root-20261005/` 含前态/函数状态、runtime-go、actual-identity-receipt、runtime-info、actual-login.png及acceptance；主控核七输入/九生成文件未变。Sol的生成/语法/两文件lint均退出0，Luna窄冷审无新P0/P1/P2。首版五测试原始流保留；固定expectedAppID加强后的测试只有工具输出，缺独立子进程final回执，主控为此只补最终五直接测试，实际5通过、0失败/跳过、exit0，独立流/SHA保存，不重复应用全量。旧隔离harness六测试只属离线工具安全，封存不执行。
+
+结论仅为**现有环境、DevTools真实微信到login身份链路通过**。iPhone本人扫码、跨账号、赛事主办/参与/同名guest授权、客户端规则拒绝、索引、并发/真实事务回滚仍未验。没有兑换试用、创建/付款、客户端preview/upload、云部署、规则变更或业务数据读写；正常平台调用日志不属于应用业务写入。
+
+## 下一步提案：现有环境的临时集合规则验收（未执行）
+
+为保留免费试用，拟仅新增 `codex_acl_verify_20261005` 临时集合。执行前确认该名称不存在；若已有同名集合则停止，不复用、覆盖或删除。原13集合、其规则/索引及所有生产函数保持。
+
+该新集合拟使用 `CUSTOM`，规则为 `{"read":"auth != null","write":false}`；具体[设置规则API](https://cloud.tencent.com/document/api/876/128959)请求必须显式目标EnvId、CollectionName和JSON字符串Rule。官方页面打开超时，官方检索结果确认CUSTOM必填Rule及2018-06-08合同；没有执行修改。管理端预置四条纯合成文档：`fixture_read/set/update/remove`，仅marker=SYNTHETIC_ONLY、value=1。准备独立客户端驱动，原只读入口不加数据库动作。
+
+真实微信客户端十类操作：get/query、四种add（省略/自己/合成他人_openid及伪造creatorId）、set新/旧、update/remove。期望登录读取成功、客户端写入拒绝、四基线文档全量hash不变；SDK本地拦截、引擎拒绝、网络/未知错误分别记，不能将所有失败算通过。意外写成功或未知故障立即停后续case，保存证据。完成检查并保留本地证据后，只清理本次新建的测试集合；清理失败如实保留，不扩大删除范围。
+
+确切提案JSON在 `tmp/wx-identity-readonly-root-20261005/next-acl-scope-proposal.json`，不是执行器；新客户端驱动/离线安全验证在本地准备，云规则、fixture与真实SDK测试均未执行。该方案涉及**现有生产环境的新临时集合及规则/合成写入范围**，不同于此前非生产环境合成验收；准备具体候选后取得该范围授权，不直接套用旧授权。它验证候选规则的引擎行为，不证明现有tournaments已改规则、原业务函数合法写入兼容、角色授权或真实事务已完成。

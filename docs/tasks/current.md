@@ -10,7 +10,7 @@
 
 ## 工作区与授权
 
-- workdir `D:\projects\badminton-miniapp\main`，master；保留dirty/private/partial/旧证据。审staged后推送核远端。
+- workdir `D:\projects\badminton-miniapp\main`，master；保留dirty/private/partial/旧证据。
 - 客户端6.1.2-702625a；startTournament旧授权已用完。
 - CLI验证/必要函数部署、隔离合成验收已授权；付款、客户端上传/发布、生产规则/真实业务写入须证据后授权；PR/preview/QR另计。[提交规则](../../AGENTS.md#交付与文档)。只读6 Luna max，实现6.1 Sol high。
 
@@ -18,7 +18,7 @@
 
 第3实收/逐ID/权限未验。第4[同步修复](session-logs/2026-10-03-client-defect-repair.md)已推f7131ee，本地通过、未上传。原生/手机、照片版本/首次错误码待验。
 
-优先第5身份/权限：保留免费试用，不领码/建环境；先本地验证，再安排现有环境只读身份核验。候选规则引擎/真实事务未验；[准备](session-logs/2026-10-03-database-permission-preparation.md)。
+优先第5：DevTools微信身份通过，无业务写入，保留免费试用。规则/角色/事务未验；临时集合候选本地准备，云写待授权；[记录](session-logs/2026-10-03-database-permission-preparation.md)。
 
 第6无新本地缺陷；实收/测试排除/七日率未验，[日志](session-logs/2026-10-03-water-first-entry-diagnosis.md)，场景待答。
 
