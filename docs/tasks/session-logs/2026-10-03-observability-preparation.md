@@ -36,3 +36,13 @@
 - 客户端新增6项直接测试通过；连同growth、cloud错误/返回合同、water V2客户端/页面生命周期及日报共8文件74项通过、0跳过、0失败。6个本任务JS文件聚焦ESLint0错误0警告，diff检查通过；终端出现其他主控正修改submitScore的CRLF提示，非本任务改动。共享cloud调用变化的最终全量检查由主控合并后统一执行，本子任务未声称全量已通过。
 - 最后补充确认：排阵异常中文“超时”不误算为平台硬超时，433按现有CLS平台超时码计数；本任务两文件12项直接测试最终通过，聚焦ESLint及diff检查通过。微信后台的事件定义/参数约束及实收仍未核实；官方检索未获得可用资料，不以合成SDK替代平台验收。
 - 未验证：真实客户端事件实收、远端完整协议兼容、生产TTL/访问配置、真实测试旅程、生产测试分离、7日成功率及告警订阅。后续先准备具体客户端/接收改动和本地验收证据，再请求生产启用/写入/部署/上传各项授权。
+
+## 2026-10-04 静态配置准备补充
+
+只读对照 `tmp/wechat-event-config-check-20261004/report.md` 与 `miniprogram/core/activityTracker.js`：`activity_attempt`、`activity_result`、`activity_view` 共用17个 `data` 属性，精确字段和JavaScript类型见[留痕合同](../../specs/activity-observability.md)本地通道段。本次只澄清规格，没有改动客户端代码。
+
+`receivedAt`、`testRunId`、`mode/status` 与未知码归入 `OTHER` 属于未来独立接收服务/统计schema建议，不是当前 `wx.reportEvent` payload 或已核实的平台配置。平台字段限制/API能力、事件是否配置、实际客户端实收与查询仍未验证；本次没有登录、访问管理控制台、调用云/API或写入真实事件。仅做引用核对与文档差异检查，不重跑应用测试。
+
+同期只在 `tmp/minimal-client-acceptance-20261004/` 新建客户端来源与旅程证据，复用 `tmp/start-head-delivery-20261004/snapshot/miniprogram/`：635文件/6,558,094bytes与Git `b9d323fe5d271290160f3fd69aa9f7854f184a69` 的canonical bytes/文件集合精确一致，tree `4ba531b1e57b227b575d15f1db0947c2345d9f89`。`7e9176c`仅含第3/4客户端改动，第1开赛恢复判定在b9，二者客户端仅差 `lobbyLifecycleActions.js`。没有另导出重复包、没有后续第7/8/11 UI或既有dirty。manifest/lineage/freeze与受控第1→3→4验收旅程留在新根，旧直接测试证据复用，不重复全量。CI2.1.31默认编译路径涉及私钥与项目属性请求，尚未建立可靠纯离线合同，本次未调用；未编译、不可扫码、未上传和真机验收。用户已明确iPhone验收后做，专用环境/身份/赛事、实际版本、事件配置实收和真实写入仍待对应条件与授权。
+
+Luna补核8份冻结artifact的size/SHA、3份来源receipt和2份附加证据均匹配，15个引用路径安全；冷审仅新增ignored `cold-review.txt`，不属于先前封存的8份。用户对三个事件的后台定义和字段限制答“不确定”，仍记未核实，不能推断已定义或不存在。本轮不继续要求登录CloudBase，也不据此启用/创建事件或触发真实业务。

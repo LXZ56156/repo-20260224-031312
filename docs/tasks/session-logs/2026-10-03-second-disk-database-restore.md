@@ -1,5 +1,11 @@
 # 2026-10-03 从第二物理盘副本实际恢复数据库
 
+10-04用户明确备份存在本机即可，异地/离线不再本轮门槛；新增从E恢复存储和函数文件树的阶段统一见[第2项详细状态](../paused-plan-status.md#10-04依序续做第2项本机资产恢复)。工具`tmp/second-disk-assets-restore-20261004/`，原D/E/数据库恢复根保留。首轮提取11788成员后Windows260字符边界失败、exit1，新partial保留；另名长路径版已核最长278、实际318字符I/O通过，实际新`-longpaths`目标已完成246398成员提取、2735对象/38函数文件树重读及13072引用全匹配。子进程/outer均exit0、双摘要一致，5份新metadata另核E来源和实际receipt绑定；本机文件恢复通过。下方13/13925数据库已恢复结果仍有效，不覆盖旧DB/首轮失败证据，也不混称整云服务已恢复。下方旧“本次未从E恢复存储/函数”仅说明10-03数据库阶段，10-04新增结果以上方和正文为准。
+
+10-04实际上海17:28:07–18:25:39完成资产核验；`unified-exec-terminal-receipt.json`记录统一exec79279、child/outer均0，主恢复独立stderr为0bytes。`postrun-execution-receipt.json`记录新metadata绑定实际命令exit0及工具/结果/合并输出SHA；该调用未分离stderr，bytes为null，不把无可见诊断说成独立stderr0。没有重放运行覆盖证据。本阶段仅离线新工具/恢复和文档，无业务源码改动，不重复已有应用全量。
+
+Luna实际终态只读冷核通过、未发现P1，记录新ignored `postrun-cold-review.txt`；双摘要bytes/SHA、outer/preflight/sourceManifest及postrun工具/结果/合并输出SHA均绑定匹配。主控审本阶段全部staged范围，80个文档本地引用有效、current1493字符、diff检查通过；只提交5份文档，既有配置与单打候选逐hash保持。
+
 主控北京时间07:59:19–07:59:26实际运行从E盘归档取得输入的新本机隔离恢复：13集合、13,925文档逐文档BSON canonical hash及类型一致，33索引恢复、13个 `_id_` unique平台固有差异单列。四类账本关联missingField/orphan均0。MongoDB8.0.32退出code0、shutdownVerified=true，主控另核对27029无监听。
 
 ## 输入来源与保全

@@ -8,7 +8,29 @@
 
 `core/activityTracker.js`仅调用现有wx.reportEvent，事件名固定activity_attempt/activity_result/activity_view，不写本地持久存储、不打印payload、不调用reportOpsActivityEvents、不重发事件。老growth事件保持原行为。`core/cloud.js`统一接入create/clone/join/start/submitScore/updateSettings、scoreLock acquire及waterSession的create/createLedger/join/addParticipants/recordGame/recordDirect/correctEntry/reverseEntry/undoLast/createRound；读取、锁心跳与释放不采。water页onLoad只补water_enter，不改变可见页面。2026-10-03补充分享入口attempt/result、短期手动重试关联和录分返回finished状态确认；sharePageMixin集中接入ranking/analytics的实际onShareAppMessage/onShareTimeline，lobby/schedule的实际onShareAppMessage直接接入同一tournament_share。既有view仍沿用老事件，新通道的页面事件无云trace时留空。[补齐记录](../tasks/session-logs/2026-10-03-observability-completion.md)。
 
-实际发送allowlist固定为schemaVersion/eventId/operationId/intentId/attemptIndex/eventTime/phase/action/anonymousSessionId/traceId/appVersion/envVersion/result/resultCode/durationMs/retryCount/firstEntry。只读SDK getAccountInfoSync的miniProgram.version/envVersion；缺失时为空，开发环境不填假发布版本。anonymousSessionId在进程内随机生成、无跨重启身份意义，既不使用openid也不使用赛事短hash。trace只接受已登记函数名+时间+随机串的既有生成格式，调用者自由输入丢弃；resultCode采用已知码allowlist，其余归SUCCESS/BUSINESS_REJECTED/RESULT_UNKNOWN/SDK_EXCEPTION等固定枚举。
+当前埋点通道经 `wx.reportEvent` 发送 `activity_attempt`、`activity_result`、`activity_view` 三个事件名，三者共用下列17个 `data` 属性；事件名参数本身不在 `data` 内。类型与取值形态由 `core/activityTracker.js` 推导，只说明现码，不代表微信平台接受了这些字段或格式。配置与实收尚未核实。
+
+| 属性 | JavaScript 类型与现码取值 |
+| --- | --- |
+| `schemaVersion` | number，整数 `1` |
+| `eventId` | string，由随机ID与phase生成 |
+| `operationId` | string，随机不透明ID |
+| `intentId` | string，随机不透明ID |
+| `attemptIndex` | number，正整数 |
+| `eventTime` | number，`Date.now()`毫秒时间戳 |
+| `phase` | string：`attempt` / `result` / `view` |
+| `action` | string，固定动作枚举 |
+| `anonymousSessionId` | string，进程内随机ID |
+| `traceId` | string；缺失或格式不符时为空字符串 |
+| `appVersion` | string；版本缺失或不符时为空字符串，有效值最多64字符 |
+| `envVersion` | string：`develop` / `trial` / `release`，或空字符串 |
+| `result` | string，固定结果枚举；attempt为 `pending`，view为 `view` |
+| `resultCode` | string，固定代码或通用结果枚举；允许空字符串，不发送任意错误文本 |
+| `durationMs` | number，非负整数，最多86,400,000 |
+| `retryCount` | number，非负整数，最多10 |
+| `firstEntry` | string：`not_applicable` / `replayed` / `unknown` / `yes` / `no` |
+
+只读SDK `getAccountInfoSync` 的 `miniProgram.version` / `envVersion`；缺失时为空，开发环境不填假发布版本。`anonymousSessionId` 在进程内随机生成、无跨重启身份意义，既不使用openid也不使用赛事短hash。trace只接受已登记函数名+时间+随机串的既有生成格式，调用者自由输入丢弃；resultCode采用已知码allowlist，其余归 `SUCCESS` / `BUSINESS_REJECTED` / `RESULT_UNKNOWN` / `SDK_EXCEPTION` 等固定枚举。
 
 一次cloud.call只发一对attempt/result；内部网络自动重试沿用operationId/traceId，结果列retryCount，不增加attemptIndex。两个phase的eventId分别稳定为operationId_attempt/operationId_result；同一eventId运输重复可离线去重，发送本身不重试。手动重试重新调用cloud.call产生新的operationId/traceId；同一进程内同函数、同已登记原始子动作及同clientRequestId复用随机intentId，attemptIndex从1递增。关联范围使用函数名及waterSession/scoreLock的原始action，不使用归一化事件action：create/createLedger虽都发送water_create，仍是两个独立意图。范围仅留进程内，不增发送字段、不hash。原始ID只作为进程内Map键，不发送、不hash、不存盘、不日志；只接纳非空且最多256字符的字符串，最多保留100组，满额逐出最早组，每组从首次调用起固定30分钟到期，定时清除且新调用也清理过期组。到期、逐出、进程重启或没有合法请求ID都产生新随机意图，不能据此推算跨会话独立用户数；attemptIndex表示cloud.call次数，不表示已验证的点击次数。
 
@@ -44,11 +66,11 @@ tournament_share仅在实际赛事分享回调被用户调用时发一对attempt
 
 ## 字段与数据边界
 
-拟议最小allowlist：schemaVersion、eventId、operationId、eventTime、receivedAt（服务端）、phase、action、result、resultCode、durationMs、appVersion、envVersion、anonymousSessionId、traceId、attemptIndex、testRunId（明确测试才填写）及非身份枚举mode/status。eventTime为UTC毫秒，报表展示固定北京时间窗口；服务端记录接收时间以区分设备时钟偏差。eventId/operationId/anonymousSessionId是随机不透明标识，不从openid/手机号/姓名派生。用户输入不能作为action/result/code自由文本；未知结果码归入OTHER，原始错误仅在现有受限CLS内诊断。
+若未来另行实现独立接收服务，曾拟议加入服务端 `receivedAt`、明确测试才填写的 `testRunId` 及非身份枚举 `mode/status`，并由接收服务将未知结果码归入 `OTHER`。这些仅是未来服务/统计schema建议，不是当前 `wx.reportEvent` 字段或已核实的平台配置事实；当前客户端不发送上述字段，也没有 `OTHER` 归类。当前实际 `data` 属性及JS类型以上方当前字段表和源码为准。未来方案中 `eventTime` 为UTC毫秒，报表展示固定北京时间窗口；服务端可记录接收时间以区分设备时钟偏差。eventId/operationId/anonymousSessionId是随机不透明标识，不从openid/手机号/姓名派生。用户输入不能作为action/result/code自由文本；原始错误仅在现有受限CLS内诊断。
 
 禁止采集姓名、头像、联系方式、昵称、名单文本、比分备注、其他文本输入、openid、unionid、客户端完整payload、原始赛事/账本/成员ID。事件本身不需要还原个人身份；服务端认证仍通过getWXContext，认证字段不可直接入事件存储。若确需跨周主办者匿名关联，先定义单独的HMAC标识/轮换周期和允许用途，不能把现有32位赛事哈希当匿名个人身份或防碰撞ID。
 
-traceId复用 `core/cloud.js` 已生成的__traceId；同一操作的重试保留操作关联。它只关联诊断，不作为用户可见文案或身份。结果缺trace/版本时报告missing，不填假版本。生产/体验/开发由envVersion区分；既有共用云环境中的历史请求未带版本/testRunId，不能事后精确剔除测试账户。
+traceId复用 `core/cloud.js` 已生成的__traceId；同一操作的重试保留操作关联。它只关联诊断，不作为用户可见文案或身份。结果缺trace/版本时报告missing，不填假版本。生产/体验/开发由envVersion区分；当前客户端没有 `testRunId` 字段，既有共用云环境中的历史请求也可能缺少版本，不能事后精确剔除测试账户。
 
 客户端错误/采集disabled、限流、接收失败均不能阻塞主要业务，也不能产生额外Toast。服务端accepted/deduped/rejected/dropped逐项对账；函数ok不等于全批接受，事件接收调用不得触发自己再次采集。既有成功幂等日志保留原合同，不改作行为日志。
 
