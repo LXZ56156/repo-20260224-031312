@@ -37,6 +37,8 @@
 
 - **第4交付与第5录分事务范围**：客户端7源/测试及5任务/规格文档已提交推送`7e9176c8310892e8d56e416fc6330eff2db67f69`，核ls-remote一致。第5经Luna合同依赖复核，可独立提交submitScore/index及其直接测试/e2e一行doc.update夹具，不要求第7的scoreLockRevision/finishMeta保护或第8权限模板/lib；原scoreLock已事务写同lock，提交事务读锁/赛事、写赛事并删同lock，使锁接管共享写冲突，分享在提交后、重放先清待分享状态。Sol新`tmp/score-head-delivery-20261004/`固定f39c0a1，1206文件中3候选、1203非候选blob匹配基线，工作源SHA不变；direct16/16、HEAD消费61/61、lint0错误/警告及fixed-ref diff检查通过。prepare的git show大文件ENOBUFS及no-index exit1误判原件保留，改blob核验和固定ref只读diff后恢复，无实现/断言改变或重复测试。主控审全部3文件差异、核当前7e9176c的这3目标基线未变；首次直接暂存CRLF使cached diff gate退出2，失败log/raw staged patch及初receipt保留，只把提交副本CRLF转LF，未改工作源/旧snapshot，语法检查0/cached diff0，新`root-stage-normalized-receipt.json` passed。录分事务真实引擎重放/回滚、身份/规则、双手机、生产3秒及提交瞬间锁仍有效均未验；不部署。第7仍必须按finishTournament+scoreLock/index+submitScore/index/logic+reset/logic组合完成，不因第5本地交付跳过。
 
+- **第5交付及优先级补核**：上述准确5文件（3源码/测试、current与本正文）已提交推送`31533a571b909ee4d70704fbb6a3d910ce0e2a00`，master远端HEAD一致、index空。重新读取现行AGENTS/current后发现第1已部署deadline源码、最小客户端开赛恢复及Timeout验收工具仍在dirty中，不能以线上修复或其他提交代替Git交付；先独立抽取第1，不夹带第8权限两hunk，再按顺序交付第7/8，独立第10性能候选并行准备。只读重新检查Edge现有/用户标签页，仍只有原CloudBase登录页，无新已登录后台；原handoff保留。官方Computer Use只读窗口清点及main实图仍为原HWND、390机型/home DEV页面，未输入、激活重试、预热或签430；原窗口激活失败与需人工恢复的边界保持。未改旧partial/备份、未付款/新部署/真实写入。
+
 ## 暂停时已知状态（事实截至2026-10-04）
 
 - 10-04 用户另行授权开发方式/工具链优化及文档固化；默认入口已固定为 [开发工作流](../tools/agent-development-workflow.md) 的 `ui:iterate -- <case>`，故障按 [手册](../tools/weapp-ui-troubleshooting.md) 分阶段恢复。原12项业务计划及观察自动化继续暂停；不含业务改动、部署、上传/发布或真实数据写入。[工具实测](../reports/2026-10-04-agent-ui-workflow-research.md)、[规则整理记录](session-logs/2026-10-04-development-workflow-standardization.md)。

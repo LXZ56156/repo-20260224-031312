@@ -17,4 +17,4 @@
 
 ## 下一步与证据
 
-继续高优先级累计监控与join超时诊断，补原生尺寸复核；等待网页登录/兑换码与真实身份、单打场景，推进不依赖这些信息的本地工作。UI按 [日常循环](../tools/agent-development-workflow.md) 使用ui:iterate，失败按 [手册](../tools/weapp-ui-troubleshooting.md) 分阶段处理；按 [索引](../README.md) 读取，详情更新同一任务正文。
+先补交付第1开赛源码及验收工具，再交付第7/8；第10并行准备。监控和join诊断继续；网页登录/兑换码、窗口恢复、真实身份及单打场景待答。UI按 [日常循环](../tools/agent-development-workflow.md) 使用ui:iterate，失败按 [手册](../tools/weapp-ui-troubleshooting.md) 处理；按 [索引](../README.md) 读取，详情更新同一正文。
