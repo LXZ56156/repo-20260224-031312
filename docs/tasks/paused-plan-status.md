@@ -71,6 +71,12 @@
 - **证据与保全**：报告SHA `5b3c69d9a1d79209b112688307b4929c9604d1a01d95f51336fa59b4451f6b84`，35冻结输入、71源码、四旧证据及Node hash前后相等，65实际加载源均在闭包。子stderr仅43bytes拦截器零尝试记录、outer stderr空；不是OS断网证明。主控`tmp/performance-ten-root-20261005/acceptance.json`独立重算200样本nearest-rank/扣除公式/逐patch及raw流SHA，exit0；Luna另做一次小报告冷核，不重复采样或源码全量。预备PowerShell花括号解析失败保留后改显式路径；旧两文件六测试仅affected计划，未重跑tests/full/GUI/云。
 - **收口与未完成项**：Luna `tmp/performance-ten-current-readonly-20261005/result-cold.md/json`对raw统计/公式/字节及退出/流SHA/前后清单复算一致，明确330及全键只能核执行断言，未重复采样。文档初门禁仅current1530字符超限，exit1保留于root根preflight.json；收缩导航后另名final核，不回改失败。同步mock无微信桥/WXML/设备/云计量；计时外新检查仍可能影响GC，单轮不构成旧/新因果比较、手机P95或提速。原生分块/定位/滚动/头像/筛选、320/430、Android+iPhone及首屏/云读写/render P95未验。[原日志](session-logs/2026-10-03-performance-baseline.md)只追加本阶段；保留前项缺口，接续11/12，不称整计划完成。
 
+## 10-05依序续做：第11找回与第12需求
+
+- **第10交付与范围**：性能三文档已推`f650482a2bab94cb4fe83a13965a21821488012b`，master远端完整SHA一致、index空，原16dirty/71冻结源码保全。按顺序继续11/12，前项未验保留，不恢复CloudBase或自动观察。
+- **第11当前阶段**：后端fa57b70、前端da56e80及组合工具已有准确交付，本轮不重复旧30/53测试、SDK/ZIP、全量或GUI。main本人主办/真实绑定参与的只读20条双路列表、分页/重试/响应代次与既有share-entry链路未扩范围；第9已有当前getMy包Linux加载证据。真实WX/Date/组合与数组索引、查询成本/3秒、并发分页/跨会话、设备/原生图未验；旧console报函数不存在，没有新部署回执，不称线上可用。[对应日志](session-logs/2026-10-03-tournament-recovery-implementation.md)追加当前交付与边界，旧安装/提交状态按日期保留。
+- **第12当前阶段**：原2–6人离线候选及21项历史通过保留，仍未tracked/未接mode；既有三模式及双打校验不改。已再异步请求实际人数/场地/时长/循环/分制/同胜场排序/提前收赛，或明确后置单打；答复尚缺，不能把“全部允许”解释为真实需求已经验证，不猜新产品规则。[候选日志](session-logs/2026-10-03-singles-offline-candidate.md)只追加本阶段。没有重新跑tests/部署/上传/真实写入，不称第12或12项整体完成；手机后验及云停用继续适用。
+
 ## 10-04第4项续做及同步提示反馈
 
 - **范围与保全**：main/master从`94912202a1eb33dc832f00d05d9578fee6cb4105`续做，第3真实实收缺口仍保留，不把进入第4记作前项全完成。既有三配置、单打候选、历史QR/浏览器记录、备份与partial不覆盖。简单只读Luna max、实施Sol high；本轮不登录CloudBase、查云、付款、部署、preview、上传发布或写真实业务。用户手机后做的决定不改。

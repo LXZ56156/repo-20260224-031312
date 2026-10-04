@@ -11,7 +11,7 @@
 ## 工作区与授权
 
 - workdir `D:\projects\badminton-miniapp\main`，master；保留dirty/private/partial/旧证据。已验范围审staged后推送并核远端。
-- 线上客户端6.1.2-702625a，[回执](session-logs/2026-09-23-online-release-confirmed.md)；startTournament旧部署授权已用完。
+- 线上客户端6.1.2-702625a；startTournament旧部署授权已用完。
 - 付款、部署、上传/发布、真实业务写入须证据后逐项授权；PR/preview/QR另计。提交遵循[现行规则](../../AGENTS.md#交付与文档)。只读6 Luna max，实现6.1 Sol high。
 
 ## 下一步
@@ -28,4 +28,6 @@
 
 第9共26组/315源对应Linux24.11回执，8组新加载通过；SDK未升级，云未验；[日志](session-logs/2026-10-03-dependency-inventory.md)。
 
-第10普通/长名660场各100样本预算通过，本机P95 12.1420/17.1868ms；手机/桥未验；[日志](session-logs/2026-10-03-performance-baseline.md)。接续11/12，保留待验。
+第10当前660场200样本预算通过；手机/桥未验，[日志](session-logs/2026-10-03-performance-baseline.md)，已推f650482。
+
+第11找回已交付，真实身份/索引/跨设备、图/手机未验。第12仅离线候选，未接mode；已询问人数/场地/时长/循环/分制/排序/收赛，待答。两项详情见逐项正文，前项待验保留。
