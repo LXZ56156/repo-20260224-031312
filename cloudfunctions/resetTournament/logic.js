@@ -19,6 +19,7 @@ function buildResetTournamentPatch(tournament) {
 
 function buildResetTournamentRemovals(removeToken) {
   return {
+    finishMeta: removeToken,
     fairness: removeToken,
     playerStats: removeToken,
     schedulerMeta: removeToken

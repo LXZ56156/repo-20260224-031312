@@ -106,6 +106,12 @@ exports.main = async (event) => {
       });
 
       if (resolved.nextLockDoc) {
+        // Share a write conflict with manual finish. Reading the tournament alone
+        // cannot serialize a new lock against a concurrent tournament write.
+        const updated = await transaction.collection('tournaments').doc(tournamentId).update({
+          data: { scoreLockRevision: db.command.inc(1) }
+        });
+        common.assertOptimisticUpdate(updated);
         const data = common.assertNoReservedRootKeys({
           tournamentId,
           roundIndex,

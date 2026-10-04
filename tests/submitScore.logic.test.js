@@ -143,3 +143,11 @@ test('buildSubmitResult throws on invalid target round or match', () => {
   assert.throws(() => logic.buildSubmitResult(t, 99, 0, 21, 18), /轮次不存在/);
   assert.throws(() => logic.buildSubmitResult(t, 0, 99, 21, 18), /比赛不存在/);
 });
+
+test('manual cancel reason remains immutable even if legacy tournament finish metadata is missing', () => {
+  const t = fixtureSquadTargetWinsTournament();
+  t.rounds[0].matches[2].cancelReason = 'manual_finish';
+  const result = logic.buildSubmitResult(t, 0, 1, 18, 21);
+  assert.equal(result.rounds[0].matches[2].status, 'canceled');
+  assert.equal(result.nextStatus, 'finished');
+});

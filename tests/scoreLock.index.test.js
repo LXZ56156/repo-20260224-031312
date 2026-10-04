@@ -54,9 +54,11 @@ function createDbHarness(lockGetImpl) {
   const calls = {
     set: [],
     remove: [],
+    tournamentUpdate: [],
     createCollection: 0
   };
   const db = {
+    command: { inc: (amount) => ({ $inc: amount }) },
     createCollection: async () => {
       calls.createCollection += 1;
     },
@@ -73,6 +75,10 @@ function createDbHarness(lockGetImpl) {
                 return {
                   async get() {
                     return { data: buildTournament() };
+                  },
+                  async update(payload) {
+                    calls.tournamentUpdate.push(payload);
+                    return { stats: { updated: 1 } };
                   }
                 };
               }
@@ -111,9 +117,11 @@ function createDbHarnessWithTournament(lockGetImpl, tournamentFactory) {
   const calls = {
     set: [],
     remove: [],
+    tournamentUpdate: [],
     createCollection: 0
   };
   const db = {
+    command: { inc: (amount) => ({ $inc: amount }) },
     createCollection: async () => {
       calls.createCollection += 1;
     },
@@ -130,6 +138,10 @@ function createDbHarnessWithTournament(lockGetImpl, tournamentFactory) {
                 return {
                   async get() {
                     return { data: tournamentFactory() };
+                  },
+                  async update(payload) {
+                    calls.tournamentUpdate.push(payload);
+                    return { stats: { updated: 1 } };
                   }
                 };
               }
@@ -224,6 +236,7 @@ test('scoreLock index can acquire when lock doc is missing', async () => {
   assert.equal(Object.prototype.hasOwnProperty.call(calls.set[0].payload.data, '_id'), false);
   assert.equal(calls.set[0].payload.data.ownerId, 'u_admin');
   assert.equal(calls.set[0].payload.data.lockSessionId, 'session_new');
+  assert.deepEqual(calls.tournamentUpdate, [{ data: { scoreLockRevision: { $inc: 1 } } }]);
 });
 
 test('scoreLock index ignores stale-session release for a newer owner lock', async () => {

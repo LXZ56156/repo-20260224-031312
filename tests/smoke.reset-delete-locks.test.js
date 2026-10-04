@@ -31,6 +31,7 @@ test('smoke: reset rebuilds rankings and reset/delete both tolerate cleanup fail
     ]
   );
   assert.deepEqual(resetLogic.buildResetTournamentRemovals('__REMOVE__'), {
+    finishMeta: '__REMOVE__',
     fairness: '__REMOVE__',
     playerStats: '__REMOVE__',
     schedulerMeta: '__REMOVE__'

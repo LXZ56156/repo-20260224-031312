@@ -74,6 +74,7 @@ function reviveScorelessCanceledMatches(rounds) {
     const matches = Array.isArray(round && round.matches) ? round.matches : [];
     for (const match of matches) {
       if (!match || String(match.status || '') !== 'canceled') continue;
+      if (match.cancelReason === 'manual_finish') continue;
       if (scoreUtils.isValidFinishedScore(match)) continue;
       match.status = 'pending';
     }
@@ -119,7 +120,8 @@ function buildIdempotentRetryResult(match, scoreA, scoreB, requesterId, fallback
 }
 
 function buildSubmitResult(tournament, roundIndex, matchIndex, scoreA, scoreB, scorer = null) {
-  const sourceRounds = isSquadTargetWins(tournament)
+  const manuallyFinished = !!(tournament && tournament.finishMeta && tournament.finishMeta.type === 'manual');
+  const sourceRounds = isSquadTargetWins(tournament) && !manuallyFinished
     ? reviveScorelessCanceledMatches(tournament && tournament.rounds)
     : (tournament && tournament.rounds);
   let rounds = applyScoreToRounds(sourceRounds, roundIndex, matchIndex, scoreA, scoreB, scorer);
@@ -129,7 +131,7 @@ function buildSubmitResult(tournament, roundIndex, matchIndex, scoreA, scoreB, s
     rounds = squadEnd.rounds;
     rankings = computeRankings({ ...(tournament || {}), rounds });
   }
-  const finished = allMatchesFinished(rounds);
+  const finished = manuallyFinished || allMatchesFinished(rounds);
   return {
     rounds,
     rankings,

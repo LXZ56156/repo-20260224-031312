@@ -33,6 +33,7 @@ test('buildResetTournamentPatch resets player rankings for multi_rotate', () => 
 
 test('buildResetTournamentRemovals explicitly removes fairness, playerStats and schedulerMeta', () => {
   assert.deepEqual(logic.buildResetTournamentRemovals('__REMOVE__'), {
+    finishMeta: '__REMOVE__',
     fairness: '__REMOVE__',
     playerStats: '__REMOVE__',
     schedulerMeta: '__REMOVE__'
