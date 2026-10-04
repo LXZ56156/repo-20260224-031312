@@ -55,6 +55,15 @@
 - **候选与未验项**：12组152源，9包源匹配当前HEAD复用，addPlayers/removePlayer/updateSettings旧包各仅index缺已交付的2500ms可选分享截止。37当前源原字节等于HEAD；全新`tmp/coadmin-eight-candidates-current-20261004/`只补这3包，各取自身6368旧依赖，主控审源码差异和7工具冻结后执行。首次准备inspect误断remove默认hunk数3，实际2但三语义改动齐全，失败保留；不是云函数失败。授权/撤销、七入口、主办专属与撤权刷新已有实现及历史直接覆盖，没有新越权缺口；真实WX身份/安全规则/事务、跨会话撤权/双机、当前原生图/尺寸/手机与实际云runtime仍未验。原生无新恢复证据，不盲重试；全第8不标完成，后续编号第9依赖。
 - **本轮最终收口**：普通成功残留新增直接RED12通过/1失败、exit1，开始捕获旧entry后只清同赛事/同对象，旧grant不能在成功revoke后重放，新失败保留；最终7文件39/39、0失败/跳过，语法/lint/diff通过，既有警告1条。三个包prepare/12子进程及run数值exit0；旧/新ZIP完整CRC/SHA、重复字节和extra0实际通过，Windows24.18/16.13各加载add/remove406、settings409模块，main未调用/网络0。各包12/12/13源、6368独立依赖，ZIP/hash表和实际回执见原日志；targetEnv=null，仅本地候选。首次封存导出路径错误的失败保留，另名只读修复，不重跑构建/加载。最终代码冷读、候选窄核和主控保全回执留在本轮ignored根；本轮失败及旧证据和此前验收边界保留，最近历史全量不冒称本轮全量。
 
+## 10-04/05依序续做：第9项依赖与运行环境
+
+- **范围与保全**：main/master起点136bfda674c95b75577ce15990e7e5b68c36dfe2，远端一致、index空；16既有dirty与325份源码/清单/工具测试SHA冻结于`tmp/dependency-nine-root-20261004/before.json`。CloudBase保持停用，不重新登录、查云、升级或安装依赖、audit/fix、GUI、应用全量、生产动作或业务写入。历史38备份/39云条目、旧94工具告警及平台菜单按原日期记录，不作为本轮新线上/安全结论。
+- **当前依赖与18组证据复用**：两名Luna独立只读核查，报告`tmp/dependency-nine-current-20261004-readonly/`与`tmp/dependency-nine-runtime-map-20261004/`；26tracked函数均固定SDK2.6.3，无函数lock/engines，根package/lock未变。7新95源加11旧127源，共18组222源匹配当前canonical Git；submitScore入口仅CRLF/LF差异，双SHA保留。第5/7/8最近七ZIP与final-cloud七包逐SHA相同，已有官方Linux24.11/Windows16.13加载证据复用，不重建等价包；旧11沿用实际Linux回执，不重require/CRC，未记录警告环境仍记未知。空stderr不能称DEP0040修复，冻结包加载不等于fresh install或CloudBase引擎验收。
+- **另外8组补证准备**：此前全26Windows聚合加载不能替代8组独立当前Linux证据。Sol在全新`tmp/dependency-nine-eight-current-20261004/`准备反馈、分享码、个人成绩/档案、活动ID、排名重建、档案保存及打水8组；固定HEAD93源，各自0238完整files.json与同名code/node_modules共50944依赖，未借安装树、联网安装或覆盖旧包/partial。主控先审实际适配工具、来源绑定、当前package依赖合同及SHA冻结后再执行；准备检查与真实构建/加载分开记录，后续结果另追加。
+- **10-05实际补证通过**：上海00:06:51.269–00:19:37.845，同一次wrapper完成8包，无失败/重试。固定136bfda的93源与50944自有依赖共51037成员，291622029解包字节/300827425 ZIP字节；各ZIP全部成员SHA/CRC、重复字节/extra0与Linux ext4提取及加载后成员保全通过。官方Linux24.11实际真实SDK加载8/8，main/网络/subprocess0；每包zip-build/linux-ext4/inner Node共24原始子进程、builder与outer全部数值exit0。launch/inner四环境变量显式清空，stderr无DEP0040不代表警告已修复。完整26组315源为18组222源已有证据复用加8新组93源，不是26次新加载；没有重复Windows或旧应用测试。主控`tmp/dependency-nine-root-20261004/eight-acceptance.json` exit0，实际流SHA、最终freeze/side inputs/两版沿革均匹配，16dirty/325源码清单工具保持。产物窄冷核与提交收口另记，不声称生产切换或真实云业务已验。
+- **阶段收口**：Luna最终仅核8实际ZIP整包SHA/中央目录和93源码三方，与24 child/2外层退出/日志SHA及freeze谱系全部匹配，issues空；cold-artifacts.md/json封存于同根，没有重完整依赖CRC/require。主控保全及文档门禁另留`tmp/dependency-nine-root-20261004/`。仅三文档提交推送，候选/工具ignored；第9本地证据补齐，真实云升级验收仍未闭合，按顺序转第10性能，前项待验保留。
+- **剩余标准**：本轮不直接换生产SDK/运行时；真实服务端身份、权限、事务冲突/回滚、错误与日期/int64 wire合同、实际云可选引擎和升级验收仍未完成。上游codec边界/13925快照扫描范围及历史工具审计维持原记录，不由本地加载推断安全或业务兼容。15历史未受管函数责任/调用及1空函数代码也未核实。[对应日志](session-logs/2026-10-03-dependency-inventory.md)追加过程，前项缺口保留。
+
 ## 10-04第4项续做及同步提示反馈
 
 - **范围与保全**：main/master从`94912202a1eb33dc832f00d05d9578fee6cb4105`续做，第3真实实收缺口仍保留，不把进入第4记作前项全完成。既有三配置、单打候选、历史QR/浏览器记录、备份与partial不覆盖。简单只读Luna max、实施Sol high；本轮不登录CloudBase、查云、付款、部署、preview、上传发布或写真实业务。用户手机后做的决定不改。
