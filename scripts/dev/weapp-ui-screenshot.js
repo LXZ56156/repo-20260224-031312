@@ -27,17 +27,19 @@ function resolveAutomator() {
   }
 }
 
-function resolveLaunchCommand(requestedCliPath) {
+function resolveLaunchCommand(requestedCliPath, options = {}) {
   if (process.platform !== 'win32'
       || path.extname(requestedCliPath).toLowerCase() !== '.bat') {
     return { executable: requestedCliPath, args: [] };
   }
   // Node 24 rejects spawning .bat files directly. Keep the vendor wrapper so it
   // can select the bundled Node runtime expected by the installed DevTools CLI.
-  return {
+  const command = {
     executable: 'cmd',
     args: ['/d', '/s', '/c', 'call', requestedCliPath],
   };
+  if (options.logFile) command.args.push('>', path.resolve(options.logFile), '2>&1');
+  return command;
 }
 
 function ensureBackgroundCaptureNwPreArgs(value) {
@@ -899,6 +901,10 @@ function validateSelectorCoverage(dom, selectors, selectorExpectations = {}) {
     if (Object.prototype.hasOwnProperty.call(contract, 'visible') && typeof contract.visible !== 'boolean') {
       failures.push({ selector, reason: 'invalid-visible', actual: contract.visible });
     }
+    if (Object.prototype.hasOwnProperty.call(contract, 'expectedVisibleCount')
+        && (!Number.isInteger(contract.expectedVisibleCount) || contract.expectedVisibleCount < 0)) {
+      failures.push({ selector, reason: 'invalid-expectedVisibleCount', actual: contract.expectedVisibleCount });
+    }
     if (Number.isInteger(contract.minCount)
         && Number.isInteger(contract.maxCount)
         && contract.maxCount < contract.minCount) {
@@ -920,6 +926,10 @@ function validateSelectorCoverage(dom, selectors, selectorExpectations = {}) {
         expected: rows.length,
         actual: visibleCounts[selector],
       });
+    }
+    if (Number.isInteger(contract.expectedVisibleCount) && visibleCounts[selector] !== contract.expectedVisibleCount) {
+      failures.push({ selector, reason: 'visible-count', expected: contract.expectedVisibleCount,
+        actual: visibleCounts[selector] });
     }
   });
   Object.keys(selectorExpectations || {}).forEach((selector) => {

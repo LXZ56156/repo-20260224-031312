@@ -214,7 +214,7 @@ test('recovery screenshot cases cover list, empty, error and loading with real d
   assert.equal(screenshotTool.cases.tournamentListLoading.data.loaded, false);
 });
 
-test('manual-finish screenshot cases retain completed score and distinguish ready, busy and canceled', () => {
+test('manual-finish screenshot cases retain completed score and distinguish ready, busy and canceled in doubles and singles', () => {
   const ready = screenshotTool.cases.scheduleManualFinishReady;
   const busy = screenshotTool.cases.scheduleManualFinishBusy;
   const finished = screenshotTool.cases.scheduleManualFinished;
@@ -235,6 +235,21 @@ test('manual-finish screenshot cases retain completed score and distinguish read
   assert.equal(matches[0].scoreB, 17);
   assert.equal(matches[1].cancelReason, 'manual_finish');
   assert.equal(finished.data.roundsUi[0].matchesUi[1].statusText, '已取消');
+  const singles = screenshotTool.cases.singlesScheduleManualFinished;
+  const singlesMatches = singles.data.tournament.rounds.flatMap((round) => round.matches);
+  assert.equal(singlesMatches.filter((match) => match.status === 'finished').length, 1);
+  assert.equal(singlesMatches.filter((match) => match.status === 'canceled' && match.cancelReason === 'manual_finish').length, 5);
+  assert.deepEqual([singlesMatches[0].scoreA, singlesMatches[0].scoreB, singlesMatches[0].scorerName], [21, 17, '阿杰']);
+  assert.equal(singles.data.tournament.rankings.reduce((sum, row) => sum + row.played, 0), 2,
+    'only the two participants in the one completed singles match contribute to rankings');
+  assert.equal(singles.data.tournament.rankings.reduce((sum, row) => sum + row.pointsFor, 0), 38);
+  const singlesResult = screenshotTool.cases.singlesScheduleManualFinishedResult;
+  assert.equal(singlesResult.data, singles.data);
+  assert.equal(singlesResult.scrollToSelector, '.match-score-row');
+  assert.equal(singlesResult.selectorExpectations[singlesResult.scrollToSelector], 1);
+  assert.equal(singles.data.roundsUi.flatMap((round) => round.matchesUi).filter((match) => match.showScore).length, 1);
+  assert.equal(singlesResult.selectorExpectations['.match-card[data-round="0"][data-match="1"] .pill-canceled'], 1);
+  assert.equal(singles.data.roundsUi[0].matchesUi[1].status, 'canceled');
   const pagePath = require.resolve('../miniprogram/pages/schedule/index.js');
   const previousPage = global.Page;
   const previousModule = require.cache[pagePath];
@@ -246,7 +261,7 @@ test('manual-finish screenshot cases retain completed score and distinguish read
     if (previousModule) require.cache[pagePath] = previousModule;
     else delete require.cache[pagePath];
   }
-  [ready, finished].forEach(({ data }) => {
+  [ready, finished, singles].forEach(({ data }) => {
     const page = { ...definition, openid: '__ui_owner', data: globalThis.structuredClone(definition.data),
       setData(patch) { Object.assign(this.data, patch); }, refreshAvatarDisplays: async () => {} };
     page.applyTournament(data.tournament);
@@ -256,6 +271,64 @@ test('manual-finish screenshot cases retain completed score and distinguish read
     assert.equal(rows[0].leftScoreText, data.roundsUi[0].matchesUi[0].leftScoreText);
     assert.equal(rows[0].rightScoreText, data.roundsUi[0].matchesUi[0].rightScoreText);
     assert.equal(rows[1].statusText, data.roundsUi[0].matchesUi[1].statusText);
+    if (data.tournament.mode === 'singles_round_robin') {
+      ['heroPendingText', 'heroProgressPercent', 'heroSummaryText'].forEach((key) => assert.equal(data[key], page.data[key], key));
+      assert.equal(rows[0].scorerText, '录分：阿杰');
+      assert.equal(rows[0].leftTeam.avatarItems.length, 1);
+      assert.equal(rows[0].rightTeam.avatarItems.length, 1);
+    }
+  });
+});
+
+test('cached background polling remains silent and confirmed offline retains content with a refresh banner', () => {
+  const syncStatus = require('../miniprogram/core/syncStatus');
+  const silent = screenshotTool.cases.scheduleCachedPollingSilent;
+  const offline = screenshotTool.cases.scheduleOffline;
+  [silent, offline].forEach((item) => {
+    const expected = syncStatus.buildSyncBannerState(item.data);
+    Object.entries(expected).forEach(([key, value]) => assert.equal(item.data[key], value, key));
+    assert.equal(item.data.syncUsingCache, true);
+    assert.equal(item.data.syncPollingFallback, true);
+    assert.deepEqual(item.data.tournament, screenshotTool.cases.scheduleManualFinishReady.data.tournament);
+    assert.deepEqual(item.data.roundsUi, screenshotTool.cases.scheduleManualFinishReady.data.roundsUi);
+    assert.equal(item.data.loadError, false);
+  });
+  assert.equal(silent.data.networkOffline, false);
+  assert.equal(silent.data.syncRefreshing, true);
+  assert.equal(silent.data.syncStatusVisible, false);
+  assert.equal(silent.data.syncStatusText, '');
+  assert.deepEqual(silent.selectorExpectations['.sync-banner'], { expectedCount: 1, visible: false, expectedVisibleCount: 0 });
+  assert.equal(silent.styleExpectations, undefined, 'native hidden geometry does not imply computed display:none');
+  assert.equal(offline.data.networkOffline, true);
+  assert.equal(offline.data.syncStatusText, '当前离线');
+  assert.equal(offline.data.syncStatusActionText, '刷新');
+  assert.equal(offline.selectorExpectations['.sync-banner-action'], 1);
+  [silent, offline].forEach((item) => {
+    assert.equal(item.data.nextActionText, '继续录分');
+    assert.equal(item.data.canFinishTournament, true);
+    assert.equal(item.selectorExpectations['.hero-primary'], 1);
+    assert.equal(item.selectorExpectations['.manual-finish-btn'], 1);
+  });
+});
+
+test('zero and one player singles draft screenshots derive the real blocked-start roster guidance', () => {
+  const lobbyVm = require('../miniprogram/pages/lobby/lobbyViewModel');
+  [0, 1].forEach((count) => {
+    const item = screenshotTool.cases[`singlesLobby${count}`];
+    const data = item.data;
+    assert.equal(data.tournament.players.length, count);
+    assert.equal(data.tournament.status, 'draft');
+    assert.equal(data.tournament.rounds.length, 0);
+    const actual = lobbyVm.buildLobbyViewModel({ tournament: data.tournament, openid: data.tournament.creatorId }).patch;
+    ['checkPlayersOk', 'checkStartReady', 'primaryTaskKey', 'primaryTaskTitle', 'primaryTaskSummary', 'nextActionKey']
+      .forEach((key) => assert.equal(data[key], actual[key], key));
+    assert.equal(data.checkStartReady, false);
+    assert.equal(data.checkPlayersOk, false);
+    assert.equal(data.primaryTaskKey, 'import_players');
+    assert.equal(data.primaryTaskTitle, '调整名单');
+    assert.equal(data.primaryTaskSummary, '需要 2–8 人');
+    assert.notEqual(data.nextActionKey, 'start');
+    assert.equal(item.selectorExpectations[count ? '.player-cell' : '.player-grid-empty'], 1);
   });
 });
 
@@ -292,6 +365,8 @@ test('co-manager screenshots derive real owner, bound member, guest and revoked 
 test('new-feature fixtures only declare local data and never call business methods or pin receipt width', () => {
   const names = ['tournamentList', 'tournamentListEmpty', 'tournamentListError', 'tournamentListLoading',
     'scheduleManualFinishReady', 'scheduleManualFinishBusy', 'scheduleManualFinished',
+    'scheduleCachedPollingSilent', 'scheduleOffline',
+    ...Object.keys(screenshotTool.cases).filter((name) => name.startsWith('singles')),
     'lobbyCoManagerOwner', 'lobbyCoManagerOwnerBusy', 'lobbyCoManagerMember', 'lobbyCoManagerRevoked', 'settingsCoManager'];
   names.forEach((name) => {
     const item = screenshotTool.cases[name];
@@ -304,11 +379,56 @@ test('new-feature fixtures only declare local data and never call business metho
     const dom = item.selectors.flatMap((selector) => {
       const expectation = item.selectorExpectations && item.selectorExpectations[selector];
       const count = typeof expectation === 'number' ? expectation : (expectation && expectation.expectedCount || 1);
-      return Array.from({ length: count }, (_, index) => ({ selector, index, size: { width: 100, height: 48 } }));
+      const size = expectation && expectation.expectedVisibleCount === 0 ? { width: 0, height: 0 } : { width: 100, height: 48 };
+      return Array.from({ length: count }, (_, index) => ({ selector, index, size }));
     });
     assert.equal(screenshotTool.validateSelectorCoverage(dom, item.selectors, item.selectorExpectations).ok, true,
       `${name} must use selector counts supported by the real runner`);
   });
+});
+
+test('singles screenshot selector counts match the rendered schedule, scoring, tied ranks and share projections', () => {
+  ['singlesSettings6', 'settingsCoManager'].forEach((name) => {
+    const item = screenshotTool.cases[name];
+    assert.ok(item.selectors.includes('.settings-save'));
+    assert.equal(item.selectorExpectations['.settings-save'], 1);
+    assert.equal(item.data.tournament.status, 'draft');
+    assert.equal(item.data.canManageTournament && item.data.canConfigureSettings, true);
+  });
+  const lobby = screenshotTool.cases.singlesLobby6;
+  assert.ok(lobby.selectors.includes('.quick-settings-save'));
+  assert.equal(lobby.selectorExpectations['.quick-settings-save'], 1);
+  assert.equal(lobby.data.adminPanelExpanded && lobby.data.showDraftAdminPanel && lobby.data.canConfigureSettings, true);
+  const schedule = screenshotTool.cases.singlesSchedule7;
+  const rounds = schedule.data.roundsUi;
+  assert.equal(schedule.selectorExpectations['.round-card'], rounds.length);
+  assert.equal(schedule.selectorExpectations['.round-title'], rounds.length);
+  assert.equal(schedule.selectorExpectations['.match-card'], rounds.flatMap((round) => round.matchesUi).length);
+  assert.equal(schedule.selectorExpectations['.rest'], rounds.filter((round) => round.restText).length);
+  assert.equal(schedule.selectorExpectations['.count-pill-active'], rounds.filter((round) => round.isCurrentRound).length);
+  const match = screenshotTool.cases.singlesMatch21;
+  assert.equal(match.data.canEdit, true);
+  assert.equal(match.data.canRetryAction, false);
+  assert.equal(match.selectorExpectations['.score-submit-tray .btn-primary'], 1);
+  assert.equal(match.data.match.teamA.length, 1);
+  assert.equal(match.data.match.teamB.length, 1);
+  assert.equal(match.data.pointsPerGame, 21);
+  assert.deepEqual([match.data.displayScoreA, match.data.displayScoreB], ['22', '20']);
+  assert.equal(match.data.scoreOptions[match.data.scoreAIndex], match.data.scoreA);
+  assert.equal(match.data.scoreOptions[match.data.scoreBIndex], match.data.scoreB);
+  assert.equal(match.selectorExpectations['.score-wheel'], 2);
+  assert.equal(match.selectorExpectations['.score-player-name'], [match.data.pair1Text, match.data.pair2Text].filter(Boolean).length);
+  const ranked = screenshotTool.cases.singlesRankingTied;
+  assert.deepEqual(ranked.data.rankings.map((row) => row.rank), [1, 1, 3, 3]);
+  assert.equal(ranked.selectorExpectations['.ranking-card'], ranked.data.rankings.length);
+  assert.equal(ranked.selectorExpectations['.ranking-card-1st'], ranked.data.rankings.filter((row) => row.rank === 1).length);
+  assert.equal(ranked.selectorExpectations['.ranking-card-3rd'], ranked.data.rankings.filter((row) => row.rank === 3).length);
+  const shared = screenshotTool.cases.singlesShareTied;
+  assert.equal(shared.data.preview.showRankingPreview, true);
+  assert.ok(shared.data.preview.secondaryAction && shared.data.preview.secondaryCtaText);
+  assert.equal(shared.selectorExpectations['.share-actions .btn'], 2);
+  assert.deepEqual(shared.data.preview.rankingPreview.map((row) => row.rank), [1, 1, 3]);
+  assert.equal(shared.selectorExpectations['.ranking-preview-row'], shared.data.preview.rankingPreview.length);
 });
 
 test('real page-data isolation discards a late recovery response without business writes', async () => {
@@ -361,7 +481,7 @@ test('V2 water screenshots record native runtime provenance and viewport width',
 });
 
 test('exact-worktree launch normalizes a Windows cli.bat through the official wrapper', () => {
-  assert.match(screenshotScript, /function resolveLaunchCommand\(requestedCliPath\)/);
+  assert.match(screenshotScript, /function resolveLaunchCommand\(requestedCliPath, options = \{\}\)/);
   assert.match(screenshotScript, /path\.extname\(requestedCliPath\)\.toLowerCase\(\) !== '\.bat'/);
   assert.match(screenshotScript, /executable:\s*'cmd'/);
   assert.match(screenshotScript, /args:\s*\['\/d', '\/s', '\/c', 'call', requestedCliPath\]/);

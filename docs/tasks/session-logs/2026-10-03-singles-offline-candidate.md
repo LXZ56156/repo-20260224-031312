@@ -47,3 +47,8 @@ Luna独立静态报告`tmp/singles-proposal-20261005-support/assessment.md/json`
 6 Luna max冷读`tmp/singles-cold-20261005/assessment.md/json`无可达P0/P1，指出0人后端持久化和并列分享选行的直接覆盖缺口。Sol仅在已有handler/page测试新增两条：真实源updateSettings handler保存空名单后精确0场/target0/2循环/11分/2场地且仍不能开赛；真实ranking选行/card-data/preheat路径逐个点击两位并列第一，稳定rankKey命中各entity、各自userName/rank1传到渲染边界。仅stub图片渲染，无云。相关8handler+7page共15/15、target lint0错误/0警告，原120与全量流保持，生产源/云包字节未变，按test-only风险不重复已过全量。
 
 当前9个实际手改函数完整包另在`tmp/singles-cloud-packages-20261005/`：118当前源含正式V1、57337各自依赖，9ZIP及9Linux官方24.11真实SDKrequire通过、main/网络/子进程0；其他17个仅同步库函数未扩包，云平台仍false。详细来源/初编排失败和实际回执见[第9日志](2026-10-03-dependency-inventory.md#10-05当前单打源码完整依赖包)，不拿旧26组结果冒当前单打全组通过。
+
+
+## 10-05 截图复核接续
+
+本轮实图、合同修复、全部失败、测试回执及当前未验项统一见 [原生截图复核](2026-10-05-native-screenshot-review.md)。本节仅补接续入口，不改写上方历史结果或本项业务/验收合同；唯一逐项状态仍见paused-plan-status正文。

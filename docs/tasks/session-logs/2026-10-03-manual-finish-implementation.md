@@ -60,3 +60,8 @@ Sol high在全新[本地候选根](../../../tmp/finish-seven-candidate-current-2
 Luna[单次窄核](../../../tmp/finish-seven-candidate-delta-20261004/cold-package.md)确认实际ZIP SHA/6381唯一中央目录项及13源码成员对应固定Git blobs/工作字节、7执行文件与freeze/before/manifest/当前哈希一致、外层和四子进程数值0、两个离线回执main未调用/网络0。只实读源码成员并核CRC；完整依赖成员CRC/SHA、重复构建和实际require依据构建执行回执，没有重复inflate依赖或运行程序。主控文档核验93个本地引用/current1488字符、16原dirty及57相关源保全、差异检查通过；追加本段后最终链接和stage仍再核。
 
 验收顺序和范围复用[隔离清单](2026-10-03-new-cloud-isolation-checklist.md)：finish+scoreLock同组，submitScore事务/人工取消保护及reset清finishMeta配套，不能只部署finish。原生确认/取消、窄屏/大字/真机、实际锁query/索引/耗时、事务回放/回滚、双机与3秒均未验；旧390画面与离线fixture不替代。当前原生工具仍无有效新会话，不盲重试；云/手机按用户暂停/后做边界保留。2500ms只约束可选提交后分享/诊断，既不取消已发请求，也不限制关键事务。完整第7未完成，唯一最新状态见[第7进度](../paused-plan-status.md#10-04依序续做第7项提前收赛)。
+
+
+## 10-05 截图复核接续
+
+本轮实图、合同修复、全部失败、测试回执及当前未验项统一见 [原生截图复核](2026-10-05-native-screenshot-review.md)。本节仅补接续入口，不改写上方历史结果或本项业务/验收合同；唯一逐项状态仍见paused-plan-status正文。

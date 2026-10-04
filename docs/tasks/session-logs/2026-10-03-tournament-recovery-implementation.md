@@ -54,3 +54,8 @@
 主控另以CLI通用api只读DescribeBaasPackageList/DescribeEnvLimit，两进程exit0/stderr空、原始流/envelope/SHA核过，20套餐只是目录。baas_trial UnitPrice为字符串5，尚非最终单月询价；MaxFreeEnvNum1/CurrentFreeEnvNum0与MaxFreeTrialNum0/CurrentFreeTrialNum0不能证明兑换码可领或免费创建。CurrentEnvNum0与上海已有生产1不一致，口径未核，不据此创建；证据`tmp/cloud-isolation-eligibility-20261005/actual-readonly/`。首次摘要把带文本前缀输出当纯JSON解析失败，改为严格提取单对象、核余文及原始SHA后通过，未改输出或重复请求。账号资格、微信绑定和A/B/C身份仍是独立条件，未运行env create或付费替代。
 
 随后主控核installed SDK的新购询价方法，仅发送一次billing CalculatePrice/getPrice/2018-07-09，实际trial BillTags、上海/1个月/1份/CNY；CLI exit0/stderr空、实际Price/TotalCost/RealTotalCost均0，TimeSpan/产品相符。Luna原body把tag抄多一个下划线，主控来源门禁在发云前exit1，原稿保留；另名root-approved-quote按raw修正，实际原始流/SHA/envelope回执在`tmp/cloud-isolation-eligibility-20261005/actual-price-verified/`。0元询价不是免费资格、订单或创建成功证明；没有createEnv/下单/付款/兑换码/绑定，真实事务与普通客户端规则仍待独立环境和微信身份。
+
+
+## 10-05 截图复核接续
+
+本轮实图、合同修复、全部失败、测试回执及当前未验项统一见 [原生截图复核](2026-10-05-native-screenshot-review.md)。本节仅补接续入口，不改写上方历史结果或本项业务/验收合同；唯一逐项状态仍见paused-plan-status正文。

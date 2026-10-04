@@ -876,6 +876,32 @@ test('Windows cli.bat normalization invokes the official batch wrapper through c
   }
 });
 
+test('Windows CLI diagnostics capture both streams without changing automation arguments', {
+  skip: process.platform !== 'win32',
+}, (t) => {
+  const { spawnSync } = require('node:child_process');
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-cli-log-'));
+  t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
+  const cliBat = path.join(tempDir, 'fake vendor cli.bat');
+  const logFile = path.join(tempDir, 'fresh cli output.log');
+  const oldLogFile = path.join(tempDir, 'previous cli output.log');
+  fs.writeFileSync(oldLogFile, 'existing diagnostics', 'utf8');
+  fs.writeFileSync(cliBat, '@echo off\r\necho args:%*\r\necho stderr-diagnostic 1>&2\r\nexit /b 7\r\n', 'utf8');
+  const command = screenshotTool.resolveLaunchCommand(cliBat, { logFile });
+  const projectPath = path.join(tempDir, 'project with spaces');
+  const result = spawnSync(command.executable, command.args.concat([
+    'auto', '--project', projectPath, '--auto-port', '39460',
+  ]), { encoding: 'utf8', windowsHide: true, timeout: 5000 });
+  assert.ifError(result.error);
+  assert.equal(result.status, 7);
+  assert.equal(result.stdout, '');
+  assert.equal(result.stderr, '');
+  const log = fs.readFileSync(logFile, 'utf8');
+  assert.ok(log.includes(`args:auto --project "${projectPath}" --auto-port 39460`));
+  assert.match(log, /stderr-diagnostic/);
+  assert.equal(fs.readFileSync(oldLogFile, 'utf8'), 'existing diagnostics');
+});
+
 test('prewarm adds the native-window-occlusion switch without dropping existing NW flags', () => {
   assert.equal(
     screenshotTool.ensureBackgroundCaptureNwPreArgs(''),
@@ -931,6 +957,29 @@ test('selector coverage enforces exact counts, non-zero size and valid contracts
   const invalidContract = screenshotTool.validateSelectorCoverage(dom, ['.row'], { '.row': 0 });
   assert.equal(invalidContract.ok, false);
   assert.equal(invalidContract.failures.some((failure) => failure.reason === 'invalid-expectedCount'), true);
+});
+
+test('selector coverage explicitly rejects visible banners when native hidden requires zero visible elements', () => {
+  const expectation = { '.sync-banner': { expectedCount: 1, visible: false, expectedVisibleCount: 0 } };
+  const hidden = screenshotTool.validateSelectorCoverage([
+    { selector: '.sync-banner', size: { width: 0, height: 0 } },
+  ], ['.sync-banner'], expectation);
+  assert.equal(hidden.ok, true);
+  assert.equal(hidden.visibleCounts['.sync-banner'], 0);
+  const shown = screenshotTool.validateSelectorCoverage([
+    { selector: '.sync-banner', size: { width: 390, height: 44 } },
+  ], ['.sync-banner'], expectation);
+  assert.equal(shown.ok, false);
+  assert.deepEqual(shown.failures, [{ selector: '.sync-banner', reason: 'visible-count', expected: 0, actual: 1 }]);
+  const missing = screenshotTool.validateSelectorCoverage([], ['.sync-banner'], expectation);
+  assert.equal(missing.ok, false, 'the hidden node still has to exist exactly once');
+  for (const count of [-1, 0.5, '0', null, NaN]) {
+    const invalid = screenshotTool.validateSelectorCoverage([
+      { selector: '.sync-banner', size: { width: 0, height: 0 } },
+    ], ['.sync-banner'], { '.sync-banner': { expectedCount: 1, visible: false, expectedVisibleCount: count } });
+    assert.equal(invalid.ok, false);
+    assert.ok(invalid.failures.some((failure) => failure.reason === 'invalid-expectedVisibleCount'));
+  }
 });
 
 test('visual settle waits through delayed reveal and changing geometry', async () => {

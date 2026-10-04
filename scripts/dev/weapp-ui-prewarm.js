@@ -113,7 +113,11 @@ async function main() {
     }
     console.error('ui:prewarm may activate WeChat DevTools once; daily ui:doctor/ui:screenshot commands do not launch or focus it.');
     const automator = screenshotTool.resolveAutomator();
-    const launchCommand = screenshotTool.resolveLaunchCommand(cliPath);
+    const cliLogFile = `${sessionFile}.cli-${Date.now()}-${process.pid}-${crypto.randomBytes(4).toString('hex')}.log`;
+    const launchCommand = screenshotTool.resolveLaunchCommand(cliPath, { logFile: cliLogFile });
+    if (process.platform === 'win32' && path.extname(cliPath).toLowerCase() === '.bat') {
+      console.error(`ui:prewarm CLI diagnostics: ${cliLogFile}`);
+    }
     // NW_PRE_ARGS is consumed internally and is not reflected in the OS command
     // line. Pass the flag to the vendor launcher explicitly so it is verifiable.
     if (process.platform === 'win32') {

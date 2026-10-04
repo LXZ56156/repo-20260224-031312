@@ -2,6 +2,7 @@
 
 const waterV2Fixtures = require('./water-v2-screenshot-fixtures');
 const { buildLobbyViewModel } = require('../../miniprogram/pages/lobby/lobbyViewModel');
+const { buildSyncBannerState } = require('../../miniprogram/core/syncStatus');
 
 const manualActions = [
   '原生 picker 展开态与滚轮选择',
@@ -875,6 +876,30 @@ cases.scheduleManualFinished = {
     nextActionText: '', nextActionKey: '', canFinishTournament: false, showFinishedShareActions: true,
     roundsUi: [{ roundIndex: 0, isCurrentRound: false, matchesUi: [completedDisplay,
       { ...pendingDisplay, status: 'canceled', statusText: '已取消', statusClass: 'pill-canceled', isFirstPending: false }] }] },
+};
+
+// Synthetic display states: cache/polling flags do not exercise a live watcher.
+const cachedPollingState = {
+  networkOffline: false, syncRefreshing: true, syncUsingCache: true,
+  syncPollingFallback: true, syncCachedAt: 1791158400000,
+};
+cases.scheduleCachedPollingSilent = {
+  ...cases.scheduleManualFinishReady,
+  selectors: ['.schedule-page', '.hero', '.match-card', '.sync-banner', '.hero-primary', '.manual-finish-btn'],
+  selectorExpectations: { '.schedule-page': 1, '.hero': 1, '.match-card': 2,
+    '.sync-banner': { expectedCount: 1, visible: false, expectedVisibleCount: 0 },
+    '.hero-primary': 1, '.manual-finish-btn': 1 },
+  data: { ...cases.scheduleManualFinishReady.data, ...cachedPollingState, ...buildSyncBannerState(cachedPollingState) },
+};
+const offlineState = { ...cachedPollingState, networkOffline: true, syncRefreshing: false };
+cases.scheduleOffline = {
+  ...cases.scheduleCachedPollingSilent,
+  selectors: ['.schedule-page', '.hero', '.match-card', '.sync-banner', '.sync-banner-text', '.sync-banner-action',
+    '.hero-primary', '.manual-finish-btn'],
+  selectorExpectations: { '.schedule-page': 1, '.hero': 1, '.match-card': 2,
+    '.sync-banner': 1, '.sync-banner-text': 1, '.sync-banner-action': 1, '.hero-primary': 1, '.manual-finish-btn': 1 },
+  styleExpectations: {},
+  data: { ...cases.scheduleManualFinishReady.data, ...offlineState, ...buildSyncBannerState(offlineState) },
 };
 
 require('./singles-screenshot-fixtures').registerCases(cases);

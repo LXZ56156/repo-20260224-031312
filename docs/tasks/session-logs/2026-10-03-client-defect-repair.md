@@ -34,3 +34,8 @@
 - Luna只读核与Sol直接RED确认监听两缺陷：API名含realtime/reportRealtimeAction的网络错误被当永久不支持、停止既有恢复；底层源缺代次，旧/同步回调可覆盖新监听或轮询及恢复计时器。9条新直接用例原实现全失败，最小修复后9/9、watch及消费9文件47/47，目标lint/diff0；新文件no-index检查1/零诊断只表示新增差异。原件 `tmp/watch-fallback-repair-20261004-fix/` 保留，最终组合全量见下段。只读报告 `tmp/frequent-watch-fallback-20261004/readonly-root-cause-20261004.md` 如实保留曾广搜tmp的检索偏差；匹配只为合成network夹具，未再扩大检索。不把可复现本地原因冒称照片首次错误的已证根因；无对应iPhone原始错误码，线上客户端仍未改变。
 
 最终组合共享验证已完成：8文件/303测试的affected计划full=true/cloudCommon=false/uncovered0（`tmp/client-four-final-affected-20261004.json`），主控亲读新collector再执行一次npm test，上海19:30:10.597–19:31:08.290；1713项1707通过/6跳过/0失败取消todo，npm child及collector outer均0，唯一spec摘要。8源、HEAD及全dirty前后SHA保持，stdout261138B/SHA55fbbf468bd81e582c88f48228695caf3f43c31997451b3645c34ae94088b068、stderr0B。新 `tmp/client-four-sync-root-20261004/` 保留脚本/计划/原日志/完整回执；只读冷核 `tmp/client-four-sync-cold-20261004/cold-review.md` 绑定各阶段源码与log/receipt，无新可达P0/P1。未重复全量、check或无关测试，未升级依赖、部署、上传发布或写真实业务。第4手机/原生验收及照片首次SDK错误码仍未完成；线上客户端未改变。
+
+
+## 10-05 截图复核接续
+
+本轮实图、合同修复、全部失败、测试回执及当前未验项统一见 [原生截图复核](2026-10-05-native-screenshot-review.md)。本节仅补接续入口，不改写上方历史结果或本项业务/验收合同；唯一逐项状态仍见paused-plan-status正文。
