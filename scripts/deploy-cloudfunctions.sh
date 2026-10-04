@@ -240,6 +240,9 @@ verify_one() {
     set +e
     verify_output="$(printf '%s\n' "$detail_output" | FUNCTION_NAME="$function_name" node -e '
 const fn = process.env.FUNCTION_NAME;
+const config = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
+const functionConfig = (config.functions || []).find((item) => item && item.name === fn) || {};
+const expectedTimeout = functionConfig.timeout;
 let input = "";
 
 process.stdin.on("data", (chunk) => {
@@ -275,9 +278,16 @@ process.stdin.on("end", () => {
     process.exit(2);
   }
 
-  console.log(`Verified cloud function: ${fn} (${status}/${availableStatus}, installDependency=TRUE)`);
+  const remoteTimeout = data.Timeout ?? data.timeout;
+  if (expectedTimeout !== undefined && Number(remoteTimeout) !== Number(expectedTimeout)) {
+    console.log(`Waiting for cloud function: ${fn} (timeout=${remoteTimeout ?? "unknown"}, expected=${expectedTimeout})`);
+    process.exit(2);
+  }
+
+  const timeoutInfo = expectedTimeout === undefined ? "" : `, timeout=${remoteTimeout}`;
+  console.log(`Verified cloud function: ${fn} (${status}/${availableStatus}, installDependency=TRUE${timeoutInfo})`);
 });
-')"
+' "$CONFIG_FILE")"
     verify_status=$?
     set -e
 

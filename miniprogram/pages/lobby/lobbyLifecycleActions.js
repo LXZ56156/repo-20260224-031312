@@ -11,7 +11,9 @@ const writeErrorUi = require('../../core/writeErrorUi');
 function isStartedTournament(doc) {
   if (!doc || typeof doc !== 'object') return false;
   if (String(doc.status || '').trim() !== 'running') return false;
-  return Array.isArray(doc.rounds) && doc.rounds.length > 0;
+  return Array.isArray(doc.rounds) && doc.rounds.some((round) => (
+    Array.isArray(round && round.matches) && round.matches.length > 0
+  ));
 }
 
 async function wait(ms) {
@@ -147,7 +149,7 @@ module.exports = {
         wx.hideLoading();
         if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         const parsed = cloud.parseCloudError(err, '开赛失败');
-        if (parsed.isTimeout || parsed.isNetwork) {
+        if (parsed.isTimeout || parsed.isNetwork || /\btimed\s+out\b/i.test(parsed.rawMessage || '')) {
           const recoveredTournament = await this.recoverStartedTournament();
           if (Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
           if (isStartedTournament(recoveredTournament)) {

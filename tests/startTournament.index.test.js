@@ -21,7 +21,8 @@ function loadMain(db, overrides = {}) {
     DYNAMIC_CURRENT_ENV: 'test-env'
   };
   const mockRotation = overrides.rotation || {
-    generateSchedule() {
+    generateSchedule(_players, _matches, _courts, options) {
+      if (overrides.onGenerateSchedule) overrides.onGenerateSchedule(options);
       return {
         seed: 123,
         fairnessScore: 0.88,
@@ -154,6 +155,7 @@ function buildStartedTournament() {
 test('startTournament writes generated rounds and running state through the direct index handler', async () => {
   let updateQuery = null;
   let writtenData = null;
+  let schedulerOptions = null;
   const db = {
     command: {
       inc(value) {
@@ -192,7 +194,7 @@ test('startTournament writes generated rounds and running state through the dire
       };
     }
   };
-  const { main } = loadMain(db);
+  const { main } = loadMain(db, { onGenerateSchedule(options) { schedulerOptions = options; } });
 
   const result = await main({
     tournamentId: 't_1',
@@ -214,6 +216,7 @@ test('startTournament writes generated rounds and running state through the dire
   assert.equal(writtenData.mode, 'multi_rotate');
   assert.equal(writtenData.fairnessScore, 0.88);
   assert.deepEqual(writtenData.version, { $inc: 1 });
+  assert.equal(schedulerOptions.runtimeBudgetMs, 4500);
 });
 
 test('startTournament marks and updates active share activity as started', async () => {
@@ -545,7 +548,9 @@ test('startTournament returns TOURNAMENT_ID_REQUIRED before reading the database
   assert.equal(readCalled, false);
 });
 
-test('startTournament treats repeated clientRequestId as deduped success', async () => {
+test('startTournament replays successful clientRequestId after the request deadline', async (t) => {
+  let now = 100_000;
+  t.mock.method(Date, 'now', () => now);
   let updateCalled = false;
   const db = {
     command: {
@@ -580,6 +585,7 @@ test('startTournament treats repeated clientRequestId as deduped success', async
         doc() {
           return {
             async get() {
+              now += 9500;
               return { data: buildStartedTournament() };
             }
           };
@@ -608,6 +614,7 @@ test('startTournament treats repeated clientRequestId as deduped success', async
   assert.equal(result.clientRequestId, 'req_start_1');
   assert.equal(result.version, 3);
   assert.equal(updateCalled, false);
+  assert.equal(now, 109_500);
 });
 
 test('startTournament does not dedupe from unrelated lastClientRequestId pollution', async () => {
@@ -907,4 +914,112 @@ test('startTournament maps dirty fixed pair teams to structured invalid code', a
   assert.equal(result.code, 'START_PAIR_TEAMS_INVALID');
   assert.equal(result.state, 'invalid');
   assert.equal(result.message, '固搭队伍存在重复成员，请先调整');
+});
+
+function buildTimingDb(readTournament = () => buildTournament()) {
+  const writes = [];
+  const db = {
+    command: { inc: (value) => ({ $inc: value }), remove: () => ({ $remove: true }) },
+    serverDate: () => ({ $serverDate: true }),
+    collection(name) {
+      assert.equal(name, 'tournaments');
+      return {
+        doc() { return { async get() { return { data: readTournament() }; } }; },
+        where() {
+          return { async update({ data }) { writes.push(data); return { stats: { updated: 1 } }; } };
+        }
+      };
+    }
+  };
+  return { db, writes };
+}
+
+test('startTournament keeps one request deadline across transaction retries and drops stale share activity', async (t) => {
+  let now = 100_000;
+  t.mock.method(Date, 'now', () => now);
+  let attempt = 0;
+  const { db } = buildTimingDb(() => ({
+    ...buildTournament(),
+    ...(attempt === 1 ? {
+      shareActivityId: 'discarded_activity', shareActivityState: 0,
+      shareActivityExpireAtMs: now + 120_000
+    } : {})
+  }));
+  db.runTransaction = async (handler) => {
+    attempt = 1;
+    await handler(db);
+    // Simulate a discarded transaction callback and retry after contention.
+    now += 6000;
+    attempt = 2;
+    return handler(db);
+  };
+  const budgets = [];
+  let shareCalls = 0;
+  const { main } = loadMain(db, {
+    onGenerateSchedule(options) { budgets.push(options.runtimeBudgetMs); },
+    openapi: { async setUpdatableMsg() { shareCalls += 1; } }
+  });
+
+  const result = await main({ tournamentId: 't_1' });
+  assert.equal(result.ok, true);
+  assert.deepEqual(budgets, [4500, 1000]);
+  assert.equal(shareCalls, 0, 'a discarded callback must not update its old share activity');
+});
+
+test('startTournament returns timeout with a request id after slow reads without rereading the request log', async (t) => {
+  let now = 100_000;
+  t.mock.method(Date, 'now', () => now);
+  const { db, writes } = buildTimingDb(() => { now += 7000; return buildTournament(); });
+  const collection = db.collection.bind(db);
+  let requestLogReads = 0;
+  db.collection = (name) => {
+    if (name !== 'client_request_logs') return collection(name);
+    return {
+      doc() {
+        return {
+          async get() {
+            requestLogReads += 1;
+            assert.equal(requestLogReads, 1, 'a known pre-write timeout must not start a second unbounded read');
+            return { data: null };
+          }
+        };
+      }
+    };
+  };
+  let scheduleCalls = 0;
+  const { main } = loadMain(db, { onGenerateSchedule() { scheduleCalls += 1; } });
+
+  const result = await main({ tournamentId: 't_1', clientRequestId: 'req_slow_read', __traceId: 'budget-read' });
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'START_TIMEOUT');
+  assert.equal(result.state, 'timeout');
+  assert.equal(result.traceId, 'budget-read');
+  assert.equal(scheduleCalls, 0);
+  assert.equal(writes.length, 0);
+  assert.equal(requestLogReads, 1);
+});
+
+test('startTournament does not begin writes after scheduling consumes the commit reserve', async (t) => {
+  let now = 100_000;
+  t.mock.method(Date, 'now', () => now);
+  const { db, writes } = buildTimingDb();
+  const { main } = loadMain(db, { onGenerateSchedule() { now += 8100; } });
+
+  const result = await main({ tournamentId: 't_1' });
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'START_TIMEOUT');
+  assert.equal(result.state, 'timeout');
+  assert.equal(writes.length, 0);
+});
+
+test('startTournament reports scheduler timeout as a retryable structured result', async () => {
+  const { db, writes } = buildTimingDb();
+  const { main } = loadMain(db, {
+    onGenerateSchedule() { throw new Error('排阵超时，请稍后重试'); }
+  });
+  const result = await main({ tournamentId: 't_1' });
+  assert.equal(result.code, 'START_TIMEOUT');
+  assert.equal(result.ok, false);
+  assert.equal(result.state, 'timeout');
+  assert.equal(writes.length, 0);
 });

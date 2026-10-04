@@ -11,6 +11,19 @@ const { generateSchedule, selectSchedulerPolicy, computeEffectiveCourts } = requ
 const { validateBeforeGenerate } = require('./logic');
 const { buildSquadSchedule, buildFixedPairSchedule } = require('./scheduleModes');
 
+// Keep response headroom inside the 10-second deployment timeout.
+const REQUEST_BUDGET_MS = 9000;
+const SCHEDULE_BUDGET_MS = 4500;
+const COMMIT_RESERVE_MS = 2000;
+
+function assertRemainingBudget(deadlineAtMs, minimumMs) {
+  if (deadlineAtMs - Date.now() < minimumMs) {
+    const error = new Error('开赛处理超时，请重试');
+    error.code = 'START_TIMEOUT';
+    throw error;
+  }
+}
+
 function safePlayerName(p) {
   const raw = p && (p.name || p.nickName || p.nickname || p.displayName);
   const name = String(raw || '').trim();
@@ -82,6 +95,7 @@ exports.main = async (event) => {
   const clientRequestId = String((event && event.clientRequestId) || '').trim();
   const tournamentId = String((event && event.tournamentId) || '').trim();
   const startedAtMs = Date.now();
+  const deadlineAtMs = startedAtMs + REQUEST_BUDGET_MS;
   console.info('[startTournament]', traceId || '-', tournamentId || '-');
   if (!tournamentId) {
     return common.failResult('TOURNAMENT_ID_REQUIRED', '缺少 tournamentId', { traceId, state: 'invalid' });
@@ -100,6 +114,8 @@ exports.main = async (event) => {
   let shareStartTournament = null;
   try {
     const result = await common.runTransactionCompat(db, async (transaction) => {
+      // A transaction callback can be replayed; only its final attempt may share.
+      shareStartTournament = null;
       const tournaments = transaction.collection('tournaments');
       const docRes = await tournaments.doc(tournamentId).get();
       const t = common.assertTournamentExists(docRes.data);
@@ -139,9 +155,11 @@ exports.main = async (event) => {
         repeat: { delta: 1.8, epsilon: Math.max(1.0, policy.selectedEpsilon - 0.1), beta: 3.4, gamma: 1.9 }
       }[schedulerProfile];
       const scheduleStartedAtMs = Date.now();
+      assertRemainingBudget(deadlineAtMs, COMMIT_RESERVE_MS + 600);
+      const runtimeBudgetMs = Math.min(SCHEDULE_BUDGET_MS, deadlineAtMs - Date.now() - COMMIT_RESERVE_MS);
       let schedule;
       if (mode === 'squad_doubles') {
-        schedule = buildSquadSchedule(players, M, C, { endCondition });
+        schedule = buildSquadSchedule(players, M, C, { endCondition, _hardDeadlineMs: runtimeBudgetMs });
         if (schedule && schedule.schedulerMeta) {
           schedule.schedulerMeta.schedulerProfile = schedulerProfile;
         }
@@ -153,6 +171,7 @@ exports.main = async (event) => {
       } else {
         const schedulerOptions = {
           mode: 'doubles',
+          runtimeBudgetMs,
           policy,
           searchSeeds: policy.selectedSearchSeeds,
           seedStep: 7919,
@@ -254,6 +273,7 @@ exports.main = async (event) => {
         totalMatches: M
       }));
 
+      assertRemainingBudget(deadlineAtMs, 1000);
       const writeStartedAtMs = Date.now();
       const updRes = await tournaments.where({ _id: tournamentId, version: oldVersion }).update({
         data: common.assertNoReservedRootKeys(updateData, ['_id'], '赛事开赛写入数据')
@@ -275,7 +295,7 @@ exports.main = async (event) => {
       console.info('[startTournament:timing]', JSON.stringify({
         traceId,
         tournamentId,
-        phase: 'done',
+        phase: 'transaction_callback_done',
         scheduleMs,
         materializeMs,
         writeMs,
@@ -296,16 +316,44 @@ exports.main = async (event) => {
         version: oldVersion + 1
       });
     });
+    console.info('[startTournament:timing]', JSON.stringify({
+      traceId,
+      tournamentId,
+      phase: 'committed',
+      state: result && result.state,
+      totalMs: Date.now() - startedAtMs
+    }));
     if (result && result.ok && shareStartTournament) {
       await shareActivity.updateStartedMessageBestEffort(cloud, tournamentId, shareStartTournament, console, {
         db,
         source: 'startTournament',
         tournamentId,
-        traceId
+        traceId,
+        deadlineAtMs
       });
     }
+    console.info('[startTournament:timing]', JSON.stringify({
+      traceId,
+      tournamentId,
+      phase: 'returned',
+      totalMs: Date.now() - startedAtMs
+    }));
     return result;
   } catch (err) {
+    const mapped = mapStartTournamentFailure(err, traceId);
+    // These timeouts occur before writes. Do not spend the remaining response
+    // budget re-reading an outcome that this attempt could not have committed.
+    if (mapped && mapped.code === 'START_TIMEOUT') {
+      console.warn('[startTournament:timing]', JSON.stringify({
+        traceId,
+        tournamentId,
+        phase: 'failed',
+        code: mapped.code,
+        state: mapped.state,
+        totalMs: Date.now() - startedAtMs
+      }));
+      return mapped;
+    }
     if (clientRequestId) {
       const requestLog = await common.getClientRequestLog(db, requestLogOptions);
       if (common.isSuccessfulClientRequestLog(requestLog)) {
@@ -329,7 +377,6 @@ exports.main = async (event) => {
     if (common.isCollectionNotExists(err)) {
       throw new Error('数据库集合 tournaments 不存在：请在云开发控制台（数据库 -> 创建集合）创建 tournaments 后再试。');
     }
-    const mapped = mapStartTournamentFailure(err, traceId);
     if (mapped) return mapped;
     throw common.normalizeConflictError(err, '开赛失败');
   }
@@ -338,6 +385,9 @@ exports.main = async (event) => {
 function mapStartTournamentFailure(err, traceId = '') {
   const message = String((err && err.message) || '').trim();
   if (!message) return null;
+  if ((err && err.code === 'START_TIMEOUT') || message.includes('排阵超时')) {
+    return common.failResult('START_TIMEOUT', '开赛处理超时，请重试', { traceId, state: 'timeout' });
+  }
   if (message.startsWith('START_PAIR_TEAMS_INVALID:')) {
     return common.failResult('START_PAIR_TEAMS_INVALID', message.slice('START_PAIR_TEAMS_INVALID:'.length).trim() || '固搭队伍数据无效', {
       traceId,

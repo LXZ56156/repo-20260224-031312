@@ -18,6 +18,7 @@ Options:
   --commit <commit>      Inspect changed files in one commit. Defaults to HEAD.
   --range <range>        Inspect changed files in a git diff range.
   --files-from <path|->  Read changed file paths from a file or stdin.
+  --config-base <ref>    Configuration baseline for --files-from when cloudbaserc.json changed.
   --dry-run              Print the deployment plan without checks or deployment.
   --allow-dirty          Skip dirty worktree protection. Intended for dry runs/tests.
   --help                 Show this help message.
@@ -26,7 +27,7 @@ Examples:
   npm run deploy:cloud:changed
   npm run deploy:cloud:changed -- --commit HEAD
   npm run deploy:cloud:changed -- --range origin/master..HEAD
-  git diff --name-only HEAD~1..HEAD | bash scripts/deploy-changed-cloudfunctions.sh --files-from - --dry-run
+  git diff --name-only HEAD~1..HEAD | bash scripts/deploy-changed-cloudfunctions.sh --files-from - --config-base HEAD~1 --dry-run
 EOF
 }
 
@@ -161,6 +162,49 @@ read_changed_files() {
   git diff-tree --root --no-commit-id --name-only -r -m "$COMMIT"
 }
 
+read_config_changed_functions() {
+  if [ -n "$FILES_FROM" ] && [ -z "$CONFIG_BASE" ]; then
+    fail "cloudbaserc.json changes require --config-base <ref> with --files-from, or use --commit/--range"
+  fi
+
+  node - "$CONFIG_FILE" "$COMMIT" "$RANGE" "$CONFIG_BASE" <<'NODE'
+const fs = require('node:fs')
+const { execFileSync, spawnSync } = require('node:child_process')
+const { isDeepStrictEqual } = require('node:util')
+const [configPath, commit, range, explicitBase] = process.argv.slice(2)
+const git = (args) => execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim()
+
+try {
+  let base = explicitBase
+  if (!base && range) {
+    base = range.includes('...')
+      ? git(['merge-base', range.split('...')[0] || 'HEAD', range.split('...')[1] || 'HEAD'])
+      : range.split('..')[0] || 'HEAD'
+  } else if (!base) {
+    git(['rev-parse', '--verify', `${commit}^{commit}`])
+    base = git(['rev-list', '--parents', '-n', '1', commit]).split(/\s+/)[1] || ''
+  }
+  let previous = {}
+  if (base) {
+    git(['rev-parse', '--verify', `${base}^{commit}`])
+    const exists = spawnSync('git', ['cat-file', '-e', `${base}:cloudbaserc.json`], { stdio: 'ignore' })
+    if (exists.status === 0) previous = JSON.parse(git(['show', `${base}:cloudbaserc.json`]))
+  }
+  const current = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+  const normalize = (item) => typeof item === 'string' ? { name: item } : item
+  const before = new Map((previous.functions || []).map(normalize).filter(Boolean).map((item) => [item.name, item]))
+  const allChanged = previous.envId !== current.envId
+    || (previous.functionRoot || './cloudfunctions') !== (current.functionRoot || './cloudfunctions')
+  for (const item of (current.functions || []).map(normalize).filter(Boolean)) {
+    if (allChanged || !isDeepStrictEqual(before.get(item.name), item)) console.log(item.name)
+  }
+} catch (error) {
+  console.error(`Cannot compare cloudbaserc.json configuration: ${error.message}`)
+  process.exit(1)
+}
+NODE
+}
+
 require_clean_deploy_worktree() {
   local dirty
   local -a paths=(
@@ -195,6 +239,18 @@ resolve_changed_functions() {
     case "$changed_file" in
       scripts/*-common.template.js)
         COMMON_CHANGED=true
+        ;;
+      cloudbaserc.json)
+        local config_changes
+        if ! config_changes="$(read_config_changed_functions)"; then
+          fail "Unable to select functions for cloudbaserc.json changes"
+        fi
+        local configured_function
+        while IFS= read -r configured_function; do
+          if [ -n "$configured_function" ]; then
+            SELECTED_FUNCTION_SET["$configured_function"]=1
+          fi
+        done <<< "$config_changes"
         ;;
       cloudfunctions/*/*)
         local function_name="${changed_file#cloudfunctions/}"
@@ -290,6 +346,7 @@ COMMIT="HEAD"
 COMMIT_EXPLICIT=false
 RANGE=""
 FILES_FROM=""
+CONFIG_BASE=""
 DRY_RUN=false
 ALLOW_DIRTY=false
 
@@ -309,6 +366,11 @@ while [ "$#" -gt 0 ]; do
     --files-from)
       FILES_FROM="${2:-}"
       [ -n "$FILES_FROM" ] || fail "--files-from requires a value"
+      shift 2
+      ;;
+    --config-base)
+      CONFIG_BASE="${2:-}"
+      [ -n "$CONFIG_BASE" ] || fail "--config-base requires a value"
       shift 2
       ;;
     --dry-run)
@@ -337,6 +399,9 @@ SOURCE_COUNT=0
 if [ "$SOURCE_COUNT" -gt 1 ]; then
   fail "Use only one of --commit, --range, or --files-from"
 fi
+if [ -n "$CONFIG_BASE" ] && [ -z "$FILES_FROM" ]; then
+  fail "--config-base is only used with --files-from"
+fi
 
 require_config
 load_functions
@@ -347,6 +412,7 @@ fi
 
 CHANGED_FILES=()
 while IFS= read -r changed_file; do
+  changed_file="${changed_file%$'\r'}"
   if [ -n "$changed_file" ]; then
     CHANGED_FILES+=("$changed_file")
   fi

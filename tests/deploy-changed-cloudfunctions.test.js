@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { resolveGitBash, toGitBashPath } = require('../scripts/lib/git-bash');
@@ -59,8 +60,8 @@ test('deploy changed cloudfunctions expands shared template changes to all confi
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Shared common template changed/);
-  assert.equal(functions.length, 23);
-  assert.equal(functions[0], 'addPlayers');
+  const configured = JSON.parse(fs.readFileSync(path.join(REPO_DIR, 'cloudbaserc.json'), 'utf8')).functions.map(item => item.name);
+  assert.deepEqual(functions, configured);
   assert.equal(functions.includes('generateShareCode'), true);
   assert.equal(functions.includes('waterSession'), true);
   assert.equal(functions.at(-1), 'updateSettings');
@@ -105,4 +106,46 @@ test('configured cloudfunctions install declared wx-server-sdk dependencies in t
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
     assert.equal(packageJson.dependencies['wx-server-sdk'], '2.6.3', `${item.name} must declare wx-server-sdk`);
   }
+});
+
+test('configuration-only timeout changes select only their function for commit, range and explicit file baselines', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cloud-deploy-config-'));
+  const unix = value => process.platform === 'win32' ? toGitBashPath(value) : value;
+  try {
+    fs.mkdirSync(path.join(root, 'scripts'));
+    const script = path.join(root, 'scripts/deploy-changed-cloudfunctions.sh');
+    fs.copyFileSync(path.join(REPO_DIR, 'scripts/deploy-changed-cloudfunctions.sh'), script);
+    const git = args => {
+      const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' });
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      return result.stdout.trim();
+    };
+    git(['init', '--quiet']);
+    const config = { envId: 'test-env', functions: [{ name: 'login', installDependency: true }, { name: 'startTournament', installDependency: true, timeout: 3 }] };
+    fs.writeFileSync(path.join(root, 'cloudbaserc.json'), JSON.stringify(config));
+    git(['add', 'cloudbaserc.json']);
+    git(['-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '--quiet', '-m', 'base']);
+    const base = git(['rev-parse', 'HEAD']);
+    config.functions[1].timeout = 10;
+    fs.writeFileSync(path.join(root, 'cloudbaserc.json'), JSON.stringify(config));
+    git(['add', 'cloudbaserc.json']);
+    git(['-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '--quiet', '-m', 'timeout']);
+    const plan = args => spawnSync(resolveGitBash(), [unix(script), ...args, '--dry-run'], { cwd: root, encoding: 'utf8', input: 'cloudbaserc.json\n' });
+    for (const args of [['--commit', 'HEAD'], ['--range', `${base}..HEAD`], ['--files-from', '-', '--config-base', base]]) {
+      const result = plan(args);
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      assert.deepEqual(deployedFunctions(result.stdout), ['startTournament']);
+    }
+    const crlfList = path.join(root, 'changed files.txt');
+    fs.writeFileSync(crlfList, 'cloudbaserc.json\r\n');
+    const crlf = plan(['--files-from', unix(crlfList), '--config-base', base]);
+    assert.equal(crlf.status, 0, crlf.stdout + crlf.stderr);
+    assert.deepEqual(deployedFunctions(crlf.stdout), ['startTournament']);
+    const ambiguous = plan(['--files-from', '-']);
+    assert.notEqual(ambiguous.status, 0, ambiguous.stdout + ambiguous.stderr);
+    assert.match(ambiguous.stderr, /config-base/);
+    const unchanged = plan(['--files-from', '-', '--config-base', 'HEAD']);
+    assert.equal(unchanged.status, 0, unchanged.stdout + unchanged.stderr);
+    assert.deepEqual(deployedFunctions(unchanged.stdout), []);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });

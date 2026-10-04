@@ -39,6 +39,8 @@
 
 - **第5交付及优先级补核**：上述准确5文件（3源码/测试、current与本正文）已提交推送`31533a571b909ee4d70704fbb6a3d910ce0e2a00`，master远端HEAD一致、index空。重新读取现行AGENTS/current后发现第1已部署deadline源码、最小客户端开赛恢复及Timeout验收工具仍在dirty中，不能以线上修复或其他提交代替Git交付；先独立抽取第1，不夹带第8权限两hunk，再按顺序交付第7/8，独立第10性能候选并行准备。只读重新检查Edge现有/用户标签页，仍只有原CloudBase登录页，无新已登录后台；原handoff保留。官方Computer Use只读窗口清点及main实图仍为原HWND、390机型/home DEV页面，未输入、激活重试、预热或签430；原窗口激活失败与需人工恢复的边界保持。未改旧partial/备份、未付款/新部署/真实写入。
 
+- **第1源码独立交付准备**：Sol新`tmp/start-head-delivery-20261004/`固定`3448f988a9d42600e4080edeb5bd2e2941398533`，用ls-tree/cat-file batch读取canonical Git blob，1268候选文件恰10处差异、1258非候选对应基线，10原工作源前后SHA不变。开赛入口9000ms/排阵最多4500ms/提交余量、callback清待分享及分阶段计时、客户端确认running含实际matches与timed out识别、仅start配置Timeout10和两部署脚本后验/选择修复；剔除start/lobby各两处协管权限和3新函数登记。direct22、离线stub/dry-run11、HEAD消费58共91/91通过；定向lint0错误/警告、两shell语法各exit0，prepare/verify/finalize0。真实tcb从测试PATH排除并command-v证明不可见；未部署或真实调用。no-index diff check各exit1但诊断空，按差异预期记录，不改称数值0。主控审10完整diff并核准确staged canonical blob、mode与来源hash，`root-stage-receipt.json` passed、cached diff gate0；既有共享库/原dirty/原证据保持。真实慢网/身份/并发、云总时延与连续七日≥100合格调用仍未验，旧start部署授权不复用。
+
 ## 暂停时已知状态（事实截至2026-10-04）
 
 - 10-04 用户另行授权开发方式/工具链优化及文档固化；默认入口已固定为 [开发工作流](../tools/agent-development-workflow.md) 的 `ui:iterate -- <case>`，故障按 [手册](../tools/weapp-ui-troubleshooting.md) 分阶段恢复。原12项业务计划及观察自动化继续暂停；不含业务改动、部署、上传/发布或真实数据写入。[工具实测](../reports/2026-10-04-agent-ui-workflow-research.md)、[规则整理记录](session-logs/2026-10-04-development-workflow-standardization.md)。

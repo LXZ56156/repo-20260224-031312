@@ -147,11 +147,10 @@ test('handleStart treats timeout as success when latest tournament snapshot is a
   }
 });
 
-test('handleStart treats timeout as success when first remote refresh confirms running state', async () => {
+test('handleStart recovers a platform timed out error when remote refresh confirms running state', async () => {
   const restoreTimers = installImmediateTimers();
   const wxBox = installWxStub();
   const originalCloudCall = cloud.call;
-  const originalParseCloudError = cloud.parseCloudError;
   const originalMarkRefreshFlag = nav.markRefreshFlag;
   const originalGoSchedule = nav.goSchedule;
   const originalSchedulerProfile = storage.getSchedulerProfile;
@@ -162,9 +161,8 @@ test('handleStart treats timeout as success when first remote refresh confirms r
     const ctx = createStartContext();
     const startedDoc = buildStartedTournament();
     cloud.call = async () => {
-      throw new Error('network timeout');
+      throw new Error('cloud.callFunction:fail Invoking task timed out after 3 seconds');
     };
-    cloud.parseCloudError = () => ({ isTimeout: true, isNetwork: true });
     nav.markRefreshFlag = () => {};
     nav.goSchedule = () => {};
     storage.getSchedulerProfile = () => 'rest';
@@ -186,7 +184,6 @@ test('handleStart treats timeout as success when first remote refresh confirms r
     restoreTimers();
     wxBox.restore();
     cloud.call = originalCloudCall;
-    cloud.parseCloudError = originalParseCloudError;
     nav.markRefreshFlag = originalMarkRefreshFlag;
     nav.goSchedule = originalGoSchedule;
     storage.getSchedulerProfile = originalSchedulerProfile;
@@ -244,7 +241,7 @@ test('handleStart treats timeout as success when second remote refresh confirms 
   }
 });
 
-test('handleStart keeps failure flow when timeout recovery cannot confirm running state', async () => {
+test('handleStart keeps failure flow when running recovery has no materialized matches', async () => {
   const restoreTimers = installImmediateTimers();
   const wxBox = installWxStub();
   const originalCloudCall = cloud.call;
@@ -269,7 +266,7 @@ test('handleStart keeps failure flow when timeout recovery cannot confirm runnin
     storage.getSchedulerProfile = () => 'rest';
     tournamentSync.fetchTournament = async () => {
       fetchCount += 1;
-      return { ok: true, doc: { _id: 't_start', status: 'draft', rounds: [] } };
+      return { ok: true, doc: { _id: 't_start', status: 'running', rounds: [{ roundIndex: 0, matches: [] }] } };
     };
 
     await ctx.handleStart();
@@ -291,6 +288,44 @@ test('handleStart keeps failure flow when timeout recovery cannot confirm runnin
     storage.getSchedulerProfile = originalSchedulerProfile;
     tournamentSync.fetchTournament = originalFetchTournament;
   }
+});
+
+test('handleStart ignores recovery confirmation after the lobby is hidden', async (t) => {
+  const restoreTimers = installImmediateTimers();
+  const wxBox = installWxStub();
+  t.after(() => {
+    actionGuard.clear('lobby:startTournament:t_start');
+    restoreTimers();
+    wxBox.restore();
+  });
+  const ctx = createStartContext();
+  ctx._lifecycleGeneration = 0;
+  let confirmRecovery;
+  let recoveryStarted;
+  const recoveryPending = new Promise((resolve) => { confirmRecovery = resolve; });
+  const didStartRecovery = new Promise((resolve) => { recoveryStarted = resolve; });
+  let navigationCount = 0;
+  t.mock.method(cloud, 'call', async () => { throw new Error('network timeout'); });
+  t.mock.method(storage, 'getSchedulerProfile', () => 'rest');
+  t.mock.method(tournamentSync, 'fetchTournament', () => {
+    recoveryStarted();
+    return recoveryPending;
+  });
+  t.mock.method(nav, 'markRefreshFlag', () => { navigationCount += 1; });
+  t.mock.method(nav, 'goSchedule', () => { navigationCount += 1; });
+
+  const request = ctx.handleStart();
+  await didStartRecovery;
+  ctx._lifecycleGeneration += 1;
+  confirmRecovery({ ok: true, doc: buildStartedTournament() });
+  await request;
+
+  assert.equal(ctx._appliedTournament, null);
+  assert.equal(ctx._clearLastFailedCalls, 0);
+  assert.equal(ctx._setLastFailedCalls, 0);
+  assert.equal(ctx._writeErrorCalls, 0);
+  assert.equal(navigationCount, 0);
+  assert.deepEqual(wxBox.toasts, []);
 });
 
 test('handleStart does not enter timeout recovery for non-timeout write failures', async () => {
