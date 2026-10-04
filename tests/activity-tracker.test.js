@@ -69,6 +69,93 @@ test('business false and final SDK exception count failures without leaking erro
   assert.ok(!JSON.stringify(events).includes('PRIVATE_'));
 });
 
+test('manual finish reports its authoritative result codes without completion events or PII', async (t) => {
+  const responses = [
+    { ok: true, code: 'TOURNAMENT_FINISHED_MANUALLY', state: 'finished', finished: true },
+    { ok: true, code: 'TOURNAMENT_FINISH_DEDUPED', state: 'deduped', deduped: true, data: { finished: true } },
+    ...['FINISH_RUNNING_ONLY', 'FINISH_SCORE_REQUIRED', 'FINISH_REQUEST_EXPIRED'].map((code) => ({ ok: false, code, state: 'invalid' }))
+  ];
+  let calls = 0;
+  const events = setup(t, async ({ name, data }) => {
+    assert.equal(name, 'finishTournament');
+    assert.equal(data.tournamentId, 'PRIVATE_FINISH_TOURNAMENT');
+    return { result: { ...responses[calls++], clientRequestId: data.clientRequestId, message: 'PRIVATE_FINISH_MESSAGE', operatorId: 'PRIVATE_FINISH_OPENID' } };
+  });
+  for (let i = 0; i < responses.length; i += 1) {
+    const response = await cloud.call('finishTournament', {
+      clientRequestId: `PRIVATE_FINISH_REQUEST_${i}`, tournamentId: 'PRIVATE_FINISH_TOURNAMENT',
+      openid: 'PRIVATE_FINISH_OPENID', unionid: 'PRIVATE_FINISH_UNIONID',
+      name: 'PRIVATE_FINISH_NAME', phone: 'PRIVATE_FINISH_PHONE', avatar: 'PRIVATE_FINISH_AVATAR'
+    }, { retry: false });
+    assert.equal(response.code, responses[i].code);
+  }
+  assert.equal(calls, responses.length);
+  assert.equal(events.length, responses.length * 2);
+  for (let i = 0; i < responses.length; i += 1) {
+    const [attempt, result] = events.slice(i * 2, i * 2 + 2);
+    assert.equal(attempt.name, 'activity_attempt');
+    assert.equal(result.name, 'activity_result');
+    assert.equal(attempt.payload.result, 'pending');
+    assert.equal(result.payload.result, ['success', 'deduped', 'failure', 'failure', 'failure'][i]);
+    assert.equal(result.payload.resultCode, responses[i].code);
+    assert.equal(attempt.payload.operationId, result.payload.operationId);
+    assert.equal(attempt.payload.intentId, result.payload.intentId);
+    assert.equal(attempt.payload.traceId, result.payload.traceId);
+    assert.match(result.payload.traceId, /^finishTournament_[0-9]{10,16}_[a-z0-9]{1,16}$/);
+  }
+  for (const { payload } of events) {
+    assert.equal(payload.action, 'tournament_finish');
+    assert.equal(payload.firstEntry, 'not_applicable');
+    assert.equal(payload.retryCount, 0);
+    assert.equal(payload.attemptIndex, 1);
+    assert.equal(payload.appVersion, '6.1.2-702625a');
+    assert.equal(payload.envVersion, 'trial');
+    assert.deepEqual(Object.keys(payload).sort(), FIELDS);
+  }
+  assert.equal(new Set(events.map((event) => event.payload.eventId)).size, events.length);
+  assert.ok(!JSON.stringify(events).includes('PRIVATE_'));
+});
+
+test('manual finish SDK failure and same-request retry preserve intent with distinct operations', async (t) => {
+  let calls = 0;
+  const events = setup(t, async () => {
+    calls += 1;
+    if (calls === 1) throw new Error('PRIVATE_FINISH_ERROR write rejected');
+    if (calls === 2) throw new Error('network unavailable');
+    return { result: { ok: true, code: 'TOURNAMENT_FINISH_DEDUPED', state: 'deduped', deduped: true, finished: true } };
+  });
+  const request = { clientRequestId: 'PRIVATE_FINISH_RETRY_REQUEST', tournamentId: 'PRIVATE_FINISH_RETRY_TOURNAMENT' };
+  await assert.rejects(cloud.call('finishTournament', request, { retry: false }));
+  assert.equal(events.length, 2);
+  assert.equal(events[1].payload.result, 'exception');
+  assert.equal(events[1].payload.resultCode, 'SDK_EXCEPTION');
+  assert.equal(events[1].payload.retryCount, 0);
+  await cloud.call('finishTournament', request, { retryDelaysMs: [0] });
+  assert.equal(calls, 3);
+  assert.equal(events.length, 4);
+  assert.equal(events[3].payload.result, 'deduped');
+  assert.equal(events[3].payload.resultCode, 'TOURNAMENT_FINISH_DEDUPED');
+  assert.equal(events[3].payload.retryCount, 1);
+  assert.notEqual(events[0].payload.operationId, events[2].payload.operationId);
+  assert.notEqual(events[0].payload.traceId, events[2].payload.traceId);
+  assert.equal(events[0].payload.intentId, events[2].payload.intentId);
+  assert.deepEqual(events.map((event) => event.payload.attemptIndex), [1, 1, 2, 2]);
+  for (let i = 0; i < events.length; i += 2) {
+    assert.equal(events[i].payload.operationId, events[i + 1].payload.operationId);
+    assert.equal(events[i].payload.traceId, events[i + 1].payload.traceId);
+    assert.equal(events[i].payload.intentId, events[i + 1].payload.intentId);
+  }
+  for (const { payload } of events) {
+    assert.equal(payload.action, 'tournament_finish');
+    assert.equal(payload.firstEntry, 'not_applicable');
+    assert.equal(payload.appVersion, '6.1.2-702625a');
+    assert.equal(payload.envVersion, 'trial');
+    assert.deepEqual(Object.keys(payload).sort(), FIELDS);
+  }
+  assert.equal(new Set(events.map((event) => event.payload.eventId)).size, events.length);
+  assert.ok(!JSON.stringify(events).includes('PRIVATE_'));
+});
+
 test('internal network retry produces one stable event pair and manual retry stays a distinct call', async (t) => {
   let calls = 0;
   const events = setup(t, async () => {

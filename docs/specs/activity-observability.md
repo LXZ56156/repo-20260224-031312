@@ -2,7 +2,7 @@
 
 适用范围：现行本地埋点与匿名数据合同；12项计划已按用户指令恢复。后台实收/观察闭环不因本地接入交付而通过，最新状态见 [详细状态](../tasks/paused-plan-status.md)，按 [总索引](../README.md) 读取。下方日期是已有实现证据的时点，不作为外部动作授权。
 
-状态：2026-10-03本地客户端最小接入、只读离线工具与合成SDK验收已完成；微信后台配置、真实客户端实收、上传/发布及监控闭环**未完成**。本文件不是生产启用回执，不改变现有growthTracker的buildPayload合同。入口与授权依据见[总计划第3项](../reports/2026-10-03-online-audit-and-roadmap.md)、[本轮准备记录](../tasks/session-logs/2026-10-03-observability-preparation.md)。
+状态：截至2026-10-04，本地客户端最小接入、手动提前收赛补漏、只读离线工具与合成SDK验收已完成；微信后台配置、真实客户端实收、上传/发布及监控闭环**未完成**。本文件不是生产启用回执，不改变现有growthTracker的buildPayload合同。入口与授权依据见[总计划第3项](../reports/2026-10-03-online-audit-and-roadmap.md)、[本轮准备记录](../tasks/session-logs/2026-10-03-observability-preparation.md)。
 
 ## 本轮已经实现的最小通道
 
@@ -38,11 +38,19 @@ share_enter在页面onLoad读取前发attempt；远端读取或新鲜watch快照
 
 submitScore的ok:true响应显式finished:true（顶层或data）只追加一个tournament_complete的result观察：result=finished_confirmed、resultCode=FINISHED_CONFIRMED，与score_submit共用operationId/intentId/traceId，eventId为operationId_tournament_complete_result。重放也只能确认finished；不能证明第一次完成、状态切换或最后一场意图。没有权威的提交前完成判断，因此不伪造completion attempt，该动作完成漏斗仍未完整覆盖。
 
+手动提前结束已有真实确认操作，2026-10-04将`finishTournament`登记为独立`tournament_finish`：只在确认并复核状态/权限后实际cloud.call时产生attempt/result。成功、deduped、三个既有业务拒绝码及SDK异常沿用统一合同；同请求的手动重试保留intent，内部网络重试只增加retryCount。只增加函数/固定码登记，不改UI或后端；仍是17字段，返回finished:true也不额外生成tournament_complete，不推断首次完成。取消或页面门控阻断没有cloud.call，不制造事件。
+
 tournament_share仅在实际赛事分享回调被用户调用时发一对attempt/result，覆盖当前源码的ranking/analytics两种hook以及lobby/schedule的onShareAppMessage。菜单启用、预热、海报生成/保存、复制文案及朋友圈引导不计该动作；微信没有送达回执，result固定unknown/DELIVERY_UNKNOWN，不能统计真实发送、取消或接收。独立water账本分享不误记为赛事分享，water_share不属于本轮范围。
 
 首笔只依据V2权威返回entry：`waterSession/index.js:2238`以round.nextSeq（初始1）生成seq、`:2283`返回publicEntry，其eventType/seq由`:694`投影。仅recordGame/recordDirect成功且原始game_recorded/transfer_recorded的seq=1时firstEntry=yes，seq>1为no；deduped为replayed，缺字段、V1及无法证明的场景为unknown/not_applicable。分页为空从不判首笔，更正/撤销不算首笔。该指标证明“本轮首个原始记账”，不能单靠它给出“新账本7日首笔率”：当前不发送房间身份和创建队列映射，跨设备/会话精确分母及导入历史排除仍需后续明确匿名关联合同。
 
-合成SDK已覆盖11种指定写动作、业务ok:false、最终异常、自动重试/手动重试、失败不阻塞、PII字段剔除与eventId去重；它不证明微信后台已配置这些事件或实收。生产启用前还需事件定义/字段后台配置与受限实收证据。当前公众平台整站受tool site-policy禁止访问，本轮没有绕过；后台证据须由可用获准入口或用户提供。以下清单与保留/额度为后续闭环方案，尚未部署。
+合成SDK已覆盖11种原指定写动作及本轮手动收赛、业务ok:false、最终异常、自动重试/手动重试、失败不阻塞、PII字段剔除与eventId去重；它不证明微信后台已配置这些事件或实收。生产启用前还需确认reportEvent实际配置/字段接受合同与受限实收证据；不能照搬旧reportAnalytics的后台步骤。此前公众平台页面受tool site-policy禁止访问，本轮仅静态官方资料/本地源码核对，没有绕过或新访问后台。后台证据须由可用获准入口或用户提供。以下清单与保留/额度为后续闭环方案，尚未部署。
+
+## 官方通道与查询边界
+
+10-04静态核对[微信官方API类型定义](https://github.com/wechat-miniprogram/api-typings/blob/master/types/wx/lib.wx.api.d.ts#L29936-L29971)：reportAnalytics为旧自定义分析接口，注释要求预配置事件/字段且标注基础库2.31.1起废弃；reportEvent首参是mp实验系统设置的事件英文名，第二参是可JSON.stringify的对象。首参形参名eventId表示事件定义名，与当前data.eventId的逐记录ID不同。类型注释未给17字段数量/叶值/空值/高基数查询规则；可序列化不证明平台存储或开放逐条查询。本次所查官方资料和本地CI命令未证实事件定义/实收查询CLI或OpenAPI，不能据无命中宣称不存在。现有fetch-we-analysis仅标准访问/留存datacube接口，不能代替自定义事件实收。
+
+现有cloud-ops-daily-report只解析CLS raw/aggregate，不读取微信事件导出或保留action/eventId/operationId。因此真实事件逐ID对账须先取得平台实际导出/查询结构和接收计数合同，再实现必要的窄范围离线核验；当前不能臆造schema或用合成SDK当接受回执。如果实际入口只提供聚合而没有逐事件ID，精确运输去重/配对只能记未验证。当前用户答后台配置“不确定”，状态继续未核实。
 
 ## 最小动作清单
 
@@ -60,9 +68,10 @@ tournament_share仅在实际赛事分享回调被用户调用时发一对attempt
 | water_add_members | 确认名单并启动调用 | updated/deduped或拒绝/失败；不采成员姓名和名单文本 |
 | water_first_entry | 提交本轮首笔有效账务操作 | 云端确认当前轮首次有效rootEntry时成功；重送/更正/撤销不重复算首笔；客户端无法确认首次时标firstEntryUnknown |
 | tournament_complete | 拟议：最后一场有效比分提交意图；当前无法证明，未采attempt | 当前仅ok:true且显式finished:true的finished_confirmed结果观察，与score_submit同operationId、独立eventId；不算首次完成 |
+| tournament_finish | 已有提前结束确认及状态/权限复核后实际调用finishTournament | success/deduped、FINISH_RUNNING_ONLY/FINISH_SCORE_REQUIRED/FINISH_REQUEST_EXPIRED、权限/锁/版本拒绝、SDK异常；不额外派生首次完赛 |
 | tournament_share | 已接入页面实际分享回调被用户调用 | 当前固定unknown/DELIVERY_UNKNOWN；无平台送达回执，不把分享调用算实际接收 |
 
-打水漏斗为进入→新建/打开账本→添加或绑定成员→首笔attempt→首笔result。需先以真实场景解释未记账原因；仅创建账本数与PV不构成完整漏斗。第7项若新增提前收赛，再追加对应动作，不采集不存在的UI动作。
+打水漏斗为进入→新建/打开账本→添加或绑定成员→首笔attempt→首笔result。需先以真实场景解释未记账原因；仅创建账本数与PV不构成完整漏斗。第7项已新增提前收赛，现已补独立tournament_finish；不采集不存在的UI动作。
 
 ## 字段与数据边界
 
@@ -74,7 +83,16 @@ traceId复用 `core/cloud.js` 已生成的__traceId；同一操作的重试保�
 
 客户端错误/采集disabled、限流、接收失败均不能阻塞主要业务，也不能产生额外Toast。服务端accepted/deduped/rejected/dropped逐项对账；函数ok不等于全批接受，事件接收调用不得触发自己再次采集。既有成功幂等日志保留原合同，不改作行为日志。
 
-若后续确需独立接收服务，建议供生产启用前定稿：原始最小事件保留14天、仅不含会话/trace的日聚合保留90天；访问者仅项目所有者/明确授予的运维管理员，客户端禁止直读/枚举。先从全局每日1000事件、单客户端会话20事件及单批10事件试运行，统计dropped和rate_limited后调整；这些是初始建议，**未启用、未证明够用**。本轮仅wx.reportEvent，微信后台实际保留/权限/额度需后台核实，不能宣称已执行该建议。删除/TTL、HMAC密钥轮换与备份保留需要一起检验，避免自动备份无限保留已到期事件。远端既有协议的byte cap/批次/集合/TTL尚须从完整包logic核实后对齐，不能按本文件绕过既有校验。
+若后续确需独立接收服务，建议供生产启用前定稿：原始最小事件保留14天、仅不含会话/trace的日聚合保留90天；访问者仅项目所有者/明确授予的运维管理员，客户端禁止直读/枚举。先从全局每日1000事件、单客户端会话20事件及单批10事件试运行，统计dropped和rate_limited后调整；这些是初始建议，**未启用、未证明够用**。本轮仅wx.reportEvent，微信后台实际保留/权限/额度需后台核实，不能宣称已执行该建议。删除/TTL、HMAC密钥轮换与备份保留需要一起检验，避免自动备份无限保留已到期事件。既有接收包的本地协议核对见下节；当前云端集合权限、TTL与部署配置仍未验证，不能按本文件绕过既有校验。
+
+## 既有接收函数的只读协议核对
+
+10-04使用E副本实际恢复出的reportOpsActivityEvents完整入口/logic/retention核对；该包不在main受管源码中，只读原件，未执行/连接云。文件SHA、代码行和读取时点沿革见`tmp/ops-receiver-contract-next-20261004/REPORT.md`及[准备日志](../tasks/session-logs/2026-10-03-observability-preparation.md)。原来的“完整包协议未读”缺口已补，本地代码证明如下，不能当当前云配置/规则事实：
+
+- 代码默认disabled，启用还需环境中的HMAC密钥/版本、AppID和普通微信身份门禁；实际配置未读。包络为events[]，eventId必须event_加32位hex，事件allowlist是旧海报/分享类；当前三个通用事件名、17字段和ID格式均不兼容，不能只开ENABLE或把data直接传入。
+- 保存跨会话HMAC actorKey，未保留当前anonymousSessionId/appVersion/envVersion；trace只在批次级。与当前匿名会话/版本目标不同，不能把旧身份关联视为已批准的替代合同。
+- 最多20条/32KiB、每actor每分钟5批及每日200新事件；全局日额度缺失/非法降为1。代码写180天expiresAtMs，但retention只列清理候选、未删除；实际TTL/调度/访问和备份清理未验。不得把本文件14天/批次10/全局1000建议当已执行。
+- 去重是actor+eventId；部分拒绝时ok:true不等于全接受。限流或数据库失败的未接受项没有完整归入dropped，不能用四项总数作无条件守恒或把失败丢弃量判0。未来若选此通道，须先定稿映射、隐私/保留和回执对账，再独立实现验证；当前维持仅wx.reportEvent，不新增第二接收平台。
 
 ## 每日CLS报告入口
 

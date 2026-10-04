@@ -46,3 +46,13 @@
 同期只在 `tmp/minimal-client-acceptance-20261004/` 新建客户端来源与旅程证据，复用 `tmp/start-head-delivery-20261004/snapshot/miniprogram/`：635文件/6,558,094bytes与Git `b9d323fe5d271290160f3fd69aa9f7854f184a69` 的canonical bytes/文件集合精确一致，tree `4ba531b1e57b227b575d15f1db0947c2345d9f89`。`7e9176c`仅含第3/4客户端改动，第1开赛恢复判定在b9，二者客户端仅差 `lobbyLifecycleActions.js`。没有另导出重复包、没有后续第7/8/11 UI或既有dirty。manifest/lineage/freeze与受控第1→3→4验收旅程留在新根，旧直接测试证据复用，不重复全量。CI2.1.31默认编译路径涉及私钥与项目属性请求，尚未建立可靠纯离线合同，本次未调用；未编译、不可扫码、未上传和真机验收。用户已明确iPhone验收后做，专用环境/身份/赛事、实际版本、事件配置实收和真实写入仍待对应条件与授权。
 
 Luna补核8份冻结artifact的size/SHA、3份来源receipt和2份附加证据均匹配，15个引用路径安全；冷审仅新增ignored `cold-review.txt`，不属于先前封存的8份。用户对三个事件的后台定义和字段限制答“不确定”，仍记未核实，不能推断已定义或不存在。本轮不继续要求登录CloudBase，也不据此启用/创建事件或触发真实业务。
+
+## 2026-10-04 第3项继续：手动收赛补漏及完整协议核对
+
+本阶段唯一进度正文仍是[详细状态](../paused-plan-status.md#10-04第3项本地配置与客户端验收准备)，稳定通道/限制见[合同](../../specs/activity-observability.md)。起始main/master/HEAD05ce33e、index空，原脏树/备份保留；本轮两个源码/测试文件及四份相关文档为交付范围。
+
+- 新发现真实Page调用finishTournament时tracker返回空，补固定`tournament_finish`与5既有结果码，仅3行生产代码。2新测试先复现0事件的预期失败，修复后6文件33项全部通过；target lint/diff通过，Luna只读冷审通过。直接证据`tmp/manual-finish-activity-20261004/`与`tmp/observability-evidence-next-20261004/cold-review.md`。取消/门控不制造事件，SDK自动重试只计retryCount，同请求手动重试保留intent；finished:true不额外派生首次completion。旧b9候选保留且不含此新补漏，当前源码未上传。
+- 主控对共享tracker新改动按affected的full计划执行一次npm test：1701总/1695通过/6跳过/0失败，npm child0。记录器只认TAP导致counts缺失、外层工具exit1；原失败回执与源码日志不改，另名spec只读解析exit0，计数总和/唯一摘要/source与所有证据SHA闭合，Luna独立复核通过。stderr209B只有npm升级notice，不宣称空stderr；未升级npm、未重跑全量。证据`tmp/manual-finish-activity-root-20261004/`包含原full-receipt、initial-terminal、spec-summary-validation及冷审；两源SHA分别9282ed3aafae8b38068b33aa637cd216b0162f386ed41bfe82c71226aa07e0e2和d39a508fba2c9d929ce97baf82da40e57688eb4c23306fb14ea86d54cf03f62e。check沿未变基线，不重复无关云检查。
+- 官方类型/CI能力与现仓库datacube查询范围只读核对已完成，报告`tmp/event-api-primary-research-20261004-next/`。已证旧reportAnalytics预配置/废弃注释与reportEvent事件英文名参数不同；字段数量/实际叶值/高基数逐ID查询及配置CLI/OpenAPI未证，不把类型的可JSON序列化当实收保证。
+- 从E已验恢复根只读完整旧reportOpsActivityEvents入口/logic/retention，补完此前未读协议缺口；index/logic SHA023c6d708f483d86562d37821ea1c0e7596187a0abe3a7cb1ad8b918e1ed5b9d/f8608543c337f0f9cb706b9e675c9b0cb968d0464e6cce237abfddbc25440304。report`tmp/ops-receiver-contract-next-20261004/REPORT.md`列确切源码/限额/身份/去重/回执/保留及读取时点沿革；现17字段/ID/动作不兼容，代码默认关闭、当前云开关/密钥/规则/TTL未读，不直接启用/执行该包。不读取或输出secret值、不新增接收服务。
+- 本轮没有UI可见变化/截图，未登录CloudBase、查云、配置后台、触发真实事件、部署/上传/发布或写真实业务。仍缺wx.reportEvent实际配置/实收、受限逐ID查询/导出与接受计数、保留权限；平台只有聚合时不能精确对账，先取得真实结构再做必要离线验证，不臆造schema。用户手机验收后做/配置不确定的状态不改，完整目标未完成。
