@@ -1,0 +1,31 @@
+<view class="container safe-bottom recovery-page">
+  <view class="recovery-intro">
+    <view class="recovery-title">我的比赛</view>
+    <view class="recovery-description">找回你主办或已加入的比赛。打开比赛后，可继续查看赛程和战绩。</view>
+  </view>
+
+  <button wx:for="{{items}}" wx:key="id" class="card recovery-item" data-id="{{item.id}}" bindtap="openTournament" hover-class="recovery-item-active">
+    <view class="recovery-item-head">
+      <view class="recovery-name">{{item.name}}</view>
+      <text class="recovery-status">{{item.statusText}}</text>
+    </view>
+    <view class="recovery-meta">{{item.modeText}} · {{item.roleText}}</view>
+    <view class="recovery-item-foot">
+      <text>{{item.progressText}}</text>
+      <text class="recovery-open">查看比赛 ›</text>
+    </view>
+  </button>
+
+  <view wx:if="{{error}}" class="state-error recovery-state">
+    <view class="state-error-title">比赛加载失败</view>
+    <view class="state-error-desc">{{error}}</view>
+    <button class="btn btn-secondary recovery-action" bindtap="retry" disabled="{{loading}}">重试</button>
+  </view>
+  <view wx:elif="{{loading}}" class="recovery-notice" role="status">正在查找比赛…</view>
+  <view wx:elif="{{loaded && !items.length && !hasMore}}" class="state-empty recovery-state">
+    <view class="state-empty-title">还没有可找回的比赛</view>
+    <view class="state-empty-desc">你主办或已加入的比赛会出现在这里</view>
+  </view>
+  <button wx:elif="{{hasMore}}" class="btn btn-secondary recovery-action" bindtap="loadMore">{{items.length ? '加载更多' : '继续查找'}}</button>
+  <view wx:elif="{{loaded && items.length}}" class="recovery-notice">已显示全部比赛</view>
+</view>

@@ -50,6 +50,7 @@
     <view class="section-head">
       <view class="section-title">我的服务</view>
     </view>
+    <button class="btn btn-secondary mine-recovery" bindtap="goRecovery">找回比赛</button>
     <view class="service-grid">
       <view class="service-btn" bindtap="goProfile">
         <view class="service-title">编辑资料</view>

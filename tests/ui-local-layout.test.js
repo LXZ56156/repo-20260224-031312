@@ -88,3 +88,11 @@ test('co-manager truncated names and grant/revoke actions retain their full acce
   assert.match(button[0], /catchtap="onToggleCoManager"/);
   assert.match(button[0], /loading="\{\{coManagerBusy\}\}" disabled="\{\{coManagerBusy\}\}"/);
 });
+
+test('recovery cards override native button width and centered margins within their page', () => {
+  const body = rule(read('pages/tournament-list/index.wxss'), '.recovery-page button.recovery-item');
+  assert.match(body, /width:\s*100%\s*;/);
+  assert.match(body, /margin:\s*0 0 16rpx\s*;/);
+  assert.match(body, /box-sizing:\s*border-box\s*;/);
+  assert.match(read('pages/tournament-list/index.wxml'), /class="card recovery-item"[^>]*bindtap="openTournament"/);
+});

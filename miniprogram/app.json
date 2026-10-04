@@ -3,6 +3,7 @@
     "pages/home/index",
     "pages/launch/index",
     "pages/mine/index",
+    "pages/tournament-list/index",
     "pages/profile/index",
     "pages/feedback/index",
     "pages/share-entry/index",

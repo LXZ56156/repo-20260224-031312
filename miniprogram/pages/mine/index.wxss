@@ -97,6 +97,8 @@
 }
 
 /* --- Service Grid --- */
+.mine-recovery { width: 100%; min-height: 104rpx; margin-top: var(--space-section); }
+
 .service-grid {
   margin-top: var(--space-section);
   display: grid;

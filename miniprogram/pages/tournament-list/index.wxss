@@ -1,0 +1,15 @@
+.recovery-intro { padding: 16rpx 4rpx 24rpx; }
+.recovery-title { font-size: 36rpx; font-weight: 750; color: var(--neutral-950); }
+.recovery-description { margin-top: 12rpx; font-size: 26rpx; line-height: 1.6; color: var(--neutral-700); }
+.recovery-page button.recovery-item { width: 100%; margin: 0 0 16rpx; padding: 24rpx; text-align: left; line-height: 1.5; box-sizing: border-box; min-height: 104rpx; }
+.recovery-item::after { border: 0; }
+.recovery-item-active { background: var(--neutral-50); }
+.recovery-item-head, .recovery-item-foot { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; }
+.recovery-name { min-width: 0; overflow-wrap: break-word; word-break: break-all; font-size: 30rpx; font-weight: 700; color: var(--neutral-950); }
+.recovery-status { flex-shrink: 0; white-space: nowrap; font-size: 24rpx; color: var(--neutral-700); }
+.recovery-meta { margin-top: 10rpx; color: var(--neutral-700); font-size: 24rpx; }
+.recovery-item-foot { margin-top: 18rpx; font-size: 24rpx; color: var(--neutral-700); flex-wrap: wrap; }
+.recovery-open { color: var(--brand-700); font-weight: 650; white-space: nowrap; }
+.recovery-state { margin-top: 20rpx; }
+.recovery-action { width: 100%; min-height: 104rpx; margin-top: 20rpx; }
+.recovery-notice { padding: 28rpx 0; text-align: center; font-size: 26rpx; color: var(--neutral-700); }

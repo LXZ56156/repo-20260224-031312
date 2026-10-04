@@ -128,6 +128,10 @@ Page({
     nav.goProfile();
   },
 
+  goRecovery() {
+    wx.navigateTo({ url: '/pages/tournament-list/index' });
+  },
+
   onFeedback() {
     nav.goFeedback();
   }

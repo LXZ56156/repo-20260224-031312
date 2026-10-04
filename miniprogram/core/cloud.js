@@ -25,7 +25,7 @@ const PARAM_CODES = new Set([
 const FINISHED_CODES = new Set(['MATCH_FINISHED']);
 const CANCELED_CODES = new Set(['MATCH_CANCELED']);
 const DEDUPED_CODES = new Set(['SCORE_SUBMIT_DEDUPED', 'PLAYER_REMOVED_DEDUPED', 'PLAYER_SQUAD_DEDUPED', 'PAIR_TEAMS_DEDUPED']);
-const READ_ONLY_FUNCTIONS = new Set(['login', 'getUserProfile', 'getMyPerformanceStats']);
+const READ_ONLY_FUNCTIONS = new Set(['login', 'getUserProfile', 'getMyPerformanceStats', 'getMyTournaments']);
 const DEFAULT_RETRY_DELAYS_MS = [300, 900];
 
 function normalizeResultCode(err) {
