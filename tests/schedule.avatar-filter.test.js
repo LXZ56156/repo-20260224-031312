@@ -20,8 +20,9 @@ function loadSchedulePageDefinition() {
 function createSchedulePageContext(definition) {
   const ctx = {
     data: JSON.parse(JSON.stringify(definition.data || {})),
-    setData(update) {
+    setData(update, callback) {
       this.data = { ...this.data, ...(update || {}) };
+      if (callback) callback.call(this);
     }
   };
   for (const [key, value] of Object.entries(definition || {})) {

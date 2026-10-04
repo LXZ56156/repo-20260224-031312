@@ -17,4 +17,4 @@
 
 ## 下一步与证据
 
-第1/5/7后端及截止修复已交付，第8后端a85eb14已推送。第9路径/编码与检查假通过修复已验；第10性能已验，第11固定新HEAD准备后端交付、UI待图。监控继续；网页登录/兑换码、窗口恢复、真实身份及单打场景待答。UI按 [日常循环](../tools/agent-development-workflow.md) 使用ui:iterate，失败按 [手册](../tools/weapp-ui-troubleshooting.md) 处理，详情更新同一正文。
+第1/5/7/8后端已交付，第9工具53bab56已推送。第10内部setData范围42项通过、已准确暂存；第11固定新HEAD准备后端交付，UI待新图。监控继续；网页登录/兑换码、窗口恢复、真实身份及单打场景待答。UI按 [日常循环](../tools/agent-development-workflow.md) 使用ui:iterate，失败按 [手册](../tools/weapp-ui-troubleshooting.md) 处理，详情更新同一正文。

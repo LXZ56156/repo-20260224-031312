@@ -31,6 +31,46 @@ const STATUS_FILTER_OPTIONS = [
 
 const CURRENT_ROUND_SELECTOR = '.round-card-current';
 const CURRENT_ROUND_FOCUS_TIMER = 'currentRoundFocus';
+const SET_DATA_BYTE_LIMIT = 1024 * 1024;
+
+function jsonUtf8Bytes(value) {
+  const json = JSON.stringify(value);
+  let bytes = 0;
+  for (let i = 0; i < json.length; i += 1) {
+    const code = json.charCodeAt(i);
+    if (code < 0x80) bytes += 1;
+    else if (code < 0x800) bytes += 2;
+    else if (code >= 0xd800 && code <= 0xdbff) { bytes += 4; i += 1; }
+    else bytes += 3;
+  }
+  return bytes;
+}
+
+// Keep the complete view, but never send more than the native per-call budget.
+// All chunks are queued synchronously; only the last render callback may focus.
+function setScheduleView(page, patch, afterRender) {
+  if (jsonUtf8Bytes(patch) < SET_DATA_BYTE_LIMIT) {
+    page.setData(patch, afterRender);
+    return;
+  }
+  const { roundsUi, ...header } = patch;
+  page.setData({ ...header, roundsUi: [] }); // Replacing clears the tail of an older, longer view.
+  let chunk = {};
+  let chunkBytes = 2;
+  for (let i = 0; i < roundsUi.length; i += 1) {
+    const key = `roundsUi[${i}]`;
+    const entryBytes = jsonUtf8Bytes(key) + 1 + jsonUtf8Bytes(roundsUi[i]);
+    if (chunkBytes + entryBytes + (Object.keys(chunk).length ? 1 : 0) >= SET_DATA_BYTE_LIMIT) {
+      page.setData(chunk);
+      chunk = {};
+      chunkBytes = 2;
+    }
+    chunkBytes += entryBytes + (Object.keys(chunk).length ? 1 : 0);
+    chunk[key] = roundsUi[i];
+  }
+  page.setData(chunk, afterRender);
+}
+
 
 function asName(p) {
   if (!p) return '未知';
@@ -471,6 +511,8 @@ Page({
       t = { ...t, name: tournamentName };
     }
     this._latestTournament = t;
+    const viewGeneration = (Number(this._scheduleViewGeneration) || 0) + 1;
+    this._scheduleViewGeneration = viewGeneration;
     pageTitle.setTournamentPageTitle(this, '赛程对阵', t);
 
     const status = t.status || 'draft';
@@ -513,9 +555,9 @@ Page({
     const hasActiveFilter = selectedPlayerIds.length > 0 || statusFilter !== 'all';
     const filterEmptyText = showFilterBar && hasActiveFilter && !roundsUi.length ? '暂无符合条件的对阵' : '';
 
-    this.setData({
+    setScheduleView(this, {
       loadError: false,
-      tournament: t,
+      tournament: { name: t.name }, // Render projection only; business consumers use _latestTournament.
       statusText,
       statusClass,
       modeLabel,
@@ -537,9 +579,11 @@ Page({
       showFilterBar,
       filterEmptyText,
       primaryNavItems: matchPrimaryNav.getPrimaryNavItems('schedule', this.data.tournamentId)
+    }, () => {
+      if (this._pageActive === false || this._scheduleViewGeneration !== viewGeneration || this._latestTournament !== t) return;
+      this.scheduleCurrentRoundFocus(firstPending, roundsUi);
+      this.refreshAvatarDisplays();
     });
-    this.scheduleCurrentRoundFocus(firstPending, roundsUi);
-    this.refreshAvatarDisplays();
   },
 
   scheduleCurrentRoundFocus(firstPending, visibleRoundsUi) {
@@ -582,7 +626,7 @@ Page({
     if (!pending.length) return;
     const result = await avatarDisplay.resolveCloudAvatarFileIds(pending, this.avatarCache);
     if (!result.updated) return;
-    const latestTournament = this._latestTournament || this.data.tournament;
+    const latestTournament = this._latestTournament;
     if (latestTournament) this.applyTournament(latestTournament);
   },
 
@@ -596,7 +640,7 @@ Page({
   },
 
   reapplyTournament() {
-    const tournament = this._latestTournament || this.data.tournament;
+    const tournament = this._latestTournament;
     if (tournament) this.applyTournament(tournament);
   },
 
@@ -623,7 +667,7 @@ Page({
   },
 
   goSharePosterFromFinished() {
-    growthTracker.track('schedule_finished_share_click', growthTracker.fromTournament(this.data.tournament, {
+    growthTracker.track('schedule_finished_share_click', growthTracker.fromTournament(this._latestTournament, {
       tournamentId: this.data.tournamentId,
       src: 'schedule',
       a: 'click'
@@ -762,7 +806,7 @@ Page({
   onShareAppMessage() {
     activityTracker.tournamentShare();
     shareActivity.showShareMenuBestEffort();
-    const meta = shareMeta.buildShareMessage(this.data.tournament);
+    const meta = shareMeta.buildShareMessage(this._latestTournament);
     return {
       title: meta.title,
       path: meta.path
