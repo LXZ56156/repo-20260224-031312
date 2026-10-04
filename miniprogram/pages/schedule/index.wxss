@@ -703,3 +703,11 @@
   margin-top: var(--space-inline);
   padding: var(--space-card-pad);
 }
+.hero-management {
+  margin-top: 16rpx;
+}
+
+.manual-finish-btn {
+  min-height: 104rpx;
+  width: 100%;
+}

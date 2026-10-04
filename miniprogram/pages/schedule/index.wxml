@@ -45,10 +45,13 @@
           bindtap="onHeroActionTap"
           hover-class="hero-primary-hover"
           loading="{{heroActionBusy}}"
-          disabled="{{heroActionBusy}}"
+          disabled="{{heroActionBusy || manualFinishBusy}}"
         >
           {{nextActionText}}
         </button>
+      </view>
+      <view class="hero-management" wx:if="{{canFinishTournament}}">
+        <button class="btn btn-secondary manual-finish-btn" bindtap="onFinishTournament" loading="{{manualFinishBusy}}" disabled="{{manualFinishBusy}}">提前结束比赛</button>
       </view>
       <view class="hero-finished-share" wx:if="{{showFinishedShareActions}}">
         <view class="hero-finished-title">比赛已结束</view>

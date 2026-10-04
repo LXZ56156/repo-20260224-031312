@@ -16,6 +16,10 @@ const pageTimers = require('../../core/pageTimers');
 const uiPreferences = require('../../core/uiPreferences');
 const growthTracker = require('../../core/growthTracker');
 const activityTracker = require('../../core/activityTracker');
+const scoreUtils = require('../../core/scoreUtils');
+const cloud = require('../../core/cloud');
+const clientRequest = require('../../core/clientRequest');
+const writeErrorUi = require('../../core/writeErrorUi');
 
 const PLAYER_FILTER_OPTIONS = [
   { value: 'contains', label: '含有' },
@@ -70,7 +74,6 @@ function setScheduleView(page, patch, afterRender) {
   }
   page.setData(chunk, afterRender);
 }
-
 
 function asName(p) {
   if (!p) return '未知';
@@ -367,6 +370,10 @@ Page({
     heroProgressPercent: -1,
     heroActionBusy: false,
     showFinishedShareActions: false,
+    canFinishTournament: false,
+    manualFinishBusy: false,
+    finishCompletedMatches: 0,
+    finishRemainingMatches: 0,
     canEditScore: false,
     hasPending: false,
     firstPendingRoundIndex: -1,
@@ -462,6 +469,7 @@ Page({
     this.refreshUiPreferences();
     const currentId = String(this.data.tournamentId || '').trim();
     if (this.data.heroActionBusy) this.setData({ heroActionBusy: false });
+    if (this.data.manualFinishBusy && !this._manualFinishPending) this.setData({ manualFinishBusy: false });
     nav.consumeRefreshFlag(currentId);
     // 兜底刷新：从录入比分页返回时，确保状态与比分是最新的
     if (this.data.tournamentId) this.fetchTournament(this.data.tournamentId);
@@ -516,17 +524,26 @@ Page({
     pageTitle.setTournamentPageTitle(this, '赛程对阵', t);
 
     const status = t.status || 'draft';
+    const manuallyFinished = !!(t.finishMeta && t.finishMeta.type === 'manual');
+    if (status === 'draft' || status === 'finished') this._finishRequest = null;
     const modeLabel = flow.getModeDisplayLabel(t.mode || flow.MODE_MULTI_ROTATE, t.presetKey);
     let statusText = '尚未开始';
     let statusClass = 'hero-status-draft';
     if (status === 'running') { statusText = '进行中'; statusClass = 'hero-status-running'; }
     if (status === 'finished') { statusText = '已完成'; statusClass = 'hero-status-finished'; }
+    if (status === 'finished' && manuallyFinished) statusText = '已提前结束';
 
     const rawRoundsUi = decorateRounds(t, { avatarCache: this.avatarCache || {} });
     const firstPending = findFirstPending(rawRoundsUi);
     const focusedRoundsUi = markPendingFocus(rawRoundsUi, firstPending);
     const roundsSummary = summarizeRounds(focusedRoundsUi);
     const canEditScore = perm.canEditScore(t, this.openid);
+    const sourceMatches = (Array.isArray(t.rounds) ? t.rounds : []).reduce((matches, round) =>
+      matches.concat(Array.isArray(round.matches) ? round.matches : []), []);
+    const finishCompletedMatches = sourceMatches.filter((match) =>
+      match && match.status === 'finished' && scoreUtils.isValidFinishedScore(match)).length;
+    const finishRemainingMatches = sourceMatches.length - finishCompletedMatches;
+    const canFinishTournament = status === 'running' && perm.isAdmin(t, this.openid) && finishCompletedMatches > 0;
     const displayTotalMatches = scheduleContract.resolveDisplayTotalMatches(t, roundsSummary.totalMatches);
     const heroSummary = {
       ...roundsSummary,
@@ -544,7 +561,9 @@ Page({
     const heroMatchText = heroSummary.totalMatches
       ? `${heroSummary.finishedMatches} / ${heroSummary.totalMatches} 场`
       : '暂无场次';
-    const heroPendingText = buildHeroPendingText(status, heroSummary);
+    const heroPendingText = status === 'finished' && manuallyFinished
+      ? `已完成 ${finishCompletedMatches} 场，取消 ${finishRemainingMatches} 场`
+      : buildHeroPendingText(status, heroSummary);
     const heroProgressPercent = buildHeroProgressPercent(status, heroSummary);
     const selectedPlayerIds = Array.isArray(this.data.selectedPlayerIds) ? this.data.selectedPlayerIds : [];
     const avatarFilterMode = String(this.data.avatarFilterMode || 'contains').trim() || 'contains';
@@ -567,6 +586,9 @@ Page({
       heroPendingText,
       heroProgressPercent,
       showFinishedShareActions,
+      canFinishTournament,
+      finishCompletedMatches,
+      finishRemainingMatches,
       canEditScore,
       hasPending: !!firstPending,
       firstPendingRoundIndex: firstPending ? firstPending.roundIndex : -1,
@@ -645,7 +667,7 @@ Page({
   },
 
   onHeroActionTap() {
-    if (this.data.heroActionBusy) return false;
+    if (this.data.heroActionBusy || this.data.manualFinishBusy) return false;
     const key = String(this.data.nextActionKey || '').trim();
     if (!key) return false;
     this.setData({ heroActionBusy: true });
@@ -660,6 +682,48 @@ Page({
     }
     this.setData({ heroActionBusy: false });
     return false;
+  },
+
+  async onFinishTournament() {
+    if (this.data.manualFinishBusy || !this.data.canFinishTournament) return false;
+    const tournamentId = String(this.data.tournamentId || '').trim();
+    this._manualFinishPending = true;
+    this.setData({ manualFinishBusy: true });
+    try {
+      const confirmed = await new Promise((resolve) => wx.showModal({
+        title: '提前结束比赛',
+        content: `已完成${this.data.finishCompletedMatches}场，剩余${this.data.finishRemainingMatches}场将取消。排名只统计已完成场次。结束后不能撤回。`,
+        confirmText: '提前结束',
+        cancelText: '继续比赛',
+        success: (result) => resolve(result.confirm === true),
+        fail: () => resolve(false)
+      }));
+      if (!confirmed) return false;
+      const tournament = this._latestTournament;
+      if (this._pageActive === false || tournamentId !== String(this.data.tournamentId || '') ||
+        !this.data.canFinishTournament || !tournament || tournament.status !== 'running' || !perm.isAdmin(tournament, this.openid)) return false;
+      if (!this._finishRequest || this._finishRequest.tournamentId !== tournamentId) {
+        this._finishRequest = { tournamentId, clientRequestId: clientRequest.buildClientRequestId('finish') };
+      }
+      cloud.assertWriteResult(await cloud.call('finishTournament', this._finishRequest), '提前结束失败');
+      this._finishRequest = null;
+      nav.markRefreshFlag(tournamentId);
+      if (this._pageActive !== false && tournamentId === String(this.data.tournamentId || '')) {
+        wx.showToast({ title: '比赛已提前结束', icon: 'none' });
+        await this.fetchTournament(tournamentId);
+      }
+      return true;
+    } catch (err) {
+      if (String(err && err.code || '') === 'FINISH_REQUEST_EXPIRED') this._finishRequest = null;
+      if (this._pageActive !== false) writeErrorUi.presentWriteError({
+        err, fallbackMessage: '提前结束失败，请重试',
+        onRefresh: () => this.fetchTournament(tournamentId)
+      });
+      return false;
+    } finally {
+      this._manualFinishPending = false;
+      if (this._pageActive !== false) this.setData({ manualFinishBusy: false });
+    }
   },
 
   goFinalRanking() {
