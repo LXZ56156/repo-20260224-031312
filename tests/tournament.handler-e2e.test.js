@@ -60,6 +60,7 @@ function createJourneyDb() {
               return { data: copy(store.get(id)) };
             },
             async set({ data }) { store.set(id, { ...copy(data), _id: id }); },
+            async update({ data }) { return where({ _id: id }).update({ data }); },
             async remove() { return where({ _id: id }).remove(); }
           };
         }

@@ -55,9 +55,9 @@ function createDedupedSubmitResult(match, scoreA, scoreB, openid, fallbackScorer
   });
 }
 
-async function readScoreLock(lockId) {
+async function readScoreLock(reader, lockId) {
   try {
-    const res = await db.collection('score_locks').doc(lockId).get();
+    const res = await reader.collection('score_locks').doc(lockId).get();
     return res && res.data ? res.data : null;
   } catch (err) {
     if (common.isCollectionNotExists(err)) return null;
@@ -90,106 +90,116 @@ exports.main = async (event) => {
 
   let shareFinishTournament = null;
   try {
-    const docRes = await db.collection('tournaments').doc(tournamentId).get();
-    const t = common.assertTournamentExists(docRes.data);
-    if (!permission.canEditScore(t, OPENID)) return createCodeResult('PERMISSION_DENIED', '无权限录分', { traceId });
-    if (t.status !== 'running' && t.status !== 'finished') return createCodeResult('PERMISSION_DENIED', '赛事未开赛', { traceId });
+    const result = await db.runTransaction(async (transaction) => {
+      // The SDK may replay callbacks after a lock or tournament conflict.
+      // Only a committed transaction consumes the lock; sharing runs afterward.
+      shareFinishTournament = null;
+      const docRes = await transaction.collection('tournaments').doc(tournamentId).get();
+      const t = common.assertTournamentExists(docRes.data);
+      if (!permission.canEditScore(t, OPENID)) return createCodeResult('PERMISSION_DENIED', '无权限录分', { traceId });
+      if (t.status !== 'running' && t.status !== 'finished') return createCodeResult('PERMISSION_DENIED', '赛事未开赛', { traceId });
 
-    const match = findMatch(t, roundIndex, matchIndex);
-    if (!match) return createCodeResult('MATCH_NOT_FOUND', '比赛不存在', { traceId });
-    const fallbackScorerName = resolvePlayerName(t, OPENID);
-    const retryResult = createDedupedSubmitResult(
-      match,
-      a,
-      b,
-      OPENID,
-      fallbackScorerName,
-      clientRequestId,
-      traceId
-    );
-    if (retryResult) {
-      return retryResult;
-    }
-    if (String(match.status || '') === 'canceled') {
-      return createCodeResult('MATCH_CANCELED', '该场已结束', { traceId });
-    }
-
-    const lockId = buildLockId(tournamentId, roundIndex, matchIndex);
-    const lockDoc = await readScoreLock(lockId);
-    const nowTs = Date.now();
-    if (!lockDoc) {
-      return createCodeResult('LOCK_EXPIRED', '录分会话已过期，请重新开始录分', { traceId });
-    }
-    const expireAt = Number(lockDoc.expireAt) || 0;
-    const ownerId = String(lockDoc.ownerId || '').trim();
-    const ownerName = String(lockDoc.ownerName || '').trim();
-    if (expireAt <= nowTs) {
-      return createCodeResult('LOCK_EXPIRED', '录分会话已过期，请重新开始录分', { traceId, expireAt });
-    }
-    if (ownerId !== String(OPENID || '')) {
-      return createCodeResult('LOCK_OCCUPIED', '当前有人正在录入比分', {
-        traceId,
-        ownerId,
-        ownerName: ownerName || resolvePlayerName(t, ownerId),
-        remainingMs: Math.max(0, expireAt - nowTs),
-        expireAt
-      });
-    }
-    const lockSessionId = String(lockDoc.lockSessionId || '').trim();
-    // Keep the same legacy-client compatibility as scoreLock heartbeat/release.
-    if (lockSessionId && requestedLockSessionId && lockSessionId !== requestedLockSessionId) {
-      return createCodeResult('LOCK_EXPIRED', '录分会话已过期，请重新开始录分', { traceId });
-    }
-
-    const oldVersion = Number(t.version) || 1;
-    const scorerName = ownerName || fallbackScorerName;
-    const computed = buildSubmitResult(t, roundIndex, matchIndex, a, b, {
-      id: OPENID,
-      name: scorerName,
-      scoredAt: new Date().toISOString()
-    });
-
-    const updateNow = db.serverDate();
-    const updateData = {
-      rounds: computed.rounds,
-      rankings: computed.rankings,
-      status: computed.nextStatus,
-      updatedAt: updateNow,
-      version: _.inc(1)
-    };
-    if (computed.finished && shareActivity.getActivity(t, { allowedStates: [0, 1] })) {
-      Object.assign(updateData, shareActivity.buildStatePatch(2, updateNow));
-      shareFinishTournament = t;
-    }
-
-    const updRes = await db.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({
-      data: common.assertNoReservedRootKeys(updateData, ['_id'], '比分提交写入数据')
-    });
-
-    if (!updRes || !updRes.stats || Number(updRes.stats.updated || 0) <= 0) {
-      const latestRes = await db.collection('tournaments').doc(tournamentId).get();
-      const latestTournament = common.assertTournamentExists(latestRes.data);
-      const latestMatch = findMatch(latestTournament, roundIndex, matchIndex);
-      const latestRetryResult = latestMatch && createDedupedSubmitResult(
-        latestMatch,
+      const match = findMatch(t, roundIndex, matchIndex);
+      if (!match) return createCodeResult('MATCH_NOT_FOUND', '比赛不存在', { traceId });
+      const fallbackScorerName = resolvePlayerName(t, OPENID);
+      const retryResult = createDedupedSubmitResult(
+        match,
         a,
         b,
         OPENID,
-        resolvePlayerName(latestTournament, OPENID),
+        fallbackScorerName,
         clientRequestId,
         traceId
       );
-      if (latestRetryResult) return latestRetryResult;
-      return createCodeResult('VERSION_CONFLICT', '写入冲突，请刷新赛事后重试', { traceId });
-    }
+      if (retryResult) {
+        return retryResult;
+      }
+      if (String(match.status || '') === 'canceled') {
+        return createCodeResult('MATCH_CANCELED', '该场已结束', { traceId });
+      }
 
-    await db.collection('score_locks').where({
-      _id: lockId,
-      ownerId,
-      expireAt,
-      ...(lockSessionId ? { lockSessionId } : {})
-    }).remove().catch(() => {});
-    if (shareFinishTournament) {
+      const lockId = buildLockId(tournamentId, roundIndex, matchIndex);
+      const lockDoc = await readScoreLock(transaction, lockId);
+      const nowTs = Date.now();
+      if (!lockDoc) {
+        return createCodeResult('LOCK_EXPIRED', '录分会话已过期，请重新开始录分', { traceId });
+      }
+      const expireAt = Number(lockDoc.expireAt) || 0;
+      const ownerId = String(lockDoc.ownerId || '').trim();
+      const ownerName = String(lockDoc.ownerName || '').trim();
+      if (expireAt <= nowTs) {
+        return createCodeResult('LOCK_EXPIRED', '录分会话已过期，请重新开始录分', { traceId, expireAt });
+      }
+      if (ownerId !== String(OPENID || '')) {
+        return createCodeResult('LOCK_OCCUPIED', '当前有人正在录入比分', {
+          traceId,
+          ownerId,
+          ownerName: ownerName || resolvePlayerName(t, ownerId),
+          remainingMs: Math.max(0, expireAt - nowTs),
+          expireAt
+        });
+      }
+      const lockSessionId = String(lockDoc.lockSessionId || '').trim();
+      // Keep the same legacy-client compatibility as scoreLock heartbeat/release.
+      if (lockSessionId && requestedLockSessionId && lockSessionId !== requestedLockSessionId) {
+        return createCodeResult('LOCK_EXPIRED', '录分会话已过期，请重新开始录分', { traceId });
+      }
+
+      const oldVersion = Number(t.version) || 1;
+      const scorerName = ownerName || fallbackScorerName;
+      const computed = buildSubmitResult(t, roundIndex, matchIndex, a, b, {
+        id: OPENID,
+        name: scorerName,
+        scoredAt: new Date().toISOString()
+      });
+
+      const updateNow = db.serverDate();
+      const updateData = {
+        rounds: computed.rounds,
+        rankings: computed.rankings,
+        status: computed.nextStatus,
+        updatedAt: updateNow,
+        version: _.inc(1)
+      };
+      if (computed.finished && shareActivity.getActivity(t, { allowedStates: [0, 1] })) {
+        Object.assign(updateData, shareActivity.buildStatePatch(2, updateNow));
+        shareFinishTournament = t;
+      }
+
+      // Both the score and lock must be written in this transaction. Snapshot
+      // reads alone do not conflict with a lock takeover on a different document.
+      const updRes = await transaction.collection('tournaments').doc(tournamentId).update({
+        data: common.assertNoReservedRootKeys(updateData, ['_id'], '比分提交写入数据')
+      });
+
+      if (!updRes || !updRes.stats || Number(updRes.stats.updated || 0) <= 0) {
+        const latestRes = await transaction.collection('tournaments').doc(tournamentId).get();
+        const latestTournament = common.assertTournamentExists(latestRes.data);
+        const latestMatch = findMatch(latestTournament, roundIndex, matchIndex);
+        const latestRetryResult = latestMatch && createDedupedSubmitResult(
+          latestMatch,
+          a,
+          b,
+          OPENID,
+          resolvePlayerName(latestTournament, OPENID),
+          clientRequestId,
+          traceId
+        );
+        if (latestRetryResult) return latestRetryResult;
+        return createCodeResult('VERSION_CONFLICT', '写入冲突，请刷新赛事后重试', { traceId });
+      }
+
+      await transaction.collection('score_locks').doc(lockId).remove();
+      return common.okResult('SCORE_SUBMITTED', '比分已提交', {
+        traceId,
+        state: computed.finished ? 'finished' : 'submitted',
+        finished: computed.finished,
+        scorerName,
+        version: oldVersion + 1,
+        ...(clientRequestId ? { clientRequestId } : {})
+      });
+    });
+    if (result && result.code === 'SCORE_SUBMITTED' && shareFinishTournament) {
       await shareActivity.updateFinishedMessageBestEffort(cloud, shareFinishTournament, console, {
         db,
         source: 'submitScore',
@@ -197,14 +207,7 @@ exports.main = async (event) => {
         traceId
       });
     }
-    return common.okResult('SCORE_SUBMITTED', '比分已提交', {
-      traceId,
-      state: computed.finished ? 'finished' : 'submitted',
-      finished: computed.finished,
-      scorerName,
-      version: oldVersion + 1,
-      ...(clientRequestId ? { clientRequestId } : {})
-    });
+    return result;
   } catch (err) {
     if (common.isCollectionNotExists(err)) {
       throw new Error('数据库集合 tournaments 不存在：请在云开发控制台（数据库 -> 创建集合）创建 tournaments 后再试。');

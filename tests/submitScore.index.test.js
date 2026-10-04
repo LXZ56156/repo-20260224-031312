@@ -97,6 +97,35 @@ function createDbHarness(lockGetImpl, options = {}) {
     serverDate() {
       return { $serverDate: true };
     },
+    async runTransaction(handler) {
+      return handler({
+        collection(name) {
+          const collection = db.collection(name);
+          if (name === 'score_locks') return { doc(id) {
+            const document = collection.doc(id);
+            return { ...document, async remove() {
+              calls.remove += 1;
+              calls.removeQueries.push({ _id: id });
+              if (typeof options.removeImpl === 'function') return options.removeImpl({ _id: id });
+            } };
+          } };
+          if (name !== 'tournaments') return collection;
+          return {
+            doc(id) {
+              const document = collection.doc(id);
+              return {
+                ...document,
+                async update(payload) {
+                  calls.update += 1;
+                  calls.updatePayloads.push(payload);
+                  return { stats: { updated: options.updatedCount === undefined ? 1 : options.updatedCount } };
+                }
+              };
+            }
+          };
+        }
+      });
+    },
     collection(name) {
       if (name === 'tournaments') {
         return {
@@ -156,6 +185,68 @@ function createDbHarness(lockGetImpl, options = {}) {
   return { db, calls };
 }
 
+test('submitScore rejects a lock takeover between the lock read and commit, without storing scores', async () => {
+  let tournament = buildTournament();
+  let lock = { ownerId: 'u_admin', expireAt: Date.now() + 60_000, lockSessionId: 'session-a' };
+  let revision = 0;
+  let takeover = true;
+  let transactionAttempts = 0;
+  const { db } = createDbHarness(async () => {
+    const read = { ...lock };
+    if (takeover) {
+      takeover = false;
+      lock = { ...lock, ownerId: 'u_b', lockSessionId: 'session-b' };
+      revision += 1;
+    }
+    return { data: read };
+  });
+  // The old non-transactional path commits despite a changed lock revision.
+  const originalCollection = db.collection.bind(db);
+  db.collection = (name) => {
+    const collection = originalCollection(name);
+    if (name !== 'tournaments') return collection;
+    return {
+      ...collection,
+      where() {
+        return { async update({ data }) { tournament = { ...tournament, ...data }; return { stats: { updated: 1 } }; } };
+      }
+    };
+  };
+  db.runTransaction = async (handler) => {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      transactionAttempts += 1;
+      const expectedRevision = revision;
+      const snapshot = JSON.parse(JSON.stringify(tournament));
+      let pending = null;
+      let pendingLockRemoval = false;
+      const result = await handler({ collection(name) {
+        if (name === 'score_locks') return { doc(id) {
+          const document = db.collection(name).doc(id);
+          return { ...document, async remove() { pendingLockRemoval = true; } };
+        } };
+        return { doc() { return {
+          async get() { return { data: snapshot }; },
+          async update({ data }) { pending = data; return { stats: { updated: 1 } }; }
+        }; } };
+      } });
+      // CloudBase snapshot isolation checks conflicting writes, not every read.
+      if (pendingLockRemoval && expectedRevision !== revision) continue;
+      if (pending) tournament = { ...tournament, ...pending };
+      if (pendingLockRemoval) lock = null;
+      return result;
+    }
+    throw new Error('transaction conflict');
+  };
+  const { main } = loadSubmitScoreMain(db);
+  const result = await main({ tournamentId: 't_1', roundIndex: 0, matchIndex: 0,
+    scoreA: 21, scoreB: 19, lockSessionId: 'session-a' });
+  assert.equal(result.code, 'LOCK_OCCUPIED');
+  assert.equal(transactionAttempts, 2);
+  assert.equal(tournament.rounds[0].matches[0].status, 'pending');
+  assert.equal(tournament.rounds[0].matches[0].score, undefined);
+  assert.equal(lock.ownerId, 'u_b');
+});
+
 test('submitScore rejects an older session from the same owner without writing or clearing the new lock', async () => {
   const { db, calls } = createDbHarness(async () => ({ data: {
     ownerId: 'u_admin', expireAt: Date.now() + 60_000, lockSessionId: 'new-session'
@@ -168,7 +259,37 @@ test('submitScore rejects an older session from the same owner without writing o
   assert.equal(calls.remove, 0);
 });
 
-test('submitScore clears only the read lock session and accepts legacy clients', async () => {
+test('submitScore does not share an aborted callback when its replay observes an already submitted score', async () => {
+  const openapiCalls = [];
+  const { db, calls } = createDbHarness(async () => ({ data: {
+    ownerId: 'u_admin', expireAt: Date.now() + 60_000
+  } }), { tournamentFactory(getCount) {
+    const tournament = { ...buildTournament(), shareActivityId: 'active-share',
+      shareActivityExpireAtMs: Date.now() + 120_000, shareActivityState: 1 };
+    if (getCount > 1) tournament.rounds[0].matches[0] = {
+      ...tournament.rounds[0].matches[0], status: 'finished',
+      score: { teamA: 21, teamB: 19 }, scorerId: 'u_admin'
+    };
+    return tournament;
+  } });
+  const runTransaction = db.runTransaction.bind(db);
+  db.runTransaction = async (handler) => {
+    await runTransaction(handler); // Discard the conflicted first attempt.
+    return runTransaction(handler);
+  };
+  const { main } = loadSubmitScoreMain(db, { openapi: {
+    async setUpdatableMsg(payload) { openapiCalls.push(payload); }
+  } });
+  const result = await main({ tournamentId: 't_1', roundIndex: 0, matchIndex: 0,
+    scoreA: 21, scoreB: 19, clientRequestId: 'replayed-submit' });
+  assert.equal(result.code, 'SCORE_SUBMIT_DEDUPED');
+  assert.equal(calls.lockGet, 1);
+  assert.equal(calls.update, 1);
+  assert.equal(calls.remove, 1); // Only the first, aborted callback attempted it.
+  assert.deepEqual(openapiCalls, []);
+});
+
+test('submitScore atomically consumes the lock and accepts legacy clients', async () => {
   for (const requestedSession of ['current-session', '']) {
     const expireAt = Date.now() + 60_000;
     const { db, calls } = createDbHarness(async () => ({ data: {
@@ -177,7 +298,7 @@ test('submitScore clears only the read lock session and accepts legacy clients',
     const { main } = loadSubmitScoreMain(db);
     const result = await main({ tournamentId: 't_1', roundIndex: 0, matchIndex: 0, scoreA: 21, scoreB: 19, lockSessionId: requestedSession });
     assert.equal(result.ok, true);
-    assert.deepEqual(calls.removeQueries, [{ _id: 't_1_0_0', ownerId: 'u_admin', expireAt, lockSessionId: 'current-session' }]);
+    assert.deepEqual(calls.removeQueries, [{ _id: 't_1_0_0' }]);
   }
 });
 
@@ -471,9 +592,7 @@ test('submitScore lets participants overwrite a finished score when they hold th
   assert.equal(calls.update, 1);
   assert.equal(calls.remove, 1);
   assert.deepEqual(calls.removeQueries, [{
-    _id: 't_1_0_0',
-    ownerId: 'u_b',
-    expireAt
+    _id: 't_1_0_0'
   }]);
   const writtenMatch = calls.updatePayloads[0].data.rounds[0].matches[0];
   assert.deepEqual(writtenMatch.score, { teamA: 18, teamB: 21 });
