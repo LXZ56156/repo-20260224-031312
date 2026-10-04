@@ -1,7 +1,7 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 
 $CliPath = 'D:\Soft\微信web开发者工具\cli.bat'
-$PreviewDir = 'D:\projects\badminton-miniapp-preview'
+$PreviewDir = 'D:\projects\badminton-miniapp\preview'
 $CliPort = 39421
 $AutoPort = 39420
 $OpenTimeoutSeconds = 45

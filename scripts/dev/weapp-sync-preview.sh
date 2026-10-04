@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SOURCE_DIR="${SOURCE_DIR:-/home/lizixuan/projects/badminton-miniapp}"
-PREVIEW_DIR="${PREVIEW_DIR:-/mnt/d/projects/badminton-miniapp-preview}"
+SOURCE_DIR="${SOURCE_DIR:-/mnt/d/projects/badminton-miniapp/main}"
+PREVIEW_DIR="${PREVIEW_DIR:-/mnt/d/projects/badminton-miniapp/preview}"
 LOG_DIR="${LOG_DIR:-${SOURCE_DIR}/tmp/weapp-preview}"
 PID_FILE="${PID_FILE:-${LOG_DIR}/weapp-sync-preview.pid}"
 EVENT_STAMP_FILE="${EVENT_STAMP_FILE:-${LOG_DIR}/weapp-sync-preview.event}"

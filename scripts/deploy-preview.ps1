@@ -1,17 +1,17 @@
-# PowerShell 部署脚本 — 固定上传 Windows 镜像项目
+﻿# PowerShell 上传入口 — 默认使用脚本所在 Git 源码工作区
 # 用法: .\scripts\deploy-preview.ps1
 
 $ErrorActionPreference = "Stop"
 
 # 环境变量（按需修改）
 if (-not $env:MP_PROJECT_PATH) {
-    $env:MP_PROJECT_PATH = "D:\projects\badminton-miniapp-preview"
+    $env:MP_PROJECT_PATH = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 }
 if (-not $env:MP_ROBOT) {
     $env:MP_ROBOT = "1"
 }
 if (-not $env:MP_DESC) {
-    $env:MP_DESC = "Windows 镜像项目自动上传"
+    $env:MP_DESC = "Git 源码工作区自动上传"
 }
 
 Write-Host "=== 小程序 CI 上传 ===" -ForegroundColor Cyan

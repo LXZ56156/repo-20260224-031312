@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_DIR="${PROJECT_DIR:-/home/lizixuan/projects/badminton-miniapp}"
+PROJECT_DIR="${PROJECT_DIR:-/mnt/d/projects/badminton-miniapp/main}"
 SOURCE_DIR="${SOURCE_DIR:-$PROJECT_DIR}"
-PREVIEW_DIR="${PREVIEW_DIR:-/mnt/d/projects/badminton-miniapp-preview}"
+PREVIEW_DIR="${PREVIEW_DIR:-/mnt/d/projects/badminton-miniapp/preview}"
 LOG_DIR="${LOG_DIR:-${PROJECT_DIR}/tmp/weapp-preview}"
 SYNC_LOG="${SYNC_LOG:-${LOG_DIR}/weapp-sync-preview.log}"
 PID_FILE="${PID_FILE:-${LOG_DIR}/weapp-sync-preview.pid}"

@@ -17,4 +17,4 @@
 
 ## 下一步与证据
 
-第1/5/7后端已交付，50bd8c5已推送。第8后端152项及截止组合验证完成，环境失败已补验。第9编码已验，检查假通过正补修；第10性能已验，第11待新基线。监控继续；网页登录/兑换码、窗口恢复、真实身份及单打场景待答。UI按 [日常循环](../tools/agent-development-workflow.md) 使用ui:iterate，失败按 [手册](../tools/weapp-ui-troubleshooting.md) 处理，详情更新同一正文。
+第1/5/7后端及截止修复已交付，第8后端a85eb14已推送。第9路径/编码与检查假通过修复已验；第10性能已验，第11固定新HEAD准备后端交付、UI待图。监控继续；网页登录/兑换码、窗口恢复、真实身份及单打场景待答。UI按 [日常循环](../tools/agent-development-workflow.md) 使用ui:iterate，失败按 [手册](../tools/weapp-ui-troubleshooting.md) 处理，详情更新同一正文。

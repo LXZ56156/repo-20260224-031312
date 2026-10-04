@@ -14,7 +14,11 @@ for fn_dir in $(list_cloudfunction_dirs); do
   mkdir -p "$fn_dir/lib"
   for template_file in "${template_files[@]}"; do
     target_name="$(template_target_basename "$template_file")"
-    cp "$template_file" "$fn_dir/lib/${target_name}.js"
+    target_file="$fn_dir/lib/${target_name}.js"
+    # Avoid reopening unchanged files held briefly by Windows scanners/readers.
+    if ! cmp -s "$template_file" "$target_file"; then
+      cp "$template_file" "$target_file"
+    fi
   done
 done
 
