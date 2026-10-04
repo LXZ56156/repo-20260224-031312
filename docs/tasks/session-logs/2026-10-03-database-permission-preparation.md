@@ -1,6 +1,6 @@
 # 2026-10-03 数据库权限核验与隔离测试准备
 
-当前结论：已只读保存13集合权限和索引，核查当前客户端数据库入口；没有真实安全规则引擎测试，没有生产规则更改。`tournaments`的登录可读范围覆盖整文档，包括内部身份字段；已有存量无`_openid`不能证明客户端新增也被拒绝。不能据此宣称发生越权事故。
+当前结论：备份时13集合权限/索引保留，本轮实际16既有集合规则已只读保存。真实DevTools身份已通过；获准专用临时集合的候选规则下2读成功、8写权限拒绝、四合成文档不变，集合已清理。没有更改现有生产集合规则，原函数兼容/角色/事务未验，未做规则引擎内部追踪。`tournaments`的登录可读仍覆盖整文档，包括内部身份字段；存量无`_openid`不能证明客户端新增也被拒绝，不能据此宣称越权事故。
 
 ## 证据与现行合同
 
@@ -114,3 +114,21 @@ Edge旧登录态失效但CLI认证仍有效，用户重新登录后已看到原�
 最终六直接安全测试、实际生成、最终生成页面启动一测试，三独立子进程均数值exit0，测试分别6/6和1/1、0失败/跳过；回执及stdout/stderr在 `final-direct-safety-tests.*`、`final-local-generation.*`、`final-generated-startup.*`。主控核回执流SHA、最终输入/十产物SHA及旧原件保全，不复跑既有全量。最终driver SHA256为 `0065a1d551fd275415044c2af780f345562a9d38da4672e1c3488d092db03a38`，与生成项目driver一致。Luna冷报告未见未关闭P0/P1/P2；报告的最终产物9文件为计数笔误，实际10，独立勘误保留原报告。
 
 以上仅证明工具安全和候选准备。真实CloudBase规则、四合成文档、十项客户端操作和清理均**未执行**。原生SDK的纯数值错误映射尚缺可靠依据，不能把任意拒绝当规则通过；symbolic权限响应也需结合规则读回与后端前后全量快照核来源，驱动的engineValidationPassed始终false。不改原13集合/其规则、生产函数或业务数据，不创建环境/消耗免费试用/付款/上传。下一步仅请求现有环境中新建该临时集合、配置登录可读/客户端禁止写、预置四合成文档、执行十类操作及证据保存后清理该新集合的具体授权。
+
+## 10-05获准专用临时集合：真实客户端候选行为与清理
+
+用户回复“允许”，范围为现有环境专用 `codex_acl_verify_20261005`：新建、仅该集合规则设置、四合成seed、十客户端操作及证据保存后的本次集合删除。不扩大为现有业务集合/规则更改、生产函数部署、真实业务写入、新环境/试用/付款或客户端上传。实际master/HEAD `be5bea5`，既有dirty/private/partial保留。
+
+环境列表确认目标；结构查询0偏移/limit100/Total16/16条且目标名称不存在后才新建。当前16既有集合与备份时13的不同如实记录，不能沿用旧数：新增出现在当前清单的relation_data_depart/sys_department/sys_user仅只读保存规则，不推断来源或删除。CLI分别保存16个原规则；只对新集合调用ModifySafeRule，随后DescribeSafeRule读回CUSTOM及精确JSON `{"read":"auth != null","write":false}`。管理端一次预置fixture_read/set/update/remove四文档，各只有_id/marker/value。全量读取Total4/4条唯一ID、完整基线通过。
+
+首次打开页面报“Failed to connect to WechatIDE”，当时尚无客户端ACL调用；用户继续后查明安装路径内DevTools进程已退出，使用现有安装Hidden启动恢复，没有auth或登录。注册MCP一度不在工具列表，未改配置或创建替代桥；工具恢复后官方安装诊断compatible=true/2.02.2609292，已读内置wechatide-skill0.3.11，再明确传版本得到equal/loginExpired=false。旧未传版本的skip_check仅历史状态，不能当本轮就绪。安装诊断有DEP0190警告，未称工具全无警告。官方打开项目/编译到pages/identity/index成功，初态busy=false/result=null，真实runtime为SDK3.17.2/devtools。
+
+上海10-05 **04:08:01**仅一次callMethod runACL空args；方法返回后先读到busy=true，再仅等3秒读取最终状态，不重复runACL或制造样本。真实login成功/身份非空/AppID匹配；get/query两读成功，add省略/自己/合成他人_openid/合成他人creatorId、set新/旧、update/remove八写全部异步返回symbolic DATABASE_PERMISSION_DENIED，安全数字码-502003。完整10case、0未知/SDK本地拒绝/意外写成功；数字本身没有作为判据。驱动保守保留engineOriginVerified和engineValidationPassed=false，未采集内核追踪，不把symbolic标签单独升级为内部引擎来源证明。
+
+实际回执 `actual-client-receipt.json`，后台 `documents-before/after.private.json` 完整四文档逐字段相等，排序canonical SHA256 `5f9839898a8b3c13d668a6560f3d9548d1444731161ac9e50b8f16648ceca5fc`；原16规则前后除RequestId逐字段相等，新集合规则再读仍相同。原/最终工具及十产物SHA保持。469×1013诊断实图actual-acl.png主控亲看，仅脱敏结果；诊断JSON部分超出屏幕，完整判据取页面data回执，不称正式产品UI验收。一次后台after查询因恢复后的内存AppID缺失被MCP参数校验拒绝，没有发云查询；重新从本地配置内部读取后取得完整快照。一次证据路径的内存值缺失将新回执落到仓库外同项目undefined目录，核内容/边界后无覆盖移动到正确ignored根；旧文件及用户资料未动。
+
+保存before-cleanup-acceptance及完整原始回执后，仅请求删除本次创建集合，pending任务原件保存且未主动轮询；先结构查询仍17含临时，随后处理文档时再次查完整列表，上海10-05 **04:14:40**核得16条/Total16、原16名称完全相同、临时不存在，cleanup-observed通过。原16规则早已前后核相同；不把数据库记录数自然变化当作本任务写入证据。`tmp/wx-acl-live-20261005-0347/`独占根包含授权/前置、CLI逐进程原始流与SHA、身份脱敏十case、完整快照、故障/恢复、图、清理和manifest；不覆盖旧候选/partial，不重复六+一工具测试或应用全量。
+
+有限结论：**一个真实微信登录客户端在专用临时集合上的候选规则读写行为符合预期**。身份传递和候选行为取得实际证据；现有tournaments仍为原read登录可读/write基于doc._openid，未应用write:false。合法云函数在候选规则下的兼容、无身份读取、单账号各角色授权、锁接管/事务冲突与回滚/幂等、iPhone本人/多账号/双机均未闭合。本地准备下一独立临时命名范围及原函数同源候选，具体部署/写入先准备后按对应范围授权，不恢复免费环境领码。
+
+6 Luna max另行只读复核实际回执、前后四文档与16组规则，报告在 `tmp/wx-acl-actual-cold-20261005/assessment.md/json`；确认10类记录与前后相等，仅作限定观察结论，未确认内部引擎来源，不升级为原生产ACL、角色或事务通过。该复核无云/GUI/测试/原业务数据读取，主控保存清理回执/完整列表证据，不重复全量。
