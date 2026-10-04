@@ -553,3 +553,150 @@ test('updateSettings rejects target_wins when derived scheduled matches exceed m
   assert.equal(result.message, '结束条件会产生 399 场，不能超过最大可选 210 场');
   assert.equal(updateCalled, false);
 });
+
+for (const apiOutcome of ['success', 'failure']) {
+  test('updateSettings returns the committed result when ' + apiOutcome + ' share diagnostics never settle', async () => {
+    const tournament = {
+      ...buildTournament(),
+      playerLimit: 8,
+      shareActivityId: 'act_optional',
+      shareActivityExpireAtMs: Date.now() + 120_000,
+      shareActivityState: 0
+    };
+    let writtenData = null;
+    let transactionCommitted = false;
+    let apiCalls = 0;
+    let diagnosticCalls = 0;
+    let releaseDiagnostic;
+    const diagnosticPending = new Promise((resolve) => { releaseDiagnostic = resolve; });
+    const db = {
+      command: { inc: (value) => ({ $inc: value }), remove: () => ({ $remove: true }) },
+      serverDate: () => ({ $serverDate: true }),
+      collection(collectionName) {
+        assert.equal(collectionName, 'tournaments');
+        return { doc(id) {
+          assert.equal(id, 't_1');
+          return { update({ data }) {
+            assert.equal(transactionCommitted, true);
+            assert.ok(writtenData);
+            if (apiOutcome === 'success') assert.deepEqual(data.shareActivityLastError, { $remove: true });
+            else assert.equal(data.shareActivityLastError, 'optional API failed');
+            diagnosticCalls += 1;
+            return diagnosticPending;
+          } };
+        } };
+      },
+      async runTransaction(handler) {
+        const result = await handler({ collection(collectionName) {
+          assert.equal(collectionName, 'tournaments');
+          return {
+            doc: () => ({ get: async () => ({ data: tournament }) }),
+            where(query) {
+              assert.deepEqual(query, { _id: 't_1', version: 4 });
+              return { update: async ({ data }) => {
+                writtenData = data;
+                return { stats: { updated: 1 } };
+              } };
+            }
+          };
+        } });
+        transactionCommitted = true;
+        return result;
+      }
+    };
+    const { main } = loadMain(db, { openapi: { async setUpdatableMsg() {
+      assert.equal(transactionCommitted, true);
+      apiCalls += 1;
+      if (apiOutcome === 'failure') throw new Error('optional API failed');
+    } } });
+    const pending = main({ tournamentId: 't_1', name: '新赛名', totalMatches: 3 });
+    let guard;
+    try {
+      const result = await Promise.race([pending, new Promise((resolve) => {
+        guard = setTimeout(() => resolve('handler still pending after committed write'), 1400);
+      })]);
+      assert.equal(transactionCommitted, true);
+      assert.ok(writtenData);
+      assert.deepEqual(writtenData.version, { $inc: 1 });
+      assert.equal(apiCalls, 1);
+      assert.equal(diagnosticCalls, 1);
+      assert.notEqual(result, 'handler still pending after committed write');
+      assert.equal(result.ok, true);
+      assert.equal(result.code, 'SETTINGS_UPDATED');
+      assert.equal(result.state, 'updated');
+      assert.equal(writtenData.name, '新赛名');
+      assert.equal(writtenData.totalMatches, 3);
+      assert.equal(writtenData.rules.endCondition.target, 3);
+      assert.equal(result.version, 5);
+    } finally {
+      clearTimeout(guard);
+      releaseDiagnostic();
+      await pending;
+    }
+  });
+}
+
+for (const gate of ['budget is exhausted', 'replayed request', 'draft-only refusal']) {
+  test('updateSettings skips optional share when ' + gate, async () => {
+    const originalNow = Date.now;
+    let now = 1_800_000_000_000;
+    Date.now = () => now;
+    let updateCount = 0;
+    let apiCalls = 0;
+    let diagnosticCalls = 0;
+    let transactionCommitted = false;
+    const tournament = {
+      ...buildTournament(),
+      playerLimit: 8,
+      shareActivityId: 'act_gate',
+      shareActivityExpireAtMs: now + 120_000,
+      shareActivityState: 0
+    };
+    if (gate === 'replayed request') {
+      tournament.lastClientRequestId = 'req_replay';
+    }
+    if (gate === 'draft-only refusal') tournament.status = 'finished';
+    const db = {
+      command: { inc: (value) => ({ $inc: value }), remove: () => ({ $remove: true }) },
+      serverDate: () => ({ $serverDate: true }),
+      collection() { return { doc: () => ({ update: async () => { diagnosticCalls += 1; } }) }; },
+      async runTransaction(handler) {
+        const result = await handler({ collection(collectionName) {
+          assert.equal(collectionName, 'tournaments');
+          return {
+            doc: () => ({ get: async () => ({ data: tournament }) }),
+            where(query) {
+              assert.equal(gate, 'budget is exhausted');
+              assert.deepEqual(query, { _id: 't_1', version: 4 });
+              return { update: async ({ data }) => {
+                assert.deepEqual(data.version, { $inc: 1 });
+                updateCount += 1;
+                return { stats: { updated: 1 } };
+              } };
+            }
+          };
+        } });
+        if (gate === 'budget is exhausted') now += 2600;
+        transactionCommitted = true;
+        return result;
+      }
+    };
+    try {
+      const { main } = loadMain(db, { openapi: { async setUpdatableMsg() { apiCalls += 1; } } });
+      const result = await main({ tournamentId: 't_1', totalMatches: 3, ...(gate === 'replayed request' ? { clientRequestId: 'req_replay' } : {}) });
+      assert.equal(transactionCommitted, gate !== 'draft-only refusal');
+      assert.equal(apiCalls, 0);
+      assert.equal(diagnosticCalls, 0);
+      if (gate === 'budget is exhausted') {
+        assert.equal(updateCount, 1);
+        assert.equal(result.ok, true);
+        assert.equal(result.code, 'SETTINGS_UPDATED');
+        assert.equal(result.state, 'updated');
+      } else {
+        assert.equal(updateCount, 0);
+        assert.equal(result.ok, gate === 'replayed request');
+        assert.equal(result.state, gate === 'replayed request' ? 'deduped' : 'forbidden');
+      }
+    } finally { Date.now = originalNow; }
+  });
+}

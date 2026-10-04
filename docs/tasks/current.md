@@ -11,10 +11,10 @@
 
 ## 工作区与分层基线
 
-- 实际workdir `D:\projects\badminton-miniapp\main`，master/upstream origin/master；恢复前HEAD及远端均`4664c09`，既有脏树保留。已验证范围立即commit/push，审查staged并核远端；未完成业务/私有配置不混入。跨设备拉取不含未提交实现。
+- 实际workdir `D:\projects\badminton-miniapp\main`，master/upstream origin/master；恢复前HEAD及远端均`4664c09`。保留脏树；已验范围立即commit/push、审staged并核远端，未完成业务/私有配置不混入。
 - 线上客户端最近记录仍6.1.2-702625a，2026-09-14正式发布，[回执](session-logs/2026-09-23-online-release-confirmed.md)；Git15页/26函数（登记26）、工作树16页/26函数、线上受管23分别核验。旧startTournament部署授权已用完。
 - 付款、生产部署、客户端上传/发布、真实业务写入须具体证据后逐项授权；PR/preview/QR另计。commit/push遵循 [现行规则](../../AGENTS.md#交付与文档)。简单/只读用6 Luna max，实现用6.1 Sol high。
 
 ## 下一步与证据
 
-第1/5/7/8后端、第9工具及第10内部性能44f97ae已交付。第11后端30项通过、准确15文件暂存；前端53项源码通过、待新图。新增成员/移除/设置的可选分享截止正红绿修复。监控继续；网页登录/兑换码、窗口恢复、身份及单打场景待答。UI按 [日常循环](../tools/agent-development-workflow.md) 使用ui:iterate，失败按 [手册](../tools/weapp-ui-troubleshooting.md) 处理，详情更新同一正文。
+第1/5/7/8后端、第9工具、第10内部性能及第11后端fa57b70已交付。三个可选分享截止修复87项通过，准确六文件待提交；delete诊断不可达已排除。最终HEAD云包差异核对与新完整包准备并行进行，保留旧包；第11前端53项源码通过、待新图。网页登录/兑换码、窗口恢复、身份及单打场景待答。UI按 [日常循环](../tools/agent-development-workflow.md) 使用ui:iterate，失败按 [手册](../tools/weapp-ui-troubleshooting.md) 处理。

@@ -8,6 +8,9 @@ const permission = require('./lib/permission');
 const modeHelper = require('./lib/mode');
 const shareActivity = require('./lib/share-activity');
 
+// Leave 500 ms to return the committed result inside the 3-second platform timeout.
+const REQUEST_BUDGET_MS = 2500;
+
 function normalizeGender(gender) {
   const v = String(gender || '').trim().toLowerCase();
   if (v === 'male' || v === 'female') return v;
@@ -96,6 +99,7 @@ function buildStoredImportCounts(result = {}) {
 }
 
 exports.main = async (event) => {
+  const deadlineAtMs = Date.now() + REQUEST_BUDGET_MS;
   const { OPENID } = cloud.getWXContext();
   const traceId = String((event && event.__traceId) || '').trim();
   const clientRequestId = String((event && event.clientRequestId) || '').trim();
@@ -277,6 +281,7 @@ exports.main = async (event) => {
       await shareActivity.updateDraftMessageBestEffort(cloud, shareUpdateTournament, modeHelper, console, {
         db,
         source: 'addPlayers',
+        deadlineAtMs,
         tournamentId,
         traceId
       });

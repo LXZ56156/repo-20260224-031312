@@ -8,7 +8,11 @@ const modeHelper = require('./lib/mode');
 const playerUtils = require('./lib/player');
 const shareActivity = require('./lib/share-activity');
 
+// Leave 500 ms to return the committed result inside the 3-second platform timeout.
+const REQUEST_BUDGET_MS = 2500;
+
 exports.main = async (event) => {
+  const deadlineAtMs = Date.now() + REQUEST_BUDGET_MS;
   const { OPENID } = cloud.getWXContext();
   const tournamentId = String((event && event.tournamentId) || '').trim();
   const playerId = String((event && event.playerId) || '').trim();
@@ -133,6 +137,7 @@ exports.main = async (event) => {
       await shareActivity.updateDraftMessageBestEffort(cloud, shareUpdateTournament, modeHelper, console, {
         db,
         source: 'removePlayer',
+        deadlineAtMs,
         tournamentId,
         traceId
       });

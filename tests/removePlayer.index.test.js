@@ -529,3 +529,149 @@ test('removePlayer keeps rejoined players when a completed clientRequestId is re
   assert.equal(updateCount, 1);
   assert.equal(tournament.players.some((player) => player.playerId === 'p_late'), true);
 });
+
+for (const apiOutcome of ['success', 'failure']) {
+  test('removePlayer returns the committed result when ' + apiOutcome + ' share diagnostics never settle', async () => {
+    const tournament = {
+      ...buildTournament(),
+      playerLimit: 8,
+      shareActivityId: 'act_optional',
+      shareActivityExpireAtMs: Date.now() + 120_000,
+      shareActivityState: 0
+    };
+    let writtenData = null;
+    let transactionCommitted = false;
+    let apiCalls = 0;
+    let diagnosticCalls = 0;
+    let releaseDiagnostic;
+    const diagnosticPending = new Promise((resolve) => { releaseDiagnostic = resolve; });
+    const db = {
+      command: { inc: (value) => ({ $inc: value }), remove: () => ({ $remove: true }) },
+      serverDate: () => ({ $serverDate: true }),
+      collection(collectionName) {
+        assert.equal(collectionName, 'tournaments');
+        return { doc(id) {
+          assert.equal(id, 't_1');
+          return { update({ data }) {
+            assert.equal(transactionCommitted, true);
+            assert.ok(writtenData);
+            if (apiOutcome === 'success') assert.deepEqual(data.shareActivityLastError, { $remove: true });
+            else assert.equal(data.shareActivityLastError, 'optional API failed');
+            diagnosticCalls += 1;
+            return diagnosticPending;
+          } };
+        } };
+      },
+      async runTransaction(handler) {
+        const result = await handler({ collection(collectionName) {
+          assert.equal(collectionName, 'tournaments');
+          return {
+            doc: () => ({ get: async () => ({ data: tournament }) }),
+            where(query) {
+              assert.deepEqual(query, { _id: 't_1', version: 3 });
+              return { update: async ({ data }) => {
+                writtenData = data;
+                return { stats: { updated: 1 } };
+              } };
+            }
+          };
+        } });
+        transactionCommitted = true;
+        return result;
+      }
+    };
+    const { main } = loadMain(db, { openapi: { async setUpdatableMsg() {
+      assert.equal(transactionCommitted, true);
+      apiCalls += 1;
+      if (apiOutcome === 'failure') throw new Error('optional API failed');
+    } } });
+    const pending = main({ tournamentId: 't_1', playerId: 'p_remove' });
+    let guard;
+    try {
+      const result = await Promise.race([pending, new Promise((resolve) => {
+        guard = setTimeout(() => resolve('handler still pending after committed write'), 1400);
+      })]);
+      assert.equal(transactionCommitted, true);
+      assert.ok(writtenData);
+      assert.deepEqual(writtenData.version, { $inc: 1 });
+      assert.equal(apiCalls, 1);
+      assert.equal(diagnosticCalls, 1);
+      assert.notEqual(result, 'handler still pending after committed write');
+      assert.equal(result.ok, true);
+      assert.equal(result.code, 'PLAYER_REMOVED');
+      assert.equal(result.state, 'removed');
+      assert.equal(writtenData.players.length, 3);
+      assert.equal(writtenData.players.some((player) => player.id === 'p_remove'), false);
+      assert.equal(writtenData.refereeId, '');
+    } finally {
+      clearTimeout(guard);
+      releaseDiagnostic();
+      await pending;
+    }
+  });
+}
+
+for (const gate of ['budget is exhausted', 'replayed request', 'draft-only refusal']) {
+  test('removePlayer skips optional share when ' + gate, async () => {
+    const originalNow = Date.now;
+    let now = 1_800_000_000_000;
+    Date.now = () => now;
+    let updateCount = 0;
+    let apiCalls = 0;
+    let diagnosticCalls = 0;
+    let transactionCommitted = false;
+    const tournament = {
+      ...buildTournament(),
+      playerLimit: 8,
+      shareActivityId: 'act_gate',
+      shareActivityExpireAtMs: now + 120_000,
+      shareActivityState: 0
+    };
+    if (gate === 'replayed request') {
+      tournament.players = tournament.players.filter((player) => player.id !== 'p_remove');
+    }
+    if (gate === 'draft-only refusal') tournament.status = 'finished';
+    const db = {
+      command: { inc: (value) => ({ $inc: value }), remove: () => ({ $remove: true }) },
+      serverDate: () => ({ $serverDate: true }),
+      collection() { return { doc: () => ({ update: async () => { diagnosticCalls += 1; } }) }; },
+      async runTransaction(handler) {
+        const result = await handler({ collection(collectionName) {
+          assert.equal(collectionName, 'tournaments');
+          return {
+            doc: () => ({ get: async () => ({ data: tournament }) }),
+            where(query) {
+              assert.equal(gate, 'budget is exhausted');
+              assert.deepEqual(query, { _id: 't_1', version: 3 });
+              return { update: async ({ data }) => {
+                assert.deepEqual(data.version, { $inc: 1 });
+                updateCount += 1;
+                return { stats: { updated: 1 } };
+              } };
+            }
+          };
+        } });
+        if (gate === 'budget is exhausted') now += 2600;
+        transactionCommitted = true;
+        return result;
+      }
+    };
+    try {
+      const { main } = loadMain(db, { openapi: { async setUpdatableMsg() { apiCalls += 1; } } });
+      const result = await main({ tournamentId: 't_1', playerId: 'p_remove' });
+      assert.equal(transactionCommitted, gate !== 'draft-only refusal');
+      assert.equal(apiCalls, 0);
+      assert.equal(diagnosticCalls, 0);
+      if (gate === 'budget is exhausted') {
+        assert.equal(updateCount, 1);
+        assert.equal(result.ok, true);
+        assert.equal(result.code, 'PLAYER_REMOVED');
+        assert.equal(result.state, 'removed');
+      } else {
+        assert.equal(updateCount, 0);
+        assert.equal(result.ok, gate === 'replayed request');
+        assert.equal(result.state, gate === 'replayed request' ? 'deduped' : 'forbidden');
+      }
+    } finally { Date.now = originalNow; }
+  });
+}
