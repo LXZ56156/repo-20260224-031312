@@ -139,6 +139,7 @@ function createDbHarness(lockGetImpl, options = {}) {
             async update(payload) {
               calls.diagnosticUpdate += 1;
               calls.diagnosticUpdatePayloads.push(payload);
+              if (typeof options.diagnosticUpdateImpl === 'function') return options.diagnosticUpdateImpl(payload);
               return { stats: { updated: 1 } };
             }
           };
@@ -736,4 +737,90 @@ test('submitScore keeps canceled matches non-editable', async () => {
   assert.equal(calls.lockGet, 0);
   assert.equal(calls.update, 0);
   assert.equal(calls.remove, 0);
+});
+
+for (const apiResult of ['success', 'failure']) {
+  test(`submitScore deadline returns committed success when ${apiResult} share diagnostics never settle`, async () => {
+    const previousNow = Date.now;
+    const enteredAt = 1_800_000_000_000;
+    let now = enteredAt;
+    Date.now = () => now;
+    let releaseDiagnostic;
+    let diagnosticStarted;
+    let timer;
+    const diagnosticStart = new Promise((resolve) => { diagnosticStarted = resolve; });
+    const diagnosticWait = new Promise((resolve) => { releaseDiagnostic = resolve; });
+    const { db, calls } = createDbHarness(async () => ({ data: {
+      ownerId: 'u_admin', expireAt: enteredAt + 60_000
+    } }), {
+      tournamentFactory() { return { ...buildTournament(), shareActivityId: 'deadline-share',
+        shareActivityExpireAtMs: enteredAt + 120_000, shareActivityState: 1 }; },
+      diagnosticUpdateImpl() { diagnosticStarted(); return diagnosticWait; }
+    });
+    const transact = db.runTransaction.bind(db);
+    db.runTransaction = async (callback) => { const result = await transact(callback); now = enteredAt + 2490; return result; };
+    const { main } = loadSubmitScoreMain(db, { openapi: { async setUpdatableMsg() {
+      if (apiResult === 'failure') throw new Error('share API rejected');
+      return { errCode: 0 };
+    } } });
+    const pending = main({ tournamentId: 't_1', roundIndex: 0, matchIndex: 0, scoreA: 21, scoreB: 19 });
+    try {
+      await Promise.race([diagnosticStart, pending.then(() => assert.fail('eligible diagnostic write must be attempted'))]);
+      assert.equal(calls.update, 1);
+      assert.equal(calls.remove, 1);
+      assert.equal(calls.updatePayloads[0].data.rounds[0].matches[0].status, 'finished');
+      const result = await Promise.race([pending, new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('committed score still waits for optional diagnostic write')), 250);
+      })]);
+      assert.equal(result.code, 'SCORE_SUBMITTED');
+      assert.equal(result.ok, true);
+      assert.equal(result.version, 2);
+      assert.equal(calls.diagnosticUpdate, 1);
+    } finally {
+      clearTimeout(timer);
+      releaseDiagnostic();
+      await pending;
+      Date.now = previousNow;
+    }
+  });
+}
+
+test('submitScore deadline exhausted after transaction keeps score success without starting optional updates', async () => {
+  const previousNow = Date.now;
+  const enteredAt = 1_800_000_000_000;
+  let now = enteredAt;
+  let apiCalls = 0;
+  Date.now = () => now;
+  try {
+    const { db, calls } = createDbHarness(async () => ({ data: { ownerId: 'u_admin', expireAt: enteredAt + 60_000 } }), {
+      tournamentFactory() { return { ...buildTournament(), shareActivityId: 'deadline-share',
+        shareActivityExpireAtMs: enteredAt + 120_000, shareActivityState: 1 }; }
+    });
+    const transact = db.runTransaction.bind(db);
+    db.runTransaction = async (callback) => { const result = await transact(callback); now = enteredAt + 2500; return result; };
+    const { main } = loadSubmitScoreMain(db, { openapi: { async setUpdatableMsg() { apiCalls += 1; return { errCode: 0 }; } } });
+    const result = await main({ tournamentId: 't_1', roundIndex: 0, matchIndex: 0, scoreA: 21, scoreB: 19 });
+    assert.equal(result.code, 'SCORE_SUBMITTED');
+    assert.equal(calls.update, 1);
+    assert.equal(calls.remove, 1);
+    assert.equal(apiCalls, 0);
+    assert.equal(calls.diagnosticUpdate, 0);
+  } finally { Date.now = previousNow; }
+});
+
+test('submitScore deadline never starts optional updates for an uncommitted permission failure', async () => {
+  let apiCalls = 0;
+  const { db, calls } = createDbHarness(async () => assert.fail('permission rejection must not read locks'), {
+    tournamentFactory() { return { ...buildTournament(), shareActivityId: 'deadline-share',
+      shareActivityExpireAtMs: Date.now() + 120_000, shareActivityState: 1 }; }
+  });
+  const { main } = loadSubmitScoreMain(db, { openid: 'outsider', openapi: {
+    async setUpdatableMsg() { apiCalls += 1; return { errCode: 0 }; }
+  } });
+  const result = await main({ tournamentId: 't_1', roundIndex: 0, matchIndex: 0, scoreA: 21, scoreB: 19 });
+  assert.equal(result.code, 'PERMISSION_DENIED');
+  assert.equal(calls.update, 0);
+  assert.equal(calls.remove, 0);
+  assert.equal(apiCalls, 0);
+  assert.equal(calls.diagnosticUpdate, 0);
 });

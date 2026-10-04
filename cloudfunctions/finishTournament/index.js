@@ -5,8 +5,11 @@ const common = require('./lib/common');
 const permission = require('./lib/permission');
 const shareActivity = require('./lib/share-activity');
 const { buildManualFinish } = require('./logic');
+// This deadline bounds only the optional post-commit share update.
+const REQUEST_BUDGET_MS = 2500;
 
 exports.main = async (event) => {
+  const deadlineAtMs = Date.now() + REQUEST_BUDGET_MS;
   const { OPENID } = cloud.getWXContext();
   const tournamentId = String(event && event.tournamentId || '').trim();
   const clientRequestId = String(event && event.clientRequestId || '').trim();
@@ -76,7 +79,7 @@ exports.main = async (event) => {
     });
     if (result.code === 'TOURNAMENT_FINISHED_MANUALLY' && shareFinishTournament) {
       await shareActivity.updateFinishedMessageBestEffort(cloud, shareFinishTournament, console, {
-        db, source: 'finishTournament', tournamentId, traceId
+        db, source: 'finishTournament', tournamentId, traceId, deadlineAtMs
       });
     }
     return result;

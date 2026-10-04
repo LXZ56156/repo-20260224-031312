@@ -283,3 +283,99 @@ test('failed or malformed lock query cannot write a finish or an audit', async (
     assert.deepEqual([...db.rows], before);
   }
 });
+
+for (const apiResult of ['success', 'failure']) {
+  test(`finishTournament deadline returns committed success when ${apiResult} share diagnostics never settle`, async () => {
+    const previousNow = Date.now;
+    const enteredAt = 1_800_000_000_000;
+    let now = enteredAt;
+    Date.now = () => now;
+    let releaseDiagnostic;
+    let diagnosticStarted;
+    let timer;
+    let diagnosticWrites = 0;
+    const diagnosticStart = new Promise((resolve) => { diagnosticStarted = resolve; });
+    const diagnosticWait = new Promise((resolve) => { releaseDiagnostic = resolve; });
+    const t = { ...fixture(), shareActivityId: 'deadline-share',
+      shareActivityExpireAtMs: enteredAt + 120_000, shareActivityState: 1 };
+    const db = createDb(t);
+    const transact = db.runTransaction.bind(db);
+    db.runTransaction = async (callback) => { const result = await transact(callback); now = enteredAt + 2490; return result; };
+    const collection = db.collection.bind(db);
+    db.collection = (name) => {
+      const original = collection(name);
+      if (name !== 'tournaments') return original;
+      return { ...original, doc(id) { return { ...original.doc(id), async update() {
+        diagnosticWrites += 1;
+        diagnosticStarted();
+        return diagnosticWait;
+      } }; } };
+    };
+    const handlers = load(db, { openid: 'owner', openapi: { updatableMessage: { async setUpdatableMsg() {
+      if (apiResult === 'failure') throw new Error('share API rejected');
+      return { errCode: 0 };
+    } } } });
+    const pending = handlers.finishTournament(finishEvent);
+    try {
+      await Promise.race([diagnosticStart, pending.then(() => assert.fail('eligible diagnostic write must be attempted'))]);
+      assert.equal(read(db).status, 'finished');
+      assert.equal(read(db).version, 6);
+      assert.equal([...db.rows.keys()].filter((key) => key.startsWith('client_request_logs/')).length, 1);
+      const result = await Promise.race([pending, new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('committed finish still waits for optional diagnostic write')), 250);
+      })]);
+      assert.equal(result.code, 'TOURNAMENT_FINISHED_MANUALLY');
+      assert.equal(result.ok, true);
+      assert.equal(result.version, 6);
+      assert.equal(diagnosticWrites, 1);
+    } finally {
+      clearTimeout(timer);
+      releaseDiagnostic();
+      await pending;
+      Date.now = previousNow;
+    }
+  });
+}
+
+test('finishTournament deadline exhausted after transaction preserves finish and audit without optional updates', async () => {
+  const previousNow = Date.now;
+  const enteredAt = 1_800_000_000_000;
+  let now = enteredAt;
+  let apiCalls = 0;
+  Date.now = () => now;
+  try {
+    const db = createDb({ ...fixture(), shareActivityId: 'deadline-share',
+      shareActivityExpireAtMs: enteredAt + 120_000, shareActivityState: 1 });
+    const transact = db.runTransaction.bind(db);
+    db.runTransaction = async (callback) => { const result = await transact(callback); now = enteredAt + 2500; return result; };
+    const handlers = load(db, { openid: 'owner', openapi: { updatableMessage: {
+      async setUpdatableMsg() { apiCalls += 1; return { errCode: 0 }; }
+    } } });
+    const result = await handlers.finishTournament(finishEvent);
+    assert.equal(result.code, 'TOURNAMENT_FINISHED_MANUALLY');
+    assert.equal(read(db).status, 'finished');
+    assert.equal(read(db).version, 6);
+    assert.equal(apiCalls, 0);
+    assert.equal([...db.rows.keys()].filter((key) => key.startsWith('client_request_logs/')).length, 1);
+  } finally { Date.now = previousNow; }
+});
+
+test('finishTournament deadline preserves noncommit and conflict replay share gating', async () => {
+  let apiCalls = 0;
+  const t = { ...fixture(), shareActivityId: 'deadline-share',
+    shareActivityExpireAtMs: Date.now() + 120_000, shareActivityState: 1 };
+  const db = createDb(t);
+  const openapi = { updatableMessage: { async setUpdatableMsg() { apiCalls += 1; return { errCode: 0 }; } } };
+  const forbidden = load(db, { openid: 'outsider', openapi });
+  assert.equal((await forbidden.finishTournament(finishEvent)).code, 'PERMISSION_DENIED');
+  assert.equal(apiCalls, 0);
+  assert.equal(read(db).status, 'running');
+  const handlers = load(db, { openid: 'owner', openapi });
+  db.beforeCommit = async () => assert.equal((await handlers.finishTournament(finishEvent)).ok, true);
+  assert.equal((await handlers.finishTournament(finishEvent)).state, 'deduped');
+  assert.equal(apiCalls, 1);
+  assert.equal(read(db).version, 6);
+  assert.equal((await handlers.finishTournament(finishEvent)).state, 'deduped');
+  assert.equal(apiCalls, 1);
+  assert.equal([...db.rows.keys()].filter((key) => key.startsWith('client_request_logs/')).length, 1);
+});

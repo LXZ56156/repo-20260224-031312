@@ -17,4 +17,4 @@
 
 ## 下一步与证据
 
-第1源码及第7后端已独立交付；第8按序准备，第10候选已验。监控和join诊断继续；网页登录/兑换码、窗口恢复、真实身份及单打场景待答。UI按 [日常循环](../tools/agent-development-workflow.md) 使用ui:iterate，失败按 [手册](../tools/weapp-ui-troubleshooting.md) 处理；按 [索引](../README.md) 读取，详情更新同一正文。
+第1源码及第7后端已交付；录分/收赛可选分享截止修复105项通过，已整合并保全原字节。第8后端152项、第9工具编码及第10性能候选已验，按序交付。监控继续；网页登录/兑换码、窗口恢复、真实身份及单打场景待答。UI按 [日常循环](../tools/agent-development-workflow.md) 使用ui:iterate，失败按 [手册](../tools/weapp-ui-troubleshooting.md) 处理，详情更新同一正文。

@@ -8,6 +8,8 @@ const playerUtils = require('./lib/player');
 const scoreUtils = require('./lib/score');
 const shareActivity = require('./lib/share-activity');
 const { buildSubmitResult, buildIdempotentRetryResult } = require('./logic');
+// This deadline bounds only the optional post-commit share update.
+const REQUEST_BUDGET_MS = 2500;
 
 function safePlayerName(player) {
   return playerUtils.safePlayerName(player);
@@ -67,6 +69,7 @@ async function readScoreLock(reader, lockId) {
 }
 
 exports.main = async (event) => {
+  const deadlineAtMs = Date.now() + REQUEST_BUDGET_MS;
   const { OPENID } = cloud.getWXContext();
   const traceId = String((event && event.__traceId) || '').trim();
   const tournamentId = String((event && event.tournamentId) || '').trim();
@@ -204,7 +207,8 @@ exports.main = async (event) => {
         db,
         source: 'submitScore',
         tournamentId,
-        traceId
+        traceId,
+        deadlineAtMs
       });
     }
     return result;
