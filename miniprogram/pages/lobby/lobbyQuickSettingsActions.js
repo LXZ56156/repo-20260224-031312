@@ -7,6 +7,13 @@ const viewModel = require('./lobbyViewModel');
 const settingsViewModel = require('../settings/settingsViewModel');
 
 module.exports = {
+  onPickQuickSinglesCycles(e) {
+    const quickSinglesCycles = Number(e.detail.value) === 1 ? 2 : 1;
+    const config = flow.getSinglesConfig({ players: this.data.tournament.players, courts: this.data.quickConfigC,
+      rules: { cycles: quickSinglesCycles } });
+    this.setData({ quickSinglesCycles, quickSinglesCycleIndex: quickSinglesCycles - 1, quickConfigM: config.totalMatches,
+      quickSinglesSummary: `共 ${config.totalMatches} 场，每人 ${config.matchesPerPlayer} 场 · ${config.logicalRounds} 逻辑轮、${config.batches} 批` });
+  },
   syncQuickMatchSelectionUi() {
     const tournament = this.data.tournament || {};
     const players = Array.isArray(tournament.players) ? tournament.players : [];
@@ -127,6 +134,7 @@ module.exports = {
     const idx = Number(e.detail.value);
     const courts = (this.data.quickConfigCOptions || [])[idx] || 1;
     this.setData({ quickConfigC: courts, quickConfigCIndex: idx }, () => {
+      if (this.data.isSingles) this.onPickQuickSinglesCycles({ detail: { value: this.data.quickSinglesCycles - 1 } });
       this.syncQuickEndConditionUi();
       this.refreshQuickRecommendations();
     });
@@ -256,7 +264,9 @@ module.exports = {
       return;
     }
 
-    const matchCount = flow.parsePositiveInt(this.data.quickConfigM, 1);
+    const matchCount = this.data.isSingles ? flow.getSinglesConfig({ players: tournament.players,
+      courts: this.data.quickConfigC, rules: { cycles: this.data.quickSinglesCycles } }).totalMatches
+      : flow.parsePositiveInt(this.data.quickConfigM, 1);
     const courts = flow.parsePositiveInt(this.data.quickConfigC, 1, 10);
     const maxMatches = Number(this.data.maxMatches) || 0;
     if (maxMatches > 0 && matchCount > maxMatches) {
@@ -283,6 +293,7 @@ module.exports = {
           totalMatches: matchCount,
           courts,
           pointsPerGame: Number(this.data.quickPointsPerGame) || 21,
+          ...(this.data.isSingles ? { cycles: this.data.quickSinglesCycles } : {}),
           endConditionType,
           endConditionTarget,
           clientRequestId

@@ -20,11 +20,11 @@ function attachTrend(current, previous) {
     if (!row) continue;
     const key = String((row.rankKey || `${row.entityType || 'player'}_${row.entityId || row.playerId || ''}`)).trim();
     if (!key) continue;
-    previousRankMap[key] = i + 1;
+    previousRankMap[key] = Number(row.rank) || i + 1;
   }
 
   return (current || []).map((row, idx) => {
-    const currentRank = idx + 1;
+    const currentRank = Number(row.rank) || idx + 1;
     const currentKey = String((row.rankKey || `${row.entityType || 'player'}_${row.entityId || row.playerId || ''}`)).trim();
     const previousRank = previousRankMap[currentKey];
     let trendType = 'flat';

@@ -47,8 +47,8 @@ function extractSquadId(players) {
   return squads.length && squads.every((squad) => squad === squads[0]) ? squads[0] : '';
 }
 
-function getMatchOutcome(match, row) {
-  if (!match || String(match.status || '') !== 'finished' || !scoreUtils.isValidFinishedScore(match)) return null;
+function getMatchOutcome(match, row, tournament) {
+  if (!match || String(match.status || '') !== 'finished' || !scoreUtils.isValidFinishedScore(match, tournament)) return null;
   const score = scoreUtils.extractScorePairAny(match);
   const entityId = getEntityId(row);
   if (!entityId) return null;
@@ -76,7 +76,7 @@ function calculateMaxWinStreak(tournament, row) {
   for (const round of rounds) {
     const matches = Array.isArray(round && round.matches) ? round.matches : [];
     for (const match of matches) {
-      const outcome = getMatchOutcome(match, row);
+      const outcome = getMatchOutcome(match, row, tournament);
       if (outcome === null) continue;
       current = outcome ? current + 1 : 0;
       if (current > maximum) maximum = current;

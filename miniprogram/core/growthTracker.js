@@ -17,7 +17,7 @@ function pickStatus(value) {
 
 function pickMode(value) {
   var mode = String(value || '').trim();
-  if (mode === 'multi_rotate' || mode === 'squad_doubles' || mode === 'fixed_pair_rr') return mode;
+  if (mode === 'multi_rotate' || mode === 'squad_doubles' || mode === 'fixed_pair_rr' || mode === 'singles_round_robin') return mode;
   return '';
 }
 

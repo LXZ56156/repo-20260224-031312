@@ -42,6 +42,7 @@ function extractCreatedActivityId(openapiResult) {
 }
 
 function resolveRoomLimit(tournament, modeHelper = null) {
+  if (String(tournament && tournament.mode || '') === 'singles_round_robin') return 8;
   const direct = Number(tournament && tournament.playerLimit);
   if (Number.isFinite(direct) && direct > 0) return Math.floor(direct);
   if (modeHelper && typeof modeHelper.getRotationPlayerLimit === 'function') {

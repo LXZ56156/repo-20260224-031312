@@ -22,7 +22,10 @@ function buildDraftStartReadiness(tournament) {
     playersChecklistHint = scheduleContract.getRosterValidationMessage(rosterValidation);
   }
 
-  if (!rosterValidation.hasInvalid && playerLimit > 0 && mode === flow.MODE_MULTI_ROTATE) {
+  if (!rosterValidation.hasInvalid && mode === flow.MODE_SINGLES_ROUND_ROBIN) {
+    checkPlayersOk = playersCount >= 2 && playersCount <= 8;
+    playersChecklistHint = checkPlayersOk ? `${playersCount} 人，可开赛` : '需要 2–8 人';
+  } else if (!rosterValidation.hasInvalid && playerLimit > 0 && mode === flow.MODE_MULTI_ROTATE) {
     checkPlayersOk = playersCount === playerLimit;
     if (playersCount < playerLimit) {
       playersChecklistHint = `还差 ${playerLimit - playersCount} 人`;
@@ -43,7 +46,10 @@ function buildDraftStartReadiness(tournament) {
       : '至少 4 人';
   }
 
-  const checkSettingsOk = !!t.settingsConfigured;
+  let checkSettingsOk = !!t.settingsConfigured;
+  if (mode === flow.MODE_SINGLES_ROUND_ROBIN) {
+    try { flow.getSinglesConfig(t); } catch (_) { checkSettingsOk = false; }
+  }
 
   return {
     mode,

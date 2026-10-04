@@ -53,7 +53,8 @@ exports.main = async (event) => {
   const nickname = String((event && event.nickname) || '').trim();
   const rawAvatar = String((event && (event.avatar || event.avatarUrl)) || '').trim();
   const avatar = normalizeAvatar(rawAvatar);
-  const preset = modeHelper.resolveRotationPreset(event && event.presetKey);
+  const requestedMode = modeHelper.normalizeMode(event && event.mode);
+  const preset = requestedMode === modeHelper.MODE_SINGLES_ROUND_ROBIN ? null : modeHelper.resolveRotationPreset(event && event.presetKey);
   const presetKey = preset ? preset.key : 'custom';
   const mode = preset ? modeHelper.MODE_MULTI_ROTATE : modeHelper.normalizeMode(event && event.mode);
   const name = modeHelper.getSynchronizedTournamentName(event && event.name, mode, presetKey);
@@ -89,6 +90,7 @@ exports.main = async (event) => {
   const rules = {
     gamesPerMatch: 1,
     pointsPerGame: normalizePoints(21),
+    ...(mode === modeHelper.MODE_SINGLES_ROUND_ROBIN ? { cycles: 1 } : {}),
     endCondition: {
       type: normalizeEndConditionType('total_matches'),
       target: defaultTotalMatches
@@ -131,7 +133,7 @@ exports.main = async (event) => {
         ...(preset ? { playerLimit: preset.playerLimit } : {}),
         settingsConfigured: !!preset,
         totalMatches: preset ? preset.defaultTotalMatches : 0,
-        courts: preset ? preset.defaultCourts : 0,
+        courts: preset ? preset.defaultCourts : (mode === modeHelper.MODE_SINGLES_ROUND_ROBIN ? 1 : 0),
         rules,
         players: [creatorPlayer],
         playerIds: [OPENID],

@@ -71,7 +71,7 @@
 
     <view class="round-card panel reveal {{item.isCurrentRound ? 'round-card-current' : ''}}" style="animation-delay: {{index < 6 ? 60 + index * 28 : 228}}ms;" wx:for="{{roundsUi}}" wx:key="roundIndex">
       <view class="round-header">
-        <view class="round-title">第{{item.roundIndex + 1}}轮</view>
+        <view class="round-title">{{item.roundTitle || '第' + (item.roundIndex + 1) + '轮'}}</view>
         <text class="count-pill {{item.isCurrentRound ? 'count-pill-active' : ''}}" wx:if="{{item.isCurrentRound}}">当前待录分轮次</text>
         <text class="muted small" wx:else>{{item.matchesUi.length}} 场</text>
       </view>

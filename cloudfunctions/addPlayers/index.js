@@ -216,7 +216,7 @@ exports.main = async (event) => {
           ...importResult
         });
       }
-      const playerLimit = modeHelper.getRotationPlayerLimit(t);
+      const playerLimit = modeHelper.getTournamentPlayerLimit(t);
       if (playerLimit > 0 && players.length + toAdd.length > playerLimit) {
         const remaining = Math.max(0, playerLimit - players.length);
         return common.failResult('PLAYER_LIMIT_EXCEEDED', `该赛制剩余名额 ${remaining} 人，本次导入 ${toAdd.length} 人，未导入`, {

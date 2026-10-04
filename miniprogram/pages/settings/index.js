@@ -6,7 +6,7 @@ const retryAction = require('../../core/retryAction');
 const settingsActions = require('./settingsActions');
 const settingsSyncController = require('./settingsSyncController');
 const settingsViewModel = require('./settingsViewModel');
-const DRAFT_FIELDS = ['name', 'editM', 'editC', 'pointsPerGame', 'endConditionType', 'endConditionTarget'];
+const DRAFT_FIELDS = ['name', 'editM', 'editC', 'pointsPerGame', 'singlesCycles', 'endConditionType', 'endConditionTarget'];
 
 Page({
   data: {

@@ -229,19 +229,24 @@ function buildSettingsFormState(tournament, options = {}) {
   const players = Array.isArray(t.players) ? t.players : [];
   const playersCount = readiness.playersCount;
   const mode = readiness.mode;
+  const isSingles = mode === flow.MODE_SINGLES_ROUND_ROBIN;
+  const singlesCycles = Number(draftValue('singlesCycles', t.rules && t.rules.cycles)) === 2 ? 2 : 1;
+  const singlesConfig = isSingles ? flow.getSinglesConfig({ players, courts: Number(draftValue('editC', t.courts)) === 2 ? 2 : 1,
+    rules: { cycles: singlesCycles } }) : null;
   const rotationPreset = mode === flow.MODE_MULTI_ROTATE ? flow.resolveRotationPreset(t.presetKey) : null;
   const playerLimit = rotationPreset ? rotationPreset.playerLimit : 0;
   const playersCountForOptions = playerLimit || playersCount;
-  const canConfigureSettings = rotationPreset ? true : playersCount >= 4;
+  const canConfigureSettings = isSingles ? playersCount <= 8 : (rotationPreset ? true : playersCount >= 4);
   const modeLabel = flow.getModeDisplayLabel(mode, t.presetKey);
   const pairTeamValidation = fixedPair.validateFixedPairTeams(t.pairTeams, players);
 
   let maxMatches = flow.calcMaxMatchesByPlayers(playersCountForOptions);
+  if (isSingles) maxMatches = playersCount * (playersCount - 1);
   if (mode === flow.MODE_FIXED_PAIR_RR) {
     maxMatches = fixedPair.calcFixedPairMaxMatches(pairTeamValidation.validTeamsCount);
   }
 
-  const courtOptions = rotationPreset
+  const courtOptions = isSingles ? [1, 2] : rotationPreset
     ? rotationPreset.allowedCourts.slice()
     : Array.from({ length: 10 }, (_, i) => i + 1);
   const savedCourts = Math.max(1, Math.min(10, Number(draftValue('editC', t.courts)) || (rotationPreset ? rotationPreset.defaultCourts : 1)));
@@ -262,6 +267,7 @@ function buildSettingsFormState(tournament, options = {}) {
   if (editM < 1) editM = 1;
   const shouldClampSavedMatches = mode !== flow.MODE_MULTI_ROTATE || !hasSavedTotalMatches;
   if (maxMatches > 0 && editM > maxMatches && shouldClampSavedMatches) editM = maxMatches;
+  if (isSingles) editM = singlesConfig.totalMatches;
 
   let matchSelectionState = buildMatchSelectionUiState({
     mode,
@@ -336,6 +342,11 @@ function buildSettingsFormState(tournament, options = {}) {
   return {
     mode,
     modeLabel,
+    isSingles,
+    singlesCycles,
+    singlesCycleOptions: [1, 2],
+    singlesCycleIndex: singlesCycles - 1,
+    singlesSummary: isSingles ? `共 ${singlesConfig.totalMatches} 场，每人 ${singlesConfig.matchesPerPlayer} 场 · ${singlesConfig.logicalRounds} 逻辑轮、${singlesConfig.batches} 批` : '',
     isAdmin,
     canManageTournament,
     isDraft,
@@ -343,7 +354,7 @@ function buildSettingsFormState(tournament, options = {}) {
     playerLimit,
     canConfigureSettings,
     canEditTournamentName,
-    settingsGateHint: canConfigureSettings ? '' : `满 4 人后可设置参数（当前 ${playersCount} 人）`,
+    settingsGateHint: canConfigureSettings ? '' : (isSingles ? '单打循环最多 8 人，请调整名单' : `满 4 人后可设置参数（当前 ${playersCount} 人）`),
     name: safeName,
     maxMatches,
     suggestedMatches: Number(recommendation.suggestedMatches) || 1,

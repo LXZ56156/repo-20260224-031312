@@ -1,6 +1,8 @@
 const {
   normalizeMode,
-  MODE_FIXED_PAIR_RR
+  MODE_FIXED_PAIR_RR,
+  MODE_SINGLES_ROUND_ROBIN,
+  getSinglesConfig
 } = require('../mode');
 const fixedPair = require('../fixedPair');
 
@@ -86,6 +88,15 @@ function buildMatchCountRecommendations(input) {
   const raw = input || {};
   const mode = normalizeMode(raw.mode);
   const playersCount = Math.max(0, Number(raw.playersCount) || 0);
+  if (mode === MODE_SINGLES_ROUND_ROBIN) {
+    const config = getSinglesConfig({ players: Array.from({ length: playersCount }),
+      courts: [1, 2].includes(Number(raw.courts)) ? Number(raw.courts) : 1, rules: { cycles: raw.cycles } });
+    const hint = `共 ${config.totalMatches} 场，每人 ${config.matchesPerPlayer} 场 · ${config.batches} 批`;
+    return { mode, playersCount, courts: config.courts, suggestedMatches: config.totalMatches,
+      maxByCombinatorics: playersCount * (playersCount - 1), capacityMax: playersCount * (playersCount - 1),
+      capacityReason: 'singles_round_robin', capacityHintShort: hint, recommendationHint: hint,
+      rosterHint: playersCount < 2 ? '至少 2 人后可开赛' : '', recommendedMatches: [] };
+  }
   const maleCount = Math.max(0, Number(raw.maleCount) || 0);
   const femaleCount = Math.max(0, Number(raw.femaleCount) || 0);
   const unknownCount = Math.max(0, Number(raw.unknownCount) || 0);

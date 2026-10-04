@@ -132,3 +132,29 @@ Edge旧登录态失效但CLI认证仍有效，用户重新登录后已看到原�
 有限结论：**一个真实微信登录客户端在专用临时集合上的候选规则读写行为符合预期**。身份传递和候选行为取得实际证据；现有tournaments仍为原read登录可读/write基于doc._openid，未应用write:false。合法云函数在候选规则下的兼容、无身份读取、单账号各角色授权、锁接管/事务冲突与回滚/幂等、iPhone本人/多账号/双机均未闭合。本地准备下一独立临时命名范围及原函数同源候选，具体部署/写入先准备后按对应范围授权，不恢复免费环境领码。
 
 6 Luna max另行只读复核实际回执、前后四文档与16组规则，报告在 `tmp/wx-acl-actual-cold-20261005/assessment.md/json`；确认10类记录与前后相等，仅作限定观察结论，未确认内部引擎来源，不升级为原生产ACL、角色或事务通过。该复核无云/GUI/测试/原业务数据读取，主控保存清理回执/完整列表证据，不重复全量。
+
+## 10-05角色与事务两组本地候选收尾
+
+用户最新要求需要介入的先跳过，因此仅完成可审本地工件，不索取或执行下一范围云授权。Sol high固定`243252484f40eeee519a981c836bf68275825540`读取canonical create/scoreLock/submit源码，不把随后单打dirty混入；正常组独占`tmp/wx-role-txn-candidate-20261005/`，4完整包为codexRoleCreate20261005、codexRoleLock20261005、codexRoleSubmit20261005、codexRoleFixtures20261005，仅codex_role_t/l/r_20261005三合成集合，禁止原业务集合、OpenAPI/任意事件/自动建库/覆盖既有fixture。实际SDK上下文ENV/APPID/OPENID匹配固定环境、私有AppID和可信caller SHA守卫，event不能冒身份。
+
+35源码及submit配置保全，差分是集合字面量、SDK facade、固定脱敏日志、无OpenAPI config和守卫外层，不声称副本字节等于生产。正常4ZIP共25531成员/25472依赖/59派生源，every member SHA/CRC、无extras、重建同字节；53首版freeze及5final侧输入前后相同。首outer真实exit1、8测试6过2失败，mock错误文案不匹配既有common；原工具/包/流保留，仅另名final测试修文案，最终8/8、outer0和4次Linux官方Node24.11 real SDK加载exit0。正常十mock场景覆盖创建、防重、主办/参与录分、非相关/同名guest/伪造event拒绝、变分重试拒绝、顺序S1→S2、合成foreign锁force及缺失/过期锁；顺序session拒绝不是race。SDK2.6.3→node-sdk2.9.1→database1.4.1，main/网络/子进程/worker均0，保留stderr警告。
+
+独立第二组`tmp/wx-role-txn-instrumented-20261005/`的最终对象是function-final/package.zip、project-final和scope-final.json；额外唯一函数codexRoleSubmitProbe20261005、gates集合codex_role_g_20261005，仅复用上述三临时集合。不冲突的race/rollback固定ID前缀；submit在callback计数、读锁后有界gate、赛事写后删锁前故障三位置instrumentation，scoreLock子入口负责真实S2 acquire，AsyncLocalStorage隔离并发调用。最终gate15秒、probe timeout30秒/客户端调用40秒仅诊断提案，旧1800ms版完整保留，不外推普通3秒性能。
+
+race客户端先实际观察waiting，再S2接管且赛事未录分后release；只有真正SDK attempts≥2、LOCK_EXPIRED、S2/赛事快照保全才可通过，VERSION_CONFLICT/无重试/timeout记诊断未验。rollback注入明确故障，要求赛事/锁SHA及version前后一致。最终6398成员/6368依赖/30源，ZIP SHA `0943d81641aaecb80240189f96276199f58771f54b471b8ccac97c0863a5dcb7`；7直接测试（含实际15秒有界等待）、outer0及Linux真实SDK加载exit0，18final freeze和normal/v1前后保持。依赖使用只读hardlink以免重拷；禁止原地改链接文件，ZIP独立携全字节。一次final准备marker断言exit1仅工具会话证据保留，不伪造raw；修正版numeric0/raw独立保存。driver-final过时1800ms注释不代表实际gate值，实际值及freeze明确15秒。
+
+主控审两HANDOFF/精确source差分、固定守卫/facade/contracts/探针入口/gate和客户端期待；真实角色、CloudBase事务重试/回滚、索引及平台超时、双真人/跨设备/手机均false，mock和离线require不冒通过。待执行清单明确两组各自的临时资源、规则、私有env、固定合成运行及仅本轮资源清理；当前不建资源/部署/扫码/业务写入，不恢复免费试用或登录。真实数据库规则原16保持，临时ACL已经清理的有限结论不扩展到角色与事务。
+
+## 10-05终态探针冷审修复与最终封存
+
+上述7测试旧final属于历史结果，冷读随后发现两P1：Promise.race超时不取消底层SDK请求，迟到waiting可覆盖timeout；takeover/release入口读取waiting后，与超时终态之间有竞争窗口。旧normal、v1/final、包、回执及冷报告完整保留；未部署，不能称生产事故。Sol high只在新ignored `tmp/wx-role-txn-instrumented-terminal-20261005/`修复，不改主源码、已核单打九包或原依赖链接。
+
+最终function/package.zip与project使用本次runNonce及其脱敏SHA绑定，终态单调。waiting/terminal/release在SDK runTransaction内读取并校验同一gate；接管在canonical scoreLock同一事务中加入before/after两hook，gate marker与锁及赛事写共同commit，终态竞争强制冲突重试后重查拒绝。客户端同时要求active、同runBinding且run尚未settled，旧1800ms注释在新副本修正。15秒gate/30秒函数timeout仍只属诊断提案，不推断普通3秒生产性能。
+
+实际8直接测试exit0/8通过/0失败跳过：精确旧源码复现两P1；新waiting/takeover/release在写已stage后暂停，让terminal先commit，再恢复请求，mock读集冲突重试拒绝且锁/赛事hash保持；另验固定范围、真实派生submit/lock的mock重试/回滚及客户端不对已关闭run动作。该模拟事务的读集/原子提交不代表CloudBase引擎已经验证。
+
+完整包6399成员（6368依赖/31源），ZIP SHA `1d5315e4c2cfdd43fe201c69e917a951fe84cd360e82fbdeb277a324654168e4`；CRC/成员SHA/无extras及重建相同通过。Linux ext4官方Node24.11及真实SDK require实际exit0，main/网络/子进程未运行。首outer和Linux validator真实exit1，是将freeze内四个外部私有配置/身份工具路径误映射到本根，发生在Node启动前；原流/源码保留。另名build-input-final/validator-final纠正本根工具清单，外部输入仍由外层冻结保全，续跑outer0，不重构包或重复8测试。
+
+主控独立核build/generate/safety/linux-final及首/最终outer所有stdout/stderr长度/SHA、Node流、整ZIP SHA，50冻结输入前后相同及10续跑输入逐SHA通过，证据在 `tmp/singles-root-verification-20261005/terminal-root-acceptance.json`。最终回执入口为新根execution/summary-final.json、execution/before-after-final.json、function/zip-verification.json、function/linux-verification.json；首失败也保留，不覆盖旧材料。真实CloudBase角色/事务冲突回滚、平台timeout、规则与索引、双账号/手机仍未验；本轮不部署、建库、登录、上传或写业务数据。
+
+6 Luna max独立窄冷核确认两旧P1在最终结构闭合，未见新可达P0/P1；特别核了scoreLock前后hook处于同一事务、三种terminal先提交竞争的直接测试，以及客户端active/runBinding/settled和固定fixture边界。没有重跑测试、线上请求或依赖全树，也没有把模拟冲突重试升级为CloudBase引擎通过。主控已亲审最终关键差分并独立核实际回执。冷报告在 `tmp/role-probe-terminal-cold-20261005/assessment.md/json`；有限轮询不是15秒端到端墙钟保证。

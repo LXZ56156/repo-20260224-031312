@@ -12,7 +12,8 @@ test('launch modes expose fixed rotation presets before generic modes', () => {
     '8人转',
     '多人转',
     '小队转',
-    '固搭循环赛'
+    '固搭循环赛',
+    '单打循环'
   ]);
   assert.deepEqual(cards.slice(0, 3).map((item) => ({
     mode: item.mode,

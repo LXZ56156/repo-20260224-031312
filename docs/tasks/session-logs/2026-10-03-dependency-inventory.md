@@ -81,3 +81,13 @@
 
 
 最终Luna仅一次窄核8个实际ZIP整包SHA/中央目录、只inflate93源码，与manifest/工作raw/Git object ID三方相同；24 child及builder/outer数值退出与流SHA、8项freeze/side谱系通过，issues空。报告`tmp/dependency-nine-eight-current-20261004/cold-artifacts.md/json`最终SHA分别84451595aa2644c3b03d48f490e3156b78a3d0c2705b4b45a5b5ff45d60c2146/c69fed76b28a8817ba053cc52a20401e2daa18a8f4d0927b9a8884b590ba23d8；review说明区分既有实际执行与冷核未重跑，不重inflate50944依赖/CRC/require，也不重复325保全（引用主控actual0）。第9本地可推进证据已补齐，云端标准仍保留；随后依序核第10当前源码与性能采样，相关新观察另在对应性能日志登记。文档引用、范围差异与staged审查后按持续授权仅交付三文档，ignored包/工具不提交。
+
+## 10-05当前单打源码完整依赖包
+
+正式单打改变共享库后，旧26组/315源的历史Linux结论保留，不冒称当前新源已有回执。Sol high另建`tmp/singles-cloud-packages-20261005/`，按单打12个手改入口文件去重为9函数：addPlayers/createTournament/finishTournament/getMyPerformanceStats/getMyTournaments/joinTournament/startTournament/submitScore/updateSettings。输入HEAD2432524仅作基线，实际118源取当前dirty字节及全部local lib/正式V1，旧候选不入包；其余17个仅同步库的函数未扩新包。
+
+各函数复用自己的已验旧完整ZIP依赖，不跨函数借同版本树、不安装或升级：八树6368项、start6393项，共57337依赖，与118源合57455成员；member329577389bytes、ZIP339938981bytes。纯ZIP每成员SHA/CRC/顺序/无extras、固定时间/mode及重建字节相同；封存artifact-index与各manifest/zip-verification。初编排在prepare仍running时提前freeze/pack，两数值exit1/input-plan缺失，未开始构包，原流保持；等待prepare实际exit0后另名freeze-final0、pack-final-outer0及9pack子0，未覆盖失败回执。
+
+随后9包分别解到全新Linux ext4随机根，逐成员SHA/CRC及加载后重读通过；复用官方Node v24.11.0二进制前后SHA相同，9validator与9实际Node均numeric0、linux-final-outer0。真实require SDK2.6.3→node-sdk2.9.1→database1.4.1，所有模块回查ZIP来源，新V1实际加载；main/网络/子进程/worker0，清NODE_OPTIONS/NODE_PATH/NODE_NO_WARNINGS/WX_CONTEXT_KEYS，stderr原样保留，不称警告已修。选中当前工作源/snapshot/工具/旧包及HEAD执行前后相同，无关文档dirty可更新。
+
+主控读HANDOFF与实际两outer、manifest及流回执；本地完整依赖/加载缺口补齐，CloudBase平台、微信业务角色/事务/回滚、日期/int64 wire、生产3秒、手机仍未验。targetEnv=null/isolationOnly=true，不部署或调用main；也未将单打源码复制到两组固定2432524的权限/事务候选中。当前9包与旧26组分开供后续具体scope审查，未执行云runtime或SDK升级。

@@ -1,6 +1,7 @@
 const perm = require('../../permission/permission');
 const { normalizeTournament, safePlayerName } = require('../../core/normalize');
 const modeHelper = require('../../core/mode');
+const scoreUtils = require('../../core/scoreUtils');
 
 const SCORE_MAX = 60;
 const DEFAULT_POINTS_PER_GAME = 21;
@@ -276,6 +277,7 @@ function buildTournamentViewState(tournament, options = {}) {
       match,
       matchStatusText,
       pointsPerGame,
+      scoreRuleHint: nt.mode === modeHelper.MODE_SINGLES_ROUND_ROBIN ? scoreUtils.getFinishedScoreHint(nt) : '',
       quickScoreOptions: buildQuickScoreOptions(pointsPerGame),
       userCanScore,
       isAdmin,

@@ -9,7 +9,7 @@ const db = cloud.database();
 const _ = db.command;
 const PAGE_SIZE = 20;
 const SCAN_LIMIT = 100;
-const FIELDS = { _id: true, name: true, mode: true, status: true, creatorId: true, players: true, playerIds: true, rounds: true, updatedAt: true };
+const FIELDS = { _id: true, name: true, mode: true, rules: true, status: true, creatorId: true, players: true, playerIds: true, rounds: true, updatedAt: true };
 
 function participant(doc, openid) {
   // The actual roster takes precedence over a stale denormalized index.
@@ -94,7 +94,7 @@ function summary(doc, openid) {
   return {
     id: String(doc._id), name: String(doc.name || '未命名比赛'), mode: String(doc.mode || ''),
     status: String(doc.status), updatedAt: new Date(position(doc).time).toISOString(), roles,
-    completedMatches: matches.filter((match) => match && match.status === 'finished' && isValidFinishedScore(match)).length, totalMatches: matches.length
+    completedMatches: matches.filter((match) => match && match.status === 'finished' && isValidFinishedScore(match, doc)).length, totalMatches: matches.length
   };
 }
 

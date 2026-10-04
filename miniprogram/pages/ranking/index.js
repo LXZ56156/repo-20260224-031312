@@ -285,7 +285,7 @@ Page({
       const showTrend = Number(row.played) >= 2;
       return {
         ...row,
-        rank: idx + 1,
+        rank: Number(row.rank) || idx + 1,
         displayName: displayName || String(row && row.name || '').trim() || '队伍',
         subtitle,
         showTrend,
@@ -302,6 +302,7 @@ Page({
       tournament: t,
       rankings: decoratedRankings,
       rankingTypeLabel,
+      rankingSortHint: mode === flow.MODE_SINGLES_ROUND_ROBIN ? '排序：胜场 → 净胜分 → 总得分；三项相同并列' : '排序：胜场 → 净胜分 → 总得分 → 名称',
       primaryNavItems: matchPrimaryNav.getPrimaryNavItems('ranking', this.data.tournamentId),
       posterButtonText: buildPosterButtonText(isCurrentUserInRanking),
       rankingShareBannerText: buildRankingShareBanner(t)
@@ -369,8 +370,9 @@ Page({
   },
 
   onShareRankingRow(e) {
+    const rankKey = e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.rankKey;
     const rank = Number(e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.rank);
-    const row = findRankingRowByRank(this.data.rankings, rank);
+    const row = rankKey ? this.data.rankings.find((item) => item.rankKey === rankKey) : findRankingRowByRank(this.data.rankings, rank);
     if (!row) return this.onGeneratePoster();
     this._posterTargetRow = row;
     growthTracker.track('ranking_generate_poster_click', growthTracker.fromTournament(this.data.tournament, {

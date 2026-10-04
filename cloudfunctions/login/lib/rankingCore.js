@@ -2,12 +2,19 @@ const modeHelper = require('./mode');
 const playerUtils = require('./player');
 const scoreUtils = require('./score');
 
-function sortRanking(list) {
-  return (Array.isArray(list) ? list : []).slice().sort((a, b) => {
+function sortRanking(list, mode) {
+  const sorted = (Array.isArray(list) ? list : []).slice().sort((a, b) => {
     if (b.wins !== a.wins) return b.wins - a.wins;
     if (b.pointDiff !== a.pointDiff) return b.pointDiff - a.pointDiff;
     if (b.pointsFor !== a.pointsFor) return b.pointsFor - a.pointsFor;
     return String(a.name || '').localeCompare(String(b.name || ''));
+  });
+  if (modeHelper.normalizeMode(mode) !== modeHelper.MODE_SINGLES_ROUND_ROBIN) return sorted;
+  let rank = 1;
+  return sorted.map((row, index) => {
+    const previous = sorted[index - 1];
+    if (previous && (row.wins !== previous.wins || row.pointDiff !== previous.pointDiff || row.pointsFor !== previous.pointsFor)) rank = index + 1;
+    return { ...row, rank };
   });
 }
 
@@ -75,7 +82,7 @@ function normalizeCurrentRankings(tournament) {
       pointsAgainst: Number(row && row.pointsAgainst) || 0,
       pointDiff: Number(row && row.pointDiff) || 0
     };
-  }));
+  }), t.mode);
 }
 
 function computePlayerRankingsUntilRound(tournament, maxRoundExclusive) {
@@ -93,7 +100,7 @@ function computePlayerRankingsUntilRound(tournament, maxRoundExclusive) {
     const roundIndex = Number(round && round.roundIndex);
     if (Number.isFinite(maxRoundExclusive) && roundIndex >= maxRoundExclusive) continue;
     for (const match of (Array.isArray(round && round.matches) ? round.matches : [])) {
-      if (!match || String(match.status || '') !== 'finished' || !scoreUtils.isValidFinishedScore(match)) continue;
+      if (!match || String(match.status || '') !== 'finished' || !scoreUtils.isValidFinishedScore(match, t)) continue;
       const score = scoreUtils.extractScorePairAny(match);
       const teamA = (Array.isArray(match.teamA) ? match.teamA : []).map(playerUtils.extractPlayerId).filter(Boolean);
       const teamB = (Array.isArray(match.teamB) ? match.teamB : []).map(playerUtils.extractPlayerId).filter(Boolean);
@@ -122,7 +129,7 @@ function computePlayerRankingsUntilRound(tournament, maxRoundExclusive) {
     }
   }
 
-  return sortRanking(Object.values(stats));
+  return sortRanking(Object.values(stats), t.mode);
 }
 
 function computeTeamRankingsUntilRound(tournament, maxRoundExclusive) {

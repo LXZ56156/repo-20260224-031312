@@ -103,6 +103,13 @@ function validateSettings(players, totalMatches, courts, mode = 'multi_rotate', 
   const list = Array.isArray(players) ? players : [];
   scheduleContract.assertValidRosterPlayers(list);
   const normalizedMode = modeHelper.normalizeMode(mode);
+  if (normalizedMode === modeHelper.MODE_SINGLES_ROUND_ROBIN) {
+    if (list.length > 8) throw new Error('单打循环最多 8 人参赛');
+    const config = modeHelper.getSinglesConfig({ players: list,
+      courts: options.resolvedCourts || courts || 1, rules: { cycles: options.cycles, pointsPerGame: options.pointsPerGame } });
+    return { maxMatches: config.totalMatches, scheduledMatches: config.totalMatches,
+      patch: { totalMatches: config.totalMatches, courts: config.courts, settingsConfigured: true } };
+  }
   const rotationPreset = normalizedMode === 'multi_rotate'
     ? modeHelper.resolveRotationPreset(options && options.presetKey)
     : null;

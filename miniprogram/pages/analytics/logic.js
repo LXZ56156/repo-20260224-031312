@@ -2,6 +2,7 @@ const normalize = require('../../core/normalize');
 const modeHelper = require('../../core/mode');
 const playerUtils = require('../../core/playerUtils');
 const rankingCore = require('../../core/ranking');
+const scoreUtils = require('../../core/scoreUtils');
 
 function pickScoreVal(value) {
   if (value === 0 || value === '0') return 0;
@@ -132,6 +133,7 @@ function computeAnalytics(tournament) {
     for (const match of matches) {
       totalMatches += 1;
       if (!match || match.status !== 'finished') continue;
+      if (t.mode === modeHelper.MODE_SINGLES_ROUND_ROBIN && !scoreUtils.isValidFinishedScore(match, t)) continue;
 
       const score = extractScore(match);
       if (score.a === null || score.b === null) continue;
@@ -156,7 +158,8 @@ function computeAnalytics(tournament) {
         incCounter(pairCounter, sorted.map((player) => player.id || player.name).join('|'), sorted.map((player) => player.name).join(' / '));
       }
 
-      if (teamA.length >= 2 && teamB.length >= 2) {
+      if ((teamA.length >= 2 && teamB.length >= 2)
+        || (t.mode === modeHelper.MODE_SINGLES_ROUND_ROBIN && teamA.length === 1 && teamB.length === 1)) {
         const duel = [
           teamA.slice(0, 2).map((player) => player.name).join(' / '),
           teamB.slice(0, 2).map((player) => player.name).join(' / ')
@@ -169,11 +172,11 @@ function computeAnalytics(tournament) {
   const rankingRows = buildRankingRows(t);
   const rankedRows = rankingRows.map((row, idx) => ({
     ...row,
-    rank: idx + 1
+    rank: Number(row.rank) || idx + 1
   }));
   const top3 = rankedRows.slice(0, 3).map((row, idx) => ({
     ...row,
-    rankLabel: `TOP ${idx + 1}`
+    rankLabel: `TOP ${Number(row.rank) || idx + 1}`
   }));
 
   const pairTeams = Array.isArray(t.pairTeams) ? t.pairTeams : [];
@@ -194,12 +197,12 @@ function computeAnalytics(tournament) {
       }
     }
     return {
-      badgeText: badgeMap[idx] || '',
+      badgeText: t.mode === modeHelper.MODE_SINGLES_ROUND_ROBIN ? `第 ${row.rank} 名` : badgeMap[idx] || '',
       title: String(row.name || '').trim() || '未命名',
       subtitle,
       metricPrimary: `胜${row.wins} 负${row.losses}`,
       metricSecondary: `净胜 ${row.pointDiff}`,
-      tone: toneMap[idx] || ''
+      tone: toneMap[t.mode === modeHelper.MODE_SINGLES_ROUND_ROBIN ? row.rank - 1 : idx] || ''
     };
   });
 
@@ -230,18 +233,22 @@ function buildBattleReport(analytics) {
   const tournament = data.tournament || {};
   const summary = data.summary || {};
   const top = Array.isArray(data.top3) ? data.top3 : [];
+  const jointLeaders = tournament.mode === modeHelper.MODE_SINGLES_ROUND_ROBIN
+    ? (data.playerStats || []).filter((row) => row.rank === 1) : [];
+  const leaderName = jointLeaders.length > 1 ? jointLeaders.map((row) => row.name).join('、') : (top[0] && top[0].name);
   const pairHot = Array.isArray(data.pairHot) ? data.pairHot : [];
   const duelHot = Array.isArray(data.duelHot) ? data.duelHot : [];
 
   const lines = [];
   lines.push(`已完赛 ${summary.finishedMatches || 0}/${summary.totalMatches || 0}（完赛率 ${summary.completionRate || '0%'}）`);
+  if (tournament.finishMeta && tournament.finishMeta.type === 'manual') lines[0] = `仅统计已录 ${summary.finishedMatches || 0}/${summary.totalMatches || 0} 场；未打场次已取消`;
   lines.push(`总得分 ${summary.totalPoints || 0}，平均分差 ${summary.avgDiff || '0.0'}`);
-  if (top[0]) lines.push(`当前榜首：${top[0].name}（胜${top[0].wins} 负${top[0].losses}）`);
+  if (top[0]) lines.push(`${jointLeaders.length > 1 ? '并列榜首' : '当前榜首'}：${leaderName}（胜${top[0].wins} 负${top[0].losses}）`);
   if (pairHot[0]) lines.push(`高频搭档：${pairHot[0].label}（${pairHot[0].count}次）`);
   if (duelHot[0]) lines.push(`高频对阵：${duelHot[0].label}（${duelHot[0].count}次）`);
 
   const headline = top[0]
-    ? `榜首 ${top[0].name}，当前完赛率 ${summary.completionRate || '0%'}`
+    ? `${jointLeaders.length > 1 ? '并列榜首' : '榜首'} ${leaderName}，当前完赛率 ${summary.completionRate || '0%'}`
     : `当前完赛率 ${summary.completionRate || '0%'}，已完赛 ${summary.finishedMatches || 0} 场`;
   const briefText = [lines[0], lines[1], lines[2]].filter(Boolean).join('\n');
   const shareText = `${modeHelper.getTournamentDisplayName(tournament, '羽毛球比赛')}战报\n${lines.join('\n')}`;
@@ -279,7 +286,9 @@ function buildAnalyticsPageModel(analytics, report) {
 
   let heroHeadline = '等待首场完赛';
   if (topLeader) {
-    heroHeadline = `榜首 ${topLeader.name}`;
+    const leaders = tournament.mode === modeHelper.MODE_SINGLES_ROUND_ROBIN
+      ? playerStats.filter((row) => row.rank === 1) : [topLeader];
+    heroHeadline = `${leaders.length > 1 ? '并列榜首' : '榜首'} ${leaders.map((row) => row.name).join('、')}`;
   } else if (finishedMatches > 0) {
     heroHeadline = `已完成 ${finishedMatches} 场比赛`;
   }
@@ -297,6 +306,7 @@ function buildAnalyticsPageModel(analytics, report) {
   ];
 
   const focusFacts = [];
+  if (tournament.finishMeta && tournament.finishMeta.type === 'manual') focusFacts.push(`仅统计已录 ${finishedMatches}/${totalMatches} 场，未打场次已取消`);
   if (topLeader) focusFacts.push(`榜首 ${topLeader.name}，战绩 ${topLeader.wins} 胜 ${topLeader.losses} 负`);
   focusFacts.push(`已完赛 ${formatCompactMatches(finishedMatches, totalMatches)}，完赛率 ${completionRate}`);
   focusFacts.push(`总得分 ${totalPoints}，平均分差 ${avgDiff}`);
@@ -313,7 +323,7 @@ function buildAnalyticsPageModel(analytics, report) {
     summaryStats,
     focusFacts: focusFacts.slice(0, 4),
     reportHeadline: String((report && report.headline) || '').trim(),
-    topSectionTitle: top3.length >= 3 ? 'TOP 3' : '领先榜',
+    topSectionTitle: tournament.mode === modeHelper.MODE_SINGLES_ROUND_ROBIN ? '领先榜（同值并列）' : (top3.length >= 3 ? 'TOP 3' : '领先榜'),
     top3,
     top3Cards,
     fullRankings: playerStats

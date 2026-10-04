@@ -20,6 +20,13 @@
         <view class="muted small quick-settings-hint" wx:if="{{quickConfigGateHint}}">{{quickConfigGateHint}}</view>
 
         <view class="quick-settings-form {{canConfigureSettings ? '' : 'quick-settings-disabled'}}">
+          <view class="quick-settings-field" wx:if="{{isSingles}}">
+            <view class="quick-config-label">循环次数</view>
+            <picker mode="selector" range="{{quickSinglesCycleOptions}}" value="{{quickSinglesCycleIndex}}" bindchange="onPickQuickSinglesCycles" disabled="{{!canConfigureSettings}}">
+              <view class="picker quick-config-picker">{{quickSinglesCycles}} 循环</view>
+            </picker>
+            <view class="muted small quick-settings-hint">{{quickSinglesSummary}}</view>
+          </view>
           <view class="quick-settings-field">
             <view class="quick-config-label">赛事名称</view>
             <input
@@ -34,7 +41,7 @@
           <view class="quick-config-row">
             <view class="quick-config-col">
               <view class="quick-config-label">总场次</view>
-              <block wx:if="{{mode==='multi_rotate'}}">
+              <block wx:if="{{mode==='multi_rotate' || isSingles}}">
                 <view class="picker quick-config-picker {{canConfigureSettings ? '' : 'disabled'}}">{{quickConfigM}} 场</view>
               </block>
               <block wx:elif="{{canConfigureSettings}}">
@@ -48,7 +55,7 @@
               <view wx:else class="picker quick-config-picker disabled">{{quickConfigM}}</view>
             </view>
             <view class="quick-config-col">
-              <view class="quick-config-label">每轮最多场数</view>
+              <view class="quick-config-label">{{isSingles ? '场地数量' : '每轮最多场数'}}</view>
               <block wx:if="{{canConfigureSettings}}">
                 <picker mode="selector" range="{{quickConfigCOptions}}" value="{{quickConfigCIndex}}" bindchange="onPickQuickConfigC">
                   <view class="picker quick-config-picker">{{quickConfigC}}</view>
@@ -67,6 +74,7 @@
                 </picker>
               </block>
               <view wx:else class="picker quick-config-picker disabled">{{quickPointsPerGame}} 分</view>
+              <view class="muted small" wx:if="{{isSingles}}">{{quickPointsPerGame===21 ? '20平后领先2分，30封顶' : '先到目标分即胜'}}，不接受平局</view>
             </view>
             <view class="quick-config-col" wx:if="{{quickShowSquadEndCondition}}">
               <view class="quick-config-label">结束条件</view>

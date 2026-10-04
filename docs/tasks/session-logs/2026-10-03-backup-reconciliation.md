@@ -75,3 +75,15 @@ $fetch.results | Select-Object collection, count, listed, pages, unique | Format
 - `D:\Relocated\LIZIXUAN\Codex\backups\badminton-cloudbase\2026-10-03-0238\database\manifest.json`：实际文档导出各 pass 的状态与计数。
 - `docs/tasks/session-logs/2026-10-03-backup-paused.md` 与旧 partial 的 `PAUSED.md`：记录过14,025的文字来源；与上述结构化证据冲突，本次不改写旧暂停记录。
 
+## 10-05当前三历史集合独立补档
+
+当前原16集合比10-03接口返回13集合多`relation_data_depart`、`sys_department`、`sys_user`；9-11迁移正文已列它们，不能推为本轮新建。Luna复核20份旧清单均Total13/Limit100/Offset0，脚本无按名称过滤，无本地漏页证据；缺同一时点跨接口对照，13/16原因仍未知，与13925/14025的文字汇总错100分开记。
+
+`tmp/legacy-collection-archive-20261005/`保留本轮实际MCP只读响应：两遍文档数0/0/1、分页完整、数据canonical一致，索引6/2/2。三份规则按实际`data.Rule`及同对象AclTag比较，除RequestId外前后相同；未调整规则或写云数据。sys_user原值及原始ID只留private JSON，不进入本日志。
+
+主控新`tools/archive-observed-v2.py`显式Python3.13.12、UTF-8读取、排他目标、完整性前置检查，执行数值exit0/stdout92字节/stderr0。D、E各全新`2026-10-05-legacy-observed`目录含9份raw、3份before规则、manifest和SHA256SUMS，恰14文件；源12份、after规则3份与工具共16输入SHA前后相同，两副本逐文件hash与路径集一致。主控Native Get-FileHash独立重读两根全部14文件及16输入，issues0。回执`verification/archive-v2.{freeze,verification,process}.json`及`root-independent-check.json`；D根位于`D:/Relocated/LIZIXUAN/Codex/backups/badminton-cloudbase/`，E根位于`E:/CodexBackups/badminton-cloudbase/`。
+
+先前工具故障全部保留：未执行损坏生成文本、首PS5.1编码解析exit1的原始流/回执、最终PS脚本错误读取根级Rule的stderr。首实跑脚本在冻结前被原地修订，精确源快照未保存；末失败包装器因空stdout中断，子进程数值exit未落盘；两项缺口已在failure-note登记，不猜数值或伪造SHA。这些失败未创建目标；新Python版本另名，不覆盖旧材料。
+
+本次仅当前三集合JSON观察归档，不是新16集合一致原子备份，不是BSON类型恢复；原13集合13925文档实际恢复及2735对象/38函数文件树恢复证据仍独立有效。原partial、备份、截图和所有未提交私有改动保持。续费暂不付款、一个历史空函数缺代码、CloudBase在线整环境恢复仍未完成。
+

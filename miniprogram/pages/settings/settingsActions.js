@@ -7,6 +7,13 @@ const writeErrorUi = require('../../core/writeErrorUi');
 const viewModel = require('./settingsViewModel');
 
 module.exports = {
+  onPickSinglesCycles(e) {
+    const singlesCycles = Number(e.detail.value) === 1 ? 2 : 1;
+    const config = flow.getSinglesConfig({ players: this.data.tournament.players, courts: this.data.editC,
+      rules: { cycles: singlesCycles } });
+    this.setData({ singlesCycles, singlesCycleIndex: singlesCycles - 1, editM: config.totalMatches,
+      singlesSummary: `共 ${config.totalMatches} 场，每人 ${config.matchesPerPlayer} 场 · ${config.logicalRounds} 逻辑轮、${config.batches} 批` });
+  },
   handleWriteError(err, fallbackMessage, onRefresh) {
     writeErrorUi.presentWriteError({
       err,
@@ -165,6 +172,7 @@ module.exports = {
     const idx = Number(e.detail.value);
     const courts = (this.data.courtOptions || [])[idx] || 1;
     this.setData({ editC: courts, courtIndex: idx }, () => {
+      if (this.data.isSingles) this.onPickSinglesCycles({ detail: { value: this.data.singlesCycles - 1 } });
       this.syncEndConditionUi();
       this.refreshRecommendations();
     });
@@ -271,7 +279,8 @@ module.exports = {
     }
 
     const maxMatches = Number(this.data.maxMatches) || 0;
-    const M = Number(retryPayload ? retryPayload.totalMatches : this.data.editM) || 1;
+    const requestedMatches = Number(retryPayload ? retryPayload.totalMatches : this.data.editM);
+    const M = this.data.isSingles ? (requestedMatches || 0) : (requestedMatches || 1);
     const C = Math.max(1, Math.min(10, Number(retryPayload ? retryPayload.courts : this.data.editC) || 1));
     if (maxMatches > 0 && M > maxMatches) {
       wx.showToast({ title: `总场次不能超过最大可选 ${maxMatches} 场`, icon: 'none' });
@@ -293,6 +302,7 @@ module.exports = {
       totalMatches: M,
       courts: C,
       pointsPerGame: Number(this.data.pointsPerGame) || 21,
+      ...(this.data.isSingles ? { cycles: this.data.singlesCycles } : {}),
       endConditionType,
       endConditionTarget,
       clientRequestId

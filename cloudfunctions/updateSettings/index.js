@@ -63,6 +63,7 @@ exports.main = async (event) => {
       }
 
       const players = Array.isArray(t.players) ? t.players : [];
+      const isSingles = modeHelper.normalizeMode(t.mode) === modeHelper.MODE_SINGLES_ROUND_ROBIN;
       const fixedRotationPreset = modeHelper.resolveRotationPreset(t.presetKey);
       const syncedName = nameProvided
         ? modeHelper.getSynchronizedTournamentName(normalizedName, t.mode || modeHelper.MODE_MULTI_ROTATE, t.presetKey)
@@ -75,16 +76,22 @@ exports.main = async (event) => {
         || pointsPerGame !== null
         || endConditionTypeInput !== null
         || endConditionTargetInput !== null;
-      if (wantsParamConfig && players.length < 4 && !fixedRotationPreset) {
+      if (wantsParamConfig && players.length < 4 && !fixedRotationPreset && !isSingles) {
         throw new Error('满 4 人后才可设置比赛参数');
       }
       const mode = String(t.mode || 'multi_rotate').trim().toLowerCase();
       const oldVersion = Number(t.version) || 1;
       const currentRules = (t.rules && typeof t.rules === 'object') ? t.rules : {};
+      const singlesConfig = isSingles ? modeHelper.getSinglesConfig({ ...t,
+        courts: event && Object.prototype.hasOwnProperty.call(event, 'courts') ? Number(event.courts) : (Number(t.courts) || 1),
+        rules: { ...currentRules,
+          ...(event && Object.prototype.hasOwnProperty.call(event, 'cycles') ? { cycles: Number(event.cycles) } : {}),
+          ...(event && Object.prototype.hasOwnProperty.call(event, 'pointsPerGame') ? { pointsPerGame: Number(event.pointsPerGame) } : {})
+        } }) : null;
       const currentEndCondition = (currentRules.endCondition && typeof currentRules.endCondition === 'object')
         ? currentRules.endCondition
         : {};
-      const resolvedTotalMatches = totalMatches !== null ? totalMatches : (Number(t.totalMatches) || 1);
+      const resolvedTotalMatches = isSingles ? singlesConfig.totalMatches : (totalMatches !== null ? totalMatches : (Number(t.totalMatches) || 1));
       const resolvedCourts = courts !== null ? courts : (Number(t.courts) || 1);
       const resolvedEndConditionType = mode === 'squad_doubles'
         ? (endConditionTypeInput || normalizeEndConditionType(currentEndCondition.type))
@@ -101,12 +108,14 @@ exports.main = async (event) => {
         endConditionType: resolvedEndConditionType,
         endConditionTarget: resolvedEndConditionTarget,
         presetKey: t.presetKey,
-        playerLimit: t.playerLimit
+        playerLimit: t.playerLimit,
+        ...(isSingles ? { cycles: singlesConfig.cycles, pointsPerGame: singlesConfig.pointsPerGame } : {})
       });
       const nextRules = {
         ...currentRules,
         gamesPerMatch: 1,
         pointsPerGame: pointsPerGame || normalizePoints(currentRules.pointsPerGame),
+        ...(isSingles ? { cycles: singlesConfig.cycles } : {}),
         endCondition: {
           type: resolvedEndConditionType,
           target: resolvedEndConditionTarget
@@ -118,7 +127,7 @@ exports.main = async (event) => {
       Object.assign(data, checked.patch);
       if (clientRequestId) data.lastClientRequestId = clientRequestId;
       if (nameProvided) data.name = syncedName;
-      if (nameProvided || pointsPerGame !== null || endConditionTypeInput !== null || endConditionTargetInput !== null || totalMatches !== null) {
+      if (isSingles || nameProvided || pointsPerGame !== null || endConditionTypeInput !== null || endConditionTargetInput !== null || totalMatches !== null) {
         data.rules = nextRules;
       }
       if (playerGenderPatch) {

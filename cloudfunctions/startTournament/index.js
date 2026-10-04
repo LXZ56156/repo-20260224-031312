@@ -7,10 +7,12 @@ const permission = require('./lib/permission');
 const modeHelper = require('./lib/mode');
 const playerUtils = require('./lib/player');
 const shareActivity = require('./lib/share-activity');
+const scheduleContract = require('./lib/schedule');
 
 const { generateSchedule, selectSchedulerPolicy, computeEffectiveCourts } = require('./rotation');
 const { validateBeforeGenerate } = require('./logic');
 const { buildSquadSchedule, buildFixedPairSchedule } = require('./scheduleModes');
+const { buildSinglesSchedule } = require('./singlesRoundRobinV1');
 
 // Keep response headroom inside the 10-second deployment timeout.
 const REQUEST_BUDGET_MS = 9000;
@@ -68,11 +70,12 @@ function hasMaterializedStartedTournament(tournament) {
   );
 }
 
-function assertScheduleIntegrity(schedule) {
+function assertScheduleIntegrity(schedule, mode) {
   const rounds = Array.isArray(schedule && schedule.rounds) ? schedule.rounds : [];
   for (const round of rounds) {
     const matches = Array.isArray(round && round.matches) ? round.matches : [];
     for (const match of matches) {
+      scheduleContract.assertValidMatchTeams(match, mode);
       const ids = []
         .concat(Array.isArray(match && match.teamA) ? match.teamA : [])
         .concat(Array.isArray(match && match.teamB) ? match.teamB : [])
@@ -80,7 +83,8 @@ function assertScheduleIntegrity(schedule) {
       if (ids.some((id) => !id)) {
         throw new Error('生成的对阵中有成员缺少唯一标识，请重试');
       }
-      if (ids.length !== 4) {
+      const teamSize = mode === modeHelper.MODE_SINGLES_ROUND_ROBIN ? 1 : 2;
+      if (ids.length !== teamSize * 2 || match.teamA.length !== teamSize || match.teamB.length !== teamSize) {
         throw new Error('生成的对阵人数异常，请重试');
       }
       if ((new Set(ids)).size !== ids.length) {
@@ -159,7 +163,9 @@ exports.main = async (event) => {
       assertRemainingBudget(deadlineAtMs, COMMIT_RESERVE_MS + 600);
       const runtimeBudgetMs = Math.min(SCHEDULE_BUDGET_MS, deadlineAtMs - Date.now() - COMMIT_RESERVE_MS);
       let schedule;
-      if (mode === 'squad_doubles') {
+      if (mode === modeHelper.MODE_SINGLES_ROUND_ROBIN) {
+        schedule = buildSinglesSchedule(players, C, { cycles: rules.cycles, deadlineAtMs: Date.now() + runtimeBudgetMs });
+      } else if (mode === 'squad_doubles') {
         schedule = buildSquadSchedule(players, M, C, { endCondition, _hardDeadlineMs: runtimeBudgetMs });
         if (schedule && schedule.schedulerMeta) {
           schedule.schedulerMeta.schedulerProfile = schedulerProfile;
@@ -186,7 +192,7 @@ exports.main = async (event) => {
           schedule.schedulerMeta.schedulerProfile = schedulerProfile;
         }
       }
-      assertScheduleIntegrity(schedule);
+      assertScheduleIntegrity(schedule, mode);
       const scheduleMs = Date.now() - scheduleStartedAtMs;
       const scheduleMeta = schedule && schedule.schedulerMeta && typeof schedule.schedulerMeta === 'object'
         ? schedule.schedulerMeta
@@ -210,10 +216,17 @@ exports.main = async (event) => {
       const materializeStartedAtMs = Date.now();
       const rounds = (schedule.rounds || []).map(r => ({
         roundIndex: r.roundIndex,
+        ...(mode === modeHelper.MODE_SINGLES_ROUND_ROBIN ? {
+          logicalRound: r.logicalRound, cycleIndex: r.cycleIndex, batchIndex: r.batchIndex, batchCount: r.batchCount,
+          byePlayers: (r.byePlayers || []).map(id => map[id]).filter(Boolean),
+          waitingPlayers: (r.waitingPlayers || []).map(id => map[id]).filter(Boolean),
+          restingPlayers: (r.restingPlayers || []).map(id => map[id]).filter(Boolean)
+        } : {}),
         matches: (r.matches || []).map(m => ({
           matchIndex: m.matchIndex,
           matchType: m.matchType || '',
           logicalRound: Number(m.logicalRound) || 0,
+          ...(mode === modeHelper.MODE_SINGLES_ROUND_ROBIN ? { cycleIndex: m.cycleIndex } : {}),
           unitAId: String(m.unitAId || ''),
           unitBId: String(m.unitBId || ''),
           unitAName: String(m.unitAName || ''),
@@ -241,6 +254,7 @@ exports.main = async (event) => {
         rankings,
         scheduleSeed: schedule.seed,
         mode,
+        ...(mode === modeHelper.MODE_SINGLES_ROUND_ROBIN ? { totalMatches: M, rules } : {}),
         pairTeams,
         fairnessScore: schedule.fairnessScore,
         // Store diagnostic details as JSON strings to avoid dot-path conflicts when existing fields are null.
@@ -418,6 +432,7 @@ function mapStartTournamentFailure(err, traceId = '') {
     message.includes('至少') ||
     message.includes('场地') ||
     message.includes('结束条件') ||
+    message.includes('参数') ||
     message.includes('名单') ||
     message.includes('成员') ||
     message.includes('对阵') ||

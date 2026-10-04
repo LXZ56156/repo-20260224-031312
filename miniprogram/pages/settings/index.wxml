@@ -26,6 +26,16 @@
 
     <view class="muted small" wx:if="{{settingsGateHint}}">{{settingsGateHint}}</view>
 
+    <view class="form-item" wx:if="{{isSingles}}">
+      <view class="form-label">循环次数</view>
+      <view class="form-field">
+        <picker mode="selector" range="{{singlesCycleOptions}}" value="{{singlesCycleIndex}}" bindchange="onPickSinglesCycles" disabled="{{!(canManageTournament && tournament.status==='draft' && canConfigureSettings)}}">
+          <view class="picker">{{singlesCycles}} 循环</view>
+        </picker>
+        <view class="muted small">{{singlesSummary}}</view>
+      </view>
+    </view>
+
     <view class="form-item">
       <view class="form-label">赛事名称</view>
       <view class="form-field">
@@ -42,7 +52,8 @@
     <view class="form-item">
       <view class="form-label">总场次</view>
       <view class="form-field">
-        <block wx:if="{{canManageTournament && tournament.status==='draft' && canConfigureSettings}}">
+        <view wx:if="{{isSingles}}" class="picker">{{editM}} 场（自动）</view>
+        <block wx:elif="{{canManageTournament && tournament.status==='draft' && canConfigureSettings}}">
           <block wx:if="{{useMatchPresetOptions}}">
             <view class="picker">{{editM}} 场</view>
             <view class="muted small settings-match-meta" wx:if="{{currentCustomMatchLabel}}">{{currentCustomMatchLabel}}</view>
@@ -100,7 +111,7 @@
     </view>
 
     <view class="form-item">
-      <view class="form-label">每轮最多场数</view>
+      <view class="form-label">{{isSingles ? '场地数量' : '每轮最多场数'}}</view>
       <view class="form-field">
         <block wx:if="{{canManageTournament && tournament.status==='draft' && canConfigureSettings}}">
           <picker mode="selector" range="{{courtOptions}}" value="{{courtIndex}}" bindchange="onPickCourts">
@@ -124,6 +135,7 @@
         <block wx:else>
           <view class="picker disabled">{{pointsPerGame}} 分</view>
         </block>
+        <view class="muted small" wx:if="{{isSingles}}">{{pointsPerGame===21 ? '每场一局，20平后领先2分，30分封顶' : '每场一局，先到目标分即胜'}}；不接受平局</view>
       </view>
     </view>
 

@@ -65,11 +65,20 @@ function assertValidRosterPlayers(players = [], label = '参赛名单') {
   return validation;
 }
 
+function assertValidMatchTeams(match, mode = 'multi_rotate') {
+  const size = mode === 'singles_round_robin' ? 1 : 2;
+  const a = Array.isArray(match && match.teamA) ? match.teamA : [];
+  const b = Array.isArray(match && match.teamB) ? match.teamB : [];
+  if (a.length !== size || b.length !== size) throw new Error('生成的对阵人数异常，请重试');
+  return assertValidRosterPlayers(a.concat(b), '对阵');
+}
+
 module.exports = {
   normalizeEndConditionType,
   deriveScheduledMatches,
   normalizeRosterPlayers,
   validateRosterPlayers,
   getRosterValidationMessage,
-  assertValidRosterPlayers
+  assertValidRosterPlayers,
+  assertValidMatchTeams
 };

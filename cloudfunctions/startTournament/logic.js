@@ -77,10 +77,18 @@ function buildPairTeamsInvalidError(validation) {
 function validateBeforeGenerate(tournament) {
   const t = tournament || {};
   const players = scheduleContract.normalizeRosterPlayers(Array.isArray(t.players) ? t.players : []);
-  if (players.length < 4) throw new Error('参赛人数不足 4 人');
-  scheduleContract.assertValidRosterPlayers(players);
-
   const mode = modeHelper.normalizeMode(t.mode);
+  if (mode !== modeHelper.MODE_SINGLES_ROUND_ROBIN && players.length < 4) throw new Error('参赛人数不足 4 人');
+  scheduleContract.assertValidRosterPlayers(players);
+  if (mode === modeHelper.MODE_SINGLES_ROUND_ROBIN) {
+    if (players.length < 2 || players.length > 8) throw new Error('单打循环需要 2–8 人参赛');
+    const config = modeHelper.getSinglesConfig({ ...t, players });
+    return { players, mode, totalMatches: config.totalMatches, scheduledMatches: config.totalMatches,
+      maxMatches: config.totalMatches, courts: config.courts, pairTeams: [], rules: {
+        gamesPerMatch: 1, pointsPerGame: config.pointsPerGame, cycles: config.cycles,
+        endCondition: { type: 'total_matches', target: config.totalMatches }, unfinishedPolicy: 'admin_decide'
+      } };
+  }
 
   const rules = t && t.rules && typeof t.rules === 'object' ? t.rules : {};
   const endCondition = rules && typeof rules.endCondition === 'object' ? rules.endCondition : {};

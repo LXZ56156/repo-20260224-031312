@@ -5,6 +5,7 @@ const gender = require('./ux/gender');
 const MODE_MULTI_ROTATE = modeHelper.MODE_MULTI_ROTATE;
 const MODE_SQUAD_DOUBLES = modeHelper.MODE_SQUAD_DOUBLES;
 const MODE_FIXED_PAIR_RR = modeHelper.MODE_FIXED_PAIR_RR;
+const MODE_SINGLES_ROUND_ROBIN = modeHelper.MODE_SINGLES_ROUND_ROBIN;
 const MODE_DOUBLES = modeHelper.MODE_DOUBLES;
 
 const ACTION_TEMPLATES = {
@@ -69,11 +70,18 @@ function getModeIntro(mode, presetKey) {
   if (preset) return `${preset.label}固定 ${preset.playerLimit} 人，默认 ${preset.defaultTotalMatches} 场。`;
   if (value === MODE_SQUAD_DOUBLES) return '个人报名后选A/B队，固定 A 队对 B 队。';
   if (value === MODE_FIXED_PAIR_RR) return '双打队伍单循环交手，按胜场与净胜分排名。';
+  if (value === MODE_SINGLES_ROUND_ROBIN) return '2–8 人逐一单打交手，默认 1 循环、1 局 21 分。';
   return '个人轮换搭档上场，按个人成绩排名。';
 }
 
 function getModeRuleLines(mode, presetKey) {
   const value = normalizeMode(mode);
+  if (value === MODE_SINGLES_ROUND_ROBIN) return [
+    '2–8 人、1/2 场地，可选 1/2 循环；每对每循环交手一次',
+    '同批每人最多上场一次，奇数人数每逻辑轮一人轮空',
+    '每场一局；21 分追分至领先 2 分、30 封顶；11/15 分先到即胜',
+    '按胜场、净胜分、总得分排名，三项相同共同名次'
+  ];
   const preset = value === MODE_MULTI_ROTATE ? resolveRotationPreset(presetKey) : null;
   if (preset) {
     return [
@@ -154,6 +162,10 @@ function getLaunchModes() {
       name: '固搭循环赛',
       summary: '以双打队伍报名，单循环依次交手，按胜场与净胜分排名。',
       badge: ''
+    },
+    {
+      key: 'singles', mode: MODE_SINGLES_ROUND_ROBIN, presetKey: 'custom', name: '单打循环',
+      summary: '2–8 人逐一交手 · 默认 1 循环、21 分', badge: ''
     }
   ];
 }
@@ -202,6 +214,8 @@ module.exports = {
   getTournamentDisplayName,
   canEditTournamentName,
   getRotationPlayerLimit,
+  getTournamentPlayerLimit: modeHelper.getTournamentPlayerLimit,
+  getSinglesConfig: modeHelper.getSinglesConfig,
   getModeLabel,
   getModeIntro,
   getModeRuleLines,
@@ -209,6 +223,7 @@ module.exports = {
   MODE_MULTI_ROTATE,
   MODE_SQUAD_DOUBLES,
   MODE_FIXED_PAIR_RR,
+  MODE_SINGLES_ROUND_ROBIN,
   MODE_DOUBLES,
   hasPendingMatch,
   pickNextAction

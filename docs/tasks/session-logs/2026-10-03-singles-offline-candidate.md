@@ -29,3 +29,21 @@ Luna独立静态报告`tmp/singles-proposal-20261005-support/assessment.md/json`
 ## 10-05用户采用方案并明确次序
 
 用户明确“单打建议就采用你这个方案”，同时要求首先完成数据库权限与微信身份验证。原权威规格状态改为已采用，默认人数/场地/循环/分制/排程/排名/收赛规则保持；单打实施排在身份权限阶段之后，不再把该方案当待批准，也不将批准写成全链路已实现。现有未tracked候选、历史21项回执与源字节保留，本阶段只登记采用和顺序，没有接mode、跑旧测试、部署单打或上传客户端。
+
+## 10-05用户要求持续完成：正式本地全链路
+
+用户最新要求持续做好可独立事项、需介入的先跳过。真实DevTools身份与临时ACL已完成并清理后，Sol high实现正式`singles_round_robin`；旧未tracked算法与candidate测试保持原字节。采用的2–8人/1–2场地/1–2循环、0/1人草稿、21分追分至30及11/15到分即胜不改，轮空/等待下一批/本批暂休分别展示，6人两场地15场仍10批，不按总场简单除场地。正式算法另名`singlesRoundRobinV1.js`。
+
+创建、设置/快捷设置、开赛、单人对阵、云锁/录分及幂等/更正、正常及提前结束、reset/clone、个人战绩、找回、本机快照和分享消费链已接入。共同名次按胜场/净胜分/得分三项，姓名仅稳定展示；排名选择及分享预览使用各球员稳定键，避免两个第一名冲突。新模式校验原始整数和合法终局；旧三模式原自由比分/parse规则保持。更正已提交比分仍走锁与submit；规格中的既有撤销仅编辑步骤和本机草稿，没有云端撤销已提交比分action。
+
+直接组合120/120、相关回归202/202；独立根`tmp/singles-root-verification-20261005/`由主控对稳定源码串行完整npm test/check/lint：1776项、1770通过、6旧WSL mirror runtime条件跳过、0失败/取消/todo；check exit0，lint exit0、0错误/35警告。该工作树保留原未tracked候选，其21测试也在总数内；不是新clean checkout计数，正式实现不引用旧候选。三检查before/after HEAD/status与全部dirty文件hash相同，stdout/stderr及实际数值exit在各receipt；Node实际v24.18.0，不把它称为云runtime或24.11验证。
+
+实现期失败原件在`tmp/singles-implementation-20261005/HANDOFF.md`逐轮登记：handler 1过5失败→1过5失败→3过3失败→6过0，分别是离线身份夹具、错误码期待和21:20非法终局；page5过1失败复现0人负零并修为0，组合118过1失败后修测试公式→120过0。共享库sync五次Windows cp Permission denied在不同文件均有进展，第六次成功；仅用原sync，未杀进程/手改lib/放松检查。五权威模板及全部适用生成副本一致，旧候选/私有配置/备份保全。
+
+六个当前display-only case已准备：singlesSettings6、singlesLobby6、singlesSchedule7、singlesMatch21、singlesRankingTied、singlesShareTied。它们不代替真实页面加载/云链路，真实PNG尚未取得：默认ui:iterate在doctor连接旧40402失败，日志`tmp/ui-iterate-runs/2026-10-04T21-18-29-087Z-54608-56a19634/`；官方预热使用实查空闲39460/全新session-390，等待60秒超时exit1、未签会话/未开始fixture注入。预热数值exit及错误来自工具会话，未伪称已保存独立raw流；不拿旧图或机器几何当验收，不继续盲重试。320/390/430、原生输入/分享面板、Android/iPhone、真实一场比赛和实际云角色/事务仍未验。
+
+本轮本地实现候选可审并按持续授权交付Git；未部署新单打函数、上传客户端、预览、扫码、付款或写真实业务。全部12项及第12实际发布/设备验收仍未完成。
+
+6 Luna max冷读`tmp/singles-cold-20261005/assessment.md/json`无可达P0/P1，指出0人后端持久化和并列分享选行的直接覆盖缺口。Sol仅在已有handler/page测试新增两条：真实源updateSettings handler保存空名单后精确0场/target0/2循环/11分/2场地且仍不能开赛；真实ranking选行/card-data/preheat路径逐个点击两位并列第一，稳定rankKey命中各entity、各自userName/rank1传到渲染边界。仅stub图片渲染，无云。相关8handler+7page共15/15、target lint0错误/0警告，原120与全量流保持，生产源/云包字节未变，按test-only风险不重复已过全量。
+
+当前9个实际手改函数完整包另在`tmp/singles-cloud-packages-20261005/`：118当前源含正式V1、57337各自依赖，9ZIP及9Linux官方24.11真实SDKrequire通过、main/网络/子进程0；其他17个仅同步库函数未扩包，云平台仍false。详细来源/初编排失败和实际回执见[第9日志](2026-10-03-dependency-inventory.md#10-05当前单打源码完整依赖包)，不拿旧26组结果冒当前单打全组通过。

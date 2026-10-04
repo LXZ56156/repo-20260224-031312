@@ -8,6 +8,7 @@ const matchFlow = require('../../core/matchFlow');
 const nav = require('../../core/nav');
 const writeErrorUi = require('../../core/writeErrorUi');
 const growthTracker = require('../../core/growthTracker');
+const scoreUtils = require('../../core/scoreUtils');
 const { normalizeTournament } = require('../../core/normalize');
 const { clampScore, buildClientRequestId } = require('./matchViewModel');
 
@@ -321,6 +322,11 @@ function createMatchSubmitService(ctx, deps = {}) {
   async function submit(options = {}) {
     const scoreA = clampScore(ctx.data.scoreA);
     const scoreB = clampScore(ctx.data.scoreB);
+    if (ctx.data.tournament && ctx.data.tournament.mode === 'singles_round_robin'
+      && !scoreUtils.isValidFinishedScore({ scoreA, scoreB }, ctx.data.tournament)) {
+      wx.showToast({ title: scoreUtils.getFinishedScoreHint(ctx.data.tournament), icon: 'none' });
+      return;
+    }
     if (!Number.isFinite(scoreA) || !Number.isFinite(scoreB) || scoreA < 0 || scoreB < 0) {
       wx.showToast({ title: '请输入合法比分', icon: 'none' });
       return;

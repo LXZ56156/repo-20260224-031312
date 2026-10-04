@@ -1,8 +1,8 @@
 const score = require('./lib/score');
 const rankingCore = require('./lib/rankingCore');
 
-function isCompletedMatch(match) {
-  return !!(match && match.status === 'finished' && score.isValidFinishedScore(match));
+function isCompletedMatch(match, tournament) {
+  return !!(match && match.status === 'finished' && score.isValidFinishedScore(match, tournament));
 }
 
 function buildManualFinish(tournament) {
@@ -12,7 +12,7 @@ function buildManualFinish(tournament) {
   for (const round of rounds) {
     for (const match of (Array.isArray(round.matches) ? round.matches : [])) {
       if (!match) continue;
-      if (isCompletedMatch(match)) { completedMatches += 1; continue; }
+      if (isCompletedMatch(match, tournament)) { completedMatches += 1; continue; }
       match.status = 'canceled';
       match.cancelReason = 'manual_finish';
       // Cancellation is not a zero score or a loss, including legacy score fields.

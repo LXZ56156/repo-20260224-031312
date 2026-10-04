@@ -276,6 +276,8 @@ function buildLocalTournamentSnapshot(tournament) {
     _id: tid,
     status: String(t.status || '').trim(),
     mode: String(t.mode || '').trim(),
+    ...(t.mode === 'singles_round_robin' ? { rules: { gamesPerMatch: 1,
+      pointsPerGame: Number(t.rules && t.rules.pointsPerGame) || 21, cycles: Number(t.rules && t.rules.cycles) || 1 } } : {}),
     version: Number(t.version) || 0,
     updatedAt: t.updatedAt || null,
     createdAt: t.createdAt || null,

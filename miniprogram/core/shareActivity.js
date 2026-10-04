@@ -4,6 +4,7 @@ const systemInfo = require('./systemInfo');
 const START_TEMPLATE_ID = '21B034D08C5615B9889CE362BB957B1EE69A584B';
 
 function resolveRoomLimit(tournament) {
+  if (String(tournament && tournament.mode || '') === 'singles_round_robin') return 8;
   const direct = Number(tournament && tournament.playerLimit);
   if (Number.isFinite(direct) && direct > 0) return Math.floor(direct);
   const fromMode = Number(flow.getRotationPlayerLimit(tournament || {}));

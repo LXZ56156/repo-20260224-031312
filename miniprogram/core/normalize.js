@@ -60,7 +60,12 @@ function normalizeTournament(t) {
       teamA: Array.isArray(m.teamA) ? m.teamA.map(normalizePlayerRef) : [],
       teamB: Array.isArray(m.teamB) ? m.teamB.map(normalizePlayerRef) : []
     })) : [],
-    restPlayers: Array.isArray(r.restPlayers) ? r.restPlayers.map(normalizePlayerRef) : []
+    restPlayers: Array.isArray(r.restPlayers) ? r.restPlayers.map(normalizePlayerRef) : [],
+    ...(t.mode === modeHelper.MODE_SINGLES_ROUND_ROBIN ? {
+      byePlayers: Array.isArray(r.byePlayers) ? r.byePlayers.map(normalizePlayerRef) : [],
+      waitingPlayers: Array.isArray(r.waitingPlayers) ? r.waitingPlayers.map(normalizePlayerRef) : [],
+      restingPlayers: Array.isArray(r.restingPlayers) ? r.restingPlayers.map(normalizePlayerRef) : []
+    } : {})
   })) : [];
 
   const rankings = Array.isArray(t.rankings) ? t.rankings.map(r => {

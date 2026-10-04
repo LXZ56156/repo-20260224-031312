@@ -64,7 +64,7 @@
           <text class="participant-preview-meta">{{preview.progressText}}</text>
         </view>
         <view class="ranking-preview-list" wx:if="{{preview.rankingPreview.length}}">
-          <view class="ranking-preview-row" wx:for="{{preview.rankingPreview}}" wx:key="rank">
+          <view class="ranking-preview-row" wx:for="{{preview.rankingPreview}}" wx:key="previewKey">
             <text class="ranking-preview-rank">No.{{item.rank}}</text>
             <text class="ranking-preview-name">{{item.name}}</text>
             <text class="ranking-preview-meta">{{item.summaryText}}</text>

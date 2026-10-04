@@ -101,6 +101,9 @@ exports.main = async (event) => {
       const t = common.assertTournamentExists(docRes.data);
       if (!permission.canEditScore(t, OPENID)) return createCodeResult('PERMISSION_DENIED', '无权限录分', { traceId });
       if (t.status !== 'running' && t.status !== 'finished') return createCodeResult('PERMISSION_DENIED', '赛事未开赛', { traceId });
+      if (!scoreUtils.isValidFinishedScore(event, t)) {
+        return createCodeResult('SCORE_INVALID', scoreUtils.getFinishedScoreHint(t), { traceId });
+      }
 
       const match = findMatch(t, roundIndex, matchIndex);
       if (!match) return createCodeResult('MATCH_NOT_FOUND', '比赛不存在', { traceId });

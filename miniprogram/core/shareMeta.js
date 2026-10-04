@@ -81,7 +81,8 @@ function countRoundProgress(rounds) {
 function buildRankingPreview(tournament, limit = 3) {
   const rows = ranking.normalizeCurrentRankings(tournament || {});
   return rows.slice(0, limit).map((row, idx) => ({
-    rank: idx + 1,
+    previewKey: String(row.entityId || row.playerId || row.teamId || `ranking_${idx}`),
+    rank: Number(row.rank) || idx + 1,
     name: String(row && row.name || '').trim() || '未命名',
     wins: Number(row && row.wins) || 0,
     losses: Number(row && row.losses) || 0,
@@ -157,7 +158,7 @@ function buildShareMessage(tournament) {
   const lifecycle = normalizeLifecycleStatus(t && t.status);
   const players = t && Array.isArray(t.players) ? t.players : [];
   const playersCount = players.length || (t && Array.isArray(t.playerIds) ? t.playerIds.length : 0);
-  const playerLimit = flow.getRotationPlayerLimit(t);
+  const playerLimit = flow.getTournamentPlayerLimit(t);
   const joinAllowed = lifecycle === 'draft' && (playerLimit <= 0 || playersCount < playerLimit);
   let title = `${tournamentName} · 羽球轮转助手`;
   if (joinAllowed) title = `${tournamentName}，加入羽毛球比赛`;
@@ -354,7 +355,7 @@ function buildShareEntryViewModel({ tournament, openid = '' }) {
   const tournamentName = flow.getTournamentDisplayName(normalizedTournament, '羽毛球比赛');
   const players = Array.isArray(normalizedTournament.players) ? normalizedTournament.players : [];
   const playersCount = players.length || (Array.isArray(normalizedTournament.playerIds) ? normalizedTournament.playerIds.length : 0);
-  const playerLimit = flow.getRotationPlayerLimit(normalizedTournament);
+  const playerLimit = flow.getTournamentPlayerLimit(normalizedTournament);
   const joinAllowed = lifecycle === 'draft' && (playerLimit <= 0 || playersCount < playerLimit);
   const previewMode = buildPreviewMode({ lifecycle, joined, joinAllowed });
   const modeLabel = flow.getModeDisplayLabel(mode, normalizedTournament.presetKey);
@@ -403,12 +404,13 @@ function buildShareEntryViewModel({ tournament, openid = '' }) {
     playerLimit,
     playersCountText: playerLimit > 0 ? `已报名 ${playersCount}/${playerLimit} 人` : `${playersCount} 人`,
     eventSummaryText: buildEventSummaryText(normalizedTournament, modeLabel, progress),
-    socialProofText: buildSocialProofText({ playerLimit, playersCount }),
+    socialProofText: mode === flow.MODE_SINGLES_ROUND_ROBIN ? `${playersCount} 人已报名 · 2–8 人可开赛` : buildSocialProofText({ playerLimit, playersCount }),
     participantPreviewList,
     participantOverflowText: buildParticipantOverflowText(playersCount, participantPreviewList.length),
     venueText,
     timeText: timeText ? formatDateTime(timeText) : '未设置',
-    progressText,
+    progressText: normalizedTournament.finishMeta && normalizedTournament.finishMeta.type === 'manual'
+      ? `仅统计已录 ${normalizedTournament.finishMeta.completedMatches}/${progress.totalMatches} 场` : progressText,
     currentRoundText,
     roundsText: progress.totalRounds ? `${progress.completedRounds}/${progress.totalRounds} 轮已完成` : '暂无轮次',
     rankingPreview,
@@ -417,7 +419,7 @@ function buildShareEntryViewModel({ tournament, openid = '' }) {
     showRankingPreview: lifecycle === 'running' || lifecycle === 'finished',
     showParticipantPreview: lifecycle === 'draft',
     showProgressSummary: lifecycle !== 'draft',
-    primaryCtaReason,
+    primaryCtaReason: mode === flow.MODE_SINGLES_ROUND_ROBIN && lifecycle === 'draft' ? '2–8 人可开赛' : primaryCtaReason,
     secondaryCtaText: secondaryAction ? secondaryAction.text : '',
     tournament: normalizedTournament
   };

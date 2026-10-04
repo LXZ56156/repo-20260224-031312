@@ -198,9 +198,16 @@ function decorateRounds(t, options = {}) {
 
     return {
       roundIndex: round.roundIndex || 0,
+      roundTitle: t.mode === flow.MODE_SINGLES_ROUND_ROBIN
+        ? `第${round.cycleIndex}循环 · 第${round.logicalRound}轮 · 第${round.batchIndex}/${round.batchCount}批`
+        : `第${(round.roundIndex || 0) + 1}轮`,
       isCurrentRound: false,
       matchesUi,
-      restText: rest.length ? `轮空：${rest.map(asName).join(' / ')}` : ''
+      restText: t.mode === flow.MODE_SINGLES_ROUND_ROBIN ? [
+        round.byePlayers && round.byePlayers.length ? `轮空：${round.byePlayers.map(asName).join(' / ')}` : '',
+        round.waitingPlayers && round.waitingPlayers.length ? `等待下一批：${round.waitingPlayers.map(asName).join(' / ')}` : '',
+        round.restingPlayers && round.restingPlayers.length ? `本批暂休：${round.restingPlayers.map(asName).join(' / ')}` : ''
+      ].filter(Boolean).join('；') : (rest.length ? `轮空：${rest.map(asName).join(' / ')}` : '')
     };
   });
 }
@@ -541,7 +548,7 @@ Page({
     const sourceMatches = (Array.isArray(t.rounds) ? t.rounds : []).reduce((matches, round) =>
       matches.concat(Array.isArray(round.matches) ? round.matches : []), []);
     const finishCompletedMatches = sourceMatches.filter((match) =>
-      match && match.status === 'finished' && scoreUtils.isValidFinishedScore(match)).length;
+      match && match.status === 'finished' && scoreUtils.isValidFinishedScore(match, t)).length;
     const finishRemainingMatches = sourceMatches.length - finishCompletedMatches;
     const canFinishTournament = status === 'running' && perm.isAdmin(t, this.openid) && finishCompletedMatches > 0;
     const displayTotalMatches = scheduleContract.resolveDisplayTotalMatches(t, roundsSummary.totalMatches);

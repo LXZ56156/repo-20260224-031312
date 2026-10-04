@@ -50,6 +50,7 @@
     </view>
 
     <!-- 快捷比分工具栏（编辑态） -->
+    <view class="muted small" wx:if="{{scoreRuleHint}}">{{scoreRuleHint}}</view>
     <view class="score-toolbar" wx:if="{{canEdit}}">
       <scroll-view class="quick-score-scroll" scroll-x="true" show-scrollbar="{{false}}">
         <view class="quick-scores">

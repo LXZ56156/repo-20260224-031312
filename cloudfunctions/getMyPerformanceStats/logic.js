@@ -1,3 +1,5 @@
+const scoreUtils = require('./lib/score');
+
 function toTimestamp(value) {
   if (!value) return 0;
   if (value instanceof Date) {
@@ -19,7 +21,8 @@ function toTimestamp(value) {
   return 0;
 }
 
-function parseScore(match) {
+function parseScore(match, tournament) {
+  if (tournament && tournament.mode === 'singles_round_robin' && !scoreUtils.isValidFinishedScore(match, tournament)) return null;
   const raw = match || {};
   const a = Number(raw.teamAScore ?? raw.scoreA ?? (raw.score && raw.score.teamA));
   const b = Number(raw.teamBScore ?? raw.scoreB ?? (raw.score && raw.score.teamB));
@@ -115,7 +118,7 @@ function computeMyPerformanceStats(tournaments, openid, windowType = 'all', nowM
       const matches = Array.isArray(round && round.matches) ? round.matches : [];
       for (const match of matches) {
         if (!match || String(match.status || '') !== 'finished') continue;
-        const score = parseScore(match);
+        const score = parseScore(match, tournament);
         if (!score) continue;
         const side = resolveMySide(match, oid);
         if (!side) continue;

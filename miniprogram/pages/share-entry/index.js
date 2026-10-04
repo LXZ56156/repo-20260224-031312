@@ -19,7 +19,7 @@ const flow = require('./flow');
 const IDENTITY_TIMEOUT_MS = 2500;
 const GROWTH_ONBOARDING_PENDING_KEY = 'growth:onboarding:pending';
 const TRACKABLE_STATUSES = { draft: true, running: true, finished: true };
-const TRACKABLE_MODES = { multi_rotate: true, squad_doubles: true, fixed_pair_rr: true };
+const TRACKABLE_MODES = { multi_rotate: true, squad_doubles: true, fixed_pair_rr: true, singles_round_robin: true };
 
 function warnCloudProfileSaveFailure(err) {
   console.warn('[share-entry] saveCloudProfile failed after join', err);

@@ -22,6 +22,8 @@ async function listByWhere(where) {
       .field({
         _id: true,
         status: true,
+        mode: true,
+        rules: true,
         players: true,
         playerIds: true,
         rounds: true,

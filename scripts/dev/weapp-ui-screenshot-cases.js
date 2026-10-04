@@ -877,4 +877,6 @@ cases.scheduleManualFinished = {
       { ...pendingDisplay, status: 'canceled', statusText: '已取消', statusClass: 'pill-canceled', isFirstPending: false }] }] },
 };
 
+require('./singles-screenshot-fixtures').registerCases(cases);
+
 module.exports = { cases, manualActions };

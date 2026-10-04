@@ -3,6 +3,7 @@ const playerUtils = require('./player');
 const MODE_MULTI_ROTATE = 'multi_rotate';
 const MODE_SQUAD_DOUBLES = 'squad_doubles';
 const MODE_FIXED_PAIR_RR = 'fixed_pair_rr';
+const MODE_SINGLES_ROUND_ROBIN = 'singles_round_robin';
 const MODE_DOUBLES = 'doubles';
 const PRESET_CUSTOM = 'custom';
 
@@ -35,7 +36,7 @@ const ROTATION_PRESETS = {
 
 function normalizeMode(mode) {
   const v = String(mode || '').trim().toLowerCase();
-  if (v === MODE_MULTI_ROTATE || v === MODE_SQUAD_DOUBLES || v === MODE_FIXED_PAIR_RR) return v;
+  if (v === MODE_MULTI_ROTATE || v === MODE_SQUAD_DOUBLES || v === MODE_FIXED_PAIR_RR || v === MODE_SINGLES_ROUND_ROBIN) return v;
   if (v === MODE_DOUBLES) return MODE_MULTI_ROTATE;
   return MODE_MULTI_ROTATE;
 }
@@ -70,6 +71,7 @@ function getModeDisplayLabel(mode, presetKey) {
   if (preset) return preset.label;
   if (value === MODE_SQUAD_DOUBLES) return '小队转';
   if (value === MODE_FIXED_PAIR_RR) return '固搭循环赛';
+  if (value === MODE_SINGLES_ROUND_ROBIN) return '单打循环';
   return '多人转';
 }
 
@@ -102,6 +104,26 @@ function canEditTournamentName(mode, presetKey) {
 function getRotationPlayerLimit(tournament) {
   const preset = resolveRotationPreset(tournament && tournament.presetKey);
   return preset ? preset.playerLimit : 0;
+}
+
+function getTournamentPlayerLimit(tournament) {
+  if (normalizeMode(tournament && tournament.mode) === MODE_SINGLES_ROUND_ROBIN) return 8;
+  return getRotationPlayerLimit(tournament);
+}
+
+function getSinglesConfig(tournament = {}) {
+  const rules = tournament.rules || {};
+  const cycles = rules.cycles === undefined ? 1 : Number(rules.cycles);
+  const pointsPerGame = rules.pointsPerGame === undefined ? 21 : Number(rules.pointsPerGame);
+  const courts = tournament.courts === undefined ? 1 : Number(tournament.courts);
+  if (![1, 2].includes(cycles)) throw new Error('单打循环参数只支持 1 或 2 循环');
+  if (![11, 15, 21].includes(pointsPerGame)) throw new Error('单打分制参数只支持 11、15 或 21 分');
+  if (![1, 2].includes(courts)) throw new Error('单打循环只支持 1 或 2 场地');
+  const count = Array.isArray(tournament.players) ? tournament.players.length : 0;
+  return { cycles, pointsPerGame, courts, totalMatches: count >= 2 ? count * (count - 1) / 2 * cycles : 0,
+    matchesPerPlayer: Math.max(0, count - 1) * cycles,
+    logicalRounds: count >= 2 ? (count % 2 ? count : count - 1) * cycles : 0,
+    batches: count >= 2 ? (count % 2 ? count : count - 1) * Math.ceil(Math.floor(count / 2) / courts) * cycles : 0 };
 }
 
 function safePlayerName(player) {
@@ -163,6 +185,7 @@ module.exports = {
   MODE_MULTI_ROTATE,
   MODE_SQUAD_DOUBLES,
   MODE_FIXED_PAIR_RR,
+  MODE_SINGLES_ROUND_ROBIN,
   MODE_DOUBLES,
   PRESET_CUSTOM,
   normalizeMode,
@@ -175,6 +198,8 @@ module.exports = {
   getTournamentDisplayName,
   canEditTournamentName,
   getRotationPlayerLimit,
+  getTournamentPlayerLimit,
+  getSinglesConfig,
   safePlayerName,
   buildInitialRankings
 };

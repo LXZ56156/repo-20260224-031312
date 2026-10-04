@@ -420,7 +420,7 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
 
   const players = Array.isArray(t.players) ? t.players : [];
   const playersCount = players.length;
-  const playerLimit = flow.getRotationPlayerLimit(t);
+  const playerLimit = flow.getTournamentPlayerLimit(t);
   const quotaRemaining = playerLimit > 0 ? Math.max(0, playerLimit - playersCount) : 0;
   const quotaFull = playerLimit > 0 && playersCount >= playerLimit;
   const playerCountText = playerLimit > 0 ? `${playersCount}/${playerLimit} 人` : `${playersCount} 人`;
@@ -450,7 +450,7 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
     ? (canManageTournament ? '长按成员可移除' : (myJoined ? '长按自己可退出' : ''))
     : '';
   if (status === 'draft' && playerLimit > 0) {
-    const quotaHint = playersCount < playerLimit
+    const quotaHint = t.mode === flow.MODE_SINGLES_ROUND_ROBIN ? '2–8 人可开赛' : playersCount < playerLimit
       ? `还差 ${quotaRemaining} 人`
       : (playersCount === playerLimit ? '名额已满' : `超出 ${playersCount - playerLimit} 人`);
     playerRosterHint = playerRosterHint ? `${playerRosterHint} · ${quotaHint}` : quotaHint;
@@ -513,7 +513,7 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
   const quickConfigMDigitRange = settingsFormState.mDigitRange;
   const quickConfigMDigitValue = settingsFormState.mDigitValue;
   const quickConfigCIndex = settingsFormState.courtIndex;
-  const playersCountForOptions = playerLimit || playersCount;
+  const playersCountForOptions = mode === flow.MODE_SINGLES_ROUND_ROBIN ? playersCount : (playerLimit || playersCount);
   const quickMatchSelectionState = settingsViewModel.buildMatchSelectionUiState({
     mode,
     playersCount: playersCountForOptions,
@@ -572,7 +572,11 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
   let primaryTaskTitle = '';
   let primaryTaskSummary = '';
   if (status === 'draft' && canManageTournament) {
-    if (mode === flow.MODE_FIXED_PAIR_RR) {
+    if (mode === flow.MODE_SINGLES_ROUND_ROBIN) {
+      primaryTaskKey = !checkPlayersOk ? 'import_players' : (!checkSettingsOk ? 'settings' : 'start');
+      primaryTaskTitle = !checkPlayersOk ? '调整名单' : (!checkSettingsOk ? '修改比赛' : '开始比赛');
+      primaryTaskSummary = !checkPlayersOk ? playersChecklistHint : settingsFormState.singlesSummary;
+    } else if (mode === flow.MODE_FIXED_PAIR_RR) {
       if (playersCount < 4) {
         primaryTaskKey = 'import_players';
         primaryTaskTitle = '导入名单';
@@ -732,7 +736,12 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
       quotaRemaining,
       pointsPerGame,
       genderSummaryText: `男 ${genderCount.maleCount} · 女 ${genderCount.femaleCount} · 未设 ${genderCount.unknownCount}`,
-      matchInfoText: kpiReady ? `${modeLabel} · ${pointsPerGame}分制 · 总 ${displayTotalMatches} 场 · 每轮最多 ${courts} 场` : '未设置',
+      matchInfoText: kpiReady ? (mode === flow.MODE_SINGLES_ROUND_ROBIN ? `${modeLabel} · ${pointsPerGame}分制 · ${settingsFormState.singlesSummary}` : `${modeLabel} · ${pointsPerGame}分制 · 总 ${displayTotalMatches} 场 · 每轮最多 ${courts} 场`) : '未设置',
+      isSingles: settingsFormState.isSingles,
+      quickSinglesCycles: settingsFormState.singlesCycles,
+      quickSinglesCycleOptions: settingsFormState.singlesCycleOptions,
+      quickSinglesCycleIndex: settingsFormState.singlesCycleIndex,
+      quickSinglesSummary: settingsFormState.singlesSummary,
       quickConfigName,
       quickCanEditTournamentName: settingsFormState.canEditTournamentName,
       quickConfigGateHint: String(settingsFormState.settingsGateHint || ''),

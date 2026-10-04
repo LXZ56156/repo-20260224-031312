@@ -5,8 +5,8 @@ function extractId(player) {
   return playerUtils.extractPlayerId(player);
 }
 
-function parseScore(match) {
-  if (!scoreUtils.isValidFinishedScore(match)) return null;
+function parseScore(match, tournament) {
+  if (!scoreUtils.isValidFinishedScore(match, tournament)) return null;
   return scoreUtils.extractScorePairAny(match);
 }
 
@@ -61,7 +61,7 @@ function buildLocalPerformancePayload(tournaments, openid) {
       const matches = Array.isArray(round && round.matches) ? round.matches : [];
       for (const match of matches) {
         if (!match || String(match.status || '') !== 'finished') continue;
-        const score = parseScore(match);
+        const score = parseScore(match, tournament);
         if (!score) continue;
         const side = resolveMySide(match, oid);
         if (!side) continue;

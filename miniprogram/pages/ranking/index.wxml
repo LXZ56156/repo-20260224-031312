@@ -25,7 +25,7 @@
     <view class="hero-kicker">积分榜</view>
     <view class="hero-title">{{rankingTypeLabel}}</view>
     <view class="hero-sub">{{tournament.name}}</view>
-    <view class="hero-sub">排序：胜场 → 净胜分 → 总得分 → 名称</view>
+    <view class="hero-sub">{{rankingSortHint || '排序：胜场 → 净胜分 → 总得分 → 名称'}}</view>
     <view class="hero-actions ranking-hero-actions btn-row">
       <view class="ranking-action-stack">
         <button class="btn btn-primary btn-sm ranking-action-full" bindtap="onGeneratePoster">{{posterButtonText}}</button>
@@ -48,11 +48,11 @@
     <view class="state-empty-desc">开赛并录入比分后会自动计算胜场与净胜分</view>
   </view>
 
-  <view class="card panel ranking-card reveal {{idx < 3 ? 'ranking-card-top' : ''}} {{idx === 0 ? 'ranking-card-1st' : ''}} {{idx === 1 ? 'ranking-card-2nd' : ''}} {{idx === 2 ? 'ranking-card-3rd' : ''}}" style="animation-delay: {{idx < 6 ? 60 + idx * 24 : 204}}ms;" hover-class="list-card-press" hover-stay-time="80" wx:for="{{rankings}}" wx:for-item="r" wx:for-index="idx" wx:key="rankKey">
+  <view class="card panel ranking-card reveal {{(tournament.mode==='singles_round_robin' ? r.rank <= 3 : idx < 3) ? 'ranking-card-top' : ''}} {{(tournament.mode==='singles_round_robin' ? r.rank===1 : idx===0) ? 'ranking-card-1st' : ''}} {{(tournament.mode==='singles_round_robin' ? r.rank===2 : idx===1) ? 'ranking-card-2nd' : ''}} {{(tournament.mode==='singles_round_robin' ? r.rank===3 : idx===2) ? 'ranking-card-3rd' : ''}}" style="animation-delay: {{idx < 6 ? 60 + idx * 24 : 204}}ms;" hover-class="list-card-press" hover-stay-time="80" wx:for="{{rankings}}" wx:for-item="r" wx:for-index="idx" wx:key="rankKey">
     <view class="ranking-row">
       <view class="ranking-main-row">
         <view class="ranking-left">
-          <view class="rank-badge {{idx === 0 ? 'rank-1' : ''}} {{idx === 1 ? 'rank-2' : ''}} {{idx === 2 ? 'rank-3' : ''}}">{{idx + 1}}</view>
+          <view class="rank-badge {{r.rank === 1 ? 'rank-1' : ''}} {{r.rank === 2 ? 'rank-2' : ''}} {{r.rank === 3 ? 'rank-3' : ''}}">{{r.rank}}</view>
           <view class="ranking-avatar-group {{r.avatarItems.length > 1 ? 'pair' : ''}}" wx:if="{{r.avatarItems.length}}">
             <view class="ranking-avatar {{item.colorClass}}" wx:for="{{r.avatarItems}}" wx:key="id">
               <image class="ranking-avatar-img" wx:if="{{item.avatarDisplay}}" src="{{item.avatarDisplay}}" mode="aspectFill" data-avatar-raw="{{item.avatarRaw}}" binderror="onAvatarImageError"></image>
@@ -72,7 +72,7 @@
       </view>
       <view class="ranking-card-foot" wx:if="{{r.showTrend || r.topShareText}}">
         <view class="trend-pill {{r.trendType}} {{r.showTrend ? '' : 'trend-muted'}}" wx:if="{{r.showTrend}}">较上轮 {{r.trendText}}</view>
-        <view class="rank-row-share" wx:if="{{r.topShareText}}" data-rank="{{r.rank}}" bindtap="onShareRankingRow">{{r.topShareText}}</view>
+        <view class="rank-row-share" wx:if="{{r.topShareText}}" data-rank="{{r.rank}}" data-rank-key="{{r.rankKey}}" bindtap="onShareRankingRow">{{r.topShareText}}</view>
       </view>
     </view>
   </view>
