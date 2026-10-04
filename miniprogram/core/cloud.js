@@ -1,5 +1,6 @@
 const trace = require('./trace');
 const envConfig = require('../config/env');
+const activityTracker = require('./activityTracker');
 
 const CONFLICT_CODES = new Set(['VERSION_CONFLICT']);
 const NETWORK_CODES = new Set(['NETWORK_ERROR']);
@@ -526,15 +527,20 @@ async function call(name, data = {}, options = {}) {
   const retryDelays = shouldRetryCloudCall(name, payload, options)
     ? normalizeRetryDelays(options)
     : [];
+  const trackedOperation = activityTracker.begin(name, payload);
 
   for (let attempt = 0; ; attempt += 1) {
     try {
       const res = await wx.cloud.callFunction({ name, data: payload });
-      return normalizeCloudResult(res && res.result, name);
+      const result = normalizeCloudResult(res && res.result, name);
+      activityTracker.finish(trackedOperation, result, '', attempt);
+      return result;
     } catch (err) {
       if (err && !String(err.traceId || '').trim()) err.traceId = payload.__traceId;
       const canRetry = attempt < retryDelays.length && isRetryableCallError(err);
       if (!canRetry) {
+        const parsed = parseCloudError(err);
+        activityTracker.finish(trackedOperation, null, parsed.isTimeout ? 'TIMEOUT' : parsed.isNetwork ? 'NETWORK_ERROR' : 'SDK_EXCEPTION', attempt);
         handleCloudCallFailure(name, err);
         const rawMessage = normalizeErrMsg(err);
         if (err && typeof err === 'object' && isTechnicalErrorMessage(rawMessage)) {

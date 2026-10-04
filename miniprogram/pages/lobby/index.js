@@ -14,6 +14,7 @@ const uiPreferences = require('../../core/uiPreferences');
 const avatarDisplay = require('../../core/avatarDisplay');
 const avatarDiagnostics = require('../../core/avatarDiagnostics');
 const growthTracker = require('../../core/growthTracker');
+const activityTracker = require('../../core/activityTracker');
 const viewModel = require('./lobbyViewModel');
 const settingsViewModel = require('../settings/settingsViewModel');
 const { createLobbyDelegates } = require('./lobbyDelegates');
@@ -453,6 +454,7 @@ Page({
   },
 
   onShareAppMessage() {
+    activityTracker.tournamentShare();
     const meta = shareMeta.buildShareMessage(this.data.tournament);
     const message = {
       title: meta.title,

@@ -5,6 +5,7 @@ const waterRecent = require('../../core/waterRecent');
 const cloud = require('../../core/cloud');
 const actionGuard = require('../../core/actionGuard');
 const clientRequest = require('../../core/clientRequest');
+const activityTracker = require('../../core/activityTracker');
 const lobbyImportActions = require('../lobby/lobbyImportActions');
 
 const unitOptions = Array.from({ length: 99 }, (_, index) => String(index + 1));
@@ -538,6 +539,7 @@ Page({
   },
 
   async onLoad(options = {}) {
+    activityTracker.waterEnter();
     this.syncShareMenu(false);
     this._entryMode = options.new === '1' ? 'new' : options.history === '1' ? 'history' : '';
     if (this._entryMode === 'new') {

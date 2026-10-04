@@ -12,6 +12,7 @@ const shareMeta = require('../../core/shareMeta');
 const storage = require('../../core/storage');
 const writeErrorUi = require('../../core/writeErrorUi');
 const growthTracker = require('../../core/growthTracker');
+const activityTracker = require('../../core/activityTracker');
 const avatarDisplay = require('../../core/avatarDisplay');
 const flow = require('./flow');
 
@@ -31,8 +32,25 @@ function isTrackableShareEntryTournament(tournament) {
 }
 
 const shareEntrySyncController = pageTournamentSync.createTournamentSyncMethods({
+  buildRemoteState(result) {
+    const status = String(result && result.doc && result.doc.status || '').trim();
+    activityTracker.finishShareEnter(this._shareEnterOperation, Object.prototype.hasOwnProperty.call(TRACKABLE_STATUSES, status) ? 'confirmed' : 'failed');
+    return { showStaleSyncHint: false, loadError: false };
+  },
+  buildWatchState(doc, meta = {}) {
+    if (['init_fetch', 'realtime', 'realtime_recovered', 'polling', 'devtools_polling'].includes(meta.source)) {
+      const status = String(doc && doc.status || '').trim();
+      activityTracker.finishShareEnter(this._shareEnterOperation, Object.prototype.hasOwnProperty.call(TRACKABLE_STATUSES, status) ? 'confirmed' : 'failed');
+    }
+    return { showStaleSyncHint: false, loadError: false };
+  },
+  buildCachedState() {
+    activityTracker.finishShareEnter(this._shareEnterOperation, 'failed');
+    return { showStaleSyncHint: true, loadError: false };
+  },
   buildLoadErrorState(result) {
     const errorType = String((result && result.errorType) || '').trim();
+    activityTracker.finishShareEnter(this._shareEnterOperation, errorType === 'not_found' ? 'missing' : errorType === 'param' ? 'invalid' : 'failed');
     let preview = shareMeta.buildRetryableShareEntryState('同步失败，请稍后重试');
     if (errorType === 'not_found') {
       preview = shareMeta.buildInvalidShareEntryState('比赛不存在或已关闭');
@@ -77,6 +95,7 @@ Page({
 
   onLoad(options) {
     this._lifecycleGeneration = 0;
+    this._shareEnterOperation = activityTracker.shareEnter();
     const tournamentId = flow.parseTournamentId(options || {});
     const intent = flow.normalizeIntent(options && options.intent);
     const app = getApp();
@@ -98,6 +117,7 @@ Page({
       });
     }
     if (!tournamentId) {
+      activityTracker.finishShareEnter(this._shareEnterOperation, 'invalid');
       this.setData({ preview: shareMeta.buildInvalidShareEntryState('链接无效') });
       return;
     }
@@ -130,12 +150,24 @@ Page({
   },
 
   onUnload() {
+    activityTracker.finishShareEnter(this._shareEnterOperation, 'left');
     this._lifecycleGeneration = Number(this._lifecycleGeneration || 0) + 1;
     pageTournamentSync.teardownTournamentSync(this);
     this.invalidateIdentityAttempt();
     pageTimers.clearAllTimers(this);
     if (typeof this._offNetwork === 'function') this._offNetwork();
     this._offNetwork = null;
+  },
+
+  async fetchTournament(tournamentId) {
+    const operation = this._shareEnterOperation;
+    try {
+      return await shareEntrySyncController.fetchTournament.call(this, tournamentId);
+    } finally {
+      // The controller can retain an existing doc after a failed remote read.
+      // Only the remote/watch hooks above can confirm cloud state.
+      activityTracker.finishShareEnter(operation, 'failed');
+    }
   },
 
   readCachedOpenid() {
@@ -309,7 +341,10 @@ Page({
       this.setData({ preview: shareMeta.buildInvalidShareEntryState('链接无效') });
       return;
     }
-    this.fetchTournament(tournamentId);
+    if (!this._shareEnterOperation || this._shareEnterOperation.completed) {
+      this._shareEnterOperation = activityTracker.shareEnter();
+    }
+    return this.fetchTournament(tournamentId);
   },
 
   onPickJoinSquad(e) {

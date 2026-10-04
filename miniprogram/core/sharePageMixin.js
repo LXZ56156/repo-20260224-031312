@@ -9,6 +9,7 @@ var shareMeta = require('./shareMeta');
 var shareActivity = require('./shareActivity');
 var shareTimelineCard = require('./shareTimelineCard');
 var sharePoster = require('./sharePoster');
+var activityTracker = require('./activityTracker');
 
 /**
  * @param {Object} opts
@@ -24,6 +25,7 @@ function createSharePageMixin(opts) {
 
   return {
     onShareAppMessage: function () {
+      activityTracker.tournamentShare();
       var tournament = this.data.tournament;
       if (!tournament) {
         return shareMeta.buildShareMessage(null);
@@ -44,6 +46,7 @@ function createSharePageMixin(opts) {
     },
 
     onShareTimeline: function () {
+      activityTracker.tournamentShare();
       var tournament = this.data.tournament;
       if (!tournament) return { title: '羽球轮转助手' };
       var eventName = tournament.name || '羽毛球比赛';

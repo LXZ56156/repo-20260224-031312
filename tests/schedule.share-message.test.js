@@ -33,32 +33,41 @@ test('schedule page shares current tournament through the unified transfer contr
   const definition = loadSchedulePageDefinition();
   const ctx = createSchedulePageContext(definition);
   const showCalls = [];
+  const events = [];
 
   global.wx = {
+    reportEvent(name, payload) { events.push({ name, payload }); },
     showShareMenu(options = {}) {
       showCalls.push(options);
       if (typeof options.success === 'function') options.success({});
     }
   };
   try {
-    ctx.setData({
-      tournamentId: 't_1',
-      tournament: {
-        _id: 't_1',
-        name: '周末赛',
-        status: 'running',
-        mode: 'multi_rotate',
-        players: [],
-        rankings: [],
-        rounds: []
-      }
+    ctx.setData({ tournamentId: 't_1' });
+    ctx.applyTournament({
+      _id: 't_1',
+      name: '周末赛',
+      status: 'running',
+      mode: 'multi_rotate',
+      players: [],
+      rankings: [],
+      rounds: []
     });
 
+    assert.equal(events.length, 0);
     const share = ctx.onShareAppMessage();
     assert.equal(share.title, '周末赛 赛程对阵已生成');
     assert.equal(share.path, '/pages/share-entry/index?tournamentId=t_1');
     assert.equal(showCalls.length, 1);
     assert.equal(showCalls[0].withShareTicket, true);
+    assert.deepEqual(events.map((event) => event.name), ['activity_attempt', 'activity_result']);
+    assert.ok(events.every((event) => event.payload.action === 'tournament_share'));
+    assert.equal(events[0].payload.operationId, events[1].payload.operationId);
+    assert.equal(events[1].payload.result, 'unknown');
+    assert.equal(events[1].payload.resultCode, 'DELIVERY_UNKNOWN');
+    assert.ok(!JSON.stringify(events).includes('周末赛'));
+    global.wx.reportEvent = () => { throw new Error('report unavailable'); };
+    assert.equal(ctx.onShareAppMessage().title, share.title);
   } finally {
     global.wx = originalWx;
     delete require.cache[schedulePagePath];

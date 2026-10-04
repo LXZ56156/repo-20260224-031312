@@ -14,6 +14,7 @@ const avatarDisplay = require('../../core/avatarDisplay');
 const pageTimers = require('../../core/pageTimers');
 const uiPreferences = require('../../core/uiPreferences');
 const growthTracker = require('../../core/growthTracker');
+const activityTracker = require('../../core/activityTracker');
 
 const PLAYER_FILTER_OPTIONS = [
   { value: 'contains', label: '含有' },
@@ -727,6 +728,7 @@ Page({
   },
 
   onShareAppMessage() {
+    activityTracker.tournamentShare();
     shareActivity.showShareMenuBestEffort();
     const meta = shareMeta.buildShareMessage(this.data.tournament);
     return {
