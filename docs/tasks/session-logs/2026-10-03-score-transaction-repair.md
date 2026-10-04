@@ -24,3 +24,15 @@
 13集合安全规则和索引已读入备份；[字段/规则方案和隔离引擎清单](2026-10-03-database-permission-preparation.md)已完成，真实规则引擎尚无隔离环境测试。tournaments任意登录可读/基于doc._openid客户端写的风险不能从存量无_openid推导关闭；候选保留read、客户端write=false尚未应用。已询问非生产envId，部署/测试写入仍需具体授权。
 
 临近expireAt边界只按事务读取时Date.now验证，不声称提交瞬间严格未过期；真实CloudBase冲突调度/回滚、双手机与OpenAPI尚未验证。新submitScore部署、任何规则更改及真实写入仍各需新授权。
+
+## 2026-10-04 当前HEAD隔离候选补齐
+
+从main/master/HEAD `f7131eec9528dcae65e96c7f80393e74ca4e3e24`继续第5项，仅准备本地包，不恢复CloudBase。Luna核第5最小旅程：scoreLock12/createTournament11/login11源与当前HEAD相同；join入口包落后，start旧包混入未跟踪单打候选，submit旧完整包缺后来可选诊断deadline。报告`tmp/score-five-next-20261004-readonly/report.md`。原候选、未跟踪单打源码、配置、QR、备份和partial保全，最新状态仍由[12项正文](../paused-plan-status.md#10-04依序续做第5项当前候选)维护。
+
+Sol构建的首根`tmp/score-five-candidate-current-20261004/`错误地只允许Git mode100644，遇普通文件100755退出1；另根retry1修mode后遇工作CRLF/HEAD LF字节比较退出1。原工具/receipt/stdout/stderr未改或删除，失败阶段均未创建bundle/调用离线入口。只读13源诊断exit0：仅index263个CRLF，工作11859B/SHA5811ce16fa1ffa18dc81c63f49a810af6335af19ac46d8b2e8635065de431456，固定HEAD11596B/SHA1a588e42a04dc65bd0c2f978cb6842b79df7d1ad9dc68ad9de0f6fb846bee5e8；仅CRLF→LF后完全一致，其余12原字节一致。没有修改工作源码或行为。
+
+新`tmp/score-five-candidate-current-20261004-retry2/`已完成：run/prepare/ZIP及两个离线入口子进程均exit0，上海21:14:18.334–21:16:10.967。主控执行前完整审4工具及两次修订diff，tool-before在执行前记录SHA、结束保持。包从固定Git blobs取13源、复用旧已验6368依赖，6381成员/36445079解包字节；完整逐成员CRC/SHA/无额外成员和重复构建字节核验通过，ZIP37595881B/SHA52bbba392d80f38c42f1a76d67c428d25b532a44782065357b658597c4e40632，源树SHAd7c7307c2b90bc02e0fefa0018776e4721f84753a8df1c1d998022f0ed032fc9。manifest明确两套源SHA、literalByteIdentical=false/gitNormalizedByteIdentical=true，不能说工作原字节完全等于包。
+
+本机Windows Node24.18.0与现有确切16.13.0各加载409模块文件，真实wx-server-sdk2.6.3/@cloudbase/node-sdk2.9.1/@cloudbase/database1.4.1及main入口可加载、未调用main、网络尝试0；不是真实CloudBase Linux runtime或业务验收。原包5证据/6381成员、工具、已有Node16和13工作源前后SHA不变。targetEnv=null/isolationOnly=true，无部署/调用/安装升级，无业务源码改动；复用最近全量1707通过/6跳过/0失败，不重复业务测试。submitScore单次独立冷核已确认实际ZIP/13源/工具/旧五证据一致；[权限逐操作清单](2026-10-03-database-permission-preparation.md)的真实规则、身份、事务冲突/回滚、双机与3秒仍未执行。
+
+两辅助新包也已本地完成，根`tmp/score-five-aux-candidates-current-20261004/`，上海21:22:44.696–21:26:18.616，run及8子process均exit0。主控全文读新prepare/extract/run，复用已审zip/offline不变；执行前工具SHA记录，结束保全。join12源/6368依赖=6380成员/36445567解包B，ZIP37596277B/SHA82a55ed2bc14d171ff28ca62a6fc4c20a4c0553dd66e5da5ec7d50357d02ef74；start20 tracked源/6393依赖=6413成员/38025748解包B，ZIP39181466B/SHAa55af8d164a6d58a18db30092e166801ca6310e27d8867b7b7d754359e9a9ade。旧ZIP逐成员CRC/SHA后仅提取声明依赖，新包同核/重复字节/extra0；Node24.18/16.13离线分别405/414真实模块/入口，main未调用、网络0。32工作源原字节等于固定HEAD；start排除旧未跟踪single，原single及旧join17/start26证据前后SHA不变，没有复建其余3辅助或18全组。只读blob诊断曾默认1MB缓冲不足ENOBUFS，明确4MB后核32源exit0，未改应用代码。辅助单次冷核已确认ZIP/中央目录/32源码/工具/旧17及26证据相符、single排除且原文件保全；报告`tmp/score-five-next-20261004-readonly/cold-submitScore.md`只核源码成员，未重复inflate依赖/require或业务测试。主控preflight核16既有dirty/45工作源保全、82链接/current1493字符通过；未创建/调用云、生产部署、客户端上传、付款或真实业务写入。

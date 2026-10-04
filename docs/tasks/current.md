@@ -1,6 +1,6 @@
 # 当前状态
 
-截至2026-10-04；依序续做第4项及用户追加的轮询提示/频繁降级问题。12项保留；[详细状态](paused-plan-status.md)是唯一进度正文，[总计划](../reports/2026-10-03-online-audit-and-roadmap.md)保留原标准，整体未完成。
+截至2026-10-04；依序续做第5项录分事务与权限本地准备。12项保留；[详细状态](paused-plan-status.md)是唯一进度正文，[总计划](../reports/2026-10-03-online-audit-and-roadmap.md)保留原标准，整体未完成。
 
 ## 当前范围
 
@@ -16,4 +16,6 @@
 
 ## 下一步
 
-第3已推9491220，33局部/1695全量通过、6跳过；旧协议不兼容17字段，维持wx.reportEvent；实收/逐ID/保留权限未验，[合同](../specs/activity-observability.md)。第4撤权重试已修，直接9/affected151通过。8页联网轮询/缓存/后台状态静默，离线提示保留，直接43通过；watch误分类/旧源回调已修，直接9/消费47；全量1707通过/6跳过/0失败，冷核通过。[第4日志](session-logs/2026-10-03-client-defect-repair.md)/[错误规范](../specs/user-facing-errors.md#后台同步状态)。旧listener消失，新CLI预热60秒超时未签发，AUTO回调挂起原因未定；未重试/关窗口或改安全设置，原生图/手机待验。照片版本/首次错误码待核，未上传。真实事务/权限按[隔离CLI流程](../tools/windows-dev-environment.md#隔离验证的-cliapi-入口)，不执行；check沿基线。
+第3已推9491220；实收/逐ID/保留权限未验，维持wx.reportEvent。第4已推f7131ee：撤权重试清理、8页同步静默及监听误分类/旧源回调；全量1707通过/6跳过/0失败，[日志](session-logs/2026-10-03-client-defect-repair.md)。原生CLI/AUTO挂起未签发会话，不盲重试；原生图/手机、照片版本/首次错误码待验，未上传。
+
+第5新submitScore包6381成员、Node16.13/24离线加载通过；取f7131ee提交源，保全工作CRLF和旧包，两套SHA分记。join/start两包也已核验，不夹带单打候选；锁/建赛/login源相同复用。[事务日志](session-logs/2026-10-03-score-transaction-repair.md)。真实身份/规则/事务/双机/3秒未验；[隔离CLI流程](../tools/windows-dev-environment.md#隔离验证的-cliapi-入口)待恢复，CloudBase停用，不重复全量/check。
