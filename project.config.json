@@ -8,6 +8,9 @@
   "cloudfunctionRoot": "cloudfunctions/",
   "compileType": "miniprogram",
   "simulatorType": "wechat",
+  "watchOptions": {
+    "ignore": ["tmp/**", "node_modules/**", ".git/**"]
+  },
   "setting": {
     "urlCheck": true,
     "es6": true,

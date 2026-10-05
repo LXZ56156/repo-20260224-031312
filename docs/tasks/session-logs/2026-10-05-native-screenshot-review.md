@@ -42,8 +42,39 @@ Console不为零：四页有合成赛事不存在的只读查询error，另有8�
 
 Computer Use技能的恢复规则要求：“Refresh the app/window selection and retry once; report the exact error if recovery fails.” 原输入错误为`element 45 is not available in cached app state`，恢复后的画面错配保留为实际限制，不推断项目有死循环；同源核实后的完整窗口编译尝试与首次错误分开记录。后续以本节实际错误和[项目故障手册](../../tools/weapp-ui-troubleshooting.md#按失败阶段恢复)为入口，不在公开记录保存个人插件安装路径。
 
-## 收尾与未验证项
+## 首阶段停止时的收尾与未验证项（历史）
 
 六图是补充合同之前的正式证据，后续三份截图源/工具hash已变化；不能称它们是补门禁后的最终24图。当前产品源码未因本次截图修改，签名仍按完整工作树严格核验，不跳过source drift。截图工具当前状态及原失败可由上述ignored根追溯。
 
-需要手动只保留main项目窗口、关闭引用旧路径的窗口，在main点编译并看到应用首页；之后从已核服务状态建立新签名会话，再拍24状态。320/390当前源码、字体放大、完整CTA尺寸、native picker/modal/键盘、真实断网/监听、Android+iPhone、云身份/事务与用户验收仍未验证。此前历史390图不能替代本次单打新增状态；不宣称整个UI或12项计划完成。不恢复定时任务或CloudBase登录。
+当时记录需要手动只保留main项目窗口、关闭引用旧路径的窗口，在main点编译并看到应用首页；之后从已核服务状态建立新签名会话，再拍24状态。320/390当前源码、字体放大、完整CTA尺寸、native picker/modal/键盘、真实断网/监听、Android+iPhone、云身份/事务与用户验收仍未验证。此前历史390图不能替代本次单打新增状态；不宣称整个UI或12项计划完成。不恢复定时任务或CloudBase登录。
+
+
+## 10-05 用户要求自主恢复后的接续
+
+接续HEAD为f85c19e。重新核验main/master和dirty；兼容旧路径为Junction同源，miniprogramRoot正确。正常CLI quit后旧GUI PID24692及39516监听均已消失，再official open明确main退出0。原生真实编译后子进程约1.4–1.9秒就绪；先看到AppService通用错误，后实际首页恢复，并关闭过期模拟器提示。没有清storage/auth/session、登录、重装、部署或真实写入，也没有需要用户手动恢复。旧窗口控制失败仍保留，不改写。
+
+安装日志给出更具体故障：页面资源请求出现EMFILE（too many open files），图标读取失败，instanceframe请求超时/500；AppService文案是安装源码catch返回的通用错误，并非项目业务文案。巨大全仓扫描是负载因素候选，不能单凭关联断言唯一因果。主控只读完整递归计数tmp317222文件/38218目录、根node_modules23592文件，miniprogram642文件；原件和诊断位于全新`tmp/devtools-recovery-20261005-01/`，独立Luna源核位于`tmp/devtools-runtime-repair-20261005-readonly/`及`tmp/devtools-appservice-cause-20261005/`。Luna的tmp56326只为不同遍历口径，未拿该数替代主控完整计数。
+
+安装包的projectconfig/projectprivateconfig schema明确支持顶层watchOptions.ignore:string[]；_initProjectWatcher将其传给FileUtils，glob扫描和watcher忽略规则都使用这份清单。本轮仅在project.config.json新增该键，排除根tmp/**、node_modules/**、.git/**；不排miniprogram或miniprogram_npm，不改变打包合同。原配置字节先另存，移除新键后全部原字段相等，原EOF样式保留，private配置另存核SHA。后续重启实查新ignore是否载入，再签会话拍图；新措施尚未以线上或真机验证。
+
+
+### 当前24状态及启动修复验证
+
+新根`tmp/devtools-recovery-20261005-04/`已取得24张正式430×752图；此批是在补hidden/CTA合同、watch配置之后，冷启等待代码落地之前采集。主控逐张亲看：单打设置/大厅参数/奇数轮空/22:20录分/共同名次/分享、在线静默与离线、收赛ready/busy/双打终态/单打终态及保留分数/取消卡、协管owner/busy/member/revoked/settings、找回列表/空/错误/加载和0/1人草稿；无可见技术横幅、关键遮挡或横向溢出。忙态灰置、撤权后管理员入口消失，长昵称换行不遮邻列；单打终态结果锚点图实际验证保留录分人与下一张取消卡，不是收赛动作首屏。部分视图为既定滚动锚点，不宣称未展示区域可达或原生点击已验。
+
+首三图底层runner summary退出0、机器/发布/cleanup通过；PowerShell外层记账退出1，原件保留，不当作外层成功。后续Node排他输出队列数值exit0；中间一次doctor只有marker=false，支持入口明确refresh全项通过后另名运行，不覆盖失败。所有机器receipt仍reviewStatus=pending，人工结论另记本节。独立回执审计另存本根，不据事后prewarm源码变化否定当时签名，也不冒称旧会话绑定新代码。
+
+watchOptions实际载入三个排除项，旧扫描46739ms、新扫描3303ms；同一运行日志迄完成24图无新EMFILE，仍是本机负载修复证据，不证明原通用AppService提示全部由此唯一引起。冷启服务可稍后响应而原launch已超时，故仅新增Windows GUI spawn后的官方.ide/On、所选安装owner、127.0.0.1纯读GET /upgrade有界等待，再唯一launch；不猜端口、不登录、不延长截图预算。6.1 Sol high实现，Luna独立诊断，主控源码复核；关联99/99与原保护8/8通过，定向ESLint无错误、diff检查通过。工具基础设施改变后串行全量1793项：1787通过、6旧runtime跳过、0失败、numeric exit0/stderr空，原始流及SHA在`tmp/devtools-recovery-20261005-05/full-test.*`。接着执行一次真正关闭后的冷启实证；不与全量/截图并行。
+
+前节“需要手动恢复”属于已结束的历史阶段，当前无需用户承担恢复操作。320/390、大字、原生picker/modal/键盘、真实断网监听、云与手机仍未验；24图使用合成展示数据，不证明真实权限/事务/写入。原raw、private、partial与历史失败不覆盖。
+
+
+### 完整冷启、当前图复拍与最终收口
+
+`tmp/devtools-recovery-20261005-05/cold-verify.cjs`先正常CLI quit，数值exit0；old GUI进程与IDE/39519监听全部消失，39520空闲，确认stdout/receipt保存。只进行一次新prewarm：53.05秒exit0，IDE service ready耗时13348ms，AppService ready32ms，所有8项checks=true、源码稳定且签会话成功。新日志实际仍载入3项ignore，首次扫描3296ms；旧24图运行和新冷启运行的实际backend日志截至本轮核查EMFILE均0，见本根`watch-runtime-verified.json`。较早latest-log自动选到了972字节CLI日志、不能证明GUI载入，该初版原件保留；最终明确两份backend日志复核，不覆盖原件。首次inline Node审计命令因PowerShell引号解析SyntaxError未执行采集，改为独立ignored脚本成功。
+
+随后同新签名会话采集scheduleCachedPollingSilent、singlesMatch21、lobbyCoManagerOwnerBusy三图：外层/runner/doctor/capture数值exit全0，35.83秒完成；主控再次亲看，在线无技术横幅、22:20单人录分与忙态禁用正常。raw/receipt/PNG在本根`png/simulator-frame/`，与旧24图根分开。用户Esc中断仅发生在完成三图后的Windows窗口清单调用，未在测试或采集中；停止本轮后用户明确允许继续控制。重新选择唯一返回的DevTools项目窗口，实际首页与pages/home/index可见，无模拟器无响应弹框，不需要用户恢复。
+
+独立Luna审计24个唯一case与24回执、PNG SHA/字节/来源签名/8批session和listener、清理/运行异常闭合：runtimeExceptions=0。两张在线静默与ready图字节相同，是预期无提示的同画面，不当24种唯一视觉内容。原console仍包含合成赛事只读查询及watch/systemInfo警告，不将其当真实云错误或宣称云验证通过。按钮CSS合同为height/min-height44px；SDK原始量测最小43.996601px，保留这个亚像素值，不声称浮点严格≥44；实际交互、320/390与字体放大仍未验。本轮不为亚像素舍入改产品样式，不把模拟器整框像素映射成CSS尺寸。
+
+最终任务提交限watchOptions、prewarm等待及直接测试、current/详细状态/本日志；项目原EOF差异单独保留在工作树，原私有配置与候选/QR/partial不混入。完整测试在代码稳定后已通过，不因只改进度文字再重复全量。计划剩余云/手机/原生/七日标准不变，未登录、付款、部署、上传或写真实业务。

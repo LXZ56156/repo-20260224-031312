@@ -20,12 +20,12 @@
 
 第6无新缺陷；实收/测试排除/七日率及场景未验，[日志](session-logs/2026-10-03-water-first-entry-diagnosis.md)。
 
-第7本地通过；收赛图候选未发布，云/原生确认/手机未验，[日志](session-logs/2026-10-03-manual-finish-implementation.md)。
+第7本地通过；收赛430图已看，云/原生确认/手机未验，[日志](session-logs/2026-10-03-manual-finish-implementation.md)。
 
-第8已交付，[日志](session-logs/2026-10-03-coadmin-implementation.md)。权限/事务/撤权/双机、图/手机未验。
+第8已交付，[日志](session-logs/2026-10-03-coadmin-implementation.md)。权限/事务/撤权/双机及手机未验。
 
 第9旧26组及当前9单打包Linux24.11加载通过；SDK未升级，[日志](session-logs/2026-10-03-dependency-inventory.md)。
 
 第10：660场200样本预算通过；手机/桥未验，[日志](session-logs/2026-10-03-performance-baseline.md)。
 
-第11本地通过；身份/索引/跨设备、图/手机待验。第12[方案](../specs/singles-round-robin-requirements.md)本地全链路及全量通过。6张430正式图已看；补门禁后重拍导航超时。现有同名别名窗口、欢迎页及无响应，编译未成功；待手动恢复main后重签、拍24状态。320/390/原生/云/手机未验，[截图记录](session-logs/2026-10-05-native-screenshot-review.md)。
+第11本地通过；身份/索引/跨设备待验。第12[方案](../specs/singles-round-robin-requirements.md)本地全链路通过。DevTools已恢复；watch排临时/依赖后扫描3.3秒，24张430图已亲看。冷启动就绪修复全量1787通过/6跳过，完整冷启/3图复拍通过；320/390/原生/云/手机未验，[截图记录](session-logs/2026-10-05-native-screenshot-review.md)。

@@ -4,7 +4,8 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { spawn } = require('child_process');
+const http = require('http');
+const { spawn, spawnSync } = require('child_process');
 const screenshotTool = require('./weapp-ui-screenshot');
 
 function requiredEnv(name) {
@@ -20,6 +21,146 @@ function disconnect(miniProgram) {
   } catch (err) {
     // Prewarm must never call close/App.exit/Tool.close; a failed transport close is diagnostic only.
   }
+}
+
+function resolveWindowsIdeServiceFiles(cliPath, options = {}) {
+  const cliRoot = path.dirname(path.resolve(cliPath));
+  const readFile = options.readFile || fs.readFileSync;
+  const { name } = JSON.parse(readFile(path.join(cliRoot, 'resources/app.asar.unpacked/package.json'), 'utf8'));
+  const userProfile = options.userProfile || process.env.USERPROFILE;
+  if (!userProfile || typeof name !== 'string' || !name || path.basename(name) !== name) {
+    throw new Error('Unable to resolve the selected Windows DevTools service files.');
+  }
+  // Match the official CLI installPath/productHash; never scan profiles or guess ports.
+  const productHash = crypto.createHash('md5').update(path.join(cliRoot, 'resources/app.asar')).digest('hex');
+  const profile = path.join(userProfile, 'AppData/Local', name, 'User Data', productHash, 'Default');
+  return { portFile: path.join(profile, '.ide'), statusFile: path.join(profile, '.ide-status') };
+}
+
+function requestIdeServiceReadiness(port, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let timer;
+    const finish = (err, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (err) reject(err);
+      else resolve(value);
+    };
+    // /upgrade only reads the existing WS port/runtimeId; /updatePort mutates CLI state.
+    const request = http.get({ hostname: '127.0.0.1', port, path: '/upgrade', agent: false }, (response) => {
+      let body = '';
+      response.setEncoding('utf8');
+      response.on('data', (chunk) => {
+        body += chunk;
+        if (Buffer.byteLength(body) > 4096) {
+          finish(new Error('DevTools IDE readiness response exceeds the allowed size.'));
+          request.destroy();
+        }
+      });
+      response.on('error', (err) => finish(err));
+      response.on('end', () => {
+        if (response.statusCode === 503 && body === 'cli websocket server not ready') {
+          return finish(null, { ready: false, reason: 'websocket-not-ready' });
+        }
+        if (response.statusCode !== 200) {
+          return finish(new Error(`DevTools IDE readiness returned HTTP ${response.statusCode}.`));
+        }
+        let data;
+        try { data = JSON.parse(body); } catch (err) {
+          return finish(new Error('DevTools IDE readiness returned invalid JSON.'));
+        }
+        if (!data || !Number.isInteger(data.port) || data.port < 1 || data.port > 65535
+            || typeof data.projectId !== 'string') {
+          return finish(new Error('DevTools IDE readiness returned an invalid upgrade response.'));
+        }
+        finish(null, { ready: true });
+      });
+    });
+    request.on('error', (err) => {
+      if (err.code === 'ECONNREFUSED') finish(null, { ready: false, reason: 'connection-refused' });
+      else finish(err);
+    });
+    timer = setTimeout(() => {
+      finish(null, { ready: false, reason: 'request-timeout' });
+      request.destroy();
+    }, timeoutMs);
+  });
+}
+
+async function waitForWindowsIdeServiceReady(cliPath, timeoutMs, options = {}) {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    throw new Error('IDE service readiness timeout must be a positive finite number.');
+  }
+  const now = options.now || Date.now;
+  const sleep = options.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const readFile = options.readFile || fs.readFileSync;
+  const files = options.files || resolveWindowsIdeServiceFiles(cliPath);
+  const probe = options.probe || requestIdeServiceReadiness;
+  const resolveListener = options.resolveListener || ((endpoint, remainingMs) => screenshotTool.resolveListenerIdentity(endpoint, {
+    spawnSync: (command, args, settings) => spawnSync(command, args, { ...settings, timeout: remainingMs }),
+  }));
+  const executable = screenshotTool.normalizeProjectPath(path.join(path.dirname(cliPath), '微信开发者工具.exe'));
+  const startedAt = now();
+  const deadline = startedAt + timeoutMs;
+  let attempts = 0;
+  let reason = 'service-files-not-ready';
+  const readPort = () => {
+    try {
+      if (String(readFile(files.statusFile, 'utf8')).trim() !== 'On') return null;
+      const value = String(readFile(files.portFile, 'utf8')).trim();
+      const port = Number(value);
+      if (!/^\d+$/.test(value) || !Number.isInteger(port) || port < 1 || port > 65535) {
+        throw new Error('Selected DevTools IDE service port file is invalid.');
+      }
+      return port;
+    } catch (err) {
+      if (err.code === 'ENOENT') return null;
+      throw err;
+    }
+  };
+  const validateOwner = (listener) => {
+    if (!listener || listener.ok !== true) throw new Error(`DevTools IDE listener query failed: ${listener && listener.reason || 'invalid-result'}.`);
+    if (!Array.isArray(listener.localAddresses) || !listener.localAddresses.length
+        || listener.localAddresses.some((address) => address !== '127.0.0.1' && address !== '::1')) {
+      throw new Error('DevTools IDE listener evidence contains an unsafe local address.');
+    }
+    if (screenshotTool.normalizeProjectPath(listener.executablePath) !== executable
+        || !screenshotTool.validateDevToolsOwnership(listener, cliPath).ok) {
+      throw new Error('DevTools IDE listener does not belong to the selected GUI installation.');
+    }
+  };
+  while (now() < deadline) {
+    attempts += 1;
+    const port = readPort();
+    if (port !== null) {
+      const endpoint = `ws://127.0.0.1:${port}`;
+      const listener = resolveListener(endpoint, Math.max(1, deadline - now()));
+      if (listener && listener.reason === 'not-found' && listener.ok === false) reason = 'listener-not-ready';
+      else {
+        validateOwner(listener);
+        if (now() >= deadline) break;
+        const result = await screenshotTool.timeout(probe(port, Math.min(1000, deadline - now())),
+          Math.max(1, deadline - now()), 'IDE service readiness probe');
+        if (!result || typeof result.ready !== 'boolean') throw new Error('Invalid DevTools IDE readiness probe.');
+        reason = result.reason || 'service-not-ready';
+        if (result.ready) {
+          if (now() >= deadline) break;
+          const after = resolveListener(endpoint, Math.max(1, deadline - now()));
+          validateOwner(after);
+          if (!screenshotTool.validateListenerIdentity(after, listener).ok || readPort() !== port) {
+            throw new Error('DevTools IDE service identity changed during readiness verification.');
+          }
+          if (now() < deadline) return { ready: true, attempts, elapsedMs: now() - startedAt };
+          break;
+        }
+      }
+    } else reason = 'service-files-not-ready';
+    const remainingMs = deadline - now();
+    if (remainingMs > 0) await sleep(Math.min(250, remainingMs));
+  }
+  throw new Error(`DevTools IDE service did not become ready within ${timeoutMs}ms; last state: ${reason}.`);
 }
 
 async function waitForAppServiceReady(miniProgram, timeoutMs, options = {}) {
@@ -130,6 +271,8 @@ async function main() {
         child.once('error', reject);
         child.once('spawn', () => { child.unref(); resolve(); });
       });
+      const ideReadiness = await waitForWindowsIdeServiceReady(cliPath, timeoutMs);
+      console.error(`ui:prewarm IDE service ready after ${ideReadiness.elapsedMs}ms (${ideReadiness.attempts} probes)`);
     }
     const previousNwPreArgs = process.env.NW_PRE_ARGS;
     process.env.NW_PRE_ARGS = screenshotTool.ensureBackgroundCaptureNwPreArgs(previousNwPreArgs);
@@ -296,4 +439,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { main, waitForAppServiceReady };
+module.exports = { main, waitForAppServiceReady, resolveWindowsIdeServiceFiles, requestIdeServiceReadiness, waitForWindowsIdeServiceReady };
