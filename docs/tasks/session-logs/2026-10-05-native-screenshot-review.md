@@ -78,3 +78,15 @@ watchOptions实际载入三个排除项，旧扫描46739ms、新扫描3303ms；�
 独立Luna审计24个唯一case与24回执、PNG SHA/字节/来源签名/8批session和listener、清理/运行异常闭合：runtimeExceptions=0。两张在线静默与ready图字节相同，是预期无提示的同画面，不当24种唯一视觉内容。原console仍包含合成赛事只读查询及watch/systemInfo警告，不将其当真实云错误或宣称云验证通过。按钮CSS合同为height/min-height44px；SDK原始量测最小43.996601px，保留这个亚像素值，不声称浮点严格≥44；实际交互、320/390与字体放大仍未验。本轮不为亚像素舍入改产品样式，不把模拟器整框像素映射成CSS尺寸。
 
 最终任务提交限watchOptions、prewarm等待及直接测试、current/详细状态/本日志；项目原EOF差异单独保留在工作树，原私有配置与候选/QR/partial不混入。完整测试在代码稳定后已通过，不因只改进度文字再重复全量。计划剩余云/手机/原生/七日标准不变，未登录、付款、部署、上传或写真实业务。
+
+## 2026-10-08 文档交接
+
+用户本轮要求整理文档，将在新任务继续；本轮不启动开发者工具、编译、云查询、部署或业务操作。核main/master/HEAD为d2f719e、index空及原dirty，保留17份配置/候选/QR等保护输入的SHA基线。仅补齐原10-05最后证据与新任务导航，不改写历史失败或把历史测试当10-08新跑。
+
+最后交付为d2f719e（6个任务文件），10-05远端闭合记录在`tmp/devtools-recovery-20261005-06/delivery.json`。提交后的重新签名不能跳过源码门禁：本根refresh退出2写source challenge，之后official ui:iterate在锁内编到launch，compile、refresh-after-compile、capture均退出0，总42.43秒；`png/simulator-frame/scheduleCachedPollingSilent.png`绑定d2f719e、主控亲看、实际SHA/长度和清理/异常核通过。这是24张不同状态、冷启后3张以外的第4张复拍，原图/回执/marker资料均未覆盖。
+
+当时Computer Use坐标因非目标ChatGPT窗口被拒绝，激活后画面仍错配，停止输入；没有点击Codex或将错配图当编译证明。接续通过官方入口完成，不需要用户承担恢复。图与应用运行证明来自已签名DevTools和上述回执，不来自控制工具错配画面。独立Luna回执审计在`tmp/devtools-recovery-20261005-04/receipt-audit.md`，原reviewStatus与严格尺寸边界保持原值。
+
+新任务按AGENTS→current→paused-plan-status交接节定位目标；用实际main、保留dirty，查看相应12项日志后再实施。本轮文档修改/提交会改变Git快照，10-05会话及端口不得视为跨日仍有效；先核来源/身份/SDK/宽度，Git变化按challenge→明确官方编译→refresh，不手改回执，失败按[故障手册](../../tools/weapp-ui-troubleshooting.md)定位并保存全新ignored证据。最新历史入口是recovery-06会话，04/05只留证据，不能原样重跑写死日期/目录的旧采集器。
+
+DevTools恢复、24状态及4张复拍不闭合整个计划。完整七日/≥100合格调用与来源版本、后台事件实收、真实权限/事务、320/390/字体/原生交互与手机、低端性能、实际部署/发布仍按[12项详细状态](../paused-plan-status.md)保留；第1截至10-10 02:32:05上海的门槛不顺延，定时任务不恢复，续费仍暂缓。新任务的动作授权以用户与现行规则为准，不从历史一次性部署或旧工具快照扩大边界。

@@ -1,6 +1,16 @@
 # 12项计划详细状态
 
-> 状态：2026-10-05用户要求持续完成可独立事项，需介入的先留待办；goal接口仍返回blocked，实际续做与接口登记分别记录，不伪称已改登记或完成目标。12项范围和原标准保留。当前导航见 [current](current.md)；本页是逐项进度唯一正文。历史暂停与原始证据保持原文，以下旧基线按日期阅读，不能覆盖最新状态。
+> 状态：2026-10-08用户要求整理文档，后续在新任务继续；本轮只做交接。goal接口本轮读取仍为blocked，未将完整计划标完成。12项范围、原标准与未完成条件保留。当前导航见 [current](current.md)；本页是逐项进度唯一正文。历史暂停与原始证据保持原文，以下旧基线按日期阅读，不能覆盖最新状态。
+
+## 2026-10-08 文档封存与新任务接续
+
+- **本轮范围**：只整理进度、证据与接续步骤，不继续业务实现、线上观察或原生操作。未触发云函数、付款、部署、上传/发布、预览、登录或真实写入；未重跑应用测试。用户自行开新任务，本轮未另建聊天或定时任务。原总计划和原日志保留历史性质。
+- **工作区基线**：实际cwd/根为`D:/projects/badminton-miniapp/main`，master，文档起点HEAD `d2f719ec75722148a9191cc40c7fdde1bd16312f`，index空。原dirty为`.codex/config.toml`、`.env.local.example`、`project.config.json`，以及`.playwright-cli/`、`cloudfunctions/startTournament/singlesRoundRobin.js`、`preview-qrcodes/`、`tests/singles-round-robin.candidate.test.js`；原EOF改动不与已提交watchOptions混淆。private、partial、备份及旧截图均保留，本轮17个保护输入SHA基线位于`tmp/document-handoff-20261008-01/before.json`。不从旧worktree/preview/备份覆盖main。
+- **最近实际交付**：`f1c092e`完整单打本地实现；`f85c19e`截图日志/selector/hidden合同；`d2f719e`watchOptions排根tmp/依赖/Git与Windows IDE ready等待。10-05的`tmp/devtools-recovery-20261005-06/delivery.json`确认当时远端/本地d2f719e相同、16原输入和private保全、当前图哈希/清理/异常通过；它不是10-08运行或生产验收。最新提交/远端事实以本轮Git交付回执为准。
+- **补记提交后的最后一步**：此前正文已记24状态与冷启后3图，另有recovery-06的在线静默图绑定d2f719e，主控亲看。提交改变Git快照，第一次refresh退出2是按设计保存source challenge；随后`ui:iterate`官方编到launch、refresh和capture均退出0，42.43秒完成。Computer Use坐标命中非目标被拒绝，一次恢复仍画面错配后停止原生输入；官方入口完成，不能把控制工具错配当应用仍未恢复。详见[原截图日志的交接节](session-logs/2026-10-05-native-screenshot-review.md#2026-10-08-文档交接)。
+- **验证口径**：最近完整测试为10-05的1793项，1787通过/6旧runtime跳过/0失败，关联99/99和旧保护8/8通过；不称本轮新跑。24个430状态+冷启3图+提交后1图是合成显示验证，原receipt仍reviewStatus=pending，人工意见另记。严格44px浮点边界、320/390、大字、原生picker/modal/键盘、实际断网/监听、云角色/事务/索引与手机仍未验，不能由截图或离线SDK包判通过。
+- **会话接续**：recovery-06/session-430.json是最后历史签名，recovery-04/05会话不作当前采集入口；全部原文件不覆盖。跨日或本轮文档提交后，进程、身份、SDK、逻辑宽度与Git绑定须重新核验，禁止照抄旧端口、伪改尺寸或手改marker/receipt。UI续做使用`npm run ui:iterate -- <case>`和故障手册，按源码challenge→官方编译→refresh签发；失效按真实阶段建立新证据根，不盲重试或重新登录。
+- **按序继续**：完整12项剩余条件见下方“收尾待验清单”，顺序和标准不变。第1最后窗口仍10-04 16:48:54，七日截止仍10-10 02:32:05上海；本轮未采集，不延后截止、不恢复automation-3，等用户叫检查。需用户设备/身份/后台信息或外部动作的条目保留未完成，可按既有指示先做独立事项。续费仍暂不付款；源码候选、离线包和本地截图不等于已部署、上传或发布。
 
 ## 10-05持续完成可独立事项与收尾
 
