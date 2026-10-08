@@ -25,7 +25,7 @@
         <view class="hero-main">
           <view class="hero-kicker">当前对阵</view>
           <view class="hero-title ellipsis">{{tournament.name}}</view>
-          <view class="hero-sub ellipsis">{{heroSummaryText}}</view>
+          <view class="hero-sub {{modeLabel==='单打循环' ? '' : 'ellipsis'}}">{{heroSummaryText}}</view>
         </view>
         <view class="hero-status {{statusClass}}">
           <text class="hero-status-dot" wx:if="{{statusClass === 'hero-status-running'}}"></text>
@@ -153,7 +153,8 @@
     <view class="sheet-handle" bindtap="closePlayerFilterSheet"></view>
     <view class="filter-sheet-title">头像条件</view>
     <view class="filter-sheet-option {{playerFilterDraftMode===item.value ? 'active' : ''}}" wx:for="{{playerFilterOptions}}" wx:key="value" data-value="{{item.value}}" bindtap="onPickPlayerFilterMode">
-      {{item.label}}
+      <text>{{item.label}}</text>
+      <text class="selection-check" wx:if="{{playerFilterDraftMode===item.value}}">✓</text>
     </view>
     <view class="filter-sheet-actions">
       <button class="btn btn-subtle" bindtap="closePlayerFilterSheet">取消</button>
@@ -166,7 +167,8 @@
     <view class="sheet-handle" bindtap="closeStatusFilterSheet"></view>
     <view class="filter-sheet-title">状态筛选</view>
     <view class="filter-sheet-option {{statusFilterDraftValue===item.value ? 'active' : ''}}" wx:for="{{statusFilterOptions}}" wx:key="value" data-value="{{item.value}}" bindtap="onPickStatusFilter">
-      {{item.label}}
+      <text>{{item.label}}</text>
+      <text class="selection-check" wx:if="{{statusFilterDraftValue===item.value}}">✓</text>
     </view>
     <view class="filter-sheet-actions">
       <button class="btn btn-subtle" bindtap="closeStatusFilterSheet">取消</button>

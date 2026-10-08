@@ -136,6 +136,10 @@ function buildScoreUi(score, finished) {
   };
 }
 
+function formatSinglesRoundTitle(round) {
+  return `第${round.cycleIndex}循环 · 第${round.logicalRound}轮 · 第${round.batchIndex}/${round.batchCount}批`;
+}
+
 function decorateRounds(t, options = {}) {
   const rounds = Array.isArray(t.rounds) ? t.rounds : [];
   const players = Array.isArray(t.players) ? t.players : [];
@@ -199,7 +203,7 @@ function decorateRounds(t, options = {}) {
     return {
       roundIndex: round.roundIndex || 0,
       roundTitle: t.mode === flow.MODE_SINGLES_ROUND_ROBIN
-        ? `第${round.cycleIndex}循环 · 第${round.logicalRound}轮 · 第${round.batchIndex}/${round.batchCount}批`
+        ? formatSinglesRoundTitle(round)
         : `第${(round.roundIndex || 0) + 1}轮`,
       isCurrentRound: false,
       matchesUi,
@@ -251,8 +255,21 @@ function formatRoundOrdinal(roundNumber) {
   return round > 0 ? `第${round}轮` : '';
 }
 
-function buildHeroSummaryText(status, modeLabel, roundsSummary, firstPending) {
+function buildHeroSummaryText(status, modeLabel, roundsSummary, firstPending, tournament) {
   if (status === 'draft') return `${modeLabel} · 尚未开始`;
+  const singlesRounds = tournament.mode === flow.MODE_SINGLES_ROUND_ROBIN ? tournament.rounds : [];
+  if (singlesRounds.length) {
+    if (status === 'finished') {
+      const cycles = new Set(singlesRounds.map((round) => round.cycleIndex)).size;
+      const logicalRounds = new Set(singlesRounds.map((round) => `${round.cycleIndex}-${round.logicalRound}`)).size;
+      const cycleText = cycles > 1 ? `${cycles} 循环 · ` : '';
+      return `${modeLabel} · 共 ${cycleText}${logicalRounds} 轮 · ${singlesRounds.length} 批`;
+    }
+    const currentRound = firstPending
+      ? singlesRounds.find((round) => Number(round.roundIndex) === Number(firstPending.roundIndex))
+      : singlesRounds[singlesRounds.length - 1];
+    if (currentRound) return `${modeLabel} · ${formatSinglesRoundTitle(currentRound)}`;
+  }
   if (status === 'finished') {
     return roundsSummary.totalRounds
       ? `${modeLabel} · 共 ${roundsSummary.totalRounds} 轮`
@@ -564,7 +581,7 @@ Page({
     }
     const showFinishedShareActions = status === 'finished';
 
-    const heroSummaryText = buildHeroSummaryText(status, modeLabel, heroSummary, firstPending);
+    const heroSummaryText = buildHeroSummaryText(status, modeLabel, heroSummary, firstPending, t);
     const heroMatchText = heroSummary.totalMatches
       ? `${heroSummary.finishedMatches} / ${heroSummary.totalMatches} 场`
       : '暂无场次';

@@ -6,6 +6,7 @@ const nav = require('../miniprogram/core/nav');
 const storage = require('../miniprogram/core/storage');
 const lobbyViewModel = require('../miniprogram/pages/lobby/lobbyViewModel');
 const { createMatchDraftController } = require('../miniprogram/pages/match/matchDraftController');
+const { buildSinglesSchedule } = require('../cloudfunctions/startTournament/singlesRoundRobinV1');
 
 function pageContext(t, page) {
   const pagePath = require.resolve(`../miniprogram/pages/${page}/index`);
@@ -24,6 +25,68 @@ function pageContext(t, page) {
   return { ...definition, openid: 'admin', data: globalThis.structuredClone(definition.data),
     setData(patch, callback) { Object.assign(this.data, patch); if (callback) callback.call(this); } };
 }
+
+function singlesScheduleTournament(cycles) {
+  const players = Array.from({ length: 6 }, (_, i) => ({ id: i ? `p${i}` : 'admin', name: `球员${i + 1}` }));
+  const { rounds } = buildSinglesSchedule(players, 2, { cycles });
+  return { _id: 'singles_hero', creatorId: 'admin', status: 'running', mode: 'singles_round_robin',
+    courts: 2, rules: { cycles, pointsPerGame: 21 }, players, rounds, scheduledMatches: 15 * cycles };
+}
+
+function scheduleContext(t) {
+  const ctx = pageContext(t, 'schedule');
+  ctx.scheduleCurrentRoundFocus = () => {};
+  ctx.refreshAvatarDisplays = () => {};
+  return ctx;
+}
+
+for (const cycles of [1, 2]) {
+  test(`singles schedule hero uses logical round and batch within ${cycles} cycle(s)`, (t) => {
+    const ctx = scheduleContext(t);
+    const tournament = singlesScheduleTournament(cycles);
+    const pendingIndex = cycles === 1 ? 3 : 13;
+    tournament.rounds.slice(0, pendingIndex).forEach((round) => round.matches.forEach((match) => {
+      Object.assign(match, { status: 'finished', score: { teamA: 21, teamB: 18 } });
+    }));
+    ctx.applyTournament(tournament);
+    assert.equal(ctx.data.firstPendingRoundIndex, pendingIndex);
+    assert.equal(ctx.data.roundsUi[pendingIndex].roundTitle, `第${cycles}循环 · 第2轮 · 第2/2批`);
+    assert.equal(ctx.data.heroSummaryText, `单打循环 · 第${cycles}循环 · 第2轮 · 第2/2批`);
+  });
+
+  test(`singles completed schedule hero counts logical rounds and batches across ${cycles} cycle(s)`, (t) => {
+    const ctx = scheduleContext(t);
+    const tournament = singlesScheduleTournament(cycles);
+    tournament.status = 'finished';
+    tournament.rounds.forEach((round) => round.matches.forEach((match) => {
+      Object.assign(match, { status: 'finished', score: { teamA: 21, teamB: 18 } });
+    }));
+    ctx.applyTournament(tournament);
+    assert.equal(ctx.data.heroSummaryText, cycles === 1
+      ? '单打循环 · 共 5 轮 · 10 批'
+      : '单打循环 · 共 2 循环 · 10 轮 · 20 批');
+    assert.equal(ctx.data.heroMatchText, `${15 * cycles} / ${15 * cycles} 场`);
+    assert.equal(ctx.data.heroPendingText, `全部 ${15 * cycles} 场已录完`);
+    assert.equal(ctx.data.heroProgressPercent, 100);
+  });
+}
+
+test('singles manual finish keeps completed and canceled match counts with logical-round summary', (t) => {
+  const ctx = scheduleContext(t);
+  const tournament = singlesScheduleTournament(1);
+  tournament.status = 'finished';
+  tournament.finishMeta = { type: 'manual' };
+  tournament.rounds.forEach((round) => round.matches.forEach((match) => {
+    Object.assign(match, { status: 'canceled', cancelReason: 'manual_finish' });
+  }));
+  Object.assign(tournament.rounds[0].matches[0], { status: 'finished', score: { teamA: 21, teamB: 18 } });
+  ctx.applyTournament(tournament);
+  assert.equal(ctx.data.heroSummaryText, '单打循环 · 共 5 轮 · 10 批');
+  assert.equal(ctx.data.statusText, '已提前结束');
+  assert.equal(ctx.data.heroMatchText, '1 / 15 场');
+  assert.equal(ctx.data.heroPendingText, '已完成 1 场，取消 14 场');
+  assert.equal(ctx.data.heroProgressPercent, 7);
+});
 
 for (const count of [0, 1]) {
   for (const page of ['settings', 'lobby']) {

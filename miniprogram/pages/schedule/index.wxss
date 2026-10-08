@@ -649,6 +649,7 @@
 }
 
 .filter-sheet-option.active {
+  background: var(--brand-100);
   color: var(--brand-700);
   font-weight: 780;
 }
