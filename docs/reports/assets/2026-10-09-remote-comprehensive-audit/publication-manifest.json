@@ -1,0 +1,98 @@
+{
+  "edition": "2026-10-09",
+  "auditSourceCommit": "a3fe96f25015892ac30ee7148f97a5b441b0cb24",
+  "auditSourceTree": "5298c2afc36e3c74576912566749afae1761fb59",
+  "authoritativeReport": "docs/reports/2026-10-09-remote-comprehensive-audit.md",
+  "scope": "Documentation delivery only. Source/available historical checks completed; current cloud portion blocked/unverified.",
+  "mainFindings": {
+    "total": 18,
+    "P1": 2,
+    "P2": 12,
+    "P3": 4
+  },
+  "separateObservations": [
+    {
+      "id": "TEL-02",
+      "priority": "P3",
+      "includedInMainFindings": false
+    }
+  ],
+  "files": [
+    {
+      "path": "docs/reports/2026-10-09-remote-comprehensive-audit.md",
+      "bytes": 183873,
+      "sha256": "c9e0dc1d6b2268f6839ef2acca66686602875a921516b1d9cd8e9cea55388489"
+    },
+    {
+      "path": "docs/reports/assets/2026-10-09-remote-comprehensive-audit/badminton-audit-2026-10-08.html",
+      "bytes": 246144,
+      "sha256": "ff9252ae2b715055e5d10462afb86b87664ec95fcddb299215995e181e44d01e"
+    },
+    {
+      "path": "docs/reports/assets/2026-10-09-remote-comprehensive-audit/badminton-audit-evidence-2026-10-09-public.zip",
+      "bytes": 1610132,
+      "sha256": "228c5ec9dfbd40e884c77989b381f345b65128047ff9ee45ed269bde61da88ad"
+    }
+  ],
+  "publicArchive": {
+    "members": 522,
+    "hashVerifiedMembers": 521,
+    "crcVerified": true,
+    "publicationChanges": {
+      "edition": "2026-10-09 public repository evidence",
+      "auditSourceCommit": "a3fe96f25015892ac30ee7148f97a5b441b0cb24",
+      "originalReport": {
+        "file": "badminton-audit-2026-10-08.html",
+        "sha256": "ff9252ae2b715055e5d10462afb86b87664ec95fcddb299215995e181e44d01e"
+      },
+      "originalArchive": {
+        "file": "badminton-audit-evidence-2026-10-08.zip",
+        "sha256": "f3c8aa09760876a7f9f330ca463f6cd678476297e91cba4a43ecfa5f0fed6bf6"
+      },
+      "excludedOriginalMembers": [
+        {
+          "path": "evidence/business/sdk-inspection/wx-server-sdk-2.6.3.tgz",
+          "bytes": 44026,
+          "sha256": "c8d4378b48e181d3e40e66dcb2a14b7bb68630f4a0156d794f50eb529156272d",
+          "package": "wx-server-sdk",
+          "version": "2.6.3",
+          "retrieve": "npm pack --ignore-scripts wx-server-sdk@2.6.3",
+          "reason": "Public upstream archive omitted; required inspected source, metadata, licenses and offline probe runtime are retained."
+        },
+        {
+          "path": "evidence/business/sdk-inspection/cloudbase-node-sdk-2.9.1.tgz",
+          "bytes": 289207,
+          "sha256": "be0ece9c6e8b4ab9d6c543566132441c7b192b2543ad011297f124e7dfa34dfa",
+          "package": "@cloudbase/node-sdk",
+          "version": "2.9.1",
+          "retrieve": "npm pack --ignore-scripts @cloudbase/node-sdk@2.9.1",
+          "reason": "Public upstream archive omitted; required inspected source, metadata, licenses and offline probe runtime are retained."
+        },
+        {
+          "path": "evidence/business/sdk-inspection/cloudbase-database-1.4.1.tgz",
+          "bytes": 104937,
+          "sha256": "8a0c587a6dcb1fda70acee8e13af85aa07c6922542251c18d7010c1b16e1e1c1",
+          "package": "@cloudbase/database",
+          "version": "1.4.1",
+          "retrieve": "npm pack --ignore-scripts @cloudbase/database@1.4.1",
+          "reason": "Public upstream archive omitted; required inspected source, metadata, licenses and offline probe runtime are retained."
+        }
+      ],
+      "replacedOriginalMembers": [
+        "README.html",
+        "SHA256SUMS"
+      ],
+      "addedMembers": [
+        "README.md",
+        "PUBLICATION.json"
+      ],
+      "allOtherOriginalMembersPreservedByteForByte": true,
+      "scope": "Source and available historical evidence checked; current cloud verification remains blocked/unverified. No application fixes or deployment."
+    }
+  },
+  "verification": {
+    "completeReportRoundtripMatchesDeliveredHtml": true,
+    "htmlUnchanged": true,
+    "allRetainedOriginalEvidenceUnchanged": true
+  }
+}

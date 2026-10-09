@@ -13,6 +13,7 @@
 | 赛事协管/提前收赛/找回/新赛制 | [协管与收赛](specs/tournament-early-finish-and-coadmin-proposal.md)、[找回](specs/cloud-tournament-recovery-proposal.md)、[单打需求](specs/singles-round-robin-requirements.md)中相关一份 | 实现/部署是否完成看 [12项详细状态](tasks/paused-plan-status.md)；草案不等于实施授权 |
 | 云代码/部署、Windows命令 | [架构](context/architecture.md#cloud-function-shared-libraries)、[环境](tools/windows-dev-environment.md)相关节 | 合同变化按AGENTS触发云审计；版本迁移审计不是升级授权 |
 | 埋点/数据分析 | [留痕合同](specs/activity-observability.md)、[数据拉取](tools/we-analysis-local-script.md) | 报告/样本结论查 reports，不作为实时数据 |
+| 全面远端检查/问题优先级 | [2026-10-09 完整审计报告](reports/2026-10-09-remote-comprehensive-audit.md)，含证据附件与线上未验证项 | 原实施与验收进度看 [12项详细状态](tasks/paused-plan-status.md)；报告入库不代表修复或全项验收 |
 | 分享/增长 | [分享设计](specs/share-optimization-design.md)、[增长记录](specs/growth-flywheel-optimization.md)的适用说明 | 历史实施计划只追溯，不执行旧技能/命令 |
 | 恢复暂停任务/交接 | current → [12项详细状态](tasks/paused-plan-status.md) | 只读相应条目链接的验证/批准证据 |
 | 历史决定/局部经验 | 用 rg 搜索 tasks/reports/archive；[经验](notes/learnings.md) | 先看日期/状态，再读命中段落；迁移快照断链见 [旁注](tasks/session-logs/2026-10-03-before-path-migration-current.links.md) |
