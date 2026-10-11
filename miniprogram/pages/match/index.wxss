@@ -146,6 +146,11 @@
   flex-direction: column;
 }
 
+.score-col > picker,
+.score-col > .score-box {
+  margin-top: auto;
+}
+
 .score-divider {
   width: 2rpx;
   align-self: stretch;
