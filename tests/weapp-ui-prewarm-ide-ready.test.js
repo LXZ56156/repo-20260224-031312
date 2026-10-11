@@ -98,6 +98,41 @@ test('listener identity and service port must stay the same throughout a ready p
   await assert.rejects(ready.waitForWindowsIdeServiceReady(cliPath, 1000, moved.options), /identity changed/);
 });
 
+test('listener query failure reports safe process diagnostics and fails without retry', async () => {
+  const state = setup({
+    resolveListener: () => ({
+      ok: false, reason: 'listener-query-failed',
+      queryDiagnostics: { status: null, signal: 'SIGTERM', errorCode: 'ETIMEDOUT' },
+      error: 'TEST_PRIVATE_CREDENTIAL_DO_NOT_LOG powershell.exe --token=secret',
+    }),
+    sleep: () => { throw new Error('must not retry'); },
+    probe: () => { throw new Error('must not probe'); },
+  });
+  await assert.rejects(ready.waitForWindowsIdeServiceReady(cliPath, 1000, state.options), (error) => {
+    assert.match(error.message, /listener-query-failed/);
+    assert.match(error.message, /query diagnostics: \{"status":null,"signal":"SIGTERM","errorCode":"ETIMEDOUT"\}/);
+    assert.doesNotMatch(error.message, /TEST_PRIVATE_CREDENTIAL|powershell\.exe|--token/);
+    return true;
+  });
+});
+
+test('listener query diagnostics discard unexpected or nonstructural fields', async () => {
+  const privateOutput = 'TEST_PRIVATE_CREDENTIAL_DO_NOT_LOG';
+  const state = setup({
+    resolveListener: () => ({
+      ok: false, reason: 'listener-query-failed',
+      queryDiagnostics: { status: privateOutput, signal: privateOutput, errorCode: privateOutput,
+        stderr: privateOutput, command: 'powershell.exe --token=secret' },
+    }),
+    sleep: () => { throw new Error('must not retry'); },
+  });
+  await assert.rejects(ready.waitForWindowsIdeServiceReady(cliPath, 1000, state.options), (error) => {
+    assert.match(error.message, /query diagnostics: \{"status":null,"signal":null,"errorCode":null\}/);
+    assert.doesNotMatch(error.message, /TEST_PRIVATE_CREDENTIAL|powershell\.exe|--token/);
+    return true;
+  });
+});
+
 test('OS listener queries receive the remaining overall deadline; a hung probe fails bounded', async () => {
   const seen = [];
   const state = setup({ resolveListener: (endpoint, timeoutMs) => { seen.push(timeoutMs); return identity(); } });

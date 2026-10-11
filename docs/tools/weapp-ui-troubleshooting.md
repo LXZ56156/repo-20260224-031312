@@ -33,6 +33,7 @@ Get-Content -LiteralPath 'tmp/ui-iterate-runs/<本次id>/summary.json'
 | 阶段 / 现象 | 最小诊断 | 恢复路径 |
 |---|---|---|
 | 参数拒绝、未知或重复 case | `ui:iterate -- --help` 与 `ui:screenshot -- --list` | 明确指定 1–3 个关联 case；不传 case、重复 case 或 focus-probe 模式均不适用。不要改用无参数 `ui:screenshot` 触发全量来排错。 |
+| `prewarm`：IDE监听查询失败（`listener-query-failed` / `listener-query-returned-invalid-json`） | 看错误中的`query diagnostics`：整数`status`及白名单`signal`/`errorCode`；`ETIMEDOUT`只证明查询超时，非零status只证明子进程退出失败，不能单凭reason判断Token或应用故障 | 保留本轮日志，按已选安装的服务文件做一次只读监听/归属核验。没有原始证据时根因记未知，不加盲重试、不输出raw stderr/命令行；锁屏时停止桌面动作，解锁后才按首次建立步骤恢复。 |
 | `doctor`：`configuration is invalid`，尤其 `session` / `runnerProjectPath` / `endpoint` | 核对 cwd、选中的 session 文件是否存在；按下面“会话丢失”处理 | 配置误指向则改为当前 exact worktree 的有效 session；没有可信 session 则首次预热。不能编辑历史 receipt 路径、手填 endpoint 或复制另一 worktree 的签名。 |
 | `doctor`：只有 `sourceSnapshot=false`（允许同时 `marker=false`），其余 checks 全通过 | 看 doctor stdout 的 `checks`；这是 ui:iterate 唯一自动恢复类别 | 正常由编排自动刷新和编译。文档改动也属于当前完整 Git 签名。若自动流程失败，转到下两行，不删文档 hash 或放宽签名。 |
 | `doctor`：只有 `marker=false`，`sourceSnapshot=true` | 看 doctor 是否可读marker，其余身份/项目/SDK/宽度/route均通过；可能是同源码手动重编译后marker丢失 | `ui:iterate` 不自动处理这一类。显式执行一次 `npm run ui:session:refresh`，由其重新验证并绑定marker；必须 `ok=true`、checks全部通过，再跑相关case。运行时读取异常或其他检查失败则按对应故障处理，不反复刷新。 |

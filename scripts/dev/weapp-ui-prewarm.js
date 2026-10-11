@@ -121,7 +121,12 @@ async function waitForWindowsIdeServiceReady(cliPath, timeoutMs, options = {}) {
     }
   };
   const validateOwner = (listener) => {
-    if (!listener || listener.ok !== true) throw new Error(`DevTools IDE listener query failed: ${listener && listener.reason || 'invalid-result'}.`);
+    if (!listener || listener.ok !== true) {
+      const diagnostics = listener && listener.queryDiagnostics
+        ? `; query diagnostics: ${JSON.stringify(screenshotTool.safeListenerQueryDiagnostics(listener.queryDiagnostics))}`
+        : '';
+      throw new Error(`DevTools IDE listener query failed: ${listener && listener.reason || 'invalid-result'}${diagnostics}.`);
+    }
     if (!Array.isArray(listener.localAddresses) || !listener.localAddresses.length
         || listener.localAddresses.some((address) => address !== '127.0.0.1' && address !== '::1')) {
       throw new Error('DevTools IDE listener evidence contains an unsafe local address.');

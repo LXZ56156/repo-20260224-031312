@@ -322,6 +322,43 @@ test('listener identity accepts the wildcard bind addresses used by Windows DevT
   assert.deepEqual(result, { ok: false, reason: 'not-found', port: 39457 });
 });
 
+test('listener query failures expose bounded process diagnostics without raw output', () => {
+  const endpoint = 'ws://127.0.0.1:39457';
+  const privateOutput = 'TEST_PRIVATE_CREDENTIAL_DO_NOT_LOG powershell.exe --token=secret';
+  const cases = [
+    [{ status: null, signal: 'SIGTERM', error: Object.assign(new Error(privateOutput), { code: 'ETIMEDOUT' }), stderr: privateOutput },
+      { status: null, signal: 'SIGTERM', errorCode: 'ETIMEDOUT' }],
+    [{ status: 1, signal: null, stderr: privateOutput },
+      { status: 1, signal: null, errorCode: null }],
+    [undefined, { status: null, signal: null, errorCode: null }],
+    [{ status: privateOutput, signal: privateOutput, error: { code: privateOutput } },
+      { status: null, signal: null, errorCode: null }],
+  ];
+  for (const [queryResult, expected] of cases) {
+    const result = screenshotTool.resolveListenerIdentity(endpoint, {
+      platform: 'win32', spawnSync: () => queryResult,
+    });
+    assert.deepEqual(result, {
+      ok: false, reason: 'listener-query-failed', endpoint, queryDiagnostics: expected,
+    });
+    assert.doesNotMatch(JSON.stringify(result), /TEST_PRIVATE_CREDENTIAL|powershell\.exe|--token/);
+  }
+});
+
+test('invalid listener JSON does not expose response data through parse errors', () => {
+  const endpoint = 'ws://127.0.0.1:39457';
+  const result = screenshotTool.resolveListenerIdentity(endpoint, {
+    platform: 'win32', spawnSync: () => ({
+      status: 0, signal: null, stdout: 'TEST_PRIVATE_CREDENTIAL_DO_NOT_LOG', stderr: '',
+    }),
+  });
+  assert.deepEqual(result, {
+    ok: false, reason: 'listener-query-returned-invalid-json', endpoint,
+    queryDiagnostics: { status: 0, signal: null, errorCode: null },
+  });
+  assert.doesNotMatch(JSON.stringify(result), /TEST_PRIVATE_CREDENTIAL/);
+});
+
 test('route evidence includes normalized query parameters', () => {
   assert.equal(
     screenshotTool.locationsMatch(

@@ -1,6 +1,44 @@
 # 12项计划详细状态
 
-> 状态：2026-10-09已完成远端源码、可取得历史资料的检查、离线复现和报告整理；当前云实况核验仍受阻，全面检查的线上部分未完成。审计结论与证据统一见[完整报告](../reports/2026-10-09-remote-comprehensive-audit.md)。本页继续维护原12项实施与验收进度，本轮未实施业务修复或部署，不改变原未完成项。10-08后台实图链路暂停、手机及需用户操作先跳过的边界保留；旧goal最后记录blocked，本轮未调用状态接口。当前导航见[current](current.md)，以下历史按原时点保留。
+> 状态：2026-10-11已同步远端并先恢复工具；本次允许前台和桌面操作，但主控实测Windows锁屏，原生输入/实图验收仍待解锁。10-09报告结论按用户要求暂不处理。本页继续维护原12项实施与验收进度，本轮新问题及工具/待验状态见下节；历史记录不覆盖最新事实。当前导航见[current](current.md)。
+
+## 2026-10-11 先打通工具再续做检查
+
+- **授权与工作区**：用户要求“拉取最新远端”“先测试开发的工具”“工具链路打通，然后再开始正式的检查优化”，并明确不在电脑前、允许本次工具和Computer Use操作。实际cwd为`D:/projects/badminton-miniapp/main`，master，起点`a3fe96f25015892ac30ee7148f97a5b441b0cb24`，fetch后fast-forward到`dee0b5abd21b0d1f8c448735062cd374fe06d32c`；该提交仅更新审计/进度文档，本轮不处理新报告发现。原三配置、候选/测试、浏览器/QR/private/partial和备份保留，保护输入SHA见`tmp/ui-audit-20261011/protected-before.json`。提交/推送沿用持续授权；桌面授权不扩为生产规则、部署、上传/发布、付款、外发消息或真实业务写入授权。
+- **工具烟测**：Node24.18.0、npm11.14.1；miniprogram-automator0.12.1的connect/launch、pngjs及64个case均可加载。Computer Use按技能初始化、发现窗口成功；官方`check_wechatide_status`成功且现有登录未过期，不重新auth。以明确未占用端口39580、预期逻辑430、exact-main和新根`tmp/ui-audit-20261011/session-430.json`执行一次前台prewarm，失败于`waitForWindowsIdeServiceReady`的`listener-query-failed`；未生成session receipt或正式PNG，`prewarm-430.log`保留；CLI尚未启动，打印的CLI诊断路径没有生成文件。
+- **只读诊断与锁屏**：随后独立只读监听查询成功，选定安装的IDE服务端口29558、唯一PID3312、loopback地址及后台捕获flag符合；不能反推首轮通过。原报错缺退出码/系统错误码，进程退出竞态或预算超时只为候选原因，首错根因未确认。Computer Use首次activate失败，一次重新绑定后的`get_window_state`提供可访问性树，但实际截图是Windows锁屏；主控立即停止全部桌面输入/恢复，没有使用树或旧项目窗口代替实图。已请用户方便时解锁，不请求密码，不尝试绕过LockApp；工具指南明确要求锁屏立即停止并请用户解锁。
+
+### 本轮新增问题与待修
+
+| 编号 | 发现与影响 | 状态及验证 |
+| --- | --- | --- |
+| TOOL-01 | 新预热监听查询失败，但报错只含reason，无法区分超时、查询退出或进程消失，阻碍恢复定位 | 诊断缺口已修：整数status及白名单signal/errorCode，删除raw stderr/message/JSON响应片段；prewarm再次筛选后输出。4新回归修前全失败、修后通过，两文件66/66，最终全量/check/lint通过。门禁/重试未改；首轮查询失败根因仍待解锁后新会话复核 |
+| ENV-01 | Windows锁屏使窗口激活与真实输入不可用；可访问性树和截图画面不一致 | 环境条件待解除，不算应用缺陷；停止桌面动作、等待解锁 |
+
+### 此前未完成检查的执行清单
+
+以下在工具可用后由主控串行执行；本轮正式UI检查尚未开始，不把已有测试/旧图写成本轮通过。真实业务写入型按钮先在受控SDK/Page状态验行为，再单列真实云验收。
+
+| 检查组 | 状态/按钮与验收证据 | 当前状态 |
+| --- | --- | --- |
+| 工具链路 | 新prewarm → doctor → `ui:iterate -- launch`；exact-main、SDK、来源/清理、主控亲看PNG | 依赖烟测通过；新签名/截图未通过 |
+| 必要尺寸/大字 | 真实320/390/430、字体放大、44px、safe-area、横向溢出/裁剪；真实切设备后重新签会话 | 未执行；静态rpx/PNG尺寸不替代 |
+| 10-08修正 | 单打一/两循环生成器→normalize→applyTournament摘要，两个筛选sheet的✓/填充、选择/确定/取消 | 当前实图/动作未执行；现存case未展开筛选sheet |
+| 普通页面/导航 | launch/home/mine/profile/preferences/feedback/create/settings；返回、清空、输入、错误重试、三个比赛tab、分享 | 未执行 |
+| 设置/身份恢复 | 未保存草稿、固定payload失败重试、旧成功保新草稿、迟到身份/撤权后切页和重试 | 原生交互未执行；真实云保存另验 |
+| 录分 | idle/editing/locked/error及单打21分；输入/清空、边界、快分、取消、禁用/重试 | 未执行；真实锁/提交不由fixture关闭 |
+| 协管/收赛 | 主办/协管/busy/撤权、七入口权限；授权/撤销及收赛确认取消、完赛状态/分享 | 未执行；真实权限/竞争另验 |
+| 找回 | 列表/loading/empty/error、条目导航、分页、加载更多失败后保留行/重试、返回我的 | 未执行；WX/索引/跨设备另验 |
+| 单打全链路 | settings6、lobby0/1/6、schedule7、match21、并列排名/分享、提前收赛两个状态 | 当前各尺寸实图/按钮未执行 |
+| 打水 | legacy/V2、独立/历史空错态；24人长昵称、搜索空态、两侧切换露出完整行、关闭/清除/更正/撤销 | 未执行；独立账本没有结束按钮 |
+| 原生控件 | picker展开/滚轮/确定取消、系统modal、键盘及sheet滚动/底部CTA | 未执行；fixture不替代原生证据 |
+| 网络/监听 | 静默缓存/offline画面；受控断网、首次watch错误、恢复、切页/卸载 | 未执行；合成画面和实际事件分开 |
+| 大赛事 | 660场真实Page/WXML分块、定位、滚动、筛选/头像与桥接 | 未执行；本机不证明手机P95 |
+| 工程检查 | 工具直接测试先行；必要完整测试、check/lint/diff与修改关联测试 | 本轮工具修改的全量/check/lint/diff通过；不能替代UI实测 |
+
+原12项外部缺口仍采用下方“收尾待验清单”的标准：七日/≥100且来源可辨、后台事件实收、真实云身份/索引/事务、手机/多号双机与低端P95不能仅fixture下关闭。原七日截止不顺延、不造调用；付款、线上恢复、部署/上传/发布和生产规则未执行，不恢复automation-3。入口/视觉门禁仍见[开发循环](../tools/agent-development-workflow.md)与[UI验收](../tools/weapp-ui-acceptance.md)。
+
+- **修改与验证收口**：仅改两处工具JS、两个直接测试与三个现行文档，无业务UI/云合同修改。先审`test:affected`计划，其按工具基础设施判full；4新回归修前全失败、修后两文件66/66（子代理原工具回执，未落盘独立红绿日志）。主控`npm test`数值exit0，1802项中1796通过/6跳过/0失败，86.56秒；6跳过均为Windows下legacy WSL mirror runtime测试，不称运行验收通过。`npm run check`exit0，`npm run lint`exit0（0错误/35警告；修改JS定向lint无警告），`git diff --check`及新增/现行文档本地引用和current锚点核对通过。日志`tmp/ui-audit-20261011/full-tests.log`、`check.log`、`lint.log`。5项原dirty保护输入SHA前后完全相同；原未追踪目录/备份未整理或删除。提交前审全部staged diff、推送后核对远端，实际分支/commit见本根delivery回执及本轮回复。
 
 ## 2026-10-09 远端全面审计与报告入库
 

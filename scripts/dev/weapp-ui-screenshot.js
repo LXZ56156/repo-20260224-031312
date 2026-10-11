@@ -228,6 +228,19 @@ function listenerIdentityHash(identity) {
   return hashCanonical(listenerIdentityCore(identity));
 }
 
+function safeListenerQueryDiagnostics(diagnostics) {
+  const source = diagnostics && typeof diagnostics === 'object' ? diagnostics : {};
+  // Keep OS result codes, never subprocess output or Error messages containing command text.
+  const signals = ['SIGABRT', 'SIGALRM', 'SIGBREAK', 'SIGHUP', 'SIGINT', 'SIGKILL', 'SIGQUIT', 'SIGTERM'];
+  const errorCodes = ['E2BIG', 'EACCES', 'EAGAIN', 'EBADF', 'EFAULT', 'EINVAL', 'EIO', 'EMFILE',
+    'ENFILE', 'ENOBUFS', 'ENOENT', 'ENOMEM', 'ENOSYS', 'ENOTDIR', 'EPERM', 'ETIMEDOUT', 'UNKNOWN'];
+  return {
+    status: Number.isInteger(source.status) ? source.status : null,
+    signal: signals.includes(source.signal) ? source.signal : null,
+    errorCode: errorCodes.includes(source.errorCode) ? source.errorCode : null,
+  };
+}
+
 function resolveListenerIdentity(endpoint, options = {}) {
   if (!isLocalWebSocketEndpoint(endpoint)) {
     return { ok: false, reason: 'invalid-loopback-endpoint', endpoint: String(endpoint || '') };
@@ -286,18 +299,23 @@ function resolveListenerIdentity(endpoint, options = {}) {
     encoding: 'utf8',
     windowsHide: true,
   });
+  const queryDiagnostics = safeListenerQueryDiagnostics({
+    status: result && result.status,
+    signal: result && result.signal,
+    errorCode: result && result.error && result.error.code,
+  });
   if (!result || result.status !== 0) {
     return {
       ok: false,
       reason: 'listener-query-failed',
       endpoint,
-      error: String(result && (result.stderr || result.error) || '').trim(),
+      queryDiagnostics,
     };
   }
   try {
     return JSON.parse(String(result.stdout || '').trim());
-  } catch (err) {
-    return { ok: false, reason: 'listener-query-returned-invalid-json', endpoint, error: String(err.message || err) };
+  } catch {
+    return { ok: false, reason: 'listener-query-returned-invalid-json', endpoint, queryDiagnostics };
   }
 }
 
@@ -2772,6 +2790,7 @@ module.exports = {
   REPOSITORY_ROOT,
   isLocalWebSocketEndpoint,
   listenerIdentityHash,
+  safeListenerQueryDiagnostics,
   resolveListenerIdentity,
   validateListenerIdentity,
   validateDevToolsOwnership,
