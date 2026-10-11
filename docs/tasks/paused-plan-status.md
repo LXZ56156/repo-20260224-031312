@@ -64,6 +64,7 @@
 - 单打21/11/15分实际合法/非法比分与真实返回均见UI10；1/2循环running/finished四种生产hero摘要实图完整。空result当前没有重试入口，单打没有用户可点的重置按钮，独立账本没有结束按钮，不创造动作计通过。权限四视图、占用自然到期重获、参数撤权清旧重试、冲突取消与固定ID重试通过，仅本机合成SDK/文档投影。
 - 主控汇总 `tmp/ui-audit-20261011-unlocked/native-actions/remaining-local-root-review.json`；最新全量1868项/1862通过/6旧WSL跳过/0失败，check通过、lint0错误35旧警告。390/430受影响新图待补；准备指南不等执行回执，历史段中的旧待验以本节新证据为准。真实手机/云/多号/七日条件仍在下方清单。
 - 390补图恢复日志：`prewarm-390-final-score-targets.log`、`prewarm-390-final-score-targets-after-owner-check.log`、`prewarm-390-final-score-targets-after-restart.log`；最后一轮数值退出1，AppService readiness evaluate 60000ms超时。`devtools-unresponsive-selected-owner-stop.json`核实原owner34876身份后stopped=true，旧basic/capture已恢复。新会话文件未生成，窗口恢复问题已异步请求用户介入；无新云/业务写入。亮度读回仍0%。
+- 已验范围26文件提交`master/fec58e3d2a066ed34cc42403b085ab52560cec7c`并推送，`ls-remote`核实一致，`delivery.json`保留；五项既有输入SHA均保持。UI07五行试改未入提交。原用户回复恢复窗口后的本轮与随后两次goal续做，均遇同一项目画面错窗/运行时不可用阻塞；第二轮只读SDK检查15000ms超时并重置Node会话，结果文件未生成，操作完成未知，未安装fixture或采图。第三轮新窗口绑定仍显示其他应用，29558/39586监听owner仍18452/19416，但正式390会话仍不存在；不按端口存活判AppService恢复，不再无证据重启/预热。已请求用户恢复当前新项目窗口，剩余本机补图/物理快速重开/网络监听及外部条件全部保留；目标未完成。只读复核`390-post-delivery-continuation-state.json`，亮度仍0%。
 
 ### 此前未完成检查的执行清单
 
