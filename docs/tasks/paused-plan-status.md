@@ -1,6 +1,6 @@
 # 12项计划详细状态
 
-> 状态：2026-10-11已同步远端并先恢复工具；本次允许前台和桌面操作，但主控实测Windows锁屏，原生输入/实图验收仍待解锁。10-09报告结论按用户要求暂不处理。本页继续维护原12项实施与验收进度，本轮新问题及工具/待验状态见下节；历史记录不覆盖最新事实。当前导航见[current](current.md)。
+> 状态：2026-10-11已同步远端并先恢复工具；用户随后解锁，主控先把亮度调到0%，新430会话与launch实图通过，继续工具隔离、UI及按钮检查。10-09报告结论按用户要求暂不处理。本页继续维护原12项实施与验收进度，本轮新问题及工具/待验状态见下节；历史记录不覆盖最新事实。当前导航见[current](current.md)。
 
 ## 2026-10-11 先打通工具再续做检查
 
@@ -13,32 +13,84 @@
 | 编号 | 发现与影响 | 状态及验证 |
 | --- | --- | --- |
 | TOOL-01 | 新预热监听查询失败，但报错只含reason，无法区分超时、查询退出或进程消失，阻碍恢复定位 | 诊断缺口已修：整数status及白名单signal/errorCode，删除raw stderr/message/JSON响应片段；prewarm再次筛选后输出。4新回归修前全失败、修后通过，两文件66/66，最终全量/check/lint通过。门禁/重试未改；首轮查询失败根因仍待解锁后新会话复核 |
-| ENV-01 | Windows锁屏使窗口激活与真实输入不可用；可访问性树和截图画面不一致 | 环境条件待解除，不算应用缺陷；停止桌面动作、等待解锁 |
+| ENV-01 | Windows锁屏使窗口激活与真实输入不可用；可访问性树和截图画面不一致 | 用户解锁后已解除，真实窗口可见；按要求先调亮度0%，不算应用缺陷 |
+| TOOL-02 | 水case投影写最近账本缓存，原runner没有精确保全 | 路由前内存快照、两受保护namespace恢复复验、失败保留guard；真实水批次及原生检查恢复通过。当前账号原先已有demo最近项，只证明本轮精确保留，不倒写历史未污染 |
+| TOOL-03 | 录分fixture离页可能实际调用scoreLock release | 路由前至中性清理完成的callFunction默认拒绝隔离；未知请求不透传，当前录分批次清理通过 |
+| TOOL-04 | DevTools膜代理改变函数reference/custom属性，安装验证误拒绝 | 改nonce云/遥测与受保护scratch写删行为探针；真实安装/恢复通过。恢复原云/遥测只核原name，不调用原服务；storage另真实scratch写读删 |
+| TOOL-05 | fixture及受控提交的reportEvent可能污染观测 | reportEvent仅内存计数，不透传；当前SDK/cache/telemetry直接测试71/71、全量1824通过/6旧WSL跳过/0失败，真实批次抑制计数及恢复通过 |
+| TOOL-06 | 7个旧水case强制390，可信430会话被严格宽度门禁拒绝 | 删除过时case固定宽度，遵循签名会话；320/390/430匹配通过、偏差1px拒绝直接回归。原失败candidate及cleanup保留 |
+| TOOL-07 | 11个旧导航fixture键/active/URL与真实三tab不符；Page.getData单字段省略null导致加载错误fixture哈希不符 | 导航用生产helper/各自ID；错误显示fixture用falsy布尔哨兵，真实Page初始null不改，两字段严格gate保留；43/43直接测试。group18首错/修后通过均保留 |
+| TOOL-08 | Node REPL持久化CommonJS缓存加载旧隔离版本 | 原生初始化失败尚未执行按钮；重连保留旧内存，云guard拒绝probe、原缓存恢复、原SDK name及scratch复验通过后卸载模块缓存；未先编译丢快照。回执native-cached-module-recovery.json |
+| TOOL-09 | Nightly Native.confirmModal/navigateLeft返回但不执行，Element.tap也会向disabled控件派发事件 | 实际规则弹窗回调全null/返回页不变已复现；改主控Computer Use真实点击并核回调/路由，7规则全部实际关闭、7玩法实际返回通过。禁用按钮需真实busy registry或鼠标证据，不以单data忙态加API tap判应用失败 |
+| TOOL-10 | SDK.windowHeight保留launch的752，真实非tab页面渲染高度834，固定底栏误判不可见；AppService selectorQuery无对应节点 | 底栏真实图可见，SDK offset/size与Page.size另核；原生helper几何适配待复验，不改签名viewport，不从PNG推逻辑尺寸 |
+| TOOL-11 / 已修 | 4个旧分享fixture的手填玩法/人数/场数互相矛盾，且与rawdoc不一致 | 只判fixture缺陷，不据此判产品bug；完整synthetic doc及preview统一生产投影，直接45/45，4状态430重拍及主控亲看通过 |
+| TOOL-12 / P1已修 | 清理的页面栈/probe/name检查抛错时，回执称保留隔离，实际retained仍false，迟到写入可覆盖已恢复缓存 | 清理开始即阻写，本地catch重装4guard，区分快照/guard/传输未知。6项先红后绿、实际工具77/77；修后launch烟测及多次原生恢复通过。全量1837通过/6旧WSL跳过/0失败，check/lint通过；不调用原云/遥测 |
+| TOOL-13 / 已修并验证 | GUI由Computer Use启动后，监听查询遍历到不可读取StartTime的非owner系统祖先，ToFileTimeUtc抛错，320预热失败 | 只在非owner祖先不可读取时截止遍历，owner身份/安装归属/后台旗标门禁保持。6项先红后绿、工具83/83；最新全量1843通过/6旧WSL跳过/0失败，check/lint通过；真实查询及320新预热通过 |
+| TOOL-14 / 恢复未验证 | 320录分7状态批次结束时AppService签名marker与隔离快照同时消失，清理回执为未知 | 原失败批次保留，后续单打批次停止。主控只读复核同监听/源码/尺寸，只有marker失败；原SDK函数已在、launch单页、保护缓存1键，但无原快照可逐值核对，不能称旧批次恢复成功。原因待定位，未清空缓存或修改私有值 |
+| UI-09 / 指定静态状态已修 | 320×600记一局/更正长名单首行被footer遮挡，搜索无结果清除入口也被遮挡 | 局部短屏样式压缩留白并增加记局弹层可用高度，保留44px/全宽CTA、单滚动owner/安全区归属。93关联通过，最新4正式图与完整清理通过，主控及两隔离评审确认整行和清除入口完整；真实320切两侧首行、内部上下滚动、空搜索清除与关闭已补；更正底部重复滚动的背景穿透另列UI14。原320评审包临时称UI07，正文使用UI09避免与既有比分错位编号冲突 |
+| UI-10 / 已修、本机原生复验通过 | 生产单打赛程进入录分后，21:20未本地拦截而进入提交路径 | 改为完整_latestTournament优先、兼容旧字段回退；生产投影回归红14过12败→绿26/26，关联34/34，最新全量1862通过/6旧WSL跳过/0失败。真实0:0、21:20、30:30、31:29无提交请求；21:19→更正22:20→30:29提交与真实返回显示通过；11:11/15:15拒绝、11:10/15:14合法提交和返回亦通过。仅合成云结果，真实云提交未验；原首错保留 |
+| UI-11 / 320触达缺口已修 | 320录分完整picker点击区高43.520 CSS px | CSS设min-height44px，完整父picker实测282.942×61.071 CSS px。8录分状态新采集/完整清理/主控亲看与两隔离评审通过，增高未遮挡CTA；实际单打主链触达通过。390/430新图仍待补；列底对齐不由320上下布局关闭旧390错位 |
+| UI-12 / P2待修 | 已完赛录分页说明仍称“开始录分”，按钮实际是“修改比分” | 实际更正和冲突重试完成图均可见；matchViewModel的idle说明固定开始录分，按钮按finished变化。建议说明复用当前lockActionText，不改变操作语义 |
+| UI-13 / P2待修 | 无二维码降级海报仍显示白色码区与“扫码查看完整战绩” | 两位并列冠军真实2D海报均复现；二维码请求在本次隔离中被拒，生产降级可达。金牌背景已烧入码区/扫码文字，普通背景也无条件绘字；应按实际二维码绘制成功处理页脚。当前不证明二维码成功/可扫码或线上云故障，素材未改 |
+| TOOL-15 / 运行时连接断开、最终恢复未验证 | 本机原生检查已完成370步后，项目窗口消失且39584监听owner44392退出，SDK连接关闭 | 单打、权限、到期、空结果、撤权、冲突、并列海报各子范围恢复已通过；找回条目forward通过，真实Back及本轮basic/capture总恢复尚未证明。未以重新预热证明旧恢复；首错/全部步骤留native-actions/native-runtime-connection-lost.json |
+| TOOL-16 / 原会话恢复未验证、新会话通过 | 用户恢复项目窗口前后新会话marker/capture/basic快照丢失 | 操作前checkpoint拒绝，原因未确定；recovered-session-marker-lost.json保留，仅释放本次宿主锁。随后重新签发session-320-after-user-window-restore，260步/0异常、basic10键及SDK/capture完整恢复通过，不倒验旧会话 |
+| TOOL-17 / SDK选择结果异常 | nth-child选择设置实际进入资料；统计第二复制得到摘要 | 首错保留，尚不能确定SDK根因；物理设置/反馈及完整战报按钮路由/文本均正确。统计第3次内存复制严格等reportShareText，真实OS剪贴板未覆盖；不据选择器异常判产品缺陷 |
+| TOOL-18 / 当前补图受阻 | 切390后IDE服务超时、窗口未响应；重启后服务恢复但AppService响应超时，Computer Use画面再次错窗 | 两份服务失败日志及一次重启后的AppService超时分别保留。旧260步会话已完整恢复后，按签名PID/启动时间/安装身份结束无响应实例；新IDE服务23830ms/3次探测通过、自动化39586监听已建，但未签session、未生成正式PNG。重新绑定/激活仍显示其他窗口，已请用户恢复新项目窗口；不继续旧坐标、不执行auth、不将端口监听算验收通过 |
+| UI-14 / P2待修 | 320长摘要更正名单滚到底后再次滚动，背景页被带动约33px | 内部scrollTop543.674→0、两侧首行及关闭通过，但outer0→33.197，不能称滚动归属完全通过；物理记录water320-correction-physical-layout-actions.result.json，固定CTA仍可见 |
+| UI-01 / P1已修 | 头像A上传中选择B导致预览与保存错配 | 两入口统一三busy保护；5新回归修前失败、修后通过，关联163/163；430忙态实图及三态9次实际事件无新chooser/upload通过，普通/快捷chooser物理打开及取消已验，状态不变、无业务上传增量；真实上传另验 |
+| UI-02 / P2已修 | 已更正状态小字灰底4.3641、高亮底4.3115低于4.5 | 局部色#a05c29改为4.7895/4.7317，普通底5.0665；实际CSS回归先红后绿，关联319/319，430重拍与主控亲看通过，其他尺寸继续 |
+| UI-03 / P2部分已修、待优化 | 数字与水单位拆行 | 主流水display投影保护数量+单位，原canonical/ARIA保留、关联319/319；430重拍主流水通过，但waterV2EntryDetail修订历史仍有“更正为2”与“水”拆行，继续列待修，不能关闭整项 |
+| UI-04 / P2待优化 | 历史错误提示末尾“试”形成孤字 | 430真实图可见，信息完整/重试可用；两评审有分歧，暂列可读性待优化，不新增文案/结构 |
+| UI-05 / 已修、本机投影通过 | 真实applyTournament后已有roundsUi=1/DOM round-card=1，却仍有“还没有对阵”DOM=1 | 改派生hasVisibleRounds，5直接/185关联、13赛程430重拍通过；真实小赛程round-card=1/empty=0，新实图通过。660投影及物理筛选通过，线上同触发未验 |
+| UI-06 / P1 SDK压力复现、物理可达未验 | 关闭动画中SDK事件快速重开水弹层，data已开但内容持续离屏 | Vant进入Promise未清时忽略重开；实际SDK压力图/几何与700ms对照保留。SDK可能穿退出overlay派发事件，不能断言正常用户必现；普通动画完成后流程仅settled-only，未修共用组件 |
+| UI-07 / P2试改、390复验待补 | 双打长昵称两行使左右比分框上下错位 | 列内margin-top:auto五行试改留工作树，未入本次提交；320上下布局8新图通过，不能据此关闭390左右布局旧错位。390/430受影响8录分新图被TOOL18阻断；权限只读原因文案不足仅作建议，不擅自新增状态语义 |
+| UI-08 / 用户要求已修 | “本机草稿已保留”“修改后自动保留草稿”等重复信息 | 删除录分常驻提示，打水受限提示仅留原因/下一步；fixture错误条精简。154关联测试、定向lint通过，390受影响5状态重拍通过且主控亲看；实际缓存保留行为与冲突操作不变 |
+
+### 解锁后新增执行证据（继续中）
+
+- **430原生与660**：真实小赛程空态互斥通过；两筛选sheet选择/取消/确认、设置固定payload失败重试保新草稿、录分快分/交换/撤销/清零及busy单请求、找回分页失败保行/重试、协管grant/revoke各两次点击仅一请求、真实收赛取消/失败/同ID重试通过。660正式生产投影110轮，物理头像筛选110场→已结束交集55→清头像330→全部660，真实滚动样本通过；18次setData最大1044404bytes低于1MiB。不是手机P95，未逐一查询660个DOM；前长查询/内核超时及未知异常计数保留。`native-actions/large660-physical-summary.json`及cleanup各层恢复通过，锁释放。
+- **打水**：24人移侧/搜索清空/空态/摘要、12v12内部滚动、roster普通流程、历史关闭/分页/条目跳转、game/direct/roster/newledger合成失败同ID重试通过；game真实picker取消/2水、correction真实3水与撤销真实取消/确认已有证据。更正成功后的详情旧图只有遮罩，新版settled详情仍待补；direct三picker、当前账本“新建另一场”、物理快速重开等未验。合并new/history标签不代替缺失新建入口结果。四轮水尝试24条含15pass/6fail/2diagnosed/1finding，失败与后pass分别保留，不称全部通过。汇总`water-native-evidence-summary.md`。
+- **390普通尺寸**：实际切iPhone12/13(Pro)，新39583签名SDK3.17.3、width390/font16，四批37case全部采集通过、异常0、恢复通过，主控逐张检查；两隔离评审已完成。后用户删草稿提示的5状态另名重拍，83.916秒/exit0，主控亲看。其余32图对应未变布局；不同source hash不能合称同一全量源码签名。原run `viewport-runs/390-normal-20261011-135109-c73bdf3f`，补图`remove-draft-copy-390`。轮卡右沿疑点追加真实图及子容器几何：两态card右边378.206、header/match367.670、徽标366.675均在390内，新busy图完整，当前不确认裁切缺陷。
+- **320普通尺寸与首轮单打主链**：实际UI320、600高、font16、SDK3.17.3，新39584预热通过。水11/筛选资料9、限定复测录分7、单打10共37正式状态采集与清理通过，主控逐张亲看，两评审对相同Part1/2包逐SHA/receipt独立复核；4张短屏记局新图替换对应旧布局，其余分批签名保持。`review-packet-320-part*.json`及两份各part报告保留，UI09指定静态症状关闭；320上下比分不关闭390错位。真实创建/导入6人、两循环两场地选择与分制取消、参数保存/30场生成/开赛/实际录分已执行；非法21:20检查失败发现UI10，未称完整单打主链通过。首轮68步/异常0，scope/basic/capture/cache均恢复、锁释放，`singles-before-fix-cleanup.json`保留。
+- **大字/键盘限制**：Computer Use真实设fontsize26，触发运行时重载；doctor仅marker=false，按手册显式refresh通过。水标题在16/26两档实际CSS均18px、实图未放大，故actualRenderLarger=false，不执行假大字批次。真实pointer及内层编辑控件点击后未出现手机键盘，焦点仅报告外层文档，未向未证焦点输入文字；真机键盘/大字仍未验。已实际恢复fontsize16，各层缓存/SDK恢复通过，亮度仍0。
+- **恢复与源保护**：此后旧IDE/SDK监听和进程实际消失，320首次prewarm失败、无新会话；重新启动现有GUI、再实际选UI320(320×600/Dpr2)，第二次预热因TOOL-13停止。`prewarm-320*.log`保留，当前不可复用旧签名。5项原dirty保护SHA逐项相同，记录`protected-restored-environment.json`；最新fetch核origin/master与HEAD仍c1c3aa9。10-09审计正文未改，新增改动尚待本轮验证交付。
+
+### 用户恢复窗口后补验
+
+- 新会话 `session-320-after-user-window-restore.json` 260步/0异常；`native-actions/320-after-user-restore-basic-cleanup.result.json`证明10个本地键逐值恢复与额外SDK原名复验，`320-after-user-restore-capture-cleanup.result.json`证明中性页面、SDK/保护缓存恢复及锁释放。旧TOOL14/15/16缺口保留。
+- 找回条目→分享入口→系统Back列表、真实转发聊天选择器→Back取消、统计展开/收起/完整战报物理复制→Back首页均通过，各独立scope恢复通过。统计原第二SDK复制失败保留；物理复制第3条严格匹配完整报告。两个并列冠军实际2D海报及关闭、朋友圈说明真实确认已通过，不计实际二维码或外发。
+- Basic缺资料launch、打水new/recent/history、mine四入口、首页三卡与两个quick，共13组前进/真实Back通过；空战绩、两稍后提示及hero发起tab通过。普通/快捷头像chooser真实打开取消，头像/上传不变；反馈category取消/改排程index2及资料returnUrl→真Back→刷新解除门禁通过。反馈首次过早路由断言失败后只读观察完成跳转，未重复点击；设置SDK误选首错保留。
+- 当前账本“新建另一场”受控创建1人0流水通过；direct原生付水人Chris、赢水人与付水人相同拒绝、5水确认及取消保留3水通过。320长名单两侧、上下物理滚动、真关闭、空搜索清除24人且阵容保留通过；UI14背景穿透另列。更正3水同ID重试和撤销真实确认后，新settled详情/修订链/只读状态已由主控亲看 `water-correction-native-same-id-success-detail.png`、`water-reverse-native-confirm-success-detail.png`，可见关闭按钮SDK点击通过；UI06快速重开仍未闭合。
+- 单打21/11/15分实际合法/非法比分与真实返回均见UI10；1/2循环running/finished四种生产hero摘要实图完整。空result当前没有重试入口，单打没有用户可点的重置按钮，独立账本没有结束按钮，不创造动作计通过。权限四视图、占用自然到期重获、参数撤权清旧重试、冲突取消与固定ID重试通过，仅本机合成SDK/文档投影。
+- 主控汇总 `tmp/ui-audit-20261011-unlocked/native-actions/remaining-local-root-review.json`；最新全量1868项/1862通过/6旧WSL跳过/0失败，check通过、lint0错误35旧警告。390/430受影响新图待补；准备指南不等执行回执，历史段中的旧待验以本节新证据为准。真实手机/云/多号/七日条件仍在下方清单。
+- 390补图恢复日志：`prewarm-390-final-score-targets.log`、`prewarm-390-final-score-targets-after-owner-check.log`、`prewarm-390-final-score-targets-after-restart.log`；最后一轮数值退出1，AppService readiness evaluate 60000ms超时。`devtools-unresponsive-selected-owner-stop.json`核实原owner34876身份后stopped=true，旧basic/capture已恢复。新会话文件未生成，窗口恢复问题已异步请求用户介入；无新云/业务写入。亮度读回仍0%。
 
 ### 此前未完成检查的执行清单
 
-以下在工具可用后由主控串行执行；本轮正式UI检查尚未开始，不把已有测试/旧图写成本轮通过。真实业务写入型按钮先在受控SDK/Page状态验行为，再单列真实云验收。
+主控已串行执行430批次及部分原生按钮；79份正式case图已逐张检查，分阶段源码hash分别保留。受本轮修复影响的水21/赛程13/分享4状态已14组重拍全部通过，异常0、neutral/cache/SDK恢复通过，主控逐张亲看；4个旧分享fixture旧图仅作布局观察，新图才作内容核对。后续隔离失败分支修复须刷新签名复验。真实业务写入型按钮先在受控SDK/Page状态验行为，再单列真实云验收。
 
 | 检查组 | 状态/按钮与验收证据 | 当前状态 |
 | --- | --- | --- |
-| 工具链路 | 新prewarm → doctor → `ui:iterate -- launch`；exact-main、SDK、来源/清理、主控亲看PNG | 依赖烟测通过；新签名/截图未通过 |
-| 必要尺寸/大字 | 真实320/390/430、字体放大、44px、safe-area、横向溢出/裁剪；真实切设备后重新签会话 | 未执行；静态rpx/PNG尺寸不替代 |
-| 10-08修正 | 单打一/两循环生成器→normalize→applyTournament摘要，两个筛选sheet的✓/填充、选择/确定/取消 | 当前实图/动作未执行；现存case未展开筛选sheet |
-| 普通页面/导航 | launch/home/mine/profile/preferences/feedback/create/settings；返回、清空、输入、错误重试、三个比赛tab、分享 | 未执行 |
-| 设置/身份恢复 | 未保存草稿、固定payload失败重试、旧成功保新草稿、迟到身份/撤权后切页和重试 | 原生交互未执行；真实云保存另验 |
-| 录分 | idle/editing/locked/error及单打21分；输入/清空、边界、快分、取消、禁用/重试 | 未执行；真实锁/提交不由fixture关闭 |
-| 协管/收赛 | 主办/协管/busy/撤权、七入口权限；授权/撤销及收赛确认取消、完赛状态/分享 | 未执行；真实权限/竞争另验 |
-| 找回 | 列表/loading/empty/error、条目导航、分页、加载更多失败后保留行/重试、返回我的 | 未执行；WX/索引/跨设备另验 |
-| 单打全链路 | settings6、lobby0/1/6、schedule7、match21、并列排名/分享、提前收赛两个状态 | 当前各尺寸实图/按钮未执行 |
-| 打水 | legacy/V2、独立/历史空错态；24人长昵称、搜索空态、两侧切换露出完整行、关闭/清除/更正/撤销 | 未执行；独立账本没有结束按钮 |
-| 原生控件 | picker展开/滚轮/确定取消、系统modal、键盘及sheet滚动/底部CTA | 未执行；fixture不替代原生证据 |
-| 网络/监听 | 静默缓存/offline画面；受控断网、首次watch错误、恢复、切页/卸载 | 未执行；合成画面和实际事件分开 |
-| 大赛事 | 660场真实Page/WXML分块、定位、滚动、筛选/头像与桥接 | 未执行；本机不证明手机P95 |
-| 工程检查 | 工具直接测试先行；必要完整测试、check/lint/diff与修改关联测试 | 本轮工具修改的全量/check/lint/diff通过；不能替代UI实测 |
+| 工具链路 | 新prewarm → doctor → `ui:iterate -- launch`；exact-main、SDK、来源/清理、主控亲看PNG | 430/320签名与采集、最新260步完整恢复通过；当前390新会话被TOOL18阻断，旧会话缺口保留 |
+| 必要尺寸/大字 | 真实320/390/430、字体放大、44px、safe-area、横向溢出/裁剪；真实切设备后重新签会话 | 三普通尺寸已采图亲看、双评审完成；44px修复320实测/8新图通过，受影响390/430图仍待补；390真实26字号未放大页面，大字/真键盘不计通过 |
+| 10-08修正 | 单打一/两循环生产摘要，两个筛选sheet的✓/填充、选择/确定/取消 | 两筛选sheet及真实筛选通过；单打1/2循环running/finished四种生产摘要实图已亲看，受控开赛/录分通过 |
+| 普通页面/导航 | launch/home/mine/profile/preferences/feedback/create/settings；返回、清空、输入、错误重试、三个比赛tab、分享 | 普通静态与已列动作通过；新增13组导航真实往返、首页tab/提示、资料两chooser取消、反馈类别和资料门禁、转发面板取消、统计展开复制往返通过 |
+| 设置/身份恢复 | 未保存草稿、固定payload失败重试、旧成功保新草稿、迟到身份/撤权后切页和重试 | 固定payload失败重试保新草稿、撤权清理旧失败重试及权限恢复不复活旧重试通过；仅合成本机，真实身份/云保存另验 |
+| 录分 | idle/editing/locked/error及单打21分；输入/清空、边界、快分、取消、禁用/重试 | 快分/交换/撤销/清零、busy、原生比分picker、冲突取消与同ID重试、8秒自然锁到期重获、空结果保状态通过；新390/430样式图待补，真实云锁/提交另验 |
+| 协管/收赛 | 主办/协管/busy/撤权、七入口权限；授权/撤销及收赛确认取消、完赛状态/分享 | 受控grant/revoke忙态单请求、收赛取消/失败/同ID重试、四权限视图/管理展开收起通过；真实权限/竞争另验 |
+| 找回 | 列表/loading/empty/error、条目导航、分页、加载更多失败后保留行/重试、返回我的 | 六状态及受控分页/失败保留/重试、条目分享入口真实往返通过；WX/索引/跨设备另验 |
+| 单打全链路 | settings6、lobby0/1/6、schedule7、match21、并列排名/分享、提前收赛两个状态 | 三尺寸静态及创建/导入/参数/开赛、21/11/15分合法非法/更正返回、四生产摘要、两个并列冠军海报通过；UI10修复已验，真实云/手机另验，无重置按钮不计点击 |
+| 打水 | legacy/V2、独立/历史空错态；24人长昵称、搜索空态、两侧切换、关闭/清除/更正/撤销 | 24人/12v12、direct选择器、新建另一场、320切侧/清除/内部滚动/关闭、更正3水同ID重试/撤销确认与新详情图通过；UI06/14及新430错误条图待补，无账本结束按钮 |
+| 原生控件 | picker展开/滚轮/确定取消、系统modal、键盘及sheet滚动/底部CTA | 已列modal、game/correction/direct/比分/参数/反馈picker及两头像chooser均有物理操作/回调证据；手机键盘/大字未验，SDK空返回不算通过 |
+| 网络/监听 | 静默缓存/offline画面；受控断网、首次watch错误、恢复、切页/卸载 | 430静态亲看；合成画面和实际事件分开，实际断网/watch未验 |
+| 大赛事 | 660场真实Page/WXML分块、定位、滚动、筛选/头像与桥接 | 110轮660场生产投影、物理筛选/滚动样本及实际桥<1MiB通过；长批节点未逐一遍历，本机不证明手机P95 |
+| 工程检查 | 工具直接测试先行；必要完整测试、check/lint/diff与修改关联测试 | 最新1868项/1862通过/6旧WSL跳过/0失败，check通过、lint0错误35旧警告；提交前另核文档链接、staged范围与保护SHA，不能替代未验实图 |
 
 原12项外部缺口仍采用下方“收尾待验清单”的标准：七日/≥100且来源可辨、后台事件实收、真实云身份/索引/事务、手机/多号双机与低端P95不能仅fixture下关闭。原七日截止不顺延、不造调用；付款、线上恢复、部署/上传/发布和生产规则未执行，不恢复automation-3。入口/视觉门禁仍见[开发循环](../tools/agent-development-workflow.md)与[UI验收](../tools/weapp-ui-acceptance.md)。
 
-- **修改与验证收口**：仅改两处工具JS、两个直接测试与三个现行文档，无业务UI/云合同修改。先审`test:affected`计划，其按工具基础设施判full；4新回归修前全失败、修后两文件66/66（子代理原工具回执，未落盘独立红绿日志）。主控`npm test`数值exit0，1802项中1796通过/6跳过/0失败，86.56秒；6跳过均为Windows下legacy WSL mirror runtime测试，不称运行验收通过。`npm run check`exit0，`npm run lint`exit0（0错误/35警告；修改JS定向lint无警告），`git diff --check`及新增/现行文档本地引用和current锚点核对通过。日志`tmp/ui-audit-20261011/full-tests.log`、`check.log`、`lint.log`。5项原dirty保护输入SHA前后完全相同；原未追踪目录/备份未整理或删除。提交前审全部staged diff、推送后核对远端，实际分支/commit见本根delivery回执及本轮回复。
+- **解锁前工具修改与验证收口**：仅改两处工具JS、两个直接测试与三个现行文档，无业务UI/云合同修改。先审`test:affected`计划，其按工具基础设施判full；4新回归修前全失败、修后两文件66/66（子代理原工具回执，未落盘独立红绿日志）。主控`npm test`数值exit0，1802项中1796通过/6跳过/0失败，86.56秒；6跳过均为Windows下legacy WSL mirror runtime测试，不称运行验收通过。`npm run check`exit0，`npm run lint`exit0（0错误/35警告；修改JS定向lint无警告），`git diff --check`及文档引用/current锚点通过。日志`tmp/ui-audit-20261011/full-tests.log`、`check.log`、`lint.log`。5项原dirty保护输入SHA完全相同。已交付`master/c1c3aa97994d4917440b93dff47bffcdc5b9416a`，远端相同，回执`tmp/ui-audit-20261011/delivery.json`；它不是解锁后新增修改的验证。
+
+- **解锁后工具恢复**：用户明确解锁并要求先调最低亮度；WmiSetBrightness设0，WmiMonitorBrightness读回CurrentBrightness=0/Active=true。Computer Use真实截图确认桌面解锁。首个390预热通过IDE/项目/SDK/进程/marker，但viewport失败；一次只读读取证实main项目实际是iPhone14/15ProMax 430，而旧项目窗口此前显示390，未伪改回执。按实际430另选未占用39582和`tmp/ui-audit-20261011-unlocked/session-430.json`成功签发，SDK3.17.3、exact-main、源码/身份门禁全通过。`ui:iterate -- launch`doctor及capture退出0，19.86秒、异常0、数据/selector/来源/清理通过，真实469×1013 frame图主控亲看；430逻辑宽度来自systemInfo，不从PNG推算。初图/receipt在`tmp/ui-screenshots-actual/simulator-frame/launch.*`，run日志`tmp/ui-iterate-runs/2026-10-11T03-40-21-171Z-56584-b30924e7/`。随后暂停依赖源码签名的采集，冻结新工具隔离、头像忙态修复及补充case后再编译/刷新。
 
 ## 2026-10-09 远端全面审计与报告入库
 

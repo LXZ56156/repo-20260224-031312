@@ -291,6 +291,21 @@ test('disabled primary actions keep neutral styling with WCAG AA text contrast',
   assert.ok(contrastRatio(foreground, background) >= 4.5, `${foreground} on ${background} must meet WCAG AA`);
 });
 
+test('feed status text meets WCAG AA on normal, muted and highlighted rows', () => {
+  const wxss = read('miniprogram/pages/water/index.wxss');
+  const rule = wxss.match(/\.water-feed-status\s*\{([^}]*)\}/s)[1];
+  const color = rule.match(/color:\s*(#[0-9a-f]{6}|var\(--water-warning\))/i)[1];
+  const foreground = color.startsWith('#') ? color : wxss.match(/--water-warning:\s*(#[0-9a-f]{6})/i)[1];
+  const backgrounds = [
+    wxss.match(/--water-surface:\s*(#[0-9a-f]{6})/i)[1],
+    wxss.match(/\.water-feed-item\.is-muted\s*\{[^}]*background:\s*(#[0-9a-f]{6})/i)[1],
+    wxss.match(/\.water-feed-item\.is-highlighted\s*\{[^}]*background:\s*(#[0-9a-f]{6})/i)[1],
+  ];
+  for (const background of backgrounds) {
+    assert.ok(contrastRatio(foreground, background) >= 4.5, `${foreground} on ${background} must meet WCAG AA`);
+  }
+});
+
 test('independent ledger navigation replaces round controls and retains early records', () => {
   const wxml = read('miniprogram/pages/water/index.wxml');
   const wxss = read('miniprogram/pages/water/index.wxss');

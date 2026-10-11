@@ -627,7 +627,7 @@ test('every V2 room fixture keeps eventCount, latestSeq and loaded entry seq con
     });
 });
 
-test('the 390px V2 matrix includes stable sheet, correction, detail, archive and error cases', () => {
+test('V2 sheet, correction, detail, archive and error cases inherit the signed 320/390/430 session width', () => {
   const expected = [
     'waterV2MemberDirect',
     'waterV2MemberCorrection',
@@ -635,14 +635,24 @@ test('the 390px V2 matrix includes stable sheet, correction, detail, archive and
     'waterV2EntryDetail',
     'waterV2ArchivedRound',
     'waterV2SheetError',
+    'water',
   ];
   assert.ok(screenshotTool.cases);
   expected.forEach((name) => {
     const item = screenshotTool.cases[name];
     assert.ok(item, `${name} must exist`);
-    assert.equal(item.expectedWindowWidth, 390, `${name} must force 390px`);
+    assert.equal(Object.prototype.hasOwnProperty.call(item, 'expectedWindowWidth'), false,
+      `${name} must follow config.expectedWindowWidth from the signed session`);
     assert.ok(item.fixture && item.fixture.roomData, `${name} must use a deterministic room fixture`);
   });
+  // This removes only the stale per-case 390 override. The actual viewport still
+  // has to equal the configured signed width; a drift cannot become evidence.
+  for (const width of [320, 390, 430]) {
+    const evidence = { expectedWindowWidth: width, systemInfo: { windowWidth: width } };
+    assert.equal(screenshotTool.validateReceiptEvidence(evidence).checks.expectedWidth, true);
+    assert.equal(screenshotTool.validateReceiptEvidence({ ...evidence,
+      systemInfo: { windowWidth: width + 1 } }).checks.expectedWidth, false);
+  }
   assert.deepEqual(screenshotTool.manualActions, [
     '原生 picker 展开态与滚轮选择',
     '系统确认 modal 的确认与取消',
@@ -834,4 +844,318 @@ test('settings capture fixtures match real owner, co-manager and read-only permi
     assert.equal(item.storageFixture, undefined);
   });
   assert.equal(viewer.data.canManageTournament && viewer.data.tournament.status === 'draft' && viewer.data.canConfigureSettings, false);
+});
+
+function localCapturePage(relativePath) {
+  const pagePath = require.resolve(`../miniprogram/${relativePath}`);
+  const previousPage = global.Page;
+  const previousModule = require.cache[pagePath];
+  let definition;
+  global.Page = (value) => { definition = value; };
+  try { delete require.cache[pagePath]; require(pagePath); }
+  finally {
+    global.Page = previousPage;
+    if (previousModule) require.cache[pagePath] = previousModule;
+    else delete require.cache[pagePath];
+  }
+  return { ...definition, data: globalThis.structuredClone(definition.data),
+    _pageActive: false, _isVisible: false,
+    setData(patch, callback) { Object.assign(this.data, patch); if (callback) callback.call(this); } };
+}
+
+function runLocalCaptureFixture(name) {
+  const item = screenshotTool.cases[name];
+  const page = localCapturePage(item.path.split('?')[0].replace(/^\//, ''));
+  const fixture = item.fixture;
+  if (fixture.roomData) page.applyRoomData(fixture.roomData);
+  if (fixture.pageData) page.setData(fixture.pageData);
+  for (const method of fixture.methods || []) page[method.name](...(method.args || []));
+  assert.equal(fixture.postData, undefined, `${name} must not replace derived state`);
+  return page;
+}
+
+test('schedule filter captures derive draft selection, applied rows and an empty result through real page handlers', () => {
+  const playerSheet = runLocalCaptureFixture('schedulePlayerFilterSheet');
+  assert.equal(playerSheet.data.showPlayerFilterSheet, true);
+  assert.equal(playerSheet.data.playerFilterOptions.length, 2);
+  assert.equal(playerSheet.data.playerFilterDraftMode, 'not_contains');
+  assert.equal(playerSheet.data.avatarFilterMode, 'contains', 'sheet selection is still a draft');
+  playerSheet.closePlayerFilterSheet();
+  assert.equal(playerSheet.data.playerFilterDraftMode, 'contains');
+
+  const statusSheet = runLocalCaptureFixture('scheduleStatusFilterSheet');
+  assert.equal(statusSheet.data.showStatusFilterSheet, true);
+  assert.equal(statusSheet.data.statusFilterOptions.length, 4);
+  assert.equal(statusSheet.data.statusFilterDraftValue, 'finished');
+  assert.equal(statusSheet.data.statusFilter, 'all');
+
+  const selected = runLocalCaptureFixture('scheduleFilterSelected');
+  assert.equal(selected.data.showStatusFilterSheet, false);
+  assert.equal(selected.data.statusFilter, 'finished');
+  assert.equal(selected.data.statusFilterLabel, '已结束');
+  assert.equal(selected.data.selectedPlayersUi.length, 1);
+  assert.deepEqual(selected.data.roundsUi.flatMap((round) => round.matchesUi).map((match) => match.status), ['finished']);
+
+  const empty = runLocalCaptureFixture('scheduleFilterEmpty');
+  assert.equal(empty.data.showPlayerFilterSheet, false);
+  assert.equal(empty.data.avatarFilterMode, 'not_contains');
+  assert.equal(empty.data.filterEmptyText, '暂无符合条件的对阵');
+  assert.equal(empty.data.roundsUi.length, 0);
+  assert.equal(empty.data.showFilterBar, true);
+  assert.equal(empty.data.selectedPlayersUi.length, 1);
+  empty.onClearSelectedPlayers();
+  assert.equal(empty.data.filterEmptyText, '');
+  assert.equal(empty.data.roundsUi.flatMap((round) => round.matchesUi).length, 2);
+});
+
+test('24-player game and roster captures derive empty search and complete summaries without postData overrides', (t) => {
+  const previousWx = global.wx;
+  global.wx = { getStorageSync() {}, setStorageSync() {}, setNavigationBarTitle() {} };
+  t.after(() => { global.wx = previousWx; });
+  const cloud = require('../miniprogram/core/cloud');
+  t.mock.method(cloud, 'call', () => { throw new Error('local display methods must not call cloud'); });
+
+  const empty = runLocalCaptureFixture('waterV2GameSearchEmpty');
+  assert.equal(empty.data.gameSheetOpen, true);
+  assert.equal(empty.data.participantCount, 24);
+  assert.equal(empty.data.gameParticipants.length, 0);
+  assert.equal(empty.data.gameSearchQuery, '找不到的球友');
+  assert.equal(empty.data.winnerIds.length, 12);
+  assert.equal(empty.data.loserIds.length, 12);
+  assert.equal(empty.data.gameSelectionValid, true, 'search does not discard the selected game');
+  empty.clearGameSearch();
+  assert.equal(empty.data.gameParticipants.length, 24);
+
+  const expanded = runLocalCaptureFixture('waterV2GameSummaryExpanded');
+  assert.equal(expanded.data.gameSummaryExpanded, true);
+  for (const [side, ids] of [['winner', expanded.data.winnerIds], ['loser', expanded.data.loserIds]]) {
+    const expected = ids.map((id) => expanded.data.participants.find((player) => player.id === id).name).join('、');
+    assert.equal(expanded.data[`${side}FullSummary`], expected);
+  }
+  assert.equal(expanded.data.gameParticipants[0].loserSelected, true, 'the current loser side stays first');
+  expanded.toggleGameSummary();
+  assert.equal(expanded.data.gameSummaryExpanded, false);
+
+  const roster = runLocalCaptureFixture('waterV2RosterSearchEmpty');
+  assert.equal(roster.data.activeTab, 'players');
+  assert.equal(roster.data.rosterParticipants.length, 0);
+  assert.equal(roster.data.rosterSearchQuery, '找不到的球友');
+  roster.clearRosterSearch();
+  assert.equal(roster.data.rosterParticipants.length, 24);
+});
+
+test('paged recovery failure capture preserves the actual loaded rows and load-more state', async (t) => {
+  const recovery = require('../miniprogram/core/tournamentRecovery');
+  const expected = screenshotTool.cases.tournamentListPageError.data;
+  const page = localCapturePage('pages/tournament-list/index.js');
+  let count = 0;
+  t.mock.method(recovery, 'getPage', async (cursor) => {
+    if (++count === 1) return { items: expected.items, hasMore: true, cursor: '__ui_older' };
+    assert.equal(cursor, '__ui_older');
+    throw new Error(expected.error);
+  });
+  await page.loadList(true);
+  assert.deepEqual(page.data, screenshotTool.cases.tournamentListMore.data);
+  await page.loadMore();
+  assert.deepEqual(page.data, expected);
+  assert.equal(page._cursor, '__ui_older');
+  assert.equal(page._lastLoadReset, false);
+});
+
+test('match capture matrix uses actual forbidden and canceled view states and the restored submit lock', () => {
+  const vm = require('../miniprogram/pages/match/matchViewModel');
+  for (const [name, openid] of [['matchForbidden', '__ui_spectator'], ['matchCanceled', '__ui_owner']]) {
+    const data = screenshotTool.cases[name].data;
+    const state = vm.buildTournamentViewState(data.tournament, { openid, tournamentId: data.tournamentId,
+      roundIndex: data.roundIndex, matchIndex: data.matchIndex, lockState: data.lockState,
+      currentScoreA: data.scoreA, currentScoreB: data.scoreB });
+    for (const key of ['matchStatusText', 'canEdit', 'userCanScore', 'canUseScoreLock', 'displayScoreA', 'displayScoreB']) {
+      assert.equal(data[key], state.data[key], `${name} ${key}`);
+    }
+    assert.equal((data.userCanScore && data.canUseScoreLock) || data.canRetryAction, false, 'no score-submit tray');
+  }
+  const busy = screenshotTool.cases.matchSubmitBusy.data;
+  assert.equal(busy.submitBusy, true);
+  assert.equal(busy.lockState, 'submitting');
+  assert.equal(busy.canEdit, true, 'submit service retains the editable projection while the button is disabled');
+  assert.equal(busy.lockHintText, vm.buildLockHint('submitting'));
+  const failed = screenshotTool.cases.matchError.data;
+  assert.equal(failed.lockState, 'locked_by_me');
+  assert.equal(failed.canEdit, true);
+  assert.equal(failed.canRetryAction, true);
+  assert.equal(failed.hasScoreDraft, true);
+  assert.equal(failed.lastFailedActionText, '提交比分');
+  assert.equal(vm.normalizeLockState(failed.lockState), failed.lockState);
+  assert.equal(screenshotTool.cases.matchLoadError.data.match, false);
+  assert.equal(screenshotTool.cases.matchLoadError.data.loadError, true);
+});
+
+test('inherited tournament capture navigation uses production keys, active state and its own fixture ID', () => {
+  const { getPrimaryNavItems } = require('../miniprogram/core/matchPrimaryNav');
+  const affected = ['ranking', 'schedule', 'scheduleManualFinishReady', 'scheduleManualFinishBusy',
+    'scheduleManualFinished', 'scheduleCachedPollingSilent', 'scheduleOffline', 'singlesSchedule7',
+    'singlesRankingTied', 'singlesScheduleManualFinished', 'singlesScheduleManualFinishedResult'];
+  for (const name of affected) assert.ok(screenshotTool.cases[name].data.primaryNavItems, name);
+  for (const [name, item] of Object.entries(screenshotTool.cases)) {
+    if (!item.data || !Array.isArray(item.data.primaryNavItems)) continue;
+    const route = item.path.match(/^\/pages\/(lobby|ranking|schedule)\/index(?:\?|$)/);
+    if (!route) continue;
+    const current = route[1] === 'lobby' ? 'match' : route[1];
+    const id = item.data.tournamentId || item.data.tournament._id;
+    assert.ok(id, name);
+    assert.deepEqual(item.data.primaryNavItems, getPrimaryNavItems(current, id), name);
+    assert.deepEqual(item.data.primaryNavItems.map(({ key, text }) => [key, text]),
+      [['match', '比赛'], ['ranking', '排名'], ['schedule', '对阵']], name);
+    assert.deepEqual(item.data.primaryNavItems.filter(item => item.active).map(item => item.key), [current], name);
+    for (const nav of item.data.primaryNavItems) {
+      assert.match(nav.url, new RegExp(`tournamentId=${encodeURIComponent(id)}$`), name);
+    }
+  }
+});
+
+test('match load-error display uses a transport-readable falsy sentinel and preserves the strict two-field gate', () => {
+  const { buildInitialData } = require('../miniprogram/pages/match/matchViewModel');
+  const item = screenshotTool.cases.matchLoadError;
+  assert.equal(buildInitialData().match, null, 'real Page initial state is unchanged');
+  assert.deepEqual(item.data, { match: false, loadError: true });
+  assert.equal(item.fixture, undefined, 'retain strict declared-data hashing');
+  assert.equal(item.strictReceipt, undefined);
+  const wxml = fs.readFileSync(path.join(__dirname, '..', 'miniprogram/pages/match/index.wxml'), 'utf8');
+  assert.match(wxml, /class="container safe-bottom match-page" wx:if="\{\{match\}\}"/);
+  assert.match(wxml, /class="container safe-bottom match-page" wx:elif="\{\{loadError\}\}"/);
+  // The failed 430 receipt has the exact hash of {loadError:true}: null was
+  // omitted by Page.getData(path), while false remains a readable field.
+  const transport = Object.fromEntries(Object.entries(item.data).map(([key, value]) => [key, value === null ? undefined : value]));
+  assert.equal(screenshotTool.hashCanonical(transport), screenshotTool.hashCanonical(item.data));
+  assert.notEqual(screenshotTool.hashCanonical({ loadError: true }), screenshotTool.hashCanonical(item.data),
+    'dropping match must still fail the declared-data hash');
+  assert.notEqual(screenshotTool.hashCanonical({ match: true, loadError: true }), screenshotTool.hashCanonical(item.data));
+});
+
+test('schedule direct captures declare visible rounds while method captures retain production derivation', () => {
+  for (const [name, item] of Object.entries(screenshotTool.cases)) {
+    if (!/^\/pages\/schedule\/index(?:\?|$)/.test(item.path)) continue;
+    if (item.fixture) {
+      assert.equal(Object.hasOwn(item.fixture.pageData || {}, 'hasVisibleRounds'), false, name);
+      assert.equal(Object.hasOwn(item.fixture.postData || {}, 'hasVisibleRounds'), false, name);
+      continue;
+    }
+    assert.ok(Array.isArray(item.data.roundsUi), name);
+    assert.equal(item.data.hasVisibleRounds, item.data.roundsUi.length > 0, name);
+  }
+  const selected = runLocalCaptureFixture('scheduleFilterSelected');
+  assert.equal(selected.data.hasVisibleRounds, true);
+  const empty = runLocalCaptureFixture('scheduleFilterEmpty');
+  assert.equal(empty.data.hasVisibleRounds, false);
+  empty.onClearSelectedPlayers();
+  assert.equal(empty.data.hasVisibleRounds, true, 'the real clear handler restores visible rows');
+});
+
+test('share captures project complete local documents with consistent roster, lifecycle and selector contracts', () => {
+  const share = require('../miniprogram/core/shareMeta');
+  const ranking = require('../miniprogram/core/ranking');
+  const fixtures = ['shareDraft', 'shareRunning', 'shareFinished', 'shareSquadChoice'];
+  const ids = new Set();
+  for (const name of fixtures) {
+    const item = screenshotTool.cases[name];
+    const tournament = item.data.tournament;
+    const preview = item.data.preview;
+    assert.match(tournament._id, /^__ui_share_/); ids.add(tournament._id);
+    assert.equal(item.data.tournamentId, tournament._id);
+    assert.match(item.path, new RegExp(`code=${tournament._id}$`));
+    assert.equal(tournament.players.length, 6);
+    assert.deepEqual(tournament.playerIds, tournament.players.map(player => player.id));
+    assert.equal(tournament.creatorId, tournament.players[0].id);
+    assert.equal(tournament.totalMatches, 6);
+    assert.equal(tournament.courts, 1);
+    assert.equal(tournament.rules.pointsPerGame, 21);
+    assert.deepEqual(preview, share.buildShareEntryViewModel({ tournament, openid: '__ui_share_viewer' }), name);
+    assert.equal(preview.playersCount, 6);
+    assert.equal(preview.playersCountText, '6 人');
+    assert.equal(preview.socialProofText, '已有 6 人加入');
+    assert.equal(preview.playerLimit, 0, 'generic modes have no fixed rotation quota');
+    assert.doesNotMatch(preview.primaryCtaReason, /满员/);
+    assert.doesNotMatch(JSON.stringify(item), /https?:\/\//);
+    assert.equal(item.fixture, undefined);
+    assert.equal(item.storageFixture, undefined);
+    assert.equal(item.strictReceipt, undefined);
+    for (const player of tournament.players) assert.equal(player.avatar, '/assets/avatar-default.png');
+    for (const selector of item.selectors) assert.ok(item.selectorExpectations[selector] > 0, `${name}: ${selector}`);
+    if (tournament.status === 'draft') {
+      assert.deepEqual(tournament.rounds, []);
+      assert.deepEqual(tournament.rankings, []);
+      assert.equal(preview.showParticipantPreview, true);
+      assert.equal(preview.participantPreviewList.length, 6);
+      assert.equal(preview.participantPreviewList.filter(player => player.showAvatar).length, 6);
+      assert.equal(preview.joinAllowed, true);
+      assert.equal(preview.joined, false);
+      assert.equal(preview.primaryAction.key, 'join');
+      assert.equal(preview.secondaryAction, null);
+    } else {
+      const matches = tournament.rounds.flatMap(round => round.matches);
+      assert.equal(matches.length, tournament.totalMatches);
+      const appearances = new Map(tournament.playerIds.map(id => [id, 0]));
+      for (const match of matches) {
+        const ids = match.teamA.concat(match.teamB).map(player => player.id);
+        assert.equal(ids.length, 4); assert.equal(new Set(ids).size, 4);
+        ids.forEach(id => appearances.set(id, appearances.get(id) + 1));
+        if (match.status === 'finished') assert.ok(match.score.teamA > match.score.teamB);
+        else assert.equal(match.score, undefined);
+      }
+      assert.deepEqual([...appearances.values()], [4, 4, 4, 4, 4, 4]);
+      assert.equal(share.countRoundProgress(tournament.rounds).finishedMatches, tournament.status === 'running' ? 3 : 6);
+      assert.deepEqual(tournament.rankings, ranking.computeRankings(tournament));
+      assert.equal(preview.showRankingPreview, true);
+      assert.equal(preview.showParticipantPreview, false);
+      assert.equal(preview.rankingPreview.length, 3);
+      assert.equal(item.selectorExpectations['.ranking-preview-row'], preview.rankingPreview.length);
+      assert.equal(item.selectorExpectations['.share-actions .btn'], 2);
+      assert.equal(preview.joinAllowed, false);
+      assert.equal(preview.primaryAction.key, tournament.status === 'running' ? 'schedule' : 'ranking');
+      assert.ok(preview.secondaryAction && preview.secondaryCtaText);
+    }
+  }
+  assert.equal(ids.size, 4);
+  assert.equal(screenshotTool.cases.shareDraft.selectorExpectations['.participant-avatar-img'], 6);
+  const squad = screenshotTool.cases.shareSquadChoice;
+  assert.equal(squad.data.preview.modeLabel, '小队转');
+  assert.equal(squad.data.preview.mode, 'squad_doubles');
+  assert.equal(squad.data.tournament.players.filter(player => player.squad === 'A').length, 3);
+  assert.equal(squad.data.tournament.players.filter(player => player.squad === 'B').length, 3);
+  assert.equal(squad.data.joinSquadChoice, 'A');
+  assert.equal(squad.selectorExpectations['.squad-chooser .chip.active'], 1);
+});
+
+test('profile upload and save captures retain the dirty guard and both disabled avatar entrances', () => {
+  const wxml = fs.readFileSync(path.join(__dirname, '..', 'miniprogram/pages/profile/index.wxml'), 'utf8');
+  assert.equal((wxml.match(/open-type="chooseAvatar"[\s\S]*?disabled="\{\{avatarUploading \|\| quickFillLoading \|\| saving\}\}"/g) || []).length, 2);
+  assert.match(wxml, /bindtap="onSave"[^>]*disabled="\{\{saving \|\| quickFillLoading \|\| avatarUploading\}\}"/);
+  for (const [name, busy] of [['profileAvatarUploading', 'avatarUploading'], ['profileSaving', 'saving']]) {
+    const item = screenshotTool.cases[name];
+    assert.equal(item.data[busy], true);
+    assert.equal(item.data.pendingAvatarTempPath, screenshotTool.cases.profile.data.pendingAvatarTempPath);
+    assert.equal(item.data.avatarUploadFailed, false);
+    for (const selector of ['.avatar-actions .btn-mini', '.quick-fill-btn', '.profile-actions .btn-primary']) {
+      assert.equal(item.selectorExpectations[selector], 1);
+    }
+  }
+});
+
+test('new pending-plan cases use positive readiness anchors, explicit counts and adaptable viewport widths', () => {
+  const names = ['schedulePlayerFilterSheet', 'scheduleStatusFilterSheet', 'scheduleFilterSelected', 'scheduleFilterEmpty',
+    'tournamentListMore', 'tournamentListPageError', 'matchSubmitBusy', 'matchForbidden', 'matchCanceled', 'matchLoadError',
+    'waterV2GameSearchEmpty', 'waterV2GameSummaryExpanded', 'waterV2RosterSearchEmpty', 'profileAvatarUploading', 'profileSaving'];
+  for (const name of names) {
+    const item = screenshotTool.cases[name];
+    assert.equal(item.expectedWindowWidth, undefined, name);
+    assert.equal(item.storageFixture, undefined, name);
+    assert.equal(item.strictReceipt, undefined, name);
+    assert.doesNotMatch(JSON.stringify(item), /https?:\/\//);
+    const dom = item.selectors.flatMap((selector) => {
+      const count = item.selectorExpectations[selector];
+      assert.ok(Number.isInteger(count) && count > 0, `${name}: ${selector} can be waited for`);
+      return Array.from({ length: count }, (_, index) => ({ selector, index, size: { width: 100, height: 48 } }));
+    });
+    assert.equal(screenshotTool.validateSelectorCoverage(dom, item.selectors, item.selectorExpectations).ok, true, name);
+  }
 });

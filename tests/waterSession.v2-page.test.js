@@ -398,6 +398,49 @@ test('feed display keeps each per-player water amount atomic without changing ca
   assert.match(item.detailAriaLabel, new RegExp(description));
 });
 
+test('revision history keeps direct water quantities atomic through the real page projection', async () => {
+  const original = { id: 'water_revision_1', rootEntryId: 'water_revision_1', seq: 1,
+    eventType: 'transfer_recorded', category: 'direct', status: 'corrected',
+    actorParticipantId: 'p2', actorNameSnapshot: '王姐', rootCreatedByParticipantId: 'p2',
+    payload: { fromPlayerId: 'p3', toPlayerId: 'p1', units: 1 } };
+  const spaced = { ...original, id: 'water_revision_2', seq: 2, eventType: 'entry_corrected',
+    payload: { ...original.payload, units: 2 },
+    description: '王姐将「Chris 请 阿杰 · 1 水」更正为 2 水' };
+  const compact = { ...spaced, id: 'water_revision_3', seq: 3,
+    description: '王姐将「Chris 请 阿杰 · 1 水」更正为2水' };
+  const current = { ...original, id: 'water_revision_4', seq: 4, eventType: 'entry_corrected',
+    status: 'active', payload: { ...original.payload, units: 99 } };
+  const history = [original, spaced, compact, current];
+  const reads = [];
+  const ctx = createContext(loadPageDefinition({
+    async getEntry(...args) {
+      reads.push(args);
+      return { currentEntry: current, history };
+    },
+  }));
+  const expected = [
+    ['Chris 请 阿杰 · 1 水', 'Chris 请 阿杰 · 1\u00a0水'],
+    [spaced.description, '王姐将「Chris 请 阿杰 · 1\u00a0水」更正为 2\u00a0水'],
+    [compact.description, '王姐将「Chris 请 阿杰 · 1\u00a0水」更正为2\u2060水'],
+    ['王姐更正为：Chris 请 阿杰 · 99 水', '王姐更正为：Chris 请 阿杰 · 99\u00a0水'],
+  ];
+  try {
+    ctx.applyRoomData(payload({ entries: history.slice().reverse() }));
+    for (let index = 0; index < history.length; index += 1) {
+      const item = ctx.data.feedItems.find(entry => entry.id === history[index].id);
+      assert.equal(item.description, expected[index][0]);
+      assert.equal(item.displayDescription, expected[index][1]);
+      assert.ok(item.detailAriaLabel.includes(expected[index][0]));
+    }
+    await ctx.openEntryDetail({ currentTarget: { dataset: { root: original.rootEntryId } } });
+    assert.deepEqual(reads, [['water_1', 'round_3', original.rootEntryId]]);
+    assert.equal(ctx.data.entryDetail.displayDescription, expected[3][1]);
+    assert.deepEqual(ctx.data.entryHistory.map(item => [item.description, item.displayDescription]), expected);
+  } finally {
+    ctx.onUnload();
+  }
+});
+
 test('ledger summary retains the full event count without a decorative stamp', () => {
   const definition = loadPageDefinition();
   const ctx = createContext(definition);
@@ -2171,7 +2214,7 @@ test('V2 viewer booleans must agree, and a live capability change blocks an open
   assert.equal(ctx.data.gameSheetOpen, true);
   assert.deepEqual(ctx.data.winnerIds, winnerDraft);
   assert.deepEqual(ctx.data.loserIds, loserDraft);
-  assert.match(ctx.data.sheetBlockedReason, /草稿已保留|暂时只读/);
+  assert.equal(ctx.data.sheetBlockedReason, '打水账本暂时只读');
   await ctx.submitGame();
   assert.equal(recordCalls.length, 0);
   assert.match(read('miniprogram/pages/water/index.wxml'), /sheetBlockedReason[\s\S]*disabled="\{\{[^}]*sheetBlockedReason/);

@@ -322,9 +322,10 @@ function createMatchSubmitService(ctx, deps = {}) {
   async function submit(options = {}) {
     const scoreA = clampScore(ctx.data.scoreA);
     const scoreB = clampScore(ctx.data.scoreB);
-    if (ctx.data.tournament && ctx.data.tournament.mode === 'singles_round_robin'
-      && !scoreUtils.isValidFinishedScore({ scoreA, scoreB }, ctx.data.tournament)) {
-      wx.showToast({ title: scoreUtils.getFinishedScoreHint(ctx.data.tournament), icon: 'none' });
+    const tournament = ctx._latestTournament || ctx.data.tournament;
+    if (tournament && tournament.mode === 'singles_round_robin'
+      && !scoreUtils.isValidFinishedScore({ scoreA, scoreB }, tournament)) {
+      wx.showToast({ title: scoreUtils.getFinishedScoreHint(tournament), icon: 'none' });
       return;
     }
     if (!Number.isFinite(scoreA) || !Number.isFinite(scoreB) || scoreA < 0 || scoreB < 0) {

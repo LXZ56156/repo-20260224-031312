@@ -190,7 +190,7 @@
 .score-wheel {
   margin-top: 0;
   padding: var(--space-card-pad-lg);
-  min-height: auto;
+  min-height: 44px;
   line-height: 1.15;
   border-radius: 18rpx;
   border: 2rpx solid rgba(24, 179, 104, 0.22);

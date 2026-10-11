@@ -1,6 +1,8 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const benchmark = require('../scripts/benchmark-tournament-views');
 const auth = require('../miniprogram/core/auth');
 const shareMeta = require('../miniprogram/core/shareMeta');
@@ -85,6 +87,47 @@ test('schedule batched refresh clears an old longer array and only latest render
   assert.ok(page.data.roundsUi.flatMap((round) => round.matchesUi).every((match) => match.playerIds.includes(doc.players[0].id)));
   assert.equal(page._latestTournament.rounds.length, 2);
   assert.ok(patches.every((patch) => Buffer.byteLength(JSON.stringify(patch), 'utf8') < LIMIT));
+});
+
+test('schedule empty state follows explicit visible rounds through chunked, filtered and empty refreshes', (t) => {
+  const doc = largeDoc(true);
+  const { page, patches } = context(t, doc);
+  assert.equal(page.data.hasVisibleRounds, false);
+
+  page.applyTournament(doc);
+  assert.equal(page.data.hasVisibleRounds, true);
+  const header = patches.find((patch) => Array.isArray(patch.roundsUi));
+  assert.deepEqual(header.roundsUi, []);
+  assert.equal(header.hasVisibleRounds, true);
+  assert.ok(patches.some((patch) => Object.keys(patch).some((key) => key.startsWith('roundsUi['))));
+
+  const short = { ...copy(doc), rounds: [copy(doc.rounds[0])], totalMatches: 6, scheduledMatches: 6 };
+  short.rounds[0].matches.forEach((match) => { match.status = 'pending'; });
+  page.applyTournament(short);
+  assert.equal(page.data.roundsUi.length, 1);
+  assert.equal(page.data.hasVisibleRounds, true);
+
+  page.data.statusFilter = 'finished';
+  page.reapplyTournament();
+  assert.equal(page.data.roundsUi.length, 0);
+  assert.equal(page.data.hasVisibleRounds, false);
+  assert.equal(page.data.filterEmptyText, '暂无符合条件的对阵');
+  page.data.statusFilter = 'all';
+  page.reapplyTournament();
+  assert.equal(page.data.hasVisibleRounds, true);
+
+  page.applyTournament({ ...short, status: 'draft', rounds: [] });
+  assert.equal(page.data.hasVisibleRounds, false);
+  assert.equal(page.data.showFinishedShareActions, false);
+  assert.equal(page.data.filterEmptyText, '');
+  page.applyTournament({ ...short, status: 'finished', rounds: [] });
+  assert.equal(page.data.hasVisibleRounds, false);
+  assert.equal(page.data.showFinishedShareActions, true);
+  assert.ok(patches.every((patch) => Buffer.byteLength(JSON.stringify(patch), 'utf8') < LIMIT));
+
+  const wxml = fs.readFileSync(path.join(__dirname, '..', 'miniprogram/pages/schedule/index.wxml'), 'utf8');
+  assert.match(wxml, /class="[^"]*state-empty[^"]*" wx:if="\{\{!hasVisibleRounds && !showFinishedShareActions\}\}"/);
+  assert.doesNotMatch(wxml, /wx:if="\{\{!roundsUi\.length/);
 });
 
 test('schedule identity, avatar reapply and sharing retain the full authoritative document', async (t) => {

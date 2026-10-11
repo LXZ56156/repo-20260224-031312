@@ -775,7 +775,7 @@ page {
 }
 
 .water-feed-status {
-  color: var(--water-warning);
+  color: #a05c29;
   font-weight: 700;
 }
 
@@ -1980,6 +1980,41 @@ page {
 
   .water-feed-meta {
     flex-direction: column;
+  }
+}
+
+@media (max-width: 374px) and (max-height: 600px) {
+  .water-game-popup {
+    max-height: 98vh !important;
+  }
+
+  .water-game-sheet {
+    max-height: calc(98vh - env(safe-area-inset-bottom));
+  }
+
+  .water-game-sheet-head {
+    min-height: 44px;
+  }
+
+  .water-game-side-switch {
+    margin: 8rpx 0;
+  }
+
+  .water-game-body .water-match-summary {
+    min-height: 104rpx;
+  }
+
+  .water-game-body .water-search {
+    margin: 6rpx 0;
+  }
+
+  .water-game-body .water-roster-search-empty {
+    padding: 16rpx 20rpx;
+  }
+
+  .water-game-sheet .water-sheet-bottom {
+    padding-top: 8rpx;
+    padding-bottom: 12rpx;
   }
 }
 

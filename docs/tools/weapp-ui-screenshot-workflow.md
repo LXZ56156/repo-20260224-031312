@@ -128,9 +128,13 @@ npm run ui:iterate -- launch
 
 `feedback` 和 `create` 会在路由前临时写入一个本地假资料，用于绕过资料门禁；runner 会快照并在 `finally` 中逐项恢复原 storage 与 `getApp().globalData.openid`，并在恢复后逐键复验，不会调用云写入。其他 data case 会失效 fetch/watch/lifecycle 代次、网络订阅和 score-lock timer，阻止晚到响应覆盖 fixture。整轮结束后统一 `reLaunch` 到中性 launch 页，并证明页面栈只剩这一页，而不是把已冻结页面冒充为“已恢复”。
 
+采集在路由前隔离 `wx.cloud.callFunction`，未配置的请求全部返回受控失败，页面卸载与中性页重建也在隔离内执行。存在 `wx.reportEvent` 时同时抑制真实上报，仅记录数量，不保留事件名或payload，防止fixture和受控失败污染线上观测。`water_recent_ledger:` 和 `score_draft_` 两个已确认受fixture影响的缓存命名空间精确快照、恢复并逐键复验；原值只保留在AppService内存，回执只记录数量和布尔结果。这个隔离不包括数据库直接读取、文件上传或原生授权；额外按钮检查需按实际入口另设可恢复的受控SDK响应。
+
+DevTools会代理SDK函数，不能用函数引用相等判断隔离是否生效。工具以随机nonce拒绝响应、遥测计数和保护缓存探针核验实际行为；恢复后核对原方法名并以临时缓存读写/删除复验，不调用原云函数或原遥测来证明恢复。清理开始即阻断保护键写删；异常时尽力重装四类guard。回执的snapshotRetained只证同token快照保留，guardVerified/isolationRetained只在探针通过后为true；evaluate传输结果未知时三项为null，不能推断恢复是否执行。清理未通过时拒绝发布；先检查并恢复同token内存状态，再编译或重新预热，不能让AppService重建丢掉可能仍在的唯一恢复快照。
+
 selector 在共享 deadline 内满足数量与非零尺寸合同，再轮询 selector geometry 及 reveal opacity/transform，要求 reveal 完成且连续两次状态一致；75ms 是轮询间隔，不是固定完成等待。5 秒内不稳定则拒绝。每个 case 注入随机 nonce，截图前后数据 hash 与 nonce 必须保持一致。截图 fixture 不引用远程头像，console/exception 随回执保留。
 
-本机暂停任务的未提交扩展（远端基线尚不提供）：声明 `scrollToSelector` 的 case 使用现有 SDK `pageScrollTo` 把对应卡片移入截图，先验证页面滚动原点、唯一目标和真实几何，再核对实际 scrollTop；目标不能完整容纳于viewport时拒绝。receipt记录scrollEvidence，继续原有visual settle/nonce/source/cleanup检查。该扩展用于协管卡owner/busy/member状态，随原12项恢复后验证交付；不能在新拉取的基线上直接使用这些业务case。
+声明 `scrollToSelector` 的 case 使用现有 SDK `pageScrollTo` 把对应卡片移入截图，先验证页面滚动原点、唯一目标和真实几何，再核对实际 scrollTop；目标不能完整容纳于viewport时拒绝。receipt记录scrollEvidence，继续原有visual settle/nonce/source/cleanup检查。当前协管卡owner/busy/member状态已使用该入口；实际采集仍须通过本轮会话与源码绑定。
 
 日常使用 `npm run test:affected -- --run <改动文件>` 执行影响测试；不带 `--run` 只打印计划。Prompt/Edit/Stop 不再自动运行 mirror、全量测试或云公共库检查。像素比较为 `npm run ui:diff -- <baseline.png> <candidate.png>`，仅报告差异，不阻断、不改 baseline。`npm run mp:quality` 仅用于低频本地交付检查，不包含 preview/upload。
 

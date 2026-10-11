@@ -140,6 +140,98 @@ function createCtx(overrides = {}) {
   return Object.assign(ctx, overrides);
 }
 
+async function submitProjectedScore({ pointsPerGame = 21, scoreA, scoreB,
+  mode = 'singles_round_robin', renderedTournament, legacyOnly = false }) {
+  const originalWx = global.wx;
+  const toasts = [];
+  const requests = [];
+  let loadingCount = 0;
+  global.wx = {
+    showLoading() { loadingCount += 1; }, hideLoading() {},
+    showToast(payload) { toasts.push(payload); }
+  };
+  try {
+    const ctx = createCtx();
+    ctx._draft = { scoreA, scoreB };
+    Object.assign(ctx.data, { scoreA, scoreB });
+    if (renderedTournament !== undefined) ctx.data.tournament = renderedTournament;
+    const tournament = { ...buildPendingTournament(), mode, rules: { pointsPerGame } };
+    if (mode === 'singles_round_robin') {
+      tournament.players = tournament.players.slice(0, 2);
+      tournament.rounds[0].matches[0].teamA = [tournament.players[0]];
+      tournament.rounds[0].matches[0].teamB = [tournament.players[1]];
+    }
+    // Use the production view-state producer through the same apply seam as the
+    // existing recovery tests. Its render patch does not carry the full document.
+    ctx.applyTournament(tournament);
+    assert.equal(ctx.data.canEdit, true);
+    assert.equal(ctx._latestTournament.mode, mode);
+    assert.equal(ctx._latestTournament.rules.pointsPerGame, pointsPerGame);
+    if (renderedTournament === undefined) {
+      assert.equal(Object.hasOwn(ctx.data, 'tournament'), false);
+    } else assert.deepEqual(ctx.data.tournament, renderedTournament);
+    if (legacyOnly) ctx._latestTournament = null;
+    const service = createMatchSubmitService(ctx, {
+      cloud: { async call(name, payload) {
+        requests.push({ name, ...payload });
+        // Stop after observing a valid dispatch; no success navigation/timer is
+        // needed to prove local score validation or its effect on the lock.
+        return { ok: false, code: 'LOCK_EXPIRED', state: 'expired' };
+      } }
+    });
+    await service.submit();
+    return { ctx, toasts, requests, loadingCount };
+  } finally { global.wx = originalWx; }
+}
+
+for (const [pointsPerGame, scoreA, scoreB, valid] of [
+  [21, 0, 0, false], [21, 21, 20, false], [21, 30, 30, false], [21, 31, 29, false],
+  [21, 21, 19, true], [21, 22, 20, true], [21, 30, 29, true],
+  [11, 11, 11, false], [11, 12, 10, false], [11, 10, 9, false], [11, 11, 10, true],
+  [15, 15, 15, false], [15, 16, 14, false], [15, 14, 13, false], [15, 15, 14, true]
+]) {
+  test(`match submit consumes production singles projection for ${pointsPerGame}-point ${scoreA}:${scoreB}`, async () => {
+    const result = await submitProjectedScore({ pointsPerGame, scoreA, scoreB });
+    assert.equal(result.requests.length, valid ? 1 : 0);
+    if (valid) {
+      assert.equal(result.requests[0].name, 'submitScore');
+      assert.deepEqual([result.requests[0].scoreA, result.requests[0].scoreB], [scoreA, scoreB]);
+    } else {
+      assert.equal(result.loadingCount, 0);
+      assert.deepEqual(result.ctx._lockStates, []);
+      assert.equal(result.ctx._clearDraftCount, 0);
+      assert.deepEqual(result.ctx._draft, { scoreA, scoreB });
+      assert.equal(result.toasts.at(-1).title, pointsPerGame === 21
+        ? '21 分单局：20 平后领先 2 分，30 分封顶，不接受平局'
+        : `${pointsPerGame} 分单局：先到 ${pointsPerGame} 分即胜，不接受平局`);
+    }
+  });
+}
+
+test('match submit uses authoritative singles rules ahead of stale rendered rules', async () => {
+  const result = await submitProjectedScore({ pointsPerGame: 11, scoreA: 11, scoreB: 10,
+    renderedTournament: { mode: 'singles_round_robin', rules: { pointsPerGame: 21 } } });
+  assert.equal(result.requests.length, 1);
+});
+
+test('match submit retains legacy tournament fallback when the authoritative document is absent', async () => {
+  const result = await submitProjectedScore({ pointsPerGame: 15, scoreA: 15, scoreB: 15, legacyOnly: true,
+    renderedTournament: { mode: 'singles_round_robin', rules: { pointsPerGame: 15 } } });
+  assert.equal(result.requests.length, 0);
+  assert.equal(result.toasts.at(-1).title, '15 分单局：先到 15 分即胜，不接受平局');
+});
+
+test('match submit keeps doubles local dispatch semantics after production projection', async () => {
+  const result = await submitProjectedScore({ mode: 'multi_rotate', scoreA: 0, scoreB: 0 });
+  assert.equal(result.requests.length, 1);
+});
+
+test('match submit does not apply stale singles validation to authoritative doubles', async () => {
+  const result = await submitProjectedScore({ mode: 'multi_rotate', scoreA: 21, scoreB: 20,
+    renderedTournament: { mode: 'singles_round_robin', rules: { pointsPerGame: 21 } } });
+  assert.equal(result.requests.length, 1);
+});
+
 test('match submit retry reuses the same clientRequestId after a network failure', async () => {
   const originalWx = global.wx;
   const payloads = [];

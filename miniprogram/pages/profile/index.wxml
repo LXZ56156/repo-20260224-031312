@@ -8,7 +8,7 @@
     <view class="profile-avatar-section">
       <image class="profile-avatar" src="{{avatarDisplay}}" mode="aspectFill" binderror="onAvatarError"></image>
       <view class="avatar-actions">
-        <button class="btn-mini" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">选择头像</button>
+        <button class="btn-mini" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" disabled="{{avatarUploading || quickFillLoading || saving}}">选择头像</button>
         <button class="btn-mini danger" wx:if="{{avatarUploadFailed}}" bindtap="onRetryAvatarUpload">重试上传</button>
       </view>
       <view class="muted small avatar-tip" wx:if="{{avatarUploading}}">头像上传中，请稍候…</view>
@@ -21,7 +21,7 @@
         open-type="chooseAvatar"
         bindchooseavatar="onQuickFillChooseAvatar"
         loading="{{quickFillLoading}}"
-        disabled="{{quickFillLoading || saving}}"
+        disabled="{{avatarUploading || quickFillLoading || saving}}"
       >
         一键填写微信资料
       </button>

@@ -388,6 +388,7 @@ Page({
     statusClass: 'hero-status-draft',
     modeLabel: '',
     roundsUi: [],
+    hasVisibleRounds: false,
     heroSummaryText: '',
     heroMatchText: '',
     heroPendingText: '',
@@ -593,6 +594,7 @@ Page({
     const avatarFilterMode = String(this.data.avatarFilterMode || 'contains').trim() || 'contains';
     const statusFilter = String(this.data.statusFilter || 'all').trim() || 'all';
     const roundsUi = filterRoundsUi(focusedRoundsUi, selectedPlayerIds, avatarFilterMode, statusFilter);
+    const hasVisibleRounds = roundsUi.length > 0;
     const selectedPlayersUi = buildSelectedPlayersUi(t.players, selectedPlayerIds, this.avatarCache || {});
     const showFilterBar = roundsSummary.totalMatches > 0;
     const hasActiveFilter = selectedPlayerIds.length > 0 || statusFilter !== 'all';
@@ -605,6 +607,7 @@ Page({
       statusClass,
       modeLabel,
       roundsUi,
+      hasVisibleRounds, // Explicit binding also updates when roundsUi is sent as indexed chunks.
       heroSummaryText,
       heroMatchText,
       heroPendingText,

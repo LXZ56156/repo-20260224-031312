@@ -262,18 +262,28 @@ function resolveListenerIdentity(endpoint, options = {}) {
     '$chain = @()',
     '$cursorProcessId = $ownerProcessId',
     'for ($index = 0; $index -lt 12 -and $cursorProcessId -gt 0; $index += 1) {',
-    '  $cimProcess = Get-CimInstance Win32_Process -Filter ("ProcessId = {0}" -f $cursorProcessId)',
-    '  if (-not $cimProcess) { break }',
-    '  $liveProcess = Get-Process -Id $cursorProcessId -ErrorAction Stop',
-    '  $chain += [pscustomobject]@{',
-    '    processId = [int]$cursorProcessId',
-    '    parentProcessId = [int]$cimProcess.ParentProcessId',
-    '    processStartFileTimeUtc = [string]$liveProcess.StartTime.ToFileTimeUtc()',
-    '    sessionId = [int]$liveProcess.SessionId',
-    '    executablePath = [string]$cimProcess.ExecutablePath',
-    '    backgroundCaptureFlags = [pscustomobject]@{',
-    "      disableBackgroundingOccludedWindows = ([string]$cimProcess.CommandLine -match '(?i)(?:^|\\s)--disable-backgrounding-occluded-windows(?:\\s|$)')",
+    '  try {',
+    '    $cimProcess = Get-CimInstance Win32_Process -Filter ("ProcessId = {0}" -f $cursorProcessId)',
+    '    if (-not $cimProcess) { break }',
+    '    $liveProcess = Get-Process -Id $cursorProcessId -ErrorAction Stop',
+    '    $startTime = $liveProcess.StartTime',
+    '    $executablePath = [string]$cimProcess.ExecutablePath',
+    // Protected system ancestors can lack both properties. Do not add partial
+    // ancestry (including its path/flags); an unavailable owner leaves no chain.
+    '    if ($null -eq $startTime -or [string]::IsNullOrWhiteSpace($executablePath)) { break }',
+    '    $chain += [pscustomobject]@{',
+    '      processId = [int]$cursorProcessId',
+    '      parentProcessId = [int]$cimProcess.ParentProcessId',
+    '      processStartFileTimeUtc = [string]$startTime.ToFileTimeUtc()',
+    '      sessionId = [int]$liveProcess.SessionId',
+    '      executablePath = $executablePath',
+    '      backgroundCaptureFlags = [pscustomobject]@{',
+    "        disableBackgroundingOccludedWindows = ([string]$cimProcess.CommandLine -match '(?i)(?:^|\\s)--disable-backgrounding-occluded-windows(?:\\s|$)')",
+    '      }',
     '    }',
+    '  } catch {',
+    '    if ($cursorProcessId -eq $ownerProcessId) { throw }',
+    '    break',
     '  }',
     '  $cursorProcessId = [int]$cimProcess.ParentProcessId',
     '}',
@@ -1263,6 +1273,274 @@ function buildProfileGateStorageFixture(now = Date.now()) {
   };
 }
 
+// Keep saved account values in AppService memory; receipts contain only counts.
+// These two cache namespaces are written by fixture projection and score teardown.
+async function beginCaptureIsolation(miniProgram, options = {}) {
+  const token = crypto.randomBytes(16).toString('hex');
+  let result;
+  try {
+    result = await miniProgram.evaluate(async function beginScreenshotSdkIsolation(ownerToken, cloudResults) {
+    const app = typeof getApp === 'function' ? getApp() : null;
+    if (!app || !wx.cloud || typeof wx.cloud.callFunction !== 'function') return { ok: false };
+    if (app.__uiCaptureIsolation) return { ok: false, retained: true,
+      ownerToken: app.__uiCaptureIsolation.token, snapshotCount: app.__uiCaptureIsolation.storage.length };
+    const info = wx.getStorageInfoSync();
+    if (!info || !Array.isArray(info.keys)) return { ok: false };
+    const protectedKey = (key) => /^(?:water_recent_ledger:|score_draft_)/.test(String(key));
+    const clone = (value) => value === undefined ? undefined : JSON.parse(JSON.stringify(value));
+    const state = {
+      token: ownerToken, retained: true, cloudResults: cloudResults || {}, blockedCalls: 0,
+      originalCloud: wx.cloud.callFunction,
+      originalReport: typeof wx.reportEvent === 'function' ? wx.reportEvent : null,
+      originalSet: wx.setStorageSync,
+      originalRemove: wx.removeStorageSync,
+      suppressedEventsCount: 0,
+      storage: info.keys.filter(protectedKey).map((key) => ({ key, value: clone(wx.getStorageSync(key)) })),
+    };
+    state.originalNames = { cloud: state.originalCloud.name, report: state.originalReport && state.originalReport.name,
+      set: state.originalSet.name, remove: state.originalRemove.name };
+    state.cloudGuard = function screenshotCloudGuard(request = {}) {
+      if (request.name === '__ui_capture_probe__' && request.data && request.data.nonce === state.token) {
+        return Promise.resolve({ result: { ok: true, code: 'UI_CAPTURE_PROBE', nonce: state.token } });
+      }
+      const key = `${String(request.name || '')}:${String(request.data && request.data.action || '')}`;
+      const entry = state.cloudResults[key];
+      const configured = Object.prototype.hasOwnProperty.call(state.cloudResults, key)
+        && (!Array.isArray(entry) || entry.length > 0);
+      if (!configured) state.blockedCalls += 1;
+      const response = configured ? clone(Array.isArray(entry) ? entry.shift() : entry) : {
+        result: { ok: false, state: 'error', code: 'UI_CAPTURE_ISOLATED', message: '截图检查未配置此请求' },
+      };
+      if (typeof request.success === 'function') request.success(response);
+      if (typeof request.complete === 'function') request.complete(response);
+      return Promise.resolve(response);
+    };
+    state.setGuard = function screenshotStorageSet(key, value) {
+      if (state.retained && protectedKey(key)) return;
+      return state.originalSet.call(wx, key, value);
+    };
+    state.removeGuard = function screenshotStorageRemove(key) {
+      if (state.retained && protectedKey(key)) return;
+      return state.originalRemove.call(wx, key);
+    };
+    state.reportGuard = function screenshotReportEventGuard(name, payload) {
+      if (name === '__ui_capture_probe__' && payload && payload.nonce === state.token) {
+        return { code: 'UI_CAPTURE_REPORT_PROBE', nonce: state.token };
+      }
+      state.suppressedEventsCount += 1;
+      // No event name, payload or personal data is saved or passed to the SDK.
+    };
+    state.probeGuards = async function probeScreenshotGuards() {
+      // DevTools returns new membrane wrappers on each read. Confirm names before
+      // calling the nonce probe so a no-op assignment never invokes the real SDK.
+      let cloudOk = false;
+      if (wx.cloud.callFunction.name === 'screenshotCloudGuard') {
+        try {
+          const response = await wx.cloud.callFunction({ name: '__ui_capture_probe__', data: { nonce: state.token } });
+          cloudOk = response && response.result && response.result.code === 'UI_CAPTURE_PROBE'
+            && response.result.nonce === state.token;
+        } catch (_) { /* Never fall through to an unconfigured request. */ }
+      }
+      let reportOk = !state.originalReport && typeof wx.reportEvent !== 'function';
+      if (state.originalReport && wx.reportEvent.name === 'screenshotReportEventGuard') {
+        try {
+          const response = wx.reportEvent('__ui_capture_probe__', { nonce: state.token });
+          reportOk = response && response.code === 'UI_CAPTURE_REPORT_PROBE' && response.nonce === state.token;
+        } catch (_) { reportOk = false; }
+      }
+      const scratch = `score_draft___ui_capture_probe_${state.token}`;
+      let storageOk = false;
+      let scratchOwned = false;
+      const retained = state.retained;
+      state.retained = true;
+      try {
+        if (wx.getStorageInfoSync().keys.includes(scratch)) throw new Error('probe key collision');
+        scratchOwned = true;
+        wx.setStorageSync(scratch, { nonce: state.token });
+        const setBlocked = !wx.getStorageInfoSync().keys.includes(scratch);
+        state.originalSet.call(wx, scratch, { nonce: state.token });
+        wx.removeStorageSync(scratch);
+        const saved = wx.getStorageSync(scratch);
+        storageOk = setBlocked && saved && saved.nonce === state.token;
+      } catch (_) { storageOk = false; }
+      finally {
+        try {
+          if (scratchOwned) state.originalRemove.call(wx, scratch);
+          storageOk = storageOk && !wx.getStorageInfoSync().keys.includes(scratch);
+        } catch (_) { storageOk = false; }
+        state.retained = retained;
+      }
+      return { ok: !!cloudOk && !!storageOk && !!reportOk, cloudOk: !!cloudOk,
+        storageOk: !!storageOk, reportOk: !!reportOk };
+    };
+    app.__uiCaptureIsolation = state;
+    try {
+      wx.cloud.callFunction = state.cloudGuard;
+      if (state.originalReport) wx.reportEvent = state.reportGuard;
+      wx.setStorageSync = state.setGuard;
+      wx.removeStorageSync = state.removeGuard;
+    } catch (_) { return { ok: false }; }
+    const probe = await state.probeGuards();
+    const ok = probe.ok;
+    state.retained = !ok;
+    return { ok, snapshotCount: state.storage.length, probe };
+  }, token, options.cloudResults || {});
+  } catch (_) { result = { ok: false }; }
+  if (!result || result.ok !== true) {
+    const error = new Error('Screenshot SDK isolation could not be installed; recover retained isolation before capture.');
+    error.captureIsolation = { token: result && result.ownerToken || token, applied: true, verified: false,
+      snapshotCount: result && result.snapshotCount || 0 };
+    throw error;
+  }
+  return { token, applied: true, verified: true, snapshotCount: result.snapshotCount };
+}
+
+async function finishCaptureIsolation(miniProgram, isolation, options = {}) {
+  if (!isolation || !isolation.applied) return { ok: true, applied: false };
+  const unknown = { ok: false, sdkRestored: false, isolationRetained: null,
+    snapshotRetained: null, guardVerified: null, error: 'SDK isolation cleanup transport outcome is unknown' };
+  try {
+    const result = await miniProgram.evaluate(async function finishScreenshotSdkIsolation(ownerToken, cleanupOk) {
+      const app = typeof getApp === 'function' ? getApp() : null;
+      const state = app && app.__uiCaptureIsolation;
+      if (!state || state.token !== ownerToken) return { ok: false, sdkRestored: false,
+        isolationRetained: null, snapshotRetained: null, guardVerified: null };
+      // Cleanup starts with protected writes blocked, before any inspection can fail.
+      state.retained = true;
+      let evidence = { ok: false, applied: true, snapshotCount: state.storage.length,
+        sdkRestored: false, isolationRetained: false, snapshotRetained: true, guardVerified: false };
+      const retainGuards = async () => {
+        state.retained = true;
+        try { wx.cloud.callFunction = state.cloudGuard; } catch (_) { /* Verify the remaining guards below. */ }
+        if (state.originalReport) {
+          try { wx.reportEvent = state.reportGuard; } catch (_) { /* Verify the remaining guards below. */ }
+        }
+        try { wx.setStorageSync = state.setGuard; } catch (_) { /* Verify the remaining guards below. */ }
+        try { wx.removeStorageSync = state.removeGuard; } catch (_) { /* Verify the remaining guards below. */ }
+        let verified = false;
+        try {
+          const probe = await state.probeGuards();
+          verified = !!(probe && probe.ok);
+        } catch (_) { /* A rejected probe cannot establish retained guard protection. */ }
+        evidence.sdkRestored = false;
+        evidence.snapshotRetained = true;
+        evidence.guardVerified = verified;
+        evidence.isolationRetained = verified;
+      };
+      try {
+        const protectedKey = (key) => /^(?:water_recent_ledger:|score_draft_)/.test(String(key));
+        const same = (left, right) => JSON.stringify(left) === JSON.stringify(right);
+        let storageOk = true;
+        let removedCount = 0;
+        try {
+          const info = wx.getStorageInfoSync();
+          if (!info || !Array.isArray(info.keys)) throw new Error('inventory unavailable');
+          const savedKeys = new Set(state.storage.map((entry) => entry.key));
+          for (const key of info.keys.filter(protectedKey)) {
+            if (!savedKeys.has(key)) {
+              state.originalRemove.call(wx, key);
+              removedCount += 1;
+            }
+          }
+          for (const entry of state.storage) {
+            if (!info.keys.includes(entry.key) || !same(wx.getStorageSync(entry.key), entry.value)) {
+              state.originalSet.call(wx, entry.key, entry.value);
+            }
+          }
+          const restored = wx.getStorageInfoSync();
+          if (!restored || !Array.isArray(restored.keys)) throw new Error('inventory unavailable');
+          const actualKeys = restored.keys.filter(protectedKey);
+          storageOk = actualKeys.length === state.storage.length
+            && state.storage.every((entry) => actualKeys.includes(entry.key) && same(wx.getStorageSync(entry.key), entry.value));
+        } catch (_) { storageOk = false; }
+        const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : [];
+        const current = pages[pages.length - 1];
+        const neutral = pages.length === 1 && current
+          && (current.route || current.__route__) === 'pages/launch/index';
+        let pageRefreshed = false;
+        if (cleanupOk && storageOk && neutral) {
+          try {
+            // launch.onShow reads the restored recent ledger; no fixture state is retained.
+            if (typeof current.onShow === 'function') current.onShow();
+            pageRefreshed = true;
+          } catch (_) { pageRefreshed = false; }
+        }
+        try {
+          const info = wx.getStorageInfoSync();
+          const actualKeys = info && Array.isArray(info.keys) ? info.keys.filter(protectedKey) : [];
+          storageOk = storageOk && actualKeys.length === state.storage.length
+            && state.storage.every((entry) => actualKeys.includes(entry.key) && same(wx.getStorageSync(entry.key), entry.value));
+        } catch (_) { storageOk = false; }
+        const guardProbe = await state.probeGuards();
+        const guardIntact = guardProbe.ok;
+        const ok = !!cleanupOk && storageOk && !!neutral && pageRefreshed && guardIntact;
+        evidence = { ...evidence, ok, storageRestored: storageOk,
+          removedCount, blockedCalls: state.blockedCalls, suppressedEventsCount: state.suppressedEventsCount,
+          guardVerification: 'nonce-cloud-report-and-storage-blocking',
+          sdkRestoreVerification: { cloud: 'original-name-without-cloud-call',
+            reportEvent: 'original-name-without-event-report',
+            storage: 'scratch-write-read-remove', cloudCallPerformed: false, eventReportPerformed: false } };
+        if (!ok) {
+          await retainGuards();
+          return evidence;
+        }
+        try {
+          wx.setStorageSync = state.originalSet;
+          wx.removeStorageSync = state.originalRemove;
+          wx.cloud.callFunction = state.originalCloud;
+          if (state.originalReport) wx.reportEvent = state.originalReport;
+        } catch (_) {
+          evidence.ok = false;
+          await retainGuards();
+          return evidence;
+        }
+        // Never probe a restored cloud function: that could perform a real request.
+        // The original SDK names plus live scratch storage behavior survive the
+        // DevTools membrane, whereas function identity does not.
+        evidence.sdkRestored = wx.cloud.callFunction.name === state.originalNames.cloud
+          && wx.cloud.callFunction.name !== 'screenshotCloudGuard'
+          && (state.originalReport ? wx.reportEvent.name === state.originalNames.report
+            && wx.reportEvent.name !== 'screenshotReportEventGuard' : typeof wx.reportEvent !== 'function')
+          && wx.setStorageSync.name === state.originalNames.set
+          && wx.removeStorageSync.name === state.originalNames.remove;
+        const scratch = `score_draft___ui_capture_probe_${state.token}`;
+        let scratchOwned = false;
+        try {
+          if (wx.getStorageInfoSync().keys.includes(scratch)) throw new Error('probe key collision');
+          scratchOwned = true;
+          wx.setStorageSync(scratch, { nonce: state.token });
+          const stored = wx.getStorageSync(scratch);
+          const setWorks = stored && stored.nonce === state.token;
+          wx.removeStorageSync(scratch);
+          evidence.sdkRestored = evidence.sdkRestored && !!setWorks && !wx.getStorageInfoSync().keys.includes(scratch);
+        } catch (_) { evidence.sdkRestored = false; }
+        finally {
+          try {
+            if (scratchOwned) state.originalRemove.call(wx, scratch);
+            evidence.sdkRestored = evidence.sdkRestored && !wx.getStorageInfoSync().keys.includes(scratch);
+          } catch (_) { evidence.sdkRestored = false; }
+        }
+        evidence.ok = evidence.sdkRestored;
+        if (evidence.ok) {
+          delete app.__uiCaptureIsolation;
+          evidence.snapshotRetained = false;
+          evidence.guardVerified = false;
+          evidence.isolationRetained = false;
+        } else await retainGuards();
+        return evidence;
+      } catch (_) {
+        evidence.ok = false;
+        evidence.error = 'SDK isolation cleanup failed; snapshot retained';
+        await retainGuards();
+        return evidence;
+      }
+    }, isolation.token, options.cleanupOk === true);
+    return result || unknown;
+  } catch (_) {
+    return unknown;
+  }
+}
+
 async function restoreCaseStorageFixture(miniProgram, state) {
   if (!state || state.applied !== true) return { ok: true, restored: false };
   const errors = [];
@@ -1514,13 +1792,16 @@ async function isolatePageDataRuntime(miniProgram, phase) {
 
 async function applyFixture(page, fixture, miniProgram) {
   if (!fixture || typeof fixture !== 'object') return null;
-  const isolation = await isolateFixtureRuntime(miniProgram, 'before');
+  const isolation = fixture.roomData
+    ? await isolateFixtureRuntime(miniProgram, 'before')
+    : await isolatePageDataRuntime(miniProgram, 'before');
   if (fixture.roomData) await page.callMethod('applyRoomData', fixture.roomData);
   if (fixture.pageData) await page.setData(fixture.pageData);
   for (const method of Array.isArray(fixture.methods) ? fixture.methods : []) {
     await page.callMethod(method.name, ...(Array.isArray(method.args) ? method.args : []));
   }
   if (fixture.postData) await page.setData(fixture.postData);
+  if (!fixture.roomData) await isolatePageDataRuntime(miniProgram, 'after');
   return isolation;
 }
 
@@ -2158,6 +2439,8 @@ async function runCase(name, miniProgram, connection, options = {}) {
   let storageFixtureState = null;
   let storageFixtureEvidence = { ok: true, applied: false };
   let storageFixtureCleanup = { ok: true, restored: false };
+  let sdkIsolation = options.captureIsolation || null;
+  let sdkIsolationCleanup = null;
   let caseDataBefore = null;
   let caseDataAfter = null;
   const fixtureNonce = crypto.randomBytes(16).toString('hex');
@@ -2193,6 +2476,7 @@ async function runCase(name, miniProgram, connection, options = {}) {
   };
 
   try {
+    if (!sdkIsolation) sdkIsolation = await beginCaptureIsolation(miniProgram, options);
     if (item.storageFixture) {
       const appliedStorage = await applyCaseStorageFixture(miniProgram, item.storageFixture);
       storageFixtureState = appliedStorage.state;
@@ -2304,6 +2588,7 @@ async function runCase(name, miniProgram, connection, options = {}) {
       captureSurface: receiptValidation.captureSurface,
     };
   } catch (err) {
+    if (!sdkIsolation && err && err.captureIsolation) sdkIsolation = err.captureIsolation;
     if (err && err.storageFixtureCleanup) {
       storageFixtureCleanup = err.storageFixtureCleanup;
       if (!storageFixtureCleanup.ok) {
@@ -2314,6 +2599,25 @@ async function runCase(name, miniProgram, connection, options = {}) {
     }
     result.error = String(err && err.stack || err);
   } finally {
+    // Route teardown must run while SDK writes are still blocked, including when
+    // routing failed after creating a partial page or fixture application failed.
+    if (sdkIsolation && sdkIsolation.verified !== false) {
+      const cleanupExceptionStart = connection.runtimeEvents.exceptions.length;
+      try {
+        fixtureCleanup = await cleanupCaptureRun(miniProgram, {
+          routeTimeoutMs: config.routeTimeoutMs,
+        });
+      } catch (err) {
+        fixtureCleanup = { ok: false };
+        cleanupError = [cleanupError, String(err && err.message || err)]
+          .filter(Boolean)
+          .join('; ');
+      }
+      if (connection.runtimeEvents.exceptions.length > cleanupExceptionStart) {
+        fixtureCleanup = { ...fixtureCleanup, ok: false };
+        cleanupError = [cleanupError, 'runtime exception during page cleanup'].filter(Boolean).join('; ');
+      }
+    }
     if (storageFixtureState) {
       storageFixtureCleanup = await restoreCaseStorageFixture(miniProgram, storageFixtureState);
       if (!storageFixtureCleanup.ok) {
@@ -2322,20 +2626,11 @@ async function runCase(name, miniProgram, connection, options = {}) {
           .join('; ');
       }
     }
-    if (page) {
-      if (options.deferPageCleanup === true) {
-        fixtureCleanup = { ok: true, deferredToRunCleanup: true };
-      } else {
-        try {
-          fixtureCleanup = await cleanupCaptureRun(miniProgram, {
-            routeTimeoutMs: config.routeTimeoutMs,
-          });
-        } catch (err) {
-          cleanupError = [cleanupError, String(err && err.message || err)]
-            .filter(Boolean)
-            .join('; ');
-        }
-      }
+    if (sdkIsolation && !options.captureIsolation) {
+      sdkIsolationCleanup = await finishCaptureIsolation(miniProgram, sdkIsolation, {
+        cleanupOk: !!(fixtureCleanup && fixtureCleanup.ok) && !cleanupError && storageFixtureCleanup.ok,
+      });
+      if (!sdkIsolationCleanup.ok) cleanupError = [cleanupError, 'SDK isolation cleanup failed; recovery required'].filter(Boolean).join('; ');
     }
   }
 
@@ -2346,6 +2641,7 @@ async function runCase(name, miniProgram, connection, options = {}) {
   result.fixtureCleanup = fixtureCleanup;
   result.storageFixture = storageFixtureEvidence;
   result.storageFixtureCleanup = storageFixtureCleanup;
+  result.sdkIsolationCleanup = sdkIsolationCleanup || { ok: true, deferredToRunCleanup: !!options.captureIsolation };
   result.cleanupError = cleanupError;
   result.runtimeExceptions = runtimeExceptions;
   result.runtimeConsole = runtimeConsole;
@@ -2685,40 +2981,51 @@ async function main() {
     }
     const results = [];
     let runCleanup;
+    let captureIsolation = null;
+    let sdkIsolationCleanup;
     let captureLoopError = null;
     let cleanupExceptionStart = 0;
     try {
+      captureIsolation = await beginCaptureIsolation(connection.miniProgram);
       for (const name of names) {
         const result = await runCase(name, connection.miniProgram, connection, {
           config,
           runId,
-          deferPageCleanup: true,
+          captureIsolation,
         });
         results.push(result);
-        if (result.storageFixtureCleanup && result.storageFixtureCleanup.ok === false) break;
+        if (result.cleanupError || result.storageFixtureCleanup && result.storageFixtureCleanup.ok === false) break;
       }
     } catch (err) {
       captureLoopError = err;
+      if (!captureIsolation && err && err.captureIsolation) captureIsolation = err.captureIsolation;
     } finally {
       cleanupExceptionStart = connection.runtimeEvents.exceptions.length;
       try {
-        runCleanup = await cleanupCaptureRun(connection.miniProgram, {
+        if (captureIsolation && captureIsolation.verified !== false) runCleanup = await cleanupCaptureRun(connection.miniProgram, {
           routeTimeoutMs: config.routeTimeoutMs,
         });
+        else runCleanup = { ok: false, error: 'SDK isolation was not installed' };
       } catch (err) {
         runCleanup = { ok: false, error: String(err && err.message || err) };
       }
-    }
-    const runCleanupExceptions = connection.runtimeEvents.exceptions.slice(cleanupExceptionStart);
-    if (runCleanupExceptions.length > 0) {
-      runCleanup = {
-        ...runCleanup,
-        ok: false,
-        runtimeExceptions: runCleanupExceptions,
-      };
+      const runCleanupExceptions = connection.runtimeEvents.exceptions.slice(cleanupExceptionStart);
+      if (runCleanupExceptions.length > 0) {
+        runCleanup = {
+          ...runCleanup,
+          ok: false,
+          runtimeExceptions: runCleanupExceptions,
+        };
+      }
+      sdkIsolationCleanup = await finishCaptureIsolation(connection.miniProgram, captureIsolation, {
+        cleanupOk: runCleanup.ok && results.every((result) => !result.cleanupError),
+      });
+      if (!sdkIsolationCleanup.ok) runCleanup = { ...runCleanup, ok: false,
+        error: 'SDK isolation cleanup failed; recovery required before capture' };
     }
     results.forEach((result) => {
       result.fixtureCleanup = runCleanup;
+      result.sdkIsolationCleanup = sdkIsolationCleanup;
       if (captureLoopError) {
         result.captureLoopError = String(captureLoopError && captureLoopError.message || captureLoopError);
         result.evidenceOk = false;
@@ -2814,6 +3121,8 @@ module.exports = {
   publishFilesAtomically,
   writeJsonAtomically,
   buildProfileGateStorageFixture,
+  beginCaptureIsolation,
+  finishCaptureIsolation,
   applyCaseStorageFixture,
   restoreCaseStorageFixture,
   isolatePageDataRuntime,

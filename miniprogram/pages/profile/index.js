@@ -182,7 +182,7 @@ Page({
   },
 
   async onQuickFillChooseAvatar(e) {
-    if (this.data.quickFillLoading || this.data.saving) return;
+    if (this.data.avatarUploading || this.data.quickFillLoading || this.data.saving) return;
     this.setData({ quickFillLoading: true });
     try {
       const quick = await profileCore.ensureAuthThenQuickFill({
@@ -209,6 +209,7 @@ Page({
   },
 
   async onChooseAvatar(e) {
+    if (this.data.avatarUploading || this.data.quickFillLoading || this.data.saving) return;
     const tempPath = e && e.detail && e.detail.avatarUrl;
     if (!tempPath) return;
     await this.handleAvatarFromTemp(tempPath, { showLoading: true, silentToast: false });

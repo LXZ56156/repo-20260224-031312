@@ -362,7 +362,9 @@ function describeBusinessEntry(entry, names) {
 }
 
 function formatDisplayDescription(value) {
-  return clean(value).replace(/每人\s+(\d+)\s+水/g, '每\u2060人\u00a0$1\u00a0水');
+  return clean(value)
+    .replace(/每人\s+(\d+)\s+水/g, '每\u2060人\u00a0$1\u00a0水')
+    .replace(/(\d+)(\s*)水/g, (_, amount, spacing) => `${amount}${spacing ? '\u00a0' : '\u2060'}水`);
 }
 
 function capability(caps, key, fallback) {
@@ -378,7 +380,7 @@ function correctionBlockedReason(entry, caps) {
     return '这条记录已经撤销，不能继续修改';
   }
   if (entry.canEdit === false) return '这条记录已更新，当前版本不能继续修改';
-  if (!capability(caps, 'canCorrect', false)) return '修改权限已更新，草稿已保留；请刷新后重试';
+  if (!capability(caps, 'canCorrect', false)) return '修改权限已更新，请刷新后重试';
   return '';
 }
 
@@ -1307,20 +1309,20 @@ Page({
     if (mutationSheetOpen) {
       const draftRoundId = clean(this._sheetDraftRoundId);
       if (draftRoundId && roundId && draftRoundId !== roundId) {
-        sheetBlockedReason = '账本已更新，草稿已保留；请重新打开后确认';
+        sheetBlockedReason = '账本已更新，请重新打开后确认';
       } else if ((this.data.gameSheetOpen || this.data.directSheetOpen) && !canWrite) {
         sheetBlockedReason = capabilities.emergencyReadOnly
-          ? '打水账本暂时只读，草稿已保留'
-          : '记水权限已更新，草稿已保留；请刷新后重试';
+          ? '打水账本暂时只读'
+          : '记水权限已更新，请刷新后重试';
       } else if ((this.data.gameSheetOpen || this.data.directSheetOpen) && this.data.editingEntry) {
         sheetBlockedReason = correctionBlockedReason(this.data.editingEntry, capabilities);
       } else if (this.data.manualSheetOpen && !canAddParticipants) {
         sheetBlockedReason = capabilities.emergencyReadOnly
-          ? '打水账本暂时只读，草稿已保留'
-          : roomFull ? '球友已满 24 人，草稿已保留' : '名单权限已更新，草稿已保留';
+          ? '打水账本暂时只读'
+          : roomFull ? '球友已满 24 人' : '名单权限已更新';
       } else if (this.data.joinSheetOpen && bottomActionMode !== 'join') {
         sheetBlockedReason = capabilities.emergencyReadOnly
-          ? '打水账本暂时只读，加入资料已保留'
+          ? '打水账本暂时只读'
           : '加入状态已更新，请关闭后重新确认';
       }
     }
@@ -1694,22 +1696,22 @@ Page({
     let reason = '';
     const draftRoundId = clean(this._sheetDraftRoundId);
     if (draftRoundId && this.data.roundId && draftRoundId !== clean(this.data.roundId)) {
-      reason = '账本已更新，草稿已保留；请重新打开后确认';
+      reason = '账本已更新，请重新打开后确认';
     } else if (kind === 'record' && !this.data.canWrite) {
       reason = this.data.capabilities.emergencyReadOnly
-        ? '打水账本暂时只读，草稿已保留'
-        : '记水权限已更新，草稿已保留；请刷新后重试';
+        ? '打水账本暂时只读'
+        : '记水权限已更新，请刷新后重试';
     } else if (kind === 'record' && this.data.editingEntry) {
       reason = correctionBlockedReason(this.data.editingEntry, this.data.capabilities);
     } else if (kind === 'roster' && !this.data.canAddParticipants) {
       reason = this.data.capabilities.emergencyReadOnly
-        ? '打水账本暂时只读，草稿已保留'
+        ? '打水账本暂时只读'
         : this.data.participantCount >= MAX_PARTICIPANTS
-          ? '球友已满 24 人，草稿已保留'
-          : '名单权限已更新，草稿已保留';
+          ? '球友已满 24 人'
+          : '名单权限已更新';
     } else if (kind === 'join' && (this.data.bottomActionMode !== 'join' || !this.data.isVisitor)) {
       reason = this.data.capabilities.emergencyReadOnly
-        ? '打水账本暂时只读，加入资料已保留'
+        ? '打水账本暂时只读'
         : '加入状态已更新，请关闭后重新确认';
     }
     if (reason) {

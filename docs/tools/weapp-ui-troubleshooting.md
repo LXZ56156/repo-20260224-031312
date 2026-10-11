@@ -47,10 +47,12 @@ Get-Content -LiteralPath 'tmp/ui-iterate-runs/<本次id>/summary.json'
 | `capture`：route / query 不匹配，`reLaunch` 报页面未注册 | 查当前 `app.json` 与 case 的 route；结合实际运行时错误 | 页面确实未注册是源码问题。已注册仍报未注册且清理失败时，按下节恢复中性页；10-04实测官方 `simulator_open_page` 明确编到页面后恢复。不能仅重复普通刷新。 |
 | `capture`：selector、caseData、nonce、横向溢出或 alignment 不通过 | candidate receipt 的对应 check、selector 数量/几何及 data hash | 判断 case 是否随已授权 UI 变化而过期，或当前源码有真实缺陷；只修直接原因和关联 case。不要删门禁、减少预期数量或延长等待以伪造通过。 |
 | `capture`：runtime exception | candidate receipt 的 `runtimeExceptions`，结合 case 与堆栈定位 | 修复直接异常；console 事件不都等于异常。fixture 页面不证明实际云读写，云函数缺失等情况不能靠 fixture 冒充已解决。 |
+| `capture`：SDK isolation 安装或恢复失败 | `sdkIsolationCleanup`、安装错误的 `captureIsolation` 与AppService内存中的同token状态 | 未验证隔离时不继续路由；保留内存快照，先按下节恢复，再编译或预热。DevTools代理函数身份不同不能直接解释为隔离失败，须用工具的nonce行为探针。 |
 | `capture`：PNG校验、捕获/automation超时 | 分辨连接、导航、ready、settle、`App.captureScreenshot` 哪个调用失败；先确认清理结果 | 按下节执行有条件的一次串行复测；复现则保留证据并停止截图循环，评估 DevTools版本/像素源/图形会话。不要改用桌面坐标截图冒充正式产物。 |
 
 ### 清理失败先处理状态
 
+- SDK隔离未证明恢复时，先停止编译、重新预热及下一轮采集。检查 `getApp().__uiCaptureIsolation` 的同token状态；snapshotRetained=true只证原快照仍在内存，guardVerified=true才证保护有效，传输结果未知时三项null不能推断状态。重建AppService会丢失可能仍在的快照，不要先使用下面的官方编译恢复命令。安装错误的 `captureIsolation` 可交给 `finishCaptureIsolation`，但不能把未验证guard的原页面路由视为安全清理。仅在同token、保护缓存逐键恢复、单页中性launch与guard行为均已核验后，才以 `cleanupOk: true` 完成恢复；`sdkRestored=true` / `isolationRetained=false` 后再继续。恢复验证不调用原云或原遥测，具体边界见[工具合同](weapp-ui-screenshot-workflow.md#5-标准单页流程)。
 - `fixtureCleanup.ok=false` 或 `cleanupError`：本轮没有证明中性 launch 页及单页栈重建，当前页面可能还被冻结。停止下一轮 fixture，保留 candidate receipt。确认没有别的 runner 占用会话后，仅针对已定位的导航/编译故障使用官方打开中性页恢复；这会导航且可能编译，并非只读命令：
 
   ```powershell

@@ -1643,6 +1643,8 @@ test('failed strict evidence keeps the previous approved screenshot and receipt'
   const runtimeEvents = { console: [], exceptions: [] };
   const miniProgram = {
     async evaluate(_fn, phase) {
+      if (_fn.name === 'beginScreenshotSdkIsolation') return { ok: true, snapshotCount: 0 };
+      if (_fn.name === 'finishScreenshotSdkIsolation') return { ok: true, sdkRestored: true };
       if (typeof phase === 'undefined') {
         return { available: true, length: 1, route: 'pages/launch/index' };
       }

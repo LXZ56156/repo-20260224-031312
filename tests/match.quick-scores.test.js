@@ -192,7 +192,7 @@ test('match page renders dynamic quick score options instead of hardcoded score 
   assert.match(wxml, /data-b="\{\{item\.b\}\}"/);
   assert.match(wxml, /class="bottom-tray score-submit-tray"/);
   assert.match(wxml, /正在提交比分/);
-  assert.match(wxml, /本机草稿已保留/);
+  assert.doesNotMatch(wxml, /本机草稿已保留|修改后自动保留草稿/);
   assert.match(wxml, /bindtap="onStartScoring"/);
   assert.match(wxml, /bindtap="submit"/);
   assert.match(wxml, /lockState==='idle' && !canRetryAction/);

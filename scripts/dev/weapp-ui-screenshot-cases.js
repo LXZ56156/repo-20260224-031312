@@ -3,6 +3,10 @@
 const waterV2Fixtures = require('./water-v2-screenshot-fixtures');
 const { buildLobbyViewModel } = require('../../miniprogram/pages/lobby/lobbyViewModel');
 const { buildSyncBannerState } = require('../../miniprogram/core/syncStatus');
+const { buildTournamentViewState, buildLockHint } = require('../../miniprogram/pages/match/matchViewModel');
+const { getPrimaryNavItems } = require('../../miniprogram/core/matchPrimaryNav');
+const { buildShareEntryViewModel } = require('../../miniprogram/core/shareMeta');
+const { computeRankings } = require('../../miniprogram/core/ranking');
 
 const manualActions = [
   '原生 picker 展开态与滚轮选择',
@@ -11,16 +15,8 @@ const manualActions = [
 ];
 
 const shared = {
-  navSchedule: [
-    { key: 'schedule', text: '比赛', active: true },
-    { key: 'ranking', text: '排名', active: false },
-    { key: 'analytics', text: '对阵', active: false },
-  ],
-  navRanking: [
-    { key: 'schedule', text: '比赛', active: false },
-    { key: 'ranking', text: '排名', active: true },
-    { key: 'analytics', text: '对阵', active: false },
-  ],
+  navSchedule: getPrimaryNavItems('schedule', 'demo'),
+  navRanking: getPrimaryNavItems('ranking', 'demo'),
   rankings: [
     { rank: 1, rankKey: 'p1', displayName: '阿杰', name: '阿杰', entityType: 'player', played: 8, wins: 7, losses: 1, pointsFor: 168, pointsAgainst: 136, pointDiff: 32, trendText: '连胜 4', trendType: 'up', showTrend: true, topShareText: '分享', avatarItems: [] },
     { rank: 2, rankKey: 'p2', displayName: '小林', name: '小林', entityType: 'player', played: 8, wins: 6, losses: 2, pointsFor: 154, pointsAgainst: 136, pointDiff: 18, trendText: '连胜 2', trendType: 'up', showTrend: true, topShareText: '分享', avatarItems: [] },
@@ -34,54 +30,41 @@ const profileGateStorageFixture = {
   profileGate: true,
 };
 
-const participantPreviewList = ['阿', '林', 'C', '王', '李', '赵'].map((initial, idx) => ({
-  id: `p${idx}`,
-  name: initial,
-  initial,
-  avatarRaw: localAvatar,
-  avatarUrl: localAvatar,
-  showAvatar: true,
-}));
-
-const rankingPreview = shared.rankings.slice(0, 3).map((item) => ({
-  rank: item.rank,
-  name: item.name,
-  summaryText: `${item.wins}胜 ${item.losses}负`,
-}));
-
-const basePreview = {
-  tournamentName: '周末羽毛球赛',
-  modeLabel: '多人转',
-  eventSummaryText: '7人轮转 · 21场 · 1片场地',
-  socialProofText: '已有 6 人加入',
-  playersCountText: '6 人',
-  organizerName: '阿杰',
-  timeText: '今天 19:00',
-  venueText: '社区球馆',
-  joinAllowed: true,
-  joined: false,
-  viewModeLabel: '游客可加入',
-  availabilityText: '加入后可看赛程、录分、查看排名。',
-  primaryCtaReason: '还差 2 人满员',
-  primaryAction: { key: 'join', text: '加入比赛' },
-  secondaryAction: null,
-  secondaryCtaText: '',
-  showParticipantPreview: true,
-  participantPreviewList,
-  participantOverflowText: '',
-  showRankingPreview: false,
-  rankingTitle: '实时排名',
-  rankingPreview: [],
-  headline: '朋友邀请你加入这场比赛',
-  subtitle: '加入后可参与对阵和排名',
-  statusText: '报名中',
-  statusClass: 'status-draft',
-  progressText: '等待开赛',
-};
-
-function withPreview(patch) {
-  return Object.assign({}, basePreview, patch);
+function buildShareTournament(id, status = 'draft', mode = 'multi_rotate') {
+  const players = ['阿杰', '小林', 'Chris', '王姐', '李哥', '赵同学'].map((name, index) => ({
+    id: `__ui_share_player_${index}`, name, type: 'user', avatar: localAvatar,
+    ...(mode === 'squad_doubles' ? { squad: index < 3 ? 'A' : 'B' } : {}),
+  }));
+  const tournament = {
+    _id: id, name: '周末羽毛球赛', creatorId: players[0].id, mode, status,
+    version: status === 'finished' ? 2 : 1, players, playerIds: players.map(player => player.id),
+    totalMatches: 6, courts: 1, settingsConfigured: true,
+    rules: { gamesPerMatch: 1, pointsPerGame: 21, endConditionType: 'total_matches', endConditionTarget: 6 },
+    scheduledAt: '2026-10-11T11:00:00.000Z', venue: '社区球馆', rounds: [], rankings: [],
+  };
+  if (status !== 'draft') {
+    // Six local doubles matches: each player appears four times, with no same
+    // round overlap. This is a display dataset, not scheduler acceptance proof.
+    tournament.rounds = Array.from({ length: 6 }, (_, roundIndex) => {
+      const completed = status === 'finished' || roundIndex < 3;
+      return { roundIndex, matches: [{ matchIndex: 0,
+        teamA: [players[roundIndex % 6], players[(roundIndex + 1) % 6]],
+        teamB: [players[(roundIndex + 2) % 6], players[(roundIndex + 3) % 6]],
+        status: completed ? 'finished' : 'pending',
+        ...(completed ? { score: { teamA: 21, teamB: 17 + roundIndex % 3 },
+          scorerId: players[0].id, scorerName: players[0].name } : {}),
+      }] };
+    });
+    tournament.rankings = computeRankings(tournament);
+  }
+  return tournament;
 }
+
+const shareDraftTournament = buildShareTournament('__ui_share_draft');
+const shareRunningTournament = buildShareTournament('__ui_share_running', 'running');
+const shareFinishedTournament = buildShareTournament('__ui_share_finished', 'finished');
+const shareSquadTournament = buildShareTournament('__ui_share_squad', 'draft', 'squad_doubles');
+const shareViewerId = '__ui_share_viewer';
 
 const cases = {
   waterLegacyOwnerFeed: {
@@ -146,7 +129,6 @@ const cases = {
       '.water-direct-sheet .water-confirm-button': { expectedCount: 1, visible: true },
     },
     fixture: waterV2Fixtures.memberDirect,
-    expectedWindowWidth: 390,
   },
   waterV2MemberCorrection: {
     path: '/pages/water/index?id=water_v2_demo',
@@ -157,7 +139,6 @@ const cases = {
       '.water-direct-sheet .water-confirm-button': { expectedCount: 1, visible: true },
     },
     fixture: waterV2Fixtures.memberCorrection,
-    expectedWindowWidth: 390,
   },
   waterV2OwnerCorrectionLong: {
     path: '/pages/water/index?id=water_v2_demo',
@@ -167,19 +148,16 @@ const cases = {
       '.water-game-sheet .water-confirm-button': { expectedCount: 1, visible: true },
     },
     fixture: waterV2Fixtures.ownerCorrectionLong,
-    expectedWindowWidth: 390,
   },
   waterV2EntryDetail: {
     path: '/pages/water/index?id=water_v2_demo',
     selectors: ['.water-page', '.water-detail-sheet', '.water-detail-current', '.water-detail-history'],
     fixture: waterV2Fixtures.entryDetail,
-    expectedWindowWidth: 390,
   },
   waterV2ArchivedRound: {
     path: '/pages/water/index?id=water_v2_demo',
     selectors: ['.water-page', '.water-history-sheet', '.water-archived-note', '.water-audit-track'],
     fixture: waterV2Fixtures.archivedRound,
-    expectedWindowWidth: 390,
   },
   waterV2SheetError: {
     path: '/pages/water/index?id=water_v2_demo',
@@ -190,13 +168,11 @@ const cases = {
       '.water-direct-sheet .water-confirm-button': { expectedCount: 1, visible: true },
     },
     fixture: waterV2Fixtures.sheetError,
-    expectedWindowWidth: 390,
   },
   water: {
     path: '/pages/water/index?id=water_v2_demo',
     selectors: ['.water-page', '.water-latest-receipt', '.water-ledger-row', '.water-action-dock'],
     fixture: waterV2Fixtures.member24,
-    expectedWindowWidth: 390,
   },
   launch: {
     path: '/pages/launch/index',
@@ -294,12 +270,14 @@ const cases = {
     },
   },
   shareDraft: {
-    path: '/pages/share-entry/index?code=demo',
+    path: '/pages/share-entry/index?code=__ui_share_draft',
     selectors: ['.share-hero', '.share-actions .btn', '.participant-avatar-img', '.participant-avatar-row'],
+    selectorExpectations: { '.share-hero': 1, '.share-actions .btn': 1,
+      '.participant-avatar-img': 6, '.participant-avatar-row': 1 },
     data: {
-      tournament: { _id: 'demo', mode: 'multi_rotate', status: 'draft' },
-      tournamentId: 'demo',
-      preview: withPreview({}),
+      tournament: shareDraftTournament,
+      tournamentId: shareDraftTournament._id,
+      preview: buildShareEntryViewModel({ tournament: shareDraftTournament, openid: shareViewerId }),
       identityPending: false,
       identityTimedOut: false,
       joinBusy: false,
@@ -309,28 +287,13 @@ const cases = {
     },
   },
   shareRunning: {
-    path: '/pages/share-entry/index?code=demo',
+    path: '/pages/share-entry/index?code=__ui_share_running',
     selectors: ['.share-hero', '.share-actions .btn', '.ranking-preview', '.ranking-preview-row'],
+    selectorExpectations: { '.share-hero': 1, '.share-actions .btn': 2, '.ranking-preview': 1, '.ranking-preview-row': 3 },
     data: {
-      tournament: { _id: 'demo', mode: 'multi_rotate', status: 'running' },
-      tournamentId: 'demo',
-      preview: withPreview({
-        joinAllowed: false,
-        headline: '比赛已经开打',
-        subtitle: '可以查看实时赛程和排名',
-        statusText: '进行中',
-        statusClass: 'status-running',
-        progressText: '已完成 12 / 21 场',
-        viewModeLabel: '实时进展',
-        availabilityText: '比赛进行中，先看赛程和实时排名。',
-        primaryCtaReason: '实时排名已更新',
-        primaryAction: { key: 'schedule', text: '查看赛程' },
-        secondaryAction: { key: 'ranking' },
-        secondaryCtaText: '查看排名',
-        showParticipantPreview: false,
-        showRankingPreview: true,
-        rankingPreview,
-      }),
+      tournament: shareRunningTournament,
+      tournamentId: shareRunningTournament._id,
+      preview: buildShareEntryViewModel({ tournament: shareRunningTournament, openid: shareViewerId }),
       identityPending: false,
       identityTimedOut: false,
       joinBusy: false,
@@ -339,29 +302,13 @@ const cases = {
     },
   },
   shareFinished: {
-    path: '/pages/share-entry/index?code=demo',
+    path: '/pages/share-entry/index?code=__ui_share_finished',
     selectors: ['.share-hero', '.share-actions .btn', '.ranking-preview', '.ranking-preview-row'],
+    selectorExpectations: { '.share-hero': 1, '.share-actions .btn': 2, '.ranking-preview': 1, '.ranking-preview-row': 3 },
     data: {
-      tournament: { _id: 'demo', mode: 'multi_rotate', status: 'finished' },
-      tournamentId: 'demo',
-      preview: withPreview({
-        joinAllowed: false,
-        headline: '这场比赛已结束',
-        subtitle: '最终排名和战绩卡已生成',
-        statusText: '已结束',
-        statusClass: 'status-finished',
-        progressText: '21 / 21 场完成',
-        viewModeLabel: '赛后复盘',
-        availabilityText: '可以查看最终排名，生成战绩卡后发回群里。',
-        primaryCtaReason: '最终排名已出炉',
-        primaryAction: { key: 'ranking', text: '查看最终排名' },
-        secondaryAction: { key: 'analytics' },
-        secondaryCtaText: '查看赛事战报',
-        showParticipantPreview: false,
-        showRankingPreview: true,
-        rankingTitle: '最终排名',
-        rankingPreview,
-      }),
+      tournament: shareFinishedTournament,
+      tournamentId: shareFinishedTournament._id,
+      preview: buildShareEntryViewModel({ tournament: shareFinishedTournament, openid: shareViewerId }),
       identityPending: false,
       identityTimedOut: false,
       joinBusy: false,
@@ -643,9 +590,25 @@ cases.matchError = {
   ...cases.matchEditing,
   selectors: ['.match-page', '.score-submit-tray', '.score-submit-status-main', '.score-retry-btn'],
   selectorExpectations: { '.match-page': 1, '.score-submit-tray': 1, '.score-submit-status-main': 1, '.score-retry-btn': 1 },
-  data: { ...cases.matchEditing.data, canEdit: false, lockState: 'error',
-    canRetryAction: true, lockHintText: '录分失败，请重试', lockActionText: '重试',
-    lastFailedActionText: '提交失败，本机草稿已保留', submitBusy: false },
+  // Submission failure restores the owned lock; "error" is not a real lock state.
+  // This is a display case. A callable retry requires the controlled action harness.
+  data: { ...cases.matchEditing.data, canEdit: true, lockState: 'locked_by_me',
+    canRetryAction: true, lockHintText: buildLockHint('locked_by_me'),
+    lastFailedActionText: '提交比分', submitBusy: false },
+};
+
+cases.profileAvatarUploading = {
+  ...cases.profile,
+  selectors: ['.profile-page', '.avatar-actions .btn-mini', '.quick-fill-btn', '.avatar-tip', '.profile-actions .btn-primary'],
+  selectorExpectations: { '.profile-page': 1, '.avatar-actions .btn-mini': 1, '.quick-fill-btn': 1,
+    '.avatar-tip': 1, '.profile-actions .btn-primary': 1 },
+  data: { ...cases.profile.data, avatarUploading: true },
+};
+cases.profileSaving = {
+  ...cases.profile,
+  selectors: ['.profile-page', '.avatar-actions .btn-mini', '.quick-fill-btn', '.profile-actions .btn-primary'],
+  selectorExpectations: { '.profile-page': 1, '.avatar-actions .btn-mini': 1, '.quick-fill-btn': 1, '.profile-actions .btn-primary': 1 },
+  data: { ...cases.profile.data, saving: true },
 };
 
 cases.launchRecentWater = {
@@ -729,11 +692,14 @@ cases.launch.styleExpectations = { '.launch-actions': { display: 'flex' } };
 cases.preferences.styleExpectations = { '.pref-page .chips': { display: 'flex' } };
 cases.shareSquadChoice = {
   ...cases.shareDraft,
+  path: '/pages/share-entry/index?code=__ui_share_squad',
   selectors: ['.share-hero', '.squad-chooser', '.squad-chooser .chip.active', '.share-primary-btn'],
+  selectorExpectations: { '.share-hero': 1, '.squad-chooser': 1, '.squad-chooser .chip.active': 1, '.share-primary-btn': 1 },
   styleExpectations: { '.squad-chooser': { display: 'flex' } },
   data: { ...cases.shareDraft.data,
-    tournament: { ...cases.shareDraft.data.tournament, mode: 'squad_doubles' },
-    preview: { ...cases.shareDraft.data.preview, joinAllowed: true, joined: false },
+    tournament: shareSquadTournament,
+    tournamentId: shareSquadTournament._id,
+    preview: buildShareEntryViewModel({ tournament: shareSquadTournament, openid: shareViewerId }),
   },
 };
 cases.ranking.styleExpectations = { '.ranking-main-row': { display: 'flex' } };
@@ -778,6 +744,18 @@ cases.tournamentListLoading = {
   selectors: ['.recovery-page', '.recovery-intro', '.recovery-notice'],
   selectorExpectations: { '.recovery-notice': 1 },
   data: { items: [], loading: true, loaded: false, hasMore: false, error: '' },
+};
+cases.tournamentListMore = {
+  ...cases.tournamentList,
+  selectors: ['.recovery-page', '.recovery-item', '.recovery-action'],
+  selectorExpectations: { '.recovery-page': 1, '.recovery-item': 3, '.recovery-action': 1 },
+  data: { ...cases.tournamentList.data, hasMore: true },
+};
+cases.tournamentListPageError = {
+  ...cases.tournamentListMore,
+  selectors: ['.recovery-page', '.recovery-item', '.state-error', '.state-error-desc', '.recovery-action'],
+  selectorExpectations: { ...cases.tournamentListMore.selectorExpectations, '.state-error': 1, '.state-error-desc': 1 },
+  data: { ...cases.tournamentListMore.data, error: '更多比赛加载失败，请重试' },
 };
 
 const roleTournament = {
@@ -840,6 +818,100 @@ const pendingMatch = { matchIndex: 1, status: 'pending', teamA: [roleTournament.
   teamB: [roleTournament.players[1], roleTournament.players[3]] };
 const runningTournament = { ...roleTournament, _id: '__ui_finish', status: 'running',
   rounds: [{ roundIndex: 0, matches: [completedMatch, pendingMatch] }] };
+
+// Pure view-model projections keep permissions and canceled scores consistent
+// with the actual match page. Busy is the transient submit-service UI state.
+function matchRiskData(tournament, openid, lockState, patch = {}) {
+  const state = buildTournamentViewState(tournament, {
+    tournamentId: tournament._id, openid, roundIndex: 0, matchIndex: 1, lockState,
+    currentScoreA: lockState === 'locked_by_me' ? 21 : 0,
+    currentScoreB: lockState === 'locked_by_me' ? 17 : 0,
+    draft: lockState === 'locked_by_me' ? { scoreA: 21, scoreB: 17 } : null,
+  });
+  return { ...cases.matchIdle.data, ...state.data, tournament: state.tournament,
+    tournamentId: tournament._id, matchIndex: 1, lockState,
+    lockHintText: buildLockHint(lockState), ...patch };
+}
+const matchRiskPath = '/pages/match/index?tournamentId=__ui_finish&roundIndex=0&matchIndex=1';
+cases.matchSubmitBusy = {
+  path: matchRiskPath,
+  selectors: ['.match-page', '.score-stage-editing', '.score-submit-status-main', '.score-submit-tray .btn-primary'],
+  selectorExpectations: { '.match-page': 1, '.score-stage-editing': 1, '.score-submit-status-main': 1,
+    '.score-submit-tray .btn-primary': 1 },
+  data: matchRiskData(runningTournament, roleTournament.creatorId, 'locked_by_me', {
+    lockState: 'submitting', lockHintText: buildLockHint('submitting'), submitBusy: true,
+  }),
+};
+cases.matchForbidden = {
+  path: matchRiskPath,
+  selectors: ['.match-page', '.match-status-tag', '.score-box-readonly'],
+  selectorExpectations: { '.match-page': 1, '.match-status-tag': 1, '.score-box-readonly': 2 },
+  data: matchRiskData(runningTournament, '__ui_spectator', 'forbidden'),
+};
+cases.matchCanceled = {
+  path: matchRiskPath,
+  selectors: ['.match-page', '.match-status-tag', '.score-box-readonly'],
+  selectorExpectations: { '.match-page': 1, '.match-status-tag': 1, '.score-box-readonly': 2 },
+  data: matchRiskData({ ...runningTournament, status: 'finished',
+    rounds: [{ roundIndex: 0, matches: [completedMatch, { ...pendingMatch, status: 'canceled', cancelReason: 'manual_finish' }] }] },
+  roleTournament.creatorId, 'finished'),
+};
+cases.matchLoadError = {
+  path: matchRiskPath,
+  selectors: ['.match-page', '.state-error', '.state-error-actions .btn'],
+  selectorExpectations: { '.match-page': 1, '.state-error': 1, '.state-error-actions .btn': 1 },
+  // Display-only falsy sentinel: this DevTools transport omits null when reading
+  // Page.getData(path). Keep both fields in the strict declared-data contract.
+  // The real Page initial state remains match:null; do not call match handlers here.
+  data: { match: false, loadError: true },
+};
+
+// These fixtures invoke only local page projections and filter handlers.
+// The runner freezes request generations before executing the methods.
+const scheduleFilterFixture = {
+  pageData: { tournamentId: runningTournament._id, selectedPlayerIds: [], avatarFilterMode: 'contains', statusFilter: 'all' },
+  methods: [{ name: 'applyTournament', args: [runningTournament] }],
+};
+cases.schedulePlayerFilterSheet = {
+  path: '/pages/schedule/index?id=__ui_finish',
+  selectors: ['.schedule-page', '.schedule-filter-sheet', '.filter-sheet-option',
+    '.filter-sheet-option.active[data-value="not_contains"]', '.selection-check', '.filter-sheet-actions .btn'],
+  selectorExpectations: { '.schedule-page': 1, '.schedule-filter-sheet': 1, '.filter-sheet-option': 2,
+    '.filter-sheet-option.active[data-value="not_contains"]': 1, '.selection-check': 1, '.filter-sheet-actions .btn': 2 },
+  fixture: { ...scheduleFilterFixture, methods: [...scheduleFilterFixture.methods,
+    { name: 'openPlayerFilterSheet', args: [] },
+    { name: 'onPickPlayerFilterMode', args: [{ currentTarget: { dataset: { value: 'not_contains' } } }] }] },
+};
+cases.scheduleStatusFilterSheet = {
+  path: cases.schedulePlayerFilterSheet.path,
+  selectors: ['.schedule-page', '.schedule-filter-sheet', '.filter-sheet-option',
+    '.filter-sheet-option.active[data-value="finished"]', '.selection-check', '.filter-sheet-actions .btn'],
+  selectorExpectations: { '.schedule-page': 1, '.schedule-filter-sheet': 1, '.filter-sheet-option': 4,
+    '.filter-sheet-option.active[data-value="finished"]': 1, '.selection-check': 1, '.filter-sheet-actions .btn': 2 },
+  fixture: { ...scheduleFilterFixture, methods: [...scheduleFilterFixture.methods,
+    { name: 'openStatusFilterSheet', args: [] },
+    { name: 'onPickStatusFilter', args: [{ currentTarget: { dataset: { value: 'finished' } } }] }] },
+};
+cases.scheduleFilterSelected = {
+  path: cases.schedulePlayerFilterSheet.path,
+  selectors: ['.schedule-page', '.match-card', '.selected-player-chip', '.filter-trigger-right'],
+  selectorExpectations: { '.schedule-page': 1, '.match-card': 1, '.selected-player-chip': 1, '.filter-trigger-right': 1 },
+  fixture: { ...scheduleFilterFixture, methods: [...scheduleFilterFixture.methods,
+    { name: 'onMatchPlayerAvatarTap', args: [{ currentTarget: { dataset: { playerId: '__ui_owner' } } }] },
+    { name: 'openStatusFilterSheet', args: [] },
+    { name: 'onPickStatusFilter', args: [{ currentTarget: { dataset: { value: 'finished' } } }] },
+    { name: 'confirmStatusFilterSheet', args: [] }] },
+};
+cases.scheduleFilterEmpty = {
+  path: cases.schedulePlayerFilterSheet.path,
+  selectors: ['.schedule-page', '.state-empty', '.state-empty-title', '.selected-player-chip', '.filter-clear'],
+  selectorExpectations: { '.schedule-page': 1, '.state-empty': 1, '.state-empty-title': 1, '.selected-player-chip': 1, '.filter-clear': 1 },
+  fixture: { ...scheduleFilterFixture, methods: [...scheduleFilterFixture.methods,
+    { name: 'onMatchPlayerAvatarTap', args: [{ currentTarget: { dataset: { playerId: '__ui_owner' } } }] },
+    { name: 'openPlayerFilterSheet', args: [] },
+    { name: 'onPickPlayerFilterMode', args: [{ currentTarget: { dataset: { value: 'not_contains' } } }] },
+    { name: 'confirmPlayerFilterSheet', args: [] }] },
+};
 const completedDisplay = { key: '0-0', roundIndex: 0, matchIndex: 0, title: '第1场', status: 'finished',
   showScore: true, leftScoreText: '21', rightScoreText: '17', leftScoreClass: 'score-win', rightScoreClass: '',
   leftTeam: { text: '阿杰 / 小林', avatarItems: [] }, rightTeam: { text: '周末限定超长昵称的球友 / 导入成员', avatarItems: [] },
@@ -902,6 +974,55 @@ cases.scheduleOffline = {
   data: { ...cases.scheduleManualFinishReady.data, ...offlineState, ...buildSyncBannerState(offlineState) },
 };
 
+// Preserve the real selection handlers, without the old fixture's postData
+// overrides: search results and expanded summaries must come from the page.
+const game24Methods = waterV2Fixtures.member24Game.methods;
+cases.waterV2GameSearchEmpty = {
+  path: cases.waterV2Member24Game.path,
+  selectors: ['.water-page', '.water-game-sheet', '.water-game-sheet .water-search',
+    '.water-game-sheet .water-search-empty', '.water-game-sheet .water-search-empty-clear',
+    '.water-game-sheet .water-confirm-button'],
+  selectorExpectations: { '.water-page': 1, '.water-game-sheet': 1, '.water-game-sheet .water-search': 1,
+    '.water-game-sheet .water-search-empty': 1, '.water-game-sheet .water-search-empty-clear': 1,
+    '.water-game-sheet .water-confirm-button': 1 },
+  fixture: { roomData: waterV2Fixtures.member24.roomData, pageData: { activeTab: 'ledger' },
+    methods: [...game24Methods, { name: 'onGameSearchInput', args: [{ detail: { value: '找不到的球友' } }] }] },
+};
+cases.waterV2GameSummaryExpanded = {
+  path: cases.waterV2Member24Game.path,
+  selectors: ['.water-page', '.water-game-sheet', '.water-game-sheet .water-match-summary.is-expanded',
+    '.water-game-sheet .water-team-names', '.water-game-sheet .water-game-summary-toggle',
+    '.water-game-sheet .water-confirm-button'],
+  selectorExpectations: { '.water-page': 1, '.water-game-sheet': 1,
+    '.water-game-sheet .water-match-summary.is-expanded': 1, '.water-game-sheet .water-team-names': 2,
+    '.water-game-sheet .water-game-summary-toggle': 1, '.water-game-sheet .water-confirm-button': 1 },
+  fixture: { roomData: waterV2Fixtures.member24.roomData, pageData: { activeTab: 'ledger' },
+    methods: [...game24Methods, { name: 'toggleGameSummary', args: [] }] },
+};
+cases.waterV2RosterSearchEmpty = {
+  path: cases.waterV2Member24.path,
+  selectors: ['.water-page', '.water-tab.is-active[data-tab="players"]', '.water-player-count',
+    '.water-roster-search-empty', '.water-search-empty-clear'],
+  selectorExpectations: { '.water-page': 1, '.water-tab.is-active[data-tab="players"]': 1, '.water-player-count': 1,
+    '.water-roster-search-empty': 1, '.water-search-empty-clear': 1 },
+  fixture: { roomData: waterV2Fixtures.member24.roomData,
+    methods: [{ name: 'onSelectTab', args: [{ currentTarget: { dataset: { tab: 'players' } } }] },
+      { name: 'onRosterSearchInput', args: [{ detail: { value: '找不到的球友' } }] }] },
+};
+
 require('./singles-screenshot-fixtures').registerCases(cases);
+
+// Derived cases have their own fixture IDs. Build every displayed tournament
+// navigation with the production helper after inheritance is complete.
+for (const item of Object.values(cases)) {
+  if (!item.fixture && item.data && /^\/pages\/schedule\/index(?:\?|$)/.test(item.path)) {
+    item.data.hasVisibleRounds = Array.isArray(item.data.roundsUi) && item.data.roundsUi.length > 0;
+  }
+  if (!item.data || !Array.isArray(item.data.primaryNavItems)) continue;
+  const page = item.path.match(/^\/pages\/(lobby|ranking|schedule)\/index(?:\?|$)/);
+  if (!page) continue;
+  const tournamentId = item.data.tournamentId || (item.data.tournament && item.data.tournament._id);
+  item.data.primaryNavItems = getPrimaryNavItems(page[1] === 'lobby' ? 'match' : page[1], tournamentId);
+}
 
 module.exports = { cases, manualActions };

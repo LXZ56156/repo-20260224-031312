@@ -63,7 +63,7 @@
       </view>
     </view>
 
-    <view class="card panel panel-soft state-empty mt-md" wx:if="{{!roundsUi.length && !showFinishedShareActions}}">
+    <view class="card panel panel-soft state-empty mt-md" wx:if="{{!hasVisibleRounds && !showFinishedShareActions}}">
       <view class="state-empty-icon">{{filterEmptyText ? '🔎' : '📋'}}</view>
       <view class="state-empty-title">{{filterEmptyText || '还没有对阵'}}</view>
       <view class="state-empty-desc">{{filterEmptyText ? '调整底部筛选条件后可恢复显示' : '赛程生成后将在此展示所有轮次与比赛'}}</view>

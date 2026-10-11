@@ -431,7 +431,7 @@ const sheetError = {
   roomData: memberDirect.roomData,
   pageData: {
     ...memberDirect.pageData,
-    sheetError: '网络开小差，草稿仍在，可直接重试',
+    sheetError: '网络开小差，请重试',
   },
 };
 
