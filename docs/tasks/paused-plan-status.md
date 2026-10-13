@@ -1,11 +1,11 @@
 # 下一步待修清单与任务交接
 
-状态：2026-10-13。本轮已实现 UI06/UI12/UI13，核验 UI03 的真实页面投影并修正绕过投影的旧截图 fixture；正常屏 UI04 未复现，UI15 不采纳新增常驻区。大屏及物理/原生交互尚受窗口控制故障阻断，不能称全部 UI 验收完成。保留所有既有配置、单打候选及私有文件，未部署、发布或写入真实业务数据。
+状态：2026-10-13，用户明确“暂停，更新文档”，实现、验收与工具恢复已暂停。UI06/UI12/UI13及UI03 fixture已随46eb249推送master并核远端；正常屏UI04未复现，UI15不采纳新增常驻区。续做新增UI14最小源码修复及218项关联通过，两个文件仍未提交；新全量未完成且已出现1项失败，不满足交付门禁。保留所有既有修改，未部署、发布或写入真实业务数据。
 
 ## 新任务从这里开始
 
 1. 读取[项目规则](../../AGENTS.md)与[current](current.md)，核对实际checkout、branch、HEAD及dirty。实际源码/Git/npm工作目录为`D:/projects/badminton-miniapp/main`；保留既有配置、单打候选、浏览器/QR、备份及私有文件。
-2. 先恢复真实 DevTools 项目窗口与 Windows 控制的正确绑定，再完成大屏、物理点击和原生控件检查；不要重复已通过的受控回归，也不恢复旧业务计划。所有隔离/缓存已恢复，未保留未结束的 native audit。
+2. 等用户继续后，先核UI14未提交diff、诊断新全量失败并完成其check/lint；再恢复真实DevTools窗口与正确绑定，核当前源码签名后完成402的UI14、大屏及原生控件检查。不重复无变化的旧回归，不恢复旧业务计划；所有隔离/缓存已恢复，无未结束native audit。
 3. 先测16 Pro等正常机型普通字号，再测更大屏幕。小屏及小屏大字暂缓；正常机型大字按相关性后排。以实际设备/SDK记录机型、宽度、字体和safe-area，已有390/430图不是16 Pro实测。详见[尺寸验收顺序](../tools/weapp-ui-acceptance.md#机型与尺寸测试顺序)。
 
 ## 具体待修清单
@@ -20,7 +20,7 @@ P1/P2保留原问题级别。以下是本轮处置及残余门禁；未验不等
 | 4 · UI03 · P2 | 当前生产投影已有数量单位绑定；旧详情 fixture 注入普通空格绕过投影，已纠正并补 fixture 回归 | [fixture](../../scripts/dev/water-v2-screenshot-fixtures.js)；未重复修改生产格式器 | 101项关联检查通过；402实际详情按钮→getEntry受控响应→decorateFeedEntries链路通过，2水成组换行，原描述/ARIA保留。大屏未验 |
 | 5 · UI04 · P2优化 | 402普通字号未复现：末行完整“重试”，两名评审均可接受；本轮未增加文案或结构 | 保持历史错误提示；重试真实按钮可清错误并返回空历史（受控响应） | 正常屏已看/重试通过；大屏孤字复看未验，仍保留原问题，不称全尺寸关闭 |
 | 6 · UI15 · P2建议 | 评估后不采纳新增常驻原因区：已有Toast、冲突Modal、比分保留和重试入口，暂无消失提示阻碍恢复的新证据 | [matchSubmitService](../../miniprogram/pages/match/matchSubmitService.js)、[writeErrorUi](../../miniprogram/core/writeErrorUi.js)保持既有行为 | 不新增需另行设计的状态/清理规则，不恢复重复草稿提示。真实云失败与手机提示仍未验 |
-| 暂缓 · UI14 · P2 | 原320背景滚动约33px保留；本轮按要求不测小屏/小屏大字 | 待正常/大屏物理滚动复看，复现后最小处理 | 402长摘要静态CTA完整，但不能证明滚动链不传播；正常/大屏动态滚动未验，不关闭旧缺陷 |
+| 7 · UI14 · P2 · 未提交 | 源码确认page-meta仅锁历史弹层、漏掉gameSheetOpen；各屏宽共用。已最小加入gameSheetOpen条件，无新增JS状态或触摸拦截 | 工作区[water WXML](../../miniprogram/pages/water/index.wxml)、[直接测试](../../tests/waterSession.ui-copy.test.js)；四种开关组合证明任一打开锁定、全关恢复，关联218通过 | 原320背景约33px证据保留，小屏仍跳过。新全量未完成/1项失败待查，check/lint未跑；新增修复未取得当前源码实图或正常/大屏物理边界滚动、关闭恢复证明，不计完成 |
 
 ## 本轮验证与证据
 
@@ -31,6 +31,14 @@ P1/P2保留原问题级别。以下是本轮处置及残余门禁；未验不等
 - 原始证据：`tmp/ui-fixes-20261013/`（prewarm/iterate/test/check/lint、`test-failures.json`）；交互图/回执在`tmp/ui-audit-20261011-unlocked/native-actions/fixes13-402-*`，恢复回执`summary-1791868928878.json`、`summary-1791869521824.json`。两次scope的10键/保护缓存/SDK恢复通过，0运行时异常；探针计数不等于真实云调用。图片均来自当前源码DevTools实际Canvas/页面，不是合成画面。目录ignored，跨电脑需先确认原文件可用。
 - 有QR只用已有本地码作为隔离绘制素材，未生成真实云码/验当前扫码；完整Canvas PNG本地导出通过。复制文案有原生Toast；保存按钮已触发，系统保存结果未证明，不能计手机相册保存通过。
 - 新工具阻断：第二次prewarm后Windows窗口控制返回DevTools标题却显示其他应用像素；fresh selection、NodeREPL重建后activation仍报`failed to activate captured window`，已停止旧坐标。官方项目窗口close未明确成功、open桥接超时/失败，未反复重试/自动auth；窗口恢复和设备切换API不足，已请求用户手动恢复。产品修改后的签名实图已取得；仅交接文档更新后最后一次`ui:iterate`在compile阶段失败（run `2026-10-13T05-49-55-726Z-27320-b5fa9a44`，约31.2秒），未刷新/采集或覆盖final，source challenge保留，最新全文签名尚未完成。新成功不倒验旧工具失败。恢复后先核真实窗口/设备，再按会话协议完成大屏、遮罩、取消、picker和UI14动态滚动。
+
+### 续做后暂停回执
+
+- UI14两个未提交文件仅改背景锁条件及最小直接测试。新断言先红1项，再审阅`test:affected`计划并`--run`：218通过/0失败/0跳过，范围diff检查通过。先前实图/双评审未覆盖这一新改动。
+- 启动`npm test -- --test-concurrency=1`后用户要求暂停；暂停后无该执行会话或测试进程，日志停在中途，无最终计数/退出回执。已观察`tests/deploy-changed-cloudfunctions.test.js`中的“configuration-only timeout changes select only their function for commit, range and explicit file baselines”1项失败；未获完整错误详情，原因未知，不称旧波动或资源失败。未继续诊断/复跑，未跑新版本check/lint。日志`tmp/ui-fixes-20261013/continue-npm-test-serial.log`。曾尝试NODE_OPTIONS串行选项，被Node拒绝，未启动该次测试；随后使用上述显式npm参数。
+- 一次只读doctor回执`continue-doctor.log`：session/marker/listener/SDK/viewport/route/项目通过，sourceSnapshot=false。脱敏现有bridge诊断`continue-ide-status.json`为initialize-read超时，未获登录/版本状态，不推断Token错误、不auth。官方连接器期间反复不可用。
+- Windows控制读到全灰DevTools窗，但下一次项目菜单点击实际落到Codex菜单，已停止该控制路径；没有更改其他项目内容。一次官方CLI项目close/open返回0（`continue-cli-close.log`/`continue-cli-open.log`），随后窗口ID与39452监听PID仍相同，不能证明重开/编译完成。未反复关闭、未强杀DevTools，已请求用户手动“项目→重新打开此项目”。目前暂停，后续需继续指令。
+- 本次仅提交暂停交接文档；UI14源码/测试留作工作区草稿，未混入提交。原既有dirty完整保留。无新增fixture隔离、云写入、部署或发布。上述日志均位于`tmp/ui-fixes-20261013/`，ignored本机证据，跨电脑须确认原文件可用。
 
 ## 已完成历史基线
 
