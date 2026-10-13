@@ -442,16 +442,21 @@ async function generatePoster(canvas, data, options) {
   });
 
   // 8. 小程序码 — 圆形裁剪，放大版
+  var hasQrCode = false;
   if (d.qrCodeUrl) {
     try {
       var qr = await loadPosterImage(canvas, d.qrCodeUrl, options);
       ctx.save();
-      ctx.beginPath();
-      ctx.arc(POSTER_SIZE / 2, QR_CENTER_Y, QR_RADIUS, 0, Math.PI * 2);
-      ctx.closePath();
-      ctx.clip();
-      ctx.drawImage(qr, POSTER_SIZE / 2 - QR_RADIUS, QR_CENTER_Y - QR_RADIUS, QR_RADIUS * 2, QR_RADIUS * 2);
-      ctx.restore();
+      try {
+        ctx.beginPath();
+        ctx.arc(POSTER_SIZE / 2, QR_CENTER_Y, QR_RADIUS, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(qr, POSTER_SIZE / 2 - QR_RADIUS, QR_CENTER_Y - QR_RADIUS, QR_RADIUS * 2, QR_RADIUS * 2);
+        hasQrCode = true;
+      } finally {
+        ctx.restore();
+      }
     } catch (e) {}
   }
 
@@ -459,10 +464,10 @@ async function generatePoster(canvas, data, options) {
     ctx.textAlign = 'center';
     ctx.fillStyle = 'rgba(255,255,255,0.86)';
     ctx.font = '400 30px sans-serif';
-    ctx.fillText('扫码查看完整战绩', POSTER_SIZE / 2, 985);
+    if (hasQrCode) ctx.fillText('扫码查看完整战绩', POSTER_SIZE / 2, 985);
     ctx.font = '400 26px sans-serif';
     ctx.fillText('羽球轮转助手', POSTER_SIZE / 2, 1030);
-  }
+  } else if (!hasQrCode) fmt.drawMedalFooterWithoutQr(ctx, POSTER_SIZE, POSTER_SIZE);
 
   return exportPoster(canvas, options);
 }

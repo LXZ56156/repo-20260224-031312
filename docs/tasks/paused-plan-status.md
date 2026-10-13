@@ -1,31 +1,41 @@
 # 下一步待修清单与任务交接
 
-状态：2026-10-13。下列七项待处理（含建议与暂缓项）；本文件是新任务接续入口。10-11已验修复在`master/5d61bb2`，10-12测试优先级在`a1fbc59`，均已推送核远端。本次仅整理文档，不增加产品修复或机型实测。
+状态：2026-10-13。本轮已实现 UI06/UI12/UI13，核验 UI03 的真实页面投影并修正绕过投影的旧截图 fixture；正常屏 UI04 未复现，UI15 不采纳新增常驻区。大屏及物理/原生交互尚受窗口控制故障阻断，不能称全部 UI 验收完成。保留所有既有配置、单打候选及私有文件，未部署、发布或写入真实业务数据。
 
 ## 新任务从这里开始
 
 1. 读取[项目规则](../../AGENTS.md)与[current](current.md)，核对实际checkout、branch、HEAD及dirty。实际源码/Git/npm工作目录为`D:/projects/badminton-miniapp/main`；保留既有配置、单打候选、浏览器/QR、备份及私有文件。
-2. 从UI06开始，一次处理一个问题；先确认复现范围、直接回归和受影响状态，再做最小修改。不要重跑已通过的全套历史检查或恢复旧业务计划。
+2. 先恢复真实 DevTools 项目窗口与 Windows 控制的正确绑定，再完成大屏、物理点击和原生控件检查；不要重复已通过的受控回归，也不恢复旧业务计划。所有隔离/缓存已恢复，未保留未结束的 native audit。
 3. 先测16 Pro等正常机型普通字号，再测更大屏幕。小屏及小屏大字暂缓；正常机型大字按相关性后排。以实际设备/SDK记录机型、宽度、字体和safe-area，已有390/430图不是16 Pro实测。详见[尺寸验收顺序](../tools/weapp-ui-acceptance.md#机型与尺寸测试顺序)。
 
 ## 具体待修清单
 
-P1/P2是问题级别，以下顺序是下一步执行顺序；建议项、待复现项与已确认问题分别标明。
+P1/P2保留原问题级别。以下是本轮处置及残余门禁；未验不等于通过。
 
 | 顺序 / 编号 | 问题与证据范围 | 代码入口 / 下一步 | 完成标准 |
 | --- | --- | --- | --- |
-| 1 · UI06 · P1 | 水弹层退出动画中SDK快速重开，data已开但内容持续离屏；430普通物理关闭重开已通过。300ms物理命中未验，不能断言用户/线上必现 | [water/index.js](../../miniprogram/pages/water/index.js)的openGameSheet/openManualSheet/closeSheets与[Vant transition](../../miniprogram/miniprogram_npm/@vant/weapp/mixins/transition.js)；核正常/大屏可达性，同时以受控事件定位时序，物理证据不足不阻断独立回归；共用改动需覆盖popup/overlay及npm重建后的补丁保留 | 受控快速重开回归不再持续离屏；普通关闭/重开、遮罩与取消通过。物理快速时序无法可靠取得时单列未验，不用SDK穿遮罩事件冒充物理点击 |
-| 2 · UI12 · P2 | 已完赛说明仍称“开始录分”，按钮却是“修改比分” | [matchViewModel.js](../../miniprogram/pages/match/matchViewModel.js)：buildLockHint与lockActionText；同步当前动作说明 | 未完赛仍为开始录分，已完赛说明/按钮一致；权限、锁与操作语义不变 |
-| 3 · UI13 · P2 | 无QR降级海报仍显示码区和“扫码查看完整战绩”；隔离拒绝已复现，不等于线上云故障 | [sharePoster.js](../../miniprogram/core/sharePoster.js)、[shareCard.js](../../miniprogram/core/shareCard.js)及金牌背景素材；核实际QR绘制结果，含已烧入素材的扫码区 | 有QR时页脚正确；无QR时没有误导扫码文字/空码区；普通/金牌及并列冠军导出完整 |
-| 4 · UI03 · P2 | 修订历史的“更正为2”与“水”仍拆行；主流水数量+单位已修 | [water/index.wxml](../../miniprogram/pages/water/index.wxml)修订历史与[index.wxss](../../miniprogram/pages/water/index.wxss)；保护数量/单位语义原子 | 正常/大屏长历史文案自然换行，数量单位不拆，完整值及ARIA保留 |
-| 5 · UI04 · P2优化 | 历史错误提示末尾“试”成为孤字；信息和重试完整，评审有分歧 | 同水页历史错误提示布局；先在正常/大屏复看，优先局部排版调整 | 原因/下一步可读，无裁剪或孤字，重试入口保留；不为换行添加冗余文案 |
-| 6 · UI15 · P2建议 | 提交失败原因无法在常驻区持续回看；生产已有Toast/冲突Modal，不是错误原因丢失 | [matchSubmitService.js](../../miniprogram/pages/match/matchSubmitService.js)、[writeErrorUi.js](../../miniprogram/core/writeErrorUi.js)与录分底栏；先评估持久原因是否必要 | 若采纳，原因与重试关系清楚、敏感内部信息不外露；新增产品状态/结构按AGENTS批准边界处理。不恢复“本机草稿已保留”等重复提示；可记为不采纳并说明理由 |
-| 暂缓 · UI14 · P2 | 仅320长摘要更正滚到底后再滚，背景被带动约33px；正常/大屏同症状未证明 | 水页game更正弹层滚动归属；不为小屏单独开新批次，若正常/大屏复现再处理 | 复现范围内只有一个滚动owner，背景不动、两侧首行与固定CTA/关闭完整 |
+| 1 · UI06 · P1 | 已修共用动画：leave 链去重，按 Promise 身份清理，完成后重放最新 show；不靠延时掩盖缺陷 | [transition](../../miniprogram/miniprogram_npm/@vant/weapp/mixins/transition.js)、[持久补丁](../../scripts/patch-vant-transition.js)、[本地构建](../../scripts/build-miniprogram-npm.js)；Vant 固定 1.11.7 | 9 项真实 bundle 受控回归通过；实际 npm ci、npm 重建保留补丁通过。402 SDK game/manual 约183/121ms重开可见、名单输入通过；物理快速命中、遮罩拦截与大屏仍未验 |
+| 2 · UI12 · P2 | 已修：idle 说明与开始/修改动作同源派生 | [matchViewModel](../../miniprogram/pages/match/matchViewModel.js)；其他锁/权限提示不覆盖 | 185 项关联测试通过；402真实 applyTournament 完赛说明/按钮一致，点击进入编辑通过（受控锁响应）。未完赛说明直接回归通过，大屏/真实锁未验 |
+| 3 · UI13 · P2 | 已修：以 QR 实际 drawImage 成功决定页脚；无码覆盖奖牌素材烧入的码圈/扫码字；异常恢复 clip | [sharePoster](../../miniprogram/core/sharePoster.js)、[shareCard](../../miniprogram/core/shareCard.js) | 47项关联测试含缺 URL、加载/绘制失败、金银铜、并列冠军。402真实Canvas普通/金牌、阿杰与小林两位冠军无码预览完整；有图码绘制页脚完整。关闭/复制按钮通过，保存仅触发，系统保存结果/大屏未验 |
+| 4 · UI03 · P2 | 当前生产投影已有数量单位绑定；旧详情 fixture 注入普通空格绕过投影，已纠正并补 fixture 回归 | [fixture](../../scripts/dev/water-v2-screenshot-fixtures.js)；未重复修改生产格式器 | 101项关联检查通过；402实际详情按钮→getEntry受控响应→decorateFeedEntries链路通过，2水成组换行，原描述/ARIA保留。大屏未验 |
+| 5 · UI04 · P2优化 | 402普通字号未复现：末行完整“重试”，两名评审均可接受；本轮未增加文案或结构 | 保持历史错误提示；重试真实按钮可清错误并返回空历史（受控响应） | 正常屏已看/重试通过；大屏孤字复看未验，仍保留原问题，不称全尺寸关闭 |
+| 6 · UI15 · P2建议 | 评估后不采纳新增常驻原因区：已有Toast、冲突Modal、比分保留和重试入口，暂无消失提示阻碍恢复的新证据 | [matchSubmitService](../../miniprogram/pages/match/matchSubmitService.js)、[writeErrorUi](../../miniprogram/core/writeErrorUi.js)保持既有行为 | 不新增需另行设计的状态/清理规则，不恢复重复草稿提示。真实云失败与手机提示仍未验 |
+| 暂缓 · UI14 · P2 | 原320背景滚动约33px保留；本轮按要求不测小屏/小屏大字 | 待正常/大屏物理滚动复看，复现后最小处理 | 402长摘要静态CTA完整，但不能证明滚动链不传播；正常/大屏动态滚动未验，不关闭旧缺陷 |
 
-## 已完成基线与必要证据
+## 本轮验证与证据
+
+- 实际设备回读：DevTools **iPhone 17，402×874，字号16，SDK 3.17.3**，safeArea top54/bottom840；不是16 Pro或手机实测。当前菜单无独立16 Pro项。先验正常屏；430等大屏尚未执行，小屏及小屏大字按要求跳过，正常机型大字/键盘仍未验。
+- 正常屏5张正式fixture图及11张native-action图已主控亲看；两名隔离评审均无共同P0/P1或阻断P2。评审认可数量单位/历史错误/完赛说明/扫码降级；无码奖牌下方留白较多可接受，不扩展视觉重做。静态图不证明物理点击/滚动归属。
+- UI06直接测试9通过，实际`npm ci --prefix miniprogram`与`npm run mp:npm:build`通过并保留补丁；独立代码复核无阻断发现。关联测试UI12 185、UI13 47、fixture 101均通过。
+- `npm test`首次1875通过/6跳过/0失败。lint新增测试常量循环1错误已修，9项直接复跑通过。之后全量复跑41失败，`npm test -- --test-concurrency=4`复跑8失败：含deploy配置Git子进程失败、privacy-api-package、scheduler.scenarios、squad.beam.performance/end-condition/fairness、startTournament.index/logic文件进程失败，日志有spawn ENOMEM/UNKNOWN及V8 Zone Allocation OOM；未称既有波动。相同全套以`node --test --test-concurrency=1 tests/*.test.js`串行1875通过/6跳过/0失败。check通过，最终`npm.cmd run lint`0错误/35原警告。失败文件和计数在下述JSON，保留全部失败日志。
+- 原始证据：`tmp/ui-fixes-20261013/`（prewarm/iterate/test/check/lint、`test-failures.json`）；交互图/回执在`tmp/ui-audit-20261011-unlocked/native-actions/fixes13-402-*`，恢复回执`summary-1791868928878.json`、`summary-1791869521824.json`。两次scope的10键/保护缓存/SDK恢复通过，0运行时异常；探针计数不等于真实云调用。图片均来自当前源码DevTools实际Canvas/页面，不是合成画面。目录ignored，跨电脑需先确认原文件可用。
+- 有QR只用已有本地码作为隔离绘制素材，未生成真实云码/验当前扫码；完整Canvas PNG本地导出通过。复制文案有原生Toast；保存按钮已触发，系统保存结果未证明，不能计手机相册保存通过。
+- 新工具阻断：第二次prewarm后Windows窗口控制返回DevTools标题却显示其他应用像素；fresh selection、NodeREPL重建后activation仍报`failed to activate captured window`，已停止旧坐标。官方项目窗口close未明确成功、open桥接超时/失败，未反复重试/自动auth；窗口恢复和设备切换API不足，已请求用户手动恢复。产品修改后的签名实图已取得；仅交接文档更新后最后一次`ui:iterate`在compile阶段失败（run `2026-10-13T05-49-55-726Z-27320-b5fa9a44`，约31.2秒），未刷新/采集或覆盖final，source challenge保留，最新全文签名尚未完成。新成功不倒验旧工具失败。恢复后先核真实窗口/设备，再按会话协议完成大屏、遮罩、取消、picker和UI14动态滚动。
+
+## 已完成历史基线
 
 - UI07比分对齐、UI11完整picker触达，以及头像忙态、赛程空态、对比度、主流水单位、短屏首行、单打完整数据校验和重复草稿提示均已修并验，不再作为待修重复开展。
-- 最近完整测试：1862通过/6旧WSL跳过/0失败；check通过、lint0错误35原警告。网络分层合同39通过；不是实际断网/手机云watch。390八图、430九图主控亲看并双评审，最终两scope的10键/SDK/保护缓存恢复通过。
+- 10-11历史完整测试：1862通过/6旧WSL跳过/0失败；check通过、lint0错误35原警告。网络分层合同39通过；不是实际断网/手机云watch。390八图、430九图主控亲看并双评审，最终两scope的10键/SDK/保护缓存恢复通过。
 - 本机原始证据根：`tmp/ui-audit-20261011-unlocked/`。UI06读`water-popup-rapid-reopen-analysis.md`；UI14读`native-actions/water320-correction-physical-layout-actions.result.json`；其余按`viewport-review-*`与`native-actions/`检索。文件在本机ignored目录，跨电脑接续需先确认可用，不能把准备计划当执行结果。
 - 工具问题独立跟踪：TOOL14/15/16旧批总恢复未验证，TOOL17 SDK错选，TOOL18未响应/错窗根因未知。新会话成功不倒验旧失败；不要把工具错选当产品缺陷。UI采集使用[日常循环](../tools/agent-development-workflow.md)，失败按[故障手册](../tools/weapp-ui-troubleshooting.md)对应阶段处理。
 

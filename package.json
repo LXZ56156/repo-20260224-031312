@@ -16,6 +16,7 @@
     "ui:diff": "node scripts/dev/weapp-pixel-diff.js",
     "test:affected": "node scripts/test-affected.js",
     "mp:quality": "node scripts/mp-quality.js",
+    "mp:npm:build": "node scripts/build-miniprogram-npm.js",
     "ui:session:refresh": "node scripts/dev/weapp-ui-screenshot.js --refresh-session",
     "ui:screenshot": "node scripts/dev/weapp-ui-screenshot.js",
     "ui:screenshot:focus-check": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev/weapp-background-focus-check.ps1",

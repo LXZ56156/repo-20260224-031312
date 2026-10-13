@@ -318,6 +318,19 @@ function drawNormalShareFooter(ctx, designH, hasQrCode) {
   ctx.restore();
 }
 
+// 奖牌素材的底部已烧入码区和扫码文字；无可用码时一起遮盖。
+function drawMedalFooterWithoutQr(ctx, width, height) {
+  ctx.save();
+  ctx.scale(width / DESIGN_W, height / DESIGN_H);
+  var gradient = ctx.createLinearGradient(0, 342, 0, DESIGN_H);
+  gradient.addColorStop(0, '#0C5A3B');
+  gradient.addColorStop(1, '#083E2C');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 342, DESIGN_W, DESIGN_H - 342);
+  drawNormalShareFooter(ctx, DESIGN_H, false);
+  ctx.restore();
+}
+
 // 测量文本宽度
 function measure(ctx, text, size, weight) {
   ctx.font = (weight || 400) + ' ' + size + 'px sans-serif';
@@ -562,20 +575,26 @@ async function drawShareCard(canvas, data, options) {
   });
 
   // 8. 小程序码（圆形裁剪，5:4 比例下不绘制）
+  var hasQrCode = false;
   if (d.qrCodeUrl && aspectRatio !== '5:4') {
     try {
       var qr = await loadImage(canvas, d.qrCodeUrl, options);
       ctx.save();
-      ctx.beginPath();
-      ctx.arc(250, 400 * heightRatio, 44, 0, Math.PI * 2);
-      ctx.closePath();
-      ctx.clip();
-      ctx.drawImage(qr, 206, 356 * heightRatio, 88, 88);
-      ctx.restore();
+      try {
+        ctx.beginPath();
+        ctx.arc(250, 400 * heightRatio, 44, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(qr, 206, 356 * heightRatio, 88, 88);
+        hasQrCode = true;
+      } finally {
+        ctx.restore();
+      }
     } catch (e) {}
   }
 
-  if (isNormalBg) drawNormalShareFooter(ctx, designH, !!(d.qrCodeUrl && aspectRatio !== '5:4'));
+  if (isNormalBg) drawNormalShareFooter(ctx, designH, hasQrCode);
+  else if (aspectRatio !== '5:4' && !hasQrCode) drawMedalFooterWithoutQr(ctx, DESIGN_W, designH);
 
   // 9. 导出（背景图已含品牌名和CTA，不重复绘制）
   return exportCanvas(canvas, designH, options);
@@ -596,6 +615,7 @@ module.exports = {
     drawAvatarPlaceholder: drawAvatarPlaceholder,
     drawNormalShareBackground: drawNormalShareBackground,
     drawChatFooterPatch: drawChatFooterPatch,
+    drawMedalFooterWithoutQr: drawMedalFooterWithoutQr,
     roundedRect: roundedRect,
     drawCoverImage: drawCoverImage,
     isCloudPath: isCloudPath,

@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { createMatchSubmitService } = require('../miniprogram/pages/match/matchSubmitService');
-const { buildTournamentViewState } = require('../miniprogram/pages/match/matchViewModel');
+const { buildLockHint, buildTournamentViewState } = require('../miniprogram/pages/match/matchViewModel');
 
 function buildPendingTournament() {
   return {
@@ -401,6 +401,7 @@ test('match view state shows finished scores as editable only after acquiring a 
 
   assert.equal(readonlyState.data.canEdit, false);
   assert.equal(readonlyState.data.lockActionText, '修改比分');
+  assert.equal(readonlyState.data.lockHintText, '点击“修改比分”即可进入录分');
   assert.equal(readonlyState.data.canUseScoreLock, true);
   assert.equal(readonlyState.shouldSyncLock, true);
   assert.equal(readonlyState.shouldClearDraft, false);
@@ -421,6 +422,7 @@ test('match view state shows finished scores as editable only after acquiring a 
 
   assert.equal(editState.data.canEdit, true);
   assert.equal(editState.data.lockActionText, '修改比分');
+  assert.equal(Object.hasOwn(editState.data, 'lockHintText'), false);
   assert.equal(editState.data.scoreA, 22);
   assert.equal(editState.data.scoreB, 20);
   assert.equal(editState.data.displayScoreA, '22');
@@ -438,6 +440,7 @@ test('match view state keeps pending CTA and canceled matches readonly', () => {
   });
 
   assert.equal(pendingState.data.lockActionText, '开始录分');
+  assert.equal(pendingState.data.lockHintText, '点击“开始录分”即可进入录分');
   assert.equal(pendingState.data.canUseScoreLock, true);
 
   const canceledTournament = buildFinishedTournament(21, 18);
@@ -456,6 +459,35 @@ test('match view state keeps pending CTA and canceled matches readonly', () => {
   assert.equal(canceledState.shouldSyncLock, false);
   assert.equal(canceledState.shouldClearDraft, true);
   assert.equal(canceledState.data.matchStatusText, '已取消');
+  assert.equal(Object.hasOwn(canceledState.data, 'lockHintText'), false);
+});
+
+test('finished match idle instructions follow the current CTA without replacing lock or permission hints', () => {
+  const options = {
+    tournamentId: 't_1',
+    roundIndex: 0,
+    matchIndex: 0,
+    openid: 'user_1'
+  };
+  const resetState = buildTournamentViewState(buildFinishedTournament(), {
+    ...options, lockState: 'finished'
+  });
+  assert.equal(resetState.lockTransition, 'idle');
+  assert.equal(resetState.data.lockHintText, '点击“修改比分”即可进入录分');
+  for (const state of ['locked_by_me', 'locked_by_other', 'submitting']) {
+    const viewState = buildTournamentViewState(buildFinishedTournament(), {
+      ...options, lockState: state
+    });
+    assert.equal(Object.hasOwn(viewState.data, 'lockHintText'), false);
+    assert.equal(buildLockHint(state, '裁判B', 5000, '修改比分'), buildLockHint(state, '裁判B', 5000));
+  }
+  const forbiddenState = buildTournamentViewState(buildFinishedTournament(), {
+    ...options, openid: 'spectator', lockState: 'idle'
+  });
+  assert.equal(forbiddenState.lockTransition, 'forbidden');
+  assert.equal(forbiddenState.data.canEdit, false);
+  assert.equal(Object.hasOwn(forbiddenState.data, 'lockHintText'), false);
+  assert.equal(buildLockHint('forbidden', '', 0, '修改比分'), '仅管理员或参赛成员可录分');
 });
 
 test('match submit can recover from lock expiry after reacquiring lock and retrying submit', async () => {

@@ -56,12 +56,20 @@ function transition(showDefaultValue) {
             enureLeave: function () {
                 var _this = this;
                 var enterPromise = this.enterPromise;
-                if (!enterPromise)
+                if (!enterPromise || this.leavePromise)
                     return;
-                enterPromise
+                // badminton-miniapp: serialize leave and replay the latest show intent.
+                this.leavePromise = enterPromise
                     .then(function () { return new Promise(function (resolve) { return _this.leave(resolve); }); })
                     .then(function () {
+                    if (_this.enterPromise !== enterPromise) {
+                        return;
+                    }
                     _this.enterPromise = null;
+                    _this.leavePromise = null;
+                    if (_this.data.show) {
+                        _this.enureEnter();
+                    }
                 });
             },
             enter: function (resolve) {

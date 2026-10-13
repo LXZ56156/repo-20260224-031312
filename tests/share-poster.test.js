@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
+const path = require('node:path');
 const { createCanvas, loadImage } = require('canvas');
 
 const sharePoster = require('../miniprogram/core/sharePoster');
@@ -161,7 +162,7 @@ test('poster handles normal rank (≥4) with readable fallback layout', async ()
   assert.equal(result, 'poster-normal.png');
 });
 
-test('poster keeps medal footer pixels from the fixed background', async () => {
+test('poster keeps medal footer pixels from the fixed background when QR draws successfully', async () => {
   const medalCanvas = createCanvas(sharePoster.POSTER_SIZE, sharePoster.POSTER_SIZE);
   let medalFooterPixel = null;
   await sharePoster.generatePoster(medalCanvas, {
@@ -169,7 +170,7 @@ test('poster keeps medal footer pixels from the fixed background', async () => {
     eventName: '奖牌背景测试',
     rank: 1,
     avatarUrl: '',
-    qrCodeUrl: ''
+    qrCodeUrl: makeDataUrl()
   }, {
     dpr: 1,
     loadImage() {
@@ -182,6 +183,75 @@ test('poster keeps medal footer pixels from the fixed background', async () => {
   });
 
   assert.deepEqual(medalFooterPixel, [255, 255, 255, 255]);
+});
+
+test('poster removes scan CTA and burned-in code area when QR is absent, cannot load or cannot draw', async () => {
+  for (const rank of [4, 1]) {
+    for (const failure of ['absent', 'load', 'draw']) {
+      const canvas = createCanvas(1080, 1080);
+      const ctx = canvas.getContext('2d');
+      const texts = [];
+      const originalFillText = ctx.fillText.bind(ctx);
+      ctx.fillText = (text, ...args) => { texts.push(text); return originalFillText(text, ...args); };
+      const qrUrl = makeSolidDataUrl('#ff0000');
+      let qrImage;
+      const originalDrawImage = ctx.drawImage.bind(ctx);
+      ctx.drawImage = (image, ...args) => {
+        if (failure === 'draw' && image === qrImage) throw new Error('isolated QR draw failure');
+        return originalDrawImage(image, ...args);
+      };
+      const result = await sharePoster.generatePoster(canvas, {
+        rank, userName: '并列冠军甲', eventName: '完整赛事', wins: 6, losses: 2,
+        qrCodeUrl: failure === 'absent' ? '' : qrUrl
+      }, {
+        dpr: 1,
+        async loadImage(src) {
+          if (src.startsWith('cloud://')) return loadImage(path.join(__dirname, '../miniprogram/assets/share-bg-gold.png'));
+          if (failure === 'load') throw new Error('isolated QR load failure');
+          qrImage = await loadImage(src);
+          return qrImage;
+        },
+        exportCanvas() { return 'no-qr.png'; }
+      });
+      assert.equal(result, 'no-qr.png');
+      assert.equal(texts.includes('扫码查看完整战绩'), false, `${rank}/${failure} must not ask to scan`);
+      assert.ok(texts.includes('羽球轮转助手'), `${rank}/${failure} keeps the brand outside QR clipping`);
+      assert.ok(texts.includes('胜场') && texts.includes('6'), 'stats must still export');
+      const center = ctx.getImageData(540, 852, 1, 1).data;
+      assert.ok(center[1] > center[0] && center[1] > center[2], 'no empty white code circle remains');
+      if (rank === 1) {
+        const burnedCta = ctx.getImageData(350, 957, 380, 44).data;
+        let lightPixels = 0;
+        for (let i = 0; i < burnedCta.length; i += 4) {
+          if (burnedCta[i] > 210 && burnedCta[i + 1] > 210 && burnedCta[i + 2] > 210) lightPixels += 1;
+        }
+        assert.equal(lightPixels, 0, 'baked-in scan lettering must be covered');
+      }
+    }
+  }
+});
+
+test('poster no-QR footer covers each real medal asset and tied champions retain their own data', async () => {
+  const names = ['并列冠军甲', '并列冠军乙', '亚军', '季军'];
+  for (const [index, rank] of [1, 1, 2, 3].entries()) {
+    const canvas = createCanvas(1080, 1080);
+    const ctx = canvas.getContext('2d');
+    const texts = [];
+    const originalFillText = ctx.fillText.bind(ctx);
+    ctx.fillText = (text, ...args) => { texts.push(text); return originalFillText(text, ...args); };
+    const asset = rank === 1 ? 'gold' : (rank === 2 ? 'silver' : 'bronze');
+    await sharePoster.generatePoster(canvas, { rank, userName: names[index], wins: index + 1, eventName: '并列排名赛' }, {
+      dpr: 1,
+      loadImage: () => loadImage(path.join(__dirname, `../miniprogram/assets/share-bg-${asset}.png`)),
+      exportCanvas: () => 'medal-no-qr.png'
+    });
+    assert.ok(texts.includes(names[index]));
+    assert.ok(texts.includes(String(index + 1)));
+    for (const y of [749, 852, 941, 985]) {
+      const pixel = ctx.getImageData(540, y, 1, 1).data;
+      assert.ok(pixel[1] > pixel[0] && pixel[1] > pixel[2], `${asset} code circle/scan CTA must be covered at y=${y}`);
+    }
+  }
 });
 
 test('poster leaves the fixed avatar ring visible around a white avatar', async () => {

@@ -570,7 +570,11 @@ test('directly injected detail and archive fixtures include their display descri
 
   directDecoratedEntries.forEach((entry) => {
     assert.equal(typeof entry.displayDescription, 'string');
-    assert.equal(entry.displayDescription, entry.description);
+    assert.equal(entry.displayDescription.replace(/\u00a0/g, ' '), entry.description);
+  });
+  [detail.entryDetail, ...detail.entryHistory].forEach((entry) => {
+    assert.doesNotMatch(entry.displayDescription, /\d+ 水/);
+    assert.match(entry.displayDescription, /\d+\u00a0水/);
   });
 });
 

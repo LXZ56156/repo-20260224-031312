@@ -81,7 +81,7 @@ function normalizeLockState(state) {
   return 'idle';
 }
 
-function buildLockHint(state, ownerName, remainingMs) {
+function buildLockHint(state, ownerName, remainingMs, actionText = '开始录分') {
   const s = normalizeLockState(state);
   const name = String(ownerName || '').trim();
   if (s === 'locked_by_me') return '你正在录入比分';
@@ -92,7 +92,7 @@ function buildLockHint(state, ownerName, remainingMs) {
   if (s === 'submitting') return '正在提交比分...';
   if (s === 'finished') return '该场已录完';
   if (s === 'forbidden') return '仅管理员或参赛成员可录分';
-  return '点击“开始录分”即可进入录分';
+  return `点击“${actionText}”即可进入录分`;
 }
 
 function buildClientRequestId() {
@@ -284,6 +284,9 @@ function buildTournamentViewState(tournament, options = {}) {
       canEdit,
       hasScoreDraft: hasDraft && !finished && !canceled,
       lockActionText,
+      ...((lockTransition || lockState) === 'idle'
+        ? { lockHintText: buildLockHint('idle', '', 0, lockActionText) }
+        : {}),
       canUseScoreLock,
       scoreA,
       scoreB,

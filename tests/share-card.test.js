@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
+const path = require('node:path');
 const { createCanvas, loadImage } = require('canvas');
 
 const shareCard = require('../miniprogram/core/shareCard');
@@ -184,6 +185,51 @@ test('shareCard covers the medal QR placeholder for 5:4 chat cards', async () =>
       return 'chat-card-no-hole.png';
     }
   });
+});
+
+test('shareCard footer uses successful QR drawing and removes the medal code area after failure', async () => {
+  for (const rank of [4, 1]) {
+    for (const state of ['absent', 'load', 'draw', 'success']) {
+      const canvas = createCanvas(500, 500);
+      const ctx = canvas.getContext('2d');
+      const texts = [];
+      const originalFillText = ctx.fillText.bind(ctx);
+      ctx.fillText = (text, ...args) => { texts.push(text); return originalFillText(text, ...args); };
+      const qrUrl = makeDataUrl();
+      let qrImage;
+      const originalDrawImage = ctx.drawImage.bind(ctx);
+      ctx.drawImage = (image, ...args) => {
+        if (state === 'draw' && image === qrImage) throw new Error('isolated QR draw failure');
+        return originalDrawImage(image, ...args);
+      };
+      await shareCard.drawShareCard(canvas, { rank, userName: '测试', qrCodeUrl: state === 'absent' ? '' : qrUrl }, {
+        dpr: 1,
+        resolveImageSource(src) { return src; },
+        async loadImage(src) {
+          if (src.startsWith('cloud://')) return loadImage(path.join(__dirname, '../miniprogram/assets/share-bg-gold.png'));
+          if (state === 'load') throw new Error('isolated QR load failure');
+          qrImage = await loadImage(src);
+          return qrImage;
+        },
+        exportCanvas: () => 'qr-state.png'
+      });
+      if (rank === 4) assert.equal(texts.includes('扫码查看完整战绩'), state === 'success');
+      if (state !== 'success') {
+        assert.equal(texts.includes('扫码查看完整战绩'), false);
+        assert.ok(texts.includes('羽球轮转助手'), 'brand drawing must escape a failed QR clip');
+        const center = ctx.getImageData(250, 400, 1, 1).data;
+        assert.ok(center[1] > center[0] && center[1] > center[2], 'no white empty code circle remains');
+        if (rank === 1) {
+          const burnedCta = ctx.getImageData(175, 444, 150, 18).data;
+          let lightPixels = 0;
+          for (let i = 0; i < burnedCta.length; i += 4) {
+            if (burnedCta[i] > 210 && burnedCta[i + 1] > 210 && burnedCta[i + 2] > 210) lightPixels += 1;
+          }
+          assert.equal(lightPixels, 0, 'baked-in scan lettering must be covered');
+        }
+      }
+    }
+  }
 });
 
 test('shareCard handles very long event names gracefully', async () => {
