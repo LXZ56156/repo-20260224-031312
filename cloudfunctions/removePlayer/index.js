@@ -52,7 +52,6 @@ exports.main = async (event) => {
       const docRes = await transaction.collection('tournaments').doc(tournamentId).get();
       const t = common.assertTournamentExists(docRes.data);
       common.assertDraft(t, '非草稿阶段不可移除');
-      const oldVersion = Number(t.version) || 1;
       const canManage = permission.canManageTournament(t, OPENID);
       const isSelfRemove = String(playerId || '') === String(OPENID || '');
       if (!canManage && !isSelfRemove) {
@@ -97,7 +96,8 @@ exports.main = async (event) => {
         })
         .filter((team) => Array.isArray(team.playerIds) && team.playerIds.length === 2);
 
-      const updRes = await transaction.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({
+      // The transaction read guards the version; doc.update retains the SDK transaction ID.
+      const updRes = await transaction.collection('tournaments').doc(tournamentId).update({
         data: common.assertNoReservedRootKeys({
           players,
           ...(Array.isArray(t.coManagers) ? { coManagers } : {}),

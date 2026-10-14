@@ -183,7 +183,6 @@ exports.main = async (event) => {
           ...importResult
         });
       }
-      const oldVersion = Number(t.version) || 1;
 
       const players = Array.isArray(t.players) ? t.players.slice() : [];
       const existingNames = new Set(players.map(p => String(p.name || '').trim().toLowerCase()));
@@ -255,7 +254,8 @@ exports.main = async (event) => {
         updateData.lastAddPlayersCounts = buildStoredImportCounts(importResult);
       }
 
-      const updRes = await transaction.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({
+      // The transaction read guards the version; doc.update retains the SDK transaction ID.
+      const updRes = await transaction.collection('tournaments').doc(tournamentId).update({
         data: common.assertNoReservedRootKeys(updateData, ['_id'], '赛事导入名单写入数据')
       });
       if (!updRes || !updRes.stats || Number(updRes.stats.updated || 0) <= 0) {

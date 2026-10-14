@@ -1,12 +1,25 @@
 # 下一步待修清单与任务交接
 
-状态：2026-10-14 完成审计问题文档整合；以下 UI 交接基于 2026-10-13，用户明确“暂停，更新文档”，实现、验收与工具恢复已暂停。UI06/UI12/UI13及UI03 fixture已随46eb249推送master并核远端；正常屏UI04未复现，UI15不采纳新增常驻区。续做新增UI14最小源码修复及218项关联通过，两个文件仍未提交；新全量未完成且已出现1项失败，不满足交付门禁。保留所有既有修改，未部署、发布或写入真实业务数据。
+状态：2026-10-14 用户授权恢复本地修复并优先处理 P1；本轮源码与离线交付见下节。10-13 的暂停回执、UI历史证据与外部未验保留；UI14两个既有文件仍未提交，尚未完成实图门禁。既有配置/单打候选/私有文件逐hash保全。未部署、发布、preview/upload、真实业务写入、付款或扩展凭据权限，不启动中期业务/活动，不新建其他Codex任务。
 
 ## 新任务从这里开始
 
-1. 读取[项目规则](../../AGENTS.md)与[current](current.md)，核对实际checkout、branch、HEAD及dirty。原用户电脑源码/Git/npm工作目录为`D:/projects/badminton-miniapp/main`；保留既有配置、单打候选、浏览器/QR、备份及私有文件。
-2. 等用户继续后，先核UI14未提交diff、诊断新全量失败并完成其check/lint；再恢复真实DevTools窗口与正确绑定，核当前源码签名后完成402的UI14、大屏及原生控件检查。不重复无变化的旧回归，不恢复旧业务计划；所有隔离/缓存已恢复，无未结束native audit。
-3. 先测16 Pro等正常机型普通字号，再测更大屏幕。小屏及小屏大字暂缓；正常机型大字按相关性后排。以实际设备/SDK记录机型、宽度、字体和safe-area，已有390/430图不是16 Pro实测。详见[尺寸验收顺序](../tools/weapp-ui-acceptance.md#机型与尺寸测试顺序)。
+1. 读取[项目规则](../../AGENTS.md)与[current](current.md)，核对checkout、branch、HEAD和dirty；实际Git/npm目录为`D:/projects/badminton-miniapp/main`，总目录不是Git根。
+2. 两个业务P1本地实现与离线门禁已完成；真实云引擎、当前生产安装包与隔离云验收保留未验，不因Node或请求捕获通过关闭。其余P2/P3按最新授权及下表推进。
+3. UI14本轮测试/check/lint通过，DevTools旧会话失效；等待本次明确前台预热授权后恢复签名会话，再验正常/大屏物理滚动、关闭恢复和其他原生控件。小屏/小屏大字继续跳过，机型/尺寸以实际回读为准。
+
+## 10-14恢复与P1源码交付
+
+- **仓库与保全**：main/master从1363d0d安全快进`c60480b0699362aab17d691b500b4fad34045b4b`；origin为`https://github.com/LXZ56156/repo-20260224-031312.git`。无Git锁，未见其他活跃羽毛球任务。本地`.agents`为空，使用已安装weapp-cloud-contract-audit。初始18个dirty/untracked文件全部逐SHA保持，包括UI14两文件、配置、单打候选、浏览器与QR。仅本任务修改加入提交范围。
+- **BIZ-04**：startTournament/addPlayers/removePlayer/updateSettings/setReferee在事务读取权威文档后，改用同事务`doc(tournamentId).update`。版本条件由同一文档的事务读集/冲突重试保障，仍递增version；权限/草稿限制、去重、reserved-root保护和开赛/移除请求日志继续保持。没有修改共享模板/lib、SDK或部署配置。
+- **BIZ-01**：V1 create的不存在检查与首次set合入真实`db.runTransaction`；冲突重试重新读取，已有账本返回WATER_SESSION_READY及权威现状，保留active与finished原数据，不覆盖记录/名单/版本。只有缺失才检查写开关并初始化。旧ID、V1 owner-only/返回结构、V2/迁移路由保持；不依赖无事务fallback创建。finished不再清空是明确数据保护变化，不提供重开旧账本的新动作。
+- **直接证据**：12个[事务回归](../../tests/cloud-tournament-transaction.test.js)覆盖五入口文档写/版本递增与冲突后权限重查，以及开赛/移除日志失败原子回滚和成功重放；4个[V1创建回归](../../tests/waterSession.create-concurrency.test.js)覆盖并发创建、创建与名单/记账交错、只读开关下读取与finished历史保全。修前BIZ-04测试12失败，V1并发两项失败；修后全量覆盖16项通过。另仅在内存加载c60480b原V1源码复跑公开探针，精确确认2人/1记录/version3变为1人/0记录/version1；当前源码没有回退。
+- **精确SDK**：从仓库公开证据ZIP解压database@1.4.1运行依赖，实际五handler通过wx数据适配进入真实SDK请求构造，仅替换Db.reqClass出口。5组成功及开赛/移除2组日志失败共7组通过；文档读、业务写、日志set与commit/abort事务ID一致。start失败后既有错误映射会再读日志，不能用最后一条请求当成事务终态。没有账号、凭据、socket或真实引擎请求；只证明生成请求，不能当作生产包或平台回滚证明。
+- **最终门禁**：`npm.cmd test -- --test-concurrency=1`实际1898项/1892通过/0失败/6跳过/0取消todo，退出0，约49.6秒；6项原平台限定跳过。首轮1898项/1891通过/1失败/6跳过/退出1，唯一失败`cloud-response-contract-write-actions.test.js`旧mock缺doc.update，保留原响应合同断言完成适配，直接1项及最终全量通过。check含bootstrap/废弃API/共享云库一致性通过；最终lint0错误/35原警告；git diff --check通过。全量是在保留UI14和单打候选的当前工作树执行，不宣称干净远端UI14已修。
+- **旧工具测试**：deploy-changed-cloudfunctions直接9项、两次完整全量均通过，包括config-only timeout。旧continue日志仅失败概要，无完整错误/最终计数，本轮不能倒推旧原因或称既有波动；已保留旧日志，未执行deploy。post-commit hook的兼容目标明确`exit 0`，不会触发云部署。
+- **UI14与工具边界**：本轮4种page-meta状态及相关全量/check/lint通过，旧218仅作历史。doctor退出1：旧ws://127.0.0.1:40402连接失败；只读TCP核无该端口监听，未检出DevTools项目窗口。旧会话失效，尚无新的源码绑定/实图。仓库要求“只有用户明确允许本次前台预热后”，已请求本轮前台预热授权，未得到时不启动/激活窗口、不猜端口、不手改receipt。UI14两文件不混入本次P1提交，正常/大屏物理滚动、关闭恢复等继续未验。
+- **本次证据根**：`tmp/p1-repair-20261014/`（ignored本机证据）：initial-dirty-hashes.json、biz04-red.log、biz01-red.log、biz01-baseline-repro.json/log、p1-green.log、sdk-handler-probe.cjs/log与sdk-handler-requests.json、affected-plan.json、deploy-direct.log、handlers-*、contract-final.log、full-serial.log、full-serial-final.log、check.log、lint-delivery.log、ui-doctor.log。错误探针/旧mock适配失败日志也保留。已提炼的直接回归随源码提交；ignored证据跨电脑不能假定存在。
+- **交付边界**：仅P1六入口、两份新直接回归、六份旧mock适配和current/本任务正文。UI14/配置/单打候选等既有改动保留。真实云回滚、冲突、身份/规则/索引、生产安装包、原12项、手机及其余原生UI未验。其余清单项目保持原级别；不启动AA/组局、活动或automation-3。
 
 ## 具体待修清单
 
@@ -20,11 +33,11 @@ P1/P2保留原问题级别。以下是本轮处置及残余门禁；未验不等
 | 4 · UI03 · P2 | 当前生产投影已有数量单位绑定；旧详情 fixture 注入普通空格绕过投影，已纠正并补 fixture 回归 | [fixture](../../scripts/dev/water-v2-screenshot-fixtures.js)；未重复修改生产格式器 | 101项关联检查通过；402实际详情按钮→getEntry受控响应→decorateFeedEntries链路通过，2水成组换行，原描述/ARIA保留。大屏未验 |
 | 5 · UI04 · P2优化 | 402普通字号未复现：末行完整“重试”，两名评审均可接受；本轮未增加文案或结构 | 保持历史错误提示；重试真实按钮可清错误并返回空历史（受控响应） | 正常屏已看/重试通过；大屏孤字复看未验，仍保留原问题，不称全尺寸关闭 |
 | 6 · UI15 · P2建议 | 评估后不采纳新增常驻原因区：已有Toast、冲突Modal、比分保留和重试入口，暂无消失提示阻碍恢复的新证据 | [matchSubmitService](../../miniprogram/pages/match/matchSubmitService.js)、[writeErrorUi](../../miniprogram/core/writeErrorUi.js)保持既有行为 | 不新增需另行设计的状态/清理规则，不恢复重复草稿提示。真实云失败与手机提示仍未验 |
-| 7 · UI14 · P2 · 未提交 | 源码确认page-meta仅锁历史弹层、漏掉gameSheetOpen；各屏宽共用。已最小加入gameSheetOpen条件，无新增JS状态或触摸拦截 | 工作区[water WXML](../../miniprogram/pages/water/index.wxml)、[直接测试](../../tests/waterSession.ui-copy.test.js)；四种开关组合证明任一打开锁定、全关恢复，关联218通过 | 原320背景约33px证据保留，小屏仍跳过。新全量未完成/1项失败待查，check/lint未跑；新增修复未取得当前源码实图或正常/大屏物理边界滚动、关闭恢复证明，不计完成 |
+| 7 · UI14 · P2 · 未提交 | 源码确认page-meta仅锁历史弹层、漏掉gameSheetOpen；各屏宽共用。已最小加入gameSheetOpen条件，无新增JS状态或触摸拦截 | 工作区[water WXML](../../miniprogram/pages/water/index.wxml)、[直接测试](../../tests/waterSession.ui-copy.test.js)；四种开关组合证明任一打开锁定、全关恢复，关联218通过 | 原320背景约33px证据保留，小屏仍跳过。本轮四状态测试/全量/check/lint通过；doctor旧端口无连接，待本次前台预热授权。尚无当前源码实图及正常/大屏物理滚动、关闭恢复证明，不计UI完成 |
 
 ## 远端审计待修与优化清单
 
-状态：2026-10-14，用户授权整合此前检查发现、更新相关文档并推送；仅文档，不恢复业务修复、工具恢复或原生/生产验收。同步前远端 master 仍为 `1363d0dfccca52d47419d96941ce15f3180f5893`，与本轮检查版本一致。
+状态：下表初次整合于2026-10-14，仅文档授权；本轮新授权已恢复P1本地修复，BIZ-04/01状态更新如下，其他级别与外部未验保持。初次同步前远端master为 `1363d0dfccca52d47419d96941ce15f3180f5893`，与本轮检查版本一致。
 
 [10-14 检查正文](../reports/2026-10-14-source-offline-audit.md)保留范围、复现、建议、测试结果及线上限制；[10-09 审计](../reports/2026-10-09-remote-comprehensive-audit.md)保留旧编号、原始公开证据包及历史结论。本表是统一待办，复用 BIZ/FA/EFF/TEL/UI-01 编号，不把旧问题当新增；UI14 只引用上方原条目。ENG/ENV/DEP 为原有工程风险显式跟踪，OBS 为待补证口径，EFF-08/09 为本轮新增观察。
 
@@ -32,8 +45,8 @@ P1/P2保留原问题级别。以下是本轮处置及残余门禁；未验不等
 
 | 统一编号 | 10-14 对应 | 优先级 / 状态 | 问题与证据 | 下一步 / 验收 |
 | --- | --- | --- | --- | --- |
-| BIZ-04 | A1 | P1 · 待修 | 5 个事务条件更新未带 transactionId；版本条件仍存在 | 同事务文档更新并保留权限/版本/幂等；精确 SDK 请求一致，再在隔离云验证失败回滚 |
-| BIZ-01 | A2 | P1 · 待修 | 旧 V1 创建交错覆盖已记账数据，仅兼容写路径 | 原子创建；并发创建/记账交错后记录与版本不倒退 |
+| BIZ-04 | A1 | P1 · 本地已修，云未验 | 五入口已改同事务doc.update，事务读集保护版本；7组精确SDK请求与12项回归通过 | [本轮证据](#10-14恢复与p1源码交付)；独立云引擎失败回滚/冲突与当前生产包仍未验，未部署 |
+| BIZ-01 | A2 | P1 · 本地已修，云未验 | V1事务内查无再创建，冲突重读权威现状；4项并发/只读/历史回归通过 | [本轮证据](#10-14恢复与p1源码交付)；真实云并发与生产包仍未验，未部署 |
 | BIZ-05 | B1 | P2 · 待修 | 客户端补偿把较新权威比分覆盖为旧提交意图，不改云数据 | 较新权威版本优先；交错更正、迟到响应、刷新失败回归 |
 | BIZ-02 | B2 | P2 · 待修 | 普通加入自动绑定同名 guest，与现行规格冲突 | 按现行不自动绑定合同修正并同步测试；显式认领产品动作须确认设计 |
 | BIZ-03 | B3 | P2 · 待修 | 单场幂等完成误报赛事 finished，污染完赛事件 | 统一首次/重试赛事级语义；另有待录场次时不得上报完赛 |

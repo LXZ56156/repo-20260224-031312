@@ -76,13 +76,9 @@ test('addPlayers imports unique valid players and returns detailed counts', asyn
               return {
                 async get() {
                   return { data: buildTournament() };
-                }
-              };
-            },
-            where(query) {
-              assert.deepEqual(query, { _id: 't_1', version: 2 });
-              return {
+                },
                 async update(payload) {
+                  assert.equal(id, 't_1');
                   writtenData = payload.data;
                   return { stats: { updated: 1 } };
                 }
@@ -194,11 +190,7 @@ test('addPlayers refreshes draft updatable share count after successful import',
                       shareActivityState: 0
                     }
                   };
-                }
-              };
-            },
-            where() {
-              return {
+                },
                 async update() {
                   return { stats: { updated: 1 } };
                 }
@@ -271,11 +263,7 @@ test('addPlayers respects fixed rotation quota after ignoring existing and batch
                       ]
                     }
                   };
-                }
-              };
-            },
-            where() {
-              return {
+                },
                 async update(payload) {
                   writtenData = payload.data;
                   return { stats: { updated: 1 } };
@@ -345,13 +333,9 @@ test('addPlayers rejects the whole import when fixed rotation quota would be exc
                       ]
                     }
                   };
-                }
-              };
-            },
-            where() {
-              updateCalled = true;
-              return {
+                },
                 async update() {
+                  updateCalled = true;
                   return { stats: { updated: 1 } };
                 }
               };
@@ -460,11 +444,7 @@ test('addPlayers returns structured conflict result when optimistic update loses
               return {
                 async get() {
                   return { data: buildTournament() };
-                }
-              };
-            },
-            where() {
-              return {
+                },
                 async update() {
                   return { stats: { updated: 0 } };
                 }
@@ -526,13 +506,9 @@ test('addPlayers replays the first import result for a repeated clientRequestId'
                       }
                     }
                   };
-                }
-              };
-            },
-            where() {
-              updateCalled = true;
-              return {
+                },
                 async update() {
+                  updateCalled = true;
                   return { stats: { updated: 1 } };
                 }
               };
@@ -621,14 +597,13 @@ for (const apiOutcome of ['success', 'failure']) {
         const result = await handler({ collection(collectionName) {
           assert.equal(collectionName, 'tournaments');
           return {
-            doc: () => ({ get: async () => ({ data: tournament }) }),
-            where(query) {
-              assert.deepEqual(query, { _id: 't_1', version: 2 });
-              return { update: async ({ data }) => {
+            doc: (id) => ({ get: async () => ({ data: tournament }) ,
+              update: async ({ data }) => {
+                assert.equal(id, 't_1');
                 writtenData = data;
                 return { stats: { updated: 1 } };
-              } };
-            }
+              }
+            })
           };
         } });
         transactionCommitted = true;
@@ -694,16 +669,15 @@ for (const gate of ['budget is exhausted', 'replayed request', 'draft-only refus
         const result = await handler({ collection(collectionName) {
           assert.equal(collectionName, 'tournaments');
           return {
-            doc: () => ({ get: async () => ({ data: tournament }) }),
-            where(query) {
-              assert.equal(gate, 'budget is exhausted');
-              assert.deepEqual(query, { _id: 't_1', version: 2 });
-              return { update: async ({ data }) => {
+            doc: (id) => ({ get: async () => ({ data: tournament }) ,
+              update: async ({ data }) => {
+                assert.equal(gate, 'budget is exhausted');
+                assert.equal(id, 't_1');
                 assert.deepEqual(data.version, { $inc: 1 });
                 updateCount += 1;
                 return { stats: { updated: 1 } };
-              } };
-            }
+              }
+            })
           };
         } });
         if (gate === 'budget is exhausted') now += 2600;

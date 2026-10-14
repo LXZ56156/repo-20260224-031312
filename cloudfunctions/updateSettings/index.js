@@ -141,7 +141,8 @@ exports.main = async (event) => {
       }
       common.assertNoReservedRootKeys(data, ['_id'], '赛事设置更新数据');
 
-      const updRes = await transaction.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({ data });
+      // The transaction read guards the version; doc.update retains the SDK transaction ID.
+      const updRes = await transaction.collection('tournaments').doc(tournamentId).update({ data });
       common.assertOptimisticUpdate(updRes, '写入冲突，请重试');
       shareUpdateTournament = {
         ...t,

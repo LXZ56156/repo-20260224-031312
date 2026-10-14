@@ -232,12 +232,7 @@ test('write actions expose structured contract on representative success and fai
           return {
             async get() {
               return { data: buildDraftTournament() };
-            }
-          };
-        },
-        where(query) {
-          assert.deepEqual(query, { _id: 't_1', version: 1 });
-          return {
+            },
             async update() {
               return { stats: { updated: 1 } };
             }
@@ -281,12 +276,7 @@ test('write actions expose structured contract on representative success and fai
               return {
                 async get() {
                   return { data: buildDraftTournament() };
-                }
-              };
-            },
-            where(query) {
-              assert.deepEqual(query, { _id: 't_1', version: 1 });
-              return {
+                },
                 async update() {
                   return { stats: { updated: 1 } };
                 }

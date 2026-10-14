@@ -95,7 +95,7 @@ function buildSquadTournament() {
 }
 
 test('updateSettings writes normalized settings and rules through the direct index handler', async () => {
-  let updateQuery = null;
+  let updateDocId = null;
   let writtenData = null;
   const db = {
     command: {
@@ -116,13 +116,9 @@ test('updateSettings writes normalized settings and rules through the direct ind
               return {
                 async get() {
                   return { data: buildTournament() };
-                }
-              };
-            },
-            where(query) {
-              updateQuery = query;
-              return {
+                },
                 async update(payload) {
+                  updateDocId = id;
                   writtenData = payload.data;
                   return { stats: { updated: 1 } };
                 }
@@ -147,7 +143,7 @@ test('updateSettings writes normalized settings and rules through the direct ind
   assert.equal(result.code, 'SETTINGS_UPDATED');
   assert.equal(result.state, 'updated');
   assert.equal(result.version, 5);
-  assert.deepEqual(updateQuery, { _id: 't_1', version: 4 });
+  assert.equal(updateDocId, 't_1');
   assert.equal(writtenData.name, '周五夜场');
   assert.equal(writtenData.totalMatches, 3);
   assert.equal(writtenData.courts, 2);
@@ -187,11 +183,7 @@ test('updateSettings refreshes draft updatable share count after successful sett
                       shareActivityState: 0
                     }
                   };
-                }
-              };
-            },
-            where() {
-              return {
+                },
                 async update() {
                   return { stats: { updated: 1 } };
                 }
@@ -252,13 +244,9 @@ test('updateSettings rejects invalid courts for 6-player fixed rotation', async 
                       }))
                     }
                   };
-                }
-              };
-            },
-            where() {
-              updateCalled = true;
-              return {
+                },
                 async update() {
+                  updateCalled = true;
                   return { stats: { updated: 1 } };
                 }
               };
@@ -312,11 +300,7 @@ test('updateSettings allows two courts for 8-player fixed rotation', async () =>
                       }))
                     }
                   };
-                }
-              };
-            },
-            where() {
-              return {
+                },
                 async update(payload) {
                   writtenData = payload.data;
                   return { stats: { updated: 1 } };
@@ -371,11 +355,7 @@ test('updateSettings syncs fixed rotation tournament name with preset label', as
                       }))
                     }
                   };
-                }
-              };
-            },
-            where() {
-              return {
+                },
                 async update(payload) {
                   writtenData = payload.data;
                   return { stats: { updated: 1 } };
@@ -420,13 +400,9 @@ test('updateSettings returns SETTINGS_INVALID when provided name is blank', asyn
               return {
                 async get() {
                   return { data: buildTournament() };
-                }
-              };
-            },
-            where() {
-              updateCalled = true;
-              return {
+                },
                 async update() {
+                  updateCalled = true;
                   return { stats: { updated: 1 } };
                 }
               };
@@ -469,13 +445,9 @@ test('updateSettings treats repeated clientRequestId as deduped success', async 
               return {
                 async get() {
                   return { data: { ...buildTournament(), lastClientRequestId: 'req_settings_1' } };
-                }
-              };
-            },
-            where() {
-              updateCalled = true;
-              return {
+                },
                 async update() {
+                  updateCalled = true;
                   return { stats: { updated: 1 } };
                 }
               };
@@ -521,11 +493,7 @@ test('updateSettings rejects target_wins when derived scheduled matches exceed m
               return {
                 async get() {
                   return { data: buildSquadTournament() };
-                }
-              };
-            },
-            where() {
-              return {
+                },
                 async update() {
                   updateCalled = true;
                   return { stats: { updated: 1 } };
@@ -590,14 +558,13 @@ for (const apiOutcome of ['success', 'failure']) {
         const result = await handler({ collection(collectionName) {
           assert.equal(collectionName, 'tournaments');
           return {
-            doc: () => ({ get: async () => ({ data: tournament }) }),
-            where(query) {
-              assert.deepEqual(query, { _id: 't_1', version: 4 });
-              return { update: async ({ data }) => {
+            doc: (id) => ({ get: async () => ({ data: tournament }) ,
+              update: async ({ data }) => {
+                assert.equal(id, 't_1');
                 writtenData = data;
                 return { stats: { updated: 1 } };
-              } };
-            }
+              }
+            })
           };
         } });
         transactionCommitted = true;
@@ -664,16 +631,15 @@ for (const gate of ['budget is exhausted', 'replayed request', 'draft-only refus
         const result = await handler({ collection(collectionName) {
           assert.equal(collectionName, 'tournaments');
           return {
-            doc: () => ({ get: async () => ({ data: tournament }) }),
-            where(query) {
-              assert.equal(gate, 'budget is exhausted');
-              assert.deepEqual(query, { _id: 't_1', version: 4 });
-              return { update: async ({ data }) => {
+            doc: (id) => ({ get: async () => ({ data: tournament }) ,
+              update: async ({ data }) => {
+                assert.equal(gate, 'budget is exhausted');
+                assert.equal(id, 't_1');
                 assert.deepEqual(data.version, { $inc: 1 });
                 updateCount += 1;
                 return { stats: { updated: 1 } };
-              } };
-            }
+              }
+            })
           };
         } });
         if (gate === 'budget is exhausted') now += 2600;

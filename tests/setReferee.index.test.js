@@ -68,13 +68,9 @@ test('setReferee persists tournament referee with optimistic lock', async () => 
               return {
                 async get() {
                   return { data: buildTournament() };
-                }
-              };
-            },
-            where(query) {
-              assert.deepEqual(query, { _id: 't_1', version: 4 });
-              return {
+                },
                 async update(payload) {
+                  assert.equal(id, 't_1');
                   writtenData = payload.data;
                   return { stats: { updated: 1 } };
                 }
@@ -148,11 +144,7 @@ test('setReferee returns structured invalid result when referee is not a current
               return {
                 async get() {
                   return { data: buildTournament() };
-                }
-              };
-            },
-            where() {
-              return {
+                },
                 async update() {
                   return { stats: { updated: 1 } };
                 }

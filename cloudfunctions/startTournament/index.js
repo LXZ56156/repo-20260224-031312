@@ -290,7 +290,8 @@ exports.main = async (event) => {
 
       assertRemainingBudget(deadlineAtMs, 1000);
       const writeStartedAtMs = Date.now();
-      const updRes = await tournaments.where({ _id: tournamentId, version: oldVersion }).update({
+      // The transaction read guards the version; doc.update retains the SDK transaction ID.
+      const updRes = await tournaments.doc(tournamentId).update({
         data: common.assertNoReservedRootKeys(updateData, ['_id'], '赛事开赛写入数据')
       });
 

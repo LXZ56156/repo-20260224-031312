@@ -153,7 +153,7 @@ function buildStartedTournament() {
 }
 
 test('startTournament writes generated rounds and running state through the direct index handler', async () => {
-  let updateQuery = null;
+  let updateDocId = null;
   let writtenData = null;
   let schedulerOptions = null;
   const db = {
@@ -179,13 +179,9 @@ test('startTournament writes generated rounds and running state through the dire
           return {
             async get() {
               return { data: buildTournament() };
-            }
-          };
-        },
-        where(query) {
-          updateQuery = query;
-          return {
+            },
             async update(payload) {
+              updateDocId = id;
               writtenData = payload.data;
               return { stats: { updated: 1 } };
             }
@@ -205,7 +201,7 @@ test('startTournament writes generated rounds and running state through the dire
   assert.equal(result.code, 'TOURNAMENT_STARTED');
   assert.equal(result.state, 'started');
   assert.equal(result.version, 3);
-  assert.deepEqual(updateQuery, { _id: 't_1', version: 2 });
+  assert.equal(updateDocId, 't_1');
   assert.equal(writtenData.status, 'running');
   assert.equal(Array.isArray(writtenData.rounds), true);
   assert.equal(writtenData.rounds.length, 1);
@@ -248,13 +244,9 @@ test('startTournament marks and updates active share activity as started', async
                   shareActivityVersionType: 'trial'
                 }
               };
-            }
-          };
-        },
-        where() {
-          return {
+            },
             async update(payload) {
-              writtenData = payload.data;
+              writtenData = { ...writtenData, ...payload.data };
               return { stats: { updated: 1 } };
             }
           };
@@ -309,11 +301,7 @@ test('startTournament rejects generated schedules with duplicate players in one 
           return {
             async get() {
               return { data: buildTournament() };
-            }
-          };
-        },
-        where() {
-          return {
+            },
             async update() {
               updateCalled = true;
               return { stats: { updated: 1 } };
@@ -401,13 +389,9 @@ test('startTournament maps fixed rotation underfilled roster to structured valid
                   players: buildPlayers(5)
                 }
               };
-            }
-          };
-        },
-        where() {
-          updateCalled = true;
-          return {
+            },
             async update() {
+              updateCalled = true;
               return { stats: { updated: 1 } };
             }
           };
@@ -458,11 +442,7 @@ test('startTournament uses multi_rotate scheduling for 8-player fixed rotation w
                   players: buildPlayers(8)
                 }
               };
-            }
-          };
-        },
-        where() {
-          return {
+            },
             async update(payload) {
               writtenData = payload.data;
               return { stats: { updated: 1 } };
@@ -587,13 +567,9 @@ test('startTournament replays successful clientRequestId after the request deadl
             async get() {
               now += 9500;
               return { data: buildStartedTournament() };
-            }
-          };
-        },
-        where() {
-          updateCalled = true;
-          return {
+            },
             async update() {
+              updateCalled = true;
               return { stats: { updated: 1 } };
             }
           };
@@ -654,13 +630,9 @@ test('startTournament does not dedupe from unrelated lastClientRequestId polluti
                   lastClientRequestId: 'update_settings_123'
                 }
               };
-            }
-          };
-        },
-        where() {
-          updateCalled = true;
-          return {
+            },
             async update() {
+              updateCalled = true;
               return { stats: { updated: 1 } };
             }
           };
@@ -727,7 +699,8 @@ test('startTournament concurrent same clientRequestId only advances tournament o
     },
     async runTransaction(handler) {
       const pending = {
-        updateQuery: null,
+        updateDocId: null,
+        readVersion: null,
         updateData: null,
         requestLog: null
       };
@@ -751,17 +724,15 @@ test('startTournament concurrent same clientRequestId only advances tournament o
           }
           if (name === 'tournaments') {
             return {
-              doc() {
+              doc(id) {
                 return {
                   async get() {
-                    return { data: cloneTournamentData() };
-                  }
-                };
-              },
-              where(query) {
-                pending.updateQuery = query;
-                return {
+                    const snapshot = cloneTournamentData();
+                    pending.readVersion = snapshot.version;
+                    return { data: snapshot };
+                  },
                   async update(payload) {
+                    pending.updateDocId = id;
                     pending.updateData = payload.data;
                     return { stats: { updated: 1 } };
                   }
@@ -772,8 +743,8 @@ test('startTournament concurrent same clientRequestId only advances tournament o
           throw new Error(`unexpected collection ${name}`);
         }
       });
-      if (pending.updateQuery) {
-        if (Number(pending.updateQuery.version) !== Number(state.tournament.version || 0)) {
+      if (pending.updateDocId) {
+        if (Number(pending.readVersion) !== Number(state.tournament.version || 0)) {
           throw new Error('write conflict');
         }
         applyUpdate(state.tournament, pending.updateData);
@@ -848,13 +819,9 @@ test('startTournament omits empty clientRequestId when not provided', async () =
           return {
             async get() {
               return { data: buildTournament() };
-            }
-          };
-        },
-        where(query) {
-          assert.deepEqual(query, { _id: 't_1', version: 2 });
-          return {
+            },
             async update() {
+              assert.equal(id, 't_1');
               return { stats: { updated: 1 } };
             }
           };
@@ -891,11 +858,11 @@ test('startTournament maps dirty fixed pair teams to structured invalid code', a
           return {
             async get() {
               return { data: { ...buildTournament(), mode: 'fixed_pair_rr' } };
+            },
+            async update() {
+              throw new Error('should not update');
             }
           };
-        },
-        where() {
-          throw new Error('should not update');
         }
       };
     }
@@ -924,10 +891,10 @@ function buildTimingDb(readTournament = () => buildTournament()) {
     collection(name) {
       assert.equal(name, 'tournaments');
       return {
-        doc() { return { async get() { return { data: readTournament() }; } }; },
-        where() {
-          return { async update({ data }) { writes.push(data); return { stats: { updated: 1 } }; } };
-        }
+        doc() { return { async get() { return { data: readTournament() }; },
+          async update({ data }) {
+            writes.push(data); return { stats: { updated: 1 } }; }
+        }; }
       };
     }
   };

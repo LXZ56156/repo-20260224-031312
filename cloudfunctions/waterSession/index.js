@@ -183,35 +183,38 @@ async function mutate(event, openid, handler) {
 
 async function createSession(event, openid, traceId) {
   const sessionId = stableId('water', openid);
-  try {
-    const existing = await getSession(db, sessionId);
-    if (existing && existing.status === 'active') {
-      return result('WATER_SESSION_READY', '继续上次打水', 'existing', existing, traceId, { openid });
-    }
-  } catch (err) {
-    if (err.code !== 'WATER_SESSION_NOT_FOUND') throw err;
-  }
-  const config = await readFeatureConfig(db);
-  assertV1WritesEnabled(config);
-  const ownerName = logic.cleanText(event && event.ownerName, 20) || '我';
-  const participant = buildParticipant(ownerName, 'owner', openid);
-  const now = new Date();
-  const title = `${now.getMonth() + 1}月${now.getDate()}日打水局`;
-  const session = {
-    ownerOpenid: openid,
-    title,
-    status: 'active',
-    version: 1,
-    participants: [participant],
-    entries: [],
-    recentRequestIds: clientRequestIdOf(event) ? [clientRequestIdOf(event)] : [],
-    createdAt: db.serverDate(),
-    updatedAt: db.serverDate(),
-    updatedAtMs: Date.now()
-  };
   await common.ensureCollection(db, COLLECTION);
-  await db.collection(COLLECTION).doc(sessionId).set({ data: session });
-  return result('WATER_SESSION_CREATED', '打水局已创建', 'created', { ...session, _id: sessionId }, traceId, { openid });
+  const outcome = await db.runTransaction(async (tx) => {
+    try {
+      const existing = await getSession(tx, sessionId);
+      return { session: existing, created: false };
+    } catch (err) {
+      if (err.code !== 'WATER_SESSION_NOT_FOUND') throw err;
+    }
+    const config = await readFeatureConfig(tx);
+    assertV1WritesEnabled(config);
+    const ownerName = logic.cleanText(event && event.ownerName, 20) || '我';
+    const participant = buildParticipant(ownerName, 'owner', openid);
+    const now = new Date();
+    const title = `${now.getMonth() + 1}月${now.getDate()}日打水局`;
+    const session = {
+      ownerOpenid: openid,
+      title,
+      status: 'active',
+      version: 1,
+      participants: [participant],
+      entries: [],
+      recentRequestIds: clientRequestIdOf(event) ? [clientRequestIdOf(event)] : [],
+      createdAt: db.serverDate(),
+      updatedAt: db.serverDate(),
+      updatedAtMs: Date.now()
+    };
+    await tx.collection(COLLECTION).doc(sessionId).set({ data: session });
+    return { session: { ...session, _id: sessionId }, created: true };
+  });
+  return outcome.created
+    ? result('WATER_SESSION_CREATED', '打水局已创建', 'created', outcome.session, traceId, { openid })
+    : result('WATER_SESSION_READY', '继续上次打水', 'existing', outcome.session, traceId, { openid });
 }
 
 async function handleMutation(action, event, openid, traceId) {

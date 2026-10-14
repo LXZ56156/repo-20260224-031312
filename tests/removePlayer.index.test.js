@@ -82,13 +82,9 @@ test('removePlayer updates player roster, referee and pair teams in one transact
               return {
                 async get() {
                   return { data: buildTournament() };
-                }
-              };
-            },
-            where(query) {
-              assert.deepEqual(query, { _id: 't_1', version: 3 });
-              return {
+                },
                 async update(payload) {
+                  assert.equal(id, 't_1');
                   writtenData = payload.data;
                   return { stats: { updated: 1 } };
                 }
@@ -149,11 +145,7 @@ test('removePlayer refreshes draft updatable share count after successful remova
                       shareActivityState: 0
                     })
                   };
-                }
-              };
-            },
-            where() {
-              return {
+                },
                 async update() {
                   return { stats: { updated: 1 } };
                 }
@@ -200,7 +192,7 @@ test('removePlayer lets creator remove self without changing creatorId', async (
       return handler({
         collection() {
           return {
-            doc() {
+            doc(id) {
               return {
                 async get() {
                   return {
@@ -212,13 +204,9 @@ test('removePlayer lets creator remove self without changing creatorId', async (
                       ]
                     })
                   };
-                }
-              };
-            },
-            where(query) {
-              assert.deepEqual(query, { _id: 't_1', version: 3 });
-              return {
+                },
                 async update(payload) {
+                  assert.equal(id, 't_1');
                   writtenData = payload.data;
                   return { stats: { updated: 1 } };
                 }
@@ -263,7 +251,7 @@ test('removePlayer lets participant remove self and can leave roster below start
       return handler({
         collection() {
           return {
-            doc() {
+            doc(id) {
               return {
                 async get() {
                   return {
@@ -277,13 +265,9 @@ test('removePlayer lets participant remove self and can leave roster below start
                       pairTeams: []
                     })
                   };
-                }
-              };
-            },
-            where(query) {
-              assert.deepEqual(query, { _id: 't_1', version: 3 });
-              return {
+                },
                 async update(payload) {
+                  assert.equal(id, 't_1');
                   writtenData = payload.data;
                   return { stats: { updated: 1 } };
                 }
@@ -335,12 +319,12 @@ test('removePlayer rejects participant removing another player', async () => {
                       ]
                     })
                   };
+                },
+                async update() {
+                  writeCalled = true;
+                  throw new Error('should not write when permission denied');
                 }
               };
-            },
-            where() {
-              writeCalled = true;
-              throw new Error('should not write when permission denied');
             }
           };
         }
@@ -378,11 +362,7 @@ test('removePlayer surfaces optimistic-lock conflicts as structured retryable re
               return {
                 async get() {
                   return { data: buildTournament() };
-                }
-              };
-            },
-            where() {
-              return {
+                },
                 async update() {
                   return { stats: { updated: 0 } };
                 }
@@ -440,11 +420,7 @@ test('removePlayer keeps rejoined players when a completed clientRequestId is re
         return {
           async get() {
             return { data: tournament };
-          }
-        };
-      },
-      where() {
-        return {
+          },
           async update({ data }) {
             updateCount += 1;
             tournament = {
@@ -566,14 +542,13 @@ for (const apiOutcome of ['success', 'failure']) {
         const result = await handler({ collection(collectionName) {
           assert.equal(collectionName, 'tournaments');
           return {
-            doc: () => ({ get: async () => ({ data: tournament }) }),
-            where(query) {
-              assert.deepEqual(query, { _id: 't_1', version: 3 });
-              return { update: async ({ data }) => {
+            doc: (id) => ({ get: async () => ({ data: tournament }) ,
+              update: async ({ data }) => {
+                assert.equal(id, 't_1');
                 writtenData = data;
                 return { stats: { updated: 1 } };
-              } };
-            }
+              }
+            })
           };
         } });
         transactionCommitted = true;
@@ -639,16 +614,15 @@ for (const gate of ['budget is exhausted', 'replayed request', 'draft-only refus
         const result = await handler({ collection(collectionName) {
           assert.equal(collectionName, 'tournaments');
           return {
-            doc: () => ({ get: async () => ({ data: tournament }) }),
-            where(query) {
-              assert.equal(gate, 'budget is exhausted');
-              assert.deepEqual(query, { _id: 't_1', version: 3 });
-              return { update: async ({ data }) => {
+            doc: (id) => ({ get: async () => ({ data: tournament }) ,
+              update: async ({ data }) => {
+                assert.equal(gate, 'budget is exhausted');
+                assert.equal(id, 't_1');
                 assert.deepEqual(data.version, { $inc: 1 });
                 updateCount += 1;
                 return { stats: { updated: 1 } };
-              } };
-            }
+              }
+            })
           };
         } });
         if (gate === 'budget is exhausted') now += 2600;

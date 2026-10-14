@@ -59,8 +59,8 @@ exports.main = async (event) => {
         }
       }
 
-      const oldVersion = Number(t.version) || 1;
-      const updRes = await transaction.collection('tournaments').where({ _id: tournamentId, version: oldVersion }).update({
+      // The transaction read guards the version; doc.update retains the SDK transaction ID.
+      const updRes = await transaction.collection('tournaments').doc(tournamentId).update({
         data: common.assertNoReservedRootKeys({
           refereeId,
           updatedAt: db.serverDate(),
