@@ -14,6 +14,7 @@
 | 云代码/部署、Windows命令 | [架构](context/architecture.md#cloud-function-shared-libraries)、[环境](tools/windows-dev-environment.md)相关节 | 合同变化按AGENTS触发云审计；版本迁移审计不是升级授权 |
 | 埋点/数据分析 | [留痕合同](specs/activity-observability.md)、[数据拉取](tools/we-analysis-local-script.md) | 报告/样本结论查 reports，不作为实时数据 |
 | 全面远端检查/问题优先级 | [2026-10-14 源码/离线检查](reports/2026-10-14-source-offline-audit.md)与[统一待修清单](tasks/paused-plan-status.md#远端审计待修与优化清单) | 原始证据及旧编号查[10-09 完整审计](reports/2026-10-09-remote-comprehensive-audit.md)；原12项沿革查清单归档，报告入库不代表修复或全项验收 |
+| 中期产品/增长规划、AA与组局候选 | [10-14 中期优化计划](tasks/medium-term-growth-plan-2026-10-14.md) | 含竞品/用户证据、优先级、12周路线图和验收门槛；研究完成不等于实施授权，缺陷状态仍查统一待修清单 |
 | 分享/增长 | [分享设计](specs/share-optimization-design.md)、[增长记录](specs/growth-flywheel-optimization.md)的适用说明 | 历史实施计划只追溯，不执行旧技能/命令 |
 | 恢复暂停任务/交接 | current → [下一步待修清单](tasks/paused-plan-status.md) | 只读相应条目的代码/证据；历史进度从清单的归档入口按需追溯，不默认全文加载 |
 | 历史决定/局部经验 | 用 rg 搜索 tasks/reports/archive；[经验](notes/learnings.md) | 先看日期/状态，再读命中段落；迁移快照断链见 [旁注](tasks/session-logs/2026-10-03-before-path-migration-current.links.md) |
