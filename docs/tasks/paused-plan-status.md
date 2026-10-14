@@ -26,6 +26,10 @@
 
 ### UI14最小人工验证步骤
 
+补交人工步骤文档后的来源刷新：首次refresh按合同返回2并建立challenge，但官方MCP编译及只读status均失败；原生cwd路径+compile锁的单次复测仍失败。仅内存阶段诊断定位到`initialize-read`，退出1、stderr0B，没有认证失败证据、未auth或改凭据。8510监听仍有效，SDK只读回读证实中性launch单页、无capture isolation/临时偏好/poison/recovery。保留source challenge，最新全文签名未完成；15547c4的402图片及产品文件SHA仍有效，不冒称新的文档HEAD已拍。诊断/恢复日志为`ui-manual-doc-*`和`final-runtime-cleanup-after-manual-doc.json`，无需重跑已过P1测试。
+
+0. 接续先设置现有`WEAPP_UI_SESSION_FILE=tmp/p1-repair-20261014/ui-session402.json`，执行一次`npm.cmd run ui:session:refresh`，核有效challenge（source变化时返回2是预期）；**随后由人只按当前main项目的“编译”**，不清缓存/换项目/授权登录。期间不要修改源码；再执行refresh及`npm.cmd run ui:doctor`，两者应退出0、检查全通过，然后再开展下面物理检查。新文档HEAD变化时须重新生成挑战，不能直接删除marker或强绑旧签名。
+
 当前只是待执行步骤，不计通过；前台操作已获本轮授权，生产写入仍未授权。自动截图会在结束时恢复到中性launch页，**最终截图不代表合成fixture仍在运行**，现在也没有保留的隔离。人工开始前，由执行会话复用现有`tmp/ui-audit-20261011-unlocked/native-harness.cjs`的`NativeAudit.open → load('waterV2Member24Game')`，确认当前签名/项目/设备及SDK隔离通过后，保持该scope只供本次人工动作；未能确认guard时不进入真实账本。结束必须由同一scope调用`close`并取得SDK/缓存/偏好和中性单页恢复回执，不能直接关进程当作清理。
 
 1. 先在实际iPhone17/402、普通字号16验证；记录当前屏/窗口/safeArea。先用×关闭预置弹层，将背景名单滚到有余量的位置后再打开“记一局”，记录标题或列表锚点及page scrollTop。

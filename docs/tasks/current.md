@@ -16,4 +16,4 @@ P1本地源码与离线证据可交付，真实云事务回滚/冲突、生产�
 
 ## 交付与背景
 
-本次提交仅含P1六入口、直接回归、旧mock适配和交接文档；UI14、配置、单打候选、私有文件/QR不混入。post-commit兼容hook已核为exit 0，提交不会部署。P1源码9bb11cb已推送并核远端，隔离提交快照78项相关测试通过；对应Actions/check-runs/statuses均0，不能称CI通过。后续文档交付与末次签名回执保留在本轮证据目录。[源码审计](../reports/2026-10-14-source-offline-audit.md)与[中期计划](medium-term-growth-plan-2026-10-14.md)保持历史原文；automation-3不恢复。
+本次提交仅含P1六入口、直接回归、旧mock适配和交接文档；UI14、配置、单打候选、私有文件/QR不混入。post-commit兼容hook已核为exit 0，提交不会部署。P1源码9bb11cb已推送并核远端，隔离提交快照78项相关测试通过；对应Actions/check-runs/statuses均0，不能称CI通过。人工步骤已交付；MCP初始化读取受阻，最新全文签名未完成，回执在本轮证据目录。[源码审计](../reports/2026-10-14-source-offline-audit.md)与[中期计划](medium-term-growth-plan-2026-10-14.md)保持历史原文；automation-3不恢复。
