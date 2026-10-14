@@ -24,6 +24,18 @@
 - **本次证据根**：`tmp/p1-repair-20261014/`（ignored本机证据）：initial-dirty-hashes.json、biz04-red.log、biz01-red.log、biz01-baseline-repro.json/log、p1-green.log、sdk-handler-probe.cjs/log与sdk-handler-requests.json、affected-plan.json、deploy-direct.log、handlers-*、contract-final.log、full-serial.log、full-serial-final.log、check.log、lint-delivery.log、ui-doctor.log、committed-source-manifest.json、committed-source.zip与committed-related-tests.log、ui-prewarm402.log、ui-refresh402.log、ui-iterate402-after-marker.log、ui14-sdk-check.json/log、cli-auto-help.log及末次ui-iterate402-final.log。正式图回执位于tmp/ui-screenshots-actual/simulator-frame，两轮iterate摘要在tmp/ui-iterate-runs。错误探针/旧mock适配失败日志也保留。已提炼的直接回归随源码提交；ignored证据跨电脑不能假定存在。
 - **交付边界**：仅P1六入口、两份新直接回归、六份旧mock适配和current/本任务正文。UI14/配置/单打候选等既有改动保留。真实云回滚、冲突、身份/规则/索引、生产安装包、原12项、手机及其余原生UI未验。其余清单项目保持原级别；不启动AA/组局、活动或automation-3。
 
+### UI14最小人工验证步骤
+
+当前只是待执行步骤，不计通过；前台操作已获本轮授权，生产写入仍未授权。自动截图会在结束时恢复到中性launch页，**最终截图不代表合成fixture仍在运行**，现在也没有保留的隔离。人工开始前，由执行会话复用现有`tmp/ui-audit-20261011-unlocked/native-harness.cjs`的`NativeAudit.open → load('waterV2Member24Game')`，确认当前签名/项目/设备及SDK隔离通过后，保持该scope只供本次人工动作；未能确认guard时不进入真实账本。结束必须由同一scope调用`close`并取得SDK/缓存/偏好和中性单页恢复回执，不能直接关进程当作清理。
+
+1. 先在实际iPhone17/402、普通字号16验证；记录当前屏/窗口/safeArea。先用×关闭预置弹层，将背景名单滚到有余量的位置后再打开“记一局”，记录标题或列表锚点及page scrollTop。
+2. 用真实鼠标滚轮/触控板或触摸，分别在弹层上方可见遮罩处上下滚动，并将弹层名单滚到顶部、底部继续同向滚动。合格：名单正常滚动，背景锚点/scrollTop均不变，无边界滚动传递。不点击“确认记一局”，不创建/记账。
+3. 用实际×关闭后再滚背景，合格：背景恢复滚动；再打开并重复边界检查。另通过遮罩关闭一次；在人为可以命中的快速重开路径观察弹层能否回到屏内，不能拿SDK事件代替物理命中。原生picker只检查打开/取消，取消后不产生写入。
+4. 结束并验证当前scope恢复后，由人从DevTools设备菜单选择实际Pro Max/430宽度；将机型/宽度回读记入回执，不只改SDK系统信息。设备变化后按现有预热/签名流程重建合法会话，再用同一受控fixture重复第1–3步。小屏与小屏大字仍跳过。
+5. 每屏留实际操作录像/截图、前后锚点或scrollTop、关闭方式、恢复回执及异常数。只有正常/大屏均通过、SDK/缓存恢复通过后，才能关闭UI14物理门禁并提交其两个草稿；失败保留证据，按具体现象续修。手机滚动、键盘/大字和真实云结果仍分别验收。
+
+可供本机查看/分享的截图材料：`tmp/ui-screenshots-actual/simulator-frame/waterV2Member24Game.png`、`waterV2Member24.png`及各自receipt（最终15547c4实图已亲看）；重开图为`tmp/ui-audit-20261011-unlocked/native-actions/ui14-20261014-402-sdk-reopened.png`。这些是合成24人fixture，机型/像素尺寸与SDK事件范围见上文，不当作手机或物理动作证明。不包含私有配置、session或缓存原值，未发布到第三方。最终只读运行时清理检查见`tmp/p1-repair-20261014/final-runtime-cleanup.json`，缓存恢复另由各capture与SDK检查回执证明。
+
 ## 具体待修清单
 
 P1/P2保留原问题级别。以下是本轮处置及残余门禁；未验不等于通过。
