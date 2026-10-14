@@ -6,7 +6,7 @@
 
 1. 读取[项目规则](../../AGENTS.md)与[current](current.md)，核对checkout、branch、HEAD和dirty；实际Git/npm目录为`D:/projects/badminton-miniapp/main`，总目录不是Git根。
 2. 两个业务P1本地实现与离线门禁已完成；真实云引擎、当前生产安装包与隔离云验收保留未验，不因Node或请求捕获通过关闭。其余P2/P3按最新授权及下表推进。
-3. UI14本轮测试/check/lint通过，DevTools旧会话失效；等待本次明确前台预热授权后恢复签名会话，再验正常/大屏物理滚动、关闭恢复和其他原生控件。小屏/小屏大字继续跳过，机型/尺寸以实际回读为准。
+3. UI14本轮测试/check/lint及402实图/SDK开关回读通过，本次前台授权与预热已完成。当前缺原生Windows控制入口，正常/430大屏物理背景滚动与设备切换阻塞；SDK事件不替代物理验收，UI14两稿暂不提交。小屏/小屏大字继续跳过，机型/尺寸以实际回读为准。
 
 ## 10-14恢复与P1源码交付
 
@@ -17,8 +17,11 @@
 - **精确SDK**：从仓库公开证据ZIP解压database@1.4.1运行依赖，实际五handler通过wx数据适配进入真实SDK请求构造，仅替换Db.reqClass出口。5组成功及开赛/移除2组日志失败共7组通过；文档读、业务写、日志set与commit/abort事务ID一致。start失败后既有错误映射会再读日志，不能用最后一条请求当成事务终态。没有账号、凭据、socket或真实引擎请求；只证明生成请求，不能当作生产包或平台回滚证明。
 - **最终门禁**：`npm.cmd test -- --test-concurrency=1`实际1898项/1892通过/0失败/6跳过/0取消todo，退出0，约49.6秒；6项原平台限定跳过。首轮1898项/1891通过/1失败/6跳过/退出1，唯一失败`cloud-response-contract-write-actions.test.js`旧mock缺doc.update，保留原响应合同断言完成适配，直接1项及最终全量通过。check含bootstrap/废弃API/共享云库一致性通过；最终lint0错误/35原警告；git diff --check通过。全量是在保留UI14和单打候选的当前工作树执行，不宣称干净远端UI14已修。
 - **旧工具测试**：deploy-changed-cloudfunctions直接9项、两次完整全量均通过，包括config-only timeout。旧continue日志仅失败概要，无完整错误/最终计数，本轮不能倒推旧原因或称既有波动；已保留旧日志，未执行deploy。post-commit hook的兼容目标明确`exit 0`，不会触发云部署。
-- **UI14与工具边界**：本轮4种page-meta状态及相关全量/check/lint通过，旧218仅作历史。doctor退出1：旧ws://127.0.0.1:40402连接失败；只读TCP核无该端口监听，未检出DevTools项目窗口。旧会话失效，尚无新的源码绑定/实图。仓库要求“只有用户明确允许本次前台预热后”，已请求本轮前台预热授权，未得到时不启动/激活窗口、不猜端口、不手改receipt。UI14两文件不混入本次P1提交，正常/大屏物理滚动、关闭恢复等继续未验。
-- **本次证据根**：`tmp/p1-repair-20261014/`（ignored本机证据）：initial-dirty-hashes.json、biz04-red.log、biz01-red.log、biz01-baseline-repro.json/log、p1-green.log、sdk-handler-probe.cjs/log与sdk-handler-requests.json、affected-plan.json、deploy-direct.log、handlers-*、contract-final.log、full-serial.log、full-serial-final.log、check.log、lint-delivery.log、ui-doctor.log。错误探针/旧mock适配失败日志也保留。已提炼的直接回归随源码提交；ignored证据跨电脑不能假定存在。
+- **P1隔离提交验证**：源码提交`9bb11cbb6058afbcee224ddedf9d1062f96a93d9`已推送并核远端master一致。通过git archive导出独立提交快照，任务16文件及原始UI14源码/测试逐字节匹配Git blob，未含UI14两稿或未跟踪单打候选；在该快照执行五赛事入口、V1入口、两份新回归和返回合同9文件，共78通过/0失败/0跳过。当前工作树全量1892通过与这个提交范围证明分别记录。该源码commit Actions为空、check-runs0、statuses0；聚合status显示pending只是无status，不称CI已通过或失败。
+- **UI14与工具边界**：本轮page-meta四状态、全量/check/lint通过。旧40402无监听；获本次明确前台授权后，仅官方prewarm打开main并选未用8510端口，预热退出0。DevTools2.02.2610092/SDK3.17.3，实际iPhone17屏402×874、窗口402×694、字号16、safeArea54–840。首iterate只有marker失效、source/监听/SDK/宽度均通过；按故障手册显式refresh退出0，未放宽门禁。`2026-10-14T18-04-56-825Z-37700-0b14d9db`正式capture两状态退出0，约46.8秒，2PNG均469×1015（不是逻辑宽度）；主控亲看waterV2Member24Game、waterV2Member24，无本轮新增可见问题。来源为9bb11cb+保留dirty，manifest`8f244b671ec32ffd6067607f5413acc4f2c70b15e8d8e5d3be9d6d1cef424021`。
+- **UI14实际页面事件**：复用受控native-harness触发真实页面SDK close/reopen/close，实际page-meta属性依次`overflow: hidden; → 空 → overflow: hidden; → 空`。重开PNG`tmp/ui-audit-20261011-unlocked/native-actions/ui14-20261014-402-sdk-reopened.png`已亲看；异常0，10步检查，缓存/SDK恢复与中性单页重建通过、无残留隔离。正式两case同样SDK/storage恢复通过，仅受控拒绝和抑制遥测，未通过原云/原遥测验证恢复。这是SDK页面事件与属性证明，不是物理滚动。
+- **仍阻塞**：computer-use的SKILL.md及guidance要求通过node_repl的sky API控制Windows；当前可用工具无node_repl，现有cua_repl明确native disabled。已读完整技能/控制/确认说明，未使用PowerShell输入或自建helper绕过；官方`cli auto --help`仅提供端口/账户/票据/项目等，无设备切换选项。正常/430大屏的物理背景边界滚动、关闭恢复、原生遮罩/picker仍未验。UI14两个草稿保全且不提交，不把SDK回读当全部UI门禁。文档交付后末次全文签名/相关采集结果以`ui-iterate402-final.log`及其summary为准，不把文档更新前的签名冒称最终签名。
+- **本次证据根**：`tmp/p1-repair-20261014/`（ignored本机证据）：initial-dirty-hashes.json、biz04-red.log、biz01-red.log、biz01-baseline-repro.json/log、p1-green.log、sdk-handler-probe.cjs/log与sdk-handler-requests.json、affected-plan.json、deploy-direct.log、handlers-*、contract-final.log、full-serial.log、full-serial-final.log、check.log、lint-delivery.log、ui-doctor.log、committed-source-manifest.json、committed-source.zip与committed-related-tests.log、ui-prewarm402.log、ui-refresh402.log、ui-iterate402-after-marker.log、ui14-sdk-check.json/log、cli-auto-help.log及末次ui-iterate402-final.log。正式图回执位于tmp/ui-screenshots-actual/simulator-frame，两轮iterate摘要在tmp/ui-iterate-runs。错误探针/旧mock适配失败日志也保留。已提炼的直接回归随源码提交；ignored证据跨电脑不能假定存在。
 - **交付边界**：仅P1六入口、两份新直接回归、六份旧mock适配和current/本任务正文。UI14/配置/单打候选等既有改动保留。真实云回滚、冲突、身份/规则/索引、生产安装包、原12项、手机及其余原生UI未验。其余清单项目保持原级别；不启动AA/组局、活动或automation-3。
 
 ## 具体待修清单
@@ -33,7 +36,7 @@ P1/P2保留原问题级别。以下是本轮处置及残余门禁；未验不等
 | 4 · UI03 · P2 | 当前生产投影已有数量单位绑定；旧详情 fixture 注入普通空格绕过投影，已纠正并补 fixture 回归 | [fixture](../../scripts/dev/water-v2-screenshot-fixtures.js)；未重复修改生产格式器 | 101项关联检查通过；402实际详情按钮→getEntry受控响应→decorateFeedEntries链路通过，2水成组换行，原描述/ARIA保留。大屏未验 |
 | 5 · UI04 · P2优化 | 402普通字号未复现：末行完整“重试”，两名评审均可接受；本轮未增加文案或结构 | 保持历史错误提示；重试真实按钮可清错误并返回空历史（受控响应） | 正常屏已看/重试通过；大屏孤字复看未验，仍保留原问题，不称全尺寸关闭 |
 | 6 · UI15 · P2建议 | 评估后不采纳新增常驻原因区：已有Toast、冲突Modal、比分保留和重试入口，暂无消失提示阻碍恢复的新证据 | [matchSubmitService](../../miniprogram/pages/match/matchSubmitService.js)、[writeErrorUi](../../miniprogram/core/writeErrorUi.js)保持既有行为 | 不新增需另行设计的状态/清理规则，不恢复重复草稿提示。真实云失败与手机提示仍未验 |
-| 7 · UI14 · P2 · 未提交 | 源码确认page-meta仅锁历史弹层、漏掉gameSheetOpen；各屏宽共用。已最小加入gameSheetOpen条件，无新增JS状态或触摸拦截 | 工作区[water WXML](../../miniprogram/pages/water/index.wxml)、[直接测试](../../tests/waterSession.ui-copy.test.js)；四种开关组合证明任一打开锁定、全关恢复，关联218通过 | 原320背景约33px证据保留，小屏仍跳过。本轮四状态测试/全量/check/lint通过；doctor旧端口无连接，待本次前台预热授权。尚无当前源码实图及正常/大屏物理滚动、关闭恢复证明，不计UI完成 |
+| 7 · UI14 · P2 · 未提交 | 源码确认page-meta仅锁历史弹层、漏掉gameSheetOpen；各屏宽共用。已最小加入gameSheetOpen条件，无新增JS状态或触摸拦截 | 工作区[water WXML](../../miniprogram/pages/water/index.wxml)、[直接测试](../../tests/waterSession.ui-copy.test.js)；四种开关组合证明任一打开锁定、全关恢复，关联218通过 | 原320背景约33px证据保留，小屏仍跳过。本轮四状态测试/全量/check/lint通过；已获前台授权并恢复402实图，实际SDK关闭/重开回读锁定/恢复通过；当前缺原生控制入口，正常/430大屏物理滚动仍未验，不计全部UI完成 |
 
 ## 远端审计待修与优化清单
 
