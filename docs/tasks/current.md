@@ -6,7 +6,7 @@
 
 BIZ-04五个赛事入口改为读取权威事务文档后doc.update，事务读集负责并发版本保护，保留权限、version递增、幂等与请求日志。精确database@1.4.1的7组真实handler请求捕获通过，业务/日志/commit或abort的事务ID一致；没有网络出口。BIZ-01旧V1首次创建改为事务内查无再set，并发冲突重查后返回已有权威账本；包括finished历史均不再清空。新建仍受开关保护，旧ID/返回结构/读取权限不变。
 
-最终串行npm test：1898项，1892通过、0失败、6平台跳过；check通过，lint0错误/35原警告，diff检查通过。首轮1891通过/1失败/6跳过是另一份旧合同mock缺doc.update，已修测试并复跑。旧config-only timeout本轮直接9项及两次全量通过，旧日志不含完整错误，原因仍未知。旧通过不代替本次结果。
+最终串行npm test：1898项，1892通过、0失败、6平台跳过；check通过，lint0错误/35原警告，diff检查通过。首轮唯一失败为旧mock缺doc.update，已修测试并复跑。旧config-only timeout本轮直接9项及两次全量通过，旧日志不含完整错误，原因仍未知。旧通过不代替本次结果。
 
 ## 下一步与未验
 
@@ -16,4 +16,4 @@ P1本地源码与离线证据可交付，真实云事务回滚/冲突、生产�
 
 ## 交付与背景
 
-本次提交仅含P1六入口、直接回归、旧mock适配和交接文档；UI14、配置、单打候选、私有文件/QR不混入。post-commit兼容hook已核为exit 0，提交不会部署。P1源码9bb11cb已推送并核远端，隔离提交快照78项相关测试通过；对应Actions/check-runs/statuses均0，不能称CI通过。人工步骤已交付；MCP初始化读取受阻，最新全文签名未完成，回执在本轮证据目录。[源码审计](../reports/2026-10-14-source-offline-audit.md)与[中期计划](medium-term-growth-plan-2026-10-14.md)保持历史原文；automation-3不恢复。
+本次提交仅含P1六入口、直接回归、旧mock适配和交接文档；UI14、配置、单打候选、私有文件/QR不混入。post-commit兼容hook已核为exit 0，提交不会部署。P1源码9bb11cb已推送并核远端，隔离提交快照78项相关测试通过；对应Actions/check-runs/statuses均0，不能称CI通过。任务已核关联项目并导航，宿主仍durable。auto再次超时后，官方普通open恢复SDK首页；最终签名见recovery-final-*回执。MCP初始化bootstrap等待点未定，未改认证。[源码审计](../reports/2026-10-14-source-offline-audit.md)与[中期计划](medium-term-growth-plan-2026-10-14.md)保持历史原文；automation-3不恢复。

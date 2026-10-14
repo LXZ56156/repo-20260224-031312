@@ -24,6 +24,15 @@
 - **本次证据根**：`tmp/p1-repair-20261014/`（ignored本机证据）：initial-dirty-hashes.json、biz04-red.log、biz01-red.log、biz01-baseline-repro.json/log、p1-green.log、sdk-handler-probe.cjs/log与sdk-handler-requests.json、affected-plan.json、deploy-direct.log、handlers-*、contract-final.log、full-serial.log、full-serial-final.log、check.log、lint-delivery.log、ui-doctor.log、committed-source-manifest.json、committed-source.zip与committed-related-tests.log、ui-prewarm402.log、ui-refresh402.log、ui-iterate402-after-marker.log、ui14-sdk-check.json/log、cli-auto-help.log及末次ui-iterate402-final.log。正式图回执位于tmp/ui-screenshots-actual/simulator-frame，两轮iterate摘要在tmp/ui-iterate-runs。错误探针/旧mock适配失败日志也保留。已提炼的直接回归随源码提交；ignored证据跨电脑不能假定存在。
 - **交付边界**：仅P1六入口、两份新直接回归、六份旧mock适配和current/本任务正文。UI14/配置/单打候选等既有改动保留。真实云回滚、冲突、身份/规则/索引、生产安装包、原12项、手机及其余原生UI未验。其余清单项目保持原级别；不启动AA/组局、活动或automation-3。
 
+### 本轮工具恢复诊断补充
+
+- 既有Codex任务“推进羽毛球小程序修复”（01a13b7b-b9e8-76e1-9918-48b30b62b0e5）通过应用工具重新核实已关联本地badminton-miniapp项目，导航返回navigated=true；宿主仍为durable，未证明迁移为local执行器。没有改内部数据库或新建任务。
+- 已选安装的IDE HTTP29558与SDK8510归属核验通过。heartbeat200；带现有Token的GET/通知请求快速返回缺session的400，initialize则两种Accept均在8秒内没有响应头。只证明初始化路径受阻，不推断认证失效；没有auth/轮换Token。
+- 只读核验官方app.asar：initialize等待所有项目窗口notifyMcpBootstrap；此调用先等待ensureStarted/startDevtools，随后触发编译，服务端没有显式超时。可解释HTTP健康而initialize挂起，但尚未定位具体窗口/等待点，不称完整根因。
+- 官方exact-project close一次返回0后，新端口2815的auto明确返回autoPort8510/requestedAutoPort2815；SDK重新连接首页、旧marker消失，证明项目运行时曾恢复。新的预热脚本按请求2815连接而失败，未伪造新session。此后refresh创建合法当前源码challenge；再次官方close/auto（8510和2815）分别60秒/45秒超时，当次只读SDK连接12秒超时。随后官方普通open（不再auto）退出0，SDK12秒探针恢复首页，marker/challenge均消失；已经找到不重启主进程的本项目恢复路径。不把close的exit0或auto日志preparing当成编译成功；旧402图来源仍为15547c4，最新全文签名未完成。
+- 只清理本轮超时且路径/父进程或命令特征匹配的CLI助手，未终止DevTools主进程或其他窗口。一次并发refresh被会话锁拒绝，无修改；最终无fixture安装/真实业务动作。原生输入仍因当前工具无node_repl且CUA native disabled而不可执行，未绕过。正文更新后使用已有8510会话建立当前源码challenge，再官方exact-project close→普通open→refresh核重编译，最终以recovery-final-*日志和回执为准；不清缓存或修改凭据。
+- 本机ignored证据：mcp-http-diagnosis.json、vendor-js-4cf9575d00bc48997ba17badd269ccea.js、runtime-after-official-reopen.json、project-recovery-prewarm.log、ui-session402-recovered.json.cli-1792003931299-26872-9e4e8da9.log、refresh-after-official-reopen.log、challenge-reopen-*.log、exact-windows-reopen-*.log、runtime-after-challenge-close-auto.json、exact-project-open.log。旧回执与challenge保留；本节只是诊断记录，不新增业务修改，不需要复跑已过P1全量。
+
 ### UI14最小人工验证步骤
 
 补交人工步骤文档后的来源刷新：首次refresh按合同返回2并建立challenge，但官方MCP编译及只读status均失败；原生cwd路径+compile锁的单次复测仍失败。仅内存阶段诊断定位到`initialize-read`，退出1、stderr0B，没有认证失败证据、未auth或改凭据。8510监听仍有效，SDK只读回读证实中性launch单页、无capture isolation/临时偏好/poison/recovery。保留source challenge，最新全文签名未完成；15547c4的402图片及产品文件SHA仍有效，不冒称新的文档HEAD已拍。诊断/恢复日志为`ui-manual-doc-*`和`final-runtime-cleanup-after-manual-doc.json`，无需重跑已过P1测试。
