@@ -219,4 +219,3 @@ F5 依赖风险与安装可复现性  P2
 锁控制：https://github.com/LXZ56156/repo-20260224-031312/blob/1363d0dfccca52d47419d96941ce15f3180f5893/miniprogram/pages/match/matchLockController.js
 环境映射：https://github.com/LXZ56156/repo-20260224-031312/blob/1363d0dfccca52d47419d96941ce15f3180f5893/miniprogram/config/env.js
 此前审计与原始复现入口：https://github.com/LXZ56156/repo-20260224-031312/blob/1363d0dfccca52d47419d96941ce15f3180f5893/docs/reports/2026-10-09-remote-comprehensive-audit.md
-
