@@ -1,12 +1,36 @@
 # 下一步待修清单与任务交接
 
-状态：2026-10-15 用户同意继续纯代码小修复，工具故障单独挂起；BIZ-05/TEL-01/UI-01已以88ed12a、BIZ-03/FA-04已以c9798aa交付；EFF-03/07已以4f52ec3交付；EFF-05/06已以2866cd9交付；本批EFF-01部分/EFF-02/ENG-01与依赖、合同评估见下节。10-14 P1源码与离线交付保留。10-13 的暂停回执、UI历史证据与外部未验保留；UI14两个既有文件仍未提交，尚未完成实图门禁。既有配置/单打候选/私有文件逐hash保全。未部署、发布、preview/upload、真实业务写入、付款或扩展凭据权限，不启动中期业务/活动，不新建其他Codex任务。
+状态：2026-10-15 18:09起用户仅恢复工具链诊断，产品决策与外部验收保留暂停；之前纯代码交付保留，BIZ-05/TEL-01/UI-01已以88ed12a、BIZ-03/FA-04已以c9798aa交付；EFF-03/07已以4f52ec3交付；EFF-05/06已以2866cd9交付；本批EFF-01部分/EFF-02/ENG-01与依赖、合同评估见下节。10-14 P1源码与离线交付保留。10-13 的暂停回执、UI历史证据与外部未验保留；UI14两个既有文件仍未提交，尚未完成实图门禁。既有配置/单打候选/私有文件逐hash保全。未部署、发布、preview/upload、真实业务写入、付款或扩展凭据权限，不启动中期业务/活动，不新建其他Codex任务。
 
 ## 新任务从这里开始
 
 1. 读取[项目规则](../../AGENTS.md)与[current](current.md)，核对checkout、branch、HEAD和dirty；实际Git/npm目录为`D:/projects/badminton-miniapp/main`，总目录不是Git根。
 2. 两个业务P1、BIZ-05/TEL-01/UI-01、BIZ-03/FA-04、EFF-03/07及本批EFF-05/06本地实现与相称离线门禁已完成；真实云引擎、当前生产安装包、手机/原生入口与隔离云验收保留未验。不因Node通过关闭外部条件；下一批先按最新授权及下表复现。
 3. UI14本轮测试/check/lint及402实图/SDK开关回读通过，本次前台授权与预热已完成。当前缺原生Windows控制入口，正常/430大屏物理背景滚动与设备切换阻塞；SDK事件不替代物理验收，UI14两稿暂不提交。小屏/小屏大字继续跳过，机型/尺寸以实际回读为准。
+
+## 10-15工具链复核与恢复边界
+
+本轮只处理工具链，业务缺陷/产品方案/云与原生验收不追加实施；起点master/5d1e92a，原18项及UI14两稿按原SHA保全。下表是18:09–18:15 UTC新实测，旧记录只作对照，不拿旧错误当新失败。
+
+| 环节 | 当前实测 | 判定 |
+| --- | --- | --- |
+| 命令执行 18:09 | PowerShell时间、cwd、HEAD/status正常 | Windows执行通；不说明原生控制通 |
+| DevTools MCP 18:10 | check_wechatide_status ok/success=true，loginExpired=false；版本比较skip_check | 当前认证和状态读取通，未做刷新、输入或云业务调用 |
+| 桌面/核心 18:10–18:12 | 当前运行OpenAI.Codex包26.1007.9446.0，与05:31:53基线一致；包内和活跃托管core --version为0.162.0-alpha.17.2，另有0.162.1 daemon | 未证实对应修复已进入当前桌面；不把Chromium文件版本或CLI版本当桌面版本 |
+| CUA最小健康 18:09–18:10 | 唯一一次await cua.getState()；kernel15736退出code1/stdout_eof，MXC launcher: cannot locate required Windows platform directory: HRESULT 0x80070003 | 在JS及控制面枚举之前失败；原生控制阻塞，浏览器UI控制未验；没有reset/重试 |
+| 主机目录 18:11 | shell的SystemRoot/WINDIR均指向现存Windows，System32与TEMP存在 | 不支持“主机Windows目录消失”；未取得失败kernel环境，不能确认具体变量根因 |
+| 任务读取/导航 18:10–18:13 | list50找到本任务，navigate API成功；read1仅当前委托工具项，read5取回四批完整结论 | 已找到可用历史读取方式；实时评论回读与前端显示稳定性未验 |
+| 本地更新检查 18:09 | check_app_update拒绝：App updates are only available on the local desktop host. | 未得到up_to_date/update_available，不能判无更新；未下载/安装/重启 |
+
+**任务读取恢复**：对当前任务调用read_thread时用turnLimit=5（必要时按nextCursor向前），再取agentMessage且phase=final_answer；本轮实际取得5d1e92a、2866cd9、4f52ec3、c9798aa四份结论。只取最新1轮时正在进行轮只有委托输出，没有文字，不能据此判断整个任务为空。本任务元数据仍是durable及云包装cwd，显式hostId=local也返回durable；父来源任务本轮turns=[]。这些是路由/读取事实，不是数据库损坏证明，不修改内部数据库、不复制或重建任务。
+
+**未解决的启动故障**：user给出的PR54027/54069与rust-v0.163.0-alpha.10.1作为上游环境传递线索保留；本次未取得对应桌面可用修复版本。当前错误发生于MXC启动，未进入@oai/sky，不通过shell拉起node_repl或计算机控制helper。Computer Use的[初始化技能](D:/Relocated/LIZIXUAN/Codex/plugins/cache/openai-bundled/computer-use/26.1007.71326/skills/computer-use/SKILL.md)要求从node_repl导入@oai/sky；其轻量超时重试规则不等于应对同一启动失败反复reset。web检索不是浏览器UI，浏览器UI成功也不能代替Windows原生控制成功。
+
+**最小下一步**：在实际本地桌面上下文调用check_app_update或使用应用官方更新检查入口，只读取已装/合资格版本和结果，不先安装/重启。当前委托端被local-only限制挡住，此步骤需主桌面上下文执行。若确认有修复且需退出/重启，再给出具体目标版本、来源、活跃任务影响与维护窗口，取得对应授权后实施；本轮不退出整个应用、不干扰其他任务。若没有合资格更新，保留此脱敏诊断供经授权的官方支持排查，不以独立CLI覆盖核心、改隔离/注册表/凭据、清缓存或未知安装绕过。
+
+官方[故障文档](https://learn.chatgpt.com/docs/reference/troubleshooting)支持先用基础命令区分执行问题，并要求重启前等活跃聊天完成；[Windows文档](https://learn.chatgpt.com/docs/windows/windows-app)不能提供本例修复版本映射，不能作为桌面已含修复的证明。未采用文档中的新建聊天/重启建议，因为用户明确限定沿本任务且不退出应用。
+
+ignored本机tmp/toolchain-recheck-20261015/recheck.json记录时间、版本/进程来源、一次CUA错误、脱敏MCP状态、任务读取范围、更新检查拒绝和剩余动作；不存令牌、完整登录身份或无关任务内容。文档引用/diff及原18项保全单独核验；本轮没有业务代码变更，不重复业务全量/check/lint冒充工具健康。产品决策、UI14、真实云和所有原外部门禁仍未完成。
 
 ## 10-15离线候选收尾批次
 
