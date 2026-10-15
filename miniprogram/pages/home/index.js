@@ -309,6 +309,19 @@ Page({
     const mode = String((e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.mode) || '').trim();
     if (!mode || mode === this.data.sortMode) return;
     storage.setHomeSortMode(mode);
+    const ids = storage.getRecentTournamentIds();
+    const items = Array.isArray(this.data.items) ? this.data.items : [];
+    const completeIds = this._recentCompleteIds;
+    const itemIds = new Set(items.map((item) => item && item._id));
+    const canSortLocally = Array.isArray(completeIds)
+      && !this.data.loading && !this.data.loadError && !this.data.syncRefreshing && !this.data.syncUsingCache
+      && ids.length === completeIds.length && ids.every((id, index) => id === completeIds[index])
+      && items.length === ids.length && itemIds.size === ids.length && ids.every((id) => itemIds.has(id));
+    if (canSortLocally) {
+      this._closeAllSwipe();
+      this.setData({ sortMode: mode, items: this.sortItems(items, mode) }, () => this.refreshVisibleState());
+      return;
+    }
     this.setData({ sortMode: mode });
     this.loadRecents();
   },
@@ -372,6 +385,7 @@ Page({
   },
 
   async loadRecents() {
+    this._recentCompleteIds = null;
     const requestSeq = (Number(this._recentLoadSeq) || 0) + 1;
     this._recentLoadSeq = requestSeq;
     const ids = storage.getRecentTournamentIds();
@@ -465,6 +479,7 @@ Page({
       return buildHomeItem(raw, id);
     });
 
+    this._recentCompleteIds = ids.slice();
     const sortedItems = this.sortItems(items, this.data.sortMode);
     this._closeAllSwipe();
     this.setData(composeHomeSyncPatch(this, {

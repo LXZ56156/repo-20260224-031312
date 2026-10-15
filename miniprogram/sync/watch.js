@@ -97,8 +97,10 @@ async function fetchOnce(tournamentId, onData, onError) {
     const db = wx.cloud.database();
     const res = await db.collection('tournaments').doc(tournamentId).get();
     const doc = res && res.data;
-    if (doc) onData(doc);
-    else if (onError) onError(createNotFoundError(tournamentId));
+    if (doc) {
+      onData(doc);
+      return doc;
+    } else if (onError) onError(createNotFoundError(tournamentId));
   } catch (err) {
     if (onError) onError(err);
   }
@@ -173,10 +175,19 @@ function createPollingController(options = {}) {
   };
 }
 
-function startPolling(tournamentId, onData, onError) {
+function startPolling(tournamentId, onData, onError, options = {}) {
   const db = wx.cloud.database();
+  let initialFetch = options.initialFetch || null;
   return createPollingController({
     fetchDoc: async () => {
+      // DevTools already starts a fresh remote read during attachment; consume it once.
+      if (initialFetch) {
+        const pending = initialFetch;
+        initialFetch = null;
+        const initialDoc = await pending;
+        if (initialDoc) return initialDoc;
+        if (options.isCurrent && !options.isCurrent()) return null;
+      }
       const res = await db.collection('tournaments').doc(tournamentId).get();
       const doc = res && res.data;
       if (!doc) throw createNotFoundError(tournamentId);
@@ -209,7 +220,8 @@ function createPollingSource(channel, tournamentId, options = {}) {
       if (type !== 'not_found' && allowRecovery && shouldAttemptRealtimeRecovery(channel.fallbackReason)) {
         scheduleRealtimeRecovery(channel, tournamentId);
       }
-    }
+    },
+    { ...options, isCurrent: () => isCurrentSource(channel, generation) }
   );
 }
 
@@ -322,7 +334,7 @@ function attachSource(channel, tournamentId, options = {}) {
   closeSource(channel);
   const generation = channel.sourceGeneration;
 
-  fetchOnce(
+  const initialFetch = fetchOnce(
     tournamentId,
     (doc) => { if (isCurrentSource(channel, generation)) emitData(channel, doc, { source: 'init_fetch' }); },
     (err) => {
@@ -346,7 +358,8 @@ function attachSource(channel, tournamentId, options = {}) {
     clearRecoverTimer(channel);
     channel.source = createPollingSource(channel, tournamentId, {
       source: 'devtools_polling',
-      allowRecovery: false
+      allowRecovery: false,
+      initialFetch
     });
     return;
   }
