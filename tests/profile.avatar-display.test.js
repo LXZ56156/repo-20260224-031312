@@ -47,6 +47,9 @@ test('profile page resolves cloud avatar display and keeps raw file id for savin
   try {
     const definition = loadProfilePageDefinition();
     const ctx = createProfilePageContext(definition);
+    const refresh = ctx.refreshAvatarDisplay.bind(ctx);
+    let avatarResolution;
+    ctx.refreshAvatarDisplay = () => { avatarResolution = refresh(); return avatarResolution; };
 
     ctx.applyProfile({
       nickName: '球友',
@@ -58,8 +61,7 @@ test('profile page resolves cloud avatar display and keeps raw file id for savin
     assert.equal(ctx.data.avatarRaw, 'cloud://avatar/profile');
     assert.equal(ctx.data.avatarDisplay, profileCore.DEFAULT_AVATAR);
 
-    await Promise.resolve();
-    await Promise.resolve();
+    await avatarResolution;
 
     assert.equal(ctx.data.avatarDisplay, 'https://temp/avatar/profile.png');
   } finally {

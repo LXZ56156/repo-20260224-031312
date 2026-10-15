@@ -188,12 +188,19 @@ test('mine page renders default avatar before cloud temp url resolves', async ()
   try {
     const definition = loadMinePageDefinition();
     const ctx = createMinePageContext(definition);
+    const refresh = ctx.refreshAvatarDisplay.bind(ctx);
+    const avatarResolutions = [];
+    ctx.refreshAvatarDisplay = () => {
+      const pending = refresh();
+      avatarResolutions.push(pending);
+      return pending;
+    };
 
     ctx.onShow();
     assert.equal(ctx.data.avatar, profileCore.DEFAULT_AVATAR);
 
-    await Promise.resolve();
-    await Promise.resolve();
+    await avatarResolutions[0];
+    await Promise.all(avatarResolutions);
 
     assert.equal(ctx.data.avatarRaw, 'cloud://avatar/u_1');
     assert.equal(ctx.data.avatar, 'https://temp/avatar/u_1.png');

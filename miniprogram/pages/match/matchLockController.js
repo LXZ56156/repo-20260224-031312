@@ -28,6 +28,7 @@ function createMatchLockController(ctx, deps = {}) {
   let autoPollTimer = null;
   let lockSessionId = '';
   let lockRequestVersion = 0;
+  const inFlightRequests = new Map();
 
   function isCurrentLockSession(expectedSessionId = '', expectedVersion = lockRequestVersion) {
     if (expectedVersion !== lockRequestVersion) return false;
@@ -165,32 +166,46 @@ function createMatchLockController(ctx, deps = {}) {
     }
   }
 
+  function requestLock(action, silent) {
+    const requestVersion = lockRequestVersion;
+    const expectedSessionId = lockSessionId;
+    const payload = buildScoreLockPayload(action);
+    const key = JSON.stringify([requestVersion, expectedSessionId, payload]);
+    const pending = inFlightRequests.get(key);
+    if (pending) {
+      // A manual caller joining a background poll still receives its notification.
+      pending.silent = pending.silent && silent;
+      return pending.promise;
+    }
+    const request = { silent };
+    inFlightRequests.set(key, request);
+    request.promise = (async () => {
+      try {
+        const res = await cloudApi.call('scoreLock', payload);
+        if (!isCurrentLockSession(expectedSessionId, requestVersion)) return;
+        applyScoreLockResult(res, { silent: request.silent, fromHeartbeat: action === 'heartbeat' });
+      } catch (err) {
+        if (action === 'status' && !request.silent && isCurrentLockSession(expectedSessionId, requestVersion)) {
+          wx.showToast({ title: cloudApi.getUnifiedErrorMessage(err, '同步状态失败'), icon: 'none' });
+        }
+        // Heartbeat failure keeps editing available until the next interaction.
+      } finally {
+        if (inFlightRequests.get(key) === request) inFlightRequests.delete(key);
+      }
+    })();
+    return request.promise;
+  }
+
   async function syncLockStatus(silent = false) {
     const match = ctx.data.match;
     const status = String(match && match.status || '').trim();
-    if (!ctx.data.userCanScore || !match || status === 'canceled' || ctx.data.lockBusy) return;
-    const requestVersion = lockRequestVersion;
-    const expectedSessionId = lockSessionId;
-    try {
-      const res = await cloudApi.call('scoreLock', buildScoreLockPayload('status'));
-      if (!isCurrentLockSession(expectedSessionId, requestVersion)) return;
-      applyScoreLockResult(res, { silent });
-    } catch (err) {
-      if (!silent) wx.showToast({ title: cloudApi.getUnifiedErrorMessage(err, '同步状态失败'), icon: 'none' });
-    }
+    if (!ctx.data.userCanScore || !match || status === 'canceled' || ctx.data.lockBusy || !isCurrentLockSession()) return;
+    return requestLock('status', silent);
   }
 
   async function heartbeatLock() {
-    if (ctx.data.lockState !== 'locked_by_me') return;
-    const requestVersion = lockRequestVersion;
-    const expectedSessionId = lockSessionId;
-    try {
-      const res = await cloudApi.call('scoreLock', buildScoreLockPayload('heartbeat'));
-      if (!isCurrentLockSession(expectedSessionId, requestVersion)) return;
-      applyScoreLockResult(res, { silent: true, fromHeartbeat: true });
-    } catch (_) {
-      // 心跳失败不立刻中断编辑，下一次交互时再校验
-    }
+    if (ctx.data.lockState !== 'locked_by_me' || !isCurrentLockSession()) return;
+    return requestLock('heartbeat', true);
   }
 
   async function releaseLockIfOwned(force = false, options = {}) {
@@ -264,6 +279,7 @@ function createMatchLockController(ctx, deps = {}) {
   }
 
   function teardown(options = {}) {
+    inFlightRequests.clear();
     stopLockHeartbeat();
     stopLockCountdown();
     stopAutoPoll();

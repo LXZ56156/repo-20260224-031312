@@ -88,6 +88,8 @@ Shared modules include `common.js`, `mode.js`, `permission.js`, `player.js`, `ra
 
 - **Error classification** (`core/cloud.js`): classifies conflicts, network, invalid write shape, permission and parameter failures.
 - **Action guard** (`core/actionGuard.js`): prevents duplicate page actions across profile gates, confirmation waits and network writes.
+- **Lock read/renewal coalescing**: match status and heartbeat each reuse an in-flight request for the same payload/session generation. Teardown invalidates late results and hidden pages start no new requests; the 5-second status, 15-second heartbeat and 45-second lease countdown remain unchanged. Acquire/release/score writes are separate.
+- **Avatar lookup coalescing** (`core/avatarDisplay.js`): share in-flight lookups by SDK instance and full file ID, keep batches at 50, and remove settled promises. Each caller still updates its own URL/failure cache; successful URL TTL and failure cooldown remain 50 minutes and 60 seconds.
 - **Versioned refresh**: tournament and water pages reject stale async responses and refresh after version conflicts.
 - **Client request idempotency**: water mutations reuse request IDs for an unchanged retry intent; cloud dedupes already-applied requests.
 - **Normalize on read** (`core/normalize.js`): normalizes tournament data after fetch.

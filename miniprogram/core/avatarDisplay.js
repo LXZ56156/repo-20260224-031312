@@ -10,6 +10,7 @@ const PERSIST_THROTTLE_MS = 2000;
 
 let _persistTimer = null;
 let _persistDirty = false;
+const _tempUrlRequests = new WeakMap();
 
 function hasOwn(obj, key) {
   return !!obj && Object.prototype.hasOwnProperty.call(obj, key);
@@ -290,6 +291,28 @@ function collectCloudAvatarFileIds(value, avatarCache = {}, output = [], seen = 
   return output;
 }
 
+async function getTempFileURLBatch(fileIds, cloudApi) {
+  let pending = _tempUrlRequests.get(cloudApi);
+  if (!pending) {
+    pending = new Map();
+    _tempUrlRequests.set(cloudApi, pending);
+  }
+  const fresh = fileIds.filter((fileId) => !pending.has(fileId));
+  if (fresh.length) {
+    const response = Promise.resolve(cloudApi.getTempFileURL({ fileList: fresh }));
+    for (const fileId of fresh) {
+      const request = response.then((res) => ((res && res.fileList) || [])
+        .find((item) => String(item && item.fileID || '').trim() === fileId))
+        .finally(() => {
+          if (pending.get(fileId) === request) pending.delete(fileId);
+        });
+      pending.set(fileId, request);
+    }
+  }
+  const fileList = await Promise.all(fileIds.map((fileId) => pending.get(fileId)));
+  return { fileList: fileList.filter(Boolean) };
+}
+
 async function resolveCloudAvatarFileIds(fileIds, avatarCache = {}) {
   const need = Array.from(new Set((Array.isArray(fileIds) ? fileIds : []).map((item) => String(item || '').trim()).filter(Boolean)))
     .filter((fileId) => shouldResolveCloudAvatarFileId(fileId, avatarCache));
@@ -308,7 +331,7 @@ async function resolveCloudAvatarFileIds(fileIds, avatarCache = {}) {
   const unresolved = new Set(need);
   try {
     for (const batch of chunkList(need, TEMP_URL_BATCH_SIZE)) {
-      const res = await wx.cloud.getTempFileURL({ fileList: batch });
+      const res = await getTempFileURLBatch(batch, wx.cloud);
       const fileList = (res && res.fileList) || [];
       logAvatarDiagnostic('info', '[avatar] getTempFileURL response', { fileList });
       const returned = new Set();
