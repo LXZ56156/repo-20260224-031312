@@ -2,6 +2,27 @@
 
 日常入口是 `npm run ui:iterate -- <case>`。它只连接现有签名热会话；仅当身份、SDK、逻辑宽度等检查通过而源码快照变化时，才自动完成 challenge → 官方打开 launch 页并编译 → 签名刷新 → 截图。失败不循环重试。日常操作见 [截图工作流](weapp-ui-screenshot-workflow.md)，视觉完成条件见 [UI 验收](weapp-ui-acceptance.md)，路径与私有配置规则见 [Windows 环境](windows-dev-environment.md)。本手册负责故障分类和恢复，不改变授权、数据保护或验收门禁。
 
+## 开工前检查与恢复边界
+
+每次接续先核能力与本轮证据，不把历史成功、设备已连接或插件目录存在当作当前可用。只检查必要字段，不打印凭据或私人配置值。
+
+| 检查项 | 可验证的通过条件与停止条件 |
+|---|---|
+| 工作区保全 | 核 exact checkout、分支、HEAD、远端、dirty 和暂存区；为既有改动记录路径与 hash。目标文件出现他人新改动时先保留并报告，不覆盖、reset 或混入提交。文档集中修改后再进入正式 UI 来源刷新，避免逐条记录触发反复编译。 |
+| DevTools MCP 与会话 | 用原配置执行 `node scripts/dev/wechatide-local.js check_wechatide_status`；连接诊断需要时由受支持连接器核 initialize、tools/list 与只读调用，不能给包装器编造新动作。既有会话执行 `npm run ui:doctor`，检查全部通过才复用。端口、heartbeat 或 CLI exit 0 单独均不证明项目运行时、编译或 MCP 正常。 |
+| 原生控制 | 依当前 Computer Use 技能和实际暴露的工具初始化；核内核、目标窗口与真实读屏，再进行已授权交互。server/skill 启用状态不可读取时标未知，不从安装或权限模式推断。内核启动失败、原生 API 禁用或目标窗口不可信时停止该路径；不借系统 Node、自建助手或替代鼠标注入绕过。 |
+| 当前任务展示 | 分别核任务记录、项目关联、执行宿主和桌面实际打开结果。导航确认不等于已显示，文件面板 queued 不算可见；失败的置顶/分组不循环尝试。项目关联不迁移宿主，只用明确支持当前任务的迁移接口，不改内部任务数据库或另建任务冒充恢复。 |
+| UI14 验收 | SDK 开关与 page-meta 状态、正式截图、物理滚动分别记结果。SDK 事件或 pageScrollTo 不能替代遮罩/列表边界的真实滚动及关闭后恢复；正常与 430 宽屏分别核实际逻辑宽度。人工协助也须先验证 fixture 隔离，结束核缓存/SDK/中性页面恢复；完整标准见 [UI 验收](weapp-ui-acceptance.md)。 |
+
+### 已成功的恢复与未解决的故障分开记录
+
+- **DevTools MCP**：2026-10-14 曾在仅重开项目无效后，经当次完整退出授权执行官方 `cli quit`，核原 GUI 进程及监听实际消失，再仅重开 exact worktree、新预热、复测 initialize/tools/list/只读调用与 doctor，恢复成功。这是已验证实例，不是通用根因或永久退出授权。未来完整退出可能关闭该安装全部项目窗口，先保全未保存内容并确认当前授权；出现保存提示则停，不强杀或退出其他应用。原会话身份失效后按[会话重建](#会话丢失与首次建立)建立新回执。
+- **MXC 启动错误（阻塞原生验收）**：`cannot locate required Windows platform directory: HRESULT 0x80070003` 仍未取得经验证的修复。安装清单、路径存在性与位数只用于分流，不等于找出失败进程中的根因。保留脱敏错误阶段和环境证据；不盲目重装、复制未知运行时组件、改全局环境或关闭隔离，也不把 DevTools MCP 恢复算作原生控制恢复。
+
+上游已合并 [Windows 启动变量修复 #54027](https://github.com/openai/codex/pull/54027) 与 [remote MCP 环境过滤修复 #54069](https://github.com/openai/codex/pull/54069)，涉及 SystemDrive/LOCALAPPDATA、大小写覆盖及空子环境处理。CLI 预发布 [rust-v0.163.0-alpha.10.1](https://github.com/openai/codex/releases/tag/rust-v0.163.0-alpha.10.1) 已包含这些改动，但尚无当前桌面/Store 承载修复的证据。按[官方桌面更新渠道](https://learn.chatgpt.com/docs/enterprise/manage-app-updates)核版本，不能用全局 npm CLI 或 alpha 替换桌面捆绑 core。只读区分 exec 环境和工具启动环境中的相关变量；后者不可读时标未验，不从前者推定。当前仍待官方桌面承载版本和真实原生验收，不能把合并/发布标签当作本机恢复。
+
+相同错误、相同条件下停止重复启动/reset/重启；只有修复依据或能力变化后才做一次相应验证。升级处理时报告桌面/core/插件版本、最近失败记录时间（注明是否为精确事件时间）、平台和失败阶段、必要目录变量的存在性、尝试与结果、清理及未验项；不分享私有值或未审日志。若需要应用重启、更新/修复安装、开关/权限变更，先明确具体对象、影响的窗口/运行任务及所需授权，再执行。尚缺真实 UI 证据时保留草稿，不宣称完成或承诺永不复发。
+
 ## 先看本轮回执，避免处理错工具
 
 在当前源码工作区执行命令；主仓库是 `D:\projects\badminton-miniapp\main`，总目录不是 Git 根。先看失败命令返回的 `logDir`，读取该目录下的 `summary.json`。不要先重新安装、猜端口、换工具或重复授权。
