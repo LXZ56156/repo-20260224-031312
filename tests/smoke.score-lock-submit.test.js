@@ -85,7 +85,8 @@ test('smoke: create -> start -> acquire -> heartbeat -> submit -> release lock',
     21,
     17,
     'u1',
-    'A'
+    'A',
+    { status: submitted.nextStatus }
   );
   assert.deepEqual(deduped, {
     ok: true,

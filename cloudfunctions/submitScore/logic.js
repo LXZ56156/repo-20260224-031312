@@ -103,7 +103,7 @@ function applySquadTargetWinEndCondition(tournament, rounds, rankings) {
   return { rounds: nextRounds, finishedByRule: true };
 }
 
-function buildIdempotentRetryResult(match, scoreA, scoreB, requesterId, fallbackScorerName = '球友') {
+function buildIdempotentRetryResult(match, scoreA, scoreB, requesterId, fallbackScorerName = '球友', tournament = null) {
   const status = String(match && match.status || '').trim();
   if (status !== 'finished') return null;
 
@@ -114,7 +114,8 @@ function buildIdempotentRetryResult(match, scoreA, scoreB, requesterId, fallback
   return {
     ok: true,
     deduped: true,
-    finished: true,
+    // Match completion alone cannot confirm completion of the tournament.
+    finished: String(tournament && tournament.status || '').trim() === 'finished',
     scorerName: String(match && match.scorerName || '').trim() || String(fallbackScorerName || '').trim() || '球友'
   };
 }

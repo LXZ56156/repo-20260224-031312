@@ -990,3 +990,24 @@ test('startTournament reports scheduler timeout as a retryable structured result
   assert.equal(result.state, 'timeout');
   assert.equal(writes.length, 0);
 });
+
+
+
+test('fixed-pair start persists resting player objects from the real scheduler', async () => {
+  const players = buildPlayers(6);
+  const tournament = { ...buildTournament(), mode: 'fixed_pair_rr', players, totalMatches: 3,
+    pairTeams: [0, 1, 2].map((index) => ({ id: 'team' + (index + 1), playerIds: players.slice(index * 2, index * 2 + 2).map((player) => player.id) })) };
+  const { db, writes } = buildTimingDb(() => tournament);
+  db.runTransaction = (handler) => handler(db);
+  const { main } = loadMain(db, {
+    logic: require('../cloudfunctions/startTournament/logic'),
+    scheduleModes: require('../cloudfunctions/startTournament/scheduleModes')
+  });
+  const result = await main({ tournamentId: 't_1' });
+  assert.equal(result.ok, true);
+  const rounds = writes[0].rounds;
+  assert.deepEqual(rounds.map((round) => round.restPlayers.map((player) => player.id)), [
+    ['p1', 'p2'], ['p3', 'p4'], ['p5', 'p6']
+  ]);
+  assert.deepEqual(rounds[0].restPlayers, players.slice(0, 2).map((player) => ({ ...player, type: 'user' })));
+});

@@ -751,6 +751,7 @@ function buildRoundRobinPairs(teamIds, cycleIndex) {
 function buildFixedPairSchedule(players, courts, pairTeamsRaw = [], rules = {}) {
   scheduleContract.assertValidRosterPlayers(players);
   const normalizedPlayers = scheduleContract.normalizeRosterPlayers(players);
+  const allIds = normalizedPlayers.map((player) => player.id);
   const playerMap = {};
   for (const player of normalizedPlayers) {
     const id = String(player && player.id || '').trim();
@@ -814,10 +815,11 @@ function buildFixedPairSchedule(players, courts, pairTeamsRaw = [], rules = {}) 
           status: 'pending'
         };
       });
+      const active = new Set(matches.flatMap((match) => match.teamA.concat(match.teamB)));
       rounds.push({
         roundIndex: roundIndex++,
         matches,
-        restPlayers: []
+        restPlayers: allIds.filter((id) => !active.has(id))
       });
     }
   }

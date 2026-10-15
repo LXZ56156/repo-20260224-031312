@@ -35,6 +35,7 @@ Core route: create → configure → start → score → rank → review/share.
 
 - Tournament states: `draft` → `running` → `finished`; deleted tournaments are `missing`.
 - Game modes: `multi_rotate`, `squad_doubles`, `fixed_pair_rr`; legacy `doubles` and `mixed_fallback` normalize to `multi_rotate`.
+- Fixed-pair `restPlayers` lists roster members absent from the materialized batch, in roster order; it includes court-limited waiting players, not only logical-round byes. The scheduler returns IDs, startTournament maps them to player objects, and the existing schedule projection displays their names. This metadata does not change pairing or fairness.
 - Ranking sort: wins (descending) → point differential (descending) → points scored (descending) → name (`localeCompare`); source: `core/rankingCore.js` and `scripts/rankingCore-common.template.js`.
 - Key modules: `core/cloud.js`, `actionGuard.js`, `tournamentSync.js`, `normalize.js`, `nav.js`, `matchFlow.js`, `uxFlow.js`, `retryAction.js`, `syncStatus.js`.
 

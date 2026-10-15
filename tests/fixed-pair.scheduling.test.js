@@ -174,3 +174,53 @@ test('fixed_pair totalMatches 默认为 C(n,2)', () => {
   const matches = (out.rounds || []).flatMap((r) => r.matches || []);
   assert.equal(matches.length, 6);
 });
+
+
+
+test('three fixed pairs report the exact two resting players in each round', () => {
+  const { players, pairTeams } = makePairs(3);
+  const out = buildFixedPairSchedule(players, 1, pairTeams, { totalMatches: 3 });
+  assert.deepEqual(out.rounds.map((round) => round.restPlayers), [
+    ['P1', 'P2'], ['P3', 'P4'], ['P5', 'P6']
+  ]);
+  assert.deepEqual(out.rounds.map((round) => round.matches.map((match) => [match.unitAId, match.unitBId])), [
+    [['team2', 'team3']], [['team1', 'team3']], [['team1', 'team2']]
+  ]);
+});
+
+test('five fixed pairs preserve a different resting pair across two-court logical rounds', () => {
+  const { players, pairTeams } = makePairs(5);
+  const out = buildFixedPairSchedule(players, 2, pairTeams, { totalMatches: 10 });
+  assert.deepEqual(out.rounds.map((round) => round.restPlayers), [
+    ['P1', 'P2'], ['P7', 'P8'], ['P3', 'P4'], ['P9', 'P10'], ['P5', 'P6']
+  ]);
+  assert.equal(out.rounds.flatMap((round) => round.matches).length, 10);
+  assert.equal(out.fairness.playSpread, 0);
+});
+
+test('fixed-pair rest refers to the materialized single-court batch', () => {
+  const { players, pairTeams } = makePairs(4);
+  const out = buildFixedPairSchedule(players, 1, pairTeams, { totalMatches: 6 });
+  assert.deepEqual(out.rounds[0].restPlayers, ['P3', 'P4', 'P5', 'P6']);
+  assert.deepEqual(out.rounds[1].restPlayers, ['P1', 'P2', 'P7', 'P8']);
+  assert.equal(out.schedulerMeta.logicalRounds, 3);
+  assert.equal(out.schedulerMeta.materializedRounds, 6);
+});
+
+test('truncated two-court final batch reports players from the omitted pairing as resting', () => {
+  const { players, pairTeams } = makePairs(4);
+  const out = buildFixedPairSchedule(players, 2, pairTeams, { totalMatches: 5 });
+  assert.deepEqual(out.rounds.map((round) => round.restPlayers), [[], [], ['P5', 'P6', 'P7', 'P8']]);
+  assert.equal(out.rounds.at(-1).matches.length, 1);
+  assert.deepEqual(out.rounds.at(-1).matches[0].teamA, ['P1', 'P2']);
+  assert.deepEqual(out.rounds.at(-1).matches[0].teamB, ['P3', 'P4']);
+});
+
+test('fully occupied fixed-pair batches have no resting players over repeated cycles', () => {
+  const { players, pairTeams } = makePairs(4);
+  const out = buildFixedPairSchedule(players, 2, pairTeams, { totalMatches: 12 });
+  assert.equal(out.rounds.length, 6);
+  assert.ok(out.rounds.every((round) => round.restPlayers.length === 0));
+  assert.equal(out.fairness.playSpread, 0);
+  assert.equal(out.fairness.matchupRepeatSpread, 0);
+});

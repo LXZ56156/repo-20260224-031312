@@ -824,3 +824,61 @@ test('submitScore deadline never starts optional updates for an uncommitted perm
   assert.equal(apiCalls, 0);
   assert.equal(calls.diagnosticUpdate, 0);
 });
+
+
+
+for (const status of ['running', 'finished']) {
+  for (const conflictFallback of [false, true]) {
+    test('score replay confirms only tournament status=' + status + ', reread=' + conflictFallback, async (t) => {
+      const events = [];
+      const originalWx = global.wx;
+      t.after(() => { global.wx = originalWx; });
+      const snapshot = (read) => {
+        const doc = buildTournament();
+        doc.status = status;
+        if (!conflictFallback || read > 1) {
+          Object.assign(doc.rounds[0].matches[0], {
+            status: 'finished', score: { teamA: 21, teamB: 19 }, scorerId: 'u_admin', scorerName: '管理员'
+          });
+        }
+        doc.rounds[0].matches.push({ ...buildTournament().rounds[0].matches[0], matchIndex: 1,
+          status: status === 'finished' ? 'canceled' : 'pending' });
+        return doc;
+      };
+      const { db, calls } = createDbHarness(async () => ({ data: {
+        ownerId: 'u_admin', ownerName: '管理员', expireAt: Date.now() + 60_000
+      } }), { tournamentFactory: snapshot, updatedCount: conflictFallback ? 0 : 1 });
+      const { main } = loadSubmitScoreMain(db);
+      global.wx = {
+        getAccountInfoSync: () => ({ miniProgram: { version: 'test', envVersion: 'develop' } }),
+        reportEvent: (name, payload) => events.push({ name, payload }),
+        cloud: { callFunction: async ({ data }) => ({ result: await main(data) }) }
+      };
+      const clientCloud = require('../miniprogram/core/cloud');
+      const result = await clientCloud.call('submitScore', {
+        tournamentId: 't_1', roundIndex: 0, matchIndex: 0, scoreA: 21, scoreB: 19,
+        clientRequestId: 'completion-contract-' + status + '-' + conflictFallback
+      }, { retry: false });
+      assert.equal(result.ok, true);
+      assert.equal(result.code, 'SCORE_SUBMIT_DEDUPED');
+      assert.equal(result.state, 'deduped');
+      assert.equal(result.finished, status === 'finished');
+      assert.equal(result.data.finished, status === 'finished');
+      assert.equal(result.scorerName, '管理员');
+      assert.ok(result.traceId);
+      assert.equal(calls.tournamentGet, conflictFallback ? 2 : 1);
+      assert.equal(calls.lockGet, conflictFallback ? 1 : 0);
+      assert.equal(calls.update, conflictFallback ? 1 : 0);
+      assert.equal(calls.remove, 0);
+      const scoreResults = events.filter((event) => event.payload.action === 'score_submit' && event.payload.phase === 'result');
+      assert.equal(scoreResults.length, 1);
+      assert.equal(scoreResults[0].payload.result, 'deduped');
+      const completions = events.filter((event) => event.payload.action === 'tournament_complete');
+      assert.equal(completions.length, status === 'finished' ? 1 : 0);
+      if (completions.length) {
+        assert.equal(completions[0].payload.resultCode, 'FINISHED_CONFIRMED');
+        assert.equal(completions[0].payload.operationId, scoreResults[0].payload.operationId);
+      }
+    });
+  }
+}

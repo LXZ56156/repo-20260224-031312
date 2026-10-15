@@ -43,8 +43,8 @@ function createCodeResult(code, message, extra = {}) {
   });
 }
 
-function createDedupedSubmitResult(match, scoreA, scoreB, openid, fallbackScorerName, clientRequestId, traceId) {
-  const retryResult = buildIdempotentRetryResult(match, scoreA, scoreB, openid, fallbackScorerName);
+function createDedupedSubmitResult(tournament, match, scoreA, scoreB, openid, fallbackScorerName, clientRequestId, traceId) {
+  const retryResult = buildIdempotentRetryResult(match, scoreA, scoreB, openid, fallbackScorerName, tournament);
   if (!retryResult) return null;
   return common.withWriteResult({
     ...retryResult,
@@ -109,6 +109,7 @@ exports.main = async (event) => {
       if (!match) return createCodeResult('MATCH_NOT_FOUND', '比赛不存在', { traceId });
       const fallbackScorerName = resolvePlayerName(t, OPENID);
       const retryResult = createDedupedSubmitResult(
+        t,
         match,
         a,
         b,
@@ -183,6 +184,7 @@ exports.main = async (event) => {
         const latestTournament = common.assertTournamentExists(latestRes.data);
         const latestMatch = findMatch(latestTournament, roundIndex, matchIndex);
         const latestRetryResult = latestMatch && createDedupedSubmitResult(
+          latestTournament,
           latestMatch,
           a,
           b,
