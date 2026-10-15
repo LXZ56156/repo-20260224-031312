@@ -854,6 +854,13 @@ Page({
         && clean(this.data.feedFilter) === requestedFilter
       ) {
         if (requestedFilter !== 'all') {
+          const head = responseData(response);
+          const watermark = Array.isArray(head.entries) && head.page
+            && typeof head.page.latestSeq === 'number' && head.page.latestSeq === this.data.round.eventCount
+            ? this.filteredFeedWatermark() : '';
+          if (watermark && watermark === this._filteredSyncWatermark
+              && !this.data.feedLoading && !this.data.feedLoadingMore && !this.data.feedError
+              && !this._feedNeedsFullReset) return response;
           await this.syncFilteredEntries({
             roomId: requestedRoomId,
             roundId: requestedRoundId,
@@ -888,6 +895,15 @@ Page({
     }
   },
 
+  filteredFeedWatermark() {
+    const {room, round, viewer, capabilities} = this.data;
+    if (!room || !round || !this.data.canUseV2Features) return '';
+    const revisions = [room.roomVersion, room.syncVersion, round.revision, round.eventCount];
+    if (revisions.some((value) => typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0)) return '';
+    return JSON.stringify([this.data.roomId, this.data.roundId, this.data.feedFilter,
+      ...revisions, round.status, viewer, capabilities]);
+  },
+
   async syncFilteredEntries(scope) {
     if (!this.data.canUseV2Features) return null;
     const roomId = clean(scope && scope.roomId);
@@ -895,6 +911,8 @@ Page({
     const filter = clean(scope && scope.filter);
     const afterSeq = Math.max(0, Number(scope && scope.afterSeq || 0));
     if (!roomId || !roundId || !['game', 'direct'].includes(filter)) return null;
+    const watermark = this.filteredFeedWatermark();
+    this._filteredSyncWatermark = null;
     const requestSeq = Number(this._feedRequestSeq || 0) + 1;
     const scopeKey = `${roomId}:${roundId}:${filter}`;
     this._feedRequestSeq = requestSeq;
@@ -947,6 +965,10 @@ Page({
         newEventCount,
         feedError: '',
       });
+      if (watermark && watermark === this.filteredFeedWatermark()
+          && typeof page.latestSeq === 'number' && page.latestSeq === this.data.round.eventCount) {
+        this._filteredSyncWatermark = watermark;
+      }
       return response;
     } catch (err) {
       const currentScopeKey = `${clean(this.data.roomId)}:${clean(this.data.roundId)}:${clean(this.data.feedFilter)}`;
@@ -1211,6 +1233,7 @@ Page({
     let newEventCount = sameFeedScope ? Number(this.data.newEventCount || 0) : 0;
     const pendingIds = this._pendingFeedEntryIds instanceof Set ? this._pendingFeedEntryIds : new Set();
     if (!canUseV2Features) {
+      this._filteredSyncWatermark = null;
       pendingIds.clear();
       feedHasLoadedOlder = false;
       newEventCount = 0;
@@ -1592,6 +1615,7 @@ Page({
     if (!this.data.canUseV2Features) return null;
     const filter = clean(e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.filter);
     if (!['all', 'game', 'direct'].includes(filter) || filter === this.data.feedFilter && this.data.feedItems.length) return;
+    this._filteredSyncWatermark = null;
     this._feedRequestSeq = Number(this._feedRequestSeq || 0) + 1;
     this._pendingFeedEntryIds = new Set();
     this._feedAwayFromLatest = false;
@@ -1602,6 +1626,7 @@ Page({
   },
 
   async loadEntries(options = {}) {
+    this._filteredSyncWatermark = null;
     if (!this.data.canUseV2Features || !this.data.roomId || !this.data.roundId) return null;
     const reset = !!options.reset;
     if (!reset && (!this.data.feedHasMore || this.data.feedLoadingMore)) return null;

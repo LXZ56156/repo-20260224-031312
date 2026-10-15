@@ -28,6 +28,22 @@
 
 普通npm、测试、hooks不依赖裸 `bash` 或全局script-shell；仓库.sh经 `node scripts/run-bash-script.js <仓库脚本>`，Node代码使用 `scripts/lib/git-bash.js`。不要永久修改用户npm配置来修单个任务。旧工具链的verify、records等命令不能从历史文档推断为当前可用。
 
+## 只读环境预检
+
+在实际Git/npm checkout运行：
+
+```powershell
+node scripts/environment-preflight.js
+npm config get cache
+# 如需验证缓存访问，将上条返回的实际路径作为cacheDir传给collectPreflight。
+# 下面路径是当前本机例子，不作为其他电脑默认值。
+node -e "console.log(JSON.stringify(require('./scripts/environment-preflight').collectPreflight({cacheDir:'D:/Caches/npm-cache'}),null,2))"
+```
+
+检查package/lock、依赖可解析、canvas本机ABI内存绘图、tmp和shell路径访问；仅报告缺项，不创建目录、安装/升级依赖、写配置、启动shell/DevTools或认证。npm缓存未显式提供时标unverified，不把系统默认路径当实际配置；脚本只消费npm_config_cache或显式cacheDir，读取npm配置的命令由调用者单独运行。文件访问检查不做写入往返，ready只表示没有检测到必要项失败，不包含unverified项已验。输出不含底层异常文本或凭据。
+
+新checkout缺tmp时明确建目录，依赖按已审lock安装，canvas按本机Node ABI核实；之后仍执行相称业务测试/check/lint。WSL/Windows工具运行态、原生UI、云/权限/生产包分别验收，预检不代替它们。当前结果见[current](../tasks/current.md)，不永久记录本机运行状态。
+
 ## DevTools
 
 - 热会话由 `WEAPP_UI_SESSION_FILE` 显式选择；endpoint来自签名回执，不扫描/猜端口，不把CDP/HTTP端口当automation。

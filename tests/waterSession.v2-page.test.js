@@ -2444,3 +2444,135 @@ test('record, roster, and join failures remain visible inside their open sheet',
     global.wx = originalWx;
   }
 });
+
+
+for (const category of ['game', 'direct']) {
+  test('unchanged ' + category + ' polling retains authoritative get but reuses a confirmed filtered watermark', async () => {
+    let gets = 0;
+    let lists = 0;
+    const definition = loadPageDefinition({
+      async getV2() { gets += 1; return payload(); },
+      async listEntries() { lists += 1; return {entries: [], page: {latestSeq: 16, hasMore: false}}; },
+    });
+    const ctx = createContext(definition);
+    try {
+      ctx.applyRoomData(payload());
+      ctx.setData({feedFilter: category});
+      for (let index = 0; index < 3; index += 1) await ctx.loadRoom({silent: true});
+      assert.equal(gets, 3, 'permissions/config/version must still be read every time');
+      assert.equal(lists, 1, 'only the first filtered interval needs confirmation');
+    } finally {ctx.onUnload();}
+  });
+}
+
+for (const [name, change] of [
+  ['room version', (data) => {data.room.syncVersion += 1;}],
+  ['round revision', (data) => {data.round.revision += 1;}],
+  ['event sequence', (data) => {data.round.eventCount += 1; data.page.latestSeq += 1;}],
+  ['capabilities', (data) => {data.capabilities.revision += 1; data.capabilities.canCorrect = false;}],
+  ['viewer', (data) => {data.viewer.role = 'owner';}],
+]) {
+  test('filtered polling rechecks entries after ' + name + ' changes', async () => {
+    let current = payload();
+    let lists = 0;
+    const ctx = createContext(loadPageDefinition({
+      async getV2() {return current;},
+      async listEntries() {lists += 1; return {entries: [], page: {latestSeq: current.round.eventCount, hasMore: false}};},
+    }));
+    try {
+      ctx.applyRoomData(payload()); ctx.setData({feedFilter: 'game'});
+      await ctx.loadRoom({silent: true});
+      current = payload(); change(current);
+      await ctx.loadRoom({silent: true});
+      assert.equal(lists, 2);
+    } finally {ctx.onUnload();}
+  });
+}
+
+test('failed filtered confirmation retries rather than marking the interval synchronized', async () => {
+  let lists = 0;
+  const ctx = createContext(loadPageDefinition({
+    async getV2() {return payload();},
+    async listEntries() {lists += 1; if (lists === 1) throw new Error('network fail'); return {entries: [], page: {latestSeq: 16, hasMore: false}};},
+  }));
+  try {
+    ctx.applyRoomData(payload()); ctx.setData({feedFilter: 'game'});
+    for (let index = 0; index < 3; index += 1) await ctx.loadRoom({silent: true});
+    assert.equal(lists, 2);
+  } finally {ctx.onUnload();}
+});
+
+test('incomplete or missing filtered watermarks never suppress the next confirmation', async () => {
+  let lists = 0;
+  const ctx = createContext(loadPageDefinition({
+    async getV2() {return payload();},
+    async listEntries() {lists += 1; return {entries: [], page: {hasMore: false}};},
+  }));
+  try {
+    ctx.applyRoomData(payload()); ctx.setData({feedFilter: 'game'});
+    await ctx.loadRoom({silent: true}); await ctx.loadRoom({silent: true});
+    assert.equal(lists, 2);
+  } finally {ctx.onUnload();}
+});
+
+
+test('filter switches and older-page failure invalidate confirmed filtered state', async () => {
+  let lists = 0;
+  let failNext = false;
+  const ctx = createContext(loadPageDefinition({
+    async getV2() {return payload();},
+    async listEntries() {
+      lists += 1;
+      if (failNext) {failNext = false; throw new Error('network fail');}
+      return {entries: [], page: {latestSeq: 16, hasMore: false}};
+    },
+  }));
+  try {
+    ctx.applyRoomData(payload()); ctx.setData({feedFilter: 'game'});
+    await ctx.loadRoom({silent: true});
+    await ctx.onSelectFeedFilter({currentTarget: {dataset: {filter: 'direct'}}});
+    await ctx.onSelectFeedFilter({currentTarget: {dataset: {filter: 'game'}}});
+    assert.equal(lists, 3);
+    await ctx.loadRoom({silent: true});
+    await ctx.loadRoom({silent: true});
+    assert.equal(lists, 4);
+    ctx.setData({feedHasMore: true});
+    failNext = true;
+    await ctx.loadEntries({reset: false});
+    assert.ok(ctx.data.feedError);
+    await ctx.loadRoom({silent: true});
+    assert.equal(lists, 6, 'failure must not reuse an earlier confirmation');
+  } finally {ctx.onUnload();}
+});
+
+test('newer list response than the room snapshot cannot certify an older filtered watermark', async () => {
+  let lists = 0;
+  const ctx = createContext(loadPageDefinition({
+    async getV2() {return payload();},
+    async listEntries() {lists += 1; return {entries: [], page: {latestSeq: 17, hasMore: false}};},
+  }));
+  try {
+    ctx.applyRoomData(payload()); ctx.setData({feedFilter: 'game'});
+    await ctx.loadRoom({silent: true}); await ctx.loadRoom({silent: true});
+    assert.equal(lists, 2);
+  } finally {ctx.onUnload();}
+});
+
+
+for (const missing of ['page', 'entries']) {
+  test('malformed authoritative feed head without ' + missing + ' cannot reuse a filtered confirmation', async () => {
+    let malformed = false;
+    let lists = 0;
+    const ctx = createContext(loadPageDefinition({
+      async getV2() { const data = payload(); if (malformed) delete data[missing]; return data; },
+      async listEntries() { lists += 1; return {entries: [], page: {latestSeq: 16, hasMore: false}}; },
+    }));
+    try {
+      ctx.applyRoomData(payload()); ctx.setData({feedFilter: 'game'});
+      await ctx.loadRoom({silent: true});
+      malformed = true;
+      await ctx.loadRoom({silent: true}); await ctx.loadRoom({silent: true});
+      assert.equal(lists, 3);
+    } finally {ctx.onUnload();}
+  });
+}

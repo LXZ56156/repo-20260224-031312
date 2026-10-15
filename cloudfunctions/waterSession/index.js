@@ -1767,25 +1767,28 @@ async function handleV2ListLedgers(event, openid, traceId) {
       throw err;
     }
     const members = Array.isArray(response && response.data) ? response.data : [];
-    for (const member of members) {
-      const roomId = String(member.roomId || '');
-      if (member.openid !== openid || member._id !== memberDocumentId(roomId, openid)
-          || !isEligible(config, roomId, openid)) continue;
-      const room = await getOptionalDocument(db, V2_ROOMS, roomId);
-      if (!room || Number(room.schemaVersion) !== 2 || room.migrationStatus !== 'active'
-          || !validMemberForRoom(room, member)) continue;
-      const roundId = String(room.activeRoundId || room.lastRoundId || '');
-      const round = roundId ? await getOptionalDocument(db, V2_ROUNDS, roundId) : null;
-      if (!round || round.roomId !== roomId) continue;
-      summaries.set(roomId, {
-        id: roomId,
-        title: String(round.title || '打水账本'),
-        participantCount: Array.isArray(round.participantIds) ? round.participantIds.length : 0,
-        recordCount: Number(round.recordCount || 0),
-        updatedAtMs: Number(room.updatedAtMs || round.updatedAtMs || 0),
-        isOwner: member.role === 'owner',
-        legacy: false
-      });
+    // Bound independent reads; preserve the full scan and final updatedAt/id cursor order.
+    for (let offset = 0; offset < members.length; offset += 4) {
+      await Promise.all(members.slice(offset, offset + 4).map(async (member) => {
+        const roomId = String(member.roomId || '');
+        if (member.openid !== openid || member._id !== memberDocumentId(roomId, openid)
+            || !isEligible(config, roomId, openid)) return;
+        const room = await getOptionalDocument(db, V2_ROOMS, roomId);
+        if (!room || Number(room.schemaVersion) !== 2 || room.migrationStatus !== 'active'
+            || !validMemberForRoom(room, member)) return;
+        const roundId = String(room.activeRoundId || room.lastRoundId || '');
+        const round = roundId ? await getOptionalDocument(db, V2_ROUNDS, roundId) : null;
+        if (!round || round.roomId !== roomId) return;
+        summaries.set(roomId, {
+          id: roomId,
+          title: String(round.title || '打水账本'),
+          participantCount: Array.isArray(round.participantIds) ? round.participantIds.length : 0,
+          recordCount: Number(round.recordCount || 0),
+          updatedAtMs: Number(room.updatedAtMs || round.updatedAtMs || 0),
+          isOwner: member.role === 'owner',
+          legacy: false
+        });
+      }));
     }
     if (members.length < 100) break;
     const nextId = String(members[members.length - 1]._id || '');

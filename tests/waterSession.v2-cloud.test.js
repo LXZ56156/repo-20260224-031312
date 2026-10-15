@@ -1349,3 +1349,43 @@ test('V2 rejects rooms unless schemaVersion 2 and migrationStatus active are exp
     assert.deepEqual(mutableSnapshot(state), before, `${label} must remain zero-write`);
   }
 });
+
+
+test('listLedgers bounds parallel document reads without changing summaries, date cursors or call count', async () => {
+  const state = makeDb(enabledSeed());
+  const owner = loadMain(state.db, 'u_parallel_books');
+  for (let index = 0; index < 8; index += 1) {
+    const created = await owner(request('createLedger', 'parallel_' + index, {}));
+    assert.equal(created.ok, true);
+    await state.db.collection('waterRooms').doc(created.data.room.id).update({data: {updatedAtMs: index % 2 ? 99 : 100}});
+  }
+  const expected = await owner({apiVersion: 2, action: 'listLedgers', limit: 3});
+  let active = 0;
+  let peak = 0;
+  let reads = 0;
+  const wrapped = {...state.db, collection(name) {
+    const collection = state.db.collection(name);
+    return {...collection, doc(id) {
+      const doc = collection.doc(id);
+      return {...doc, async get() {
+        reads += 1;
+        active += 1;
+        peak = Math.max(peak, active);
+        try {
+          await new Promise((resolve) => require('node:timers').setImmediate(resolve));
+          return await doc.get();
+        } finally { active -= 1; }
+      }};
+    }};
+  }};
+  const parallel = loadMain(wrapped, 'u_parallel_books');
+  const actual = await parallel({apiVersion: 2, action: 'listLedgers', limit: 3});
+  assert.deepEqual(actual.data, expected.data);
+  assert.equal(actual.code, expected.code);
+  assert.equal(active, 0);
+  assert.equal(peak, 4, 'four independent member reads should run concurrently, never the entire scan');
+  assert.equal(reads, 19, 'same config, room/round and legacy reads; this changes waiting, not billed reads');
+  const second = await parallel({apiVersion: 2, action: 'listLedgers', limit: 3, cursor: actual.data.page.nextCursor});
+  const expectedSecond = await owner({apiVersion: 2, action: 'listLedgers', limit: 3, cursor: expected.data.page.nextCursor});
+  assert.deepEqual(second.data, expectedSecond.data);
+});
