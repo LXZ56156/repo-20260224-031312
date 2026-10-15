@@ -32,6 +32,15 @@
 
 ignored本机tmp/toolchain-recheck-20261015/recheck.json记录时间、版本/进程来源、一次CUA错误、脱敏MCP状态、任务读取范围、更新检查拒绝和剩余动作；不存令牌、完整登录身份或无关任务内容。文档引用/diff及原18项保全单独核验；本轮没有业务代码变更，不重复业务全量/check/lint冒充工具健康。产品决策、UI14、真实云和所有原外部门禁仍未完成。
 
+### 18:21–18:25受支持更新查询补核
+
+- **渠道**：当前OpenAI.Codex是Store签名、非开发模式的MSIX，版本26.1007.9446.0；WinGet以msstore产品ID9PLM9XGG6VKS成功关联，显示名是ChatGPT。签名/目录关联不能区分最初是Store按钮还是官方离线MSIX安装。没有安装、替换、读取私有进程环境或改设置。
+- **新可执行只读路径**：本机已有WinGet1.29.380。读完官方命令帮助后，执行winget list --id 9PLM9XGG6VKS --exact --source msstore --details --disable-interactivity，退出0并回读已装版本。按Codex名称或包族ID查不到不等于未安装。winget show同产品--versions退出0但仅Unknown；list同产品--upgrade-available退出0、候选为空。不能将目录候选为空/Unknown泛化为应用内更新器或账户没有更新，更未拿到已包含PR修复的目标版本；从未执行upgrade/install，也未接受新源协议或改源。
+- **第二种官方查询**：本机Get-AppxPackageAutoUpdateSettings支持ShowUpdateAvailability。本地参数名为PackageFamilyName、微软页面写PackageFullName，分别使用真实包族/完整包名作只读查询，两者都无记录；不改AutoUpdate设置，不装Update-Help或其他工具。现有安装目录未发现独立Update/Squirrel可执行入口，未猜测或启动ChatGPT.exe的未知更新开关，也未调用应用内部更新API。
+- **任务可见性新尝试**：open_in_codex打开现有current.md返回queued；随后navigate现任务返回true，再打开仍queued。此前read5历史文字可用，但未取得前端已显示证据。现有暴露接口中没有发现新的可自主执行的受支持恢复动作；不继续反复导航、改任务标题/归档/宿主或操作数据库。
+- **最小用户步骤**：先在侧栏点开既有任务“推进羽毛球小程序修复”，查看queued状态文档是否出现；无须新任务。更新方面，官方可确认的入口名称是Check for Updates，政策状态路径是Settings > General > In-app updates。请在主桌面查看该菜单项是否存在/置灰，以及是否显示Managed，回传文字/版本；先不安装、重启或改开关。由于原生控制未启动，本机父菜单层级与画面未验，不能编造Help/About路径或声称已点过。若检查入口会直接下载/安装，停在该入口并先明确行为/授权。不是继续等待无证据修复。
+- **来源与证据**：[官方更新管理](https://learn.chatgpt.com/docs/enterprise/manage-app-updates)、[官方Windows部署](https://learn.chatgpt.com/docs/enterprise/windows-deployment)、[微软WinGet list](https://learn.microsoft.com/en-us/windows/package-manager/winget/list)、[微软MSIX查询](https://learn.microsoft.com/en-us/powershell/module/appx/get-appxpackageautoupdatesettings?view=windowsserver2025-ps)；本机脱敏tmp/toolchain-recheck-20261015/supported-update-paths.json。没有重复check_app_update或CUA失败测试，原18项及业务状态保留。
+
 ## 10-15离线候选收尾批次
 
 - **范围与保全**：起点本地/远端master/2866cd9cdd0f1978da69b6d385d46ed72d4ed405，原18项逐SHA保持、初始暂存区空。仅waterSession历史只读列表、water页筛选水位、只读预检脚本及对应测试/文档；不混UI14两稿、配置、单打候选或私有文件。BIZ-02只核现行合同，EFF-04不清缓存，FA不动算法，DEP不升级依赖。
