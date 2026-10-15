@@ -35,7 +35,7 @@ test('deduplicates requests, preserves business failure on platform200 and separ
     requests: 4, platformSuccess: 3, platformFailure: 1, platformConflict: 0,
     businessSuccess: 1, businessFailure: 1, businessUnknown: 2, businessConflict: 0,
     hardTimeout: 1, missingTrace: 3, missingVersion: 3, platformFailureRate: 0.25,
-    requestP95Ms: 10000, durationCoverage: 4
+    requestP95Ms: 10000, durationCoverage: 4, durationMissing: 0, durationInvalid: 0
   });
   assert.equal(report.missingParameterProbeCandidates.length, 1);
   assert.equal(report.anomalies.length, 2);
@@ -117,4 +117,42 @@ test('offline manifest reads only named files and refuses output overwrite', asy
   assert.equal(plan.command, 'logs search');
   assert.ok(Object.values(plan.queries).every((query) => query.startsWith('function_name:')));
   assert.ok(!JSON.stringify(plan).includes('callFunction'));
+});
+
+
+
+test('null terminal durations remain missing instead of becoming measured zeroes', () => {
+  const report = buildReport(window, [source([row('a', { duration: null }), row('b', { duration: null }), row('c', { duration: null })])]);
+  const metrics = report.functions.startTournament;
+  assert.equal(metrics.durationCoverage, 0);
+  assert.equal(metrics.requestP95Ms, null);
+  assert.equal(metrics.durationMissing, 3);
+  assert.equal(metrics.durationInvalid, 0);
+});
+
+test('duration coverage accepts finite nonnegative numbers and numeric strings only', () => {
+  const missing = [undefined, null, '', '  '];
+  const invalid = [true, false, [], [1], {}, 'bad', -1, '-1', Infinity, 'Infinity', NaN];
+  const valid = [0, '0', 12.5, ' 25.5 '];
+  const report = buildReport(window, [source([...missing, ...invalid, ...valid].map((duration, i) => row(String(i), { duration })))]);
+  const metrics = report.functions.startTournament;
+  assert.equal(metrics.durationCoverage, valid.length);
+  assert.equal(metrics.durationMissing, missing.length);
+  assert.equal(metrics.durationInvalid, invalid.length);
+  assert.equal(metrics.requestP95Ms, 25.5);
+  assert.equal(metrics.requests, missing.length + invalid.length + valid.length);
+});
+
+test('duration classifications are disjoint per request after duplicate terminal rows', () => {
+  const metrics = buildReport(window, [source([
+    row('valid', { duration: null }), row('valid', { duration: false }), row('valid', { duration: '15' }), row('valid', { duration: '30' }),
+    row('invalid', { duration: null }), row('invalid', { duration: true }), row('invalid', { duration: true }),
+    row('missing', { duration: '' }), row('missing', { duration: null }),
+    row('ignored-app', { src: 'app', duration: false }), row('ignored-app', { duration: '50' })
+  ])]).functions.startTournament;
+  assert.equal(metrics.durationCoverage, 2);
+  assert.equal(metrics.durationMissing, 1);
+  assert.equal(metrics.durationInvalid, 1);
+  assert.equal(metrics.requestP95Ms, 50);
+  assert.equal(metrics.durationCoverage + metrics.durationMissing + metrics.durationInvalid, metrics.requests);
 });

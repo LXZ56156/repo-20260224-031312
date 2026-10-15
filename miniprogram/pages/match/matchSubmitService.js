@@ -75,9 +75,12 @@ function createMatchSubmitService(ctx, deps = {}) {
     return true;
   }
 
-  function buildLocalSubmittedTournament(scoreA, scoreB, lockSnapshot, result = {}) {
-    const currentTournament = ctx._latestTournament || (ctx.data && ctx.data.tournament) || null;
+  function buildLocalSubmittedTournament(scoreA, scoreB, lockSnapshot, result, currentTournament) {
     if (!currentTournament || typeof currentTournament !== 'object') return null;
+    const resultVersion = Number(result && result.version) || 0;
+    const currentVersion = Number(currentTournament.version) || 0;
+    // A successful response confirms only its own version, never a later correction.
+    if (!Number.isFinite(resultVersion) || resultVersion <= 0 || currentVersion >= resultVersion) return null;
 
     const nextTournament = JSON.parse(JSON.stringify(currentTournament));
     const rounds = Array.isArray(nextTournament.rounds) ? nextTournament.rounds : [];
@@ -99,9 +102,7 @@ function createMatchSubmitService(ctx, deps = {}) {
     match.scorerName = String((result && result.scorerName) || lockSnapshot.ownerName || ctx.data.lockOwnerName || '').trim();
     match.scoredAt = new Date().toISOString();
 
-    const resultVersion = Number(result && result.version) || 0;
-    const currentVersion = Number(nextTournament.version) || 0;
-    if (resultVersion > 0) nextTournament.version = Math.max(currentVersion, resultVersion);
+    nextTournament.version = resultVersion;
     nextTournament.status = allMatchesFinished(rounds) ? 'finished' : 'running';
     nextTournament.updatedAtTs = Date.now();
     nextTournament.rounds = rounds;
@@ -140,18 +141,17 @@ function createMatchSubmitService(ctx, deps = {}) {
   }
 
   async function finalizeSubmitSuccess(result, lockSnapshot, options = {}) {
-    const scoreA = clampScore(ctx.data.scoreA);
-    const scoreB = clampScore(ctx.data.scoreB);
-    const resolvedTournament = options.tournamentDoc || await refreshTournamentDoc();
-    if (!isSubmittedMatch(resolvedTournament, scoreA, scoreB)) {
-      const localCommitted = buildLocalSubmittedTournament(
-        scoreA,
-        scoreB,
-        lockSnapshot,
-        result
-      );
-      if (localCommitted) applyCommittedTournament(localCommitted);
-    }
+    const { scoreA, scoreB } = options;
+    // A failed refresh must not turn an acknowledged write into a retryable write failure.
+    const resolvedTournament = options.tournamentDoc || await refreshTournamentDoc().catch(() => null);
+    const currentTournament = ctx._latestTournament || (ctx.data && ctx.data.tournament) || null;
+    const latestTournament = resolvedTournament && (!currentTournament
+      || (Number(resolvedTournament.version) || 0) >= (Number(currentTournament.version) || 0))
+      ? resolvedTournament : currentTournament;
+    const localCommitted = !isSubmittedMatch(latestTournament, scoreA, scoreB)
+      ? buildLocalSubmittedTournament(scoreA, scoreB, lockSnapshot, result, latestTournament) : null;
+    if (localCommitted) applyCommittedTournament(localCommitted);
+    else if (latestTournament && latestTournament !== currentTournament) applyCommittedTournament(latestTournament);
   }
 
   async function jumpToNextPending(tournamentDoc, noPendingMessage, forceBatch = false) {
@@ -387,7 +387,7 @@ function createMatchSubmitService(ctx, deps = {}) {
           return;
         }
 
-        await finalizeSubmitSuccess(res, lockSnapshot);
+        await finalizeSubmitSuccess(res, lockSnapshot, { scoreA, scoreB });
         growthTracker.track('score_submit_success', growthTracker.fromTournament(ctx._latestTournament || ctx.data.tournament, {
           tournamentId: ctx.data.tournamentId,
           src: 'match',
@@ -415,7 +415,7 @@ function createMatchSubmitService(ctx, deps = {}) {
             await finalizeSubmitSuccess({
               ok: true,
               scorerName: lockSnapshot.ownerName
-            }, lockSnapshot, { tournamentDoc: recovered });
+            }, lockSnapshot, { tournamentDoc: recovered, scoreA, scoreB });
             growthTracker.track('score_submit_success', growthTracker.fromTournament(ctx._latestTournament || ctx.data.tournament || recovered, {
               tournamentId: ctx.data.tournamentId,
               src: 'match',

@@ -152,14 +152,18 @@ function buildReport(window, sources) {
         const requestId = String(content.request_id || '');
         if (!functionName || !requestId) { problem('raw function_name/request_id missing'); continue; }
         const key = `${functionName}:${requestId}`;
-        const item = requests.get(key) || { functionName, requestId, statuses: new Set(), outcomes: new Set(), codes: new Set(), traceIds: new Set(), versions: new Set(), durations: [], hardTimeout: false };
+        const item = requests.get(key) || { functionName, requestId, statuses: new Set(), outcomes: new Set(), codes: new Set(), traceIds: new Set(), versions: new Set(), durations: [], invalidDuration: false, hardTimeout: false };
         const seen = observation(content);
         if (content.src === 'system' && Number(content.status_code) !== 202) {
           const status = Number(content.status_code);
           if (!Number.isFinite(status) || status <= 0) problem('invalid terminal platform status');
           else item.statuses.add(status);
-          const duration = Number(content.duration);
-          if (content.duration !== '' && Number.isFinite(duration) && duration >= 0) item.durations.push(duration);
+          const rawDuration = content.duration;
+          const missingDuration = rawDuration == null || (typeof rawDuration === 'string' && !rawDuration.trim());
+          const duration = !missingDuration && (typeof rawDuration === 'number' || typeof rawDuration === 'string')
+            ? Number(rawDuration) : NaN;
+          if (Number.isFinite(duration) && duration >= 0) item.durations.push(duration);
+          else if (!missingDuration) item.invalidDuration = true;
           item.hardTimeout = item.hardTimeout || status === 433 || (status !== 200 && seen.hardTimeout);
         }
         if (seen.business !== 'unknown') item.outcomes.add(seen.business);
@@ -184,7 +188,7 @@ function buildReport(window, sources) {
     const business = item.outcomes.size > 1 || item.outcomes.has('conflict') ? 'conflict' : [...item.outcomes][0] || 'unknown';
     const detail = { functionName: item.functionName, requestId: item.requestId, platform, business, statusCodes: [...item.statuses], codes: [...item.codes], traceIds: [...item.traceIds], appVersions: [...item.versions], hardTimeout: item.hardTimeout };
     if (item.functionName === 'startTournament' && item.codes.has('TOURNAMENT_ID_REQUIRED')) { probes.push(detail); continue; }
-    const summary = functions[item.functionName] || { requests: 0, platformSuccess: 0, platformFailure: 0, platformConflict: 0, businessSuccess: 0, businessFailure: 0, businessUnknown: 0, businessConflict: 0, hardTimeout: 0, missingTrace: 0, missingVersion: 0, durations: [] };
+    const summary = functions[item.functionName] || { requests: 0, platformSuccess: 0, platformFailure: 0, platformConflict: 0, businessSuccess: 0, businessFailure: 0, businessUnknown: 0, businessConflict: 0, hardTimeout: 0, missingTrace: 0, missingVersion: 0, durationMissing: 0, durationInvalid: 0, durations: [] };
     summary.requests += 1;
     summary[`platform${platform[0].toUpperCase()}${platform.slice(1)}`] += 1;
     summary[`business${business[0].toUpperCase()}${business.slice(1)}`] += 1;
@@ -192,6 +196,8 @@ function buildReport(window, sources) {
     summary.missingTrace += Number(!item.traceIds.size);
     summary.missingVersion += Number(!item.versions.size);
     if (item.durations.length) summary.durations.push(Math.max(...item.durations));
+    else if (item.invalidDuration) summary.durationInvalid += 1;
+    else summary.durationMissing += 1;
     if (platform !== 'success' || business === 'failure' || business === 'conflict') anomalies.push(detail);
     functions[item.functionName] = summary;
   }
@@ -215,7 +221,7 @@ function buildReport(window, sources) {
       'Platform success does not prove business success; missing business results remain unknown.',
       'Missing-parameter calls are probe candidates, not proven test traffic; displayed separately.',
       'Aggregate group counts are not summed into an exact request total or success rate.',
-      'Raw P95 uses one maximum reported terminal duration per request and reports coverage.',
+      'Raw P95 uses one maximum valid terminal duration per request; uncovered requests are classified as invalid if any terminal duration is invalid, otherwise missing.',
       'No real-client receipt, retention enforcement, alerts subscription or production/test separation proven.'
     ]
   };

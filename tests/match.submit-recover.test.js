@@ -627,3 +627,96 @@ test('match submit absorbs MATCH_CANCELED without falling into generic write err
     global.wx = originalWx;
   }
 });
+
+
+
+async function submitWithInterleavedDocument(t, { resultVersion = 2, fetch, call } = {}) {
+  const previousWx = global.wx;
+  global.wx = { showLoading() {}, hideLoading() {}, showToast() {} };
+  t.after(() => { global.wx = previousWx; });
+  const ctx = createCtx();
+  if (fetch) ctx.fetchTournament = () => fetch(ctx);
+  const service = createMatchSubmitService(ctx, {
+    cloud: { call: () => call ? call(ctx) : Promise.resolve({ ok: true, version: resultVersion }) },
+    storage: { get: () => false },
+    nav: { markRefreshFlag() {} }
+  });
+  await service.submit();
+  return ctx;
+}
+
+function correctedTournament(version = 3) {
+  const doc = buildFinishedTournament(18, 21);
+  doc.version = version;
+  Object.assign(doc.rounds[0].matches[0], { scorerId: 'u2', scorerName: '裁判B' });
+  return doc;
+}
+
+function assertAuthoritativeScore(ctx, expected) {
+  const actual = ctx._latestTournament;
+  const match = actual.rounds[0].matches[0];
+  const expectedMatch = expected.rounds[0].matches[0];
+  assert.equal(actual.version, expected.version);
+  assert.equal(actual.status, expected.status);
+  assert.deepEqual(match.score, expectedMatch.score);
+  assert.equal(match.scorerId, expectedMatch.scorerId);
+  assert.equal(match.scorerName, expectedMatch.scorerName);
+  assert.equal(match.scoredAt, expectedMatch.scoredAt);
+}
+
+test('late submit response preserves a newer authoritative correction returned by refresh', async (t) => {
+  const newer = correctedTournament();
+  const ctx = await submitWithInterleavedDocument(t, { fetch: async () => newer });
+  assertAuthoritativeScore(ctx, newer);
+  assert.equal(ctx._writeErrors.length, 0);
+  assert.equal(ctx._clearDraftCount, 1);
+});
+
+test('late submit response preserves the watch correction when refresh fails', async (t) => {
+  const newer = correctedTournament();
+  const ctx = await submitWithInterleavedDocument(t, {
+    call: async (page) => { page.applyTournament(newer); return { ok: true, version: 2 }; },
+    fetch: async () => null
+  });
+  assertAuthoritativeScore(ctx, newer);
+  assert.equal(ctx._latestTournament.version, 3);
+});
+
+test('submit compensation uses the dispatched score when refresh changed the score inputs', async (t) => {
+  const ctx = await submitWithInterleavedDocument(t, {
+    call: async (page) => { page.setData({ scoreA: 10, scoreB: 9 }); return { ok: true, version: 2 }; }
+  });
+  assert.deepEqual(ctx._latestTournament.rounds[0].matches[0].score, { teamA: 21, teamB: 18 });
+  assert.equal(ctx._latestTournament.version, 2);
+});
+
+test('successful submit compensates an older snapshot even when refresh rejects', async (t) => {
+  const ctx = await submitWithInterleavedDocument(t, { fetch: async () => { throw new Error('refresh unavailable'); } });
+  assert.deepEqual(ctx._latestTournament.rounds[0].matches[0].score, { teamA: 21, teamB: 18 });
+  assert.equal(ctx._latestTournament.version, 2);
+  assert.equal(ctx._writeErrors.length, 0);
+  assert.equal(ctx._clearDraftCount, 1);
+});
+
+test('equal-version authoritative correction and versionless success are never overwritten', async (t) => {
+  const equal = correctedTournament(2);
+  const ctx = await submitWithInterleavedDocument(t, { fetch: async () => equal });
+  assertAuthoritativeScore(ctx, equal);
+  const unknown = await submitWithInterleavedDocument(t, { resultVersion: null, fetch: async () => equal });
+  assertAuthoritativeScore(unknown, equal);
+});
+
+test('a watch correction arriving during refresh survives an older refresh result', async (t) => {
+  const newer = correctedTournament(4);
+  const ctx = await submitWithInterleavedDocument(t, {
+    fetch: async (page) => { page.applyTournament(newer); return buildFinishedTournament(); }
+  });
+  assertAuthoritativeScore(ctx, newer);
+});
+
+test('versionless success with failed refresh does not invent a confirmed score', async (t) => {
+  const ctx = await submitWithInterleavedDocument(t, { resultVersion: null });
+  assert.equal(ctx._latestTournament.version, 1);
+  assert.equal(ctx._latestTournament.rounds[0].matches[0].status, 'pending');
+  assert.equal(ctx._writeErrors.length, 0);
+});

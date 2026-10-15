@@ -126,7 +126,7 @@ node scripts/cloud-ops-daily-report.js --manifest tmp/NEW_SAMPLE/input.json --ou
 
 - 时间窗口必须Asia/Shanghai且起止明确；每份CLI响应的meta窗口必须一致，禁止混历史查询文件。分页query必须一致、每页inputContext必须匹配上一页context，末页必须listOver=true；SQL聚合到达LIMIT仍标可能截断，CLI listOver不能证明SQL未截断。
 - 原始日志仅接纳src=system/app、retry_num=0，终态排除202；按function_name+request_id去重。相同请求多个冲突平台状态/业务结果标conflict，不能选择有利结果。app失败用同request_id关联；committed/returned日志不等于ok:true。
-- 平台200与业务ok分开计数；没业务结果就是unknown。只有完整且包含全函数或指定函数完整原始查询时才输出平台失败率；异常子集与聚合不输出全量失败率。P95是每请求终态耗时最大值的nearest-rank，并报告durationCoverage；不使用日志行加权P95冒充请求P95。
+- 平台200与业务ok分开计数；没业务结果就是unknown。只有完整且包含全函数或指定函数完整原始查询时才输出平台失败率；异常子集与聚合不输出全量失败率。P95是每请求有效终态耗时最大值的nearest-rank；仅接受有限非负数字或非空数值字符串，0有效，null/undefined/空白为missing，布尔/数组/对象/负数/非有限数为invalid。每请求有有效值计durationCoverage，否则有invalid计durationInvalid，否则计durationMissing；三类互斥且和为主体requests，无有效值的P95为null。只按system终态行分类，app行不污染耗时；不使用日志行加权P95冒充请求P95。
 - TOURNAMENT_ID_REQUIRED单列“缺参烟测候选”，既有部署烟测可由回执确认为诊断请求；单凭错误码不能证明是测试。主体指标排除了该候选，metricPopulation明确说明口径；生产活动精确分离仍未验证。
 - traceId/appVersion缺失如实计数；聚合不能恢复request关联，报告requestReconstruction=unavailable-aggregate-only。complete只表示指定输入查询/分页可核对，**不表示线上业务验收、7日观察或留痕闭环已完成**。
 

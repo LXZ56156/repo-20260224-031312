@@ -6,6 +6,11 @@ const joinTournamentCore = require('../../core/joinTournament');
 const nav = require('../../core/nav');
 const avatarDisplay = require('../../core/avatarDisplay');
 
+function safeDecodeURIComponent(value) {
+  try { return typeof value === 'string' ? decodeURIComponent(value) : ''; }
+  catch (_) { return ''; }
+}
+
 Page({
   data: {
     returnUrl: '',
@@ -32,7 +37,7 @@ Page({
   async onLoad(options) {
     this._pageActive = true;
     options = options || {};
-    const returnUrl = options.returnUrl ? decodeURIComponent(options.returnUrl) : '';
+    const returnUrl = safeDecodeURIComponent(options.returnUrl);
     this.setData({ returnUrl });
     const local = profileCore.readLocalProfile() || {};
     this.applyProfile(local);
@@ -317,7 +322,7 @@ Page({
     const raw = String(returnUrl || '').trim();
     if (!raw) return '';
     const match = raw.match(/[?&]tournamentId=([^&#]+)/);
-    return match ? decodeURIComponent(match[1]) : '';
+    return match ? safeDecodeURIComponent(match[1]) : '';
   },
 
   async syncProfileToTournament(tournamentId, nickname, avatar, gender) {
