@@ -6,6 +6,7 @@
 
 | 任务 | 首先读 | 触发时再读 |
 |---|---|---|
+| 缓存保留/排程偏好/成员认领与规则冲突 | [已确认产品规则](specs/cache-fairness-and-member-claim-policy.md) | 均衡缓存、三档排程默认 C+D、认领 B；仅文档确认、待实施；状态查[待修清单](tasks/paused-plan-status.md) |
 | 客户端行为/错误 | 对应业务规格；[错误规范](specs/user-facing-errors.md) | 跨模块边界看 [架构](context/architecture.md) |
 | UI 实现/验收 | [日常循环](tools/agent-development-workflow.md)、[完整验收](tools/weapp-ui-acceptance.md) | 参数/来源维护看 [截图参考](tools/weapp-ui-screenshot-workflow.md) |
 | 截图或编译故障 | [故障手册](tools/weapp-ui-troubleshooting.md#按失败阶段恢复)的对应阶段 | 首次建立会话、签名/设备变化再读其链接正文 |
