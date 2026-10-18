@@ -7,6 +7,12 @@ const writeErrorUi = require('../../core/writeErrorUi');
 const viewModel = require('./settingsViewModel');
 
 module.exports = {
+  onPickSchedulerProfile(e) {
+    if (!this.data.canManageTournament || !this.data.isDraft || !this.data.canConfigureSettings) return;
+    const index = Number(e.detail.value);
+    const option = (this.data.schedulerProfileOptions || [])[index];
+    if (option) this.setData({ schedulerProfile: option.key, schedulerProfileIndex: index, schedulerProfileDisplayLabel: option.label, schedulerProfileHint: option.hint });
+  },
   onPickSinglesCycles(e) {
     const singlesCycles = Number(e.detail.value) === 1 ? 2 : 1;
     const config = flow.getSinglesConfig({ players: this.data.tournament.players, courts: this.data.editC,
@@ -302,6 +308,7 @@ module.exports = {
       totalMatches: M,
       courts: C,
       pointsPerGame: Number(this.data.pointsPerGame) || 21,
+      ...(this.data.showSchedulerProfile ? { schedulerProfile: this.data.schedulerProfile || 'balanced' } : {}),
       ...(this.data.isSingles ? { cycles: this.data.singlesCycles } : {}),
       endConditionType,
       endConditionTarget,

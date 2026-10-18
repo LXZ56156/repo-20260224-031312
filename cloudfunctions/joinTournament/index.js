@@ -71,6 +71,7 @@ function normalizeAvatar(avatar) {
 function normalizeAction(action) {
   const value = String(action || '').trim().toLowerCase();
   if (value === 'profile_update') return 'profile_update';
+  if (value === 'claim_guest') return 'claim_guest';
   return 'join';
 }
 
@@ -105,6 +106,7 @@ function rewritePlayerReference(value, oldId, nextPlayer) {
   if (currentId !== oldId) return value;
   const rewritten = { ...value, id: nextPlayer.id };
   if (Object.prototype.hasOwnProperty.call(rewritten, 'playerId')) rewritten.playerId = nextPlayer.id;
+  if (Object.prototype.hasOwnProperty.call(rewritten, '_id')) rewritten._id = nextPlayer.id;
   rewritten.name = nextPlayer.name;
   rewritten.avatar = nextPlayer.avatar;
   rewritten.gender = nextPlayer.gender;
@@ -134,6 +136,9 @@ function rewriteClaimedGuestTournament(tournament, oldId, nextPlayer) {
     return {
       ...player,
       id: nextPlayer.id,
+      ...(Object.prototype.hasOwnProperty.call(player, 'playerId') ? { playerId: nextPlayer.id } : {}),
+      ...(Object.prototype.hasOwnProperty.call(player, '_id') ? { _id: nextPlayer.id } : {}),
+      claimedGuestId: oldId,
       name: nextPlayer.name,
       avatar: nextPlayer.avatar,
       gender: nextPlayer.gender,
@@ -160,7 +165,15 @@ function rewriteClaimedGuestTournament(tournament, oldId, nextPlayer) {
     })),
     restPlayers: (Array.isArray(round && round.restPlayers) ? round.restPlayers : []).map((player) => rewritePlayerReference(player, oldId, nextPlayer))
   }));
-  const rankings = modeHelper.buildInitialRankings(tournament && tournament.mode, players, pairTeams);
+  const rankings = (Array.isArray(tournament && tournament.rankings) ? tournament.rankings : []).map((row) => {
+    if (!row || typeof row !== 'object') return row;
+    const next = { ...row };
+    for (const key of ['id', 'playerId', 'entityId']) {
+      if (next[key] === oldId) next[key] = nextPlayer.id;
+    }
+    if (row.playerId === oldId || row.entityId === oldId) next.name = nextPlayer.name;
+    return next;
+  });
 
   return { players, playerIds, pairTeams, rounds, rankings };
 }
@@ -192,7 +205,7 @@ function fail(traceId, clientRequestId, code, message, extra = {}) {
 exports.main = async (event, context) => {
   const deadlineAtMs = Date.now() + REQUEST_BUDGET_MS;
   const wxContext = cloud.getWXContext();
-  const openid = wxContext.OPENID;
+  const openid = String(wxContext.OPENID || '').trim();
   const traceId = String((event && event.__traceId) || '').trim();
   const clientRequestId = String((event && event.clientRequestId) || '').trim();
   const action = normalizeAction(event && event.action);
@@ -253,10 +266,31 @@ exports.main = async (event, context) => {
           state: 'not_joined'
         });
       }
-      const matchedGuests = idx >= 0 || action === 'profile_update'
-        ? []
-        : players.filter((player) => isGuestPlayer(player) && normalizeName(player && player.name) === normalizeName(rawNickname || resolveProfileNickName(profileData)));
-      const claimableGuest = matchedGuests.length === 1 ? matchedGuests[0] : null;
+      const requestedGuestId = String(event && event.claimGuestId || '').trim();
+      const isClaim = action === 'claim_guest';
+      if (isClaim && !openid) {
+        return fail(traceId, clientRequestId, 'PERMISSION_DENIED', '请先登录后再认领', { state: 'forbidden' });
+      }
+      if (isClaim && event.claimConfirmed !== true) {
+        return fail(traceId, clientRequestId, 'CLAIM_CONFIRMATION_REQUIRED', '请先确认这是你的参赛位置', { state: 'invalid' });
+      }
+      if (isClaim && idx >= 0) {
+        if (requestedGuestId && currentPlayer.claimedGuestId === requestedGuestId) {
+          return ok(traceId, clientRequestId, 'JOIN_DEDUPED', '已认领该参赛位置', {
+            state: 'deduped', deduped: true, claimed: true, claimedGuestId: requestedGuestId,
+            version: Number(t.version) || 1, player: currentPlayer
+          });
+        }
+        return fail(traceId, clientRequestId, 'CLAIM_ALREADY_JOINED', '你已在参赛名单中，不能再认领其他位置', { state: 'invalid' });
+      }
+      if (isClaim && (!Number.isInteger(event.expectedVersion) || event.expectedVersion !== (Number(t.version) || 1))) {
+        return fail(traceId, clientRequestId, 'VERSION_CONFLICT', '名单已变化，请刷新后重新确认', { state: 'conflict' });
+      }
+      const targets = isClaim ? players.filter(p => getPlayerId(p) === requestedGuestId && isGuestPlayer(p)) : [];
+      const claimableGuest = targets.length === 1 ? targets[0] : null;
+      if (isClaim && !claimableGuest) {
+        return fail(traceId, clientRequestId, 'CLAIM_TARGET_UNAVAILABLE', '该位置已不可认领，请刷新名单', { state: 'conflict' });
+      }
       const claimedGuestId = claimableGuest ? getPlayerId(claimableGuest) : '';
 
       let nickname = normalizeName(rawNickname) || normalizeName(currentPlayer && currentPlayer.name);
@@ -360,7 +394,7 @@ exports.main = async (event, context) => {
         name: nickname,
         avatar: avatar || '',
         gender,
-        squad: mode === 'squad_doubles' ? (squadChoice || 'A') : ''
+        squad: claimableGuest ? String(claimableGuest.squad || '') : (mode === 'squad_doubles' ? (squadChoice || 'A') : '')
       };
 
       if (claimableGuest && claimedGuestId) {

@@ -199,7 +199,7 @@ test('lobby handleStart deduplicates repeated taps', async () => {
 
     assert.equal(calls.length, 1);
     assert.equal(calls[0].name, 'startTournament');
-    assert.equal(calls[0].payload.schedulerProfile, 'balanced');
+    assert.equal(calls[0].payload.schedulerProfile, undefined, 'start reads the persisted tournament preference, not a device-local override');
 
     deferred.resolve();
     await Promise.all([first, second]);

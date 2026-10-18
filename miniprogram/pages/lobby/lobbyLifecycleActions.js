@@ -136,10 +136,8 @@ module.exports = {
     return actionGuard.runCriticalWrite(actionKey, async () => {
       wx.showLoading({ title: '生成对阵...' });
       try {
-        const schedulerProfile = storage.getSchedulerProfile();
         cloud.assertWriteResult(await cloud.call('startTournament', {
           tournamentId: this.data.tournamentId,
-          schedulerProfile,
           clientRequestId
         }), '开赛失败');
         wx.hideLoading();

@@ -1,3 +1,4 @@
+const schedulePreference = require('./schedulePreference');
 const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
@@ -152,21 +153,22 @@ exports.main = async (event) => {
 
       const oldVersion = Number(t.version) || 1;
       const policy = selectSchedulerPolicy(players.length, effectiveCourts, M);
-      const schedulerProfileRaw = String((event && event.schedulerProfile) || '').trim().toLowerCase();
-      const schedulerProfile = ['rest', 'balanced', 'repeat'].includes(schedulerProfileRaw) ? schedulerProfileRaw : 'rest';
+      const schedulerProfile = schedulePreference.normalizeProfile(t.rules && t.rules.schedulerProfile);
       const profileWeights = {
         rest: { delta: 2.0, epsilon: policy.selectedEpsilon + 0.2, beta: 3.0, gamma: 1.5 },
         balanced: { delta: 2.0, epsilon: policy.selectedEpsilon, beta: 3.0, gamma: 1.5 },
-        repeat: { delta: 1.8, epsilon: Math.max(1.0, policy.selectedEpsilon - 0.1), beta: 3.4, gamma: 1.9 }
+        coverage: { delta: 1.8, epsilon: Math.max(1.0, policy.selectedEpsilon - 0.1), beta: 3.4, gamma: 1.9 }
       }[schedulerProfile];
       const scheduleStartedAtMs = Date.now();
       assertRemainingBudget(deadlineAtMs, COMMIT_RESERVE_MS + 600);
       const runtimeBudgetMs = Math.min(SCHEDULE_BUDGET_MS, deadlineAtMs - Date.now() - COMMIT_RESERVE_MS);
+      const preferenceReserveMs = 150;
+      const generationBudgetMs = Math.max(600, runtimeBudgetMs - preferenceReserveMs);
       let schedule;
       if (mode === modeHelper.MODE_SINGLES_ROUND_ROBIN) {
         schedule = buildSinglesSchedule(players, C, { cycles: rules.cycles, deadlineAtMs: Date.now() + runtimeBudgetMs });
       } else if (mode === 'squad_doubles') {
-        schedule = buildSquadSchedule(players, M, C, { endCondition, _hardDeadlineMs: runtimeBudgetMs });
+        schedule = buildSquadSchedule(players, M, C, { endCondition, _hardDeadlineMs: generationBudgetMs });
         if (schedule && schedule.schedulerMeta) {
           schedule.schedulerMeta.schedulerProfile = schedulerProfile;
         }
@@ -178,7 +180,7 @@ exports.main = async (event) => {
       } else {
         const schedulerOptions = {
           mode: 'doubles',
-          runtimeBudgetMs,
+          runtimeBudgetMs: generationBudgetMs,
           policy,
           searchSeeds: policy.selectedSearchSeeds,
           seedStep: 7919,
@@ -191,6 +193,10 @@ exports.main = async (event) => {
         if (schedule && schedule.schedulerMeta) {
           schedule.schedulerMeta.schedulerProfile = schedulerProfile;
         }
+      }
+      assertScheduleIntegrity(schedule, mode);
+      if (mode === 'multi_rotate' || mode === 'squad_doubles') {
+        schedule = schedulePreference.optimizeSchedule(schedule, players, { profile: schedulerProfile, deadlineAtMs: scheduleStartedAtMs + runtimeBudgetMs });
       }
       assertScheduleIntegrity(schedule, mode);
       const scheduleMs = Date.now() - scheduleStartedAtMs;

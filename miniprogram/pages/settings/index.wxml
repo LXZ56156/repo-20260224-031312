@@ -124,6 +124,16 @@
       </view>
     </view>
 
+    <view class="form-item" wx:if="{{showSchedulerProfile}}">
+      <view class="form-label">排程偏好</view>
+      <view class="form-field">
+        <picker mode="selector" range="{{schedulerProfileOptions}}" range-key="label" value="{{schedulerProfileIndex}}" bindchange="onPickSchedulerProfile" disabled="{{!canManageTournament || !isDraft || !canConfigureSettings || settingsBusy}}">
+          <view class="picker">{{schedulerProfileDisplayLabel}}</view>
+        </picker>
+        <view class="muted small">{{schedulerProfileHint}}</view>
+      </view>
+    </view>
+
     <view class="form-item">
       <view class="form-label">每局分制</view>
       <view class="form-field">

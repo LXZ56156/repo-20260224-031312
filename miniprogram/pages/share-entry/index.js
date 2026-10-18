@@ -1,3 +1,4 @@
+const memberClaim = require('../../core/memberClaim');
 const auth = require('../../core/auth');
 const actionGuard = require('../../core/actionGuard');
 const clientRequest = require('../../core/clientRequest');
@@ -428,8 +429,12 @@ Page({
         profile: gate.profile || {}
       });
       try {
+        const choice = await memberClaim.chooseMemberClaim(this.data.tournament);
+        if (!choice || Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
+        Object.assign(payload, choice);
         await loading.withLoading('加入中...', () => joinTournamentCore.callJoinTournament(payload, {
-          action: 'join',
+          action: choice.action,
+          retryOnConflict: choice.action !== 'claim_guest',
           fallbackMessage: '加入失败，请稍后重试',
           clientRequestId
         }));

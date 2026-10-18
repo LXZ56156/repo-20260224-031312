@@ -1,3 +1,4 @@
+const memberClaim = require('./memberClaim');
 const normalize = require('./normalize');
 const nav = require('./nav');
 const flow = require('./uxFlow');
@@ -356,7 +357,8 @@ function buildShareEntryViewModel({ tournament, openid = '' }) {
   const players = Array.isArray(normalizedTournament.players) ? normalizedTournament.players : [];
   const playersCount = players.length || (Array.isArray(normalizedTournament.playerIds) ? normalizedTournament.playerIds.length : 0);
   const playerLimit = flow.getTournamentPlayerLimit(normalizedTournament);
-  const joinAllowed = lifecycle === 'draft' && (playerLimit <= 0 || playersCount < playerLimit);
+  const claimAllowed = memberClaim.getClaimCandidates(normalizedTournament, openid).length > 0;
+  const joinAllowed = lifecycle === 'draft' && (claimAllowed || playerLimit <= 0 || playersCount < playerLimit);
   const previewMode = buildPreviewMode({ lifecycle, joined, joinAllowed });
   const modeLabel = flow.getModeDisplayLabel(mode, normalizedTournament.presetKey);
   const participantPreviewList = buildParticipantPreviewList(players, 8);
@@ -395,7 +397,9 @@ function buildShareEntryViewModel({ tournament, openid = '' }) {
     secondaryAction,
     joinAllowed,
     joined,
-    availabilityText: buildAvailabilityText({ lifecycle, joined, joinAllowed, playerLimit, playersCount }),
+    availabilityText: claimAllowed && playerLimit > 0 && playersCount >= playerLimit
+      ? '名额已满；若名单中有你本人，可选择并确认认领已有位置。'
+      : buildAvailabilityText({ lifecycle, joined, joinAllowed, playerLimit, playersCount }),
     tournamentName,
     organizerName,
     mode,
@@ -419,7 +423,9 @@ function buildShareEntryViewModel({ tournament, openid = '' }) {
     showRankingPreview: lifecycle === 'running' || lifecycle === 'finished',
     showParticipantPreview: lifecycle === 'draft',
     showProgressSummary: lifecycle !== 'draft',
-    primaryCtaReason: mode === flow.MODE_SINGLES_ROUND_ROBIN && lifecycle === 'draft' ? '2–8 人可开赛' : primaryCtaReason,
+    primaryCtaReason: claimAllowed && playerLimit > 0 && playersCount >= playerLimit
+      ? '选择并确认你本人的参赛位置'
+      : (mode === flow.MODE_SINGLES_ROUND_ROBIN && lifecycle === 'draft' ? '2–8 人可开赛' : primaryCtaReason),
     secondaryCtaText: secondaryAction ? secondaryAction.text : '',
     tournament: normalizedTournament
   };

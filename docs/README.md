@@ -6,7 +6,7 @@
 
 | 任务 | 首先读 | 触发时再读 |
 |---|---|---|
-| 缓存保留/排程偏好/成员认领与规则冲突 | [已确认产品规则](specs/cache-fairness-and-member-claim-policy.md) | 均衡缓存、三档排程默认 C+D、认领 B；仅文档确认、待实施；状态查[待修清单](tasks/paused-plan-status.md) |
+| 缓存保留/排程偏好/成员认领与规则冲突 | [已确认产品规则](specs/cache-fairness-and-member-claim-policy.md) | 均衡缓存、三档排程默认 C+D、认领 B；源码候选与规则已同步；验证查[实施记录](tasks/cache-fairness-claim-implementation-2026-10-18.md)，状态查[待修清单](tasks/paused-plan-status.md) |
 | 客户端行为/错误 | 对应业务规格；[错误规范](specs/user-facing-errors.md) | 跨模块边界看 [架构](context/architecture.md) |
 | UI 实现/验收 | [日常循环](tools/agent-development-workflow.md)、[完整验收](tools/weapp-ui-acceptance.md) | 参数/来源维护看 [截图参考](tools/weapp-ui-screenshot-workflow.md) |
 | 截图或编译故障 | [故障手册](tools/weapp-ui-troubleshooting.md#按失败阶段恢复)的对应阶段 | 首次建立会话、签名/设备变化再读其链接正文 |
@@ -31,3 +31,5 @@
 - current只在状态/范围/下一步变化时更新，详细计数/hash/过程放任务正文。日志与快照保留当时内容和原路径，不作实时状态维护；历史链接失效用旁注导航，不改原证据。
 - 稳定经验吸收到唯一规范，其他位置链接引用；更新行为/工具时同步相关规范与索引，避免追加相互冲突的补充结论。长文按标题搜索定位，不默认全文读取。
 - 文档验收核对权威关系、命令、相对链接/锚点和历史完整性，不触发DevTools/全量应用测试。文档整理不授予业务实施、部署或发布权限。
+
+- [Linux / Windows 共用测试工具](tools/cross-platform-tests.md)：统一 runner、Node 镜像与校验、平台适配与验证边界。

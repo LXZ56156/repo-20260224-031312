@@ -666,3 +666,23 @@ for (const gate of ['budget is exhausted', 'replayed request', 'draft-only refus
     } finally { Date.now = originalNow; }
   });
 }
+
+test('updateSettings persists only supported draft scheduler preferences and preserves other rules', async () => {
+  for (const profile of ['balanced', 'rest', 'coverage']) {
+    let written = null;
+    const tournament = buildTournament();
+    const db = { command: { inc: n => n }, serverDate: () => 123,
+      runTransaction: async fn => fn({ collection: () => ({ doc: () => ({
+        get: async () => ({ data: tournament }), update: async ({ data }) => { written = data; return { stats: { updated: 1 } }; }
+      }) }) }) };
+    const { main } = loadMain(db);
+    const r = await main({ tournamentId: 't_1', schedulerProfile: profile });
+    assert.equal(r.ok, true);
+    assert.equal(written.rules.schedulerProfile, profile);
+    assert.equal(written.rules.pointsPerGame, 21);
+    assert.equal((await main({ tournamentId: 't_1', schedulerProfile: 'anything' })).code, 'SETTINGS_INVALID');
+    tournament.status = 'running'; written = null;
+    assert.equal((await main({ tournamentId: 't_1', schedulerProfile: 'rest' })).ok, false);
+    assert.equal(written, null);
+  }
+});

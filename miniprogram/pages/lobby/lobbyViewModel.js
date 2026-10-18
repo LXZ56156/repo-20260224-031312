@@ -1,3 +1,4 @@
+const memberClaim = require('../../core/memberClaim');
 const perm = require('../../permission/permission');
 const normalize = require('../../core/normalize');
 const matchPrimaryNav = require('../../core/matchPrimaryNav');
@@ -442,7 +443,8 @@ function buildLobbyViewModel({ tournament, openid, data = {}, avatarCache = {} }
     && String(data.entryMode || '').trim().toLowerCase() === 'view_only'
     && !data.viewOnlyJoinExpanded;
   const showViewOnlyJoinPrompt = isViewOnlyEntry;
-  const showJoin = status === 'draft' && !myJoined && !showViewOnlyJoinPrompt && !quotaFull;
+  const canClaimGuest = memberClaim.getClaimCandidates(tournament, openid).length > 0;
+  const showJoin = status === 'draft' && !myJoined && !showViewOnlyJoinPrompt && (!quotaFull || canClaimGuest);
   const showMyProfile = status === 'draft' && myJoined;
   const showAllPlayers = !!data.showAllPlayers;
   const displayPlayers = buildDisplayPlayers(showAllPlayers ? players : players.slice(0, 12), avatarCache, data.displayPlayers);

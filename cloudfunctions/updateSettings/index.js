@@ -30,6 +30,11 @@ exports.main = async (event) => {
   const totalMatches = parsePosInt(event && event.totalMatches);
   // 并行场地（每轮最多场数）上限 10
   const courts = parsePosInt(event && event.courts, 10);
+  const profileProvided = !!(event && Object.prototype.hasOwnProperty.call(event, 'schedulerProfile'));
+  const schedulerProfile = String(event && event.schedulerProfile || '').trim();
+  if (profileProvided && !['balanced', 'rest', 'coverage'].includes(schedulerProfile)) {
+    return common.failResult('SETTINGS_INVALID', '请选择有效的排程偏好', { traceId, state: 'invalid' });
+  }
   const pointsPerGame = event && Object.prototype.hasOwnProperty.call(event, 'pointsPerGame')
     ? normalizePoints(event.pointsPerGame)
     : null;
@@ -80,6 +85,9 @@ exports.main = async (event) => {
         throw new Error('满 4 人后才可设置比赛参数');
       }
       const mode = String(t.mode || 'multi_rotate').trim().toLowerCase();
+      if (profileProvided && !['multi_rotate', 'squad_doubles'].includes(mode)) {
+        return common.failResult('SETTINGS_INVALID', '该赛制不支持此排程偏好', { traceId, state: 'invalid' });
+      }
       const oldVersion = Number(t.version) || 1;
       const currentRules = (t.rules && typeof t.rules === 'object') ? t.rules : {};
       const singlesConfig = isSingles ? modeHelper.getSinglesConfig({ ...t,
@@ -113,6 +121,7 @@ exports.main = async (event) => {
       });
       const nextRules = {
         ...currentRules,
+        ...(profileProvided ? { schedulerProfile } : {}),
         gamesPerMatch: 1,
         pointsPerGame: pointsPerGame || normalizePoints(currentRules.pointsPerGame),
         ...(isSingles ? { cycles: singlesConfig.cycles } : {}),
@@ -127,7 +136,7 @@ exports.main = async (event) => {
       Object.assign(data, checked.patch);
       if (clientRequestId) data.lastClientRequestId = clientRequestId;
       if (nameProvided) data.name = syncedName;
-      if (isSingles || nameProvided || pointsPerGame !== null || endConditionTypeInput !== null || endConditionTargetInput !== null || totalMatches !== null) {
+      if (profileProvided || isSingles || nameProvided || pointsPerGame !== null || endConditionTypeInput !== null || endConditionTargetInput !== null || totalMatches !== null) {
         data.rules = nextRules;
       }
       if (playerGenderPatch) {

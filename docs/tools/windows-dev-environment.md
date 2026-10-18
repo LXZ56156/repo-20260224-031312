@@ -24,6 +24,8 @@
 
 ## 命令与Shell
 
+Linux/Windows 共用测试入口、Node 镜像、安全边界及平台验证方式统一见[跨平台测试工具](cross-platform-tests.md)。普通 test/check 已不依赖 shell 通配符或 ripgrep；现存部署 Shell 合同仍使用 Git Bash。
+
 日常入口见 [开发工作流](agent-development-workflow.md)，基础测试规则见 [AGENTS.md](../../AGENTS.md)；按影响范围选测，无需每次全量。截图命令与来源合同见 [截图工作流](weapp-ui-screenshot-workflow.md)，错误恢复集中在 [故障手册](weapp-ui-troubleshooting.md)。
 
 普通npm、测试、hooks不依赖裸 `bash` 或全局script-shell；仓库.sh经 `node scripts/run-bash-script.js <仓库脚本>`，Node代码使用 `scripts/lib/git-bash.js`。不要永久修改用户npm配置来修单个任务。旧工具链的verify、records等命令不能从历史文档推断为当前可用。

@@ -6,9 +6,10 @@ const retryAction = require('../../core/retryAction');
 const settingsActions = require('./settingsActions');
 const settingsSyncController = require('./settingsSyncController');
 const settingsViewModel = require('./settingsViewModel');
-const DRAFT_FIELDS = ['name', 'editM', 'editC', 'pointsPerGame', 'singlesCycles', 'endConditionType', 'endConditionTarget'];
+const DRAFT_FIELDS = ['schedulerProfile', 'name', 'editM', 'editC', 'pointsPerGame', 'singlesCycles', 'endConditionType', 'endConditionTarget'];
 
 Page({
+  onPickSchedulerProfile: settingsActions.onPickSchedulerProfile,
   data: {
     tournamentId: '',
     tournament: null,
@@ -43,6 +44,7 @@ Page({
     rosterHint: '',
     pointsOptions: settingsViewModel.POINT_OPTIONS,
     pointsPerGame: 21,
+    showSchedulerProfile: false, schedulerProfile: 'balanced', schedulerProfileOptions: [], schedulerProfileIndex: 0, schedulerProfileHint: '',
     pointsIndex: 2,
     endConditionOptions: settingsViewModel.END_CONDITION_OPTIONS,
     endConditionType: 'total_matches',

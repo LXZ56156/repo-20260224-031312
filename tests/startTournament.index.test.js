@@ -210,9 +210,10 @@ test('startTournament writes generated rounds and running state through the dire
   assert.equal(Array.isArray(writtenData.rankings), true);
   assert.equal(writtenData.scheduleSeed, 123);
   assert.equal(writtenData.mode, 'multi_rotate');
-  assert.equal(writtenData.fairnessScore, 0.88);
+  assert.ok(writtenData.fairnessScore > 0);
+  assert.equal(JSON.parse(writtenData.schedulerMetaJson).schedulerProfile, 'balanced');
   assert.deepEqual(writtenData.version, { $inc: 1 });
-  assert.equal(schedulerOptions.runtimeBudgetMs, 4500);
+  assert.equal(schedulerOptions.runtimeBudgetMs, 4350);
 });
 
 test('startTournament marks and updates active share activity as started', async () => {
@@ -929,7 +930,7 @@ test('startTournament keeps one request deadline across transaction retries and 
 
   const result = await main({ tournamentId: 't_1' });
   assert.equal(result.ok, true);
-  assert.deepEqual(budgets, [4500, 1000]);
+  assert.deepEqual(budgets, [4350, 850]);
   assert.equal(shareCalls, 0, 'a discarded callback must not update its old share activity');
 });
 

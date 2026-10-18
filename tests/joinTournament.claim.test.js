@@ -1,3 +1,4 @@
+const clone = value => JSON.parse(JSON.stringify(value));
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const Module = require('node:module');
@@ -71,7 +72,7 @@ function buildTournament(extra = {}) {
   };
 }
 
-test('joinTournament auto-claims a uniquely matched guest and rewrites tournament references', async () => {
+test('joinTournament explicitly claims a selected guest and rewrites tournament references', async () => {
   let writtenData = null;
   const db = {
     serverDate() {
@@ -123,7 +124,7 @@ test('joinTournament auto-claims a uniquely matched guest and rewrites tournamen
   };
   const { main } = loadMain(db);
 
-  const result = await main({ tournamentId: 't_1' });
+  const result = await main({ tournamentId: 't_1', action: 'claim_guest', claimGuestId: 'guest_1', claimConfirmed: true, expectedVersion: 3 });
 
   assert.equal(result.ok, true);
   assert.equal(result.code, 'JOINED');
@@ -136,9 +137,9 @@ test('joinTournament auto-claims a uniquely matched guest and rewrites tournamen
   assert.deepEqual(writtenData.pairTeams[0].playerIds, ['u_join', 'u_other']);
   assert.equal(writtenData.rounds[0].matches[0].teamA[0].id, 'u_join');
   assert.equal(writtenData.rounds[0].restPlayers[0].id, 'u_join');
-  assert.equal(writtenData.rankings[0].playerId, 'pair_1');
-  assert.equal(writtenData.rankings[0].entityId, 'pair_1');
-  assert.equal(writtenData.rankings[0].entityType, 'team');
+  assert.equal(writtenData.rankings[0].playerId, 'u_join');
+  assert.equal(writtenData.rankings[0].entityId, 'u_join');
+  assert.equal(writtenData.rankings[0].entityType, 'player');
 });
 
 test('joinTournament does not auto-claim when multiple guests share the same normalized name', async () => {
@@ -205,4 +206,82 @@ test('joinTournament does not auto-claim when multiple guests share the same nor
   assert.equal(result.claimed, undefined);
   assert.equal(writtenData.players.filter((item) => item.id.startsWith('guest_')).length, 2);
   assert.equal(writtenData.players.some((item) => item.id === 'u_join'), true);
+});
+
+function claimHarness(tournament = buildTournament(), openid = 'u_join') {
+  let current = clone(tournament);
+  let writes = 0;
+  const db = {
+    serverDate: () => 123,
+    collection: () => ({ where: () => ({ limit: () => ({ get: async () => ({ data: [] }) }) }) }),
+    runTransaction: async (fn) => fn({ collection: () => ({ doc: () => ({
+      get: async () => ({ data: clone(current) }),
+      update: async ({ data }) => { writes++; current = { ...current, ...clone(data) }; }
+    }) }) })
+  };
+  return { main: loadMain(db, openid).main, current: () => current, writes: () => writes };
+}
+const claimRequest = (extra = {}) => ({ tournamentId: 't_1', nickname: '球友A',
+  avatar: 'cloud://avatar/a', gender: 'female', action: 'claim_guest', claimGuestId: 'guest_1',
+  claimConfirmed: true, expectedVersion: 3, clientRequestId: 'claim_1', ...extra });
+
+test('ordinary join never claims a uniquely named guest', async () => {
+  const h = claimHarness();
+  const r = await h.main(claimRequest({ action: 'join' }));
+  assert.equal(r.ok, true);
+  assert.equal(r.claimed, undefined);
+  assert.equal(h.current().players.length, 4);
+  assert.ok(h.current().players.some(p => p.id === 'guest_1'));
+});
+
+test('explicit claim validates consent, version, target and draft status without writes', async () => {
+  for (const [extra, tournament, code] of [
+    [{ claimConfirmed: false }, {}, 'CLAIM_CONFIRMATION_REQUIRED'],
+    [{ expectedVersion: 2 }, {}, 'VERSION_CONFLICT'],
+    [{ expectedVersion: undefined }, {}, 'VERSION_CONFLICT'],
+    [{ claimGuestId: 'u_other' }, {}, 'CLAIM_TARGET_UNAVAILABLE'],
+    [{ claimGuestId: 'missing' }, {}, 'CLAIM_TARGET_UNAVAILABLE'],
+    [{}, { status: 'running' }, 'JOIN_DRAFT_ONLY']
+  ]) {
+    const h = claimHarness(buildTournament(tournament));
+    const r = await h.main(claimRequest(extra));
+    assert.equal(r.code, code);
+    assert.equal(h.writes(), 0);
+  }
+});
+
+test('explicit claim preserves squad, references and ranking data; retry is idempotent', async () => {
+  const t = buildTournament({ mode: 'squad_doubles' });
+  t.players[1].squad = 'B';
+  t.rankings[0].wins = 7;
+  const h = claimHarness(t);
+  const r = await h.main(claimRequest({ squadChoice: 'A', openid: 'u_other' }));
+  assert.equal(r.claimed, true);
+  assert.equal(r.player.squad, 'B');
+  assert.equal(h.current().rankings[0].wins, 7);
+  assert.equal(h.current().rankings[0].playerId, 'u_join');
+  assert.equal(h.current().creatorId, 'u_admin');
+  assert.deepEqual(h.current().pairTeams[0].playerIds, ['u_join', 'u_other']);
+  assert.equal(h.current().rounds[0].restPlayers[0].id, 'u_join');
+  const retry = await h.main(claimRequest());
+  assert.equal(retry.deduped, true);
+  assert.equal(h.writes(), 1);
+});
+
+test('explicit guest selection disambiguates equal names and rejects another member', async () => {
+  const t = buildTournament();
+  t.players.push({ id: 'guest_2', name: '球友A', type: 'guest' });
+  t.playerIds.push('guest_2');
+  const h = claimHarness(t);
+  assert.equal((await h.main(claimRequest({ claimGuestId: 'guest_2' }))).claimed, true);
+  assert.ok(h.current().players.some(p => p.id === 'guest_1'));
+  assert.equal((await h.main(claimRequest())).code, 'CLAIM_ALREADY_JOINED');
+});
+
+
+test('explicit claim requires the authenticated cloud identity', async () => {
+  const h = claimHarness(buildTournament(), '');
+  const r = await h.main(claimRequest({ openid: 'u_join' }));
+  assert.equal(r.code, 'PERMISSION_DENIED');
+  assert.equal(h.writes(), 0);
 });

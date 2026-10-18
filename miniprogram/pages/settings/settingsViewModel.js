@@ -1,3 +1,4 @@
+const normalizeSchedulerProfile = require('../../core/storage/prefs').normalizeSchedulerProfile;
 const perm = require('../../permission/permission');
 const draftStartReadiness = require('../../core/draftStartReadiness');
 const flow = require('../../core/uxFlow');
@@ -317,6 +318,13 @@ function buildSettingsFormState(tournament, options = {}) {
   const digitLen = Math.max(2, String(maxMatches > 0 ? maxMatches : 999).length);
 
   const rules = t.rules && typeof t.rules === 'object' ? t.rules : {};
+  const schedulerProfile = normalizeSchedulerProfile(draftValue('schedulerProfile', rules.schedulerProfile));
+  const schedulerProfileOptions = [
+    { key: 'balanced', label: '均衡（默认）', hint: '控制连续上场和等待，在可行范围内增加搭档与对手覆盖' },
+    { key: 'rest', label: '休息优先', hint: '优先减少连续上场，可能重复遇到相同搭档或对手' },
+    { key: 'coverage', label: '覆盖优先', hint: '优先增加不同搭档和对手，可能需要更多连续上场' }
+  ];
+  const schedulerProfileIndex = schedulerProfileOptions.findIndex(item => item.key === schedulerProfile);
   const draftPoints = Number(draftValue('pointsPerGame', rules.pointsPerGame));
   const pointsPerGame = POINT_OPTIONS.includes(draftPoints) ? draftPoints : 21;
   const pointsIndex = Math.max(0, POINT_OPTIONS.indexOf(pointsPerGame));
@@ -385,6 +393,12 @@ function buildSettingsFormState(tournament, options = {}) {
     mDigitValue: valueToDigitValue(editM, digitLen),
     courtOptions,
     courtIndex: Math.max(0, courtOptions.indexOf(editC)),
+    showSchedulerProfile: ['multi_rotate', 'squad_doubles'].includes(mode),
+    schedulerProfile, schedulerProfileOptions, schedulerProfileIndex,
+    schedulerProfileDisplayLabel: t.status !== 'draft' && !rules.schedulerProfile
+      ? '原排程（历史赛事）' : schedulerProfileOptions[schedulerProfileIndex].label,
+    schedulerProfileHint: t.status !== 'draft' && !rules.schedulerProfile
+      ? '未保存新排程偏好，既有赛程保持不变' : schedulerProfileOptions[schedulerProfileIndex].hint,
     pointsOptions: POINT_OPTIONS,
     pointsPerGame,
     pointsIndex,

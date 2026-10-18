@@ -18,7 +18,9 @@ function setScoreDraft(tournamentId, roundIndex, matchIndex, draft) {
 }
 
 function removeScoreDraft(tournamentId, roundIndex, matchIndex) {
-  return del(buildScoreDraftKey(tournamentId, roundIndex, matchIndex));
+  const removed = del(buildScoreDraftKey(tournamentId, roundIndex, matchIndex));
+  if (removed) require('./cacheBudget').prune();
+  return removed;
 }
 
 module.exports = {

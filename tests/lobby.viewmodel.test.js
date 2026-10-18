@@ -424,3 +424,10 @@ test('lobby view model keeps invalid pair and squad rosters on their existing se
   assert.equal(squad.patch.primaryTaskTitle, '分配 A/B 队');
   assert.notEqual(squad.patch.primaryTaskKey, 'start');
 });
+
+test('full roster still offers explicit guest claim, without granting joined role', () => {
+  const players = Array.from({ length: 6 }, (_, i) => ({ id: i === 0 ? 'guest_0' : 'u_' + i, type: i === 0 ? 'guest' : 'user', name: '球友' + i }));
+  const result = viewModel.buildLobbyViewModel({ tournament: buildTournament({ presetKey: 'rotation_6', playerLimit: 6, players }), openid: 'visitor', data: { viewOnlyJoinExpanded: true } });
+  assert.equal(result.patch.showJoin, true);
+  assert.equal(result.patch.myJoined, false);
+});

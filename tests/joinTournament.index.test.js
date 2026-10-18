@@ -732,6 +732,7 @@ test('joinTournament still allows claiming a guest because roster size does not 
   const result = await main({
     tournamentId: 't_1',
     nickname: '待认领',
+    action: 'claim_guest', claimGuestId: 'guest_1', claimConfirmed: true, expectedVersion: 4,
     avatar: 'cloud://avatar/claimed',
     gender: 'female'
   });

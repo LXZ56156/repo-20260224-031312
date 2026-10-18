@@ -73,12 +73,13 @@ function setDefaultMode(mode) {
 
 function normalizeSchedulerProfile(profile) {
   const value = String(profile || '').trim().toLowerCase();
-  if (value === 'rest' || value === 'balanced' || value === 'repeat') return value;
-  return 'rest';
+  if (value === 'rest' || value === 'balanced' || value === 'coverage') return value;
+  if (value === 'repeat') return 'coverage';
+  return 'balanced';
 }
 
 function getSchedulerProfile() {
-  return normalizeSchedulerProfile(get(SCHEDULER_PROFILE_KEY, 'rest'));
+  return normalizeSchedulerProfile(get(SCHEDULER_PROFILE_KEY, 'balanced'));
 }
 
 function setSchedulerProfile(profile) {

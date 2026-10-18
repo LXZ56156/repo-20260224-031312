@@ -54,11 +54,11 @@ function main() {
   console.log(JSON.stringify(plan, null, 2));
   if (!run) return;
   if (plan.tests.length) {
-    const result = spawnSync(process.execPath, ['--test', ...plan.tests], { cwd: ROOT, stdio: 'inherit' });
+    const result = spawnSync(process.execPath, ['scripts/run-tests.js', ...plan.tests], { cwd: ROOT, stdio: 'inherit' });
     if (result.status !== 0) { process.exitCode = result.status || 1; return; }
   }
   if (plan.cloudCommon) {
-    const result = spawnSync(process.execPath, ['scripts/run-bash-script.js', 'scripts/check-cloud-common.sh'], { cwd: ROOT, stdio: 'inherit' });
+    const result = spawnSync(process.execPath, ['scripts/check-cloud-common.js'], { cwd: ROOT, stdio: 'inherit' });
     process.exitCode = result.status || (result.error ? 1 : 0);
   }
 }

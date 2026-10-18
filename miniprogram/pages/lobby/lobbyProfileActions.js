@@ -1,3 +1,4 @@
+const memberClaim = require('../../core/memberClaim');
 const joinError = require('../../core/joinTournamentError');
 const joinTournamentCore = require('../../core/joinTournament');
 const actionGuard = require('../../core/actionGuard');
@@ -362,6 +363,8 @@ module.exports = {
       }
 
       try {
+        const choice = await memberClaim.chooseMemberClaim(this.data.tournament);
+        if (!choice || Number(this._lifecycleGeneration || 0) !== lifecycleGeneration) return;
         const joinPayload = joinTournamentCore.buildJoinPayload({
           tournamentId: tid,
           nickname,
@@ -370,8 +373,10 @@ module.exports = {
           mode: this.data.mode,
           squadChoice: this.data.joinSquadChoice
         });
+        Object.assign(joinPayload, choice);
         const joinResult = await loading.withLoading('加入中...', () => joinTournamentCore.callJoinTournament(joinPayload, {
-          action: 'join',
+          action: choice.action,
+          retryOnConflict: choice.action !== 'claim_guest',
           fallbackMessage: '加入失败，请稍后重试',
           clientRequestId
         }));

@@ -1,3 +1,4 @@
+const cacheBudget = require('./cacheBudget');
 const playerUtils = require('../playerUtils');
 const scoreUtils = require('../scoreUtils');
 const tournamentVersion = require('../tournamentVersion');
@@ -193,6 +194,7 @@ function getLocalTournamentCache(tournamentId) {
   const tid = String(tournamentId || '').trim();
   if (!tid) return null;
   const doc = get(getLocalTournamentCacheKey(tid), null);
+  if (doc && typeof doc === 'object') cacheBudget.touch(tid);
   return doc && typeof doc === 'object' ? doc : null;
 }
 
@@ -209,7 +211,8 @@ function setLocalTournamentCache(tournamentId, tournamentDoc) {
   const tid = String(tournamentId || '').trim();
   if (!tid || !tournamentDoc || typeof tournamentDoc !== 'object') return false;
   const docOk = set(getLocalTournamentCacheKey(tid), tournamentDoc);
-  const atOk = set(getLocalTournamentCacheAtKey(tid), Date.now());
+  const atOk = docOk && set(getLocalTournamentCacheAtKey(tid), Date.now());
+  if (docOk) { cacheBudget.touch(tid); cacheBudget.prune(); }
   return docOk && atOk;
 }
 
@@ -217,7 +220,8 @@ function removeLocalTournamentCache(tournamentId) {
   const tid = String(tournamentId || '').trim();
   if (!tid) return false;
   const docOk = del(getLocalTournamentCacheKey(tid));
-  const atOk = del(getLocalTournamentCacheAtKey(tid));
+  const atOk = docOk && del(getLocalTournamentCacheAtKey(tid));
+  if (docOk) cacheBudget.forget(tid);
   return docOk && atOk;
 }
 
@@ -375,6 +379,8 @@ function getLocalCompletedTournamentSnapshots() {
 }
 
 module.exports = {
+  maintainTournamentCache: cacheBudget.prune,
+  pinTournamentCache: cacheBudget.pin,
   getRecentTournamentIds,
   addRecentTournamentId,
   removeRecentTournamentId,
