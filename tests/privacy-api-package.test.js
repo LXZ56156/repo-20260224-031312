@@ -3,7 +3,9 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const ci = require('miniprogram-ci');
-const { getWhiteExtList } = require('../node_modules/miniprogram-ci/dist/utils/white_ext_list.js');
+// Offline regression uses the pinned vendor fallback list; live packaging rules
+// must be verified separately during an explicitly authorized upload.
+const { MiniProgramWhiteList } = require('../node_modules/miniprogram-ci/dist/utils/white_ext_list.js');
 const {
   isNotIgnoredByProjectConfig,
 } = require('../node_modules/miniprogram-ci/dist/modules/corecompiler/original/compile/common.js');
@@ -24,7 +26,7 @@ async function getUploadCandidates(config) {
     privateKey: 'test',
   });
   const miniprogramRoot = config.miniprogramRoot || '';
-  const whiteList = (await getWhiteExtList()).MiniProgramWhiteList;
+  const whiteList = new Set(MiniProgramWhiteList);
 
   return project
     .getFileList(miniprogramRoot, '')

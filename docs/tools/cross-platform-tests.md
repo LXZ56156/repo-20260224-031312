@@ -20,6 +20,10 @@ npm run lint
 
 全量仍含已存在的部署 Shell 合同测试；Linux 使用 Bash，Windows 使用 Git for Windows 的 Git Bash，经 `scripts/lib/git-bash.js` 定位，必要时显式 `WEAPP_GIT_BASH`。这些测试使用隔离 fake CLI，不会真实部署。没有要求安装 WSL、rsync、inotify、wslpath。不要把“共用入口”误写成“仓库中所有部署 Shell 都已改写”。
 
+## 离线包隐私回归
+
+`privacy-api-package.test.js` 使用锁定版本 miniprogram-ci 导出的静态 `MiniProgramWhiteList` 与真实 Project 文件枚举/ignore 规则，检查未用 uploader 被排除、使用中的组件保留、候选文件无禁止隐私 API。普通 `npm test` 不请求微信在线扩展名白名单，不需要上传凭据或网络。此为本地打包候选回归，不宣称微信服务端最新白名单或正式上传已验证；获准上传时仍按实际平台结果检查。
+
 ## 镜像流程
 
 ```text
@@ -46,6 +50,12 @@ DevTools/MCP 启动顺序提取为同一个 `orchestrate`，测试用显式适�
 
 `weapp-dev.js mcp/start/preview` 的真实启动适配器仅支持 Windows/WSL；Linux 没有原生微信 DevTools 时明确失败，不创建假成功。只有这个 WSL 原生启动分支才用 wslpath。Windows 直接用 PowerShell 原生路径；MCP 启动器路径必须显式提供 `WEAPP_MCP_WINDOWS_CMD` / `WEAPP_MCP_WINDOWS_DIR`。status 仅报告镜像，不把未探测 MCP 标成 ready。网络探测只做 Tool.getInfo；不登录、授权、部署或业务写入。
 
-用户 2026-10-18 17:32（UTC+08）明确不需要 GitHub Actions，新增配置已移除，不通过推送触发自动测试。当前验证在助手 Linux 云电脑执行；Windows 专属进程/CLI 测试在 Linux 上继续明确跳过，Windows 实机验证仍未完成。以后如需验证，在获准的 Windows 环境手动运行相同命令，不通过模拟 process.platform 冒充 Windows。
+用户 2026-10-18 17:32（UTC+08）明确不需要 GitHub Actions，新增配置已移除，不通过推送触发自动测试。此工具改造最初在助手 Linux 云电脑验证；Windows 专属进程/CLI 测试在 Linux 上明确跳过。后续 VM 实测结果见[当前状态](../tasks/current.md)，不把某次实测扩展为所有后续版本均通过。以后如需验证，在获准的 Windows 环境手动运行相同命令，不通过模拟 process.platform 冒充 Windows。
 
-用户 2026-10-18 明确本轮截图先不验收；原生截图、实际 DevTools、真机和真实云验收保留未验，不因本工具改造自动关闭。此次执行证据见[实施记录](../tasks/cache-fairness-claim-implementation-2026-10-18.md)。
+2026-10-18 工具改造时用户要求截图暂不验收；该历史边界不代表后续截图仍未执行。后续隔离原生验收与真机/真实云未验边界以[VM 记录](../tasks/vm-migration-and-ui-acceptance-2026-10-18.md)为准，不因本工具改造自动关闭。此次执行证据见[实施记录](../tasks/cache-fairness-claim-implementation-2026-10-18.md)。
+
+## 2026-10-20 云端复核
+
+基线 19c007c，加本节所述离线白名单测试调整；未修改业务或运行工具代码。Linux / Node 24.19.0：首次全量因测试主动请求微信在线白名单被环境网络规则阻断，未绕过该限制；改用锁定依赖的静态白名单后专项 2/2 通过。第一次完整运行 2035 项：2026 通过、1 失败、8 Windows 专属跳过；失败为 scheduler-full-audit-report 的默认预设质量用例出现排阵超时。该依赖闭包未改，原样单文件复跑 16/16 通过；随后原样全量复跑 **2027 通过、0 失败、8 跳过**（2035 项、215.8 秒）。保留首轮失败，不将单次重跑成功解释为耗时风险已消除；未放宽预算或更改断言。
+
+check 通过，lint 0 错误/35 既有警告，diff 检查通过。原运行日志按 tests、tests-offline、scheduler-audit-recheck、tests-offline-rerun 的阶段保留；当前版本 Windows 专属项仍未执行，不用旧 VM 全量结果替代。线上打包、云事务和 UI 验收未因本次离线复核改变状态。
