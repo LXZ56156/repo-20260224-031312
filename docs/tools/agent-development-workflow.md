@@ -2,16 +2,30 @@
 
 状态：现行。仅在 UI 实现/视觉验证时读取；后端或文档任务按 [总索引](../README.md) 选择所需资料。协作/验证/授权规则以 [AGENTS](../../AGENTS.md) 为准。
 
+## 环境与任务边界
+
+- 云端：dot 拉取最新仓库，保留脏树，直接实现代码、整理文档和运行所有不依赖 DevTools/截图的检查；不为这些工作创建 Codex 任务。
+- VM：固定 checkout 为 `C:\Projects\badminton\badminton-vm`，仅承担真实 DevTools 截图、UI/交互验收及必要的 Windows 专属验证。旧任务目录与证据保留，不再作为新任务默认目录。
+- 新建 VM 任务须先获用户允许，只用于 UI/截图相关验收；创建时明确项目与 cwd，实际核对 hostname、Get-Location、git 根、branch/HEAD/dirty 及项目归属。仅创建返回成功或提示词写了路径不算验证通过。
+- 一个任务对应一个完整可验收目标。不同目标分开，同目标的小问题不另开对话；长上下文先压缩交接，必要时在批准范围内另开，不把工具诊断、文档重构和产品开发无限塞入同一对话。
+- 交接只保留目标/约束、当前 commit 与脏文件归属、已验/未验/阻塞、证据入口和下一步。主控负责协调、版本一致性和验收，同一模拟器始终只有一个控制者。
+- 云端通过后交接同一 commit；有未提交候选时同时核对完整差异与文件哈希。VM 发现业务/UI 问题保留实图与复现步骤，回云端改代码和回归，再同步同版复验。文档也在来源签名内，集中修改后再签名，不借旧 receipt 宣称新版本通过。
+
 ## 每轮迭代
 
-1. 明确页面、问题、已批准边界和相关状态；行为变化先确认直接覆盖。方向明确则最小原生实现，需要新的设计方向时才制作浏览器方案。
-2. 审阅影响测试计划，执行必要测试；测试结束后再截图。通常一轮选1–3个相关状态，同一模拟器只由主控串行编译/导航/注入/采集。
+1. 在云端明确页面、问题、已批准边界和相关状态；行为变化先确认直接覆盖。方向明确则最小原生实现，需要新的设计方向时才制作浏览器方案。
+2. 在云端审阅影响测试计划，完成所有可执行的非 GUI 检查；通过并同步同版到 VM 后再截图。通常一轮选1–3个相关状态，同一模拟器只由主控串行编译/导航/注入/采集。
 
-~~~powershell
-Set-Location 'D:\projects\badminton-miniapp\main'
+~~~sh
+# 云端：在实际 checkout 内运行关联测试（无需 PowerShell）
 # 路径替换为本任务文件；不带 --run 只输出计划
 npm run test:affected -- miniprogram/pages/water/index.js
 npm run test:affected -- --run miniprogram/pages/water/index.js
+~~~
+
+~~~powershell
+# VM：确认收到同版后，在固定验收目录执行
+Set-Location 'C:\Projects\badminton\badminton-vm'
 # 不熟悉case时查清单，不必逐轮重复
 npm run ui:screenshot -- --list
 npm run ui:iterate -- waterV2Member24

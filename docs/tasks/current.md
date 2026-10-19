@@ -1,21 +1,22 @@
 # 当前状态
 
-2026-10-18 产品实现与跨平台工具已交付 master `e0b4bdf`。最新用户授权在重连 VM 的单个任务继续迁移并截图验收；只操作 VM 独立 checkout，不操作宿主机 LZX，原 Windows 修改和 UI14 两稿保留。
+更新：2026-10-20（北京时间）。源码已推 master：产品与跨平台工具 e0b4bdf、VM 验收工具 2904cd4、启动门禁 209b43d；这些提交不代表线上已发布。
 
-## 当前源码候选
+## 工作方式
 
-- EFF-04：50 份完整赛事/总 4 MiB 双软预算，LRU、索引重建及活动页/草稿/在途和未确认写入保护，独立战绩快照不删除。
-- FA-01/03：休息、覆盖、均衡三档，修改比赛页保存 rules.schedulerProfile；服务端从赛事读取，默认均衡。固定搭档/单打和已开始赛程不改。
-- FA-02：D 在原排程预算内预留最多 150 ms/6000 候选，有界同队替换/跨批交换；动态连打/等待边界以可行基线定义，指标按最终赛程重新计算。
-- BIZ-02：普通加入不认领；本人显式选 guest 并二次确认，服务端校验微信身份/draft/版本/目标、幂等与并发竞争，保留队别/搭档/赛程及统计，不授予管理权。满员允许认领已有位置，多同名不自动猜测。
-- 文档、旧断言与新回归同步；完整规则见[产品正文](../specs/cache-fairness-and-member-claim-policy.md)，结果/风险/证据统一在[实施记录](cache-fairness-claim-implementation-2026-10-18.md)。
+dot 在云电脑直接拉最新仓库、实现代码并完成非 GUI 测试，不为代码/测试/文档开 Codex 任务。同一待验版本再到 VM 的 `C:\Projects\badminton\badminton-vm` 做 DevTools 截图、UI/真实交互验收；新建 VM 任务须获准且明确项目/cwd。不同目标分开，详见[工作流](../tools/agent-development-workflow.md#环境与任务边界)。
 
-## 验证与待办
+## 已有结果
 
-旧 rsync/wslpath 镜像运行时、测试枚举、废弃 API 扫描和云共享库检查已改 Node，旧 Shell 入口转发，保留真实平台边界及隔离部署合同。按用户要求移除 GitHub Actions，不启用远端自动测试；见[跨平台测试工具](../tools/cross-platform-tests.md)。
+- 缓存双软预算、三档排程默认均衡、成员显式认领已实现，规则见[产品正文](../specs/cache-fairness-and-member-claim-policy.md)，覆盖与风险见[实施记录](cache-fairness-claim-implementation-2026-10-18.md)。
+- 390/430 隔离原生保存、最终认领、普通加入通过；测试数据完整恢复。Windows 全量 2032/2032 属此前基线，启动门禁另有 175 项关联回归；不能合并称最新全量通过。详见[VM 记录](vm-migration-and-ui-acceptance-2026-10-18.md)。
+- VM 固定副本已复制并校验；旧仓库与证据保留。旧任务仍是临时 cwd，无项目归属，不能称已迁移。新项目登记/单个 UI 任务创建正在验证。
 
-产品关联测试和 36 组排程探针通过。云端冻结复核 1981 项：1973 通过、0 失败、8 Windows 专属跳过；check 通过，lint 0 错误/35 既有警告。旧 WSL 失败及各轮结果保留在[实施记录](cache-fairness-claim-implementation-2026-10-18.md)。
+## 未完成与下一步
 
-VM迁移与390/430隔离原生流程已验：DevTools Stable2.02.2608080/SDK3.17.4，430×752/font16在取消/布局基础上补完一次保存重开rest/index1/v2、满员第二guest最终认领6人/v2、普通加入5→6/v2且原五人不变。三组各一写，finish完整恢复storage/globalData/SDK、watch/listener/pending清零、owner inactive，最终doctor8/8。真实云/手机仍未验；VM USB手机枚举0、无线未核、未配置独立测试云且无CloudBaseCLI。官方本地线程可接续，durable native挂载未修复。重连恢复分支仅65回归，未现场触发。详情和证据见[VM迁移正文](vm-migration-and-ui-acceptance-2026-10-18.md)。
+1. 启动曾错误接受双页栈，已加单页与异常拒签门禁。现场复测遇基础库空页；一次官方编译已恢复单页首页，但正式续签及固定目录的新会话尚未完成。旧签名不覆盖新路径或文档。
+2. durable 原生入口未挂载；现有官方 local 接续可截图点击。真机、独立测试云和真实云事务未验，不以 fixture 或截图代替。
+3. 用户行为留痕已有代码，后台配置、真实客户端实收/对账和每日统计闭环仍待补证（OBS-01）。旧报表不是近期用户数据，见[留痕合同](../specs/activity-observability.md)。
+4. 其他缺陷/暂停项只从[统一待修清单](paused-plan-status.md)接续；[中期增长计划](medium-term-growth-plan-2026-10-14.md)仍需按范围确认。
 
-Windows全量2032/2032通过、0失败/跳过/取消；旧launch静态断言修正后69项关联与全量复跑通过，业务代码不变；本次启动工具门禁追加改动由新关联回归覆盖，2032全量属于前一基线。用户已明确批准本轮提交推送至LXZ56156/repo-20260224-031312的master；不force、不部署/preview/upload/发布、不写生产。源码签名与收尾差异独立记录，旧receipt不改，不为文档重跑GUI。Console两条已确认为16:23预热的appLaunch非空页面栈/SDK SystemError；当时pageCount2仍签发。已补单页启动/exception拒签门禁，175项离线关联回归通过；外部SDK竞态未修，新启动未现场验，不重复三组写入。
+验收按[覆盖清单](../tools/weapp-ui-acceptance.md#覆盖清单与通过标准)逐项记录已验/未验/阻塞，问题修后复验；不承诺穷尽所有输入或绝无缺陷。未部署、预览上传或写入生产；GitHub Actions 按用户要求不启用。

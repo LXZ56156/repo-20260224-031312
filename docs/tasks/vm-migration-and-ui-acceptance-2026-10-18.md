@@ -172,3 +172,11 @@ Windows 升级前基线：npm test 1981/1981 通过、0 失败/跳过；check �
 11:34:52UTC真实选择iPhone15ProMax后，官方日志在同一rt0/s0记录AppService销毁/重建，进程先14092、自动compile再11188，11:34:59loadstop；旧SDK systemInfo在两次5秒超时后退出，未绑定nonce、未签430。11:38只读connect原endpoint63186通过：同一监听器PID12892/启动时间/安装/源码，实际430×752、SDK3.17.4、真实home路由，旧marker已消失。故障为设备切换重建后旧SDK连接悬挂，不能只增加读取重试。
 
 最小修复在原设备期限内仅一次重连：首次精确读超时必须先由本次官方日志证明同一个exact项目窗口代数增加，最终新AppService进程完成原生就绪；同时核原监听器/安装/源码，再官方connect同endpoint、核SDK/项目/真实非空页和实例未再次更替，重新取得两次稳定目标几何后才走原nonce断开重连全校验。无实例证据、同PID、其他窗口、source/listener漂移、SDK不符、空页、再更替或预算不足均拒绝。65项直接关联回归通过，lint0错误/35既有警告，diff检查通过；现场与完整来源结果置于任务外native-device-reconnect同前缀证据。GUI保持idle，无需重复切设备。
+
+## 2026-10-20 固定目录与后续工作边界
+
+旧任务 checkout 已可逆复制至 VM `C:\Projects\badminton\badminton-vm`；320 个提交完整，新旧均为干净的 209b43d，依赖与关键工具哈希一致，环境预检、Git 完整性及 check 通过。原目录、失败现场与全部验收证据保留；旧任务的临时 cwd/无项目归属尚未调整，不将文件复制等同任务迁移。项目登记及本次获准的单个项目内 UI 任务仍待实际创建与 cwd/归属回执。
+
+209b43d 首次现场启动在 2026-10-19 17:19:42 UTC 按预算拒绝：AppService 持续 0 页，无新 marker/session，旧 session 未改。基础库 3.17.4 的 screenHeight/getPageTypeById 异常已保留原文；17:41 UTC 一次官方“编译”后首页显示与单页栈恢复，无新增 Console 错误，但正式安全续签入口仍缺，不能称启动链路已完成或旧会话适用于固定目录。
+
+此后代码实现、非 GUI 测试和文档由 dot 云端直接完成；VM 只做同版本 DevTools 截图、UI/交互及必要平台验证，详见[工作流](../tools/agent-development-workflow.md#环境与任务边界)。文档体系整理是独立目标，云端复用现有索引/专题进行，不另建文档 Codex 任务。本次仅文档更新，不变更运行代码；原验收证据仍仅覆盖其记录的源码版本，不能覆盖新文档 manifest。

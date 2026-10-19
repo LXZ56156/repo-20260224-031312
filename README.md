@@ -6,14 +6,14 @@
 
 开发前读 [AGENTS](AGENTS.md) 与 [当前状态](docs/tasks/current.md)，再用 [文档索引](docs/README.md) 按任务读取。产品和权限细节从 [当前打水规格入口](docs/specs/independent-water-ledgers.md) 找到对应合同，跨模块关系看 [架构](docs/context/architecture.md)。线上客户端、云部署与本地源码分别核验，以当前状态中的回执为准。
 
-项目总目录 `D:\projects\badminton-miniapp` 不是 Git 根；主仓库在 `main`，其他 worktree 在 `worktrees`。2026-10-04 已提交基线为 **15 个页面、23 个云函数**；本机暂停业务的未提交工作树为16页/26函数，拉取远端不会包含这些未完成实现。具体checkout以 [app.json](miniprogram/app.json) 和 [cloudbaserc.json](cloudbaserc.json) 为准；线上部署单独看 [当前状态](docs/tasks/current.md)。
+代码实现与非 GUI 测试在 dot 云电脑完成；VM 固定验收仓库为 `C:\Projects\badminton\badminton-vm`。旧宿主机目录只作历史参考，不是当前默认工作区。实际页面/函数以 [app.json](miniprogram/app.json)、[cloudbaserc.json](cloudbaserc.json) 为准；源码、已测试版本和线上版本分别核验。
 
 ## 开发与 UI 迭代
 
 验证范围按AGENTS选择；[UI日常循环](docs/tools/agent-development-workflow.md)默认复用已签热会话，关联测试完成后执行：
 
 ```powershell
-Set-Location 'D:\projects\badminton-miniapp\main'
+Set-Location 'C:\Projects\badminton\badminton-vm'
 npm run ui:screenshot -- --list
 npm run ui:iterate -- waterV2Member24
 ```
