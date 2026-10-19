@@ -177,9 +177,9 @@ test('Windows GUI spawn is followed by service readiness before the single autom
   const source = fs.readFileSync(path.join(__dirname, '../scripts/dev/weapp-ui-prewarm.js'), 'utf8');
   const windows = source.indexOf("if (process.platform === 'win32') {");
   const spawn = source.indexOf("const child = spawn(executable", windows);
-  const wait = source.indexOf('await waitForWindowsIdeServiceReady(cliPath, timeoutMs)', spawn);
-  const launch = source.indexOf('await automator.launch(', wait);
+  const wait = source.indexOf('await waitForWindowsIdeServiceReady(cliPath, startupBudget.remaining(', spawn);
+  const launch = source.indexOf('automator.launch({', wait);
   assert.ok(windows > 0 && spawn > windows && wait > spawn && launch > wait);
   assert.equal((source.match(/automator\.launch\(/g) || []).length, 1);
-  assert.ok(source.indexOf('await waitForAppServiceReady(launched, timeoutMs)', launch) > launch);
+  assert.ok(source.indexOf('await waitForAppServiceReady(launched, appServiceAllowance,', launch) > launch);
 });

@@ -9,7 +9,7 @@
   "compileType": "miniprogram",
   "simulatorType": "wechat",
   "watchOptions": {
-    "ignore": ["tmp/**", "node_modules/**", ".git/**"]
+    "ignore": ["tmp", "tmp/**", "node_modules/**", ".git", ".git/**"]
   },
   "setting": {
     "urlCheck": true,
@@ -41,7 +41,7 @@
       "outputPath": ""
     }
   },
-  "libVersion": "3.14.2",
+  "libVersion": "3.17.4",
   "packOptions": {
     "ignore": [
       {

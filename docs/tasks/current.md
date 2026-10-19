@@ -1,6 +1,6 @@
 # 当前状态
 
-2026-10-18（UTC+08）用户 04:42 确认产品规则并交付文档提交 fc63d0e，04:47 又明确要求在助手云电脑实现、多次检查并同步文档与测试，禁止创建任何 Codex 任务。最新实现指令覆盖此前“仅文档”。本轮在助手独立云端 checkout 直接开发，master 基线 fc63d0e；未操作用户 Windows 工作区，原 18 项修改和 UI14 两稿保留。
+2026-10-18 产品实现与跨平台工具已交付 master `e0b4bdf`。最新用户授权在重连 VM 的单个任务继续迁移并截图验收；只操作 VM 独立 checkout，不操作宿主机 LZX，原 Windows 修改和 UI14 两稿保留。
 
 ## 当前源码候选
 
@@ -12,10 +12,10 @@
 
 ## 验证与待办
 
-用户 12:40（UTC+08）明确截图先不验收，要求统一 Linux/Windows 测试工具。已将旧 rsync/wslpath 镜像运行时替换为 Node 共用实现，旧 Shell 入口转发；测试文件枚举、废弃 API 扫描、云共享库检查均改 Node，保留真实平台边界及隔离部署 Shell 合同。用户 17:32（UTC+08）要求去掉 GitHub Actions，新增配置已移除，不启用远端自动测试。详见[跨平台测试工具](../tools/cross-platform-tests.md)。
+旧 rsync/wslpath 镜像运行时、测试枚举、废弃 API 扫描和云共享库检查已改 Node，旧 Shell 入口转发，保留真实平台边界及隔离部署合同。按用户要求移除 GitHub Actions，不启用远端自动测试；见[跨平台测试工具](../tools/cross-platform-tests.md)。
 
-产品多轮关联测试及 36 组排程探针通过。工具改造后首轮 npm test：1980 项，1972 通过、0 失败、8 Windows 专属跳过；冻结复核 1981 项：1973 通过、0 失败、8 Windows 专属跳过。check 通过，lint 0 错误/35 既有警告。旧 6 项 WSL 环境失败已通过替换实际实现和对应行为回归解决，不靠新增跳过掩盖，历史失败保留在[实施记录](cache-fairness-claim-implementation-2026-10-18.md)。
+产品关联测试和 36 组排程探针通过。云端冻结复核 1981 项：1973 通过、0 失败、8 Windows 专属跳过；check 通过，lint 0 错误/35 既有警告。旧 WSL 失败及各轮结果保留在[实施记录](cache-fairness-claim-implementation-2026-10-18.md)。
 
-截图按用户指令暂缓；原生/真机、真实云事务、Windows 实机运行仍未验，不宣称通过。冻结检查已通过；此前推送被安全审批拦截；用户 17:48（UTC+08）已明确批准去掉 Actions 后的本次推送，本批为源码交付版本。Git HTTPS 写入缺少可用身份，改用已连接 GitHub 接口交付并核对整树内容，不新增或导出凭据。未部署、上传、发布或写真实业务数据。
+VM迁移与390/430隔离原生流程已验：DevTools Stable2.02.2608080/SDK3.17.4，430×752/font16在取消/布局基础上补完一次保存重开rest/index1/v2、满员第二guest最终认领6人/v2、普通加入5→6/v2且原五人不变。三组各一写，finish完整恢复storage/globalData/SDK、watch/listener/pending清零、owner inactive，最终doctor8/8。真实云/手机仍未验；VM USB手机枚举0、无线未核、未配置独立测试云且无CloudBaseCLI。官方本地线程可接续，durable native挂载未修复。重连恢复分支仅65回归，未现场触发。详情和证据见[VM迁移正文](vm-migration-and-ui-acceptance-2026-10-18.md)。
 
-旧 Windows 工具链诊断与更新检查待回复独立保留，见[工具链记录](paused-plan-status.md#10-15工具链复核与恢复边界)；本轮云端实现不代表用户电脑原生控制已恢复。EFF-01 全扫描、依赖风险及其他外部验收不因本轮完成关闭。
+Windows全量2032/2032通过、0失败/跳过/取消；旧launch静态断言修正后69项关联与全量复跑通过，运行/业务代码未再变。当前只更新验收文档并跑相称回归。用户已明确批准本轮提交推送至LXZ56156/repo-20260224-031312的master；不force、不部署/preview/upload/发布、不写生产。源码签名与收尾差异独立记录，旧receipt不改，不为文档重跑GUI。截图红色错误计数2在补验前已存在且三组未增长，确切条目原文尚未映射；不把doctor当错误清零。

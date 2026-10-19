@@ -59,6 +59,7 @@ function timeout(promise, ms, label) {
 
 function parseScreenshotArgs(argv) {
   const requested = Array.isArray(argv) ? argv.slice() : [];
+  if (requested[0] === '--refresh-session' && requested[1] === '--rebind-viewport') requested.shift();
   if (requested.includes('--rebind-viewport')) {
     const width = Number(requested[1]);
     if (requested.length !== 2 || requested[0] !== '--rebind-viewport' || !Number.isInteger(width) || width <= 0) {
@@ -549,6 +550,18 @@ function acquireSessionLock(sessionFile, purpose, options = {}) {
         throw new Error(
           `Screenshot session has a stale owner and must be recovered by a new ui:prewarm: ${lockFile}`
         );
+      }
+      // A dead native controller may still own original state in AppService.
+      // Prewarm cannot replace that runtime; only its verified recovery entry
+      // may claim this exact stale lock and restore the retained snapshot.
+      if (existing.purpose === 'native-ui-acceptance') {
+        const expected = options.expectedNativeRecoveryOwner;
+        const exactOwner = expected && ['kind', 'token', 'purpose', 'processId',
+          'processStartFileTimeUtc', 'sessionFile', 'createdAt']
+          .every(key => expected[key] === existing[key]);
+        if (record.purpose !== 'native-isolation-recovery' || !exactOwner) {
+          throw new Error('Native isolation requires its verified owner recovery entry; ui:prewarm is blocked');
+        }
       }
       const staleToken = String(existing.token);
       const claimFile = `${lockFile}.stale-claim-${staleToken}`;
@@ -2381,6 +2394,31 @@ async function waitForVisualSettle(page, item, options = {}) {
   throw new Error('Visual state did not stabilize before the deadline.');
 }
 
+async function readScrollViewport(miniProgram, selector, timeoutMs) {
+  const result = await timeout(miniProgram.evaluate(function inspectCaptureViewport(targetSelector) {
+    return new Promise((resolve) => {
+      wx.createSelectorQuery().select(targetSelector).boundingClientRect().selectViewport().scrollOffset()
+        .exec((values) => {
+          const rect = values && values[0];
+          const scroll = values && values[1];
+          resolve(rect && scroll ? { top: rect.top, bottom: rect.bottom, height: rect.height,
+            scrollTop: scroll.scrollTop } : null);
+        });
+    });
+  }, selector), timeoutMs, 'capture scroll live viewport');
+  if (!result || !['top', 'bottom', 'height', 'scrollTop'].every((key) => Number.isFinite(result[key]))
+      || result.height <= 0 || result.scrollTop < 0 || Math.abs(result.bottom - result.top - result.height) > 1) {
+    throw new Error('Capture scroll live viewport geometry is invalid.');
+  }
+  return result;
+}
+
+function scrollViewportMatches(live, evidence) {
+  return live.top >= -1 && live.bottom <= evidence.windowHeight + 1
+    && Math.abs(live.height - evidence.height) <= 1
+    && Math.abs(live.scrollTop - evidence.targetScrollTop) <= 1;
+}
+
 async function scrollCaseIntoView(miniProgram, page, selector, timeoutMs = 5000) {
   // Coordinates are measured at page origin. This uses the SDK's page scroll
   // API only; it neither taps controls nor calls application business methods.
@@ -2389,25 +2427,38 @@ async function scrollCaseIntoView(miniProgram, page, selector, timeoutMs = 5000)
   if (!Number.isFinite(origin) || Math.abs(origin) > 1) throw new Error('Capture scroll origin not reached.');
   const elements = await timeout(page.$$(selector), timeoutMs, 'capture scroll selector');
   if (elements.length !== 1) throw new Error('Capture scroll selector must match exactly one element.');
-  const [offset, size, info] = await timeout(Promise.all([
-    elements[0].offset(), elements[0].size(), miniProgram.systemInfo(),
+  const [offset, size, info, pageSize] = await timeout(Promise.all([
+    elements[0].offset(), elements[0].size(), miniProgram.systemInfo(), page.size(),
   ]), timeoutMs, 'capture scroll geometry');
   const sourceTop = Number(offset && offset.top);
   const height = Number(size && size.height);
   const windowHeight = Number(selectSystemInfo(info).windowHeight);
-  if (![sourceTop, height, windowHeight].every(Number.isFinite)
-      || sourceTop < 0 || height <= 0 || windowHeight <= 0 || height > windowHeight - 12) {
+  const pageHeight = Number(pageSize && pageSize.height);
+  if (![sourceTop, height, windowHeight, pageHeight].every(Number.isFinite)
+      || sourceTop < 0 || height <= 0 || windowHeight <= 0 || pageHeight <= 0
+      || height > windowHeight - 12 || sourceTop + height > pageHeight + 1) {
     throw new Error('Capture scroll target geometry is invalid or cannot fit the viewport.');
   }
-  const targetScrollTop = Math.max(0, sourceTop - 12);
+  // Page.size() reads document.documentElement.scrollHeight in the official SDK.
+  // A short document clamps scrolling before a near-bottom card can reach 12px.
+  // Into view does not mean pinned to 12px: the actual settings card already
+  // fits at 119..623.5 in a 671px window. Requiring needless scroll rejected it.
+  const alreadyVisible = sourceTop + height <= windowHeight;
+  const requestedScrollTop = alreadyVisible ? 0 : Math.max(0, sourceTop - 12);
+  const maxScrollTop = Math.max(0, pageHeight - windowHeight);
+  const targetScrollTop = Math.min(requestedScrollTop, maxScrollTop);
   await timeout(miniProgram.pageScrollTo(targetScrollTop), timeoutMs, 'capture scroll target');
   const deadline = Date.now() + timeoutMs;
   let actualScrollTop;
   do {
     actualScrollTop = Number(await timeout(page.scrollTop(), Math.max(1, deadline - Date.now()), 'capture scroll position'));
-    if (Number.isFinite(actualScrollTop) && Math.abs(actualScrollTop - targetScrollTop) <= 1) {
-      return { ok: true, selector, sourceTop, height, windowHeight, targetScrollTop,
-        actualScrollTop, viewportTop: sourceTop - actualScrollTop };
+    const viewportTop = sourceTop - actualScrollTop;
+    const liveViewport = await readScrollViewport(miniProgram, selector, Math.max(1, deadline - Date.now()));
+    if (Number.isFinite(actualScrollTop) && Math.abs(actualScrollTop - targetScrollTop) <= 1
+        && viewportTop >= -1 && viewportTop + height <= windowHeight + 1
+        && scrollViewportMatches(liveViewport, { windowHeight, height, targetScrollTop })) {
+      return { ok: true, selector, sourceTop, height, windowHeight, pageHeight,
+        requestedScrollTop, maxScrollTop, targetScrollTop, actualScrollTop, viewportTop, alreadyVisible, liveViewport };
     }
     await new Promise((resolve) => setTimeout(resolve, 50));
   } while (Date.now() < deadline);
@@ -2499,6 +2550,12 @@ async function runCase(name, miniProgram, connection, options = {}) {
       scrollEvidence = await scrollCaseIntoView(miniProgram, page, item.scrollToSelector);
     }
     visualSettle = await waitForVisualSettle(page, item);
+    if (scrollEvidence) {
+      scrollEvidence.afterVisualSettle = await readScrollViewport(miniProgram, item.scrollToSelector, 5000);
+      if (!scrollViewportMatches(scrollEvidence.afterVisualSettle, scrollEvidence)) {
+        throw new Error('Capture scroll target changed or left the viewport during visual settle.');
+      }
+    }
     stateBefore = await page.data();
     const [rawToolInfo, currentPageInfo, rawSystemInfo, pageSize] = await Promise.all([
       timeout(miniProgram.send('Tool.getInfo'), 5000, `${name}:Tool.getInfo`),

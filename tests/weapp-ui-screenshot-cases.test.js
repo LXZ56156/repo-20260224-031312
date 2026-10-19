@@ -468,7 +468,9 @@ test('V2 water screenshots record native runtime provenance and viewport width',
   assert.match(screenshotScript, /WEAPP_PROJECT_PATH/);
   assert.match(screenshotScript, /automator\.connect\(\{\s*wsEndpoint:/);
   assert.doesNotMatch(screenshotScript, /await\s+automator\.launch\s*\(/);
-  assert.match(prewarmScript, /await\s+automator\.launch\s*\(/);
+  assert.match(prewarmScript, /launched\s*=\s*await\s+screenshotTool\.timeout\(\s*automator\.launch\s*\(/);
+  assert.match(prewarmScript, /\}\), launchAllowance, 'Startup automation launch'/);
+  assert.equal((prewarmScript.match(/automator\.launch\(/g) || []).length, 1);
   assert.match(prewarmScript, /process\.env\.NW_PRE_ARGS/);
   assert.match(prewarmScript, /validateBackgroundCaptureProcessFlags/);
   assert.match(screenshotScript, /sourceProjectPath/);
@@ -1162,4 +1164,42 @@ test('new pending-plan cases use positive readiness anchors, explicit counts and
     });
     assert.equal(screenshotTool.validateSelectorCoverage(dom, item.selectors, item.selectorExpectations).ok, true, name);
   }
+});
+
+test('scheduler screenshot states expose all three real draft preference labels', () => {
+  const view = require('../miniprogram/pages/settings/settingsViewModel');
+  const base = screenshotTool.cases.settings.data;
+  assert.equal(base.settingsReady, base.tournament.settingsConfigured === true,
+    'the completion badge must agree with the draft tournament fixture');
+  for (const [name, profile] of [['settingsSchedulerBalanced', 'balanced'], ['settingsSchedulerRest', 'rest'], ['settingsSchedulerCoverage', 'coverage']]) {
+    const item = screenshotTool.cases[name];
+    assert.ok(item, name);
+    const expected = view.buildSettingsViewState(item.data.tournament, { openid: item.data.tournament.creatorId });
+    assert.equal(item.data.showSchedulerProfile, true);
+    assert.equal(item.data.isDraft, true);
+    assert.equal(item.data.schedulerProfile, profile);
+    for (const key of ['schedulerProfileOptions', 'schedulerProfileIndex', 'schedulerProfileDisplayLabel', 'schedulerProfileHint']) {
+      assert.deepEqual(item.data[key], expected[key], `${name}: ${key}`);
+    }
+    assert.equal(item.scrollToSelector, '#section-params');
+    assert.equal(item.selectorExpectations['#section-params .form-label'], 5);
+    assert.equal(item.expectedWindowWidth, undefined);
+  }
+});
+
+test('full-roster claim screenshot preserves distinct same-name guests and a long native choice label', () => {
+  const memberClaim = require('../miniprogram/core/memberClaim');
+  const item = screenshotTool.cases.shareClaimFullNames;
+  assert.ok(item);
+  const tournament = item.data.tournament;
+  const guests = memberClaim.getClaimCandidates(tournament, '__ui_share_viewer');
+  assert.equal(tournament.players.length, tournament.playerLimit);
+  assert.equal(guests.length, 3);
+  assert.equal(guests[0].name, guests[1].name);
+  assert.notEqual(guests[0].id, guests[1].id);
+  assert.ok(memberClaim.candidateLabel(guests[2], tournament, 2).length > 24);
+  assert.equal(item.data.preview.joinAllowed, true);
+  assert.equal(item.data.preview.joined, false);
+  assert.match(item.data.preview.availabilityText, /名额已满.*认领/);
+  assert.doesNotMatch(JSON.stringify(item), /https?:\/\//);
 });

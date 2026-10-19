@@ -117,12 +117,16 @@ test('viewport rebind requires an explicit positive target', () => {
   assert.deepEqual(screenshotTool.parseScreenshotArgs(['--rebind-viewport', '390']), {
     mode: 'refresh-session', value: '', rebindViewport: 390,
   });
-  for (const args of [['--rebind-viewport'], ['--rebind-viewport', '0'], ['--rebind-viewport', 'auto']]) {
+  assert.deepEqual(screenshotTool.parseScreenshotArgs(['--refresh-session', '--rebind-viewport', '430']), {
+    mode: 'refresh-session', value: '', rebindViewport: 430,
+  }, 'npm ui:session:refresh supplies its fixed --refresh-session prefix');
+  for (const args of [['--rebind-viewport'], ['--rebind-viewport', '0'], ['--rebind-viewport', 'auto'],
+    ['--refresh-session', '--rebind-viewport', '0'], ['--refresh-session', '--rebind-viewport', '430', '--doctor']]) {
     assert.throws(() => screenshotTool.parseScreenshotArgs(args), /viewport/);
   }
 });
 
-test('explicit viewport rebind preserves launch provenance and requires two-stage compile proof', async (t) => {
+test('390 to actual 430x752 viewport rebind preserves launch provenance and requires two-stage compile proof', async (t) => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-rebind-'));
   t.after(() => fs.rmSync(tempDir, { recursive: true, force: true }));
   const Module = require('node:module');
@@ -134,51 +138,57 @@ test('explicit viewport rebind preserves launch provenance and requires two-stag
   const tool = isolated.exports;
   const projectPath = path.resolve(__dirname, '..');
   const session = createSession(projectPath, 'ws://127.0.0.1:39501', 39501, {
-    expectedWindowWidth: 320, gitManifestHash: tool.hashCanonical(tool.currentGitManifest()),
+    expectedWindowWidth: 390, gitManifestHash: tool.hashCanonical(tool.currentGitManifest()),
   });
   const config = { session, sessionFile: path.join(tempDir, 'session.json'), wsEndpoint: session.endpoint,
-    sourceProjectPath: projectPath, expectedWindowWidth: 320, expectedSDKVersion: '3.7.12' };
+    sourceProjectPath: projectPath, expectedWindowWidth: 390, expectedSDKVersion: '3.7.12' };
   let marker = null;
-  let width = 390;
+  let width = 430;
   let sdk = '3.7.12';
   let identity = session.listenerIdentity;
   const mini = {
     async send(command) { return command === 'Tool.getInfo' ? { SDKVersion: sdk, projectPath } : { path: 'pages/home/index' }; },
-    async systemInfo() { return { windowWidth: width, windowHeight: 700, pixelRatio: 2, fontSizeSetting: 16 }; },
+    async systemInfo() { return { windowWidth: width, windowHeight: 752, pixelRatio: 3, fontSizeSetting: 16 }; },
     async evaluate(_fn, value) { if (value === undefined) return marker; marker = value; return { ok: true, ...value }; },
   };
-  const options = { resolveListenerIdentity: () => identity, rebindViewport: 390 };
+  const options = { resolveListenerIdentity: () => identity, rebindViewport: 430 };
   const daily = await tool.runDoctor(mini, {}, config, { resolveListenerIdentity: () => identity });
   assert.equal(daily.ok, false);
   assert.equal(daily.checks.viewport, false);
   for (const wrong of ['pid', 'sdk', 'target']) {
     identity = wrong === 'pid' ? { ...session.listenerIdentity, owningProcessId: 9999 } : session.listenerIdentity;
     sdk = wrong === 'sdk' ? '3.17.3' : '3.7.12';
-    width = wrong === 'target' ? 430 : 390;
+    width = wrong === 'target' ? 390 : 430;
     const rejected = await tool.runDoctor(mini, {}, config, options);
     assert.equal(rejected.ok, false, wrong);
     assert.equal(fs.existsSync(config.sessionFile), false, wrong);
   }
-  identity = session.listenerIdentity; sdk = '3.7.12'; width = 390;
+  identity = session.listenerIdentity; sdk = '3.7.12'; width = 430;
   const first = await tool.runDoctor(mini, {}, config, options);
   assert.equal(first.ok, false);
   const pending = JSON.parse(fs.readFileSync(config.sessionFile, 'utf8'));
-  assert.equal(pending.expectedWindowWidth, 320);
-  assert.deepEqual(pending.pendingRefresh.viewportRebind, { from: 320, to: 390 });
-  assert.equal((await tool.runDoctor(mini, {}, { ...config, session: pending }, options)).ok, false);
+  assert.equal(pending.expectedWindowWidth, 390);
+  assert.deepEqual(pending.pendingRefresh.viewportRebind, { from: 390, to: 430 });
+  const preservedAppCompile = await tool.runDoctor(mini, {}, { ...config, session: pending }, options);
+  assert.equal(preservedAppCompile.ok, false, 'ordinary compile retaining App/challenge is not rebuild proof');
+  assert.equal(preservedAppCompile.checks.runtimeRecompiledForChangedSource, false);
+  assert.equal(JSON.parse(fs.readFileSync(config.sessionFile, 'utf8')).expectedWindowWidth, 390);
   marker = null; // Explicit background compilation rebuilt AppService.
   const final = await tool.runDoctor(mini, {}, { ...config, session: pending }, options);
   assert.equal(final.ok, true);
   const trusted = JSON.parse(fs.readFileSync(config.sessionFile, 'utf8'));
-  assert.equal(trusted.expectedWindowWidth, 390);
+  assert.equal(trusted.expectedWindowWidth, 430);
+  assert.equal(trusted.systemInfo.windowHeight, 752);
+  assert.equal(final.checks.runtimeRecompiledForChangedSource, true);
+  assert.equal(final.checks.viewportStableDuringDoctor, true);
   assert.deepEqual(trusted.projectBinding, session.projectBinding);
   assert.deepEqual(trusted.listenerIdentity, session.listenerIdentity);
   assert.equal(trusted.endpoint, session.endpoint);
-  assert.equal(trusted.viewportRebindings.at(-1).from, 320);
-  assert.equal(trusted.viewportRebindings.at(-1).to, 390);
-  assert.equal(tool.validateSessionRecord(trusted, { ...config, session: trusted, expectedWindowWidth: 390 }).ok, true);
-  width = 430;
-  const drift = await tool.verifySessionBinding(mini, { ...config, session: trusted, expectedWindowWidth: 390 }, {
+  assert.equal(trusted.viewportRebindings.at(-1).from, 390);
+  assert.equal(trusted.viewportRebindings.at(-1).to, 430);
+  assert.equal(tool.validateSessionRecord(trusted, { ...config, session: trusted, expectedWindowWidth: 430 }).ok, true);
+  width = 390;
+  const drift = await tool.verifySessionBinding(mini, { ...config, session: trusted, expectedWindowWidth: 430 }, {
     resolveListenerIdentity: () => identity,
   });
   assert.equal(drift.ok, false);

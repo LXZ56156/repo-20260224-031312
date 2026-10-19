@@ -6,6 +6,7 @@ const { buildSyncBannerState } = require('../../miniprogram/core/syncStatus');
 const { buildTournamentViewState, buildLockHint } = require('../../miniprogram/pages/match/matchViewModel');
 const { getPrimaryNavItems } = require('../../miniprogram/core/matchPrimaryNav');
 const { buildShareEntryViewModel } = require('../../miniprogram/core/shareMeta');
+const { buildSettingsViewState } = require('../../miniprogram/pages/settings/settingsViewModel');
 const { computeRankings } = require('../../miniprogram/core/ranking');
 
 const manualActions = [
@@ -494,7 +495,7 @@ const cases = {
     },
     data: {
       tournamentId: 'demo',
-      tournament: { _id: 'demo', name: '周末羽毛球赛', creatorId: '__ui_settings_owner', status: 'draft', totalMatches: 21, courts: 2 },
+      tournament: { _id: 'demo', name: '周末羽毛球赛', creatorId: '__ui_settings_owner', status: 'draft', settingsConfigured: true, totalMatches: 21, courts: 2 },
       pageTitle: '修改比赛',
       contextTitle: '仅草稿阶段可修改比赛信息',
       isAdmin: true,
@@ -1024,5 +1025,32 @@ for (const item of Object.values(cases)) {
   const tournamentId = item.data.tournamentId || (item.data.tournament && item.data.tournament._id);
   item.data.primaryNavItems = getPrimaryNavItems(page[1] === 'lobby' ? 'match' : page[1], tournamentId);
 }
+
+for (const [suffix, schedulerProfile] of [['Balanced', 'balanced'], ['Rest', 'rest'], ['Coverage', 'coverage']]) {
+  const tournament = { ...cases.settings.data.tournament,
+    _id: `__ui_scheduler_${schedulerProfile}`, rules: { schedulerProfile } };
+  const state = buildSettingsViewState(tournament, { openid: tournament.creatorId });
+  const preference = Object.fromEntries(['isDraft', 'showSchedulerProfile', 'schedulerProfile',
+    'schedulerProfileOptions', 'schedulerProfileIndex', 'schedulerProfileDisplayLabel', 'schedulerProfileHint']
+    .map(key => [key, state[key]]));
+  cases[`settingsScheduler${suffix}`] = { ...cases.settings,
+    selectors: [...cases.settings.selectors, '#section-params .form-label'],
+    selectorExpectations: { ...cases.settings.selectorExpectations, '#section-params .form-label': 5 },
+    scrollToSelector: '#section-params',
+    data: { ...cases.settings.data, tournamentId: tournament._id, tournament, ...preference } };
+}
+
+const fullClaimTournament = buildShareTournament('__ui_claim_full_names');
+fullClaimTournament.presetKey = 'rotation_6';
+fullClaimTournament.playerLimit = 6;
+for (const [index, name] of [[1, '阿杰'], [2, '阿杰'], [3, '这是一个需要完整辨认且不能自动猜测本人身份的超长昵称球友']]) {
+  fullClaimTournament.players[index] = { id: `guest_ui_claim_${index}`, type: 'guest', name, avatar: localAvatar };
+}
+fullClaimTournament.playerIds = fullClaimTournament.players.map(player => player.id);
+cases.shareClaimFullNames = { ...cases.shareDraft,
+  path: `/pages/share-entry/index?code=${fullClaimTournament._id}`,
+  data: { ...cases.shareDraft.data, tournament: fullClaimTournament,
+    tournamentId: fullClaimTournament._id,
+    preview: buildShareEntryViewModel({ tournament: fullClaimTournament, openid: shareViewerId }) } };
 
 module.exports = { cases, manualActions };

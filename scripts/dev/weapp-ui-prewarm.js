@@ -7,6 +7,101 @@ const crypto = require('crypto');
 const http = require('http');
 const { spawn, spawnSync } = require('child_process');
 const screenshotTool = require('./weapp-ui-screenshot');
+const { snapshotNativeStartup, waitForNativeStartup } = require('./weapp-ui-native-startup');
+
+function createStartupBudget(totalMs, options = {}) {
+  if (!Number.isInteger(totalMs) || totalMs < 5000 || totalMs > 180000) throw Error('Startup budget must be between 5000 and 180000ms');
+  const now = options.now || Date.now, startedAt = now(), deadline = startedAt + totalMs, stages = [];
+  return {
+    deadline,
+    remaining(stage, minimumMs = 1000, capMs = Infinity, reserveMs = 0) {
+      const elapsedMs = now() - startedAt, remainingMs = deadline - now();
+      const grantedMs = Math.max(0, Math.min(capMs, remainingMs - reserveMs));
+      const entry = { stage, elapsedMs, remainingMs, reserveMs, grantedMs, minimumMs };
+      stages.push(entry); if (options.onStage) options.onStage(entry);
+      if (grantedMs < minimumMs) throw Error(`Startup budget insufficient for ${stage}: remaining=${remainingMs}ms, reserved=${reserveMs}ms, granted=${grantedMs}ms, required=${minimumMs}ms, total=${totalMs}ms`);
+      return grantedMs;
+    },
+    snapshot() { return { totalMs, startedAt, deadline, elapsedMs: now() - startedAt, stages: stages.map(stage => ({ ...stage })) }; },
+  };
+}
+
+async function waitForViewportReady(miniProgram, width, timeoutMs, options = {}) {
+  const height = options.height || 0;
+  if (!Number.isInteger(width) || width <= 0 || !Number.isFinite(timeoutMs) || timeoutMs <= 0
+      || (height && (!Number.isInteger(height) || height <= 0))) throw Error('Viewport readiness requires an explicit positive target and deadline');
+  const now = options.now || Date.now;
+  const sleep = options.sleep || (ms => new Promise(resolve => setTimeout(resolve, ms)));
+  const startedAt = now(), deadline = startedAt + timeoutMs;
+  let previous = '', last = null, attempts = 0, transientReadTimeouts = 0;
+  while (now() < deadline) {
+    const readTimeoutMs = Math.min(5000, Math.max(1, deadline - now()));
+    attempts++;
+    try {
+      last = screenshotTool.selectSystemInfo(await screenshotTool.timeout(miniProgram.systemInfo(), readTimeoutMs, 'prewarm:real-viewport'));
+    } catch (error) {
+      if (readTimeoutMs !== 5000 || transientReadTimeouts !== 0 || now() >= deadline
+          || String(error && error.message) !== 'prewarm:real-viewport timed out after 5000ms') throw error;
+      transientReadTimeouts++; previous = '';
+      if (options.onReadTimeout) options.onReadTimeout({ attempts, elapsedMs: now() - startedAt, remainingMs: deadline - now() });
+      if (options.reconnectAfterReplacement) miniProgram = await options.reconnectAfterReplacement(miniProgram, deadline);
+      await sleep(Math.min(options.pollMs || 1000, deadline - now()));
+      continue;
+    }
+    if (now() >= deadline) break;
+    const matches = last.windowWidth === width && last.windowHeight > 0 && (!height || last.windowHeight === height);
+    const hash = matches ? screenshotTool.hashCanonical(last) : '';
+    if (hash && hash === previous) return { ready: true, attempts, transientReadTimeouts, elapsedMs: now() - startedAt, systemInfo: last };
+    previous = hash;
+    const remaining = deadline - now();
+    if (remaining > 0) await sleep(Math.min(options.pollMs || 1000, remaining));
+  }
+  throw Error(`Real viewport did not settle before the deadline: ${JSON.stringify({ width, height, attempts, last })}`);
+}
+
+async function reconnectViewportAfterReplacement(context, deadline, options = {}) {
+  const now = options.now || Date.now;
+  const resolveListener = options.resolveListener || screenshotTool.resolveListenerIdentity;
+  const manifestHash = options.manifestHash || (() => screenshotTool.hashCanonical(screenshotTool.currentGitManifest()));
+  const remaining = (stage, cap = 10000) => {
+    const ms = Math.min(cap, deadline - now());
+    if (ms < 5000) throw Error(`Device replacement budget insufficient for ${stage}; no RPC started`);
+    return ms;
+  };
+  const verify = () => {
+    if (manifestHash() !== context.gitManifestHash) throw Error('Source changed during device replacement');
+    const current = resolveListener(context.endpoint);
+    if (!screenshotTool.validateListenerIdentity(current, context.listener).ok
+        || !screenshotTool.validateDevToolsOwnership(current, context.cliPath).ok
+        || !screenshotTool.validateBackgroundCaptureProcessFlags(current).ok) throw Error('Device replacement listener/install identity changed');
+  };
+  context.observer.poll();
+  let replacement = context.observer.incarnation();
+  if (!replacement || !context.baseline || replacement.key !== context.baseline.key
+      || replacement.generation <= context.baseline.generation) throw Error('Viewport timeout without proved same-window AppService replacement');
+  verify(); remaining('native readiness');
+  disconnect(context.miniProgram);
+  await waitForNativeStartup(context.observer, remaining('native readiness', deadline - now()), options);
+  replacement = context.observer.incarnation();
+  if (!replacement || replacement.key !== context.baseline.key || replacement.generation <= context.baseline.generation
+      || !replacement.ready || !replacement.processId || replacement.processId === context.baseline.processId) throw Error('Replacement AppService incarnation is not ready');
+  verify();
+  let fresh;
+  try {
+    fresh = await screenshotTool.timeout(context.automator.connect({ wsEndpoint: context.endpoint }), remaining('connect'), 'device replacement connect');
+    context.onConnected(fresh); // The outer finally owns cleanup even when later proof fails.
+    const tool = screenshotTool.selectToolInfo(await screenshotTool.timeout(fresh.send('Tool.getInfo'), remaining('tool'), 'device replacement Tool.getInfo'));
+    if (tool.SDKVersion !== context.expectedSDKVersion || (tool.projectPath
+        && screenshotTool.normalizeProjectPath(tool.projectPath) !== screenshotTool.normalizeProjectPath(context.projectPath))) throw Error('Replacement SDK/project mismatch');
+    await waitForAppServiceReady(fresh, remaining('AppService', deadline - now()), { ...options, minimumReadBudgetMs: 5000, absoluteDeadline: deadline });
+    context.observer.poll(); const stable = context.observer.incarnation();
+    if (!stable || !stable.ready || stable.key !== replacement.key || stable.generation !== replacement.generation
+        || stable.processId !== replacement.processId) throw Error('AppService changed again during replacement proof');
+    verify(); remaining('stable viewport');
+    if (context.onReconnected) context.onReconnected({ before: context.baseline, after: stable, remainingMs: deadline - now() });
+    return fresh;
+  } catch (error) { disconnect(fresh); throw error; }
+}
 
 function requiredEnv(name) {
   const value = String(process.env[name] || '').trim();
@@ -34,7 +129,8 @@ function resolveWindowsIdeServiceFiles(cliPath, options = {}) {
   // Match the official CLI installPath/productHash; never scan profiles or guess ports.
   const productHash = crypto.createHash('md5').update(path.join(cliRoot, 'resources/app.asar')).digest('hex');
   const profile = path.join(userProfile, 'AppData/Local', name, 'User Data', productHash, 'Default');
-  return { portFile: path.join(profile, '.ide'), statusFile: path.join(profile, '.ide-status') };
+  return { portFile: path.join(profile, '.ide'), statusFile: path.join(profile, '.ide-status'),
+    logDirectory: path.join(path.dirname(profile), 'WeappLog/logs') };
 }
 
 function requestIdeServiceReadiness(port, timeoutMs) {
@@ -180,30 +276,56 @@ async function waitForAppServiceReady(miniProgram, timeoutMs, options = {}) {
   const pollMs = Number(options.pollMs || 200);
   if (!Number.isFinite(pollMs) || pollMs <= 0) throw new Error('AppService readiness poll interval must be positive and finite.');
   const startedAt = now();
-  const deadline = startedAt + timeoutMs;
+  const minimumReadBudgetMs = options.minimumReadBudgetMs || 1;
+  if (!Number.isFinite(minimumReadBudgetMs) || minimumReadBudgetMs <= 0) throw Error('AppService minimum read budget must be positive');
+  const deadline = Math.min(startedAt + timeoutMs, options.absoluteDeadline === undefined ? Infinity : options.absoluteDeadline);
   let lastProbe = null;
   let attempts = 0;
+  let startupBridgeTimeouts = 0;
   while (now() < deadline) {
+    const readBudgetMs = deadline - now();
+    if (readBudgetMs < minimumReadBudgetMs) throw Error(`AppService readiness budget insufficient: remaining=${readBudgetMs}ms, required=${minimumReadBudgetMs}ms; no RPC started; last probe: ${JSON.stringify(lastProbe || {})}`);
     attempts += 1;
-    // Only a valid not-ready snapshot is polled. Transport/runtime exceptions
-    // and hung evaluate calls reject immediately; no launch or marker is retried.
-    lastProbe = await screenshotTool.timeout(miniProgram.evaluate(function inspectAppServiceReady() {
-      const functions = { getApp: typeof getApp, getCurrentPages: typeof getCurrentPages,
-        App: typeof App, Page: typeof Page };
-      const app = functions.getApp === 'function' ? getApp() : null;
-      const pages = functions.getCurrentPages === 'function' ? getCurrentPages() : null;
-      return { functions, appAvailable: !!app && typeof app === 'object', pagesAvailable: Array.isArray(pages) };
-    }), Math.max(1, deadline - now()), 'AppService readiness evaluate');
+    // The vendor bridge can return its own 10s response timeout while the new
+    // AppService boots, before this startup deadline. Only a proved
+    // native startup may observe that exact error once more; never retry launch,
+    // marker writes, transport loss, application exceptions or a local deadline.
+    try {
+      lastProbe = await screenshotTool.timeout(miniProgram.evaluate(function inspectAppServiceReady() {
+        const functions = { getApp: typeof getApp, getCurrentPages: typeof getCurrentPages,
+          App: typeof App, Page: typeof Page };
+        const app = functions.getApp === 'function' ? getApp() : null;
+        const pages = functions.getCurrentPages === 'function' ? getCurrentPages() : null;
+        const pageCount = Array.isArray(pages) ? pages.length : 0;
+        const currentPage = pageCount ? pages[pageCount - 1] : null;
+        const route = currentPage && (currentPage.route || currentPage.__route__);
+        return { functions, appAvailable: !!app && typeof app === 'object', pagesAvailable: Array.isArray(pages),
+          pageCount, pageReady: typeof route === 'string' && route.trim().length > 0 };
+      }), readBudgetMs, 'AppService readiness evaluate');
+    } catch (error) {
+      if (options.nativeStartupVerified !== true || startupBridgeTimeouts !== 0
+          || !error || error.message !== 'timeout waiting for automator response'
+          || now() >= deadline) throw error;
+      startupBridgeTimeouts += 1;
+      if (options.onStartupBridgeTimeout) options.onStartupBridgeTimeout({
+        rpc: 'App.callFunction(inspectAppServiceReady)', attempt: attempts,
+        elapsedMs: now() - startedAt, remainingMs: deadline - now(),
+      });
+      continue;
+    }
     const keys = ['getApp', 'getCurrentPages', 'App', 'Page'];
     if (!lastProbe || !lastProbe.functions
         || keys.some((key) => typeof lastProbe.functions[key] !== 'string')
-        || typeof lastProbe.appAvailable !== 'boolean' || typeof lastProbe.pagesAvailable !== 'boolean') {
+        || typeof lastProbe.appAvailable !== 'boolean' || typeof lastProbe.pagesAvailable !== 'boolean'
+        || !Number.isInteger(lastProbe.pageCount) || lastProbe.pageCount < 0
+        || typeof lastProbe.pageReady !== 'boolean'
+        || (lastProbe.pageReady && (!lastProbe.pagesAvailable || lastProbe.pageCount === 0))) {
       throw new Error(`Invalid AppService readiness probe: ${JSON.stringify(lastProbe || {})}`);
     }
     if (now() >= deadline) break;
     if (keys.every((key) => lastProbe.functions[key] === 'function')
-        && lastProbe.appAvailable && lastProbe.pagesAvailable) {
-      return { ready: true, attempts, elapsedMs: now() - startedAt, lastProbe };
+        && lastProbe.appAvailable && lastProbe.pagesAvailable && lastProbe.pageReady) {
+      return { ready: true, attempts, elapsedMs: now() - startedAt, lastProbe, startupBridgeTimeouts };
     }
     const remainingMs = deadline - now();
     if (remainingMs <= 0) break;
@@ -228,7 +350,13 @@ async function main() {
   const port = Number(requiredEnv('WEAPP_AUTO_PORT'));
   const expectedWindowWidth = Number(requiredEnv('WEAPP_EXPECTED_WINDOW_WIDTH'));
   const expectedSDKVersion = String(process.env.WEAPP_EXPECTED_SDK_VERSION || '').trim();
+  const expectedWindowHeight = Number(process.env.WEAPP_EXPECTED_WINDOW_HEIGHT || 0);
+  const viewportWaitMs = Number(process.env.WEAPP_PREWARM_VIEWPORT_WAIT_MS || 0);
+  if (!Number.isInteger(viewportWaitMs) || viewportWaitMs < 0 || viewportWaitMs > 300000
+      || !Number.isInteger(expectedWindowHeight) || expectedWindowHeight < 0) throw Error('Invalid bounded viewport wait/height');
   const timeoutMs = Number(process.env.WEAPP_PREWARM_TIMEOUT_MS || 60000);
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 180000) throw Error('Prewarm operation timeout must be within 1..180000ms');
+  const startupTimeoutMs = Number(process.env.WEAPP_PREWARM_STARTUP_TIMEOUT_MS || timeoutMs);
   const sessionFile = path.resolve(
     cwd,
     String(process.env.WEAPP_UI_SESSION_FILE || 'tmp/weapp-ui-background-session.json')
@@ -257,6 +385,9 @@ async function main() {
     if (!gitBeforeLaunch.ok) {
       throw new Error('Unable to snapshot the current Git worktree before DevTools launch.');
     }
+    const startupBudget = createStartupBudget(startupTimeoutMs, {
+      onStage: stage => console.error(`ui:prewarm startup budget: ${JSON.stringify(stage)}`),
+    });
     console.error('ui:prewarm may activate WeChat DevTools once; daily ui:doctor/ui:screenshot commands do not launch or focus it.');
     const automator = screenshotTool.resolveAutomator();
     const cliLogFile = `${sessionFile}.cli-${Date.now()}-${process.pid}-${crypto.randomBytes(4).toString('hex')}.log`;
@@ -276,19 +407,22 @@ async function main() {
         child.once('error', reject);
         child.once('spawn', () => { child.unref(); resolve(); });
       });
-      const ideReadiness = await waitForWindowsIdeServiceReady(cliPath, timeoutMs);
+      const ideReadiness = await waitForWindowsIdeServiceReady(cliPath, startupBudget.remaining('ide-service', 1000, timeoutMs));
       console.error(`ui:prewarm IDE service ready after ${ideReadiness.elapsedMs}ms (${ideReadiness.attempts} probes)`);
     }
+    const nativeStartup = process.platform === 'win32'
+      ? snapshotNativeStartup(resolveWindowsIdeServiceFiles(cliPath).logDirectory, sourceProjectPath) : null;
     const previousNwPreArgs = process.env.NW_PRE_ARGS;
     process.env.NW_PRE_ARGS = screenshotTool.ensureBackgroundCaptureNwPreArgs(previousNwPreArgs);
     try {
-      launched = await automator.launch({
+      const launchAllowance = startupBudget.remaining('automation-launch', 1000, timeoutMs);
+      launched = await screenshotTool.timeout(automator.launch({
         cliPath: launchCommand.executable,
         args: launchCommand.args,
         projectPath: sourceProjectPath,
         port,
-        timeout: timeoutMs,
-      });
+        timeout: launchAllowance,
+      }), launchAllowance, 'Startup automation launch');
     } finally {
       if (typeof previousNwPreArgs === 'undefined') delete process.env.NW_PRE_ARGS;
       else process.env.NW_PRE_ARGS = previousNwPreArgs;
@@ -314,7 +448,41 @@ async function main() {
     const projectPathHash = screenshotTool.hashCanonical(
       screenshotTool.normalizeProjectPath(sourceProjectPath)
     );
-    const appServiceReadiness = await waitForAppServiceReady(launched, timeoutMs);
+    const nativeStartupReadiness = nativeStartup
+      ? await waitForNativeStartup(nativeStartup, startupBudget.remaining('native-container', 1000, timeoutMs, 15000)) : null;
+    if (nativeStartupReadiness) console.error(`ui:prewarm native container complete: ${JSON.stringify(nativeStartupReadiness)}`);
+    const appServiceAllowance = startupBudget.remaining('app-service', 5000, timeoutMs);
+    console.error(`ui:prewarm AppService readiness RPC starting at ${new Date().toISOString()}: App.callFunction(inspectAppServiceReady)`);
+    let appServiceReadiness;
+    try {
+      appServiceReadiness = await waitForAppServiceReady(launched, appServiceAllowance, {
+        minimumReadBudgetMs: 5000, absoluteDeadline: startupBudget.deadline,
+        nativeStartupVerified: !!nativeStartupReadiness && nativeStartupReadiness.ready === true,
+        onStartupBridgeTimeout: (diagnostic) => console.error(
+          `ui:prewarm bounded startup bridge timeout at ${new Date().toISOString()}: ${JSON.stringify(diagnostic)}`
+        ),
+      });
+    } catch (error) {
+      throw new Error(`ui:prewarm AppService readiness RPC App.callFunction(inspectAppServiceReady) failed: ${error.message}`, { cause: error });
+    }
+    const startupTiming = startupBudget.snapshot();
+    if (startupTiming.elapsedMs >= startupTiming.totalMs) throw Error(`Overall startup budget expired after AppService readiness: ${JSON.stringify(startupTiming)}`);
+    console.error(`ui:prewarm startup complete within budget: ${JSON.stringify(startupTiming)}`);
+    console.error(`ui:prewarm AppService ready at ${new Date().toISOString()}: ${JSON.stringify(appServiceReadiness)}`);
+    let viewportReadiness = null;
+    if (viewportWaitMs) {
+      const viewportIncarnation = nativeStartup && nativeStartup.incarnation();
+      console.error(`ui:prewarm awaiting real viewport ${expectedWindowWidth}x${expectedWindowHeight || '*'} for at most ${viewportWaitMs}ms; GUI device selection only, no second launch`);
+      viewportReadiness = await waitForViewportReady(launched, expectedWindowWidth, viewportWaitMs, { height: expectedWindowHeight,
+        reconnectAfterReplacement: nativeStartup ? (miniProgram, deadline) => reconnectViewportAfterReplacement({
+          miniProgram, observer: nativeStartup, baseline: viewportIncarnation, endpoint, listener: launchedListener,
+          cliPath, gitManifestHash: screenshotTool.hashCanonical(gitBeforeLaunch), expectedSDKVersion, projectPath: sourceProjectPath, automator,
+          onConnected: fresh => { launched = fresh; },
+          onReconnected: proof => console.error(`ui:prewarm device replacement reconnected: ${JSON.stringify(proof)}`),
+        }, deadline) : undefined,
+        onReadTimeout: diagnostic => console.error(`ui:prewarm bounded viewport read timeout: ${JSON.stringify(diagnostic)}`) });
+      console.error(`ui:prewarm real viewport stable: ${JSON.stringify(viewportReadiness)}`);
+    }
     const marker = {
       sessionId: crypto.randomBytes(32).toString('hex'),
       projectPathHash,
@@ -330,6 +498,7 @@ async function main() {
         || markerBinding.listenerIdentityHash !== marker.listenerIdentityHash) {
       throw new Error(`AppService runtime marker binding failed: ${JSON.stringify(markerBinding || {})}`);
     }
+    console.error(`ui:prewarm marker bound at ${new Date().toISOString()}`);
 
     disconnect(launched);
     launched = null;
@@ -360,6 +529,7 @@ async function main() {
       sdkVersion: !!toolInfo.SDKVersion
         && (!expectedSDKVersion || toolInfo.SDKVersion === expectedSDKVersion),
       viewport: systemInfo.windowWidth === expectedWindowWidth,
+      viewportHeight: !expectedWindowHeight || systemInfo.windowHeight === expectedWindowHeight,
       route: !!screenshotTool.normalizeRoute(currentPageInfo),
       listenerIdentity: screenshotTool.validateListenerIdentity(
         screenshotTool.resolveListenerIdentity(endpoint),
@@ -368,7 +538,12 @@ async function main() {
       backgroundCaptureProcessFlags: backgroundCaptureProcessFlags.ok,
     };
     if (!Object.values(checks).every(Boolean)) {
-      throw new Error(`Prewarm verification failed: ${JSON.stringify(checks)}`);
+      throw new Error(`Prewarm verification failed: ${JSON.stringify({ checks,
+        verifiedAt: new Date().toISOString(), markerBoundAt: marker.boundAt,
+        appServiceReadiness, runtimeMarkerPresent: !!runtimeMarker,
+        runtimeMarkerKeys: runtimeMarker ? Object.keys(runtimeMarker).sort() : [],
+        expectedMarkerHash: screenshotTool.hashCanonical(marker),
+        actualMarkerHash: screenshotTool.hashCanonical(runtimeMarker) })}`);
     }
     const git = screenshotTool.currentGitManifest(screenshotTool.REPOSITORY_ROOT);
     if (!git.ok) throw new Error('Unable to bind the prewarm receipt to the current Git worktree state.');
@@ -423,7 +598,10 @@ async function main() {
       kind: 'weapp-ui-prewarm-result-v2',
       ok: true,
       sessionFile,
+      nativeStartupReadiness,
+      startupTiming,
       appServiceReadiness,
+      viewportReadiness,
       checks,
       recoveryClear,
       poisonClear,
@@ -444,4 +622,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { main, waitForAppServiceReady, resolveWindowsIdeServiceFiles, requestIdeServiceReadiness, waitForWindowsIdeServiceReady };
+module.exports = { main, createStartupBudget, reconnectViewportAfterReplacement, waitForAppServiceReady, waitForViewportReady, resolveWindowsIdeServiceFiles, requestIdeServiceReadiness, waitForWindowsIdeServiceReady };
