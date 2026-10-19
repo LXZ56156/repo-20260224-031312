@@ -1,5 +1,7 @@
 # 原生交互验收隔离工具
 
+正式预热的AppService初始栈必须恰好一页；零页按原期限等待，多页立即拒签，不导航消除错误。launch返回后观察到的SDK exception跨连接保留并在marker/签名前拒绝，finally撤监听。native loadstop不代表SDK路由已完成；launch返回前事件盲区仍须Console核对。此门禁不修复SDK内部重复appLaunch，新版本现场启动须由主控单控制者协调，不能用已通过业务补验替代启动验证。
+
 设备切换会自动销毁/重建AppService，旧SDK连接可能保持打开但RPC悬挂。430预热在首次精确5秒viewport读取超时时，仅当本次官方启动日志证明同一个exact项目/窗口出现更高代数且新的AppService进程，才在原180秒设备期限内断开旧连接、重连同一endpoint一次。重新确认原监听器进程/启动时间/安装/后台标志、源码、SDK/项目、原生容器就绪和真实非空页面；重连后必须重新读取两次一致的目标几何，之后才绑定新nonce并执行原有断开重连与来源检查。没有实例更替证据、进程/源码变化、预算不足或第二次超时均失败；不增加通用重试或设备等待时长。
 
 用于当前VM的settings排程picker、share-entry成员认领及其真实导航。通过已签名会话连接官方SDK；Computer Use仍须按当前技能在受支持node_repl中初始化。产品处理器、原生picker、ActionSheet、Modal及设备几何保持真实；本工具不操作桌面、不选项、不确认弹窗。

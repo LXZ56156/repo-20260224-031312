@@ -5,6 +5,37 @@ const fs = require('node:fs');
 const path = require('node:path');
 const prewarm = require('../scripts/dev/weapp-ui-prewarm');
 
+test('formal startup rejects the observed duplicate page stack instead of signing it', async () => {
+  let calls = 0;
+  await assert.rejects(prewarm.waitForAppServiceReady({ async evaluate(probe) {
+    calls++;
+    return vm.runInNewContext(`(${probe.toString()})()`, runtime({}, [{ route: 'pages/home/index' }, { route: 'pages/home/index' }]));
+  } }, 100, { expectedPageCount: 1 }), /startup page stack.*expected=1.*actual=2/);
+  assert.equal(calls, 1, 'do not poll or navigate away the conflicting startup');
+});
+
+test('startup exception guard retains errors across replacement and stops before marker work', () => {
+  const { EventEmitter } = require('node:events');
+  const old = new EventEmitter(), fresh = new EventEmitter();
+  const guard = prewarm.createStartupExceptionGuard();
+  guard.addConnection(old);
+  old.emit('exception', { message: 'appLaunch with non-empty page stack' });
+  guard.addConnection(fresh);
+  assert.throws(() => guard.assertClean('before marker'), /startup exception.*appLaunch with non-empty page stack/);
+  guard.dispose();
+  assert.equal(old.listenerCount('exception'), 0); assert.equal(fresh.listenerCount('exception'), 0);
+});
+
+test('clean startup guard permits a single real page without modifying the runtime', async () => {
+  const { EventEmitter } = require('node:events');
+  const mini = new EventEmitter(), app = {};
+  mini.evaluate = async probe => vm.runInNewContext(`(${probe.toString()})()`, runtime(app, [{ route: 'pages/launch/index' }]));
+  const guard = prewarm.createStartupExceptionGuard(); guard.addConnection(mini);
+  const ready = await prewarm.waitForAppServiceReady(mini, 100, { expectedPageCount: 1 });
+  assert.equal(ready.ready, true); assert.deepEqual(Array.from(ready.lastProbe.pageRoutes), ['pages/launch/index']);
+  guard.assertClean('before marker'); guard.dispose(); assert.deepEqual(app, {});
+});
+
 test('bounded cold-start budget preserves a meaningful AppService window after a 37-second native container', async () => {
   let clock = 0, calls = 0;
   const budget = prewarm.createStartupBudget(120000, { now: () => clock });

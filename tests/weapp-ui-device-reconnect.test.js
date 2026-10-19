@@ -52,13 +52,13 @@ test('replacement recovery refuses missing evidence, different window, source, l
 });
 
 test('empty pages or another replacement after connection cannot become signed readiness', async () => {
-  for (const kind of ['empty', 'changed']) {
+  for (const kind of ['empty', 'changed', 'multi']) {
     const s = setup();
     if (kind === 'empty') s.fresh.evaluate = async () => { s.setClock(30000); return { functions: { getApp: 'function', getCurrentPages: 'function', App: 'function', Page: 'function' }, appAvailable: true, pagesAvailable: true, pageCount: 0, pageReady: false }; };
-    else s.fresh.evaluate = async () => { s.replacement.processId++; return { functions: { getApp: 'function', getCurrentPages: 'function', App: 'function', Page: 'function' }, appAvailable: true, pagesAvailable: true, pageCount: 1, pageReady: true }; };
+    else s.fresh.evaluate = async () => { if (kind === 'changed') s.replacement.processId++; return { functions: { getApp: 'function', getCurrentPages: 'function', App: 'function', Page: 'function' }, appAvailable: true, pagesAvailable: true, pageCount: kind === 'multi' ? 2 : 1, pageReady: true }; };
     // Return immutable snapshots, as the real native tracker does.
     s.context.observer.incarnation = () => ({ ...s.replacement });
-    await assert.rejects(reconnectViewportAfterReplacement(s.context, 30000, s.options), /did not become ready|changed again/);
+    await assert.rejects(reconnectViewportAfterReplacement(s.context, 30000, s.options), /did not become ready|changed again|startup page stack/);
     assert.equal(s.counts().connects, 1); assert.equal(s.counts().disconnected, 2);
   }
 });

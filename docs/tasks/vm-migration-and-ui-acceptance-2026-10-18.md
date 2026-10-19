@@ -10,9 +10,19 @@ VM工具链与隔离原生工作流已迁移。390正常机型已完成排程偏
 
 官方本地线程的受支持Computer Use接续满足点击需求；durable自身native挂载仍缺失。VM只读手机USB枚举0，无线配对/未插线状态未核；开发/体验/正式和默认项目共用原生产环境，未找到独立测试云入口或VM CloudBaseCLI，不能据此断言云端不存在测试环境。没有读取真实用户数据、复制凭据、新认证/权限、创建环境、preview/upload/deploy。真实手机/云事务/身份/规则/并发、320小屏和大字仍未验。重连恢复分支只有65项直接回归，成功430现场未触发。
 
-### 图中红色错误计数复核
+### 图中两条启动错误的准确诊断
 
-本轮最早的picker展开图已显示红色2，后续最终认领和普通加入仍为2，故计数在三组写入期间没有增长。官方持久日志另见16:23UTC启动阶段Devtools frontend加载/参数提示，以及后续timing和扩展清单错误；这些是工具内部记录，不能未经映射就断言等于UI两条。原launch receipt运行异常0、console仅getSystemInfoSync弃用警告；收尾官方只读console订阅没有历史事件或exception。UI两条确切原文目前未取得，仍作为工具诊断限制记录，不称错误已清零，也不把隔离账本中预期拒绝请求自动当成这两条来源。未为调查重启/重做写入；反向只读请求受审批限制，未绕行。
+只读Console已取得原文：appLaunch with non-empty page stack，以及对应SystemError(appServiceSDKScriptError)/Page route错误。显示的错误组时间2026-10-19 16:23:30UTC；各条独立时间没有显示，来源为SDK3.17.4的WAServiceMainContext/WASubContext，不能用“无业务帧”证明无害。不是隔离期预期拒绝；它发生在16:23正式预热、三组业务补验之前。
+
+官方生命周期日志同窗口记录16:23:07.928 init、08.593 reload、10.576 loadstop，再23.261 reload、24.030 loadstop；本工具仅一次官方auto。安装SDK的Launcher源码只spawn一次auto并connect/checkVersion，prewarm签名前没有路由操作，业务App.onLaunch也没有导航。vendor的onContainerInited异步hook完成后会reload，独立compile路径也会reload。上述可证明外部启动生命周期包含两次reload；究竟哪条内部路由消息造成重复appLaunch尚未被完整协议日志证明，不能断言改个等待即可修好SDK。
+
+本次prewarm在24.222发只读AppService探针，34.307收到一次vendor桥接超时，34.335探针返回pageCount=2仍被旧门禁接受，35.424绑定marker、40.799签发。这确认工具把非空多页初始栈误当启动就绪，是可修的签发缺口；原生webview loadstop也不能单独证明SDK路由完成。旧签发只证明当时其余来源检查通过，不能证明启动无异常。
+
+最小修复仅收紧预热工具：正式新启动和设备替换后的AppService必须pageCount=1，多页立即拒签，不轮询/导航清理来掩盖；0页仍按原有期限等待。探针只记录无query的pageRoutes。官方launch返回后即订阅SDK exception事件，首次异常跨连接保留，在容器/ready/marker/签名前拒签，finally解除监听。没有增加launch、重试、延时或改SDK/业务。它保证不接受已观察异常和已知多页状态；launch返回前的异常可能未被事件捕获，仍需Console时间核对，不能称零错误证明。
+
+离线反例先复现多页被接受，再覆盖双页拒绝、单页成功、异常跨连接保留/清理和替换连接多页拒绝。175/175关联回归通过，check通过，lint0错误/35既有警告，diff通过；结果在任务外launch-stack-gate同前缀记录。**尚未现场验证新门禁，也未修复外部SDK内部竞态。** 原三组业务在后续中立单页下隔离执行并恢复的账本事实保留，但它们不能反证预热无错；不重复这三组写入。
+
+现场阶段方案只需主控先协调一个控制者：冻结源码/备份原session，现有local仅观察；一次官方430预热，记录启动前后Console时间与计数、新guard日志和pageCount/pageRoutes。只有单页、无已观察异常、原来源/SDK/几何/nonce全校验才签发；否则保留失败、不重试或清日志。终态后只读查Console，若仍有新同类错误则按SDK限制交付，不改vendor或强行修栈。此阶段未执行，不把离线回归当现场启动通过。
 
 ### 验证与交付授权
 

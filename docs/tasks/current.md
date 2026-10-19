@@ -18,4 +18,4 @@
 
 VM迁移与390/430隔离原生流程已验：DevTools Stable2.02.2608080/SDK3.17.4，430×752/font16在取消/布局基础上补完一次保存重开rest/index1/v2、满员第二guest最终认领6人/v2、普通加入5→6/v2且原五人不变。三组各一写，finish完整恢复storage/globalData/SDK、watch/listener/pending清零、owner inactive，最终doctor8/8。真实云/手机仍未验；VM USB手机枚举0、无线未核、未配置独立测试云且无CloudBaseCLI。官方本地线程可接续，durable native挂载未修复。重连恢复分支仅65回归，未现场触发。详情和证据见[VM迁移正文](vm-migration-and-ui-acceptance-2026-10-18.md)。
 
-Windows全量2032/2032通过、0失败/跳过/取消；旧launch静态断言修正后69项关联与全量复跑通过，运行/业务代码未再变。当前只更新验收文档并跑相称回归。用户已明确批准本轮提交推送至LXZ56156/repo-20260224-031312的master；不force、不部署/preview/upload/发布、不写生产。源码签名与收尾差异独立记录，旧receipt不改，不为文档重跑GUI。截图红色错误计数2在补验前已存在且三组未增长，确切条目原文尚未映射；不把doctor当错误清零。
+Windows全量2032/2032通过、0失败/跳过/取消；旧launch静态断言修正后69项关联与全量复跑通过，业务代码不变；本次启动工具门禁追加改动由新关联回归覆盖，2032全量属于前一基线。用户已明确批准本轮提交推送至LXZ56156/repo-20260224-031312的master；不force、不部署/preview/upload/发布、不写生产。源码签名与收尾差异独立记录，旧receipt不改，不为文档重跑GUI。Console两条已确认为16:23预热的appLaunch非空页面栈/SDK SystemError；当时pageCount2仍签发。已补单页启动/exception拒签门禁，175项离线关联回归通过；外部SDK竞态未修，新启动未现场验，不重复三组写入。

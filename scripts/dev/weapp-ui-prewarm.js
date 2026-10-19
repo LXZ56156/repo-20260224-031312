@@ -93,7 +93,7 @@ async function reconnectViewportAfterReplacement(context, deadline, options = {}
     const tool = screenshotTool.selectToolInfo(await screenshotTool.timeout(fresh.send('Tool.getInfo'), remaining('tool'), 'device replacement Tool.getInfo'));
     if (tool.SDKVersion !== context.expectedSDKVersion || (tool.projectPath
         && screenshotTool.normalizeProjectPath(tool.projectPath) !== screenshotTool.normalizeProjectPath(context.projectPath))) throw Error('Replacement SDK/project mismatch');
-    await waitForAppServiceReady(fresh, remaining('AppService', deadline - now()), { ...options, minimumReadBudgetMs: 5000, absoluteDeadline: deadline });
+    await waitForAppServiceReady(fresh, remaining('AppService', deadline - now()), { ...options, minimumReadBudgetMs: 5000, absoluteDeadline: deadline, expectedPageCount: 1 });
     context.observer.poll(); const stable = context.observer.incarnation();
     if (!stable || !stable.ready || stable.key !== replacement.key || stable.generation !== replacement.generation
         || stable.processId !== replacement.processId) throw Error('AppService changed again during replacement proof');
@@ -101,6 +101,25 @@ async function reconnectViewportAfterReplacement(context, deadline, options = {}
     if (context.onReconnected) context.onReconnected({ before: context.baseline, after: stable, remainingMs: deadline - now() });
     return fresh;
   } catch (error) { disconnect(fresh); throw error; }
+}
+
+function createStartupExceptionGuard(options = {}) {
+  let first = null;
+  const connections = new Set();
+  const record = event => {
+    if (first !== null) return;
+    first = String(event && (event.message || event.text || event.exception && event.exception.description)
+      || 'SDK exception event without message').slice(0, 2000);
+    if (options.onException) options.onException(first);
+  };
+  return {
+    addConnection(miniProgram) {
+      if (!miniProgram || typeof miniProgram.on !== 'function' || typeof miniProgram.removeListener !== 'function') throw Error('Startup exception observation requires the official SDK event interface');
+      if (!connections.has(miniProgram)) { connections.add(miniProgram); miniProgram.on('exception', record); }
+    },
+    assertClean(stage) { if (first !== null) throw Error(`Prewarm startup exception at ${stage}: ${first}`); },
+    dispose() { for (const miniProgram of connections) miniProgram.removeListener('exception', record); connections.clear(); },
+  };
 }
 
 function requiredEnv(name) {
@@ -277,6 +296,8 @@ async function waitForAppServiceReady(miniProgram, timeoutMs, options = {}) {
   if (!Number.isFinite(pollMs) || pollMs <= 0) throw new Error('AppService readiness poll interval must be positive and finite.');
   const startedAt = now();
   const minimumReadBudgetMs = options.minimumReadBudgetMs || 1;
+  const expectedPageCount = options.expectedPageCount;
+  if (expectedPageCount !== undefined && (!Number.isInteger(expectedPageCount) || expectedPageCount < 1)) throw Error('Expected startup page count must be a positive integer');
   if (!Number.isFinite(minimumReadBudgetMs) || minimumReadBudgetMs <= 0) throw Error('AppService minimum read budget must be positive');
   const deadline = Math.min(startedAt + timeoutMs, options.absoluteDeadline === undefined ? Infinity : options.absoluteDeadline);
   let lastProbe = null;
@@ -300,7 +321,8 @@ async function waitForAppServiceReady(miniProgram, timeoutMs, options = {}) {
         const currentPage = pageCount ? pages[pageCount - 1] : null;
         const route = currentPage && (currentPage.route || currentPage.__route__);
         return { functions, appAvailable: !!app && typeof app === 'object', pagesAvailable: Array.isArray(pages),
-          pageCount, pageReady: typeof route === 'string' && route.trim().length > 0 };
+          pageCount, pageRoutes: Array.isArray(pages) ? pages.map(page => String(page.route || page.__route__ || '')) : [],
+          pageReady: typeof route === 'string' && route.trim().length > 0 };
       }), readBudgetMs, 'AppService readiness evaluate');
     } catch (error) {
       if (options.nativeStartupVerified !== true || startupBridgeTimeouts !== 0
@@ -322,9 +344,13 @@ async function waitForAppServiceReady(miniProgram, timeoutMs, options = {}) {
         || (lastProbe.pageReady && (!lastProbe.pagesAvailable || lastProbe.pageCount === 0))) {
       throw new Error(`Invalid AppService readiness probe: ${JSON.stringify(lastProbe || {})}`);
     }
+    if (expectedPageCount !== undefined && lastProbe.pageCount > expectedPageCount) {
+      throw Error(`Unexpected AppService startup page stack: expected=${expectedPageCount}, actual=${lastProbe.pageCount}; ${JSON.stringify(lastProbe)}`);
+    }
     if (now() >= deadline) break;
     if (keys.every((key) => lastProbe.functions[key] === 'function')
-        && lastProbe.appAvailable && lastProbe.pagesAvailable && lastProbe.pageReady) {
+        && lastProbe.appAvailable && lastProbe.pagesAvailable && lastProbe.pageReady
+        && (expectedPageCount === undefined || lastProbe.pageCount === expectedPageCount)) {
       return { ready: true, attempts, elapsedMs: now() - startedAt, lastProbe, startupBridgeTimeouts };
     }
     const remainingMs = deadline - now();
@@ -375,6 +401,7 @@ async function main() {
   let sessionLock = null;
   let launched = null;
   let reconnected = null;
+  const startupExceptions = createStartupExceptionGuard({ onException: message => console.error(`ui:prewarm observed startup exception: ${message}`) });
   try {
     sessionLock = screenshotTool.acquireSessionLock(sessionFile, 'prewarm', { allowStaleRecovery: true });
     const before = screenshotTool.resolveListenerIdentity(endpoint);
@@ -423,6 +450,7 @@ async function main() {
         port,
         timeout: launchAllowance,
       }), launchAllowance, 'Startup automation launch');
+      startupExceptions.addConnection(launched);
     } finally {
       if (typeof previousNwPreArgs === 'undefined') delete process.env.NW_PRE_ARGS;
       else process.env.NW_PRE_ARGS = previousNwPreArgs;
@@ -451,12 +479,14 @@ async function main() {
     const nativeStartupReadiness = nativeStartup
       ? await waitForNativeStartup(nativeStartup, startupBudget.remaining('native-container', 1000, timeoutMs, 15000)) : null;
     if (nativeStartupReadiness) console.error(`ui:prewarm native container complete: ${JSON.stringify(nativeStartupReadiness)}`);
+    startupExceptions.assertClean('native container completion');
     const appServiceAllowance = startupBudget.remaining('app-service', 5000, timeoutMs);
     console.error(`ui:prewarm AppService readiness RPC starting at ${new Date().toISOString()}: App.callFunction(inspectAppServiceReady)`);
     let appServiceReadiness;
     try {
       appServiceReadiness = await waitForAppServiceReady(launched, appServiceAllowance, {
         minimumReadBudgetMs: 5000, absoluteDeadline: startupBudget.deadline,
+        expectedPageCount: 1,
         nativeStartupVerified: !!nativeStartupReadiness && nativeStartupReadiness.ready === true,
         onStartupBridgeTimeout: (diagnostic) => console.error(
           `ui:prewarm bounded startup bridge timeout at ${new Date().toISOString()}: ${JSON.stringify(diagnostic)}`
@@ -466,6 +496,7 @@ async function main() {
       throw new Error(`ui:prewarm AppService readiness RPC App.callFunction(inspectAppServiceReady) failed: ${error.message}`, { cause: error });
     }
     const startupTiming = startupBudget.snapshot();
+    startupExceptions.assertClean('AppService readiness');
     if (startupTiming.elapsedMs >= startupTiming.totalMs) throw Error(`Overall startup budget expired after AppService readiness: ${JSON.stringify(startupTiming)}`);
     console.error(`ui:prewarm startup complete within budget: ${JSON.stringify(startupTiming)}`);
     console.error(`ui:prewarm AppService ready at ${new Date().toISOString()}: ${JSON.stringify(appServiceReadiness)}`);
@@ -477,12 +508,13 @@ async function main() {
         reconnectAfterReplacement: nativeStartup ? (miniProgram, deadline) => reconnectViewportAfterReplacement({
           miniProgram, observer: nativeStartup, baseline: viewportIncarnation, endpoint, listener: launchedListener,
           cliPath, gitManifestHash: screenshotTool.hashCanonical(gitBeforeLaunch), expectedSDKVersion, projectPath: sourceProjectPath, automator,
-          onConnected: fresh => { launched = fresh; },
+          onConnected: fresh => { launched = fresh; startupExceptions.addConnection(fresh); },
           onReconnected: proof => console.error(`ui:prewarm device replacement reconnected: ${JSON.stringify(proof)}`),
         }, deadline) : undefined,
         onReadTimeout: diagnostic => console.error(`ui:prewarm bounded viewport read timeout: ${JSON.stringify(diagnostic)}`) });
       console.error(`ui:prewarm real viewport stable: ${JSON.stringify(viewportReadiness)}`);
     }
+    startupExceptions.assertClean('before marker');
     const marker = {
       sessionId: crypto.randomBytes(32).toString('hex'),
       projectPathHash,
@@ -513,6 +545,7 @@ async function main() {
       timeoutMs,
       'ui:prewarm reconnect'
     );
+    startupExceptions.addConnection(reconnected);
     const [runtimeMarker, rawToolInfo, currentPageInfo, rawSystemInfo] = await Promise.all([
       screenshotTool.readRuntimeSession(reconnected),
       reconnected.send('Tool.getInfo'),
@@ -545,6 +578,7 @@ async function main() {
         expectedMarkerHash: screenshotTool.hashCanonical(marker),
         actualMarkerHash: screenshotTool.hashCanonical(runtimeMarker) })}`);
     }
+    startupExceptions.assertClean('before session signature');
     const git = screenshotTool.currentGitManifest(screenshotTool.REPOSITORY_ROOT);
     if (!git.ok) throw new Error('Unable to bind the prewarm receipt to the current Git worktree state.');
     checks.sourceStableDuringPrewarm = screenshotTool.hashCanonical(git) === screenshotTool.hashCanonical(gitBeforeLaunch);
@@ -609,6 +643,7 @@ async function main() {
     }, null, 2));
     return 0;
   } finally {
+    startupExceptions.dispose();
     disconnect(reconnected);
     disconnect(launched);
     screenshotTool.releaseSessionLockOrThrow(sessionLock);
@@ -622,4 +657,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { main, createStartupBudget, reconnectViewportAfterReplacement, waitForAppServiceReady, waitForViewportReady, resolveWindowsIdeServiceFiles, requestIdeServiceReadiness, waitForWindowsIdeServiceReady };
+module.exports = { main, createStartupBudget, createStartupExceptionGuard, reconnectViewportAfterReplacement, waitForAppServiceReady, waitForViewportReady, resolveWindowsIdeServiceFiles, requestIdeServiceReadiness, waitForWindowsIdeServiceReady };
