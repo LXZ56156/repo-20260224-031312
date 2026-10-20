@@ -92,3 +92,44 @@ test('startup wait uses the existing deadline and propagates observer failures',
   await assert.rejects(waitForNativeStartup({ poll: () => { throw new Error('read failed'); } }, 250), /read failed/);
   await assert.rejects(waitForNativeStartup({}, 0), /positive and finite/);
 });
+
+test('duplicate loadstop preserves completed readiness but never promotes provisional startup', () => {
+  const tracker = createStartupTracker(project);
+  provisional(tracker);
+  tracker.feed('one', event('appservice webview loadstop').trim());
+  assert.equal(tracker.inspect().ready, false);
+  tracker.feed('one', event('appservice reload').trim());
+  tracker.feed('one', event('appservice webview loadstop').trim());
+  assert.equal(tracker.inspect().ready, true);
+  const incarnation = tracker.incarnation();
+  tracker.feed('one', event('appservice webview loadstop').trim());
+  tracker.feed('one', event('appservice webview loadstop').trim());
+  assert.equal(tracker.inspect().ready, true);
+  assert.deepEqual(tracker.incarnation(), incarnation);
+  tracker.feed('one', event('restart appservice compile').trim());
+  tracker.feed('one', event('appservice webview loadstop').trim());
+  assert.equal(tracker.inspect().ready, false, 'restart still needs its paired reload');
+  tracker.feed('one', event('appservice reload').trim());
+  assert.equal(tracker.inspect().ready, false);
+  tracker.feed('one', event('appservice webview loadstop').trim());
+  assert.equal(tracker.inspect().ready, true);
+  tracker.feed('one', event('appservice init webview').trim());
+  tracker.feed('one', event('appservice webview loadstop').trim());
+  assert.equal(tracker.inspect().ready, false, 'new container cannot inherit readiness');
+});
+
+test('one log increment containing both observed completion events remains ready', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'weapp-native-duplicate-'));
+  try {
+    const file = path.join(directory, 'official.log');
+    fs.writeFileSync(file, '');
+    const observer = snapshotNativeStartup(directory, project);
+    fs.appendFileSync(file, binding + event('restart appservice compile') + event('appservice init webview')
+      + event('appservice webview process id 12960') + event('restart appservice compile')
+      + event('appservice reload') + event('appservice reload')
+      + event('appservice webview loadstop') + event('appservice webview loadstop'));
+    assert.equal(observer.poll().ready, true);
+    assert.equal(observer.incarnation().processId, 12960);
+    assert.equal(observer.poll().ready, true);
+  } finally { fs.rmSync(directory, { recursive: true, force: true }); }
+});

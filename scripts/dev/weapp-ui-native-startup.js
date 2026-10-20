@@ -57,7 +57,9 @@ function createStartupTracker(projectPath) {
       // or accept its first loadstop: witness that provisional load, then the
       // later unpaired hook reload AND its loadstop in this same log/window.
       if (!state.known) state.provisionalLoadObserved = true;
-      state.ready = state.awaitingLoad && state.known && !state.pendingContainer && !state.pendingRestart;
+      // Duplicate completion notifications are idempotent. Lifecycle starts
+      // and reloads above already invalidate readiness for the next load.
+      state.ready = (state.ready || state.awaitingLoad) && state.known && !state.pendingContainer && !state.pendingRestart;
       state.awaitingLoad = false;
     }
   }

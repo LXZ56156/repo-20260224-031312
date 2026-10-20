@@ -193,3 +193,15 @@ Windows 升级前基线：npm test 1981/1981 通过、0 失败/跳过；check �
 云端 277bf86 的排程报告专项再次 16/16 通过（19.3 秒）；不修改预算或断言，也不据单次专项通过关闭此前偶发超时。
 
 北京时间 14:04，原 local 已按受支持窗口激活路径取得真实 DevTools JPEG，看到首页及 pages/home/index；截图采于同步前，仅由本地执行器查看，父侧文件传递尚待授权，不当作新版本正式 UI 验收。随后固定目录从干净 19c007c ff-only 至 277bf86，check 通过；Windows 全量 2035 项：2034 通过、1 失败、0 跳过，300.1 秒，测试后工作区干净。失败为 scheduler-full-audit-report.test.js:73 的默认预设质量汇总，rotation.js:1312 抛“排阵超时”，单项 4734.2732ms；日志未记录实际人数、场地、场次或种子，不能拿其他用例补推断。没有重跑掩盖失败，转回云端补确定性反例与修复，正式 UI/签发暂停至同版本回归通过。
+
+
+### 2026-10-20 同版复验与 native 完成事件幂等
+
+5ce582b 在 Windows 的 check 和2037/2037全量通过，209.69秒，工作区干净。随后正式预热仍未通过，分开记录两项现场证据：
+
+- 第一次固定安装包装器选择复制后的CLI，其派生服务目录缺.ide/.ide-status；实际单实例仍在此前安装目录，服务On、loopback端口与实际进程一致，两套CLI/EXE同版本2.02.2608080且hash相同。仅在独立进程临时选择实际安装CLI，源码仍为固定目录，未改永久配置或安全设置。第二次IDE约3025ms就绪，证明该阶段已恢复；单实例转发的内部机制仍为推断。
+- 第二次native-container阶段60秒超时。同一官方文件/rt1/win s1绑定固定项目，序列为restart→init→PID12960→restart→reload→reload→loadstop(14:26:13.104)→loadstop(14:26:13.105)。原tracker离线重放先ready=true、后false；第二次完成事件因awaitingLoad已清空错误撤销就绪。snapshot原字节游标未持久化，fresh边界按启动顺序推导，不声称完整重建。
+
+最小修复让同一生命周期的重复loadstop保持已证明就绪；init/restart/reload仍先撤销就绪，未知/临时首次加载不得因重复事件被提升。新增两个确定性失败回归覆盖重复完成、后续restart/init失效及同一增量批次内双loadstop，修复后33项直接关联通过。安装、exact项目、异常、单页和最终marker/断开重连门禁均未修改。日志另有routeTo appLaunch和triggerAppRouteDone超时，不能把tracker修复当页面已就绪；正式签发/doctor/UI仍待新现场结果，无新session，旧证据与失败保留。
+
+修复后云端全量2039项：2031通过、0失败、8 Windows专属跳过，164.4秒；check通过、lint 0错误/35既有警告、diff检查通过。只读代码复核未发现阻断；同版Windows与现场启动仍待执行，未部署。
