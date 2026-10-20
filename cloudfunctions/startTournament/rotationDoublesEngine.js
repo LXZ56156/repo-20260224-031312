@@ -1072,6 +1072,10 @@ function resolveRuntimeSchedule(ids, totalMatches, courts, options = {}) {
     }
   }
 
+  // Keep a complete candidate before optional search can consume the deadline.
+  // Template hits return above without paying this preparation cost.
+  if (typeof options.prepareFallback === 'function') options.prepareFallback();
+
   const triedSeeds = [];
   const beamSearchSeeds = Math.max(1, Number(options.searchSeeds) || 4);
   const seedStep = Math.max(1, Number(options.seedStep) || 7919);

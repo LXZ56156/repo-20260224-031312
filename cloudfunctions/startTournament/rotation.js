@@ -1254,6 +1254,7 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
   let best = null;
   let triedSeeds = [];
   let actualSearchSeeds = selectedSearchSeeds;
+  let preparedFallback = null;
 
   if (mode === MODE_DOUBLES) {
     best = doublesEngine.resolveRuntimeSchedule(ids, M, effectiveCourts, {
@@ -1262,7 +1263,17 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
       seedStep: selectedSeedStep,
       softDeadlineAtMs,
       guardDeadlineAtMs,
-      hardReturnDeadlineAtMs
+      hardReturnDeadlineAtMs,
+      prepareFallback: coverageFallbackEligible ? undefined : () => {
+        // Use the existing one-seed completion, before discretionary search.
+        // All deadlines remain anchored to scheduleStartedAtMs above.
+        const out = generateLegacyScheduleOnce(ids, M, effectiveCourts, weights, baseSeed, {
+          mode, genderById, totalUniqueMatchups: countDoublesMatchups(ids.length)
+        });
+        Object.assign(out, { engine: 'legacy', searchSeedsUsed: 1, triedSeeds: [baseSeed],
+          executionProfile: 'legacy-guarded', timeoutGuardTriggered: true, fallbackReason: 'beam_unavailable' });
+        preparedFallback = out;
+      }
     });
     if (best) {
       best = optimizeTemplateRoundOrder(best, ids, M);
@@ -1303,6 +1314,12 @@ function generateSchedule(players, totalMatches, courts = 1, options = {}) {
       triedSeeds = coverageTriedSeeds.slice();
       actualSearchSeeds = coverageSeeds;
     }
+  }
+
+  if (!best && preparedFallback) {
+    best = preparedFallback;
+    triedSeeds = [baseSeed];
+    actualSearchSeeds = 1;
   }
 
   if (!best) {
