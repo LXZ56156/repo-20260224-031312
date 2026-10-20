@@ -4,6 +4,7 @@ const db = cloud.database();
 const common = require('./lib/common');
 const permission = require('./lib/permission');
 const logic = require('./logic');
+const pendingCollectionPreparations = new Map();
 
 function safePlayerName(player) {
   const raw = player && (player.name || player.nickName || player.nickname || player.displayName);
@@ -40,8 +41,25 @@ async function ensureScoreLocksCollection() {
   }
 }
 
+async function prepareScoreLocksCollection(context) {
+  // Share only concurrent preparation; never cache success or swallowed failures.
+  if (!context.APPID || !context.ENV) return ensureScoreLocksCollection();
+  const key = JSON.stringify([context.APPID, context.ENV]);
+  let pending = pendingCollectionPreparations.get(key);
+  if (!pending) {
+    if (pendingCollectionPreparations.size >= 64) return ensureScoreLocksCollection();
+    pending = ensureScoreLocksCollection();
+    pendingCollectionPreparations.set(key, pending);
+  }
+  try {
+    await pending;
+  } finally {
+    if (pendingCollectionPreparations.get(key) === pending) pendingCollectionPreparations.delete(key);
+  }
+}
+
 exports.main = async (event) => {
-  const { OPENID } = cloud.getWXContext();
+  const { OPENID, APPID, ENV } = cloud.getWXContext();
   const traceId = String((event && event.__traceId) || '').trim();
   const action = logic.normalizeAction(event && event.action);
   const tournamentId = String((event && event.tournamentId) || '').trim();
@@ -55,7 +73,7 @@ exports.main = async (event) => {
   if (!Number.isFinite(roundIndex) || roundIndex < 0) return common.failResult('ROUND_INDEX_INVALID', 'roundIndex 不合法', { traceId, state: 'invalid' });
   if (!Number.isFinite(matchIndex) || matchIndex < 0) return common.failResult('MATCH_INDEX_INVALID', 'matchIndex 不合法', { traceId, state: 'invalid' });
 
-  await ensureScoreLocksCollection();
+  await prepareScoreLocksCollection({ APPID, ENV });
   const lockId = logic.buildLockId(tournamentId, roundIndex, matchIndex);
 
   try {
@@ -65,6 +83,7 @@ exports.main = async (event) => {
         const tRes = await transaction.collection('tournaments').doc(tournamentId).get();
         tournament = tRes && tRes.data ? tRes.data : null;
       } catch (err) {
+        if (common.isCollectionNotExists(err)) throw err;
         if (common.isDocNotExists(err)) {
           return common.failResult('TOURNAMENT_NOT_FOUND', '赛事不存在', { traceId, state: 'not_found' });
         }
@@ -85,7 +104,7 @@ exports.main = async (event) => {
         const lockRes = await transaction.collection('score_locks').doc(lockId).get();
         lockDoc = lockRes && lockRes.data ? lockRes.data : null;
       } catch (err) {
-        if (!common.isDocNotExists(err)) throw err;
+        if (common.isCollectionNotExists(err) || !common.isDocNotExists(err)) throw err;
       }
 
       const nowTs = Date.now();

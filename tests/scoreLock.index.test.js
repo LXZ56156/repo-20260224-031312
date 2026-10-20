@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const Module = require('node:module');
+const { setImmediate } = require('node:timers');
 
 const scoreLockIndexPath = require.resolve('../cloudfunctions/scoreLock/index.js');
 const scoreLockCommonPath = require.resolve('../cloudfunctions/scoreLock/lib/common.js');
@@ -20,7 +21,7 @@ function buildTournament() {
   };
 }
 
-function loadScoreLockMain(db) {
+function loadScoreLockMain(db, context = { OPENID: 'u_admin', APPID: 'test-app', ENV: 'test-env' }) {
   const originalLoad = Module._load;
   const mockSdk = {
     init() {},
@@ -28,7 +29,7 @@ function loadScoreLockMain(db) {
       return db;
     },
     getWXContext() {
-      return { OPENID: 'u_admin' };
+      return context;
     },
     DYNAMIC_CURRENT_ENV: 'test-env'
   };
@@ -495,4 +496,89 @@ test('scoreLock index returns expired heartbeat errors with expired state', asyn
   assert.equal(result.ok, false);
   assert.equal(result.code, 'LOCK_EXPIRED');
   assert.equal(result.state, 'expired');
+});
+
+
+test('scoreLock does not treat a missing collection as an idle lock', async () => {
+  for (const action of ['status', 'acquire', 'heartbeat']) {
+    const { db, calls } = createDbHarness(async () => {
+      throw new Error('DATABASE_COLLECTION_NOT_EXIST: collection does not exist');
+    });
+    const { main } = loadScoreLockMain(db);
+    await assert.rejects(() => main({ action, tournamentId: 't_1', roundIndex: 0, matchIndex: 0 }), /数据库集合不存在/);
+    assert.equal(calls.set.length, 0);
+    assert.equal(calls.tournamentUpdate.length, 0);
+  }
+});
+
+test('scoreLock does not report an individual missing tournament when its collection is absent', async () => {
+  const { db } = createDbHarness(async () => ({ data: null }));
+  db.runTransaction = async (handler) => handler({ collection: () => ({ doc: () => ({
+    get: async () => { throw new Error('DATABASE_COLLECTION_NOT_EXIST: collection does not exist'); }
+  }) }) });
+  const { main } = loadScoreLockMain(db);
+  await assert.rejects(() => main({ action: 'status', tournamentId: 't_1', roundIndex: 0, matchIndex: 0 }), /数据库集合不存在/);
+});
+
+
+test('scoreLock shares only pending collection preparation and retains every transaction', async () => {
+  let reads = 0;
+  const { db, calls } = createDbHarness(async () => { reads += 1; return { data: null }; });
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  db.createCollection = async () => { calls.createCollection += 1; await gate; };
+  const { main } = loadScoreLockMain(db);
+  const event = { action: 'status', tournamentId: 't_1', roundIndex: 0, matchIndex: 0 };
+  const pending = Promise.all([main(event), main(event)]);
+  await new Promise(setImmediate);
+  const creates = calls.createCollection;
+  release();
+  assert.equal(creates, 1);
+  assert.ok((await pending).every(({ code }) => code === 'LOCK_IDLE'));
+  assert.equal(reads, 2);
+  db.createCollection = async () => { calls.createCollection += 1; };
+  assert.equal((await main(event)).code, 'LOCK_IDLE');
+  assert.equal(calls.createCollection, 2, 'sequential calls still prepare, preserving deletion recovery');
+  assert.equal(reads, 3);
+});
+
+test('scoreLock retries collection preparation after rejected or resolved-error attempts', async () => {
+  for (const throws of [true, false]) {
+    const { db, calls } = createDbHarness(async () => ({ data: null }));
+    db.createCollection = async () => {
+      calls.createCollection += 1;
+      if (throws) throw new Error('temporary create failure');
+      return { code: 'temporary failure' };
+    };
+    const { main } = loadScoreLockMain(db);
+    const event = { action: 'status', tournamentId: 't_1', roundIndex: 0, matchIndex: 0 };
+    assert.equal((await main(event)).code, 'LOCK_IDLE');
+    assert.equal((await main(event)).code, 'LOCK_IDLE');
+    assert.equal(calls.createCollection, 2);
+  }
+});
+
+
+test('scoreLock does not share collection preparation across identities or absent context', async () => {
+  for (const change of [
+    (context) => { context.ENV = 'other-env'; },
+    (context) => { context.APPID = 'other-app'; },
+    (context) => { delete context.ENV; },
+    (context) => { delete context.APPID; }
+  ]) {
+    const { db, calls } = createDbHarness(async () => ({ data: null }));
+    let release;
+    const gate = new Promise((resolve) => { release = resolve; });
+    db.createCollection = async () => { calls.createCollection += 1; await gate; };
+    const context = { OPENID: 'u_admin', APPID: 'app', ENV: 'env' };
+    const { main } = loadScoreLockMain(db, context);
+    const event = { action: 'status', tournamentId: 't_1', roundIndex: 0, matchIndex: 0 };
+    const first = main(event);
+    change(context);
+    const second = main(event);
+    await new Promise(setImmediate);
+    release();
+    assert.ok((await Promise.all([first, second])).every(({ code }) => code === 'LOCK_IDLE'));
+    assert.equal(calls.createCollection, 2);
+  }
 });
