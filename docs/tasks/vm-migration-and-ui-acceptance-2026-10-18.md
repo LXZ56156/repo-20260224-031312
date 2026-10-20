@@ -205,3 +205,10 @@ Windows 升级前基线：npm test 1981/1981 通过、0 失败/跳过；check �
 最小修复让同一生命周期的重复loadstop保持已证明就绪；init/restart/reload仍先撤销就绪，未知/临时首次加载不得因重复事件被提升。新增两个确定性失败回归覆盖重复完成、后续restart/init失效及同一增量批次内双loadstop，修复后33项直接关联通过。安装、exact项目、异常、单页和最终marker/断开重连门禁均未修改。日志另有routeTo appLaunch和triggerAppRouteDone超时，不能把tracker修复当页面已就绪；正式签发/doctor/UI仍待新现场结果，无新session，旧证据与失败保留。
 
 修复后云端全量2039项：2031通过、0失败、8 Windows专属跳过，164.4秒；check通过、lint 0错误/35既有警告、diff检查通过。只读代码复核未发现阻断；同版Windows与现场启动仍待执行，未部署。
+
+
+### f0911a6 固定目录正式启动闭环
+
+北京时间14:43，同版Windows check通过、全量2039/2039通过（0失败/跳过，211.36秒），固定目录master/f0911a6干净。使用已验证的实际安装CLI后正式预热退出0：native约4.13秒就绪，AppService单页pages/home/index、无启动桥接超时；实际iPhone12/13(Pro)、390×671、字号16、SDK3.17.4，两次几何稳定，无需切设备。签发9/9、doctor8/8全部通过（sessionRecord、marker、listenerIdentity、sdkVersion、viewport、route、toolProjectPath、sourceSnapshot）。正式receipt位于固定目录tmp，owner退出且无锁/恢复/poison状态。
+
+该结果关闭此次固定目录正式启动阻塞；旧失败仍保存，不能概括为所有基础库问题永久消失。持久pending/resume无需为此次收尾新增实现。原local最终idle，未部署或业务写入。图片传回审核仍待用户确认，父侧尚未查看最新源码实图，因此本轮视觉验收仍未完成。本文补录只改文档，验收与receipt精确覆盖运行版本f0911a6；不把文档后续提交说成新的运行验收，也不为文档记录破坏当前合法VM会话。
