@@ -8,6 +8,8 @@ const playerHelper = require('./lib/player');
 
 const SHARE_ENTRY_PAGE = 'pages/share-entry/index';
 const SHARE_CODE_WIDTH = 280;
+const inFlightCodes = new Map();
+const MAX_IN_FLIGHT_CODES = 64;
 const SHARE_SCENE_PATTERN = /^[0-9A-Za-z!#$&'()*+,/:;=?@._~-]{1,32}$/;
 
 function ok(traceId, code, message, extra = {}) {
@@ -79,8 +81,47 @@ async function createShareCode(scene, envVersion) {
   return buffer;
 }
 
+async function generateAndUpload(tournamentId, envVersion) {
+  const fileContent = await createShareCode(tournamentId, envVersion);
+  if (!cloud || typeof cloud.uploadFile !== 'function') {
+    throw new Error('cloud.uploadFile unavailable');
+  }
+  const cloudPath = buildCloudPath(tournamentId, envVersion);
+  const uploaded = await cloud.uploadFile({
+    cloudPath,
+    fileContent
+  });
+  const fileID = String((uploaded && uploaded.fileID) || '').trim();
+  if (!fileID) {
+    throw new Error('cloud.uploadFile returned empty fileID');
+  }
+
+  return fileID;
+}
+
+async function resolveShareCode(tournamentId, envVersion, context) {
+  // Only called after this invocation has independently rechecked permissions.
+  // No settled cache: later requests regenerate, so deletion/revocation is not hidden.
+  if (!context.APPID || !context.ENV) return generateAndUpload(tournamentId, envVersion);
+  const key = JSON.stringify([context.APPID, context.ENV, tournamentId, envVersion]);
+  let pending = inFlightCodes.get(key);
+  if (!pending) {
+    if (inFlightCodes.size >= MAX_IN_FLIGHT_CODES) {
+      return generateAndUpload(tournamentId, envVersion);
+    }
+    pending = generateAndUpload(tournamentId, envVersion);
+    inFlightCodes.set(key, pending);
+  }
+  try {
+    return await pending;
+  } finally {
+    if (inFlightCodes.get(key) === pending) inFlightCodes.delete(key);
+  }
+}
+
 exports.main = async (event) => {
   const wxContext = cloud.getWXContext();
+  const codeContext = { APPID: wxContext && wxContext.APPID, ENV: wxContext && wxContext.ENV };
   const openid = String((wxContext && wxContext.OPENID) || '').trim();
   const traceId = String((event && event.__traceId) || '').trim();
   const tournamentId = String((event && event.tournamentId) || '').trim();
@@ -110,19 +151,7 @@ exports.main = async (event) => {
     });
   }
 
-  const fileContent = await createShareCode(tournamentId, envVersion);
-  if (!cloud || typeof cloud.uploadFile !== 'function') {
-    throw new Error('cloud.uploadFile unavailable');
-  }
-  const cloudPath = buildCloudPath(tournamentId, envVersion);
-  const uploaded = await cloud.uploadFile({
-    cloudPath,
-    fileContent
-  });
-  const fileID = String((uploaded && uploaded.fileID) || '').trim();
-  if (!fileID) {
-    throw new Error('cloud.uploadFile returned empty fileID');
-  }
+  const fileID = await resolveShareCode(tournamentId, envVersion, codeContext);
 
   return ok(traceId, 'SHARE_CODE_READY', '小程序码已准备', {
     state: 'ready',

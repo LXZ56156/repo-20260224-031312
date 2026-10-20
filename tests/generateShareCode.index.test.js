@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const Module = require('node:module');
 const path = require('node:path');
+const { setImmediate } = require('node:timers');
 
 const mainPath = path.join(__dirname, '..', 'cloudfunctions', 'generateShareCode', 'index.js');
 
@@ -51,12 +52,13 @@ function loadMain(options = {}) {
       };
     },
     getWXContext() {
-      return { OPENID: String(options.openid || 'u_owner') };
+      return options.context ? options.context() : { OPENID: String(options.openid || 'u_owner'), ENV: 'test-env', APPID: 'test-app' };
     },
     openapi: {
       wxacode: {
         async getUnlimited(payload) {
           calls.getUnlimited.push(payload);
+          if (options.generateCode) return options.generateCode(payload);
           if (options.codeError) throw options.codeError;
           return Object.hasOwn(options, 'codeResult') ? options.codeResult : { buffer: Buffer.from('png-content') };
         }
@@ -64,6 +66,7 @@ function loadMain(options = {}) {
     },
     async uploadFile(payload) {
       calls.uploadFile.push(payload);
+      if (options.upload) return options.upload(payload);
       if (options.uploadError) throw options.uploadError;
       return Object.hasOwn(options, 'uploadResult') ? options.uploadResult : { fileID: 'cloud://test/share-codes/code.png' };
     },
@@ -212,4 +215,161 @@ test('generateShareCode never returns ready without successful upload and a file
     assert.equal(calls.getUnlimited.length, 1);
     assert.equal(calls.uploadFile.length, 1);
   }
+});
+
+
+function deferred() {
+  let resolve;
+  let reject;
+  const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
+  return { promise, resolve, reject };
+}
+
+test('generateShareCode coalesces only overlapping authorized work and keeps each trace', async () => {
+  const gate = deferred();
+  const { main, calls } = loadMain({ tournament: buildTournament(), generateCode: () => gate.promise });
+  const first = main({ tournamentId: 'tid_123', __traceId: 'trace_first' });
+  const second = main({ tournamentId: 'tid_123', __traceId: 'trace_second' });
+  await new Promise(setImmediate);
+  gate.resolve({ buffer: Buffer.from('png-content') });
+  const results = await Promise.all([first, second]);
+  assert.equal(calls.tournamentReads, 2);
+  assert.equal(calls.getUnlimited.length, 1);
+  assert.equal(calls.uploadFile.length, 1);
+  assert.deepEqual(results.map(({ traceId }) => traceId), ['trace_first', 'trace_second']);
+  assert.ok(results.every(({ ok, fileID }) => ok && fileID === results[0].fileID));
+  await main({ tournamentId: 'tid_123' });
+  assert.equal(calls.getUnlimited.length, 2, 'settled results must not be cached');
+  assert.equal(calls.uploadFile.length, 2);
+});
+
+test('generateShareCode rejects a revoked member while generation is still pending', async () => {
+  const gate = deferred();
+  let tournament = buildTournament({ players: [{ id: 'u_member' }], playerIds: ['u_member'] });
+  const { main, calls } = loadMain({ openid: 'u_member', readTournament: () => tournament, generateCode: () => gate.promise });
+  const first = main({ tournamentId: 'tid_123' });
+  await new Promise(setImmediate);
+  tournament = buildTournament();
+  const refused = await main({ tournamentId: 'tid_123' });
+  gate.resolve({ buffer: Buffer.from('png-content') });
+  assert.equal((await first).ok, true);
+  assert.equal(refused.code, 'PERMISSION_DENIED');
+  assert.equal(calls.tournamentReads, 2);
+  assert.equal(calls.getUnlimited.length, 1);
+});
+
+test('generateShareCode clears rejected shared work so an explicit retry can succeed', async () => {
+  let gate = deferred();
+  const { main, calls } = loadMain({ tournament: buildTournament(), generateCode: () => gate.promise });
+  const resultsPromise = Promise.allSettled([
+    main({ tournamentId: 'tid_123' }), main({ tournamentId: 'tid_123' })
+  ]);
+  await new Promise(setImmediate);
+  gate.reject(new Error('temporary generation failure'));
+  const results = await resultsPromise;
+  assert.ok(results.every(({ status, reason }) => status === 'rejected' && reason.message === 'temporary generation failure'));
+  assert.equal(calls.getUnlimited.length, 1);
+  assert.equal(calls.uploadFile.length, 0);
+  gate = deferred();
+  gate.resolve({ buffer: Buffer.from('png-content') });
+  assert.equal((await main({ tournamentId: 'tid_123' })).ok, true);
+  assert.equal(calls.getUnlimited.length, 2);
+  assert.equal(calls.uploadFile.length, 1);
+});
+
+test('generateShareCode does not coalesce different versions or cloud environments', async () => {
+  const gate = deferred();
+  let env = 'env_one';
+  const { main, calls } = loadMain({
+    tournament: buildTournament(), generateCode: () => gate.promise,
+    context: () => ({ OPENID: 'u_owner', ENV: env, APPID: 'test-app' })
+  });
+  const first = main({ tournamentId: 'tid_123', envVersion: 'develop' });
+  const second = main({ tournamentId: 'tid_123', envVersion: 'trial' });
+  env = 'env_two';
+  const third = main({ tournamentId: 'tid_123', envVersion: 'develop' });
+  await new Promise(setImmediate);
+  gate.resolve({ buffer: Buffer.from('png-content') });
+  assert.ok((await Promise.all([first, second, third])).every(({ ok }) => ok));
+  assert.equal(calls.getUnlimited.length, 3);
+  assert.equal(calls.uploadFile.length, 3);
+});
+
+
+test('generateShareCode clears shared upload failures and allows a fresh successful pipeline', async () => {
+  for (const failure of [new Error('temporary upload failure'), { fileID: ' ' }]) {
+    let gate = deferred();
+    const { main, calls } = loadMain({ tournament: buildTournament(), upload: () => gate.promise });
+    const resultsPromise = Promise.allSettled([
+      main({ tournamentId: 'tid_123' }), main({ tournamentId: 'tid_123' })
+    ]);
+    await new Promise(setImmediate);
+    if (failure instanceof Error) gate.reject(failure);
+    else gate.resolve(failure);
+    const results = await resultsPromise;
+    assert.ok(results.every(({ status, reason }) => status === 'rejected' && /upload failure|empty fileID/.test(reason.message)));
+    assert.equal(calls.getUnlimited.length, 1);
+    assert.equal(calls.uploadFile.length, 1);
+    gate = deferred();
+    gate.resolve({ fileID: 'cloud://test/retry.png' });
+    assert.equal((await main({ tournamentId: 'tid_123' })).fileID, 'cloud://test/retry.png');
+    assert.equal(calls.getUnlimited.length, 2);
+    assert.equal(calls.uploadFile.length, 2);
+  }
+});
+
+test('generateShareCode does not reuse pending work for deleted or unreadable tournaments', async () => {
+  for (const unreadable of [false, true]) {
+    const gate = deferred();
+    let unavailable = false;
+    const { main, calls } = loadMain({
+      readTournament() {
+        if (unavailable && unreadable) throw new Error('tournament read failed');
+        return unavailable ? null : buildTournament();
+      }, generateCode: () => gate.promise
+    });
+    const first = main({ tournamentId: 'tid_123' });
+    await new Promise(setImmediate);
+    unavailable = true;
+    if (unreadable) await assert.rejects(() => main({ tournamentId: 'tid_123' }), /tournament read failed/);
+    else assert.equal((await main({ tournamentId: 'tid_123' })).code, 'TOURNAMENT_NOT_FOUND');
+    gate.resolve({ buffer: Buffer.from('png-content') });
+    assert.equal((await first).ok, true);
+    assert.equal(calls.getUnlimited.length, 1);
+    assert.equal(calls.tournamentReads, 2);
+  }
+});
+
+test('generateShareCode bypasses sharing when cloud identity is missing', async () => {
+  const gate = deferred();
+  const { main, calls } = loadMain({ tournament: buildTournament(),
+    context: () => ({ OPENID: 'u_owner' }), generateCode: () => gate.promise });
+  const results = Promise.all([main({ tournamentId: 'tid_123' }), main({ tournamentId: 'tid_123' })]);
+  await new Promise(setImmediate);
+  gate.resolve({ buffer: Buffer.from('png-content') });
+  assert.ok((await results).every(({ ok }) => ok));
+  assert.equal(calls.getUnlimited.length, 2);
+});
+
+test('generateShareCode keeps tracked work shared while overflow runs uncached', async () => {
+  const gate = deferred();
+  let env = 'env_0';
+  const { main, calls } = loadMain({ tournament: buildTournament(), generateCode: () => gate.promise,
+    context: () => ({ OPENID: 'u_owner', APPID: 'app', ENV: env }) });
+  const pending = [];
+  for (let i = 0; i < 65; i += 1) {
+    env = `env_${i}`;
+    pending.push(main({ tournamentId: 'tid_123' }));
+  }
+  await new Promise(setImmediate);
+  env = 'env_0';
+  pending.push(main({ tournamentId: 'tid_123' }));
+  env = 'env_64';
+  pending.push(main({ tournamentId: 'tid_123' }));
+  await new Promise(setImmediate);
+  gate.resolve({ buffer: Buffer.from('png-content') });
+  assert.ok((await Promise.all(pending)).every(({ ok }) => ok));
+  assert.equal(calls.tournamentReads, 67);
+  assert.equal(calls.getUnlimited.length, 66);
+  assert.equal(calls.uploadFile.length, 66);
 });
