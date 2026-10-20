@@ -24,6 +24,7 @@ function buildTournament(extra = {}) {
 function loadMain(options = {}) {
   const originalLoad = Module._load;
   const calls = {
+    tournamentReads: 0,
     getUnlimited: [],
     uploadFile: []
   };
@@ -39,8 +40,9 @@ function loadMain(options = {}) {
               assert.equal(id, String(options.expectedTournamentId || 'tid_123'));
               return {
                 async get() {
+                  calls.tournamentReads += 1;
                   if (options.readError) throw options.readError;
-                  return { data: tournament };
+                  return { data: options.readTournament ? options.readTournament() : tournament };
                 }
               };
             }
@@ -55,13 +57,15 @@ function loadMain(options = {}) {
       wxacode: {
         async getUnlimited(payload) {
           calls.getUnlimited.push(payload);
-          return { buffer: Buffer.from('png-content') };
+          if (options.codeError) throw options.codeError;
+          return Object.hasOwn(options, 'codeResult') ? options.codeResult : { buffer: Buffer.from('png-content') };
         }
       }
     },
     async uploadFile(payload) {
       calls.uploadFile.push(payload);
-      return { fileID: 'cloud://test/share-codes/code.png' };
+      if (options.uploadError) throw options.uploadError;
+      return Object.hasOwn(options, 'uploadResult') ? options.uploadResult : { fileID: 'cloud://test/share-codes/code.png' };
     },
     DYNAMIC_CURRENT_ENV: 'test-env'
   };
@@ -154,4 +158,58 @@ test('generateShareCode enables path validation for release codes', async () => 
 
   assert.equal(calls.getUnlimited[0].checkPath, true);
   assert.equal(calls.getUnlimited[0].envVersion, 'release');
+});
+
+test('generateShareCode rechecks membership before another request in the same instance', async () => {
+  let tournament = buildTournament({ players: [{ id: 'u_member' }], playerIds: ['u_member'] });
+  const { main, calls } = loadMain({ openid: 'u_member', readTournament: () => tournament });
+  const event = { tournamentId: 'tid_123', envVersion: 'trial' };
+  assert.equal((await main(event)).ok, true);
+  tournament = buildTournament();
+  const result = await main(event);
+  assert.equal(result.code, 'PERMISSION_DENIED');
+  assert.equal(result.ok, false);
+  assert.equal(calls.tournamentReads, 2);
+  assert.equal(calls.getUnlimited.length, 1);
+  assert.equal(calls.uploadFile.length, 1);
+});
+
+test('generateShareCode isolates develop, trial and release output paths', async () => {
+  const { main, calls } = loadMain({ tournament: buildTournament() });
+  for (const envVersion of ['develop', 'trial', 'release']) {
+    assert.equal((await main({ tournamentId: 'tid_123', envVersion })).ok, true);
+  }
+  assert.deepEqual(calls.getUnlimited.map(({ envVersion, checkPath }) => [envVersion, checkPath]), [
+    ['develop', false], ['trial', false], ['release', true]
+  ]);
+  assert.equal(new Set(calls.uploadFile.map(({ cloudPath }) => cloudPath)).size, 3);
+  for (const [index, envVersion] of ['develop', 'trial', 'release'].entries()) {
+    assert.ok(calls.uploadFile[index].cloudPath.startsWith(`share-codes/${envVersion}/`));
+  }
+});
+
+test('generateShareCode never uploads or returns ready when code generation fails', async () => {
+  for (const options of [
+    { codeError: new Error('code generation unavailable') },
+    { codeResult: null },
+    { codeResult: { buffer: Buffer.alloc(0) } }
+  ]) {
+    const { main, calls } = loadMain({ tournament: buildTournament(), ...options });
+    await assert.rejects(() => main({ tournamentId: 'tid_123' }), options.codeError || /returned empty buffer/);
+    assert.equal(calls.getUnlimited.length, 1);
+    assert.equal(calls.uploadFile.length, 0);
+  }
+});
+
+test('generateShareCode never returns ready without successful upload and a file ID', async () => {
+  for (const options of [
+    { uploadError: new Error('upload unavailable') },
+    { uploadResult: null },
+    { uploadResult: { fileID: '   ' } }
+  ]) {
+    const { main, calls } = loadMain({ tournament: buildTournament(), ...options });
+    await assert.rejects(() => main({ tournamentId: 'tid_123' }), options.uploadError || /returned empty fileID/);
+    assert.equal(calls.getUnlimited.length, 1);
+    assert.equal(calls.uploadFile.length, 1);
+  }
 });
